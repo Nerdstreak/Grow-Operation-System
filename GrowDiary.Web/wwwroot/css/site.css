@@ -190,7 +190,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ─── STATS ROW ──────────────────────────────────────────────── */
 .stats-row { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
 .stat-chip { padding: 9px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; font-size: 13px; color: var(--muted); }
-.stat-chip strong { color: var(--text); font-size: 20px; font-family: var(--mono); display: block; line-height: 1.1; margin-bottom: 2px; }
+.stat-chip strong { color: var(--text); font-size: 20px; font-family: var(--mono); font-weight: 300; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -0.02em; display: block; line-height: 1.1; margin-bottom: 2px; }
 
 /* ─── TENT CARD ──────────────────────────────────────────────── */
 .tent-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: border-color 0.14s, box-shadow 0.14s; }
@@ -211,7 +211,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tc-metric:last-child { border-right: none; }
 
 .tc-metric-label  { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 6px; font-weight: 700; }
-.tc-metric-value  { font-family: var(--mono); font-size: 26px; font-weight: 500; letter-spacing: -0.04em; line-height: 1; color: var(--text); }
+.tc-metric-value  { font-family: var(--mono); font-size: 26px; font-weight: 300; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -0.04em; line-height: 1; color: var(--text); }
 .tc-metric-value.ok   { color: var(--green); }
 .tc-metric-value.warn { color: var(--amber); }
 .tc-metric-value.crit { color: var(--red); }
@@ -257,7 +257,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .grow-kpis { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 14px; }
 .grow-kpi { flex: 1; padding: 12px 16px; border-right: 1px solid var(--border); }
 .grow-kpi:last-child { border-right: none; }
-.grow-kpi-val   { font-family: var(--mono); font-size: 24px; font-weight: 500; letter-spacing: -0.03em; line-height: 1; }
+.grow-kpi-val   { font-family: var(--mono); font-size: 24px; font-weight: 300; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -0.03em; line-height: 1; }
 .grow-kpi-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
 
 /* ─── FOCUS CARD ─────────────────────────────────────────────── */
@@ -294,7 +294,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .addback-name   { font-size: 13px; font-weight: 500; }
 .addback-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .addback-ec { display: flex; align-items: baseline; gap: 6px; margin-top: 6px; }
-.addback-ec-val { font-family: var(--mono); font-size: 20px; font-weight: 500; }
+.addback-ec-val { font-family: var(--mono); font-size: 20px; font-weight: 300; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -0.02em; }
 .addback-ec-val.up   { color: var(--amber); }
 .addback-ec-val.down { color: var(--blue); }
 .addback-ec-unit { font-size: 11px; color: var(--muted); font-family: var(--mono); }
@@ -323,7 +323,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .grows-cols { grid-template-columns: 2fr 1fr 1fr 1fr 1fr 60px; }
 .row-name  { font-size: 14px; font-weight: 500; }
 .row-sub   { font-size: 12px; color: var(--muted); margin-top: 2px; }
-.row-val   { font-family: var(--mono); font-size: 13px; }
+.row-val   { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 .row-muted { font-size: 13px; color: var(--muted); }
 
 /* ─── CHART CARD ─────────────────────────────────────────────── */
