@@ -119,7 +119,7 @@ else
                     <div class="card-pad" style="display:grid; gap:10px">
                         <div class="field">
                             <label>Zeitpunkt</label>
-                            <input type="datetime-local" @bind="_takenAtLocal" />
+                            <input type="datetime-local" @bind-value="_takenAtLocal" @bind-value:format="yyyy-MM-ddTHH:mm" />
                         </div>
                         <div class="field">
                             <label>Phase</label>
@@ -170,7 +170,7 @@ else
 
     private string? _journalTitle;
     private string? _journalBody;
-    private string _takenAtLocal = DateTime.Now.ToString("yyyy-MM-ddTHH:mm");
+    private DateTime _takenAtLocal = DateTime.Now;
 
     protected override Task OnInitializedAsync()
     {
@@ -185,7 +185,7 @@ else
         _measurement = new Measurement
         {
             GrowId = Id,
-            Stage = _grow.Stage,
+            Stage = _latest?.Stage ?? GrowStage.Veg,
             Source = ValueOrigin.Manual,
             TakenAt = DateTime.Now
         };
@@ -220,14 +220,8 @@ else
 
         try
         {
-            if (!DateTime.TryParse(_takenAtLocal, out var takenAtLocal))
-            {
-                _error = "Ungültiger Zeitpunkt.";
-                return Task.CompletedTask;
-            }
-
             _measurement.GrowId = Id;
-            _measurement.TakenAt = takenAtLocal;
+            _measurement.TakenAt = _takenAtLocal;
 
             var measurementId = GrowRepo.CreateMeasurement(_measurement);
 
