@@ -3,6 +3,7 @@
 @inject GrowRepository GrowRepo
 @inject HomeAssistantService HaService
 @inject GrowDashboardComposer Composer
+@inject ILogger<Tents> Logger
 
 <div class="topbar">
     <span class="topbar-title">Zelte</span>
@@ -55,7 +56,11 @@
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
                 states = await HaService.GetStatesAsync(settings, tent, cts.Token);
             }
-            catch { states = new(); }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "HA-States fuer Zelt {TentId} konnten nicht geladen werden.", tent.Id);
+                states = new();
+            }
 
             var metrics = Composer.BuildTentMetrics(tent, states, measurements);
             foreach (var m in metrics)

@@ -5,6 +5,7 @@
 @inject GrowDashboardComposer Composer
 @inject WeekCounterService WeekCounter
 @inject NavigationManager Nav
+@inject ILogger<TentDetail> Logger
 
 @if (_loading)
 {
@@ -160,8 +161,18 @@ else
     private Tent? _tent;
     private List<MetricCard> _metrics = new();
     private List<GrowDeviation> _deviations = new();
+    private int? _loadedId;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == Id)
+        {
+            return;
+        }
+
+        _loadedId = Id;
+        await LoadAsync();
+    }
 
     private async Task RefreshAsync()
     {
@@ -172,8 +183,15 @@ else
 
     private async Task LoadAsync()
     {
+        _loading = true;
         _tent = GrowRepo.GetTent(Id);
-        if (_tent is null) { _loading = false; return; }
+        if (_tent is null)
+        {
+            _metrics.Clear();
+            _deviations.Clear();
+            _loading = false;
+            return;
+        }
 
         var settings     = GrowRepo.GetHomeAssistantSettings();
         var measurements = GrowRepo.GetMeasurementsForTent(Id);
@@ -183,7 +201,11 @@ else
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
             states = await HaService.GetStatesAsync(settings, _tent, cts.Token);
         }
-        catch { states = new(); }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "HA-States fuer Zelt {TentId} konnten nicht geladen werden.", _tent.Id);
+            states = new();
+        }
 
         _metrics = Composer.BuildTentMetrics(_tent, states, measurements);
         foreach (var m in _metrics)

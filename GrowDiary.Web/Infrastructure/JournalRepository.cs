@@ -59,9 +59,21 @@ public sealed class JournalRepository
             Body = reader["Body"] is DBNull ? null : reader["Body"]?.ToString(),
             EntryType = Enum.TryParse<JournalEntryType>(reader["EntryType"]?.ToString(), out var type) ? type : JournalEntryType.Note,
             Source = Enum.TryParse<ValueOrigin>(reader["Source"]?.ToString(), out var source) ? source : ValueOrigin.Manual,
-            OccurredAtUtc = DateTime.Parse(reader["OccurredAtUtc"]?.ToString() ?? string.Empty, CultureInfo.InvariantCulture).ToUniversalTime(),
-            CreatedAtUtc = DateTime.Parse(reader["CreatedAtUtc"]?.ToString() ?? string.Empty, CultureInfo.InvariantCulture).ToUniversalTime()
+            OccurredAtUtc = ParseUtcOrDefault(reader["OccurredAtUtc"]),
+            CreatedAtUtc = ParseUtcOrDefault(reader["CreatedAtUtc"])
         };
+
+    private static DateTime ParseUtcOrDefault(object raw)
+    {
+        var text = raw is DBNull ? null : raw?.ToString();
+        if (!string.IsNullOrWhiteSpace(text) &&
+            DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal, out var parsed))
+        {
+            return parsed.ToUniversalTime();
+        }
+
+        return DateTime.UtcNow;
+    }
 
     private SqliteConnection OpenConnection()
     {

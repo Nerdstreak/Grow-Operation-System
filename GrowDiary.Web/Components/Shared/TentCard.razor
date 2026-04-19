@@ -1,6 +1,6 @@
 @inject NavigationManager Nav
 
-<article class="tent-card is-@StatusClass" @onclick='() => Nav.NavigateTo($"/zelte/{Tent.Id}")'>
+<article class="tent-card is-@StatusClass" tabindex="0" @onclick='() => Nav.NavigateTo($"/zelte/{Tent.Id}")' @onkeydown="OpenFromKeyboard">
 
     @* Header *@
     <div class="tc-header">
@@ -48,7 +48,7 @@
     @* Kamera *@
     @if (!string.IsNullOrWhiteSpace(Tent.CameraEntityId))
     {
-        <CameraPanel TentId="@Tent.Id" RefreshSeconds="30" />
+        <CameraPanel TentId="@Tent.Id" RefreshSeconds="30" Alt="@($"Livebild von {Tent.Name}")" />
     }
 
     @* Footer *@
@@ -129,5 +129,13 @@
             DeviationSeverity.Ok       => "ok",
             _                          => ""
         };
+    }
+
+    private void OpenFromKeyboard(KeyboardEventArgs args)
+    {
+        if (args.Key is "Enter" or " ")
+        {
+            Nav.NavigateTo($"/zelte/{Tent.Id}");
+        }
     }
 }

@@ -101,12 +101,36 @@ public sealed class TaskRepository
             GrowName = reader["GrowName"] is DBNull ? null : reader["GrowName"]?.ToString(),
             Title = reader["Title"]?.ToString() ?? string.Empty,
             Notes = reader["Notes"] is DBNull ? null : reader["Notes"]?.ToString(),
-            DueAtUtc = reader["DueAtUtc"] is DBNull ? null : DateTime.Parse(reader["DueAtUtc"]?.ToString() ?? string.Empty, CultureInfo.InvariantCulture).ToUniversalTime(),
+            DueAtUtc = ParseUtcOrNull(reader["DueAtUtc"]),
             Priority = Enum.TryParse<TaskPriority>(reader["Priority"]?.ToString(), out var priority) ? priority : TaskPriority.Normal,
             Status = Enum.TryParse<GrowTaskStatus>(reader["Status"]?.ToString(), out var status) ? status : GrowTaskStatus.Open,
-            CreatedAtUtc = DateTime.Parse(reader["CreatedAtUtc"]?.ToString() ?? string.Empty, CultureInfo.InvariantCulture).ToUniversalTime(),
-            CompletedAtUtc = reader["CompletedAtUtc"] is DBNull ? null : DateTime.Parse(reader["CompletedAtUtc"]?.ToString() ?? string.Empty, CultureInfo.InvariantCulture).ToUniversalTime()
+            CreatedAtUtc = ParseUtcOrDefault(reader["CreatedAtUtc"]),
+            CompletedAtUtc = ParseUtcOrNull(reader["CompletedAtUtc"])
         };
+
+    private static DateTime ParseUtcOrDefault(object raw)
+    {
+        var parsed = ParseUtcOrNull(raw);
+        return parsed ?? DateTime.UtcNow;
+    }
+
+    private static DateTime? ParseUtcOrNull(object raw)
+    {
+        if (raw is DBNull)
+        {
+            return null;
+        }
+
+        var text = raw?.ToString();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        return DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal, out var parsed)
+            ? parsed.ToUniversalTime()
+            : null;
+    }
 
     private SqliteConnection OpenConnection()
     {

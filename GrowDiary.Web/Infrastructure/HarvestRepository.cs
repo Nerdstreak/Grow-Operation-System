@@ -1,3 +1,4 @@
+using System.Globalization;
 using GrowDiary.Web.Models;
 using Microsoft.Data.Sqlite;
 
@@ -94,7 +95,7 @@ public sealed class HarvestRepository
         {
             Id           = Convert.ToInt32((long)reader["Id"]),
             GrowId       = Convert.ToInt32((long)reader["GrowId"]),
-            HarvestedAt  = DateTime.Parse(reader["HarvestedAt"].ToString()!),
+            HarvestedAt  = ParseDateOrDefault(reader["HarvestedAt"]),
             WetWeightG   = reader["WetWeightG"]  is DBNull ? null : Convert.ToDouble(reader["WetWeightG"]),
             DryWeightG   = reader["DryWeightG"]  is DBNull ? null : Convert.ToDouble(reader["DryWeightG"]),
             DryDays      = reader["DryDays"]     is DBNull ? null : Convert.ToInt32((long)reader["DryDays"]),
@@ -103,9 +104,33 @@ public sealed class HarvestRepository
             FlavorNotes  = reader["FlavorNotes"] is DBNull ? null : reader["FlavorNotes"].ToString(),
             EffectNotes  = reader["EffectNotes"] is DBNull ? null : reader["EffectNotes"].ToString(),
             NugStructure = reader["NugStructure"] is DBNull ? null : reader["NugStructure"].ToString(),
-            CreatedAtUtc = DateTime.Parse(reader["CreatedAtUtc"].ToString()!),
-            UpdatedAtUtc = DateTime.Parse(reader["UpdatedAtUtc"].ToString()!)
+            CreatedAtUtc = ParseUtcOrDefault(reader["CreatedAtUtc"]),
+            UpdatedAtUtc = ParseUtcOrDefault(reader["UpdatedAtUtc"])
         };
+
+    private static DateTime ParseUtcOrDefault(object raw)
+    {
+        var text = raw is DBNull ? null : raw?.ToString();
+        if (!string.IsNullOrWhiteSpace(text) &&
+            DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal, out var parsed))
+        {
+            return parsed.ToUniversalTime();
+        }
+
+        return DateTime.UtcNow;
+    }
+
+    private static DateTime ParseDateOrDefault(object raw)
+    {
+        var text = raw is DBNull ? null : raw?.ToString();
+        if (!string.IsNullOrWhiteSpace(text) &&
+            DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsed))
+        {
+            return parsed.Date;
+        }
+
+        return DateTime.Today;
+    }
 
     private SqliteConnection OpenConnection()
     {

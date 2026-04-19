@@ -10,7 +10,8 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
     private readonly AppPaths _paths;
 
     // Kamera-Snapshot: einmal täglich nach 12:00
-    private DateOnly? _lastCameraCaptureDateLocal;
+    private readonly Dictionary<int, DateOnly> _lastCameraCaptureDateByTent = new();
+    private DateOnly? _lastAggregationDateLocal;
 
     public HomeAssistantSnapshotWorker(
         IServiceProvider serviceProvider,
@@ -24,7 +25,14 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            return;
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -32,17 +40,22 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
 
             await CaptureReadingsAsync(stoppingToken);
 
-            if (now.Hour == 2 && now.Minute < 5)
+            var today = DateOnly.FromDateTime(now);
+            if (now.Hour == 2 && now.Minute < 5 && _lastAggregationDateLocal != today)
             {
                 await AggregateYesterdayAsync(stoppingToken);
                 await CleanupOldReadingsAsync();
+                _lastAggregationDateLocal = today;
             }
 
             try
             {
                 await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
             }
-            catch (TaskCanceledException) { break; }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
         }
     }
 
@@ -80,6 +93,10 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
                 // Kamera-Snapshot täglich nach 12:00 Uhr
                 await TryCaptureCamera(haService, settings, tent, cancellationToken);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex,
@@ -100,7 +117,10 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
         if (localNow.Hour < 12) return;
 
         var today = DateOnly.FromDateTime(localNow);
-        if (_lastCameraCaptureDateLocal == today) return;
+        if (_lastCameraCaptureDateByTent.TryGetValue(tent.Id, out var lastCaptureDate) && lastCaptureDate == today)
+        {
+            return;
+        }
 
         try
         {
@@ -113,8 +133,12 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
                 Directory.CreateDirectory(dir);
                 var filePath = Path.Combine(dir, $"{today:yyyy-MM-dd}.jpg");
                 await File.WriteAllBytesAsync(filePath, snapshot.Value.Bytes, cancellationToken);
-                _lastCameraCaptureDateLocal = today;
+                _lastCameraCaptureDateByTent[tent.Id] = today;
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
         }
         catch (Exception ex)
         {
@@ -165,3 +189,4 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
         await Task.CompletedTask;
     }
 }
+

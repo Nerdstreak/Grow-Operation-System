@@ -167,16 +167,32 @@ else
     private GrowRun? _grow;
     private Measurement? _latest;
     private Measurement _measurement = new();
+    private int? _loadedId;
 
     private string? _journalTitle;
     private string? _journalBody;
-    private string _takenAtLocal = DateTime.Now.ToString("yyyy-MM-ddTHH:mm");
+    private DateTime _takenAtLocal = DateTime.Now;
 
-    protected override Task OnInitializedAsync()
+    protected override Task OnParametersSetAsync()
     {
+        if (_loadedId == Id)
+        {
+            return Task.CompletedTask;
+        }
+
+        _loadedId = Id;
+        _loading = true;
+        _saving = false;
+        _saved = false;
+        _error = null;
+        _journalTitle = null;
+        _journalBody = null;
+        _takenAtLocal = DateTime.Now;
         _grow = GrowRepo.GetGrow(Id);
         if (_grow is null)
         {
+            _latest = null;
+            _measurement = new();
             _loading = false;
             return Task.CompletedTask;
         }
@@ -185,9 +201,9 @@ else
         _measurement = new Measurement
         {
             GrowId = Id,
-            Stage = _grow.Stage,
+            Stage = _latest?.Stage ?? GrowStage.Veg,
             Source = ValueOrigin.Manual,
-            TakenAt = DateTime.Now
+            TakenAt = _takenAtLocal
         };
 
         if (_latest is not null)
@@ -220,14 +236,8 @@ else
 
         try
         {
-            if (!DateTime.TryParse(_takenAtLocal, out var takenAtLocal))
-            {
-                _error = "Ungültiger Zeitpunkt.";
-                return Task.CompletedTask;
-            }
-
             _measurement.GrowId = Id;
-            _measurement.TakenAt = takenAtLocal;
+            _measurement.TakenAt = _takenAtLocal;
 
             var measurementId = GrowRepo.CreateMeasurement(_measurement);
 

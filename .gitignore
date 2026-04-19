@@ -1,3 +1,11 @@
 Grow Operation System/GrowDiary.Web.Tests/bin/
+Grow Operation System/GrowDiary.Web.Tests/obj/
 GrowDiary.Web.Tests/bin/
 GrowDiary.Web.Tests/obj/
+.dotnet-home/
+.appdata/
+.localappdata/
+GrowDiary.Web/App_Data/DataProtectionKeys/
+GrowDiary.Web/App_Data/*.db-shm
+GrowDiary.Web/App_Data/*.db-wal
+run.*.log

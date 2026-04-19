@@ -47,10 +47,22 @@ public sealed class AuditRepository
                 EntityId = reader["EntityId"] is DBNull ? null : Convert.ToInt32((long)reader["EntityId"]),
                 Action = reader["Action"]?.ToString() ?? string.Empty,
                 Summary = reader["Summary"]?.ToString() ?? string.Empty,
-                CreatedAtUtc = DateTime.Parse(reader["CreatedAtUtc"]?.ToString() ?? string.Empty, CultureInfo.InvariantCulture).ToUniversalTime()
+                CreatedAtUtc = ParseUtcOrDefault(reader["CreatedAtUtc"])
             });
         }
         return items;
+    }
+
+    private static DateTime ParseUtcOrDefault(object raw)
+    {
+        var text = raw is DBNull ? null : raw?.ToString();
+        if (!string.IsNullOrWhiteSpace(text) &&
+            DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal, out var parsed))
+        {
+            return parsed.ToUniversalTime();
+        }
+
+        return DateTime.UtcNow;
     }
 
     private SqliteConnection OpenConnection()

@@ -1,7 +1,7 @@
 @inject NavigationManager Nav
 
 <NavLink class="nav-item" href="@Href" Match="@(Href == "/" ? NavLinkMatch.All : NavLinkMatch.Prefix)" ActiveClass="active">
-    <span class="nav-icon">
+    <span class="nav-icon" aria-hidden="true">
         @((MarkupString)GetIconSvg(Icon))
     </span>
     @Label

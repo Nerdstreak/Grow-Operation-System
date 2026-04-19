@@ -58,7 +58,7 @@ public sealed class DeviationAnalyzerServiceTests
 
         var result = Svc.Analyze(grow, new List<Measurement> { m });
 
-        var dev = Assert.Single(result.Where(d => d.Metric == DeviationMetric.Ph));
+        var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ph);
         Assert.Equal(DeviationSeverity.Warning, dev.Severity);
     }
 
@@ -76,7 +76,7 @@ public sealed class DeviationAnalyzerServiceTests
 
         var result = Svc.Analyze(grow, measurements);
 
-        var dev = Assert.Single(result.Where(d => d.Metric == DeviationMetric.Ph));
+        var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ph);
         Assert.Equal(DeviationSeverity.Critical, dev.Severity);
         Assert.Equal(3, dev.ConsecutiveCount);
     }
@@ -107,7 +107,7 @@ public sealed class DeviationAnalyzerServiceTests
 
         var result = Svc.Analyze(grow, new List<Measurement> { m1, m2 });
 
-        var dev = Assert.Single(result.Where(d => d.Metric == DeviationMetric.Ec));
+        var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ec);
         Assert.Contains("gefallen", dev.Recommendation);
     }
 
@@ -125,7 +125,7 @@ public sealed class DeviationAnalyzerServiceTests
 
         var result = Svc.Analyze(grow, new List<Measurement> { m1, m2 });
 
-        var dev = Assert.Single(result.Where(d => d.Metric == DeviationMetric.Ec));
+        var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ec);
         Assert.Contains("gestiegen", dev.Recommendation);
     }
 
@@ -138,7 +138,7 @@ public sealed class DeviationAnalyzerServiceTests
 
         var result = Svc.Analyze(grow, new List<Measurement> { m });
 
-        var dev = Assert.Single(result.Where(d => d.Metric == DeviationMetric.WaterTemp));
+        var dev = Assert.Single(result, d => d.Metric == DeviationMetric.WaterTemp);
         Assert.Equal(DeviationSeverity.Critical, dev.Severity);
     }
 
@@ -163,7 +163,7 @@ public sealed class DeviationAnalyzerServiceTests
 
         var result = Svc.Analyze(grow, new List<Measurement> { m });
 
-        var dev = Assert.Single(result.Where(d => d.Metric == DeviationMetric.DissolvedOxygen));
+        var dev = Assert.Single(result, d => d.Metric == DeviationMetric.DissolvedOxygen);
         Assert.Equal(DeviationSeverity.Critical, dev.Severity);
     }
 
