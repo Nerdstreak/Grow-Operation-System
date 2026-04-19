@@ -92,6 +92,7 @@
         _active = "a";
         _lastRefresh = DateTimeOffset.UtcNow;
         _ageSeconds = 0;
+        _loadFailed = false;
     }
 
     private void Refresh()
@@ -115,6 +116,7 @@
 
     private void OnImageError()
     {
+        if (_disposed) return;
         _loadFailed = true;
         _refreshTimer?.Dispose();
         _refreshTimer = null;
