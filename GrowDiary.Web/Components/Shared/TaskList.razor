@@ -1,0 +1,58 @@
+@foreach (var task in Tasks.Take(6))
+{
+    <div class="task-item">
+        <button type="button"
+                class="task-check @(task.Status == GrowTaskStatus.Done ? "done" : "")"
+                aria-label="@ToggleLabel(task)"
+                aria-pressed="@(task.Status == GrowTaskStatus.Done)"
+                @onclick="() => OnToggle.InvokeAsync(task)">
+            @if (task.Status == GrowTaskStatus.Done)
+            {
+                <svg aria-hidden="true" width="8" height="8" viewBox="0 0 8 8">
+                    <path d="M1 4l2 2 4-4" stroke="oklch(10% 0.02 155)" stroke-width="1.5" fill="none" stroke-linecap="round" />
+                </svg>
+            }
+        </button>
+        <div style="flex:1; @(task.Status == GrowTaskStatus.Done ? "opacity:0.4" : "")">
+            <div class="task-title" style="@(task.Status == GrowTaskStatus.Done ? "text-decoration:line-through" : "")">
+                @task.Title
+            </div>
+            <div class="task-sub">@SubLabel(task)</div>
+        </div>
+        @if (ShowPriority)
+        {
+            <div class="prio-dot @PrioClass(task.Priority)"></div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public List<GrowTask> Tasks { get; set; } = new();
+    [Parameter] public EventCallback<GrowTask> OnToggle { get; set; }
+    /// <summary>
+    /// true  → zeigt GrowName + HH:mm (Home-Dashboard)
+    /// false → zeigt dd.MM · HH:mm    (GrowDetail)
+    /// </summary>
+    [Parameter] public bool ShowGrowName { get; set; } = false;
+    [Parameter] public bool ShowPriority { get; set; } = false;
+
+    private string SubLabel(GrowTask task)
+    {
+        var time = task.DueAtUtc?.ToLocalTime();
+        if (ShowGrowName)
+            return $"{task.GrowName ?? "–"} · {(time.HasValue ? time.Value.ToString("HH:mm") : "ohne Termin")}";
+        return time.HasValue ? time.Value.ToString("dd.MM · HH:mm") : "ohne Termin";
+    }
+
+    private static string PrioClass(TaskPriority p) => p switch
+    {
+        TaskPriority.Critical or TaskPriority.High => "prio-high",
+        TaskPriority.Normal                         => "prio-med",
+        _                                           => "prio-low",
+    };
+
+    private static string ToggleLabel(GrowTask task)
+        => task.Status == GrowTaskStatus.Done
+            ? $"Aufgabe {task.Title} wieder oeffnen"
+            : $"Aufgabe {task.Title} als erledigt markieren";
+}
