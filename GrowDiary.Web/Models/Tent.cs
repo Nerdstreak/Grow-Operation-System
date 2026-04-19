@@ -28,7 +28,7 @@ public sealed class Tent
     // Physisches Setup
     public int? WidthCm { get; set; }
     public int? DepthCm { get; set; }
-    public int? HeightCm { get; set; }
+    public int? TentHeightCm { get; set; }
     public string? LightType { get; set; }
     public int? LightWatt { get; set; }
     public int? ExhaustFanCount { get; set; }

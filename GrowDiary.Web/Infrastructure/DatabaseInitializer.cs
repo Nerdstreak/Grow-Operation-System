@@ -288,7 +288,7 @@ public sealed class DatabaseInitializer
         // Group D — Zelt physisches Setup
         EnsureColumn(connection, "Tents", "WidthCm",             "INTEGER NULL");
         EnsureColumn(connection, "Tents", "DepthCm",             "INTEGER NULL");
-        EnsureColumn(connection, "Tents", "HeightCm",            "INTEGER NULL");
+        EnsureColumn(connection, "Tents", "TentHeightCm",         "INTEGER NULL");
         EnsureColumn(connection, "Tents", "LightType",           "TEXT NULL");
         EnsureColumn(connection, "Tents", "LightWatt",           "INTEGER NULL");
         EnsureColumn(connection, "Tents", "ExhaustFanCount",     "INTEGER NULL");
@@ -296,8 +296,7 @@ public sealed class DatabaseInitializer
         EnsureColumn(connection, "Tents", "CirculationFanCount", "INTEGER NULL");
         EnsureColumn(connection, "Tents", "Co2Type",             "TEXT NULL");
         EnsureColumn(connection, "Tents", "Co2TargetPpm",        "INTEGER NULL");
-        // Group D — GrowSystems
-        EnsureColumn(connection, "Grows", "SystemId", "INTEGER NULL");
+        // Group D — GrowSystems table first, then Grows FK column
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS GrowSystems (
                 Id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -312,6 +311,7 @@ public sealed class DatabaseInitializer
             );
         """;
         command.ExecuteNonQuery();
+        EnsureColumn(connection, "Grows", "SystemId", "INTEGER NULL");
     }
 
     private void SeedDefaults()
