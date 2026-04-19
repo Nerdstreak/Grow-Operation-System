@@ -20,15 +20,7 @@ public sealed class SettingsController : Controller
 
     [HttpGet("")]
     public IActionResult Index()
-    {
-        var model = new SettingsViewModel
-        {
-            HomeAssistant = _repository.GetHomeAssistantSettings(),
-            Tents = _repository.GetTents(),
-            Templates = _templateRepository.GetAll()
-        };
-        return View(model);
-    }
+        => Redirect("/einstellungen");
 
     [HttpPost(nameof(SaveHomeAssistant))]
     [ValidateAntiForgeryToken]
