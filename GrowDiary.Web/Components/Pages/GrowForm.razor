@@ -86,12 +86,12 @@ else
                             </div>
                             <div class="field">
                                 <label for="grow-start-material">Startmaterial</label>
-                                <InputSelect id="grow-start-material" @bind-Value="_model.StartMaterial">
+                                <select id="grow-start-material" value="@_model.StartMaterial" @onchange="OnStartMaterialChanged">
                                     @foreach (var item in Enum.GetValues<StartMaterial>())
                                     {
                                         <option value="@item">@Label(item)</option>
                                     }
-                                </InputSelect>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -164,7 +164,7 @@ else
                             <div class="field">
                                 <label for="grow-entry">Einstiegspunkt</label>
                                 <InputSelect id="grow-entry" @bind-Value="_model.EntryPoint">
-                                    @foreach (var item in Enum.GetValues<GrowEntryPoint>())
+                                    @foreach (var item in EntryPointOptions)
                                     {
                                         <option value="@item">@Label(item)</option>
                                     }
@@ -289,6 +289,21 @@ else
 
         _loading = false;
         return Task.CompletedTask;
+    }
+
+    private IEnumerable<GrowEntryPoint> EntryPointOptions =>
+        Enum.GetValues<GrowEntryPoint>()
+            .Where(e => _model.StartMaterial != StartMaterial.Clone
+                        || e != GrowEntryPoint.Germination);
+
+    private void OnStartMaterialChanged(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<StartMaterial>(e.Value?.ToString(), out var val))
+        {
+            _model.StartMaterial = val;
+            if (val == StartMaterial.Clone && _model.EntryPoint == GrowEntryPoint.Germination)
+                _model.EntryPoint = GrowEntryPoint.Seedling;
+        }
     }
 
     private async Task SaveAsync()
