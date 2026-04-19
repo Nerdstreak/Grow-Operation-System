@@ -4,6 +4,7 @@
 @inject TaskRepository TaskRepo
 @inject HomeAssistantService HaService
 @inject GrowDashboardComposer Composer
+@inject ILogger<Home> Logger
 @implements IDisposable
 
 @* Topbar *@
@@ -145,7 +146,7 @@
         {
             await LoadDataAsync();
             await InvokeAsync(StateHasChanged);
-        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+        }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
     }
 
     private async Task LoadDataAsync()
@@ -170,7 +171,11 @@
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
                 states = await HaService.GetStatesAsync(settings, tent, cts.Token);
             }
-            catch { states = new(); }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "HA-States für Zelt {TentId} konnten nicht geladen werden.", tent.Id);
+                states = new();
+            }
 
             var metrics = Composer.BuildTentMetrics(tent, states, measurements);
             foreach (var m in metrics)
