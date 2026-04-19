@@ -371,6 +371,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ─── LAYOUTS ────────────────────────────────────────────────── */
 .ops-layout     { display: grid; grid-template-columns: 1fr 300px; gap: 22px; align-items: start; }
 .detail-layout  { display: grid; grid-template-columns: 1fr 280px; gap: 22px; align-items: start; }
+.measurement-layout { display: grid; grid-template-columns: 1fr 300px; gap: 22px; align-items: start; }
+.measurement-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .tents-grid     { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
 .side-panel     { display: flex; flex-direction: column; gap: 14px; }
 .settings-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
