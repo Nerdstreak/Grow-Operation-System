@@ -1,32 +1,43 @@
 @implements IDisposable
 
 <div class="cam-strip">
-    <div style="position:relative; aspect-ratio:16/9; overflow:hidden;">
-        @if (!string.IsNullOrWhiteSpace(_srcA))
-        {
-            <img class="cam-img"
-                 src="@_srcA"
-                 alt="@Alt"
-                 width="1280"
-                 height="720"
-                 fetchpriority="high"
-                 style="opacity:@(_active == "a" ? 1 : 0)" />
-        }
-        @if (!string.IsNullOrWhiteSpace(_srcB))
-        {
-            <img class="cam-img"
-                 src="@_srcB"
-                 alt=""
-                 width="1280"
-                 height="720"
-                 style="opacity:@(_active == "b" ? 1 : 0)" />
-        }
-        <div class="cam-live-badge">
-            <div class="cam-live-dot"></div>
-            Live
+    @if (_loadFailed)
+    {
+        <div class="cam-placeholder">
+            <span>Kein Livebild verfügbar</span>
         </div>
-        <div class="cam-age">vor @_ageSeconds s</div>
-    </div>
+    }
+    else
+    {
+        <div style="position:relative; aspect-ratio:16/9; overflow:hidden;">
+            @if (!string.IsNullOrWhiteSpace(_srcA))
+            {
+                <img class="cam-img"
+                     src="@_srcA"
+                     alt="@Alt"
+                     width="1280"
+                     height="720"
+                     fetchpriority="high"
+                     style="opacity:@(_active == "a" ? 1 : 0)"
+                     @onerror="OnImageError" />
+            }
+            @if (!string.IsNullOrWhiteSpace(_srcB))
+            {
+                <img class="cam-img"
+                     src="@_srcB"
+                     alt=""
+                     width="1280"
+                     height="720"
+                     style="opacity:@(_active == "b" ? 1 : 0)"
+                     @onerror="OnImageError" />
+            }
+            <div class="cam-live-badge">
+                <div class="cam-live-dot"></div>
+                Live
+            </div>
+            <div class="cam-age">vor @_ageSeconds s</div>
+        </div>
+    }
 </div>
 
 @code {
@@ -43,6 +54,7 @@
     private DateTimeOffset _lastRefresh = DateTimeOffset.UtcNow;
     private int _lastTentId = -1;
     private bool _disposed;
+    private bool _loadFailed;
 
     protected override void OnInitialized()
     {
@@ -99,5 +111,15 @@
         _disposed = true;
         _refreshTimer?.Dispose();
         _ageTimer?.Dispose();
+    }
+
+    private void OnImageError()
+    {
+        _loadFailed = true;
+        _refreshTimer?.Dispose();
+        _refreshTimer = null;
+        _ageTimer?.Dispose();
+        _ageTimer = null;
+        _ = InvokeAsync(StateHasChanged);
     }
 }
