@@ -80,29 +80,7 @@
             </div>
 
             @* Reservoir / Addback *@
-            @if (_addbackItems.Any())
-            {
-                <div class="panel-card">
-                    <div class="panel-card-header">
-                        <span class="panel-card-title">Reservoir / Addback</span>
-                    </div>
-                    @foreach (var item in _addbackItems)
-                    {
-                        <div class="addback-item">
-                            <div class="addback-name">@item.GrowName</div>
-                            <div class="addback-detail">@item.TentName · @item.HydroStyle</div>
-                            <div class="addback-ec">
-                                <span class="addback-ec-val @item.EcTrend">@item.Ec?.ToString("0.00")</span>
-                                <span class="addback-ec-unit">mS/cm @(item.EcTrend == "up" ? "↑" : item.EcTrend == "down" ? "↓" : "–")</span>
-                            </div>
-                            @if (!string.IsNullOrEmpty(item.Recommendation))
-                            {
-                                <div class="addback-rec">@item.Recommendation</div>
-                            }
-                        </div>
-                    }
-                </div>
-            }
+            <AddbackPanel Items="@_addbackItems.Select(i => new AddbackPanel.AddbackEntry(i.GrowName, i.TentName, i.HydroStyle, i.Ec, i.EcTrend, i.Recommendation))" />
         </div>
     </div>
 </div>
