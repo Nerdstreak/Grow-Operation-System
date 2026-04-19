@@ -16,14 +16,5 @@ public sealed class KnowledgeController : Controller
 
     [HttpGet("")]
     public IActionResult Index(string? key = null)
-    {
-        var model = new KnowledgeIndexViewModel
-        {
-            SelectedKey = key,
-            MediumPlaybooks = _knowledgeService.GetMediumPlaybooks().ToList(),
-            NutrientPrograms = _knowledgeService.GetPrograms().ToList()
-        };
-
-        return View(model);
-    }
+        => Redirect("/wissen");
 }

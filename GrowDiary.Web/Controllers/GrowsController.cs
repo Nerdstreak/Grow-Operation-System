@@ -58,14 +58,14 @@ public sealed class GrowsController : Controller
         _harvestRepository = harvestRepository;
     }
 
-    // Route deaktiviert – wird von Blazor Grows.razor übernommen
+    // Route deaktiviert ï¿½ wird von Blazor Grows.razor ï¿½bernommen
     [HttpGet("mvc-legacy-list")]
     public IActionResult Index(string? search = null)
     {
         var model = new GrowListPageViewModel
         {
             Title = "Aktive Grows",
-            Description = "Nur laufende oder geplante Runs – gruppiert nach Zelt und optimiert für schnellen Alltag.",
+            Description = "Nur laufende oder geplante Runs ï¿½ gruppiert nach Zelt und optimiert fï¿½r schnellen Alltag.",
             Search = search ?? string.Empty,
             ShowArchived = false,
             Grows = _repository.GetActiveGrows(search),
@@ -81,7 +81,7 @@ public sealed class GrowsController : Controller
         var model = new GrowListPageViewModel
         {
             Title = "Archiv",
-            Description = "Abgeschlossene und abgebrochene Runs – für Rückblicke, Learnings und Vergleiche.",
+            Description = "Abgeschlossene und abgebrochene Runs ï¿½ fï¿½r Rï¿½ckblicke, Learnings und Vergleiche.",
             Search = search ?? string.Empty,
             ShowArchived = true,
             Grows = _repository.GetArchivedGrows(search),
@@ -93,11 +93,7 @@ public sealed class GrowsController : Controller
 
     [HttpGet("create")]
     public IActionResult Create(int? templateId = null)
-    {
-        var template = templateId.HasValue ? _templateRepository.Get(templateId.Value) : null;
-        var model = template is null ? new GrowFormViewModel() : GrowFormViewModel.FromTemplate(template);
-        return View(PrepareGrowForm(model));
-    }
+        => Redirect("/grows/new");
 
     [HttpPost("create")]
     [ValidateAntiForgeryToken]
@@ -127,13 +123,13 @@ public sealed class GrowsController : Controller
             GrowId = growId,
             EntityType = "Grow",
             Action = "Grow angelegt",
-            Summary = $"Setup „{model.Name}“ wurde erstellt{(model.TemplateId.HasValue ? $" auf Basis des Templates #{model.TemplateId}" : string.Empty)}."
+            Summary = $"Setup ï¿½{model.Name}ï¿½ wurde erstellt{(model.TemplateId.HasValue ? $" auf Basis des Templates #{model.TemplateId}" : string.Empty)}."
         });
         TempData["Flash"] = "Grow angelegt.";
         return Redirect($"/grows/{growId}");
     }
 
-    // Route deaktiviert – wird von Blazor GrowDetail.razor übernommen.
+    // Route deaktiviert ï¿½ wird von Blazor GrowDetail.razor ï¿½bernommen.
     // Redirects von POST-Actions verwenden jetzt Redirect($"/grows/{id}") direkt.
     [HttpGet("mvc-legacy-detail/{id:int}")]
     public async Task<IActionResult> Details(int id, CancellationToken cancellationToken = default)
@@ -144,15 +140,7 @@ public sealed class GrowsController : Controller
 
     [HttpGet("{id:int}/edit")]
     public IActionResult Edit(int id)
-    {
-        var grow = _repository.GetGrow(id);
-        if (grow is null)
-        {
-            return NotFound();
-        }
-
-        return View(PrepareGrowForm(GrowFormViewModel.FromGrow(grow)));
-    }
+        => Redirect($"/grows/{id}/setup");
 
     [HttpPost("{id:int}/edit")]
     [ValidateAntiForgeryToken]
@@ -179,8 +167,8 @@ public sealed class GrowsController : Controller
             GrowId = id,
             EntityType = "Grow",
             EntityId = id,
-            Action = "Setup geändert",
-            Summary = $"Setup von „{grow.Name}“ aktualisiert. Status: {grow.Status}, Medium: {grow.Profile.Label}."
+            Action = "Setup geï¿½ndert",
+            Summary = $"Setup von ï¿½{grow.Name}ï¿½ aktualisiert. Status: {grow.Status}, Medium: {grow.Profile.Label}."
         });
 
         TempData["Flash"] = "Grow gespeichert.";
@@ -192,8 +180,8 @@ public sealed class GrowsController : Controller
     public IActionResult Delete(int id)
     {
         _repository.DeleteGrow(id);
-        TempData["Flash"] = "Grow gelöscht.";
-        return RedirectToAction(nameof(Index));
+        TempData["Flash"] = "Grow gelï¿½scht.";
+        return Redirect("/grows");
     }
 
     [HttpPost("{id:int}/measurements")]
@@ -327,7 +315,7 @@ public sealed class GrowsController : Controller
             GrowId = grow.Id,
             EntityType = "Measurement",
             EntityId = measurementId,
-            Action = "Messung geändert",
+            Action = "Messung geï¿½ndert",
             Summary = $"Messung vom {measurement.TakenAt:dd.MM.yyyy HH:mm} aktualisiert."
         });
 
@@ -352,10 +340,10 @@ public sealed class GrowsController : Controller
             GrowId = growId,
             EntityType = "Measurement",
             EntityId = measurementId,
-            Action = "Messung gelöscht",
+            Action = "Messung gelï¿½scht",
             Summary = $"Messung vom {measurement.TakenAt:dd.MM.yyyy HH:mm} entfernt."
         });
-        TempData["Flash"] = "Messung gelöscht.";
+        TempData["Flash"] = "Messung gelï¿½scht.";
         return Redirect($"/grows/{growId}");
     }
 
@@ -378,7 +366,7 @@ public sealed class GrowsController : Controller
             EntityType = "Task",
             EntityId = taskId,
             Action = "Aufgabe erstellt",
-            Summary = $"Task „{task.Title}“ wurde angelegt."
+            Summary = $"Task ï¿½{task.Title}ï¿½ wurde angelegt."
         });
         TempData["Flash"] = "Aufgabe angelegt.";
         return Redirect($"/grows/{id}");
@@ -423,10 +411,10 @@ public sealed class GrowsController : Controller
             GrowId = task.GrowId,
             EntityType = "Task",
             EntityId = taskId,
-            Action = "Aufgabe übersprungen",
+            Action = "Aufgabe ï¿½bersprungen",
             Summary = task.Title
         });
-        TempData["Flash"] = "Aufgabe übersprungen.";
+        TempData["Flash"] = "Aufgabe ï¿½bersprungen.";
         return Redirect($"/grows/{task.GrowId}");
     }
 
@@ -441,7 +429,7 @@ public sealed class GrowsController : Controller
         }
 
         _taskRepository.Delete(taskId);
-        TempData["Flash"] = "Aufgabe gelöscht.";
+        TempData["Flash"] = "Aufgabe gelï¿½scht.";
         return Redirect($"/grows/{task.GrowId}");
     }
 
@@ -639,10 +627,10 @@ public sealed class GrowsController : Controller
         {
             GrowId = id,
             EntryType = JournalEntryType.GerminationConfirmed,
-            Body = "Keimung bestätigt.",
+            Body = "Keimung bestï¿½tigt.",
             OccurredAtUtc = DateTime.UtcNow
         });
-        TempData["Flash"] = "Keimung bestätigt.";
+        TempData["Flash"] = "Keimung bestï¿½tigt.";
         return Redirect($"/grows/{id}");
     }
 
@@ -668,10 +656,10 @@ public sealed class GrowsController : Controller
         {
             GrowId = id,
             EntryType = JournalEntryType.CloneRooted,
-            Body = "Bewurzelung bestätigt.",
+            Body = "Bewurzelung bestï¿½tigt.",
             OccurredAtUtc = DateTime.UtcNow
         });
-        TempData["Flash"] = "Bewurzelung bestätigt.";
+        TempData["Flash"] = "Bewurzelung bestï¿½tigt.";
         return Redirect($"/grows/{id}");
     }
 
