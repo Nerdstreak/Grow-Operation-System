@@ -285,6 +285,33 @@ public sealed class DatabaseInitializer
         // Sprint 10
         EnsureColumn(connection, "Grows", "GerminatedAt", "TEXT NULL");
         EnsureColumn(connection, "Grows", "RootedAt",     "TEXT NULL");
+        // Group D — Zelt physisches Setup
+        EnsureColumn(connection, "Tents", "WidthCm",             "INTEGER NULL");
+        EnsureColumn(connection, "Tents", "DepthCm",             "INTEGER NULL");
+        EnsureColumn(connection, "Tents", "HeightCm",            "INTEGER NULL");
+        EnsureColumn(connection, "Tents", "LightType",           "TEXT NULL");
+        EnsureColumn(connection, "Tents", "LightWatt",           "INTEGER NULL");
+        EnsureColumn(connection, "Tents", "ExhaustFanCount",     "INTEGER NULL");
+        EnsureColumn(connection, "Tents", "ExhaustM3h",          "INTEGER NULL");
+        EnsureColumn(connection, "Tents", "CirculationFanCount", "INTEGER NULL");
+        EnsureColumn(connection, "Tents", "Co2Type",             "TEXT NULL");
+        EnsureColumn(connection, "Tents", "Co2TargetPpm",        "INTEGER NULL");
+        // Group D — GrowSystems
+        EnsureColumn(connection, "Grows", "SystemId", "INTEGER NULL");
+        command.CommandText = """
+            CREATE TABLE IF NOT EXISTS GrowSystems (
+                Id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name            TEXT    NOT NULL,
+                HydroStyle      TEXT    NOT NULL,
+                PotCount        INTEGER NULL,
+                PotSizeLiters   REAL    NULL,
+                ReservoirLiters REAL    NULL,
+                Notes           TEXT    NULL,
+                DisplayOrder    INTEGER NOT NULL DEFAULT 99,
+                CreatedAtUtc    TEXT    NOT NULL
+            );
+        """;
+        command.ExecuteNonQuery();
     }
 
     private void SeedDefaults()

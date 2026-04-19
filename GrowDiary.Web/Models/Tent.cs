@@ -25,6 +25,18 @@ public sealed class Tent
     public string? PpfdEntityId { get; set; }
     public string? PpfdTarget { get; set; }
 
+    // Physisches Setup
+    public int? WidthCm { get; set; }
+    public int? DepthCm { get; set; }
+    public int? HeightCm { get; set; }
+    public string? LightType { get; set; }
+    public int? LightWatt { get; set; }
+    public int? ExhaustFanCount { get; set; }
+    public int? ExhaustM3h { get; set; }
+    public int? CirculationFanCount { get; set; }
+    public string? Co2Type { get; set; }
+    public int? Co2TargetPpm { get; set; }
+
     public int ActiveGrowCount { get; set; }
     public int ArchivedGrowCount { get; set; }
     public List<GrowRun> ActiveGrows { get; set; } = new();
