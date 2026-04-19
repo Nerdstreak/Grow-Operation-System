@@ -1,0 +1,107 @@
+@* ─────────────────────────────────────────────────────────────
+   TentCard.razor
+   Verwendet in: Home.razor, Tents.razor
+   ───────────────────────────────────────────────────────────── *@
+@using GrowDiary.Web.ViewModels
+
+<article class="tent-card is-@StatusClass" @onclick="OnOpen">
+
+    @* Header *@
+    <div class="tc-header">
+        <div>
+            <div class="tc-name">@Tent.Name</div>
+            <div class="tc-meta">@Tent.Kind · @Tent.ActiveGrowCount aktive @(Tent.ActiveGrowCount == 1 ? "Run" : "Runs") · @HydroStyle</div>
+        </div>
+        <div class="status-pill @StatusClass">
+            <div class="status-dot"></div>
+            @StatusLabel
+        </div>
+    </div>
+
+    @* Metriken *@
+    <div class="tc-metrics">
+        @* Klima *@
+        <div class="tc-divider">Klima</div>
+        @foreach (var (m, i) in ClimateMetrics.Select((m, i) => (m, i)))
+        {
+            <div class="tc-metric"
+                 style="border-bottom: @(ReservoirMetrics.Any() ? "1px solid var(--border)" : "none");
+                        border-right: @((i + 1) % 3 == 0 ? "none" : "1px solid var(--border)")">
+                <div class="tc-metric-label">@m.Label</div>
+                <div class="tc-metric-value @m.Tone">@m.Value</div>
+                <div class="tc-metric-unit">@m.Unit</div>
+                <div class="tc-metric-target">Soll: @m.Target</div>
+            </div>
+        }
+
+        @* Reservoir (pH, EC, ORP, W-Temp) *@
+        @if (ReservoirMetrics.Any())
+        {
+            <div class="tc-divider">Reservoir</div>
+            <div style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(@ReservoirMetrics.Count, 1fr)">
+                @foreach (var (m, i) in ReservoirMetrics.Select((m, i) => (m, i)))
+                {
+                    <div class="tc-metric"
+                         style="border-bottom: none;
+                                border-right: @(i < ReservoirMetrics.Count - 1 ? "1px solid var(--border)" : "none")">
+                        <div class="tc-metric-label">@m.Label</div>
+                        <div class="tc-metric-value @m.Tone">@m.Value</div>
+                        <div class="tc-metric-unit">@m.Unit</div>
+                        <div class="tc-metric-target">Soll: @m.Target</div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* Kamera (optional) *@
+    @if (!string.IsNullOrWhiteSpace(Tent.CameraEntityId))
+    {
+        <CameraPanel TentId="@Tent.Id"/>
+    }
+
+    @* Footer *@
+    <div class="tc-footer">
+        <div class="tc-runs">
+            @foreach (var grow in Tent.ActiveGrows.Take(3))
+            {
+                <div class="tc-run-pill" @onclick:stopPropagation="true"
+                     @onclick="() => OnOpenGrow.InvokeAsync(grow.Id)">
+                    @grow.Name
+                </div>
+            }
+        </div>
+        <button class="tc-open-btn" @onclick:stopPropagation="true" @onclick="OnOpen">
+            Öffnen →
+        </button>
+    </div>
+</article>
+
+@code {
+    [Parameter] public Tent Tent { get; set; } = default!;
+    [Parameter] public List<MetricCard> ClimateMetrics { get; set; } = new();
+    [Parameter] public List<MetricCard> ReservoirMetrics { get; set; } = new();
+    [Parameter] public EventCallback OnOpen { get; set; }
+    [Parameter] public EventCallback<int> OnOpenGrow { get; set; }
+
+    private string HydroStyle => Tent.ActiveGrows
+        .FirstOrDefault(g => g.IrrigationType == IrrigationType.ActiveHydro)
+        ?.HydroStyle.ToString() ?? "";
+
+    // Tone: "ok" | "warn" | "crit"
+    // Ableiten aus MetricCard.Tone der schlechtesten Metrik
+    private string StatusClass {
+        get {
+            var all = ClimateMetrics.Concat(ReservoirMetrics).ToList();
+            if (all.Any(m => m.Tone == "crit")) return "crit";
+            if (all.Any(m => m.Tone == "warn")) return "warn";
+            return "ok";
+        }
+    }
+
+    private string StatusLabel => StatusClass switch {
+        "crit" => "kritisch",
+        "warn" => "beobachten",
+        _      => "stabil"
+    };
+}

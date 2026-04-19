@@ -1,0 +1,14 @@
+@model GrowFormViewModel
+@{
+    ViewData["Title"] = "Grow bearbeiten";
+}
+<section class="page-hero glass-panel compact-hero">
+    <div>
+        <span class="eyebrow">Grow bearbeiten</span>
+        <h1>@Model.Name</h1>
+        <p class="lead">Passe Setup, Status oder Zelt-Zuordnung an.</p>
+    </div>
+</section>
+<article class="glass-panel form-card top-gap-lg">
+    @await Html.PartialAsync("_GrowForm", Model)
+</article>

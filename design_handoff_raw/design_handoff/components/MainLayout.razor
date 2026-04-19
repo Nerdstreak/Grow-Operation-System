@@ -1,0 +1,14 @@
+@* ─────────────────────────────────────────────────────────────
+   MainLayout.razor
+   Ablösung von _Layout.cshtml
+   ───────────────────────────────────────────────────────────── *@
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+
+<div class="app">
+    <Sidebar/>
+    <div class="content">
+        <AlertBar/>
+        @Body
+    </div>
+</div>

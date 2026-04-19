@@ -1,0 +1,135 @@
+@model GrowDiary.Web.Models.ChartSeries
+@using System.Globalization
+@{
+    var lines = Model.Lines.Where(l => l.Points.Count > 0).ToList();
+    var allPoints = lines.SelectMany(x => x.Points).OrderBy(x => x.Timestamp).ToList();
+
+    const double width = 640;
+    const double height = 220;
+    const double left = 12;
+    const double top = 18;
+    const double bottom = 18;
+    const double right = 12;
+    var innerWidth = width - left - right;
+    var innerHeight = height - top - bottom;
+    var minTime = allPoints.Count > 0 ? allPoints.Min(p => p.Timestamp).Ticks : DateTime.Now.Ticks;
+    var maxTime = allPoints.Count > 0 ? allPoints.Max(p => p.Timestamp).Ticks : minTime + 1;
+    var range = Math.Max(1, maxTime - minTime);
+    var xTicks = allPoints.Count > 0
+        ? new[]
+        {
+            allPoints.First().Timestamp,
+            allPoints.First().Timestamp + TimeSpan.FromTicks((long)(range / 2d)),
+            allPoints.Last().Timestamp
+        }
+        : Array.Empty<DateTime>();
+
+    string chartId = $"chart-{Guid.NewGuid():N}";
+
+    double ScaleX(DateTime timestamp) => left + ((timestamp.Ticks - minTime) / (double)range) * innerWidth;
+    double ScaleYForLine(IReadOnlyList<GrowDiary.Web.Models.ChartPoint> points, double value)
+    {
+        if (points.Count == 0) return top + innerHeight / 2d;
+        var lineMin = points.Min(x => x.Value);
+        var lineMax = points.Max(x => x.Value);
+        var lineRange = Math.Abs(lineMax - lineMin) < 0.0001 ? 1d : (lineMax - lineMin);
+        var normalized = (value - lineMin) / lineRange;
+        return top + (1 - normalized) * innerHeight;
+    }
+    string FormatValue(double value)
+        => Math.Abs(value) >= 100 ? value.ToString("0", CultureInfo.InvariantCulture) : value.ToString("0.##", CultureInfo.InvariantCulture);
+    string FormatTime(DateTime timestamp)
+        => allPoints.Count > 0 && (allPoints.Last().Timestamp - allPoints.First().Timestamp).TotalDays >= 2
+            ? timestamp.ToString("dd.MM.")
+            : timestamp.ToString("HH:mm");
+
+    string BuildPolyline(List<GrowDiary.Web.Models.ChartPoint> points)
+    {
+        if (points.Count == 0) return string.Empty;
+        var ordered = points.OrderBy(p => p.Timestamp).ToList();
+        return string.Join(" ", ordered.Select(point =>
+            $"{ScaleX(point.Timestamp).ToString("0.##", CultureInfo.InvariantCulture)},{ScaleYForLine(ordered, point.Value).ToString("0.##", CultureInfo.InvariantCulture)}"));
+    }
+}
+<article class="glass-panel chart-card" data-chart-card="@chartId">
+    <div class="chart-card-head chart-card-head--stacked">
+        <div>
+            <h3>@Model.Title</h3>
+            <p class="muted">@Model.YLabel</p>
+        </div>
+        <div class="legend-row legend-row--compact">
+            @foreach (var line in lines)
+            {
+                <span class="legend-item"><i style="background:@line.Color"></i>@line.Label</span>
+            }
+        </div>
+    </div>
+
+    @if (lines.Count == 0)
+    {
+        <div class="empty-state slim">@Model.EmptyText</div>
+    }
+    else
+    {
+        <div class="chart-series-summary">
+            @foreach (var line in lines)
+            {
+                var ordered = line.Points.OrderBy(p => p.Timestamp).ToList();
+                var latest = ordered.Last();
+                var min = ordered.Min(p => p.Value);
+                var max = ordered.Max(p => p.Value);
+                var average = ordered.Average(p => p.Value);
+                <article class="chart-series-chip">
+                    <div class="chart-series-chip__head">
+                        <span class="legend-item"><i style="background:@line.Color"></i>@line.Label</span>
+                        <strong>@FormatValue(latest.Value)</strong>
+                    </div>
+                    <div class="chart-series-chip__meta">
+                        <span>Min @FormatValue(min)</span>
+                        <span>Max @FormatValue(max)</span>
+                        <span>Ø @FormatValue(average)</span>
+                    </div>
+                </article>
+            }
+        </div>
+
+        <svg viewBox="0 0 640 220" class="chart-svg chart-svg--normalized" role="img" aria-label="@Model.Title">
+            <line x1="@left.ToString("0.##", CultureInfo.InvariantCulture)" y1="@top.ToString("0.##", CultureInfo.InvariantCulture)" x2="@(left + innerWidth).ToString("0.##", CultureInfo.InvariantCulture)" y2="@top.ToString("0.##", CultureInfo.InvariantCulture)" class="grid-line faint" />
+            <line x1="@left.ToString("0.##", CultureInfo.InvariantCulture)" y1="@((top + innerHeight / 2d).ToString("0.##", CultureInfo.InvariantCulture))" x2="@(left + innerWidth).ToString("0.##", CultureInfo.InvariantCulture)" y2="@((top + innerHeight / 2d).ToString("0.##", CultureInfo.InvariantCulture))" class="grid-line faint" />
+            <line x1="@left.ToString("0.##", CultureInfo.InvariantCulture)" y1="@(top + innerHeight).ToString("0.##", CultureInfo.InvariantCulture)" x2="@(left + innerWidth).ToString("0.##", CultureInfo.InvariantCulture)" y2="@(top + innerHeight).ToString("0.##", CultureInfo.InvariantCulture)" class="grid-line faint" />
+            @foreach (var line in lines)
+            {
+                var ordered = line.Points.OrderBy(p => p.Timestamp).ToList();
+                <polyline fill="none" stroke="@line.Color" stroke-width="3" points="@BuildPolyline(ordered)" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                @foreach (var point in ordered)
+                {
+                    var x = ScaleX(point.Timestamp);
+                    var y = ScaleYForLine(ordered, point.Value);
+                    <g class="chart-point" tabindex="0"
+                       data-chart-point
+                       data-tooltip-chart="@chartId"
+                       data-tooltip-group="@point.Timestamp.ToString("O")"
+                       data-tooltip-time="@point.Timestamp.ToString("dd.MM.yyyy HH:mm")"
+                       data-tooltip-title="@line.Label"
+                       data-tooltip-value="@FormatValue(point.Value)"
+                       data-tooltip-color="@line.Color">
+                        <circle cx="@x.ToString("0.##", CultureInfo.InvariantCulture)" cy="@y.ToString("0.##", CultureInfo.InvariantCulture)" r="11" class="chart-point-hit"></circle>
+                        <circle cx="@x.ToString("0.##", CultureInfo.InvariantCulture)" cy="@y.ToString("0.##", CultureInfo.InvariantCulture)" r="3.5" class="chart-point-dot" fill="@line.Color"></circle>
+                    </g>
+                }
+            }
+        </svg>
+
+        <div class="chart-time-row">
+            @foreach (var tick in xTicks)
+            {
+                <span>@FormatTime(tick)</span>
+            }
+        </div>
+
+        @if (lines.Count > 1)
+        {
+            <p class="chart-note">Eigene Skala je Linie – ideal für Trends bei unterschiedlich großen Werten.</p>
+        }
+    }
+</article>

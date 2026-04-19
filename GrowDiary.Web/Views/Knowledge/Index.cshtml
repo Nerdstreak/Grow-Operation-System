@@ -1,0 +1,148 @@
+@model KnowledgeIndexViewModel
+@{
+    ViewData["Title"] = "Schema & Wissen";
+    var selectedKey = Model.SelectedKey ?? Model.NutrientPrograms.FirstOrDefault()?.Key;
+}
+
+<section class="page-heading compact-heading">
+    <div>
+        <h1>Schema & Wissen</h1>
+        <p>Kompakte Referenz statt Textwand: Programm wählen und nur die Bereiche öffnen, die du wirklich brauchst.</p>
+    </div>
+</section>
+
+<section class="knowledge-grid compact-knowledge-grid">
+    <article class="card compact-card">
+        <div class="card-head slim">
+            <div>
+                <h2>Medium-Playbooks</h2>
+                <p class="muted">Je Medium die wichtigsten Prioritäten</p>
+            </div>
+        </div>
+
+        <div class="playbook-grid compact-playbooks">
+            @foreach (var playbook in Model.MediumPlaybooks)
+            {
+                <details class="playbook-card compact-playbook-card">
+                    <summary>
+                        <span>
+                            <strong>@playbook.Title</strong>
+                            <small>@playbook.Summary</small>
+                        </span>
+                        <span class="disclosure-hint">Aufklappen</span>
+                    </summary>
+                    <div class="disclosure-content">
+                        <div class="playbook-columns">
+                            <div>
+                                <strong>Fokus</strong>
+                                <ul>
+                                    @foreach (var point in playbook.FocusPoints)
+                                    {
+                                        <li>@point</li>
+                                    }
+                                </ul>
+                            </div>
+                            <div>
+                                <strong>Red Flags</strong>
+                                <ul>
+                                    @foreach (var point in playbook.RedFlags)
+                                    {
+                                        <li>@point</li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            }
+        </div>
+    </article>
+
+    <article class="card compact-card">
+        <div class="card-head slim">
+            <div>
+                <h2>Düngelinien</h2>
+                <p class="muted">Ohne Seiten-Reload zwischen den Programmen wechseln</p>
+            </div>
+        </div>
+
+        <div class="program-chip-row js-program-picker" id="knowledge-programs">
+            @foreach (var program in Model.NutrientPrograms)
+            {
+                <button class="nav-pill js-program-pill @(selectedKey == program.Key ? "active" : string.Empty)"
+                        type="button"
+                        data-program-key="@program.Key">
+                    @program.Name
+                </button>
+            }
+        </div>
+
+        <div class="knowledge-panel-stack">
+            @foreach (var program in Model.NutrientPrograms)
+            {
+                <article class="program-detail js-program-panel @(selectedKey == program.Key ? "active" : string.Empty)"
+                         data-program-panel="@program.Key">
+                    <div class="program-hero compact-program-hero">
+                        <div>
+                            <span class="eyebrow">@program.Manufacturer • @program.Category</span>
+                            <h3>@program.Name</h3>
+                            <p>@program.Summary</p>
+                        </div>
+                    </div>
+
+                    <div class="info-grid two compact-info-grid">
+                        <div class="note-panel compact-note"><strong>Ideal für</strong><p>@program.BestFor</p></div>
+                        <div class="note-panel compact-note"><strong>Schema-Stil</strong><p>@program.ScheduleStyle</p></div>
+                    </div>
+
+                    <details class="inline-section" open>
+                        <summary>Phasen & Dosierungen</summary>
+                        <div class="table-wrap top-gap">
+                            <table class="data-table compact">
+                                <thead>
+                                    <tr>
+                                        <th>Phase</th>
+                                        <th>Dosis / Einsatz</th>
+                                        <th>Ziel</th>
+                                        <th>Hinweis</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var stage in program.Stages)
+                                    {
+                                        <tr>
+                                            <td>@stage.Stage</td>
+                                            <td>@stage.Dose</td>
+                                            <td>@stage.Target</td>
+                                            <td>@stage.Notes</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
+
+                    <details class="inline-section">
+                        <summary>Kernregeln</summary>
+                        <div class="info-grid two compact-info-grid top-gap">
+                            <div class="note-panel compact-note"><strong>Wasser</strong><p>@program.WaterGuidance</p></div>
+                            <div class="note-panel compact-note"><strong>pH</strong><p>@program.PhGuidance</p></div>
+                            <div class="note-panel compact-note"><strong>EC</strong><p>@program.EcGuidance</p></div>
+                            <div class="note-panel compact-note"><strong>Offizieller Kern</strong><p>@program.OfficialHighlights</p></div>
+                        </div>
+                    </details>
+
+                    <details class="inline-section">
+                        <summary>Praxiswissen</summary>
+                        <ul class="compact-bullet-list top-gap">
+                            @foreach (var tip in program.Tips)
+                            {
+                                <li>@tip</li>
+                            }
+                        </ul>
+                    </details>
+                </article>
+            }
+        </div>
+    </article>
+</section>

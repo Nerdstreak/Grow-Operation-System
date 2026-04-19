@@ -1,0 +1,498 @@
+@model GrowDetailsViewModel
+@{
+    ViewData["Title"] = Model.Grow.Name;
+    var grow = Model.Grow;
+    var profile = grow.Profile;
+    var weekInfo = Model.WeekInfo!;
+    var latestPhoto = Model.PhotoComparison.Latest ?? Model.Photos.FirstOrDefault();
+    var latestMeasurement = grow.LatestMeasurement ?? Model.Measurements.OrderByDescending(x => x.TakenAt).FirstOrDefault();
+    var dayCount = Math.Max(1, (DateTime.Today - grow.StartDate.Date).Days + 1);
+    var openTask = Model.OpenTasks.FirstOrDefault();
+    var latestJournal = Model.JournalEntries.OrderByDescending(x => x.OccurredAtUtc).FirstOrDefault();
+    var phaseLabel = latestMeasurement?.Stage.ToString() ?? grow.Status.ToString();
+}
+
+<section class="page-hero glass-panel grow-overview-hero grow-overview-hero--ops">
+    <div class="grow-overview-media">
+        @if (latestPhoto is not null)
+        {
+            <img class="grow-overview-image" src="@latestPhoto.RelativePath" alt="Aktuelles Bild von @grow.Name" loading="lazy" />
+        }
+        else
+        {
+            <div class="grow-overview-image grow-overview-image--placeholder">
+                <strong>Noch kein aktuelles Bild</strong>
+            </div>
+        }
+    </div>
+    <div class="grow-overview-copy">
+        <div class="ops-card-meta">
+            <span class="eyebrow">@profile.Label</span>
+            <span class="status-badge status-@grow.Status.ToString().ToLowerInvariant()">@grow.Status</span>
+        </div>
+        <h1>@grow.Name</h1>
+        <p class="lead">@(grow.Strain ?? "Unbekannte Sorte") • @(grow.TentName ?? "kein Zelt") • Tag @dayCount • Phase @phaseLabel</p>
+
+        <div class="grow-overview-kpis">
+            <article class="ops-live-kpi"><span>Tag</span><strong>@dayCount</strong><small class="muted">seit Start</small></article>
+            <article class="ops-live-kpi"><span>Woche</span><strong>@weekInfo.Label</strong><small class="muted">Wochencounter</small></article>
+            <article class="ops-live-kpi"><span>Letzte Messung</span><strong>@(latestMeasurement?.TakenAt.ToString("dd.MM. HH:mm") ?? "–")</strong><small class="muted">@(latestMeasurement?.Source.ToString() ?? "keine")</small></article>
+            <article class="ops-live-kpi"><span>Offene Aufgaben</span><strong>@Model.OpenTasks.Count</strong><small class="muted">@(openTask?.Title ?? "nichts offen")</small></article>
+        </div>
+
+        <div class="grow-overview-summary">
+            <article class="ops-focus-card compact">
+                <span class="kicker-label">Nächster Fokus</span>
+                @if (Model.Recommendations.Any())
+                {
+                    <strong>@Model.Recommendations[0].Title</strong>
+                    <p class="muted">@Model.Recommendations[0].Message</p>
+                }
+                else
+                {
+                    <strong>Der Run wirkt aktuell stabil</strong>
+                    <p class="muted">Nutze Aufgaben, Journal und Messungen für die tägliche Pflege und spätere Vergleiche.</p>
+                }
+            </article>
+
+            <article class="ops-focus-card compact">
+                <span class="kicker-label">Letzter Eintrag</span>
+                @if (latestJournal is not null)
+                {
+                    <strong>@(latestJournal.Title ?? latestJournal.EntryType.ToString())</strong>
+                    <p class="muted">@latestJournal.OccurredAtUtc.ToLocalTime().ToString("dd.MM. HH:mm") • @(latestJournal.Body ?? "ohne Zusatztext")</p>
+                }
+                else
+                {
+                    <strong>Noch kein Journal-Eintrag</strong>
+                    <p class="muted">Notizen, Probleme und Maßnahmen helfen später enorm bei Analyse und Vergleich.</p>
+                }
+            </article>
+        </div>
+
+        <div class="hero-actions top-gap-sm">
+            <a class="btn btn-ghost" asp-action="Edit" asp-route-id="@grow.Id">Setup bearbeiten</a>
+            <a class="btn btn-ghost" asp-action="Export" asp-route-id="@grow.Id">Export</a>
+            <a class="btn btn-ghost" asp-action="Addback" asp-route-id="@grow.Id">Addback</a>
+            @if (grow.TentId.HasValue)
+            {
+                <a class="btn btn-primary" asp-controller="Tents" asp-action="Details" asp-route-id="@grow.TentId">Zum Zelt</a>
+            }
+        </div>
+
+        @if (weekInfo.State == GrowDiary.Web.Models.GrowCounterState.WaitingForGermination)
+        {
+            <div class="action-card action-card--warning top-gap-sm">
+                <strong>Samen keimt seit @weekInfo.DaysGerminating Tagen</strong>
+                <p>Sobald der Samen keimt, hier bestätigen um den Wochencounter zu starten.</p>
+                <form method="post" action="/grows/@grow.Id/confirm-germination">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary">Keimung bestätigen ✓</button>
+                </form>
+            </div>
+        }
+        else if (weekInfo.State == GrowDiary.Web.Models.GrowCounterState.WaitingForRooting)
+        {
+            <div class="action-card action-card--warning top-gap-sm">
+                <strong>Bewurzelung seit @weekInfo.DaysRooting Tagen</strong>
+                <p>Sobald der Steckling Wurzeln zeigt, hier bestätigen um den Wochencounter zu starten.</p>
+                <form method="post" action="/grows/@grow.Id/confirm-rooting">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary">Bewurzelung bestätigen ✓</button>
+                </form>
+            </div>
+        }
+        else if (weekInfo.State == GrowDiary.Web.Models.GrowCounterState.Vegetating
+                 && grow.SeedType != GrowDiary.Web.Models.SeedType.Autoflower
+                 && !grow.FlipDate.HasValue)
+        {
+            <div class="action-card action-card--info top-gap-sm">
+                <strong>@weekInfo.Label</strong>
+                <p>Bereit für die Blüte? Hier auf 12/12 umstellen.</p>
+                <form method="post" action="/grows/@grow.Id/flip-to-flower">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary">Auf 12/12 flippen 🌸</button>
+                </form>
+            </div>
+        }
+
+        @if (!grow.IsArchived && latestMeasurement?.Stage is GrowDiary.Web.Models.GrowStage.Finish or GrowDiary.Web.Models.GrowStage.Flower && Model.Harvest is null)
+        {
+            <div class="action-card action-card--info top-gap-sm">
+                <strong>Bereit zur Ernte?</strong>
+                <p>Ernte-Daten dokumentieren, Gewicht und Qualität festhalten und den Run abschließen.</p>
+                <a class="btn btn-primary" asp-action="Harvest" asp-route-id="@grow.Id">Ernte eintragen</a>
+            </div>
+        }
+
+        @if (Model.Harvest is not null)
+        {
+            <div class="action-card action-card--success top-gap-sm">
+                <strong>Ernte dokumentiert – @Model.Harvest.HarvestedAt.ToString("dd.MM.yyyy")</strong>
+                <div class="detail-pills top-gap-sm">
+                    @if (Model.Harvest.DryWeightG.HasValue)
+                    {
+                        <span class="detail-pill">@Model.Harvest.DryWeightG?.ToString("0.#") g trocken</span>
+                    }
+                    @if (Model.Harvest.WetWeightG.HasValue)
+                    {
+                        <span class="detail-pill">@Model.Harvest.WetWeightG?.ToString("0.#") g frisch</span>
+                    }
+                    @if (Model.Harvest.Rating.HasValue)
+                    {
+                        <span class="detail-pill">⭐ @Model.Harvest.Rating?.ToString("0.#") / 10</span>
+                    }
+                </div>
+                <a class="btn btn-ghost top-gap-sm" asp-action="Harvest" asp-route-id="@grow.Id">Ernte bearbeiten</a>
+            </div>
+        }
+    </div>
+</section>
+
+<div class="gos-tabs top-gap-lg" data-gos-tabs>
+    <button type="button" class="gos-tab is-active" data-tab-target="grow-panel-overview">Overview</button>
+    <button type="button" class="gos-tab" data-tab-target="grow-panel-journal">Journal</button>
+    <button type="button" class="gos-tab" data-tab-target="grow-panel-measurements">Messungen</button>
+    <button type="button" class="gos-tab" data-tab-target="grow-panel-photos">Fotos</button>
+    <button type="button" class="gos-tab" data-tab-target="grow-panel-setup">Setup & Wissen</button>
+</div>
+
+<section class="grow-panel-stack top-gap-lg" data-gos-panels>
+    <div class="gos-panel is-active" id="grow-panel-overview">
+        <div class="detail-layout detail-layout--overview grow-overview-layout-v2">
+            <section class="content-stack">
+                <div class="card-grid two-up">
+                    <article class="glass-panel side-card">
+                        <span class="kicker-label">Status</span>
+                        <h3>Operativer Überblick</h3>
+                        <ul class="clean-list compact-list top-gap-sm">
+                            <li><strong>Phase:</strong> @phaseLabel</li>
+                            <li><strong>Tag:</strong> @dayCount</li>
+                            <li><strong>Start:</strong> @grow.StartDate.ToString("dd.MM.yyyy")</li>
+                            <li><strong>Zelt:</strong> @(grow.TentName ?? "–")</li>
+                        </ul>
+                    </article>
+                    <article class="glass-panel side-card">
+                        <span class="kicker-label">Letzte Messung</span>
+                        @if (latestMeasurement is null)
+                        {
+                            <p class="muted top-gap-sm">–</p>
+                        }
+                        else
+                        {
+                            <ul class="clean-list compact-list top-gap-sm">
+                                <li><strong>Zeit:</strong> @latestMeasurement.TakenAt.ToString("dd.MM.yyyy HH:mm")</li>
+                                <li><strong>Quelle:</strong> @latestMeasurement.Source</li>
+                                <li><strong>Klima:</strong> @(latestMeasurement.AirTemperatureC?.ToString("0.0") ?? "–") °C • @(latestMeasurement.HumidityPercent?.ToString("0") ?? "–") %</li>
+                                <li><strong>Höhe:</strong> @(latestMeasurement.HeightCm?.ToString("0.0") ?? "–") cm</li>
+                            </ul>
+                        }
+                    </article>
+                </div>
+
+                <div class="card-grid three-up">
+                    @if (Model.MainChart is not null)
+                    {
+                        @await Html.PartialAsync("_ChartCard", Model.MainChart)
+                    }
+                    @if (Model.SecondaryChart is not null)
+                    {
+                        @await Html.PartialAsync("_ChartCard", Model.SecondaryChart)
+                    }
+                    @if (Model.WateringChart is not null)
+                    {
+                        @await Html.PartialAsync("_ChartCard", Model.WateringChart)
+                    }
+                </div>
+            </section>
+
+            <aside class="sidebar-stack">
+                <article class="glass-panel side-card">
+                    <h3>Aufgaben</h3>
+                    @if (Model.OpenTasks.Count == 0)
+                    {
+                        <p class="muted">Keine offenen Aufgaben.</p>
+                    }
+                    else
+                    {
+                        <div class="task-list top-gap-sm">
+                            @foreach (var task in Model.OpenTasks.Take(5))
+                            {
+                                <article class="task-card priority-@task.Priority.ToString().ToLowerInvariant()">
+                                    <div>
+                                        <strong>@task.Title</strong>
+                                        <p class="muted">@(task.DueAtUtc?.ToLocalTime().ToString("dd.MM. HH:mm") ?? "ohne Termin")</p>
+                                    </div>
+                                    <div class="cluster">
+                                        <form method="post" asp-action="CompleteTask" asp-route-taskId="@task.Id">@Html.AntiForgeryToken()<button class="btn btn-ghost" type="submit">Erledigt</button></form>
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    }
+                </article>
+                <article class="glass-panel side-card">
+                    <h3>Setup Snapshot</h3>
+                    <ul class="clean-list compact-list top-gap-sm">
+                        <li><strong>Medium:</strong> @profile.Label</li>
+                        <li><strong>Untertyp:</strong> @(grow.MediumDetail ?? "–")</li>
+                        <li><strong>Dünger:</strong> @(grow.Nutrients ?? "–")</li>
+                        <li><strong>Licht:</strong> @(grow.Light ?? "–")</li>
+                        <li><strong>Behälter:</strong> @(grow.ContainerSize ?? "–")</li>
+                        @if (!string.IsNullOrWhiteSpace(grow.ReservoirSize))
+                        {
+                            <li><strong>Reservoir:</strong> @grow.ReservoirSize</li>
+                        }
+                        <li><strong>Bewässerung:</strong> @(grow.IrrigationStyle ?? "–")</li>
+                        @if (grow.PlantCount.HasValue)
+                        {
+                            <li><strong>Pflanzen:</strong> @grow.PlantCount</li>
+                        }
+                    </ul>
+                </article>
+            </aside>
+        </div>
+    </div>
+
+    <div class="gos-panel" id="grow-panel-journal">
+        <div class="detail-layout detail-layout--overview grow-journal-layout-v2">
+            <section class="content-stack">
+                <article class="glass-panel form-card">
+                    <div class="section-header compact">
+                        <div>
+                            <h2>Schneller Eintrag</h2>
+                            <p class="muted">Messung, Foto und Notiz an einem Ort – für den täglichen Betrieb.</p>
+                        </div>
+                    </div>
+                    <form method="post" enctype="multipart/form-data" asp-action="AddMeasurement" asp-route-id="@grow.Id" class="form-shell">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+                        @await Html.PartialAsync("_MeasurementFormFields", Model.MeasurementForm)
+                        <div class="form-actions"><button class="btn btn-primary" type="submit">Messung speichern</button></div>
+                    </form>
+                </article>
+
+                <article class="glass-panel form-card">
+                    <div class="section-header compact">
+                        <div>
+                            <h2>Timeline & Journal</h2>
+                            <p class="muted">Messungen, Fotos, Notizen, Probleme und Maßnahmen in der richtigen Reihenfolge.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-stack">
+                        @foreach (var item in Model.Timeline)
+                        {
+                            <article class="timeline-item timeline-item--@item.Kind">
+                                <div class="timeline-marker"></div>
+                                <div class="timeline-card">
+                                    <div class="timeline-head">
+                                        <div>
+                                            <span class="eyebrow">@item.KindLabel</span>
+                                            <h3>@item.Title</h3>
+                                        </div>
+                                        <div class="timeline-meta"><strong>@item.Timestamp.ToString("dd.MM.yyyy HH:mm")</strong></div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(item.Body))
+                                    {
+                                        <p class="muted">@item.Body</p>
+                                    }
+                                    @if (item.Badges.Count > 0)
+                                    {
+                                        <div class="detail-pills top-gap-sm">
+                                            @foreach (var badge in item.Badges)
+                                            {
+                                                <span class="detail-pill">@badge</span>
+                                            }
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(item.PhotoPath))
+                                    {
+                                        <img class="timeline-photo top-gap" src="@item.PhotoPath" alt="Timeline-Foto" loading="lazy" />
+                                    }
+                                </div>
+                            </article>
+                        }
+                    </div>
+                </article>
+            </section>
+
+            <aside class="sidebar-stack">
+                <article class="glass-panel side-card">
+                    <h3>Journal-Eintrag</h3>
+                    <form method="post" asp-action="AddJournalEntry" asp-route-id="@grow.Id" class="form-shell compact-form top-gap-sm">
+                        @Html.AntiForgeryToken()
+                        <div class="field"><label asp-for="JournalForm.Title">Titel</label><input asp-for="JournalForm.Title" placeholder="z. B. Umtopfen, Mangel, Training" /></div>
+                        <div class="field top-gap-sm"><label asp-for="JournalForm.EntryType">Typ</label><select asp-for="JournalForm.EntryType" asp-items="Html.GetEnumSelectList<JournalEntryType>()"></select></div>
+                        <div class="field top-gap-sm"><label asp-for="JournalForm.OccurredAtLocal">Zeitpunkt</label><input asp-for="JournalForm.OccurredAtLocal" type="datetime-local" /></div>
+                        <div class="field top-gap-sm"><label asp-for="JournalForm.Body">Text</label><textarea asp-for="JournalForm.Body" rows="5" placeholder="Was ist passiert, was wurde gemacht, was ist aufgefallen?"></textarea></div>
+                        <div class="form-actions"><button class="btn btn-primary" type="submit">Journal speichern</button></div>
+                    </form>
+                </article>
+                <article class="glass-panel side-card">
+                    <h3>Aufgabe anlegen</h3>
+                    <form method="post" asp-action="AddTask" asp-route-id="@grow.Id" class="form-shell compact-form top-gap-sm">
+                        @Html.AntiForgeryToken()
+                        <div class="field"><label asp-for="TaskForm.Title">Titel</label><input asp-for="TaskForm.Title" placeholder="z. B. Wasserwechsel" /></div>
+                        <div class="field top-gap-sm"><label asp-for="TaskForm.Notes">Hinweis</label><textarea asp-for="TaskForm.Notes" rows="3"></textarea></div>
+                        <div class="form-grid two top-gap-sm">
+                            <div class="field"><label asp-for="TaskForm.DueAtLocal">Fällig</label><input asp-for="TaskForm.DueAtLocal" type="datetime-local" /></div>
+                            <div class="field"><label asp-for="TaskForm.Priority">Priorität</label><select asp-for="TaskForm.Priority" asp-items="Html.GetEnumSelectList<TaskPriority>()"></select></div>
+                        </div>
+                        <div class="form-actions"><button class="btn btn-primary" type="submit">Task anlegen</button></div>
+                    </form>
+                </article>
+            </aside>
+        </div>
+    </div>
+
+    <div class="gos-panel" id="grow-panel-measurements">
+        <div class="card-grid three-up">
+            @if (Model.MainChart is not null)
+            {
+                @await Html.PartialAsync("_ChartCard", Model.MainChart)
+            }
+            @if (Model.SecondaryChart is not null)
+            {
+                @await Html.PartialAsync("_ChartCard", Model.SecondaryChart)
+            }
+            @if (Model.WateringChart is not null)
+            {
+                @await Html.PartialAsync("_ChartCard", Model.WateringChart)
+            }
+        </div>
+        <article class="glass-panel form-card top-gap-lg">
+            <div class="section-header compact">
+                <div>
+                    <h2>Messungsverlauf</h2>
+                    <p class="muted">Die letzten Werte in chronologischer Reihenfolge – gut für Kontrolle, Korrektur und späteren Vergleich.</p>
+                </div>
+            </div>
+            <div class="timeline-stack compact top-gap-sm">
+                @foreach (var measurement in Model.Measurements.OrderByDescending(x => x.TakenAt).Take(12))
+                {
+                    <article class="timeline-card timeline-card--measurement">
+                        <div class="timeline-head">
+                            <div>
+                                <h3>@measurement.TakenAt.ToString("dd.MM.yyyy HH:mm")</h3>
+                                <div class="detail-pills top-gap-sm">
+                                    <span class="detail-pill">@measurement.Stage</span>
+                                    <span class="detail-pill">@measurement.Source</span>
+                                </div>
+                            </div>
+                            <div class="row-actions">
+                                <a class="btn btn-ghost" asp-action="EditMeasurement" asp-route-measurementId="@measurement.Id">Bearbeiten</a>
+                            </div>
+                        </div>
+                        <p class="muted top-gap-sm">Klima: @(measurement.AirTemperatureC?.ToString("0.0") ?? "–") °C • @(measurement.HumidityPercent?.ToString("0") ?? "–") % • Höhe: @(measurement.HeightCm?.ToString("0.0") ?? "–") cm</p>
+                    </article>
+                }
+            </div>
+        </article>
+    </div>
+
+    <div class="gos-panel" id="grow-panel-photos">
+        <article class="glass-panel form-card">
+            <div class="section-header compact">
+                <div>
+                    <h2>Fotos & Vergleiche</h2>
+                    <p class="muted">Visueller Verlauf des Runs: aktuell, vorher, Woche zurück und Referenzbild.</p>
+                </div>
+            </div>
+            <div class="photo-compare top-gap-sm enhanced-compare">
+                @if (Model.PhotoComparison.Latest is not null)
+                {
+                    <figure class="photo-compare-card"><strong>Neueste Aufnahme</strong><img class="grow-thumb" src="@Model.PhotoComparison.Latest.RelativePath" alt="Neueste Aufnahme" loading="lazy" /><figcaption class="muted top-gap-sm">@Model.PhotoComparison.Latest.TakenAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</figcaption></figure>
+                }
+                @if (Model.PhotoComparison.Previous is not null)
+                {
+                    <figure class="photo-compare-card"><strong>Vorherige Aufnahme</strong><img class="grow-thumb" src="@Model.PhotoComparison.Previous.RelativePath" alt="Vorherige Aufnahme" loading="lazy" /><figcaption class="muted top-gap-sm">@Model.PhotoComparison.Previous.TakenAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</figcaption></figure>
+                }
+                @if (Model.PhotoComparison.WeekBack is not null)
+                {
+                    <figure class="photo-compare-card"><strong>Vor ~1 Woche</strong><img class="grow-thumb" src="@Model.PhotoComparison.WeekBack.RelativePath" alt="Woche zurück" loading="lazy" /><figcaption class="muted top-gap-sm">@Model.PhotoComparison.WeekBack.TakenAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</figcaption></figure>
+                }
+                @if (Model.PhotoComparison.ReferenceShot is not null)
+                {
+                    <figure class="photo-compare-card reference-shot-card"><strong>Referenz</strong><img class="grow-thumb" src="@Model.PhotoComparison.ReferenceShot.RelativePath" alt="Referenz" loading="lazy" /><figcaption class="muted top-gap-sm">@Model.PhotoComparison.ReferenceShot.TakenAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</figcaption></figure>
+                }
+            </div>
+            @if (Model.Photos.Any())
+            {
+                <div class="photo-gallery-grid top-gap-lg">
+                    @foreach (var photo in Model.Photos.OrderByDescending(p => p.TakenAtUtc).Take(12))
+                    {
+                        <figure class="photo-gallery-card">
+                            <img src="@photo.RelativePath" alt="@photo.Caption" loading="lazy" />
+                            <figcaption><strong>@photo.Tag</strong><span>@photo.TakenAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span></figcaption>
+                        </figure>
+                    }
+                </div>
+            }
+        </article>
+    </div>
+
+    <div class="gos-panel" id="grow-panel-setup">
+        <div class="detail-layout detail-layout--overview">
+            <section class="content-stack">
+                <article class="glass-panel form-card">
+                    <div class="section-header compact">
+                        <div>
+                            <h2>Setup</h2>
+                            <p class="muted">Stammdaten, die du seltener im Alltag, aber oft beim Vergleich brauchst.</p>
+                        </div>
+                    </div>
+                    <div class="detail-pills top-gap-sm">
+                        <span class="detail-pill">@profile.Label</span>
+                        @if (!string.IsNullOrWhiteSpace(grow.Nutrients))
+                        {
+                            <span class="detail-pill">@grow.Nutrients</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(grow.Light))
+                        {
+                            <span class="detail-pill">@grow.Light</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(grow.ContainerSize))
+                        {
+                            <span class="detail-pill">@grow.ContainerSize</span>
+                        }
+                    </div>
+                    <ul class="clean-list compact-list top-gap">
+                        <li><strong>Breeder:</strong> @(grow.Breeder ?? "–")</li>
+                        <li><strong>Sorte:</strong> @(grow.Strain ?? "–")</li>
+                        <li><strong>Zelt:</strong> @(grow.TentName ?? "–")</li>
+                        <li><strong>Bewässerung:</strong> @(grow.IrrigationStyle ?? "–")</li>
+                        <li><strong>Notizen:</strong> @(grow.Notes ?? "–")</li>
+                    </ul>
+                </article>
+            </section>
+            <aside class="sidebar-stack">
+                @if (Model.NutrientProgram is not null)
+                {
+                    <article class="glass-panel side-card">
+                        <h3>@Model.NutrientProgram.Name</h3>
+                        <p class="muted">@Model.NutrientProgram.Summary</p>
+                        <ul class="clean-list compact-list top-gap-sm">
+                            @foreach (var tip in Model.NutrientProgram.Tips.Take(4))
+                            {
+                                <li>@tip</li>
+                            }
+                        </ul>
+                    </article>
+                }
+                @if (Model.MediumPlaybook is not null)
+                {
+                    <article class="glass-panel side-card">
+                        <h3>@Model.MediumPlaybook.Title</h3>
+                        <p class="muted">@Model.MediumPlaybook.Summary</p>
+                        <ul class="clean-list compact-list top-gap-sm">
+                            @foreach (var tip in Model.MediumPlaybook.Tips.Take(4))
+                            {
+                                <li>@tip</li>
+                            }
+                        </ul>
+                    </article>
+                }
+            </aside>
+        </div>
+    </div>
+</section>

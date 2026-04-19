@@ -1,0 +1,70 @@
+@* ─────────────────────────────────────────────────────────────
+   CameraPanel.razor
+   Double-Buffer Kamera-Stream aus Home Assistant
+   ───────────────────────────────────────────────────────────── *@
+@implements IDisposable
+
+<div class="cam-strip">
+    <div style="position:relative; aspect-ratio:16/9; overflow:hidden;">
+        <img src="@_srcA"
+             style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;
+                    opacity:@(_active == "a" ? 1 : 0); transition:opacity 0.3s;"/>
+        <img src="@_srcB"
+             style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0;
+                    opacity:@(_active == "b" ? 1 : 0); transition:opacity 0.3s;"/>
+
+        <div class="cam-live-badge">
+            <div class="cam-live-dot"></div>
+            Live
+        </div>
+        <div class="cam-age">vor @_ageSeconds s</div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int TentId { get; set; }
+
+    // Interval in Sekunden – 30 s für Karte, 10 s für Detail-View
+    [Parameter] public int RefreshSeconds { get; set; } = 30;
+
+    private string _srcA = "";
+    private string _srcB = "";
+    private string _active = "a";
+    private int _ageSeconds = 0;
+    private Timer? _refreshTimer;
+    private Timer? _ageTimer;
+    private DateTimeOffset _lastRefresh = DateTimeOffset.UtcNow;
+
+    protected override void OnInitialized() {
+        _srcA = CameraUrl();
+
+        _refreshTimer = new Timer(_ => {
+            Refresh();
+            InvokeAsync(StateHasChanged);
+        }, null,
+        TimeSpan.FromSeconds(RefreshSeconds),
+        TimeSpan.FromSeconds(RefreshSeconds));
+
+        _ageTimer = new Timer(_ => {
+            _ageSeconds = (int)(DateTimeOffset.UtcNow - _lastRefresh).TotalSeconds;
+            InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    private void Refresh() {
+        var url = CameraUrl();
+        if (_active == "a") { _srcB = url; _active = "b"; }
+        else                 { _srcA = url; _active = "a"; }
+        _lastRefresh = DateTimeOffset.UtcNow;
+        _ageSeconds  = 0;
+    }
+
+    // Nutzt bestehenden CameraStream-Endpoint aus TentsController
+    private string CameraUrl() =>
+        $"/tents/{TentId}/camera-stream?t={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+
+    public void Dispose() {
+        _refreshTimer?.Dispose();
+        _ageTimer?.Dispose();
+    }
+}

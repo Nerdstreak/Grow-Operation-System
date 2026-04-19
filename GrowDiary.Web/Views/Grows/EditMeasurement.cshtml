@@ -1,0 +1,49 @@
+@model MeasurementFormViewModel
+@{
+    ViewData["Title"] = "Messung bearbeiten";
+}
+
+<section class="page-hero glass-panel compact-hero">
+    <div>
+        <span class="eyebrow">Messung bearbeiten</span>
+        <h1>@Model.GrowName</h1>
+        <p class="lead">Vorhandene Werte korrigieren, Fotos ergänzen oder den Eintrag löschen.</p>
+    </div>
+</section>
+
+<div class="detail-layout top-gap-lg">
+    <section class="content-stack">
+        <article class="glass-panel form-card">
+            <form method="post" enctype="multipart/form-data" asp-action="EditMeasurement" asp-route-measurementId="@Model.Id" class="form-shell">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+                @await Html.PartialAsync("_MeasurementFormFields", Model)
+                <div class="form-actions between">
+                    <button class="btn btn-danger" type="submit" formaction="@Url.Action("DeleteMeasurement", "Grows", new { measurementId = Model.Id })" formmethod="post" onclick="return confirm('Messung wirklich löschen?');">Messung löschen</button>
+                    <div class="row-actions">
+                        <a class="btn btn-ghost" asp-action="Details" asp-route-id="@Model.GrowId">Zurück</a>
+                        <button class="btn btn-primary" type="submit">Änderungen speichern</button>
+                    </div>
+                </div>
+            </form>
+        </article>
+    </section>
+
+    <aside class="sidebar-stack">
+        @if (Model.ExistingPhotos.Count > 0)
+        {
+            <article class="glass-panel side-card">
+                <h3>Vorhandene Bilder</h3>
+                <div class="photo-grid">
+                    @foreach (var photo in Model.ExistingPhotos)
+                    {
+                        <figure class="photo-card">
+                            <img src="@photo.RelativePath" alt="Messungsbild" loading="lazy" />
+                            <figcaption><strong>@photo.Tag</strong><span>@photo.TakenAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span></figcaption>
+                        </figure>
+                    }
+                </div>
+            </article>
+        }
+    </aside>
+</div>

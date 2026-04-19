@@ -1,0 +1,452 @@
+@model HomeDashboardViewModel
+@using GrowDiary.Web.Models
+@{
+    ViewData["Title"] = "Operations";
+
+    var activeTentCount = Model.Tents.Count;
+    var openTasks = Model.DueSoonTasks.OrderBy(task => task.DueAtUtc ?? task.CreatedAtUtc).ToList();
+    var criticalAlerts = Model.Tents
+        .SelectMany(card => card.Alerts.Select(alert => new { Card = card, Alert = alert }))
+        .Where(x => x.Alert.Severity == "danger")
+        .Take(3)
+        .ToList();
+
+    var criticalDeviations = Model.ActiveDeviations.Where(d => d.Severity == DeviationSeverity.Critical).ToList();
+    var warningDeviations  = Model.ActiveDeviations.Where(d => d.Severity == DeviationSeverity.Warning).ToList();
+
+    // Merged critical list: alerts + deviations combined
+    var criticalItems = criticalAlerts
+        .Select(x => (Location: x.Card.Tent.Name, Title: x.Alert.Title, Body: x.Alert.Message))
+        .Concat(criticalDeviations.Select(d => (Location: TentNameForDeviation(d), Title: MetricLabel(d.Metric), Body: d.Recommendation)))
+        .ToList();
+
+    var warningItems = warningDeviations
+        .Select(d => (Location: TentNameForDeviation(d), Title: MetricLabel(d.Metric), Body: d.Recommendation))
+        .ToList();
+
+    var primaryTask = openTasks.FirstOrDefault();
+    var primaryAlert = criticalAlerts.FirstOrDefault();
+    var singleTentMode = activeTentCount == 1;
+
+    string FormatTaskDue(GrowTask task)
+        => task.DueAtUtc?.ToLocalTime().ToString("dd.MM. HH:mm") ?? "ohne Termin";
+
+    string StateTone(TentDashboardCardViewModel tentCard)
+        => tentCard.Alerts.Any(a => a.Severity == "danger") ? "critical"
+            : tentCard.Alerts.Any(a => a.Severity == "warning") ? "attention"
+            : Model.HomeAssistantConfigured ? "healthy"
+            : "neutral";
+
+    string StateLabel(string tone)
+        => tone switch
+        {
+            "critical" => "kritisch",
+            "attention" => "beobachten",
+            "healthy" => "stabil",
+            _ => "neutral"
+        };
+
+    string MetricLabel(DeviationMetric m) => m switch
+    {
+        DeviationMetric.Ph              => "pH",
+        DeviationMetric.Ec              => "EC",
+        DeviationMetric.Orp             => "ORP",
+        DeviationMetric.WaterTemp       => "Wassertemp.",
+        DeviationMetric.Vpd             => "VPD",
+        DeviationMetric.Ppfd            => "PPFD",
+        DeviationMetric.Co2             => "CO₂",
+        DeviationMetric.DissolvedOxygen    => "DO",
+        DeviationMetric.GerminationStatus  => "Keimung / Bewurzelung",
+        _                                  => m.ToString()
+    };
+
+    string MetricFormat(DeviationMetric m) => m switch
+    {
+        DeviationMetric.Ph              => "0.00",
+        DeviationMetric.Ec              => "0.00",
+        DeviationMetric.WaterTemp       => "0.0",
+        DeviationMetric.Co2             => "0",
+        DeviationMetric.Ppfd              => "0",
+        DeviationMetric.GerminationStatus => "",
+        _                                 => "0.#"
+    };
+
+    string TentNameForDeviation(GrowDeviation dev)
+    {
+        var card = Model.Tents.FirstOrDefault(t => t.Tent.ActiveGrows.Any(g => g.Id == dev.GrowId));
+        return card is not null ? card.Tent.Name : dev.GrowName;
+    }
+}
+
+<section class="glass-panel ops-shell-header">
+    <div class="ops-shell-header__main">
+        <span class="eyebrow">Operations</span>
+        <h1>Operations</h1>
+        <div class="ops-shell-metrics">
+            <article class="ops-mini-stat">
+                <span>Aktive Runs</span>
+                <strong>@Model.Stats.ActiveGrows</strong>
+            </article>
+            <article class="ops-mini-stat">
+                <span>Aktive Zelte</span>
+                <strong>@activeTentCount</strong>
+            </article>
+            <article class="ops-mini-stat">
+                <span>Aufgaben heute</span>
+                <strong>@openTasks.Count</strong>
+            </article>
+        </div>
+    </div>
+    <aside class="ops-priority-card @(primaryAlert is not null ? "is-critical" : primaryTask is not null ? "is-action" : "is-calm")">
+        <span class="eyebrow">Jetzt wichtig</span>
+        @if (primaryAlert is not null)
+        {
+            <strong>@primaryAlert.Card.Tent.Name: @primaryAlert.Alert.Title</strong>
+            <p>@primaryAlert.Alert.Message</p>
+        }
+        else if (primaryTask is not null)
+        {
+            <strong>@primaryTask.Title</strong>
+            <p>@(primaryTask.GrowName ?? "Run") • @FormatTaskDue(primaryTask)</p>
+        }
+        else
+        {
+            <strong>Keine akuten Eingriffe nötig</strong>
+            <p>Alle aktiven Zelte wirken ruhig.</p>
+        }
+    </aside>
+</section>
+
+@if (criticalItems.Any())
+{
+    <section class="glass-panel ops-warning-strip ops-warning-strip--critical">
+        <span class="eyebrow">Kritische Alarme</span>
+        <div class="ops-warning-list">
+            @foreach (var item in criticalItems.Take(3))
+            {
+                <article class="ops-warning-item">
+                    <strong>@item.Location</strong>
+                    <span>@item.Title</span>
+                    <p>@item.Body</p>
+                </article>
+            }
+        </div>
+        @if (criticalItems.Count > 3)
+        {
+            <details class="ops-warning-more">
+                <summary>… und @(criticalItems.Count - 3) weitere</summary>
+                <div class="ops-warning-list">
+                    @foreach (var item in criticalItems.Skip(3))
+                    {
+                        <article class="ops-warning-item">
+                            <strong>@item.Location</strong>
+                            <span>@item.Title</span>
+                            <p>@item.Body</p>
+                        </article>
+                    }
+                </div>
+            </details>
+        }
+    </section>
+}
+
+@if (warningItems.Any())
+{
+    <section class="glass-panel ops-warning-strip ops-warning-strip--warning">
+        <span class="eyebrow">Hinweise</span>
+        <div class="ops-warning-list">
+            @foreach (var item in warningItems.Take(3))
+            {
+                <article class="ops-warning-item">
+                    <strong>@item.Location</strong>
+                    <span>@item.Title</span>
+                    <p>@item.Body</p>
+                </article>
+            }
+        </div>
+        @if (warningItems.Count > 3)
+        {
+            <details class="ops-warning-more">
+                <summary>… und @(warningItems.Count - 3) weitere</summary>
+                <div class="ops-warning-list">
+                    @foreach (var item in warningItems.Skip(3))
+                    {
+                        <article class="ops-warning-item">
+                            <strong>@item.Location</strong>
+                            <span>@item.Title</span>
+                            <p>@item.Body</p>
+                        </article>
+                    }
+                </div>
+            </details>
+        }
+    </section>
+}
+
+<section class="ops-stage">
+    @if (!Model.Tents.Any())
+    {
+        <article class="glass-panel empty-state-card empty-state-card--ops">
+            <span class="eyebrow">Operations</span>
+            <strong>Keine aktiven Zelte</strong>
+            <div class="empty-state-card__actions">
+                <a class="btn btn-primary" asp-controller="Grows" asp-action="Create">Neuen Run anlegen</a>
+            </div>
+        </article>
+    }
+    else
+    {
+        <div class="ops-tents-grid @(singleTentMode ? "is-single" : "is-multi")" data-live-home-endpoint="/api/live/home" data-live-interval-ms="10000">
+            @foreach (var tentCard in Model.Tents)
+            {
+                var tone = StateTone(tentCard);
+                var focus = tentCard.Alerts.FirstOrDefault();
+                var tentGrowIds = tentCard.Tent.ActiveGrows.Select(g => g.Id).ToHashSet();
+                var tentTask = openTasks.FirstOrDefault(task => tentGrowIds.Contains(task.GrowId));
+                var climateMetrics = tentCard.LiveMetrics.Take(4).ToList();
+                var trend = tentCard.ClimateSparkline;
+                var tentDeviations = Model.ActiveDeviations
+                    .Where(d => tentGrowIds.Contains(d.GrowId)
+                             && d.Metric != DeviationMetric.GerminationStatus)
+                    .OrderByDescending(d => (int)d.Severity)
+                    .ToList();
+                var hasHydroGrows = tentCard.Tent.ActiveGrows.Any(g => g.IrrigationType == IrrigationType.ActiveHydro);
+                var climateKeys = new HashSet<string> { "temperature", "humidity", "vpd" };
+                var tentClimateMetrics  = tentCard.LiveMetrics.Where(m => climateKeys.Contains(m.Key)).ToList();
+                var tentReservoirMetrics = hasHydroGrows
+                    ? tentCard.LiveMetrics.Where(m => !climateKeys.Contains(m.Key)).Take(4).ToList()
+                    : new List<MetricCard>();
+                var hasCamV2    = !string.IsNullOrWhiteSpace(tentCard.Tent.CameraEntityId);
+                var hydroStyle  = tentCard.Tent.ActiveGrows
+                    .FirstOrDefault(g => g.IrrigationType == IrrigationType.ActiveHydro)
+                    ?.HydroStyle.ToString();
+                var firstDev    = tentDeviations.FirstOrDefault();
+                var statusClass = tone == "critical" ? "otc-status--danger"
+                                : tone == "attention" ? "otc-status--warn"
+                                : "otc-status--ok";
+                var climateColClass = tentClimateMetrics.Count == 3 ? "otc-mlist--3" : "otc-mlist--2";
+
+                <article class="glass-panel ops-tent-card-v2 ops-card--@tone" data-live-tent-card data-tent-id="@tentCard.Tent.Id">
+
+                    @* Header *@
+                    <div class="otc-head">
+                        <div>
+                            <span class="eyebrow">@tentCard.Tent.Kind</span>
+                            <h2 class="otc-name">@tentCard.Tent.Name</h2>
+                            <p class="otc-sub">@tentCard.Tent.ActiveGrowCount aktive @(tentCard.Tent.ActiveGrowCount == 1 ? "Run" : "Runs")@(hydroStyle is not null ? $" · {hydroStyle}" : "")</p>
+                        </div>
+                        <div class="otc-head-right">
+                            <span class="state-pill state-pill--@tone" data-live-state-pill>@StateLabel(tone)</span>
+                            <a class="btn btn-ghost" asp-controller="Tents" asp-action="Details" asp-route-id="@tentCard.Tent.Id">Öffnen</a>
+                        </div>
+                    </div>
+
+                    @* Body: Metriken + optionale Kamera *@
+                    <div class="otc-body @(hasCamV2 ? "has-cam" : "")">
+                        <div class="otc-metrics">
+                            @if (tentClimateMetrics.Any())
+                            {
+                                <div class="otc-section-lbl">Klima</div>
+                                <div class="otc-mlist @climateColClass">
+                                    @foreach (var metric in tentClimateMetrics)
+                                    {
+                                        <div class="otc-mi @metric.Tone" data-live-metric data-metric-key="@metric.Key">
+                                            <span class="otc-mi-lbl">@metric.Label</span>
+                                            <div class="otc-mi-val"><span data-live-value>@metric.Value</span><small data-live-unit>@metric.Unit</small></div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            @if (tentReservoirMetrics.Any())
+                            {
+                                <div class="otc-section-lbl">Reservoir</div>
+                                <div class="otc-mlist otc-mlist--4">
+                                    @foreach (var metric in tentReservoirMetrics)
+                                    {
+                                        <div class="otc-mi @metric.Tone" data-live-metric data-metric-key="@metric.Key">
+                                            <span class="otc-mi-lbl">@metric.Label</span>
+                                            <div class="otc-mi-val"><span data-live-value>@metric.Value</span><small data-live-unit>@metric.Unit</small></div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        @if (hasCamV2)
+                        {
+                            <div class="otc-cam">
+                                <a class="otc-cam-link" asp-controller="Tents" asp-action="Details" asp-route-id="@tentCard.Tent.Id">
+                                    <img id="ops-cam-a-@tentCard.Tent.Id"
+                                         class="ops-cam-img"
+                                         src="@Url.Action("CameraStream", "Tents", new { id = tentCard.Tent.Id })"
+                                         alt="Kamera @tentCard.Tent.Name"
+                                         onerror="this.style.display='none'; document.getElementById('ops-cam-fb-@tentCard.Tent.Id').style.display='flex';">
+                                    <img id="ops-cam-b-@tentCard.Tent.Id"
+                                         class="ops-cam-img ops-cam-img--hidden"
+                                         alt="">
+                                    <div id="ops-cam-fb-@tentCard.Tent.Id" class="ops-cam-fallback">
+                                        <span>Kein Kamerabild</span>
+                                    </div>
+                                    <div class="otc-cam-live">
+                                        <span class="otc-live-dot"></span>Live
+                                    </div>
+                                </a>
+                            </div>
+                        }
+                    </div>
+
+                    @* Footer: Status + Run-Pills *@
+                    <div class="otc-foot">
+                        <div class="otc-status @statusClass">
+                            <span class="otc-dot"></span>
+                            <span class="otc-status-text">
+                                @if (firstDev is not null)
+                                {
+                                    @(firstDev.Severity == DeviationSeverity.Critical
+                                        ? $"Kritisch: {MetricLabel(firstDev.Metric)}"
+                                        : $"{MetricLabel(firstDev.Metric)} – beobachten")
+                                }
+                                else if (focus is not null)
+                                {
+                                    @focus.Title
+                                }
+                                else if (tentTask is not null)
+                                {
+                                    @tentTask.Title
+                                }
+                                else
+                                {
+                                    <text>Alle Werte im Sollbereich</text>
+                                }
+                            </span>
+                        </div>
+                        <div class="otc-runs">
+                            @foreach (var grow in tentCard.Tent.ActiveGrows.Take(3))
+                            {
+                                <a class="otc-run-pill" asp-controller="Grows" asp-action="Details" asp-route-id="@grow.Id">
+                                    @grow.Name
+                                </a>
+                            }
+                        </div>
+                    </div>
+
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@{
+    var hydroTentCards = Model.Tents
+        .Where(t => t.Tent.ActiveGrows.Any(g => g.IrrigationType == IrrigationType.ActiveHydro))
+        .ToList();
+    var hydroGrowsWithData = hydroTentCards
+        .SelectMany(tc => tc.Tent.ActiveGrows
+            .Where(g => g.IrrigationType == IrrigationType.ActiveHydro)
+            .Where(g => g.LatestMeasurement?.ReservoirEc.HasValue == true
+                     || Model.ActiveDeviations.Any(d => d.GrowId == g.Id && d.Metric == DeviationMetric.Ec)))
+        .Any();
+}
+@if (hydroTentCards.Any())
+{
+    <section class="glass-panel ops-addback-strip">
+        <span class="eyebrow">Reservoir / Addback</span>
+        @if (hydroGrowsWithData)
+        {
+            <div class="ops-addback-list">
+                @foreach (var tc in hydroTentCards)
+                {
+                    foreach (var grow in tc.Tent.ActiveGrows.Where(g => g.IrrigationType == IrrigationType.ActiveHydro))
+                    {
+                        var ecDev = Model.ActiveDeviations.FirstOrDefault(d => d.GrowId == grow.Id && d.Metric == DeviationMetric.Ec);
+                        var ecNow = grow.LatestMeasurement?.ReservoirEc;
+                        if (!ecNow.HasValue && ecDev is null) { continue; }
+                        var isUp   = ecDev?.Recommendation.Contains("gestiegen") == true;
+                        var isDown = ecDev?.Recommendation.Contains("gefallen")  == true;
+                        var ecArrow = isUp ? "↑" : isDown ? "↓" : "–";
+                        var ecArrowClass = isUp ? "up" : isDown ? "down" : "neutral";
+                        <article class="ops-addback-card">
+                            <div class="ops-addback-card__head">
+                                <span class="eyebrow">@tc.Tent.Name</span>
+                                <strong>@grow.Name</strong>
+                                <small class="muted">@grow.HydroStyle • @grow.Profile.Label</small>
+                            </div>
+                            <div class="ops-addback-card__metrics">
+                                <div class="ops-addback-ec">
+                                    <span>EC aktuell</span>
+                                    <strong class="ops-ec-arrow--@ecArrowClass">
+                                        @(ecNow.HasValue ? ecNow.Value.ToString("0.00") : "–") <small>mS/cm</small>
+                                        <span class="ops-ec-trend-arrow">@ecArrow</span>
+                                    </strong>
+                                </div>
+                            </div>
+                            @if (ecDev is not null)
+                            {
+                                <p class="ops-addback-card__recommendation">@ecDev.Recommendation</p>
+                            }
+                        </article>
+                    }
+                }
+            </div>
+        }
+        else
+        {
+            <p class="ops-addback-empty">Noch keine Messungen mit EC-Werten vorhanden. Trag eine erste Messung ein um EC-Verlauf und Addback-Empfehlungen zu sehen.</p>
+        }
+    </section>
+}
+
+@if (openTasks.Any())
+{
+    <section class="glass-panel ops-today-strip">
+        <div class="ops-today-strip__head">
+            <span class="eyebrow">Heute zu tun</span>
+            <strong>@openTasks.Count offene Aufgabe@(openTasks.Count == 1 ? string.Empty : "n")</strong>
+        </div>
+        <div class="ops-today-strip__list">
+            @foreach (var task in openTasks.Take(3))
+            {
+                <article class="ops-task-item">
+                    <div>
+                        <strong>@task.Title</strong>
+                        <p>@(task.GrowName ?? "Run") • @FormatTaskDue(task)</p>
+                    </div>
+                    <span class="detail-pill">@task.Priority</span>
+                </article>
+            }
+        </div>
+    </section>
+}
+
+@section Scripts {
+<script>
+// Kamera Double-Buffer: alle 30 s live von HA aktualisieren
+@foreach (var tc in Model.Tents.Where(t => !string.IsNullOrWhiteSpace(t.Tent.CameraEntityId)))
+{
+    <text>
+(function () {
+    var a = document.getElementById('ops-cam-a-@tc.Tent.Id');
+    var b = document.getElementById('ops-cam-b-@tc.Tent.Id');
+    if (!a || !b) return;
+    var active = a;
+    var tentId = @tc.Tent.Id;
+
+    function doRefresh() {
+        var next = active === a ? b : a;
+        next.onload = function () {
+            next.classList.remove('ops-cam-img--hidden');
+            active.classList.add('ops-cam-img--hidden');
+            active = next;
+        };
+        next.onerror = function () {};
+        next.src = '/tents/' + tentId +
+                   '/camera-stream?t=' + Date.now();
+    }
+
+    doRefresh();
+    setInterval(doRefresh, 30000);
+}());
+    </text>
+}
+</script>
+}

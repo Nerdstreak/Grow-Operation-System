@@ -1,0 +1,82 @@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+    string Active(string c, string? a = null)
+        => controller == c && (a is null || action == a) ? "active" : string.Empty;
+    var homeClass = $"nav-link {Active("Home")}";
+    var tentsClass = $"nav-link {Active("Tents")}";
+    var growsClass = $"nav-link {Active("Grows", "Index")}";
+    var archiveClass = $"nav-link {Active("Grows", "Archived")}";
+    var analysisClass = $"nav-link {Active("Grows", "Compare")}";
+    var settingsClass = $"nav-link {Active("Settings")}";
+    var mobileHomeClass = $"mobile-nav-link {Active("Home")}";
+    var mobileTentsClass = $"mobile-nav-link {Active("Tents")}";
+    var mobileGrowsClass = $"mobile-nav-link {Active("Grows", "Index")}";
+    var mobileSettingsClass = $"mobile-nav-link {Active("Settings")}";
+}
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Grow Operation System</title>
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="app-shell">
+        <header class="app-header glass-panel">
+            <a class="brand" asp-controller="Home" asp-action="Index">
+                <img src="~/images/gos-logo.svg" alt="Grow Operation System Logo" class="brand-logo" />
+                <div>
+                    <div class="brand-title">Grow Operation System</div>
+                    <div class="brand-subtitle">Operations · Zelte · Sensorik · Journal</div>
+                </div>
+            </a>
+
+            <nav class="main-nav">
+                <a class="@homeClass" asp-controller="Home" asp-action="Index">Operations</a>
+                <a class="@tentsClass" asp-controller="Tents" asp-action="Index">Zelte</a>
+                <a class="@growsClass" asp-controller="Grows" asp-action="Index">Grows</a>
+                <a class="@archiveClass" asp-controller="Grows" asp-action="Archived">Archiv</a>
+                <a class="@analysisClass" asp-controller="Grows" asp-action="Compare">Analyse</a>
+                <a class="@settingsClass" asp-controller="Settings" asp-action="Index">Einstellungen</a>
+            </nav>
+
+            <div class="header-actions">
+                <div class="theme-switch" aria-label="Farbschema wechseln">
+                    <span class="theme-switch-label theme-switch-label--light">Hell</span>
+                    <label class="theme-switch-control" for="theme-toggle">
+                        <input id="theme-toggle" type="checkbox" aria-label="Dark Mode umschalten" />
+                        <span class="theme-switch-track">
+                            <span class="theme-switch-thumb"></span>
+                        </span>
+                    </label>
+                    <span class="theme-switch-label theme-switch-label--dark">Dunkel</span>
+                </div>
+                <a class="btn btn-primary" asp-controller="Grows" asp-action="Create">Neuer Run</a>
+            </div>
+        </header>
+
+        @if (TempData["Flash"] is string flashMessage)
+        {
+            <div class="flash glass-panel">@flashMessage</div>
+        }
+
+        <main class="page-body">
+            @RenderBody()
+        </main>
+    </div>
+
+    <nav class="mobile-nav glass-panel">
+        <a class="@mobileHomeClass" asp-controller="Home" asp-action="Index">Ops</a>
+        <a class="@mobileTentsClass" asp-controller="Tents" asp-action="Index">Zelte</a>
+        <a class="@mobileGrowsClass" asp-controller="Grows" asp-action="Index">Grows</a>
+        <a class="@mobileSettingsClass" asp-controller="Settings" asp-action="Index">Mehr</a>
+    </nav>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

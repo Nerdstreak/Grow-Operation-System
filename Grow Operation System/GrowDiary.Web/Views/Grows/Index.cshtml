@@ -1,0 +1,29 @@
+@model GrowListPageViewModel
+@{
+    ViewData["Title"] = Model.ShowArchived ? "Archiv" : "Grows";
+}
+
+<section class="page-hero glass-panel compact-hero">
+    <div>
+        <span class="eyebrow">@(Model.ShowArchived ? "Archiv" : "Aktive Grows")</span>
+        <h1>@Model.Title</h1>
+    </div>
+    <form class="search-shell" method="get">
+        <input type="search" name="search" value="@Model.Search" placeholder="Name, Strain, Dünger oder Zelt durchsuchen" />
+        <button class="btn btn-primary" type="submit">Suchen</button>
+    </form>
+</section>
+
+<div class="card-grid two-up top-gap-lg">
+    @if (Model.Grows.Count == 0)
+    {
+        <article class="glass-panel empty-state large">Noch keine passenden Grows gefunden.</article>
+    }
+    else
+    {
+        @foreach (var grow in Model.Grows)
+        {
+            @await Html.PartialAsync("_GrowCard", grow)
+        }
+    }
+</div>

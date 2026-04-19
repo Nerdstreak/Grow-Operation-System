@@ -1,0 +1,131 @@
+@model MeasurementFormViewModel
+@{
+    var profile = Model.Profile;
+    string HaBadge(string key) => Model.HaPrefilled.Contains(key) ? " <span class=\"ha-badge\">HA</span>" : "";
+    string HaCls(string key) => Model.HaPrefilled.Contains(key) ? "ha-prefilled" : "";
+    const string HaTitle = "Automatisch aus Home Assistant geladen";
+}
+<input type="hidden" asp-for="GrowId" />
+<input type="hidden" asp-for="MediumType" />
+<input type="hidden" asp-for="FeedingStyle" />
+<input type="hidden" asp-for="HydroStyle" />
+<input type="hidden" asp-for="MediumDetail" />
+<input type="hidden" asp-for="IrrigationStyle" />
+
+<div class="form-grid three">
+    <div class="field">
+        <label asp-for="TakenAtLocal">Datum / Uhrzeit</label>
+        <input asp-for="TakenAtLocal" type="datetime-local" />
+    </div>
+    <div class="field">
+        <label asp-for="Stage">Phase</label>
+        <select asp-for="Stage">
+            <option value="Seedling">Seedling</option>
+            <option value="Clone">Clone</option>
+            <option value="Veg">Veg</option>
+            <option value="Transition">Transition</option>
+            <option value="Flower">Flower</option>
+            <option value="Finish">Finish</option>
+        </select>
+    </div>
+    <div class="field">
+        <label asp-for="Source">Quelle</label>
+        <select asp-for="Source" asp-items="Html.GetEnumSelectList<ValueOrigin>()"></select>
+    </div>
+    <div class="field">
+        <label asp-for="HeightCm">Höhe cm</label>
+        <input asp-for="HeightCm" type="number" step="0.1" />
+    </div>
+
+    @if (profile.UsesAmbientMetrics)
+    {
+        <div class="field">
+            <label asp-for="AirTemperatureC">Lufttemperatur °C @Html.Raw(HaBadge("temperature"))</label>
+            <input asp-for="AirTemperatureC" type="number" step="0.1" class="@HaCls("temperature")" title="@(Model.HaPrefilled.Contains("temperature") ? HaTitle : null)" />
+        </div>
+        <div class="field">
+            <label asp-for="HumidityPercent">Luftfeuchtigkeit % @Html.Raw(HaBadge("humidity"))</label>
+            <input asp-for="HumidityPercent" type="number" step="0.1" class="@HaCls("humidity")" title="@(Model.HaPrefilled.Contains("humidity") ? HaTitle : null)" />
+        </div>
+    }
+</div>
+
+<div class="profile-panel">
+    <h3>Hydro / Reservoir</h3>
+    <div class="form-grid three">
+        <div class="field">
+            <label asp-for="ReservoirPh">Reservoir pH @Html.Raw(HaBadge("reservoir-ph"))</label>
+            <input asp-for="ReservoirPh" type="number" step="0.01" class="@HaCls("reservoir-ph")" title="@(Model.HaPrefilled.Contains("reservoir-ph") ? HaTitle : null)" />
+        </div>
+        <div class="field">
+            <label asp-for="ReservoirEc">Reservoir EC @Html.Raw(HaBadge("reservoir-ec"))</label>
+            <input asp-for="ReservoirEc" type="number" step="0.01" class="@HaCls("reservoir-ec")" title="@(Model.HaPrefilled.Contains("reservoir-ec") ? HaTitle : null)" />
+        </div>
+        <div class="field">
+            <label asp-for="ReservoirWaterTempC">Wassertemperatur °C @Html.Raw(HaBadge("reservoir-temp"))</label>
+            <input asp-for="ReservoirWaterTempC" type="number" step="0.1" class="@HaCls("reservoir-temp")" title="@(Model.HaPrefilled.Contains("reservoir-temp") ? HaTitle : null)" />
+        </div>
+        <div class="field">
+            <label asp-for="ReservoirLevelLiters">Wasserstand Liter @Html.Raw(HaBadge("reservoir-level"))</label>
+            <input asp-for="ReservoirLevelLiters" type="number" step="0.1" class="@HaCls("reservoir-level")" title="@(Model.HaPrefilled.Contains("reservoir-level") ? HaTitle : null)" />
+        </div>
+        <div class="field">
+            <label asp-for="ReservoirLevelCm">Wasserstand cm</label>
+            <input asp-for="ReservoirLevelCm" type="number" step="0.1" />
+        </div>
+        <div class="field">
+            <label asp-for="TopOffLiters">Top-Off Liter</label>
+            <input asp-for="TopOffLiters" type="number" step="0.1" />
+        </div>
+        <div class="field">
+            <label asp-for="AddbackEc">Addback EC</label>
+            <input asp-for="AddbackEc" type="number" step="0.01" />
+        </div>
+        <div class="field">
+            <label asp-for="DissolvedOxygenMgL">Sauerstoff mg/L @Html.Raw(HaBadge("dissolved-oxygen"))</label>
+            <input asp-for="DissolvedOxygenMgL" type="number" step="0.1" class="@HaCls("dissolved-oxygen")" title="@(Model.HaPrefilled.Contains("dissolved-oxygen") ? HaTitle : null)" />
+        </div>
+        <div class="field">
+            <label asp-for="OrpMv">ORP mV @Html.Raw(HaBadge("orp"))</label>
+            <input asp-for="OrpMv" type="number" step="1" class="@HaCls("orp")" title="@(Model.HaPrefilled.Contains("orp") ? HaTitle : null)" />
+        </div>
+        <div class="field">
+            <label asp-for="PpfdMol">PPFD µmol/m²/s @Html.Raw(HaBadge("ppfd"))</label>
+            <input asp-for="PpfdMol" type="number" step="1" class="@HaCls("ppfd")" title="@(Model.HaPrefilled.Contains("ppfd") ? HaTitle : null)" />
+        </div>
+        <div class="field">
+            <label asp-for="Co2Ppm">CO₂ ppm @Html.Raw(HaBadge("co2"))</label>
+            <input asp-for="Co2Ppm" type="number" step="1" class="@HaCls("co2")" title="@(Model.HaPrefilled.Contains("co2") ? HaTitle : null)" />
+        </div>
+        <label class="checkbox-field">
+            <input asp-for="SolutionChange" type="checkbox" />
+            <span>Lösungswechsel durchgeführt</span>
+        </label>
+    </div>
+</div>
+
+<div class="form-grid three top-gap">
+    <div class="field">
+        <label asp-for="PhotoTag">Foto-Tag</label>
+        <select asp-for="PhotoTag" asp-items="Html.GetEnumSelectList<PhotoTag>()"></select>
+    </div>
+    <div class="field two-col">
+        <label asp-for="PhotoCaption">Bildunterschrift</label>
+        <input asp-for="PhotoCaption" placeholder="z. B. Defoliation vor Licht an" />
+    </div>
+    <label class="checkbox-field align-end">
+        <input asp-for="UseAsReferenceShot" type="checkbox" />
+        <span>Als Referenzbild markieren</span>
+    </label>
+</div>
+
+<div class="field full">
+    <label asp-for="Photos">Bilder</label>
+    <input asp-for="Photos" type="file" accept="image/*" capture="environment" multiple />
+    <small class="muted">Auf dem Handy kannst du direkt neue Fotos aufnehmen. Die Bilder werden mit Tag, Quelle und optional als Referenz gespeichert.</small>
+</div>
+
+<div class="field full">
+    <label asp-for="Notes">Notiz</label>
+    <textarea asp-for="Notes" rows="4" placeholder="z. B. Blattbild, Geruch, Addback, Auffälligkeiten"></textarea>
+</div>

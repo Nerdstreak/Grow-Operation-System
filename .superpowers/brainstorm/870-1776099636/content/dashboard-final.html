@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Final</title>
+<style>
+  :root {
+    --bg:#0a1110; --surface:rgba(17,28,25,0.9); --surface2:rgba(21,35,31,0.92);
+    --border:rgba(132,164,151,0.16); --border-s:rgba(132,164,151,0.28);
+    --text:#edf8f4; --muted:#7a9e94; --primary:#79c97f;
+    --warning:#fbbf24; --danger:#f87171; --radius:24px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;padding:28px;}
+  h2{font-size:1.1rem;margin-bottom:4px;}
+  .subtitle{color:var(--muted);font-size:0.82rem;margin-bottom:28px;}
+  .eyebrow{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start;}
+  .col-label{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;}
+
+  /* Card */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .card-head{padding:18px 22px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
+  .card-name{font-size:1.05rem;font-weight:700;margin-top:2px;}
+  .card-sub{font-size:0.68rem;color:var(--muted);margin-top:2px;}
+  .pill{font-size:0.62rem;font-weight:600;padding:3px 10px;border-radius:20px;}
+  .pill.stable{background:rgba(121,201,127,0.12);color:#79c97f;border:1px solid rgba(121,201,127,0.22);}
+  .pill.warn{background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.22);}
+  .btn-ghost{font-size:0.68rem;padding:4px 11px;border-radius:9px;border:1px solid var(--border-s);background:transparent;color:var(--muted);cursor:default;}
+
+  /* Body */
+  .card-body{display:grid;grid-template-columns:1fr 150px;}
+  .card-body.no-cam{grid-template-columns:1fr;}
+
+  /* Metrics */
+  .metrics{padding:14px 22px 16px;}
+  .section-lbl{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:8px;margin-top:12px;}
+  .section-lbl:first-child{margin-top:0;}
+  .mlist{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .mlist + .mlist{margin-top:10px;}
+  .mi{padding:9px 12px;display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--border);border-right:1px solid var(--border);}
+  .mi:nth-child(even){border-right:none;}
+  .mi:nth-last-child(-n+2){border-bottom:none;}
+  .mi .k{font-size:0.64rem;color:var(--muted);}
+  .mi .v{font-size:1.15rem;font-weight:700;letter-spacing:-0.02em;}
+  .mi .u{font-size:0.6rem;color:var(--muted);margin-left:2px;}
+  .mi.warn .v{color:var(--warning);}
+  .mi.danger .v{color:var(--danger);}
+
+  /* Camera */
+  .cam{border-left:1px solid var(--border);background:linear-gradient(160deg,#1a2e28,#0d1e1a);position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;min-height:180px;}
+  .cam-live{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:4px;font-size:0.58rem;color:rgba(255,255,255,0.45);}
+  .cam-live::before{content:'';width:5px;height:5px;border-radius:50%;background:#ef4444;display:block;box-shadow:0 0 5px #ef4444;}
+  .cam-icon{font-size:1.5rem;opacity:0.12;}
+  .cam-hint{font-size:0.58rem;color:rgba(255,255,255,0.18);}
+
+  /* No camera state */
+  .cam-none{border-left:1px solid var(--border);background:rgba(0,0,0,0.12);position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;padding:16px;text-align:center;}
+  .cam-none .icon{font-size:1.2rem;opacity:0.15;margin-bottom:4px;}
+  .cam-none p{font-size:0.6rem;color:var(--muted);line-height:1.4;}
+
+  /* Footer */
+  .card-foot{display:flex;align-items:center;justify-content:space-between;padding:10px 22px;border-top:1px solid var(--border);background:rgba(0,0,0,0.14);}
+  .status{display:flex;align-items:center;gap:5px;font-size:0.7rem;}
+  .status.ok{color:var(--primary);}
+  .status.warn{color:var(--warning);}
+  .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
+  .runs{display:flex;gap:5px;}
+  .run-pill{font-size:0.62rem;padding:2px 8px;border-radius:7px;background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid var(--border);}
+
+  /* No-cam full-width mlist */
+  .mlist.full4{grid-template-columns:repeat(4,1fr);}
+  .mlist.full3{grid-template-columns:repeat(3,1fr);}
+  .mlist.full4 .mi:nth-child(even){border-right:1px solid var(--border);}
+  .mlist.full4 .mi:nth-child(4n){border-right:none;}
+  .mlist.full4 .mi:nth-last-child(-n+4){border-bottom:none;}
+  .mlist.full3 .mi:nth-child(even){border-right:1px solid var(--border);}
+  .mlist.full3 .mi:nth-child(3n){border-right:none;}
+  .mlist.full3 .mi:nth-last-child(-n+3){border-bottom:none;}
+</style>
+</head>
+<body>
+
+<h2>Dashboard Card – Finales Layout</h2>
+<p class="subtitle">Links: mit Kamera &nbsp;·&nbsp; Rechts: ohne Kamera</p>
+
+<div class="grid">
+
+  <!-- MIT KAMERA -->
+  <div>
+    <div class="col-label">Mit Kamera konfiguriert</div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">Hauptzelt</div>
+          <div class="card-name">Hauptzelt</div>
+          <div class="card-sub">2 aktive Runs &nbsp;·&nbsp; RDWC</div>
+        </div>
+        <div style="display:flex;gap:7px;align-items:center;">
+          <span class="pill warn">beobachten</span>
+          <button class="btn-ghost">Öffnen</button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="metrics">
+          <div class="section-lbl">Klima</div>
+          <div class="mlist">
+            <div class="mi"><span class="k">Temperatur</span><span><span class="v">24.2</span><span class="u">°C</span></span></div>
+            <div class="mi"><span class="k">Luftfeuchte</span><span><span class="v">58</span><span class="u">%</span></span></div>
+            <div class="mi"><span class="k">VPD</span><span><span class="v">1.21</span><span class="u">kPa</span></span></div>
+            <div class="mi" style="background:transparent;"></div>
+          </div>
+          <div class="section-lbl">Reservoir</div>
+          <div class="mlist">
+            <div class="mi"><span class="k">pH</span><span><span class="v">5.80</span></span></div>
+            <div class="mi warn"><span class="k">EC</span><span><span class="v">1.8</span><span class="u">mS/cm</span></span></div>
+            <div class="mi"><span class="k">ORP</span><span><span class="v">412</span><span class="u">mV</span></span></div>
+            <div class="mi"><span class="k">H₂O</span><span><span class="v">20.1</span><span class="u">°C</span></span></div>
+          </div>
+        </div>
+        <div class="cam">
+          <div class="cam-live">Live</div>
+          <div class="cam-icon">📷</div>
+          <div class="cam-hint">Kamera</div>
+        </div>
+      </div>
+
+      <div class="card-foot">
+        <div class="status warn"><span class="dot"></span> EC leicht erhöht – beobachten</div>
+        <div class="runs">
+          <span class="run-pill">Purple Lemon · Veg</span>
+          <span class="run-pill">GG4 Auto · Blüte</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OHNE KAMERA -->
+  <div>
+    <div class="col-label">Ohne Kamera – Metriken breiter</div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="eyebrow">Anzuchtzelt</div>
+          <div class="card-name">Anzuchtzelt</div>
+          <div class="card-sub">1 aktiver Run</div>
+        </div>
+        <div style="display:flex;gap:7px;align-items:center;">
+          <span class="pill stable">stabil</span>
+          <button class="btn-ghost">Öffnen</button>
+        </div>
+      </div>
+
+      <div class="card-body no-cam">
+        <div class="metrics">
+          <div class="section-lbl">Klima</div>
+          <div class="mlist full3">
+            <div class="mi"><span class="k">Temperatur</span><span><span class="v">23.4</span><span class="u">°C</span></span></div>
+            <div class="mi"><span class="k">Luftfeuchte</span><span><span class="v">65</span><span class="u">%</span></span></div>
+            <div class="mi"><span class="k">VPD</span><span><span class="v">0.98</span><span class="u">kPa</span></span></div>
+          </div>
+          <div class="section-lbl">Reservoir</div>
+          <div class="mlist full4">
+            <div class="mi"><span class="k">pH</span><span><span class="v">5.90</span></span></div>
+            <div class="mi"><span class="k">EC</span><span><span class="v">1.4</span><span class="u">mS/cm</span></span></div>
+            <div class="mi"><span class="k">ORP</span><span><span class="v">398</span><span class="u">mV</span></span></div>
+            <div class="mi"><span class="k">H₂O</span><span><span class="v">19.8</span><span class="u">°C</span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-foot">
+        <div class="status ok"><span class="dot"></span> Alle Werte im Sollbereich</div>
+        <div class="runs">
+          <span class="run-pill">Seedling Run · Keimung</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,182 @@
+@* ─────────────────────────────────────────────────────────────
+   MeasurementForm.razor  (Page)
+   Route: /grows/{GrowId:int}/messung
+   Ersetzt: Grows/Create.cshtml (Messungs-Teil)
+   ───────────────────────────────────────────────────────────── *@
+@page "/grows/{GrowId:int}/messung"
+@inject GrowRepository GrowRepo
+@inject JournalRepository JournalRepo
+@inject NavigationManager Nav
+
+@if (_grow is null) { <div class="empty-hint">Laden…</div> return; }
+
+@* Topbar *@
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="/grows/@GrowId" class="btn">← @_grow.Name</a>
+        <span class="topbar-sep">·</span>
+        <span class="topbar-title">Messung eintragen</span>
+    </div>
+    <div class="topbar-right">
+        <span style="font-size:12px; color:var(--muted)">@_weekLabel · Tag @_dayCount</span>
+        <button class="btn btn-accent" @onclick="Submit">Speichern</button>
+    </div>
+</div>
+
+<div class="page-scroll">
+    <div style="display:grid; grid-template-columns:1fr 280px; gap:20px; align-items:start">
+
+        @* Linke Spalte: Felder *@
+        <div style="display:grid; gap:16px;">
+
+            @* Reservoir *@
+            <div class="card">
+                <div class="card-pad">
+                    <div class="meas-section-title">Reservoir</div>
+                    <div class="meas-fields">
+                        <MeasField Label="pH"          Unit=""       Min="5.8" Max="6.2" Step="0.01" @bind-Value="_model.Ph"/>
+                        <MeasField Label="EC"          Unit="mS/cm" Min="1.6" Max="2.0" Step="0.01" @bind-Value="_model.Ec"/>
+                        <MeasField Label="ORP"         Unit="mV"    Min="300" Max="400" Step="1"    @bind-Value="_model.Orp"/>
+                        <MeasField Label="Wassertemp." Unit="°C"    Min="18"  Max="22"  Step="0.1"  @bind-Value="_model.WaterTemp"/>
+                        <MeasField Label="DO"          Unit="mg/L"  Min="6"   Max="12"  Step="0.1"  @bind-Value="_model.DissolvedOxygen"/>
+                    </div>
+                </div>
+            </div>
+
+            @* Klima *@
+            <div class="card">
+                <div class="card-pad">
+                    <div class="meas-section-title">Klima</div>
+                    <div class="meas-fields">
+                        <MeasField Label="Temperatur"  Unit="°C"    Min="22"  Max="26"   Step="0.1"  @bind-Value="_model.RoomTemp"/>
+                        <MeasField Label="Luftfeuchte" Unit="%"     Min="55"  Max="65"   Step="1"    @bind-Value="_model.Humidity"/>
+                        <MeasField Label="VPD"         Unit="kPa"   Min="0.8" Max="1.2"  Step="0.01" @bind-Value="_model.Vpd"/>
+                        <MeasField Label="PPFD"        Unit="µmol"  Min="400" Max="600"  Step="10"   @bind-Value="_model.Ppfd"/>
+                        <MeasField Label="CO₂"         Unit="ppm"   Min="800" Max="1200" Step="10"   @bind-Value="_model.Co2"/>
+                    </div>
+                </div>
+            </div>
+
+            @* Journal (optional) *@
+            <div class="card">
+                <div class="card-pad">
+                    <div class="meas-section-title">
+                        Journal-Eintrag
+                        <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--faint); font-size:11px">(optional)</span>
+                    </div>
+                    <div style="display:grid; gap:14px;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                            <div class="field">
+                                <label>Typ</label>
+                                <select @bind="_model.JournalType">
+                                    <option value="Observation">Beobachtung</option>
+                                    <option value="Action">Maßnahme</option>
+                                    <option value="Problem">Problem</option>
+                                    <option value="Milestone">Meilenstein</option>
+                                    <option value="Photo">Foto</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Titel <span style="color:var(--faint); font-weight:400">(optional)</span></label>
+                                <input @bind="_model.JournalTitle" placeholder="z. B. EC-Korrektur durchgeführt"/>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label>Notiz</label>
+                            <textarea @bind="_model.JournalNote" rows="3"
+                                placeholder="Was hast du beobachtet, gemacht oder festgestellt? Wird mit der Messung verknüpft."/>
+                            <div class="field-hint">Wird automatisch mit der Messung verknüpft und in der Timeline angezeigt.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Rechte Spalte: Referenz *@
+        <div style="display:grid; gap:14px;">
+            <div class="card">
+                <div class="focus-card">
+                    <div class="focus-label">Sollwerte · @_weekLabel · RDWC</div>
+                    <div style="display:grid; gap:7px; margin-top:8px;">
+                        @foreach (var (k, v) in _targets)
+                        {
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:4px 0; border-bottom:1px solid var(--border);">
+                                <span style="color:var(--muted)">@k</span>
+                                <span style="font-family:var(--mono); font-size:11px;">@v</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (_lastMeasurement is not null)
+            {
+                <div class="card">
+                    <div class="focus-card">
+                        <div class="focus-label">Letzte Messung · @_lastMeasurement.TakenAt.ToLocalTime().ToString("dd.MM. HH:mm")</div>
+                        <div style="display:grid; gap:6px; margin-top:8px;">
+                            <MiniVal Label="pH"    Value="@_lastMeasurement.Ph?.ToString("0.00")"    Status="@GetStatus(_lastMeasurement.Ph, 5.8, 6.2)"/>
+                            <MiniVal Label="EC"    Value="@_lastMeasurement.Ec?.ToString("0.00")"    Status="@GetStatus(_lastMeasurement.Ec, 1.6, 2.0)"/>
+                            <MiniVal Label="ORP"   Value="@_lastMeasurement.Orp?.ToString("0")"      Status="@GetStatus(_lastMeasurement.Orp, 300, 400)"/>
+                            <MiniVal Label="W-Temp" Value="@_lastMeasurement.WaterTemp?.ToString("0.0")" Status="@GetStatus(_lastMeasurement.WaterTemp, 18, 22)"/>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int GrowId { get; set; }
+
+    private GrowRun? _grow;
+    private Measurement? _lastMeasurement;
+    private MeasurementFormModel _model = new();
+    private string _weekLabel = "";
+    private int _dayCount;
+
+    // Sollwerte – kommen idealerweise aus TargetValueService
+    private List<(string, string)> _targets = new() {
+        ("pH",       "5.8–6.2"),
+        ("EC",       "1.6–2.0 mS/cm"),
+        ("ORP",      "300–400 mV"),
+        ("W-Temp",   "18–22 °C"),
+        ("DO",       "6–12 mg/L"),
+        ("Temp",     "22–26 °C"),
+        ("VPD",      "0.8–1.2 kPa"),
+    };
+
+    protected override async Task OnInitializedAsync() {
+        _grow = await GrowRepo.GetByIdAsync(GrowId);
+        if (_grow is null) return;
+        _dayCount = Math.Max(1, (DateTime.Today - _grow.StartDate.Date).Days + 1);
+        _weekLabel = $"W{(_dayCount / 7) + 1}";
+        var measurements = await GrowRepo.GetMeasurementsAsync(GrowId);
+        _lastMeasurement = measurements.OrderByDescending(m => m.TakenAt).FirstOrDefault();
+    }
+
+    private async Task Submit() {
+        var measurement = _model.ToMeasurement(GrowId);
+        await GrowRepo.AddMeasurementAsync(GrowId, measurement);
+
+        // Journal-Eintrag nur wenn Notiz vorhanden
+        if (!string.IsNullOrWhiteSpace(_model.JournalNote)) {
+            await JournalRepo.AddAsync(new JournalEntry {
+                GrowId       = GrowId,
+                EntryType    = Enum.Parse<JournalEntryType>(_model.JournalType),
+                Title        = string.IsNullOrWhiteSpace(_model.JournalTitle) ? null : _model.JournalTitle,
+                Body         = _model.JournalNote,
+                OccurredAtUtc = DateTime.UtcNow,
+                MeasurementId = measurement.Id,  // Verknüpfung
+            });
+        }
+
+        Nav.NavigateTo($"/grows/{GrowId}");
+    }
+
+    private string GetStatus(double? val, double min, double max) {
+        if (!val.HasValue) return "neutral";
+        return val >= min && val <= max ? "ok" : "warn";
+    }
+}
