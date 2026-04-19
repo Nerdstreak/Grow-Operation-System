@@ -57,3 +57,17 @@ Alternativ: Verbindung und Entity-IDs direkt in der App unter **Einstellungen ‚Ü
 Eine ausf√ºhrliche Anleitung findest du in:
 
 - `HOME_ASSISTANT_SETUP.md`
+
+## Stabiler Dev-Workflow
+
+Bitte aus dem Repo-Root starten (`D:\Grow Operation System new`):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-dev.ps1 -NoBuild
+```
+
+Stabiler Smoke-Check fuer Kernrouten:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-routes.ps1 -SkipBuild -SkipTests
+```

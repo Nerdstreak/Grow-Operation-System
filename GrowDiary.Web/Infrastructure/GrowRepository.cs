@@ -354,8 +354,7 @@ public sealed class GrowRepository
 
         foreach (var relativePath in filesToDelete)
         {
-            var physicalPath = Path.Combine(_paths.ContentRootPath, "wwwroot", relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-            if (File.Exists(physicalPath))
+            if (TryResolveUploadPath(relativePath, out var physicalPath) && File.Exists(physicalPath))
             {
                 File.Delete(physicalPath);
             }
@@ -546,8 +545,7 @@ public sealed class GrowRepository
 
         foreach (var relativePath in filesToDelete)
         {
-            var physicalPath = Path.Combine(_paths.ContentRootPath, "wwwroot", relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-            if (File.Exists(physicalPath))
+            if (TryResolveUploadPath(relativePath, out var physicalPath) && File.Exists(physicalPath))
             {
                 File.Delete(physicalPath);
             }
@@ -693,6 +691,10 @@ public sealed class GrowRepository
     {
         var keys = metricKeys?.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
                    ?? ["temperature", "humidity", "vpd", "reservoir-ph", "reservoir-ec", "reservoir-level", "reservoir-temp"];
+        if (keys.Count == 0)
+        {
+            return [];
+        }
 
         using var connection = OpenConnection();
         var placeholders = string.Join(", ", keys.Select((_, i) => $"$k{i}"));
@@ -1070,6 +1072,35 @@ public sealed class GrowRepository
         AddNullable(command, "$co2Ppm", measurement.Co2Ppm);
         command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(measurement.CreatedAtUtc));
         command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(measurement.UpdatedAtUtc));
+    }
+
+    private bool TryResolveUploadPath(string relativePath, out string physicalPath)
+    {
+        physicalPath = string.Empty;
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return false;
+        }
+
+        var normalized = relativePath.Replace('\\', '/').Trim();
+        if (!normalized.StartsWith("/", StringComparison.Ordinal))
+        {
+            normalized = "/" + normalized;
+        }
+        if (!normalized.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var uploadsRoot = Path.GetFullPath(Path.Combine(_paths.ContentRootPath, "wwwroot", "uploads"));
+        var candidatePath = Path.GetFullPath(Path.Combine(_paths.ContentRootPath, "wwwroot", normalized.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
+        if (!candidatePath.StartsWith(uploadsRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        physicalPath = candidatePath;
+        return true;
     }
 
     private static void AddNullable(SqliteCommand command, string name, double? value)

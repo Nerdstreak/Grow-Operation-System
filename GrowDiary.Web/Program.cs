@@ -1,8 +1,13 @@
 using GrowDiary.Web.Components;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Services;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
 // MVC (weiterhin für API-Endpoints: Export, Camera-Stream, Form-POSTs)
 builder.Services.AddControllersWithViews();
@@ -13,6 +18,11 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 var paths = new AppPaths(builder.Environment.ContentRootPath);
+var dataProtectionKeyPath = Path.Combine(paths.ContentRootPath, "App_Data", "DataProtectionKeys");
+Directory.CreateDirectory(dataProtectionKeyPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath))
+    .SetApplicationName("GrowDiary.Web");
 builder.Services.AddSingleton(paths);
 builder.Services.AddSingleton<DatabaseInitializer>();
 builder.Services.AddSingleton<GrowRepository>();

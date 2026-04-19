@@ -1,3 +1,4 @@
+using System.Globalization;
 using GrowDiary.Web.Models;
 using Microsoft.Data.Sqlite;
 
@@ -127,7 +128,7 @@ public sealed class SensorReadingRepository
                 Id        = Convert.ToInt32(reader["Id"]),
                 TentId    = Convert.ToInt32(reader["TentId"]),
                 MetricKey = reader["MetricKey"].ToString()!,
-                Date      = DateOnly.Parse(reader["Date"].ToString()!),
+                Date      = ParseDateOnlyOrDefault(reader["Date"]),
                 Min       = Convert.ToDouble(reader["Min"]),
                 Max       = Convert.ToDouble(reader["Max"]),
                 Median    = Convert.ToDouble(reader["Median"]),
@@ -156,11 +157,30 @@ public sealed class SensorReadingRepository
                 MetricKey    = reader["MetricKey"].ToString()!,
                 Value        = Convert.ToDouble(reader["Value"]),
                 Unit         = reader["Unit"] as string,
-                CapturedAtUtc = DateTime.Parse(reader["CapturedAtUtc"].ToString()!, null,
-                    System.Globalization.DateTimeStyles.RoundtripKind)
+                CapturedAtUtc = ParseUtcOrDefault(reader["CapturedAtUtc"])
             });
         }
         return list;
+    }
+
+    private static DateTime ParseUtcOrDefault(object raw)
+    {
+        var text = raw is DBNull ? null : raw?.ToString();
+        if (!string.IsNullOrWhiteSpace(text) &&
+            DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.RoundtripKind, out var parsed))
+        {
+            return parsed.ToUniversalTime();
+        }
+
+        return DateTime.UtcNow;
+    }
+
+    private static DateOnly ParseDateOnlyOrDefault(object raw)
+    {
+        var text = raw is DBNull ? null : raw?.ToString();
+        return DateOnly.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsed)
+            ? parsed
+            : DateOnly.FromDateTime(DateTime.UtcNow);
     }
 
     private SqliteConnection OpenConnection()
