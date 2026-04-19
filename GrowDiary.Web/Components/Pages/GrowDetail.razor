@@ -147,10 +147,7 @@ else
                         </div>
                         @foreach (var d in _deviations.Take(5))
                         {
-                            <div class="focus-card @(d.Severity == DeviationSeverity.Critical ? "crit-border" : "warn-border")">
-                                <div class="focus-label">@d.Metric</div>
-                                <div class="focus-body">@d.Recommendation</div>
-                            </div>
+                            <FocusCard Label="@d.Metric.ToString()" Body="@d.Recommendation" Severity="@d.Severity" />
                         }
                     </div>
                 }

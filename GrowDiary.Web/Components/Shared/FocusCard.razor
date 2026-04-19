@@ -1,0 +1,10 @@
+<div class="focus-card @(Severity == DeviationSeverity.Critical ? "crit-border" : "warn-border")">
+    <div class="focus-label">@Label</div>
+    <div class="focus-body">@Body</div>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Body { get; set; } = "";
+    [Parameter] public DeviationSeverity Severity { get; set; }
+}
