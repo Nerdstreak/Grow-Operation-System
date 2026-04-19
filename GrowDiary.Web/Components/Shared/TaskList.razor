@@ -5,7 +5,7 @@
                 class="task-check @(task.Status == GrowTaskStatus.Done ? "done" : "")"
                 aria-label="@ToggleLabel(task)"
                 aria-pressed="@(task.Status == GrowTaskStatus.Done)"
-                @onclick="() => OnToggle.InvokeAsync(task)">
+                @onclick="async () => await OnToggle.InvokeAsync(task)">
             @if (task.Status == GrowTaskStatus.Done)
             {
                 <svg aria-hidden="true" width="8" height="8" viewBox="0 0 8 8">
