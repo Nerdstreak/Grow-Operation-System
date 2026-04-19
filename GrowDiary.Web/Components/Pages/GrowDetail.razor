@@ -32,6 +32,7 @@ else
         <div class="topbar-right">
             <a href="/grows/@_grow.Id/messung" class="btn">+ Messung</a>
             <a href="/grows/@_grow.Id/journal/create" class="btn">+ Notiz</a>
+            <a href="/grows/@_grow.Id/setup" class="btn">Setup</a>
         </div>
     </div>
 
@@ -134,24 +135,7 @@ else
                     {
                         <div style="padding:14px; font-size:12px; color:var(--faint)">Keine offenen Aufgaben.</div>
                     }
-                    @foreach (var task in _tasks.Take(6))
-                    {
-                        <div class="task-item">
-                            <div class="task-check @(task.Status == GrowTaskStatus.Done ? "done" : "")"
-                                 @onclick="() => ToggleTask(task)">
-                                @if (task.Status == GrowTaskStatus.Done)
-                                {
-                                    <svg width="8" height="8" viewBox="0 0 8 8">
-                                        <path d="M1 4l2 2 4-4" stroke="oklch(10% 0.02 155)" stroke-width="1.5" fill="none" stroke-linecap="round" />
-                                    </svg>
-                                }
-                            </div>
-                            <div style="flex:1; @(task.Status == GrowTaskStatus.Done ? "opacity:0.4" : "")">
-                                <div class="task-title" style="@(task.Status == GrowTaskStatus.Done ? "text-decoration:line-through" : "")">@task.Title</div>
-                                <div class="task-sub">@(task.DueAtUtc?.ToLocalTime().ToString("dd.MM · HH:mm") ?? "ohne Termin")</div>
-                            </div>
-                        </div>
-                    }
+                    <TaskList Tasks="_tasks" OnToggle="ToggleTask" />
                 </div>
 
                 @* Abweichungen *@
@@ -224,11 +208,26 @@ else
     private List<TimelineItemViewModel> _timeline = new();
     private List<GrowTask> _tasks = new();
     private List<GrowDeviation> _deviations = new();
+    private int? _loadedId;
 
-    protected override Task OnInitializedAsync()
+    protected override Task OnParametersSetAsync()
     {
+        if (_loadedId == Id)
+        {
+            return Task.CompletedTask;
+        }
+
+        _loadedId = Id;
+        _loading = true;
         _grow = GrowRepo.GetGrow(Id);
-        if (_grow is null) { _loading = false; return Task.CompletedTask; }
+        if (_grow is null)
+        {
+            _timeline.Clear();
+            _tasks.Clear();
+            _deviations.Clear();
+            _loading = false;
+            return Task.CompletedTask;
+        }
 
         var measurements = GrowRepo.GetMeasurementsForGrow(Id);
         var photos       = GrowRepo.GetPhotosForGrow(Id);
@@ -247,4 +246,5 @@ else
         task.Status = task.Status == GrowTaskStatus.Done ? GrowTaskStatus.Open : GrowTaskStatus.Done;
         TaskRepo.SetStatus(task.Id, task.Status);
     }
+
 }
