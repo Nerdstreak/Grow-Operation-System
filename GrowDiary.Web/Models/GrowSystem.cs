@@ -9,6 +9,6 @@ public sealed class GrowSystem
     public double? PotSizeLiters { get; set; }
     public double? ReservoirLiters { get; set; }
     public string? Notes { get; set; }
-    public int DisplayOrder { get; set; }
+    public int DisplayOrder { get; set; } = 99;
     public DateTime CreatedAtUtc { get; set; }
 }
