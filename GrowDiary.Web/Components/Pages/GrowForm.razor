@@ -86,12 +86,16 @@ else
                             </div>
                             <div class="field">
                                 <label for="grow-start-material">Startmaterial</label>
-                                <select id="grow-start-material" value="@_model.StartMaterial" @onchange="OnStartMaterialChanged">
+                                <InputSelect id="grow-start-material"
+                                             TValue="StartMaterial"
+                                             Value="@_model.StartMaterial"
+                                             ValueChanged="@OnStartMaterialChanged"
+                                             ValueExpression="@(() => _model.StartMaterial)">
                                     @foreach (var item in Enum.GetValues<StartMaterial>())
                                     {
                                         <option value="@item">@Label(item)</option>
                                     }
-                                </select>
+                                </InputSelect>
                             </div>
                         </div>
                     </div>
@@ -296,14 +300,11 @@ else
             .Where(e => _model.StartMaterial != StartMaterial.Clone
                         || e != GrowEntryPoint.Germination);
 
-    private void OnStartMaterialChanged(ChangeEventArgs e)
+    private void OnStartMaterialChanged(StartMaterial val)
     {
-        if (Enum.TryParse<StartMaterial>(e.Value?.ToString(), out var val))
-        {
-            _model.StartMaterial = val;
-            if (val == StartMaterial.Clone && _model.EntryPoint == GrowEntryPoint.Germination)
-                _model.EntryPoint = GrowEntryPoint.Seedling;
-        }
+        _model.StartMaterial = val;
+        if (val == StartMaterial.Clone && _model.EntryPoint == GrowEntryPoint.Germination)
+            _model.EntryPoint = GrowEntryPoint.Seedling;
     }
 
     private async Task SaveAsync()
