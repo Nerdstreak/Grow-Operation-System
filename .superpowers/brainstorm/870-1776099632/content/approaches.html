@@ -1,0 +1,49 @@
+<h2>3 Ansätze – welcher passt?</h2>
+<p class="subtitle">Jeder Ansatz trifft anders den Kompromiss zwischen Aufwand und Wirkung.</p>
+
+<div class="options">
+
+  <div class="option" data-choice="polish" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Polish & Tighten</h3>
+      <p><strong>Was:</strong> Gleiche Struktur, bessere Ausführung. Abstände, Typografie, Farben, Hover-States, Übergänge – alles konsistenter machen.</p>
+      <p><strong>Dashboard:</strong> Kacheln kompakter, Metriken klarer, Camera-Bereich sauberer.</p>
+      <p><strong>Wizard:</strong> Bessere Step-Indikatoren, klarere Labels, Inline-Validierung.</p>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pro</h4><ul><li>Geringes Risiko</li><li>Schnell umsetzbar</li><li>Bestehende Struktur bleibt</li></ul></div>
+        <div class="cons"><h4>Con</h4><ul><li>Löst keine strukturellen UX-Probleme</li><li>Begrenzter Wow-Effekt</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="redesign" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Layout-Redesign ⭐ Empfehlung</h3>
+      <p><strong>Was:</strong> Informationshierarchie überdenken. Was ist wirklich wichtig auf einen Blick? Was kann versteckt werden?</p>
+      <p><strong>Dashboard:</strong> Camera als Vollbild-Hero, Metriken als kompakte Leiste darunter, Abweichungen in einem Panel – kein Scrollen.</p>
+      <p><strong>Wizard:</strong> Horizontale Schritte statt vertikaler Sidebar, Felder per Sektion aufgeteilt, mobil-freundlicher.</p>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pro</h4><ul><li>Trifft Visual + UX</li><li>Moderner Look</li><li>Dashboard für Terminal-Display optimiert</li></ul></div>
+        <div class="cons"><h4>Con</h4><ul><li>Mehr Aufwand als A</li><li>HTML-Struktur ändert sich</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="overhaul" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Design-System Overhaul</h3>
+      <p><strong>Was:</strong> CSS aufräumen (3.200 Zeilen → saubere Komponenten-Datei), Design Tokens konsolidieren, beide Seiten von Grund auf neu innerhalb der bestehenden Design-Sprache.</p>
+      <p><strong>Dashboard + Wizard:</strong> Komplett neu gebaut, aber CSS danach wartbar.</p>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pro</h4><ul><li>Nachhaltigste Lösung</li><li>Saubere Codebasis</li><li>Bester Look am Ende</li></ul></div>
+        <div class="cons"><h4>Con</h4><ul><li>Hoher Aufwand</li><li>Risiko von Regressionen</li><li>Braucht mehrere Sprints</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;">Meine Empfehlung: <strong>B</strong> – trifft beide Probleme ohne das Projekt zu stoppen.</p>

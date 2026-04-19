@@ -1,0 +1,7 @@
+bin/
+obj/
+App_Data/*.db
+App_Data/ha-config.json
+wwwroot/uploads/*
+!wwwroot/uploads/.gitkeep
+.vscode/

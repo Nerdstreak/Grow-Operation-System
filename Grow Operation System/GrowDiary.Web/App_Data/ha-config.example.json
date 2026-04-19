@@ -1,0 +1,26 @@
+{
+  "homeAssistant": {
+    "url": "http://YOUR_HA_IP:8123/api/",
+    "token": "YOUR_LONG_LIVED_ACCESS_TOKEN"
+  },
+  "tents": [
+    {
+      "name": "Hauptzelt",
+      "entities": {
+        "temperature": "sensor.your_temp_entity",
+        "humidity": "sensor.your_humidity_entity",
+        "vpd": "sensor.your_vpd_entity",
+        "light": "binary_sensor.your_light_entity",
+        "camera": "camera.your_camera_entity",
+        "reservoirPh": "sensor.your_reservoir_ph_entity",
+        "reservoirEc": "sensor.your_reservoir_ec_entity",
+        "reservoirLevel": "sensor.your_reservoir_level_entity",
+        "reservoirTemp": "sensor.your_reservoir_temp_entity",
+        "ppfd": "sensor.your_ppfd_entity",
+        "orp": "sensor.your_orp_entity",
+        "dissolvedOxygen": "sensor.your_do_entity",
+        "co2": "sensor.your_co2_entity"
+      }
+    }
+  ]
+}

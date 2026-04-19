@@ -1,0 +1,94 @@
+@page "/zelte"
+@rendermode InteractiveServer
+@inject GrowRepository GrowRepo
+@inject HomeAssistantService HaService
+@inject GrowDashboardComposer Composer
+
+<div class="topbar">
+    <span class="topbar-title">Zelte</span>
+</div>
+
+<div class="page-scroll">
+
+    <div class="stats-row">
+        <div class="stat-chip"><strong>@_tents.Count</strong>Aktive Zelte</div>
+        <div class="stat-chip"><strong>@_tents.Sum(t => t.ActiveGrowCount)</strong>Laufende Grows</div>
+    </div>
+
+    <div class="tents-grid">
+        @if (_loading)
+        {
+            <div class="empty-hint">Lade Daten…</div>
+        }
+        else if (!_tents.Any())
+        {
+            <div class="empty-hint">Keine Zelte gefunden.</div>
+        }
+        else
+        {
+            @foreach (var card in _tentCards)
+            {
+                <TentCard Tent="@card.Tent"
+                          Metrics="@card.LiveMetrics"
+                          Deviations="@card.Deviations" />
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private bool _loading = true;
+    private List<Tent> _tents = new();
+    private List<TentCardData> _tentCards = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tents = GrowRepo.GetTents().Where(t => t.ActiveGrowCount > 0).ToList();
+        var settings = GrowRepo.GetHomeAssistantSettings();
+
+        var tentTasks = _tents.Select(async tent =>
+        {
+            var measurements = GrowRepo.GetMeasurementsForTent(tent.Id);
+            Dictionary<string, HomeAssistantState> states;
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
+                states = await HaService.GetStatesAsync(settings, tent, cts.Token);
+            }
+            catch { states = new(); }
+
+            var metrics = Composer.BuildTentMetrics(tent, states, measurements);
+            foreach (var m in metrics)
+                m.Target = TargetRange(m.Key);
+
+            var devs = tent.ActiveGrows
+                .SelectMany(g => Composer.BuildDeviationsForGrow(g, measurements))
+                .ToList();
+
+            return new TentCardData { Tent = tent, LiveMetrics = metrics, Deviations = devs };
+        });
+
+        _tentCards = (await Task.WhenAll(tentTasks)).ToList();
+        _loading = false;
+    }
+
+    private static string? TargetRange(string key) => key switch
+    {
+        "temperature"    => "22–26 °C",
+        "humidity"       => "55–65 %",
+        "vpd"            => "0.8–1.2",
+        "reservoir-ph"   => "5.8–6.2",
+        "reservoir-ec"   => "1.6–2.0",
+        "reservoir-temp" => "18–22",
+        "orp"            => "300–400",
+        "ppfd"           => "400–600",
+        _                => null,
+    };
+
+    private sealed class TentCardData
+    {
+        public Tent Tent { get; set; } = new();
+        public List<MetricCard> LiveMetrics { get; set; } = new();
+        public List<GrowDeviation> Deviations { get; set; } = new();
+    }
+}

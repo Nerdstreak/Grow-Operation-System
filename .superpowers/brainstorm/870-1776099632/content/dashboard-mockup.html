@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Mockup</title>
+<style>
+  :root {
+    --bg: #0a1110; --bg-el: #101917; --surface: rgba(17,28,25,0.9);
+    --border: rgba(132,164,151,0.16); --border-s: rgba(132,164,151,0.32);
+    --text: #edf8f4; --muted: #9bb4ac; --primary: #79c97f;
+    --danger: #f87171; --warning: #fbbf24;
+    --radius: 22px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; font-size: 14px; padding: 24px; }
+  h2 { font-size: 1.1rem; color: var(--text); margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .col-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+  .col-label.current { color: #f87171; }
+  .col-label.new { color: #79c97f; }
+
+  /* Card shell */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+
+  /* === CURRENT LAYOUT === */
+  .card-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 10px; border-bottom: 1px solid var(--border); }
+  .card-head h3 { font-size: 1rem; font-weight: 600; }
+  .card-head-left { display: flex; flex-direction: column; gap: 2px; }
+  .eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .pill { display: inline-block; font-size: 0.65rem; padding: 2px 8px; border-radius: 20px; background: rgba(121,201,127,0.15); color: var(--primary); border: 1px solid rgba(121,201,127,0.3); }
+  .btn { font-size: 0.75rem; padding: 5px 12px; border-radius: 10px; border: 1px solid var(--border-s); background: transparent; color: var(--muted); cursor: default; }
+
+  .card-body-current { display: grid; grid-template-columns: 180px 1fr; }
+  .cam-old { background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px; min-height: 220px; border-right: 1px solid var(--border); }
+  .cam-old .cam-img-mock { width: 100%; height: 100%; object-fit: cover; background: linear-gradient(135deg, #1a2e28, #0d1e1a); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 4px; }
+  .live-badge { font-size: 0.6rem; background: rgba(239,68,68,0.8); color: white; padding: 2px 6px; border-radius: 6px; }
+  .metrics-old { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .metric-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .metric-kpi { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 8px; text-align: center; }
+  .metric-kpi span { display: block; font-size: 0.6rem; color: var(--muted); margin-bottom: 2px; }
+  .metric-kpi strong { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+  .metric-kpi small { font-size: 0.6rem; color: var(--muted); }
+  .deviation-ok { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--primary); padding: 6px 0; border-top: 1px solid var(--border); }
+  .dot-ok { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+  .runs-row { display: flex; gap: 6px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .run-chip { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 5px 9px; font-size: 0.65rem; }
+  .run-chip strong { display: block; color: var(--text); }
+  .run-chip small { color: var(--muted); }
+  .focus-inline { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; margin-top: 4px; }
+  .focus-inline span { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .focus-inline p { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+  /* === NEW LAYOUT === */
+  .card-new { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .cam-hero { position: relative; width: 100%; height: 160px; background: linear-gradient(135deg, #1a2e28 0%, #0d1e1a 100%); overflow: hidden; }
+  .cam-hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,17,16,0.85) 0%, transparent 50%); display: flex; flex-direction: column; justify-content: space-between; padding: 10px 14px; }
+  .cam-hero-top { display: flex; align-items: center; justify-content: space-between; }
+  .cam-hero-bottom { display: flex; align-items: flex-end; justify-content: space-between; }
+  .cam-hero h3 { font-size: 1.05rem; font-weight: 700; }
+  .cam-grid-dots { position: absolute; inset: 0; opacity: 0.04; background-image: radial-gradient(circle, #fff 1px, transparent 1px); background-size: 20px 20px; }
+
+  .metrics-bar { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--border); }
+  .metric-bar-item { padding: 10px 12px; border-right: 1px solid var(--border); }
+  .metric-bar-item:last-child { border-right: none; }
+  .metric-bar-item span { display: block; font-size: 0.6rem; color: var(--muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .metric-bar-item strong { font-size: 1.05rem; font-weight: 700; }
+  .metric-bar-item small { font-size: 0.6rem; color: var(--muted); }
+  .metric-bar-item.ok strong { color: var(--primary); }
+  .metric-bar-item.warn strong { color: var(--warning); }
+
+  .card-footer-new { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; gap: 10px; }
+  .runs-compact { display: flex; gap: 6px; align-items: center; }
+  .run-tag { font-size: 0.65rem; padding: 3px 8px; border-radius: 8px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--muted); }
+  .status-ok-inline { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: var(--primary); }
+
+  /* comparison labels */
+  .compare-wrap { display: flex; flex-direction: column; gap: 8px; }
+
+  /* selection highlight */
+  .selectable { cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s, transform 0.15s; }
+  .selectable:hover { border-color: rgba(121,201,127,0.4); transform: translateY(-2px); }
+  .selectable.selected { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(121,201,127,0.15); }
+
+  h2.page-title { font-size: 1.25rem; margin-bottom: 4px; }
+  .indicator { position: fixed; bottom: 16px; right: 16px; background: rgba(17,28,25,0.95); border: 1px solid var(--border-s); border-radius: 12px; padding: 8px 14px; font-size: 0.75rem; color: var(--primary); display: none; }
+  .indicator.visible { display: block; }
+</style>
+</head>
+<body>
+
+<h2 class="page-title">Dashboard – Zelt-Card Redesign</h2>
+<p class="subtitle">Klick auf eine Version um sie auszuwählen</p>
+
+<div class="split">
+
+  <!-- CURRENT -->
+  <div class="compare-wrap">
+    <div class="col-label current">● Aktuell</div>
+    <div class="card selectable" id="opt-current" data-choice="current" onclick="select(this)">
+      <div class="card-head">
+        <div class="card-head-left">
+          <span class="eyebrow">Hauptzelt</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+            <h3>Hauptzelt</h3>
+            <span class="pill">stabil</span>
+          </div>
+          <span style="font-size:0.65rem;color:var(--muted);">2 aktive Runs</span>
+        </div>
+        <button class="btn">Öffnen</button>
+      </div>
+      <div class="card-body-current">
+        <div class="cam-old">
+          <div class="cam-img-mock" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:12px;gap:4px;">
+            <div style="position:absolute;top:8px;left:8px;display:flex;gap:6px;align-items:center;">
+              <span class="live-badge">● Live</span>
+              <span style="font-size:0.65rem;color:rgba(255,255,255,0.6);">Hauptzelt</span>
+            </div>
+            <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:1rem;">📷</span>
+            </div>
+            <span style="font-size:0.6rem;color:var(--muted);">Kamerabild</span>
+          </div>
+        </div>
+        <div class="metrics-old">
+          <div class="metric-strip">
+            <div class="metric-kpi"><span>Temp</span><strong>24.2</strong><small>°C</small></div>
+            <div class="metric-kpi"><span>Feuchte</span><strong>58</strong><small>%</small></div>
+            <div class="metric-kpi"><span>VPD</span><strong>1.21</strong><small>kPa</small></div>
+            <div class="metric-kpi"><span>pH</span><strong>5.8</strong><small></small></div>
+          </div>
+          <div class="deviation-ok"><span class="dot-ok"></span> Alle Werte im Sollbereich</div>
+          <div class="runs-row">
+            <div class="run-chip"><strong>Purple Lemon</strong><small>Veg • 3 Pfl.</small></div>
+            <div class="run-chip"><strong>GG4 Auto</strong><small>Blüte • 2 Pfl.</small></div>
+          </div>
+          <div class="focus-inline">
+            <span>Nächster Fokus</span>
+            <strong style="font-size:0.8rem;display:block;margin-top:2px;">Keine akuten Auffälligkeiten</strong>
+            <p>Werte wirken stabil.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW -->
+  <div class="compare-wrap">
+    <div class="col-label new">● Neu ⭐</div>
+    <div class="card-new selectable" id="opt-new" data-choice="new" onclick="select(this)">
+      <!-- Camera Hero -->
+      <div class="cam-hero">
+        <div class="cam-grid-dots"></div>
+        <!-- Simuliertes Kamerabild -->
+        <div style="position:absolute;inset:0;background:linear-gradient(135deg,#1c3530 0%,#0f2420 40%,#162e28 100%);opacity:0.9;"></div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:2.5rem;opacity:0.15;">🌿</span>
+        </div>
+        <div class="cam-hero-overlay">
+          <div class="cam-hero-top">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="live-badge">● Live</span>
+              <span style="font-size:0.65rem;color:rgba(255,255,255,0.5);">Hauptzelt</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="pill">stabil</span>
+              <button class="btn" style="font-size:0.65rem;padding:3px 10px;">Öffnen</button>
+            </div>
+          </div>
+          <div class="cam-hero-bottom">
+            <div>
+              <span class="eyebrow" style="color:rgba(255,255,255,0.45);">Hauptzelt</span>
+              <div class="cam-hero h3" style="font-size:1.1rem;font-weight:700;margin-top:1px;">Hauptzelt</div>
+            </div>
+            <span style="font-size:0.65rem;color:rgba(255,255,255,0.4);">2 aktive Runs</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Metrics Bar -->
+      <div class="metrics-bar">
+        <div class="metric-bar-item ok">
+          <span>Temp</span>
+          <strong>24.2<small>°C</small></strong>
+        </div>
+        <div class="metric-bar-item ok">
+          <span>Feuchte</span>
+          <strong>58<small>%</small></strong>
+        </div>
+        <div class="metric-bar-item ok">
+          <span>VPD</span>
+          <strong>1.21<small>kPa</small></strong>
+        </div>
+        <div class="metric-bar-item ok">
+          <span>pH</span>
+          <strong>5.80</strong>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="card-footer-new">
+        <div class="status-ok-inline">
+          <span style="width:7px;height:7px;border-radius:50%;background:var(--primary);flex-shrink:0;display:inline-block;"></span>
+          Alle Werte im Sollbereich
+        </div>
+        <div class="runs-compact">
+          <span class="run-tag">Purple Lemon · Veg</span>
+          <span class="run-tag">GG4 Auto · Blüte</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div id="indicator" class="indicator"></div>
+
+<script>
+var selected = null;
+function select(el) {
+  document.querySelectorAll('.selectable').forEach(function(e){ e.classList.remove('selected'); });
+  el.classList.add('selected');
+  selected = el.dataset.choice;
+  var ind = document.getElementById('indicator');
+  ind.textContent = '✓ ' + (selected === 'new' ? 'Neue Version gewählt' : 'Aktuelle Version gewählt');
+  ind.classList.add('visible');
+  if (window.recordChoice) recordChoice(selected, el.textContent.trim().substring(0, 60));
+}
+</script>
+
+</body>
+</html>

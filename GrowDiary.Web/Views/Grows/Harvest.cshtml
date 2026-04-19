@@ -1,0 +1,84 @@
+@model HarvestFormViewModel
+@{
+    ViewData["Title"] = $"Ernte – {Model.GrowName}";
+}
+
+<section class="page-hero glass-panel">
+    <div class="grow-overview-copy">
+        <div class="ops-card-meta">
+            <span class="eyebrow">Ernte</span>
+        </div>
+        <h1>@Model.GrowName</h1>
+        <p class="lead">Ernte-Daten dokumentieren und Run abschließen.</p>
+        <div class="hero-actions top-gap-sm">
+            <a class="btn btn-ghost" asp-action="Details" asp-route-id="@Model.GrowId">Zurück zum Run</a>
+        </div>
+    </div>
+</section>
+
+<article class="glass-panel form-card top-gap-lg">
+    <div class="section-header compact">
+        <div>
+            <h2>Ernte-Dokumentation</h2>
+            <p class="muted">Gewicht, Trocknungszeit, Qualitätsnotizen – für spätere Vergleiche und Strain-Bewertungen.</p>
+        </div>
+    </div>
+
+    <form method="post" asp-action="Harvest" asp-route-id="@Model.GrowId" class="form-shell top-gap-sm">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+        <div class="form-grid two">
+            <div class="field">
+                <label asp-for="HarvestedAtLocal">Erntedatum</label>
+                <input asp-for="HarvestedAtLocal" type="date" />
+            </div>
+            <div class="field">
+                <label asp-for="DryDays">Trocknungsdauer (Tage)</label>
+                <input asp-for="DryDays" type="number" min="0" max="60" placeholder="z. B. 10" />
+            </div>
+        </div>
+
+        <div class="form-grid two top-gap-sm">
+            <div class="field">
+                <label asp-for="WetWeightG">Frischgewicht gesamt (g)</label>
+                <input asp-for="WetWeightG" type="number" step="0.1" placeholder="z. B. 420.0" />
+            </div>
+            <div class="field">
+                <label asp-for="DryWeightG">Trockengewicht gesamt (g)</label>
+                <input asp-for="DryWeightG" type="number" step="0.1" placeholder="z. B. 85.0" />
+            </div>
+        </div>
+
+        <div class="form-grid two top-gap-sm">
+            <div class="field">
+                <label asp-for="Rating">Bewertung (1–10)</label>
+                <input asp-for="Rating" type="number" step="0.5" min="1" max="10" placeholder="z. B. 8.5" />
+            </div>
+            <div class="field">
+                <label asp-for="NugStructure">Blütenstruktur</label>
+                <input asp-for="NugStructure" placeholder="z. B. dichte Indica-Buds, Zuckrig" />
+            </div>
+        </div>
+
+        <div class="field full top-gap-sm">
+            <label asp-for="YieldNotes">Ertrag-Notizen</label>
+            <textarea asp-for="YieldNotes" rows="3" placeholder="z. B. Hauptkola sehr kompakt, Seitentriebe leichter – gesamt solide für die Veg-Zeit"></textarea>
+        </div>
+
+        <div class="field full top-gap-sm">
+            <label asp-for="FlavorNotes">Geschmack / Aroma</label>
+            <textarea asp-for="FlavorNotes" rows="3" placeholder="z. B. Earthy, Zitrus-Hauch, leichte Blüte im Abgang"></textarea>
+        </div>
+
+        <div class="field full top-gap-sm">
+            <label asp-for="EffectNotes">Effekt / High</label>
+            <textarea asp-for="EffectNotes" rows="3" placeholder="z. B. Entspannend, körperbetont, mittelstark – gut geeignet für Abend"></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Ernte speichern</button>
+            <a class="btn btn-ghost" asp-action="Details" asp-route-id="@Model.GrowId">Abbrechen</a>
+        </div>
+    </form>
+</article>

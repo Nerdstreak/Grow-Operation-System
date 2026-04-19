@@ -1,0 +1,72 @@
+@inject IJSRuntime JS
+
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-mark">
+            <svg viewBox="0 0 16 16" fill="none" stroke="oklch(10% 0.02 155)" stroke-width="2">
+                <path d="M8 14V8"/><path d="M8 8Q11 4 14 4"/><path d="M8 10Q5 7 2 7"/>
+            </svg>
+        </div>
+        <div class="logo-name">Grow OS</div>
+        <div class="logo-sub">Operations System</div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section">Haupt</div>
+        <NavItem Href="/"        Label="Operations"   Icon="ops"     HasAlert="@_hasAlert" />
+        <NavItem Href="/zelte"   Label="Zelte"        Icon="tents" />
+        <NavItem Href="/grows"   Label="Aktive Grows" Icon="grows" />
+
+        <div class="nav-section">Mehr</div>
+        <NavItem Href="/archiv"  Label="Archiv"       Icon="archive" />
+        <NavItem Href="/analyse" Label="Analyse"      Icon="analyse" />
+        <NavItem Href="/wissen"  Label="Wissen"       Icon="wissen" />
+
+        <div class="nav-section">System</div>
+        <NavItem Href="/einstellungen" Label="Einstellungen" Icon="settings" />
+    </nav>
+
+    <div class="sidebar-footer">
+        <a href="/grows/create" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 3v10M3 8h10"/>
+            </svg>
+            Neuer Run
+        </a>
+        <button class="theme-toggle" @onclick="ToggleTheme" title="Theme wechseln">
+            @(_theme == "dark" ? "☀" : "☾")
+        </button>
+    </div>
+</aside>
+
+@code {
+    private string _theme = "dark";
+    private bool _hasAlert;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _theme = await JS.InvokeAsync<string?>("localStorage.getItem", "theme") ?? "dark";
+        await ApplyTheme();
+        StateHasChanged();
+    }
+
+    private async Task ToggleTheme()
+    {
+        _theme = _theme == "dark" ? "light" : "dark";
+        await JS.InvokeVoidAsync("localStorage.setItem", "theme", _theme);
+        await ApplyTheme();
+    }
+
+    private async Task ApplyTheme()
+    {
+        await JS.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", _theme);
+    }
+
+    // Wird von Home.razor via Cascading-Value oder EventCallback befüllt – Phase 2
+    public void SetAlert(bool hasAlert)
+    {
+        _hasAlert = hasAlert;
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,95 @@
+@model GrowDiary.Web.Models.ChartSeries
+@using System.Globalization
+@{
+    var lines = Model.Lines.Where(l => l.Points.Count > 0).ToList();
+    string FormatValue(double value) => Math.Abs(value) >= 100 ? value.ToString("0", CultureInfo.InvariantCulture) : value.ToString("0.##", CultureInfo.InvariantCulture);
+    string FormatTick(DateTime timestamp)
+    {
+        var all = lines.SelectMany(x => x.Points).OrderBy(x => x.Timestamp).ToList();
+        if (all.Count == 0) return string.Empty;
+        var span = all.Last().Timestamp - all.First().Timestamp;
+        return span.TotalDays >= 2 ? timestamp.ToString("dd.MM.") : timestamp.ToString("HH:mm");
+    }
+}
+
+<article class="glass-panel ops-trend-card">
+    <div class="ops-chart-head">
+        <div>
+            <h3>@Model.Title</h3>
+            @if (!string.IsNullOrWhiteSpace(Model.YLabel))
+            {
+                <p class="muted">@Model.YLabel</p>
+            }
+        </div>
+        <div class="legend-row legend-row--compact">
+            @foreach (var line in lines)
+            {
+                <span class="legend-item"><i style="background:@line.Color"></i>@line.Label</span>
+            }
+        </div>
+    </div>
+
+    @if (lines.Count == 0)
+    {
+        <div class="empty-state slim">@Model.EmptyText</div>
+    }
+    else
+    {
+        var allPoints = lines.SelectMany(x => x.Points).OrderBy(x => x.Timestamp).ToList();
+        var minTime = allPoints.Min(p => p.Timestamp).Ticks;
+        var maxTime = allPoints.Max(p => p.Timestamp).Ticks;
+        var range = Math.Max(1, maxTime - minTime);
+        double ScaleX(DateTime ts) => ((ts.Ticks - minTime) / (double)range) * 100d;
+        var ticks = new[]
+        {
+            allPoints.First().Timestamp,
+            allPoints.First().Timestamp + TimeSpan.FromTicks((long)(range / 2d)),
+            allPoints.Last().Timestamp
+        };
+
+        <div class="ops-trend-plot">
+            <svg viewBox="0 0 100 48" class="ops-trend-svg" role="img" aria-label="@Model.Title Verlauf">
+                <line x1="0" y1="10" x2="100" y2="10" class="grid-line faint"></line>
+                <line x1="0" y1="24" x2="100" y2="24" class="grid-line faint"></line>
+                <line x1="0" y1="38" x2="100" y2="38" class="grid-line faint"></line>
+                @foreach (var line in lines)
+                {
+                    var ordered = line.Points.OrderBy(p => p.Timestamp).ToList();
+                    var lineMin = ordered.Min(x => x.Value);
+                    var lineMax = ordered.Max(x => x.Value);
+                    var lineRange = Math.Abs(lineMax - lineMin) < 0.0001 ? 1d : (lineMax - lineMin);
+                    double ScaleY(double value) => 42d - (((value - lineMin) / lineRange) * 28d);
+                    var points = string.Join(" ", ordered.Select(point => $"{ScaleX(point.Timestamp).ToString("0.##", CultureInfo.InvariantCulture)},{ScaleY(point.Value).ToString("0.##", CultureInfo.InvariantCulture)}"));
+                    <polyline fill="none" stroke="@line.Color" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" points="@points"></polyline>
+                    @foreach (var point in ordered)
+                    {
+                        var x = ScaleX(point.Timestamp);
+                        var y = ScaleY(point.Value);
+                        <circle cx="@x.ToString("0.##", CultureInfo.InvariantCulture)" cy="@y.ToString("0.##", CultureInfo.InvariantCulture)" r="1.35" fill="@line.Color">
+                            <title>@line.Label: @FormatValue(point.Value) (@point.Timestamp.ToString("dd.MM.yyyy HH:mm"))</title>
+                        </circle>
+                    }
+                }
+            </svg>
+            <div class="chart-time-row chart-time-row--ops">
+                @foreach (var tick in ticks)
+                {
+                    <span>@FormatTick(tick)</span>
+                }
+            </div>
+        </div>
+
+        <div class="ops-chart-stats">
+            @foreach (var line in lines)
+            {
+                var ordered = line.Points.OrderBy(p => p.Timestamp).ToList();
+                var lineMin = ordered.Min(x => x.Value);
+                var lineMax = ordered.Max(x => x.Value);
+                <div class="ops-chart-stat">
+                    <span><i style="background:@line.Color"></i>@line.Label</span>
+                    <small>Min @FormatValue(lineMin) · Max @FormatValue(lineMax)</small>
+                </div>
+            }
+        </div>
+    }
+</article>

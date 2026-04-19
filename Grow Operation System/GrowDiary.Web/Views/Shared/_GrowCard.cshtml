@@ -1,0 +1,47 @@
+@model GrowRun
+<article class="grow-card glass-panel grow-card--@Model.Status.ToString().ToLowerInvariant()">
+    <div class="grow-card-head">
+        <div>
+            <div class="grow-meta-row">
+                <span class="status-badge status-@Model.Status.ToString().ToLowerInvariant()">@Model.Status</span>
+                @if (!string.IsNullOrWhiteSpace(Model.TentName))
+                {
+                    <span class="detail-pill">@Model.TentName</span>
+                }
+            </div>
+            <h3>@Model.Name</h3>
+            <p class="muted">@(Model.Strain ?? "Unbekannte Sorte") • @Model.Profile.Label</p>
+        </div>
+        <a class="btn btn-ghost card-link" asp-controller="Grows" asp-action="Details" asp-route-id="@Model.Id">Öffnen</a>
+    </div>
+
+    <div class="detail-pills">
+        @if (!string.IsNullOrWhiteSpace(Model.Nutrients))
+        {
+            <span class="detail-pill">@Model.Nutrients</span>
+        }
+        <span class="detail-pill">Start @Model.StartDate.ToString("dd.MM.yyyy")</span>
+        <span class="detail-pill">@Model.MeasurementCount Messungen</span>
+    </div>
+
+    @if (Model.LatestMeasurement is not null)
+    {
+        <div class="metric-grid compact two-up-inline">
+            @if (Model.Profile.IsHydro)
+            {
+                <article class="metric-card accent"><span>Reservoir pH</span><strong>@(Model.LatestMeasurement.ReservoirPh?.ToString("0.00") ?? "–")</strong></article>
+                <article class="metric-card"><span>Reservoir EC</span><strong>@(Model.LatestMeasurement.ReservoirEc?.ToString("0.00") ?? "–")</strong></article>
+            }
+            else
+            {
+                <article class="metric-card accent"><span>Gieß-pH</span><strong>@(Model.LatestMeasurement.IrrigationPh?.ToString("0.00") ?? "–")</strong></article>
+                <article class="metric-card"><span>Höhe</span><strong>@(Model.LatestMeasurement.HeightCm?.ToString("0.0") ?? "–") cm</strong></article>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.LatestPhotoPath))
+    {
+        <img class="grow-thumb" src="@Model.LatestPhotoPath" alt="Letztes Foto von @Model.Name" loading="lazy" />
+    }
+</article>

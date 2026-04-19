@@ -1,0 +1,250 @@
+@page "/grows/{Id:int}"
+@rendermode InteractiveServer
+@inject GrowRepository GrowRepo
+@inject JournalRepository JournalRepo
+@inject TaskRepository TaskRepo
+@inject AuditRepository AuditRepo
+@inject TimelineComposer TimelineComp
+@inject WeekCounterService WeekCounter
+@inject GrowDashboardComposer Composer
+@inject NavigationManager Nav
+
+@if (_loading)
+{
+    <div class="topbar"><span class="topbar-title">Lade…</span></div>
+    <div class="page-scroll"><div class="empty-hint">Lade Grow-Daten…</div></div>
+}
+else if (_grow is null)
+{
+    <div class="topbar"><span class="topbar-title">Nicht gefunden</span></div>
+    <div class="page-scroll"><div class="empty-hint">Grow nicht gefunden.</div></div>
+}
+else
+{
+    var week = WeekCounter.Calculate(_grow);
+
+    <div class="topbar">
+        <div class="topbar-left">
+            <button class="btn" @onclick='() => Nav.NavigateTo("/grows")'>← Grows</button>
+            <span class="topbar-sep">/</span>
+            <span class="topbar-title">@_grow.Name</span>
+        </div>
+        <div class="topbar-right">
+            <a href="/grows/measurements/create?growId=@_grow.Id" class="btn">+ Messung</a>
+            <a href="/grows/@_grow.Id/journal/create" class="btn">+ Notiz</a>
+        </div>
+    </div>
+
+    <div class="page-scroll">
+
+        @* Grow Hero *@
+        <div class="grow-hero">
+            <div class="grow-hero-title">@_grow.Name</div>
+            <div class="grow-hero-sub">
+                @(_grow.Strain ?? "–")
+                @if (_grow.Breeder is not null) { <span> · @_grow.Breeder</span> }
+                @if (_grow.TentName is not null) { <span> · @_grow.TentName</span> }
+            </div>
+            <div class="grow-kpis">
+                <div class="grow-kpi">
+                    <div class="grow-kpi-val">@week.Label</div>
+                    <div class="grow-kpi-label">Phase</div>
+                </div>
+                <div class="grow-kpi">
+                    <div class="grow-kpi-val">@_grow.MeasurementCount</div>
+                    <div class="grow-kpi-label">Messungen</div>
+                </div>
+                @if (_grow.LatestMeasurement is { ReservoirEc: not null } lm)
+                {
+                    <div class="grow-kpi">
+                        <div class="grow-kpi-val">@lm.ReservoirEc?.ToString("0.00")</div>
+                        <div class="grow-kpi-label">EC mS/cm</div>
+                    </div>
+                    <div class="grow-kpi">
+                        <div class="grow-kpi-val">@(lm.ReservoirPh?.ToString("0.0") ?? "–")</div>
+                        <div class="grow-kpi-label">pH</div>
+                    </div>
+                }
+                <div class="grow-kpi">
+                    <div class="grow-kpi-val">@_grow.StartDate.ToString("dd.MM.yy")</div>
+                    <div class="grow-kpi-label">Startdatum</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-layout">
+
+            @* Timeline *@
+            <div>
+                <div class="section-label">Verlauf</div>
+                @if (!_timeline.Any())
+                {
+                    <div class="empty-hint" style="padding:40px 0">Noch keine Einträge.</div>
+                }
+                else
+                {
+                    <div class="card">
+                        <div class="card-pad" style="padding-bottom:0">
+                            @foreach (var (item, i) in _timeline.Take(30).Select((x, i) => (x, i)))
+                            {
+                                <div class="timeline-item">
+                                    <div class="tl-dot-col">
+                                        <div class="tl-dot @item.Kind"></div>
+                                        @if (i < _timeline.Count - 1)
+                                        {
+                                            <div class="tl-line"></div>
+                                        }
+                                    </div>
+                                    <div style="flex:1; min-width:0">
+                                        <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px">
+                                            <div class="tl-title">@item.Title</div>
+                                            <div class="tl-time">@item.Timestamp.ToString("dd.MM · HH:mm")</div>
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(item.Body))
+                                        {
+                                            <div class="tl-sub">@item.Body</div>
+                                        }
+                                        @if (item.Badges.Any())
+                                        {
+                                            <div style="display:flex; gap:5px; margin-top:5px; flex-wrap:wrap">
+                                                @foreach (var badge in item.Badges.Take(4))
+                                                {
+                                                    <span class="badge badge-neutral">@badge</span>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @* Side Panel *@
+            <div class="side-panel">
+
+                @* Offene Tasks *@
+                <div class="panel-card">
+                    <div class="panel-card-header">
+                        <span class="panel-card-title">Aufgaben</span>
+                        <span class="panel-card-count">@_tasks.Count(t => t.Status == GrowTaskStatus.Open)</span>
+                    </div>
+                    @if (!_tasks.Any())
+                    {
+                        <div style="padding:14px; font-size:12px; color:var(--faint)">Keine offenen Aufgaben.</div>
+                    }
+                    @foreach (var task in _tasks.Take(6))
+                    {
+                        <div class="task-item">
+                            <div class="task-check @(task.Status == GrowTaskStatus.Done ? "done" : "")"
+                                 @onclick="() => ToggleTask(task)">
+                                @if (task.Status == GrowTaskStatus.Done)
+                                {
+                                    <svg width="8" height="8" viewBox="0 0 8 8">
+                                        <path d="M1 4l2 2 4-4" stroke="oklch(10% 0.02 155)" stroke-width="1.5" fill="none" stroke-linecap="round" />
+                                    </svg>
+                                }
+                            </div>
+                            <div style="flex:1; @(task.Status == GrowTaskStatus.Done ? "opacity:0.4" : "")">
+                                <div class="task-title" style="@(task.Status == GrowTaskStatus.Done ? "text-decoration:line-through" : "")">@task.Title</div>
+                                <div class="task-sub">@(task.DueAtUtc?.ToLocalTime().ToString("dd.MM · HH:mm") ?? "ohne Termin")</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @* Abweichungen *@
+                @if (_deviations.Any())
+                {
+                    <div class="panel-card">
+                        <div class="panel-card-header">
+                            <span class="panel-card-title">Hinweise</span>
+                        </div>
+                        @foreach (var d in _deviations.Take(5))
+                        {
+                            <div class="focus-card @(d.Severity == DeviationSeverity.Critical ? "crit-border" : "warn-border")">
+                                <div class="focus-label">@d.Metric</div>
+                                <div class="focus-body">@d.Recommendation</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @* Grow-Info *@
+                <div class="panel-card">
+                    <div class="panel-card-header">
+                        <span class="panel-card-title">Details</span>
+                    </div>
+                    <div style="padding:12px 14px; display:grid; gap:8px; font-size:12px">
+                        <div style="display:flex; justify-content:space-between">
+                            <span style="color:var(--muted)">Medium</span>
+                            <span>@_grow.MediumType</span>
+                        </div>
+                        @if (_grow.HydroStyle != HydroStyle.None)
+                        {
+                            <div style="display:flex; justify-content:space-between">
+                                <span style="color:var(--muted)">Hydro-Stil</span>
+                                <span>@_grow.HydroStyle</span>
+                            </div>
+                        }
+                        @if (_grow.PlantCount.HasValue)
+                        {
+                            <div style="display:flex; justify-content:space-between">
+                                <span style="color:var(--muted)">Pflanzen</span>
+                                <span>@_grow.PlantCount</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_grow.Nutrients))
+                        {
+                            <div style="display:flex; justify-content:space-between">
+                                <span style="color:var(--muted)">Nährstoffe</span>
+                                <span>@_grow.Nutrients</span>
+                            </div>
+                        }
+                        @if (_grow.FlipDate.HasValue)
+                        {
+                            <div style="display:flex; justify-content:space-between">
+                                <span style="color:var(--muted)">Flip</span>
+                                <span>@_grow.FlipDate.Value.ToString("dd.MM.yy")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private bool _loading = true;
+    private GrowRun? _grow;
+    private List<TimelineItemViewModel> _timeline = new();
+    private List<GrowTask> _tasks = new();
+    private List<GrowDeviation> _deviations = new();
+
+    protected override Task OnInitializedAsync()
+    {
+        _grow = GrowRepo.GetGrow(Id);
+        if (_grow is null) { _loading = false; return Task.CompletedTask; }
+
+        var measurements = GrowRepo.GetMeasurementsForGrow(Id);
+        var photos       = GrowRepo.GetPhotosForGrow(Id);
+        var journals     = JournalRepo.GetForGrow(Id);
+        _tasks           = TaskRepo.GetOpenForGrow(Id);
+        var audits       = AuditRepo.GetRecentForGrow(Id);
+
+        _timeline   = TimelineComp.Build(_grow, measurements, photos, journals, _tasks, audits);
+        _deviations = Composer.BuildDeviationsForGrow(_grow, measurements).ToList();
+        _loading    = false;
+        return Task.CompletedTask;
+    }
+
+    private void ToggleTask(GrowTask task)
+    {
+        task.Status = task.Status == GrowTaskStatus.Done ? GrowTaskStatus.Open : GrowTaskStatus.Done;
+        TaskRepo.SetStatus(task.Id, task.Status);
+    }
+}

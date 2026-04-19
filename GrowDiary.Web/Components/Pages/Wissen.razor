@@ -1,0 +1,212 @@
+@page "/wissen"
+@rendermode InteractiveServer
+@inject CultivationKnowledgeService Knowledge
+
+<div class="topbar">
+    <span class="topbar-title">Wissen</span>
+</div>
+
+<div class="page-scroll">
+    <div class="wissen-layout">
+
+        @* ── Linke Nav ── *@
+        <div class="wissen-nav">
+            @if (_programs.Any())
+            {
+                <div class="section-label" style="margin-top:0">Nährstoffprogramme</div>
+                <div class="phase-nav">
+                    @foreach (var p in _programs)
+                    {
+                        <div class="phase-nav-item @(_selectedKey == p.Key ? "active" : "")"
+                             @onclick="() => Select(p.Key)">
+                            <span>@p.Name</span>
+                            <span class="phase-week-badge">@p.Manufacturer</span>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (_playbooks.Any())
+            {
+                <div class="section-label">Medium-Playbooks</div>
+                <div class="phase-nav">
+                    @foreach (var pb in _playbooks)
+                    {
+                        <div class="phase-nav-item @(_selectedKey == pb.Key ? "active" : "")"
+                             @onclick="() => SelectPlaybook(pb.Key)">
+                            @pb.Title
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        @* ── Rechte Detail-Ansicht ── *@
+        <div class="wissen-detail">
+
+            @if (_selectedProgram is not null)
+            {
+                @* Header *@
+                <div class="grow-hero" style="margin-bottom:20px">
+                    <div class="grow-hero-title">@_selectedProgram.Name</div>
+                    <div class="grow-hero-sub">@_selectedProgram.Manufacturer · @_selectedProgram.Category</div>
+                    @if (!string.IsNullOrWhiteSpace(_selectedProgram.Summary))
+                    {
+                        <p class="wissen-summary">@_selectedProgram.Summary</p>
+                    }
+                </div>
+
+                @* Phasendosierung *@
+                @if (_selectedProgram.Stages.Any())
+                {
+                    <div class="section-label">Dosierung je Phase</div>
+                    <div class="wissen-stages">
+                        @foreach (var stage in _selectedProgram.Stages)
+                        {
+                            <div class="wissen-stage-card">
+                                <div class="wissen-stage-name">@stage.Stage</div>
+                                <div class="wissen-stage-dose">@stage.Dose</div>
+                                @if (!string.IsNullOrWhiteSpace(stage.Target))
+                                {
+                                    <div class="wissen-stage-target">@stage.Target</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(stage.Notes))
+                                {
+                                    <div class="wissen-stage-notes">@stage.Notes</div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
+                @* Guidance-Karten *@
+                @if (!string.IsNullOrWhiteSpace(_selectedProgram.PhGuidance)
+                  || !string.IsNullOrWhiteSpace(_selectedProgram.EcGuidance)
+                  || !string.IsNullOrWhiteSpace(_selectedProgram.WaterGuidance)
+                  || !string.IsNullOrWhiteSpace(_selectedProgram.BestFor))
+                {
+                    <div class="section-label">Richtwerte & Hinweise</div>
+                    <div class="wissen-guidance-grid">
+                        @if (!string.IsNullOrWhiteSpace(_selectedProgram.PhGuidance))
+                        {
+                            <div class="wissen-guidance-card">
+                                <div class="wissen-guidance-title">pH</div>
+                                <div class="wissen-guidance-body">@_selectedProgram.PhGuidance</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_selectedProgram.EcGuidance))
+                        {
+                            <div class="wissen-guidance-card">
+                                <div class="wissen-guidance-title">EC / Leitfähigkeit</div>
+                                <div class="wissen-guidance-body">@_selectedProgram.EcGuidance</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_selectedProgram.WaterGuidance))
+                        {
+                            <div class="wissen-guidance-card">
+                                <div class="wissen-guidance-title">Wasser</div>
+                                <div class="wissen-guidance-body">@_selectedProgram.WaterGuidance</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_selectedProgram.BestFor))
+                        {
+                            <div class="wissen-guidance-card">
+                                <div class="wissen-guidance-title">Geeignet für</div>
+                                <div class="wissen-guidance-body">@_selectedProgram.BestFor</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @* Tips *@
+                @if (_selectedProgram.Tips.Any())
+                {
+                    <div class="section-label">Tipps</div>
+                    <div class="panel-card">
+                        @foreach (var tip in _selectedProgram.Tips)
+                        {
+                            <div class="wissen-tip-row">
+                                <span class="wissen-tip-dot"></span>
+                                <span>@tip</span>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+
+            else if (_selectedPlaybook is not null)
+            {
+                <div class="grow-hero" style="margin-bottom:20px">
+                    <div class="grow-hero-title">@_selectedPlaybook.Title</div>
+                    @if (!string.IsNullOrWhiteSpace(_selectedPlaybook.Summary))
+                    {
+                        <p class="wissen-summary">@_selectedPlaybook.Summary</p>
+                    }
+                </div>
+
+                @if (_selectedPlaybook.FocusPoints.Any())
+                {
+                    <div class="section-label">Fokuspunkte</div>
+                    <div class="panel-card">
+                        @foreach (var fp in _selectedPlaybook.FocusPoints)
+                        {
+                            <div class="wissen-tip-row">
+                                <span class="wissen-tip-dot" style="background:var(--green)"></span>
+                                <span>@fp</span>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (_selectedPlaybook.RedFlags.Any())
+                {
+                    <div class="section-label">Red Flags</div>
+                    <div class="panel-card">
+                        @foreach (var rf in _selectedPlaybook.RedFlags)
+                        {
+                            <div class="wissen-tip-row" style="border-left:2px solid var(--red); padding-left:14px">
+                                <span class="wissen-tip-dot" style="background:var(--red)"></span>
+                                <span style="color:var(--text)">@rf</span>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+
+            else
+            {
+                <div class="empty-hint">Wähle ein Programm oder Playbook aus der linken Spalte.</div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<NutrientProgram> _programs = Array.Empty<NutrientProgram>();
+    private IReadOnlyList<MediumPlaybook> _playbooks = Array.Empty<MediumPlaybook>();
+    private string? _selectedKey;
+    private NutrientProgram? _selectedProgram;
+    private MediumPlaybook? _selectedPlaybook;
+
+    protected override Task OnInitializedAsync()
+    {
+        _programs = Knowledge.GetPrograms();
+        _playbooks = Knowledge.GetMediumPlaybooks();
+        if (_programs.Any()) Select(_programs[0].Key);
+        return Task.CompletedTask;
+    }
+
+    private void Select(string key)
+    {
+        _selectedKey      = key;
+        _selectedProgram  = _programs.FirstOrDefault(p => p.Key == key);
+        _selectedPlaybook = null;
+    }
+
+    private void SelectPlaybook(string key)
+    {
+        _selectedKey      = key;
+        _selectedPlaybook = _playbooks.FirstOrDefault(p => p.Key == key);
+        _selectedProgram  = null;
+    }
+}
