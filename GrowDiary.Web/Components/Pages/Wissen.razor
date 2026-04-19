@@ -19,8 +19,8 @@
                     {
                         <div class="phase-nav-item @(_selectedKey == p.Key ? "active" : "")"
                              @onclick="() => Select(p.Key)">
-                            <span>@p.Name</span>
-                            <span class="phase-week-badge">@p.Manufacturer</span>
+                            <span class="phase-nav-item-name">@p.Name</span>
+                            <span class="phase-nav-item-sub">@p.Manufacturer</span>
                         </div>
                     }
                 </div>
@@ -34,7 +34,7 @@
                     {
                         <div class="phase-nav-item @(_selectedKey == pb.Key ? "active" : "")"
                              @onclick="() => SelectPlaybook(pb.Key)">
-                            @pb.Title
+                            <span class="phase-nav-item-name">@pb.Title</span>
                         </div>
                     }
                 </div>
@@ -47,7 +47,7 @@
             @if (_selectedProgram is not null)
             {
                 @* Header *@
-                <div class="grow-hero" style="margin-bottom:20px">
+                <div class="wissen-hero">
                     <div class="grow-hero-title">@_selectedProgram.Name</div>
                     <div class="grow-hero-sub">@_selectedProgram.Manufacturer · @_selectedProgram.Category</div>
                     @if (!string.IsNullOrWhiteSpace(_selectedProgram.Summary))
@@ -136,7 +136,7 @@
 
             else if (_selectedPlaybook is not null)
             {
-                <div class="grow-hero" style="margin-bottom:20px">
+                <div class="wissen-hero">
                     <div class="grow-hero-title">@_selectedPlaybook.Title</div>
                     @if (!string.IsNullOrWhiteSpace(_selectedPlaybook.Summary))
                     {
