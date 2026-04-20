@@ -13,6 +13,7 @@ public sealed class GrowFormViewModel
     public string Name { get; set; } = string.Empty;
 
     public int? TentId { get; set; }
+    public int? SystemId { get; set; }
     public List<SelectListItem> TentOptions { get; set; } = new();
     public List<GrowTemplate> Templates { get; set; } = new();
 
@@ -69,6 +70,7 @@ public sealed class GrowFormViewModel
         {
             Id = grow.Id,
             TentId = grow.TentId,
+            SystemId = grow.SystemId,
             Name = grow.Name,
             Strain = grow.Strain,
             Breeder = grow.Breeder,
@@ -124,6 +126,7 @@ public sealed class GrowFormViewModel
         {
             Id = Id ?? 0,
             TentId = TentId,
+            SystemId = SystemId,
             Name = Name.Trim(),
             Strain = string.IsNullOrWhiteSpace(Strain) ? null : Strain.Trim(),
             Breeder = string.IsNullOrWhiteSpace(Breeder) ? null : Breeder.Trim(),
