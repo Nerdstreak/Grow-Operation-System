@@ -49,91 +49,196 @@
         </div>
 
         @* Zelte *@
-        @foreach (var tent in _tents)
-        {
-            var t = tent;
-            <div>
-                <div class="section-label">Zelt · @t.Name</div>
-                <div class="panel-card">
+        <div>
+            <div class="section-label" style="display:flex; justify-content:space-between; align-items:center">
+                <span>Zelte</span>
+                <button class="btn" style="font-size:11px; padding:4px 10px" @onclick="() => _showNewTentForm = !_showNewTentForm">+ Neues Zelt</button>
+            </div>
+
+            @if (_showNewTentForm)
+            {
+                <div class="panel-card" style="margin-bottom:10px">
+                    <div style="padding:14px; display:flex; gap:8px; align-items:flex-end">
+                        <div class="field" style="flex:1">
+                            <label>Name des neuen Zelts</label>
+                            <input @bind="_newTentName" placeholder="z. B. Sideroom Tent" />
+                        </div>
+                        <button class="btn btn-primary" @onclick="AddTent">Anlegen</button>
+                        <button class="btn" @onclick="() => _showNewTentForm = false">Abbrechen</button>
+                    </div>
+                </div>
+            }
+
+            @foreach (var tent in _tents)
+            {
+                var t = tent;
+                <div class="panel-card" style="margin-bottom:12px">
                     <div class="panel-card-header">
                         <span class="panel-card-title">@t.Name</span>
-                        <span class="panel-card-count">@t.ActiveGrowCount aktive Runs</span>
+                        <div style="display:flex; align-items:center; gap:10px">
+                            <span class="panel-card-count">@t.ActiveGrowCount aktive Runs</span>
+                            @if (t.ActiveGrowCount == 0)
+                            {
+                                <button class="btn" style="font-size:11px; padding:3px 8px; color:var(--red); border-color:var(--red)" @onclick="() => DeleteTent(t)">Löschen</button>
+                            }
+                        </div>
                     </div>
-                    <div style="padding:16px 14px; display:grid; gap:12px">
-                        <div class="two-col-grid">
-                            <div class="field">
-                                <label>Name</label>
-                                <input @bind="t.Name" />
-                            </div>
-                            <div class="field">
-                                <label>Typ</label>
-                                <input @bind="t.Kind" />
-                            </div>
-                            <div class="field">
-                                <label>Temperatur Entity</label>
-                                <input @bind="t.TemperatureEntityId" placeholder="sensor.ac_infinity_temperature" />
-                            </div>
-                            <div class="field">
-                                <label>Luftfeuchte Entity</label>
-                                <input @bind="t.HumidityEntityId" placeholder="sensor.ac_infinity_humidity" />
-                            </div>
-                            <div class="field">
-                                <label>VPD Entity</label>
-                                <input @bind="t.VpdEntityId" placeholder="sensor.ac_infinity_vpd" />
-                            </div>
-                            <div class="field">
-                                <label>Licht / Status Entity</label>
-                                <input @bind="t.LightEntityId" placeholder="switch.ac_infinity_light" />
-                            </div>
-                            <div class="field">
-                                <label>Lichtzyklus</label>
-                                <input @bind="t.LightCycle" placeholder="18/6 oder 12/12" />
-                            </div>
-                            <div class="field">
-                                <label>PPFD Entity</label>
-                                <input @bind="t.PpfdEntityId" placeholder="sensor.hauptzelt_ppfd" />
-                            </div>
-                            <div class="field">
-                                <label>PPFD Zielwert</label>
-                                <input @bind="t.PpfdTarget" placeholder="650" />
-                            </div>
-                            <div class="field">
-                                <label>Reservoir pH Entity</label>
-                                <input @bind="t.ReservoirPhEntityId" placeholder="sensor.rdwc_ph" />
-                            </div>
-                            <div class="field">
-                                <label>Reservoir EC Entity</label>
-                                <input @bind="t.ReservoirEcEntityId" placeholder="sensor.rdwc_ec" />
-                            </div>
-                            <div class="field">
-                                <label>Wasserstand Entity</label>
-                                <input @bind="t.ReservoirLevelEntityId" placeholder="sensor.rdwc_level_liters" />
-                            </div>
-                            <div class="field">
-                                <label>Wassertemperatur Entity</label>
-                                <input @bind="t.ReservoirTempEntityId" placeholder="sensor.rdwc_water_temp" />
-                            </div>
-                            <div class="field">
-                                <label>ORP Sensor</label>
-                                <input @bind="t.OrpEntityId" placeholder="sensor.rdwc_orp" />
-                            </div>
-                            <div class="field">
-                                <label>Gelöster Sauerstoff</label>
-                                <input @bind="t.DissolvedOxygenEntityId" placeholder="sensor.rdwc_do" />
-                            </div>
-                            <div class="field">
-                                <label>CO₂ ppm</label>
-                                <input @bind="t.Co2EntityId" placeholder="sensor.hauptzelt_co2" />
-                            </div>
-                            <div class="field">
-                                <label>Kamera Entity</label>
-                                <input @bind="t.CameraEntityId" placeholder="camera.hauptzelt_overview" />
+                    <div style="padding:16px 14px; display:grid; gap:16px">
+
+                        @* Abmessungen *@
+                        <div>
+                            <div class="section-label" style="font-size:9px; margin-bottom:8px">Abmessungen</div>
+                            <div class="two-col-grid">
+                                <div class="field">
+                                    <label>Name</label>
+                                    <input @bind="t.Name" />
+                                </div>
+                                <div class="field">
+                                    <label>Breite (cm)</label>
+                                    <input type="number" @bind="t.WidthCm" placeholder="120" />
+                                </div>
+                                <div class="field">
+                                    <label>Tiefe (cm)</label>
+                                    <input type="number" @bind="t.DepthCm" placeholder="120" />
+                                </div>
+                                <div class="field">
+                                    <label>Höhe (cm)</label>
+                                    <input type="number" @bind="t.TentHeightCm" placeholder="200" />
+                                </div>
                             </div>
                         </div>
+
+                        @* Beleuchtung *@
+                        <div>
+                            <div class="section-label" style="font-size:9px; margin-bottom:8px">Beleuchtung</div>
+                            <div class="two-col-grid">
+                                <div class="field">
+                                    <label>Lichttyp</label>
+                                    <select @bind="t.LightType">
+                                        <option value="">— wählen —</option>
+                                        <option value="LED">LED</option>
+                                        <option value="HPS">HPS</option>
+                                        <option value="CMH">CMH / LEC</option>
+                                        <option value="T5">T5 / CFL</option>
+                                    </select>
+                                </div>
+                                <div class="field">
+                                    <label>Lichtstärke (Watt)</label>
+                                    <input type="number" @bind="t.LightWatt" placeholder="630" />
+                                </div>
+                                <div class="field">
+                                    <label>Lichtzyklus</label>
+                                    <input @bind="t.LightCycle" placeholder="18/6 oder 12/12" />
+                                </div>
+                                <div class="field">
+                                    <label>PPFD Zielwert</label>
+                                    <input @bind="t.PpfdTarget" placeholder="650" />
+                                </div>
+                            </div>
+                        </div>
+
+                        @* Lüftung *@
+                        <div>
+                            <div class="section-label" style="font-size:9px; margin-bottom:8px">Lüftung</div>
+                            <div class="two-col-grid">
+                                <div class="field">
+                                    <label>Abluft-Lüfter (Anzahl)</label>
+                                    <input type="number" @bind="t.ExhaustFanCount" placeholder="1" />
+                                </div>
+                                <div class="field">
+                                    <label>Abluftleistung (m³/h)</label>
+                                    <input type="number" @bind="t.ExhaustM3h" placeholder="300" />
+                                </div>
+                                <div class="field">
+                                    <label>Umluft-Lüfter (Anzahl)</label>
+                                    <input type="number" @bind="t.CirculationFanCount" placeholder="2" />
+                                </div>
+                            </div>
+                        </div>
+
+                        @* CO₂ *@
+                        <div>
+                            <div class="section-label" style="font-size:9px; margin-bottom:8px">CO₂</div>
+                            <div class="two-col-grid">
+                                <div class="field">
+                                    <label>CO₂-Anlage</label>
+                                    <select @bind="t.Co2Type">
+                                        <option value="">Keine</option>
+                                        <option value="Flasche">CO₂-Flasche</option>
+                                        <option value="Generator">CO₂-Generator</option>
+                                    </select>
+                                </div>
+                                <div class="field">
+                                    <label>CO₂-Zielwert (ppm)</label>
+                                    <input type="number" @bind="t.Co2TargetPpm" placeholder="1200" />
+                                </div>
+                            </div>
+                        </div>
+
+                        @* HA Entities *@
+                        <div>
+                            <div class="section-label" style="font-size:9px; margin-bottom:8px">Home Assistant Entities</div>
+                            <div class="two-col-grid">
+                                <div class="field">
+                                    <label>Temperatur Entity</label>
+                                    <input @bind="t.TemperatureEntityId" placeholder="sensor.ac_infinity_temperature" />
+                                </div>
+                                <div class="field">
+                                    <label>Luftfeuchte Entity</label>
+                                    <input @bind="t.HumidityEntityId" placeholder="sensor.ac_infinity_humidity" />
+                                </div>
+                                <div class="field">
+                                    <label>VPD Entity</label>
+                                    <input @bind="t.VpdEntityId" placeholder="sensor.ac_infinity_vpd" />
+                                </div>
+                                <div class="field">
+                                    <label>Licht / Status Entity</label>
+                                    <input @bind="t.LightEntityId" placeholder="switch.ac_infinity_light" />
+                                </div>
+                                <div class="field">
+                                    <label>PPFD Entity</label>
+                                    <input @bind="t.PpfdEntityId" placeholder="sensor.hauptzelt_ppfd" />
+                                </div>
+                                <div class="field">
+                                    <label>Reservoir pH Entity</label>
+                                    <input @bind="t.ReservoirPhEntityId" placeholder="sensor.rdwc_ph" />
+                                </div>
+                                <div class="field">
+                                    <label>Reservoir EC Entity</label>
+                                    <input @bind="t.ReservoirEcEntityId" placeholder="sensor.rdwc_ec" />
+                                </div>
+                                <div class="field">
+                                    <label>Wasserstand Entity</label>
+                                    <input @bind="t.ReservoirLevelEntityId" placeholder="sensor.rdwc_level_liters" />
+                                </div>
+                                <div class="field">
+                                    <label>Wassertemperatur Entity</label>
+                                    <input @bind="t.ReservoirTempEntityId" placeholder="sensor.rdwc_water_temp" />
+                                </div>
+                                <div class="field">
+                                    <label>ORP Sensor</label>
+                                    <input @bind="t.OrpEntityId" placeholder="sensor.rdwc_orp" />
+                                </div>
+                                <div class="field">
+                                    <label>Gelöster Sauerstoff</label>
+                                    <input @bind="t.DissolvedOxygenEntityId" placeholder="sensor.rdwc_do" />
+                                </div>
+                                <div class="field">
+                                    <label>CO₂ ppm Entity</label>
+                                    <input @bind="t.Co2EntityId" placeholder="sensor.hauptzelt_co2" />
+                                </div>
+                                <div class="field">
+                                    <label>Kamera Entity</label>
+                                    <input @bind="t.CameraEntityId" placeholder="camera.hauptzelt_overview" />
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="field">
                             <label>Notizen</label>
                             <textarea rows="3" @bind="t.Notes"></textarea>
                         </div>
+
                         @if (_tentSaved.Contains(t.Id))
                         {
                             <div style="font-size:12px; color:var(--green); padding:6px 10px; background:oklch(74% 0.19 145 / 0.1); border-radius:6px; border:1px solid oklch(74% 0.19 145 / 0.25)">@t.Name gespeichert.</div>
@@ -141,8 +246,113 @@
                         <button class="btn" style="width:fit-content" @onclick='() => SaveTent(t)'>@t.Name speichern</button>
                     </div>
                 </div>
+            }
+        </div>
+
+        @* Hydro-Systeme *@
+        <div>
+            <div class="section-label" style="display:flex; justify-content:space-between; align-items:center">
+                <span>Hydro-Systeme</span>
+                <button class="btn" style="font-size:11px; padding:4px 10px" @onclick="() => _showNewSystemForm = !_showNewSystemForm">+ Neues System</button>
             </div>
-        }
+
+            @if (_showNewSystemForm)
+            {
+                <div class="panel-card" style="margin-bottom:10px">
+                    <div style="padding:14px; display:grid; gap:10px">
+                        <div class="two-col-grid">
+                            <div class="field">
+                                <label>Name</label>
+                                <input @bind="_newSystem.Name" placeholder="z. B. RDWC 3-Pot" />
+                            </div>
+                            <div class="field">
+                                <label>Hydro-Typ</label>
+                                <select @bind="_newSystem.HydroStyle">
+                                    <option value="RDWC">RDWC</option>
+                                    <option value="DWC">DWC</option>
+                                    <option value="NFT">NFT</option>
+                                    <option value="Aero">Aero</option>
+                                    <option value="Coco">Coco</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Pot-Anzahl</label>
+                                <input type="number" @bind="_newSystem.PotCount" placeholder="3" />
+                            </div>
+                            <div class="field">
+                                <label>Pot-Größe (L)</label>
+                                <input type="number" step="0.5" @bind="_newSystem.PotSizeLiters" placeholder="10" />
+                            </div>
+                            <div class="field">
+                                <label>Reservoir (L)</label>
+                                <input type="number" step="0.5" @bind="_newSystem.ReservoirLiters" placeholder="50" />
+                            </div>
+                            <div class="field">
+                                <label>Notizen</label>
+                                <input @bind="_newSystem.Notes" placeholder="z. B. Autopot + Airstone" />
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px">
+                            <button class="btn btn-primary" @onclick="AddSystem">Anlegen</button>
+                            <button class="btn" @onclick="() => _showNewSystemForm = false">Abbrechen</button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @foreach (var sys in _systems)
+            {
+                var s = sys;
+                <div class="panel-card" style="margin-bottom:12px">
+                    <div class="panel-card-header">
+                        <span class="panel-card-title">@s.Name</span>
+                        <div style="display:flex; align-items:center; gap:10px">
+                            <span class="panel-card-count">@s.HydroStyle</span>
+                            <button class="btn" style="font-size:11px; padding:3px 8px; color:var(--red); border-color:var(--red)" @onclick="() => DeleteSystem(s)">Löschen</button>
+                        </div>
+                    </div>
+                    <div style="padding:16px 14px; display:grid; gap:12px">
+                        <div class="two-col-grid">
+                            <div class="field">
+                                <label>Name</label>
+                                <input @bind="s.Name" />
+                            </div>
+                            <div class="field">
+                                <label>Hydro-Typ</label>
+                                <select @bind="s.HydroStyle">
+                                    <option value="RDWC">RDWC</option>
+                                    <option value="DWC">DWC</option>
+                                    <option value="NFT">NFT</option>
+                                    <option value="Aero">Aero</option>
+                                    <option value="Coco">Coco</option>
+                                </select>
+                                </div>
+                            <div class="field">
+                                <label>Pot-Anzahl</label>
+                                <input type="number" @bind="s.PotCount" />
+                            </div>
+                            <div class="field">
+                                <label>Pot-Größe (L)</label>
+                                <input type="number" step="0.5" @bind="s.PotSizeLiters" />
+                            </div>
+                            <div class="field">
+                                <label>Reservoir (L)</label>
+                                <input type="number" step="0.5" @bind="s.ReservoirLiters" />
+                            </div>
+                            <div class="field">
+                                <label>Notizen</label>
+                                <input @bind="s.Notes" />
+                            </div>
+                        </div>
+                        @if (_systemSaved.Contains(s.Id))
+                        {
+                            <div style="font-size:12px; color:var(--green); padding:6px 10px; background:oklch(74% 0.19 145 / 0.1); border-radius:6px; border:1px solid oklch(74% 0.19 145 / 0.25)">@s.Name gespeichert.</div>
+                        }
+                        <button class="btn" style="width:fit-content" @onclick='() => SaveSystem(s)'>@s.Name speichern</button>
+                    </div>
+                </div>
+            }
+        </div>
 
         @* Datenbank *@
         <div>
@@ -201,15 +411,22 @@
 @code {
     private HomeAssistantSettings _ha = new();
     private List<Tent> _tents = new();
+    private List<GrowSystem> _systems = new();
     private DashboardStats _stats = new();
     private bool _haSaved;
     private HashSet<int> _tentSaved = new();
+    private string _newTentName = string.Empty;
+    private bool _showNewTentForm;
+    private GrowSystem _newSystem = new();
+    private bool _showNewSystemForm;
+    private HashSet<int> _systemSaved = new();
 
     protected override Task OnInitializedAsync()
     {
-        _ha    = GrowRepo.GetHomeAssistantSettings();
-        _tents = GrowRepo.GetTents();
-        _stats = GrowRepo.GetDashboardStats();
+        _ha      = GrowRepo.GetHomeAssistantSettings();
+        _tents   = GrowRepo.GetTents();
+        _systems = GrowRepo.GetSystems();
+        _stats   = GrowRepo.GetDashboardStats();
         return Task.CompletedTask;
     }
 
@@ -223,5 +440,45 @@
     {
         GrowRepo.UpdateTent(tent);
         _tentSaved.Add(tent.Id);
+    }
+
+    private void AddTent()
+    {
+        if (string.IsNullOrWhiteSpace(_newTentName)) return;
+        var tent = GrowRepo.CreateTent(_newTentName.Trim());
+        _tents.Add(tent);
+        _newTentName = string.Empty;
+        _showNewTentForm = false;
+    }
+
+    private void DeleteTent(Tent tent)
+    {
+        if (tent.ActiveGrowCount > 0) return;
+        GrowRepo.DeleteTent(tent.Id);
+        _tents.Remove(tent);
+        _tentSaved.Remove(tent.Id);
+    }
+
+    private void SaveSystem(GrowSystem system)
+    {
+        GrowRepo.UpdateSystem(system);
+        _systemSaved.Add(system.Id);
+    }
+
+    private void AddSystem()
+    {
+        if (string.IsNullOrWhiteSpace(_newSystem.Name)) return;
+        _newSystem.HydroStyle = string.IsNullOrWhiteSpace(_newSystem.HydroStyle) ? "RDWC" : _newSystem.HydroStyle;
+        var created = GrowRepo.CreateSystem(_newSystem);
+        _systems.Add(created);
+        _newSystem = new GrowSystem();
+        _showNewSystemForm = false;
+    }
+
+    private void DeleteSystem(GrowSystem system)
+    {
+        GrowRepo.DeleteSystem(system.Id);
+        _systems.Remove(system);
+        _systemSaved.Remove(system.Id);
     }
 }
