@@ -64,61 +64,13 @@ public sealed class MeasurementSanityService
 
     private static void CheckHydro(List<RecommendationCard> cards, Measurement measurement)
     {
-        CheckPhBand(
-            cards,
-            measurement.ReservoirPh,
-            criticalLow: 4.5,
-            warnLow: 5.5,
-            targetLow: 5.8,
-            targetHigh: 6.2,
-            warnHigh: 6.5,
-            criticalHigh: 7.2,
-            titlePrefix: "Reservoir-pH",
-            criticalMessage: "Ein so extremer Reservoir-pH ist in RDWC/DWC hochriskant oder ein Messfehler. Nährstoffaufnahme und Wurzeln sofort prüfen.",
-            warningMessage: "Der Reservoir-pH liegt außerhalb des üblichen Arbeitsfensters. In RDWC wird meist 5,8–6,2 gefahren und erst unter 5,5 bzw. über 6,5 korrigiert.");
+        // pH, EC (moderat), WaterTemp und DO werden in RecommendationEngine.EvaluateHydro
+        // mit stage-spezifischen Schwellenwerten abgedeckt. Hier nur noch echter Plausibilitäts-
+        // check (Messfehler-Verdacht) und hilfreiche Hinweise ohne agronomisches Duplikat.
 
-        if (measurement.ReservoirEc is { } ec)
+        if (measurement.ReservoirEc is { } ec && ec >= 3.2)
         {
-            if (ec >= 3.2)
-            {
-                cards.Add(Critical("Reservoir-EC extrem hoch", $"Mit {ec:0.00} EC ist die Lösung für rezirkulierendes Hydro sehr aggressiv. Prüfe, ob ein Messfehler, ein falsches Ziel oder akuter Salzstress vorliegt."));
-            }
-            else if (ec >= 2.6)
-            {
-                cards.Add(Warning("Reservoir-EC sehr hoch", $"Mit {ec:0.00} EC fährst du bereits deutlich aggressiv. Für RDWC ist das meist nur in Ausnahmefällen sinnvoll."));
-            }
-        }
-
-        if (measurement.ReservoirWaterTempC is { } waterTemp)
-        {
-            if (waterTemp >= 26.0)
-            {
-                cards.Add(Critical("Reservoir viel zu warm", $"Bei {waterTemp:0.0} °C sinkt der Sauerstoffgehalt stark. Das ist ein akutes Wurzelrisiko."));
-            }
-            else if (waterTemp >= 24.0)
-            {
-                cards.Add(Critical("Reservoir kritisch warm", $"Bei {waterTemp:0.0} °C wird RDWC schnell instabil. Kühlung und Belüftung sofort prüfen."));
-            }
-            else if (waterTemp >= 22.0)
-            {
-                cards.Add(Warning("Reservoir warm", $"Bei {waterTemp:0.0} °C wird Sauerstoff knapper. Beobachte DO, ORP und Wurzelgeruch eng."));
-            }
-            else if (waterTemp < 16.0)
-            {
-                cards.Add(Warning("Reservoir ungewöhnlich kalt", $"Bei {waterTemp:0.0} °C kann die Aufnahme träger werden. Prüfe, ob das bewusst so gefahren wird."));
-            }
-        }
-
-        if (measurement.DissolvedOxygenMgL is { } doMgL)
-        {
-            if (doMgL < 6.0)
-            {
-                cards.Add(Critical("DO sehr niedrig", $"Mit {doMgL:0.0} mg/L liegt der Sauerstoff klar unter dem oft genannten Mindestfenster. Belüftung, Luftsteine und Wassertemperatur sofort prüfen."));
-            }
-            else if (doMgL < 7.0)
-            {
-                cards.Add(Warning("DO unter Ziel", $"Mit {doMgL:0.0} mg/L bist du unter dem oft genannten Zielwert von mindestens 7 mg/L."));
-            }
+            cards.Add(Critical("Reservoir-EC extrem hoch", $"Mit {ec:0.00} EC ist die Lösung für rezirkulierendes Hydro sehr aggressiv. Prüfe, ob ein Messfehler, ein falsches Ziel oder akuter Salzstress vorliegt."));
         }
 
         if (measurement.TopOffLiters is { } topOff && topOff > 0 && measurement.AddbackEc is null)

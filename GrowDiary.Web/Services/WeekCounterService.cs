@@ -55,15 +55,22 @@ public sealed class WeekCounterService
             return new GrowWeekInfo(GrowCounterState.NoData,
                 null, null, null, null, null, "Noch kein Start");
 
-        // Autoflower: läuft durch
+        // Einstieg mid-grow: bereits vergangene Tage einberechnen
         if (isAutoflower)
         {
-            var totalDays = (today - growStart.Value).Days;
+            var extraDays = grow.AutoflowerDaysSinceGermination ?? 0;
+            var totalDays = (today - growStart.Value).Days + extraDays;
             var week = totalDays / 7 + 1;
             return new GrowWeekInfo(
                 GrowCounterState.Autoflowering,
                 null, null, week, null, null,
                 $"Woche {week} (Autoflower)");
+        }
+
+        // Für Photoperiod: DaysAlreadyInPhase zurückrechnen (nur wenn kein FlipDate gesetzt)
+        if (grow.DaysAlreadyInPhase is > 0 && !grow.FlipDate.HasValue)
+        {
+            growStart = growStart.Value.AddDays(-grow.DaysAlreadyInPhase.Value);
         }
 
         // Photoperiod mit Flip

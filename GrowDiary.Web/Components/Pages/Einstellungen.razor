@@ -93,11 +93,11 @@
                             }
                         </div>
                     </div>
-                    <div style="padding:16px 14px; display:grid; gap:16px">
+                    <div style="padding:16px 14px; display:grid; gap:0">
 
                         @* Abmessungen *@
-                        <div>
-                            <div class="section-label" style="font-size:9px; margin-bottom:8px">Abmessungen</div>
+                        <div class="settings-card-section">
+                            <div class="settings-section-label">Abmessungen</div>
                             <div class="two-col-grid">
                                 <div class="field">
                                     <label>Name</label>
@@ -119,8 +119,8 @@
                         </div>
 
                         @* Beleuchtung *@
-                        <div>
-                            <div class="section-label" style="font-size:9px; margin-bottom:8px">Beleuchtung</div>
+                        <div class="settings-card-section">
+                            <div class="settings-section-label">Beleuchtung</div>
                             <div class="two-col-grid">
                                 <div class="field">
                                     <label>Lichttyp</label>
@@ -148,8 +148,8 @@
                         </div>
 
                         @* Lüftung *@
-                        <div>
-                            <div class="section-label" style="font-size:9px; margin-bottom:8px">Lüftung</div>
+                        <div class="settings-card-section">
+                            <div class="settings-section-label">Lüftung</div>
                             <div class="two-col-grid">
                                 <div class="field">
                                     <label>Abluft-Lüfter (Anzahl)</label>
@@ -167,8 +167,8 @@
                         </div>
 
                         @* CO₂ *@
-                        <div>
-                            <div class="section-label" style="font-size:9px; margin-bottom:8px">CO₂</div>
+                        <div class="settings-card-section">
+                            <div class="settings-section-label">CO₂</div>
                             <div class="two-col-grid">
                                 <div class="field">
                                     <label>CO₂-Anlage</label>
@@ -186,8 +186,8 @@
                         </div>
 
                         @* HA Entities *@
-                        <div>
-                            <div class="section-label" style="font-size:9px; margin-bottom:8px">Home Assistant Entities</div>
+                        <div class="settings-card-section">
+                            <div class="settings-section-label">Home Assistant — Klima & Umgebung</div>
                             <div class="two-col-grid">
                                 <div class="field">
                                     <label>Temperatur Entity</label>
@@ -202,6 +202,16 @@
                                     <input @bind="t.VpdEntityId" placeholder="sensor.ac_infinity_vpd" />
                                 </div>
                                 <div class="field">
+                                    <label>CO₂ ppm Entity</label>
+                                    <input @bind="t.Co2EntityId" placeholder="sensor.hauptzelt_co2" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-card-section">
+                            <div class="settings-section-label">Home Assistant — Beleuchtung</div>
+                            <div class="two-col-grid">
+                                <div class="field">
                                     <label>Licht / Status Entity</label>
                                     <input @bind="t.LightEntityId" placeholder="switch.ac_infinity_light" />
                                 </div>
@@ -209,6 +219,12 @@
                                     <label>PPFD Entity</label>
                                     <input @bind="t.PpfdEntityId" placeholder="sensor.hauptzelt_ppfd" />
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-card-section">
+                            <div class="settings-section-label">Home Assistant — Reservoir</div>
+                            <div class="two-col-grid">
                                 <div class="field">
                                     <label>Reservoir pH Entity</label>
                                     <input @bind="t.ReservoirPhEntityId" placeholder="sensor.rdwc_ph" />
@@ -233,10 +249,12 @@
                                     <label>Gelöster Sauerstoff</label>
                                     <input @bind="t.DissolvedOxygenEntityId" placeholder="sensor.rdwc_do" />
                                 </div>
-                                <div class="field">
-                                    <label>CO₂ ppm Entity</label>
-                                    <input @bind="t.Co2EntityId" placeholder="sensor.hauptzelt_co2" />
-                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-card-section">
+                            <div class="settings-section-label">Home Assistant — Kamera</div>
+                            <div class="two-col-grid">
                                 <div class="field">
                                     <label>Kamera Entity</label>
                                     <input @bind="t.CameraEntityId" placeholder="camera.hauptzelt_overview" />
@@ -244,9 +262,11 @@
                             </div>
                         </div>
 
-                        <div class="field">
-                            <label>Notizen</label>
-                            <textarea rows="3" @bind="t.Notes"></textarea>
+                        <div class="settings-card-section">
+                            <div class="field">
+                                <label>Notizen</label>
+                                <textarea rows="3" @bind="t.Notes"></textarea>
+                            </div>
                         </div>
 
                         @if (_tentSaved.Contains(t.Id))

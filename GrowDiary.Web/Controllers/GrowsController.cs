@@ -612,17 +612,15 @@ public sealed class GrowsController : Controller
     {
         var grow = _repository.GetGrow(id);
         if (grow is null) return NotFound();
+        if (grow.StartMaterial != StartMaterial.Seed)
+            return BadRequest("Keimungsbestätigung ist nur für Samen-Grows möglich.");
         if (grow.GerminatedAt.HasValue)
             return Redirect($"/grows/{id}");
 
-        var now = DateTime.Now;
-        grow.GerminatedAt = now;
-        _repository.UpdateGrow(grow);
+        grow.GerminatedAt = DateTime.Now;
         if (grow.Status == GrowStatus.Planning)
-        {
             grow.Status = GrowStatus.Running;
-            _repository.UpdateGrow(grow);
-        }
+        _repository.UpdateGrow(grow);
         _journalRepository.Create(new JournalEntry
         {
             GrowId = id,
@@ -640,18 +638,16 @@ public sealed class GrowsController : Controller
     {
         var grow = _repository.GetGrow(id);
         if (grow is null) return NotFound();
+        if (grow.StartMaterial != StartMaterial.Clone)
+            return BadRequest("Bewurzelungsbestätigung ist nur für Stecklinge möglich.");
         if (grow.RootedAt.HasValue)
             return Redirect($"/grows/{id}");
 
-        var now = DateTime.Now;
-        grow.RootedAt = now;
+        grow.RootedAt = DateTime.Now;
         grow.CloneIsRooted = true;
-        _repository.UpdateGrow(grow);
         if (grow.Status == GrowStatus.Planning)
-        {
             grow.Status = GrowStatus.Running;
-            _repository.UpdateGrow(grow);
-        }
+        _repository.UpdateGrow(grow);
         _journalRepository.Create(new JournalEntry
         {
             GrowId = id,
