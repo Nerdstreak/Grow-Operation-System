@@ -1,0 +1,96 @@
+<h2>Group D — Zelt &amp; System: Welcher Ansatz?</h2>
+<p class="subtitle">Das Ziel: mehr Zelte anlegen, physisches Setup konfigurieren (Größe, Licht, System-Typ, Pot-Anzahl, Reservoir). Drei Varianten:</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px; background:#111; border-radius:6px; font-family:system-ui; font-size:11px; color:#666; line-height:1.6">
+      <div style="font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:#444; margin-bottom:8px">Einstellungen → Zelte</div>
+      <div style="background:#161616; border:1px solid #222; border-radius:6px; overflow:hidden; margin-bottom:10px">
+        <div style="padding:10px 14px; border-bottom:1px solid #1e1e1e; display:flex; justify-content:space-between; align-items:center">
+          <span style="font-size:12px; font-weight:600; color:#ccc">Hauptzelt</span>
+          <span style="font-size:10px; color:#555">2 aktive Runs</span>
+        </div>
+        <div style="padding:10px 14px; display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:10px">
+          <div style="color:#666">Name: <span style="color:#aaa">Hauptzelt</span></div>
+          <div style="color:#666">Typ: <span style="color:#aaa">RDWC</span></div>
+          <div style="color:#666">Größe: <span style="color:#aaa">120×120×200cm</span></div>
+          <div style="color:#666">Licht: <span style="color:#aaa">630W LED</span></div>
+          <div style="color:#666">Pot-Anzahl: <span style="color:#aaa">3</span></div>
+          <div style="color:#666">Pot-Größe: <span style="color:#aaa">10L</span></div>
+          <div style="color:#666">Reservoir: <span style="color:#aaa">50L</span></div>
+          <div style="color:#666">Pflanzen max: <span style="color:#aaa">3</span></div>
+        </div>
+        <div style="padding:8px 14px; border-top:1px solid #1e1e1e; display:flex; gap:8px">
+          <div style="padding:4px 10px; background:#1e1e1e; border:1px solid #2a2a2a; border-radius:4px; font-size:10px; color:#888">HA-Entities</div>
+          <div style="padding:4px 10px; background:#1e1e1e; border:1px solid #2a2a2a; border-radius:4px; font-size:10px; color:#c44; margin-left:auto">Löschen</div>
+        </div>
+      </div>
+      <div style="padding:8px 14px; background:#161616; border:1px dashed #2a2a2a; border-radius:6px; text-align:center; font-size:10px; color:#555; cursor:pointer">+ Neues Zelt anlegen</div>
+    </div>
+    <div class="card-body">
+      <h3>A — Tent-Modell erweitern (empfohlen)</h3>
+      <p>Bestehende Tent-Tabelle bekommt physische Felder: Abmessungen, Licht-Watt, HydroStyle, Pot-Anzahl, Pot-Größe, Reservoir-Liter. Einstellungen.razor bekommt "Neues Zelt" + Delete-Button. Kein neues Konzept nötig — das Zelt IST das Setup-Template.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px; background:#111; border-radius:6px; font-family:system-ui; font-size:11px; color:#666; line-height:1.6">
+      <div style="font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:#444; margin-bottom:8px">Einstellungen → Zelte &amp; Systeme getrennt</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+        <div style="background:#161616; border:1px solid #222; border-radius:6px; overflow:hidden">
+          <div style="padding:8px 12px; border-bottom:1px solid #1e1e1e; font-size:11px; font-weight:600; color:#ccc">Zelte</div>
+          <div style="padding:8px 12px; font-size:10px">
+            <div style="color:#777; margin-bottom:4px">📦 Hauptzelt — 120×120</div>
+            <div style="color:#555; margin-bottom:6px">📦 Anzuchtzelt — 60×60</div>
+            <div style="color:#4ade80">+ Zelt hinzufügen</div>
+          </div>
+        </div>
+        <div style="background:#161616; border:1px solid #222; border-radius:6px; overflow:hidden">
+          <div style="padding:8px 12px; border-bottom:1px solid #1e1e1e; font-size:11px; font-weight:600; color:#ccc">Systeme</div>
+          <div style="padding:8px 12px; font-size:10px">
+            <div style="color:#777; margin-bottom:4px">💧 RDWC 3-Pot + 50L</div>
+            <div style="color:#555; margin-bottom:6px">💧 DWC 2-Pot</div>
+            <div style="color:#4ade80">+ System hinzufügen</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:8px; padding:8px 12px; background:#161616; border:1px solid #222; border-radius:6px; font-size:10px; color:#555">
+        Beim Grow-Erstellen: Zelt + System separat auswählen → Kombination frei
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Zelt &amp; System getrennt</h3>
+      <p>Zwei separate Konzepte: Zelt (physischer Raum + HA-Entities) und System (Hydro-Setup). Beim Grow-Erstellen beides separat auswählen. Mehr Flexibilität, aber auch mehr Komplexität — zwei CRUD-Formulare, komplexere GrowForm-Integration.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px; background:#111; border-radius:6px; font-family:system-ui; font-size:11px; color:#666; line-height:1.6">
+      <div style="font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:#444; margin-bottom:8px">Einstellungen → Zelt (expandierbar)</div>
+      <div style="background:#161616; border:1px solid #222; border-radius:6px; overflow:hidden; margin-bottom:8px">
+        <div style="padding:10px 14px; border-bottom:1px solid #1e1e1e; display:flex; align-items:center; gap:8px">
+          <span style="font-size:10px; color:#ccc">▼ Hauptzelt</span>
+          <span style="font-size:9px; color:#555">RDWC · 120×120cm · 630W</span>
+        </div>
+        <div style="padding:10px 14px; border-bottom:1px solid #1e1e1e">
+          <div style="font-size:9px; color:#444; margin-bottom:6px; text-transform:uppercase">Physisches Setup</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; font-size:9px; color:#777">
+            <div>120×120×200cm</div><div>630W LED</div><div>3 Pflanzen</div>
+            <div>3× 10L Pots</div><div>50L Reservoir</div><div>RDWC</div>
+          </div>
+        </div>
+        <div style="padding:8px 14px">
+          <div style="font-size:9px; color:#444; margin-bottom:4px; text-transform:uppercase">HA-Entities (kollabiert)</div>
+          <div style="font-size:9px; color:#555">▶ 16 Entity-IDs konfiguriert</div>
+        </div>
+      </div>
+      <div style="padding:8px 14px; background:#161616; border:1px dashed #2a2a2a; border-radius:6px; text-align:center; font-size:10px; color:#555">+ Neues Zelt</div>
+    </div>
+    <div class="card-body">
+      <h3>C — Tent erweitern + kollabierbare HA-Section</h3>
+      <p>Wie A, aber die Einstellungsseite bekommt ein aufgeräumteres Layout: physisches Setup oben sichtbar, HA-Entities in einem kollabierbaren Block. Optisch etwas sauberer, aber mehr Razor-Arbeit für die Kollaps-Logik.</p>
+    </div>
+  </div>
+
+</div>
