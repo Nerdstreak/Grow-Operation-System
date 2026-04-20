@@ -219,8 +219,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tc-metric-target { font-size: 11px; color: var(--faint); margin-top: 3px; }
 
 /* Camera compact in card context */
-.tent-card .cam-strip > div { height: 180px !important; aspect-ratio: unset !important; }
-
 .tc-footer { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; background: var(--surface2); }
 .tc-runs   { display: flex; gap: 6px; flex-wrap: wrap; }
 .tc-run-pill { font-size: 12px; color: var(--muted); padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; cursor: pointer; transition: color 0.1s, border-color 0.1s; }
@@ -229,7 +227,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tc-open-btn:hover { color: var(--text); border-color: var(--border2); }
 
 /* ─── CAMERA ─────────────────────────────────────────────────── */
-.cam-strip { position: relative; border-top: 1px solid var(--border); overflow: hidden; }
+.cam-strip { position: relative; border-top: 1px solid var(--border); overflow: hidden; width: 100%; }
 .cam-placeholder { width: 100%; aspect-ratio: 16/9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: repeating-linear-gradient(45deg, var(--surface2) 0, var(--surface2) 10px, var(--surface3) 10px, var(--surface3) 20px); color: var(--faint); font-size: 10px; font-family: var(--mono); }
 .cam-large-wrap { position: relative; border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; border: 1px solid var(--border); }
 .cam-large-placeholder { width: 100%; aspect-ratio: 16/9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: repeating-linear-gradient(45deg, var(--surface2) 0, var(--surface2) 12px, var(--surface3) 12px, var(--surface3) 24px); color: var(--faint); font-size: 11px; font-family: var(--mono); }
