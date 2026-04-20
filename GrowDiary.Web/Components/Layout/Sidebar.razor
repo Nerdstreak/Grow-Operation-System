@@ -64,7 +64,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        _theme = await JS.InvokeAsync<string?>("localStorage.getItem", "theme") ?? "dark";
+        _theme = await JS.InvokeAsync<string?>("localStorage.getItem", "growdiary-theme") ?? "dark";
         await ApplyTheme();
         StateHasChanged();
     }
@@ -72,7 +72,7 @@
     private async Task ToggleTheme()
     {
         _theme = _theme == "dark" ? "light" : "dark";
-        await JS.InvokeVoidAsync("localStorage.setItem", "theme", _theme);
+        await JS.InvokeVoidAsync("localStorage.setItem", "growdiary-theme", _theme);
         await ApplyTheme();
     }
 
