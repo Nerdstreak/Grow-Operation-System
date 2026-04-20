@@ -1,0 +1,193 @@
+<h2>Group D — Variante B: Detailansicht</h2>
+<p class="subtitle">Zelte (physisch + HA) und Systeme als getrennte Konzepte. Beim Grow-Erstellen beides separat wählen.</p>
+
+<div class="mockup" style="margin-bottom:24px">
+  <div class="mockup-header">Einstellungen — Zelte</div>
+  <div class="mockup-body" style="padding:0; background:#0e0e0e; font-family:system-ui; color:#ccc">
+
+    <!-- Topbar action -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid #222">
+      <span style="font-size:12px; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:0.07em">Zelte</span>
+      <button style="padding:5px 12px; background:#1a2a1a; border:1px solid #2a3a2a; border-radius:5px; color:#4ade80; font-size:12px; cursor:pointer">+ Neues Zelt</button>
+    </div>
+
+    <!-- Tent card -->
+    <div style="padding:16px 18px">
+      <div style="background:#161616; border:1px solid #222; border-radius:8px; overflow:hidden; margin-bottom:12px">
+        <div style="padding:12px 16px; border-bottom:1px solid #1e1e1e; display:flex; align-items:center; justify-content:space-between">
+          <span style="font-size:14px; font-weight:600; color:#e0e0e0">Hauptzelt</span>
+          <div style="display:flex; gap:8px; align-items:center">
+            <span style="font-size:11px; color:#555">2 aktive Runs</span>
+            <button style="padding:3px 10px; background:transparent; border:1px solid #3a1a1a; border-radius:4px; color:#c44; font-size:11px">Löschen</button>
+          </div>
+        </div>
+        <div style="padding:14px 16px; display:grid; gap:12px">
+
+          <!-- Physisches Setup -->
+          <div>
+            <div style="font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:#444; margin-bottom:10px">Physisches Setup</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px">
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <label style="font-size:11px; color:#555">Breite (cm)</label>
+                <input style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#ccc; font-size:12px" value="120" />
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <label style="font-size:11px; color:#555">Tiefe (cm)</label>
+                <input style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#ccc; font-size:12px" value="120" />
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <label style="font-size:11px; color:#555">Höhe (cm)</label>
+                <input style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#ccc; font-size:12px" value="200" />
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <label style="font-size:11px; color:#555">Lichttyp</label>
+                <select style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#ccc; font-size:12px">
+                  <option selected>LED</option>
+                  <option>HPS</option>
+                  <option>CMH</option>
+                  <option>T5</option>
+                </select>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <label style="font-size:11px; color:#555">Lichtstärke (Watt)</label>
+                <input style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#ccc; font-size:12px" value="630" />
+              </div>
+            </div>
+          </div>
+
+          <!-- HA Entities -->
+          <div>
+            <div style="font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:#444; margin-bottom:10px">Home Assistant Entities</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <label style="font-size:11px; color:#555">Temperatur Entity</label>
+                <input style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#777; font-size:11px" value="sensor.ac_infinity_temperature" />
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <label style="font-size:11px; color:#555">Reservoir pH Entity</label>
+                <input style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#777; font-size:11px" value="sensor.rdwc_ph" />
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <label style="font-size:11px; color:#555">Kamera Entity</label>
+                <input style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#777; font-size:11px" value="camera.hauptzelt_overview" />
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px">
+                <label style="font-size:11px; color:#555">... (weitere 13 Entity-Felder)</label>
+                <input style="background:#111; border:1px solid #1a1a1a; border-radius:4px; padding:6px 8px; color:#444; font-size:11px" value="" placeholder="wie bisher" />
+              </div>
+            </div>
+          </div>
+
+          <button style="padding:6px 14px; background:#1a1a1a; border:1px solid #2a2a2a; border-radius:5px; color:#888; font-size:12px; width:fit-content">Hauptzelt speichern</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-bottom:24px">
+  <div class="mockup-header">Einstellungen — Systeme</div>
+  <div class="mockup-body" style="padding:0; background:#0e0e0e; font-family:system-ui; color:#ccc">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid #222">
+      <span style="font-size:12px; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:0.07em">Hydro-Systeme</span>
+      <button style="padding:5px 12px; background:#1a2a1a; border:1px solid #2a3a2a; border-radius:5px; color:#4ade80; font-size:12px">+ Neues System</button>
+    </div>
+
+    <div style="padding:16px 18px">
+      <!-- System card -->
+      <div style="background:#161616; border:1px solid #222; border-radius:8px; overflow:hidden; margin-bottom:12px">
+        <div style="padding:12px 16px; border-bottom:1px solid #1e1e1e; display:flex; align-items:center; justify-content:space-between">
+          <span style="font-size:14px; font-weight:600; color:#e0e0e0">RDWC Hauptsystem</span>
+          <button style="padding:3px 10px; background:transparent; border:1px solid #3a1a1a; border-radius:4px; color:#c44; font-size:11px">Löschen</button>
+        </div>
+        <div style="padding:14px 16px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px">
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <label style="font-size:11px; color:#555">Name</label>
+            <input style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#ccc; font-size:12px" value="RDWC Hauptsystem" />
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <label style="font-size:11px; color:#555">Hydro-Typ</label>
+            <select style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#ccc; font-size:12px">
+              <option selected>RDWC</option>
+              <option>DWC</option>
+              <option>NFT</option>
+              <option>Aero</option>
+              <option>Coco</option>
+              <option>Soil</option>
+            </select>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <label style="font-size:11px; color:#555">Pot-Anzahl</label>
+            <input style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#ccc; font-size:12px" value="3" />
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <label style="font-size:11px; color:#555">Pot-Größe (L)</label>
+            <input style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#ccc; font-size:12px" value="10" />
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <label style="font-size:11px; color:#555">Reservoir (L)</label>
+            <input style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#ccc; font-size:12px" value="50" />
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <label style="font-size:11px; color:#555">Notizen</label>
+            <input style="background:#111; border:1px solid #222; border-radius:4px; padding:6px 8px; color:#777; font-size:12px" value="Autopot + Airstone" />
+          </div>
+        </div>
+        <div style="padding:0 14px 14px"><button style="padding:6px 14px; background:#1a1a1a; border:1px solid #2a2a2a; border-radius:5px; color:#888; font-size:12px">Speichern</button></div>
+      </div>
+
+      <!-- Second system -->
+      <div style="background:#161616; border:1px solid #222; border-radius:8px; overflow:hidden">
+        <div style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between">
+          <div>
+            <div style="font-size:13px; font-weight:500; color:#ccc">DWC 2-Pot</div>
+            <div style="font-size:11px; color:#555; margin-top:2px">DWC · 2× 15L · kein Reservoir</div>
+          </div>
+          <button style="padding:3px 10px; background:transparent; border:1px solid #3a1a1a; border-radius:4px; color:#c44; font-size:11px">Löschen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">Neuer Grow — System-Dropdown</div>
+  <div class="mockup-body" style="padding:16px 18px; background:#0e0e0e; font-family:system-ui; color:#ccc">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; max-width:520px">
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <label style="font-size:11px; color:#555">Zelt</label>
+        <select style="background:#111; border:1px solid #222; border-radius:4px; padding:8px 10px; color:#ccc; font-size:13px">
+          <option selected>Hauptzelt</option>
+          <option>Anzuchtzelt</option>
+        </select>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <label style="font-size:11px; color:#555">System (optional)</label>
+        <select style="background:#111; border:1px solid #222; border-radius:4px; padding:8px 10px; color:#ccc; font-size:13px">
+          <option value="">— kein System —</option>
+          <option selected>RDWC Hauptsystem</option>
+          <option>DWC 2-Pot</option>
+        </select>
+      </div>
+    </div>
+    <p style="font-size:11px; color:#555; margin-top:12px">System-Auswahl befüllt automatisch: HydroStyle, Pot-Anzahl, Pot-Größe, Reservoir-Größe</p>
+  </div>
+</div>
+
+<div class="options" style="margin-top:24px">
+  <div class="option" data-choice="passt" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Passt so</h3>
+      <p>Design genehmigt, weiter zum Spec</p>
+    </div>
+  </div>
+  <div class="option" data-choice="aendern" onclick="toggleSelect(this)">
+    <div class="letter">✎</div>
+    <div class="content">
+      <h3>Änderung gewünscht</h3>
+      <p>Schreib was anders sein soll</p>
+    </div>
+  </div>
+</div>

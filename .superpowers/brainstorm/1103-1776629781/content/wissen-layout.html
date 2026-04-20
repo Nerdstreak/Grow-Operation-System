@@ -1,0 +1,156 @@
+<h2>Wissenseite — Layout-Variante wählen</h2>
+<p class="subtitle">Aktuelle Seite hat Sidebar links + Detail rechts — aber die Sidebar ist zu schmal und die Stage-Karten laufen über. Welche Richtung passt besser?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px; background:#111; border-radius:6px; font-family:monospace; font-size:11px; color:#666; line-height:1.6">
+      <div style="display:grid; grid-template-columns:200px 1fr; gap:12px; height:220px">
+        <div style="background:#1a1a1a; border-radius:4px; padding:10px">
+          <div style="font-size:9px; color:#444; margin-bottom:8px; text-transform:uppercase; letter-spacing:1px">Programme</div>
+          <div style="background:#2a2a2a; border-radius:3px; padding:6px 8px; margin-bottom:4px; color:#aaa; font-size:10px">Athena Blended</div>
+          <div style="border-radius:3px; padding:6px 8px; margin-bottom:4px; color:#555; font-size:10px">VBX + Shine</div>
+          <div style="border-radius:3px; padding:6px 8px; color:#555; font-size:10px">HESI</div>
+          <div style="font-size:9px; color:#444; margin: 10px 0 6px; text-transform:uppercase; letter-spacing:1px">Playbooks</div>
+          <div style="border-radius:3px; padding:6px 8px; color:#555; font-size:10px">Hydro</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <div style="background:#1a1a1a; border-radius:4px; padding:10px">
+            <div style="color:#ccc; font-size:12px; font-weight:600; margin-bottom:3px">Athena Blended</div>
+            <div style="color:#555; font-size:10px">Athena · Mineralisch • RDWC/DWC</div>
+            <div style="color:#666; font-size:10px; margin-top:6px; line-height:1.5">Athena Blended muss nach Systemtyp gelesen werden...</div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; flex:1">
+            <div style="background:#1a1a1a; border-radius:4px; padding:8px; font-size:9px">
+              <div style="color:#444; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px">Clone</div>
+              <div style="color:#aaa; font-size:11px">0.2–0.4</div>
+            </div>
+            <div style="background:#1a1a1a; border-radius:4px; padding:8px; font-size:9px">
+              <div style="color:#444; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px">Veg</div>
+              <div style="color:#aaa; font-size:11px">0.6–1.2</div>
+            </div>
+            <div style="background:#1a1a1a; border-radius:4px; padding:8px; font-size:9px">
+              <div style="color:#444; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px">Blüte</div>
+              <div style="color:#aaa; font-size:11px">1.4–1.6</div>
+            </div>
+            <div style="background:#1a1a1a; border-radius:4px; padding:8px; font-size:9px">
+              <div style="color:#444; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px">Flush</div>
+              <div style="color:#aaa; font-size:11px">0.4–0.6</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Sidebar breiter (260px)</h3>
+      <p>Gleiche Struktur wie jetzt, aber Sidebar auf 260px verbreitert, Stage-Karten kompakter mit kleinerer Font-Size, bessere Proportionen. Minimaler Eingriff.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px; background:#111; border-radius:6px; font-family:monospace; font-size:11px; color:#666; line-height:1.6">
+      <div style="display:flex; flex-direction:column; gap:10px; height:220px">
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <div style="background:#2a2a2a; border-radius:20px; padding:5px 12px; font-size:10px; color:#aaa">Athena Blended</div>
+          <div style="background:#1a1a1a; border-radius:20px; padding:5px 12px; font-size:10px; color:#555">VBX + Shine</div>
+          <div style="background:#1a1a1a; border-radius:20px; padding:5px 12px; font-size:10px; color:#555">HESI</div>
+          <div style="background:#1a1a1a; border-radius:20px; padding:5px 12px; font-size:10px; color:#555">GHF</div>
+          <div style="background:#1a1a1a; border-radius:20px; padding:5px 12px; font-size:10px; color:#555">Hydro Playbook</div>
+        </div>
+        <div style="background:#1a1a1a; border-radius:4px; padding:10px; flex:1">
+          <div style="color:#ccc; font-size:12px; font-weight:600; margin-bottom:3px">Athena Blended</div>
+          <div style="color:#555; font-size:10px; margin-bottom:8px">Athena · Mineralisch • RDWC/DWC/Coco</div>
+          <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin-bottom:8px">
+            <div style="background:#222; border-radius:3px; padding:6px; text-align:center">
+              <div style="color:#444; font-size:8px; text-transform:uppercase; margin-bottom:3px">Clone</div>
+              <div style="color:#aaa; font-size:10px">0.2–0.4</div>
+            </div>
+            <div style="background:#222; border-radius:3px; padding:6px; text-align:center">
+              <div style="color:#444; font-size:8px; text-transform:uppercase; margin-bottom:3px">Veg</div>
+              <div style="color:#aaa; font-size:10px">0.6–1.2</div>
+            </div>
+            <div style="background:#222; border-radius:3px; padding:6px; text-align:center">
+              <div style="color:#444; font-size:8px; text-transform:uppercase; margin-bottom:3px">Blüte</div>
+              <div style="color:#aaa; font-size:10px">1.4–1.6</div>
+            </div>
+            <div style="background:#222; border-radius:3px; padding:6px; text-align:center">
+              <div style="color:#444; font-size:8px; text-transform:uppercase; margin-bottom:3px">Finish</div>
+              <div style="color:#aaa; font-size:10px">0.4–0.6</div>
+            </div>
+            <div style="background:#222; border-radius:3px; padding:6px; text-align:center">
+              <div style="color:#444; font-size:8px; text-transform:uppercase; margin-bottom:3px">Cleanse</div>
+              <div style="color:#aaa; font-size:10px">ORP</div>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px">
+            <div style="background:#222; border-radius:3px; padding:6px; font-size:9px; color:#666">pH: 5,8–6,2 • RDWC Safe-Zone...</div>
+            <div style="background:#222; border-radius:3px; padding:6px; font-size:9px; color:#666">EC: konservativ, 1,5–1,6 max...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Tab-Leiste oben (kein Sidebar)</h3>
+      <p>Programme als Pill-Tabs oben, darunter der volle Inhaltsbereich. Mehr horizontaler Platz für Stage-Karten und Guidance. Moderner, luftiger.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px; background:#111; border-radius:6px; font-family:monospace; font-size:11px; color:#666; line-height:1.6">
+      <div style="display:grid; grid-template-columns:240px 1fr; gap:12px; height:220px">
+        <div style="background:#1a1a1a; border-radius:4px; padding:10px; overflow:hidden">
+          <div style="font-size:9px; color:#444; margin-bottom:8px; text-transform:uppercase; letter-spacing:1px">Nährstoffprogramme</div>
+          <div style="background:#2a2a2a; border-left:2px solid #4ade80; border-radius:3px; padding:8px 10px; margin-bottom:6px">
+            <div style="color:#ccc; font-size:10px; font-weight:600">Athena Blended</div>
+            <div style="color:#555; font-size:9px; margin-top:2px">Athena · RDWC/DWC</div>
+          </div>
+          <div style="border-radius:3px; padding:8px 10px; margin-bottom:6px">
+            <div style="color:#555; font-size:10px">VBX + Shine</div>
+            <div style="color:#444; font-size:9px; margin-top:2px">Hydroponic Research</div>
+          </div>
+          <div style="border-radius:3px; padding:8px 10px">
+            <div style="color:#555; font-size:10px">HESI</div>
+            <div style="color:#444; font-size:9px; margin-top:2px">Mineralisch</div>
+          </div>
+          <div style="font-size:9px; color:#444; margin: 10px 0 6px; text-transform:uppercase; letter-spacing:1px">Playbooks</div>
+          <div style="border-radius:3px; padding:8px 10px">
+            <div style="color:#555; font-size:10px">Hydro Grundlagen</div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <div style="background:#1a1a1a; border-radius:4px; padding:10px; border-left:2px solid #4ade80">
+            <div style="color:#ccc; font-size:12px; font-weight:600; margin-bottom:2px">Athena Blended</div>
+            <div style="color:#555; font-size:9px; margin-bottom:6px">Athena · Mineralisch • RDWC/DWC/Coco</div>
+            <div style="color:#666; font-size:10px; line-height:1.5">Athena Blended muss nach Systemtyp gelesen werden: Coco/Fertigation kann aggressiver...</div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:5px">
+            <div style="background:#1a1a1a; border-radius:4px; padding:8px">
+              <div style="color:#444; font-size:8px; text-transform:uppercase; margin-bottom:3px">Clone</div>
+              <div style="color:#aaa; font-size:12px; font-weight:300">0.2–0.4</div>
+              <div style="color:#555; font-size:8px; margin-top:2px">EC</div>
+            </div>
+            <div style="background:#1a1a1a; border-radius:4px; padding:8px">
+              <div style="color:#444; font-size:8px; text-transform:uppercase; margin-bottom:3px">Frühe Veg</div>
+              <div style="color:#aaa; font-size:12px; font-weight:300">0.3–0.6</div>
+              <div style="color:#555; font-size:8px; margin-top:2px">EC</div>
+            </div>
+            <div style="background:#1a1a1a; border-radius:4px; padding:8px">
+              <div style="color:#444; font-size:8px; text-transform:uppercase; margin-bottom:3px">Blüte</div>
+              <div style="color:#aaa; font-size:12px; font-weight:300">1.4–1.6</div>
+              <div style="color:#555; font-size:8px; margin-top:2px">EC</div>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; flex:1">
+            <div style="background:#1a1a1a; border-radius:4px; padding:8px; font-size:9px; color:#666; line-height:1.4"><span style="color:#555; font-weight:600; display:block; margin-bottom:3px">pH</span>RDWC-Zielbereich 5,8–6,2...</div>
+            <div style="background:#1a1a1a; border-radius:4px; padding:8px; font-size:9px; color:#666; line-height:1.4"><span style="color:#555; font-weight:600; display:block; margin-bottom:3px">EC</span>RDWC startet sehr niedrig...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Sidebar mit Manufacturer-Subtitle + aktiver Farb-Akzent</h3>
+      <p>Wie A, aber Sidebar-Items zeigen Hersteller als Subtitle, aktives Item hat grünen Left-Border-Akzent. Stage-Karten kleiner mit leichterem Font-Weight. Konsistent mit App-Style.</p>
+    </div>
+  </div>
+
+</div>
