@@ -120,7 +120,7 @@ else
                     <div class="card-pad" style="display:grid; gap:10px">
                         <div class="field">
                             <label>Zeitpunkt</label>
-                            <input type="datetime-local" @bind="_takenAtLocal" />
+                            <input type="datetime-local" @bind-value="_takenAtLocal" @bind-value:format="yyyy-MM-ddTHH:mm" />
                         </div>
                         <div class="field">
                             <label>Phase</label>
