@@ -220,7 +220,10 @@ public sealed class GrowRepository
     {
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM GrowSystems WHERE Id = $id LIMIT 1;";
+        command.CommandText = """
+            SELECT s.*, (SELECT COUNT(*) FROM Grows g WHERE g.SystemId = s.Id AND g.Status IN ('Planning','Running')) AS ActiveGrowCount
+            FROM GrowSystems s WHERE s.Id = $id LIMIT 1;
+        """;
         command.Parameters.AddWithValue("$id", id);
         using var reader = command.ExecuteReader();
         return reader.Read() ? MapGrowSystem(reader) : null;
