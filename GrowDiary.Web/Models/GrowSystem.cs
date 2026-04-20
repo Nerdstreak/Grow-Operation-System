@@ -11,4 +11,5 @@ public sealed class GrowSystem
     public string? Notes { get; set; }
     public int DisplayOrder { get; set; } = 99;
     public DateTime CreatedAtUtc { get; set; }
+    public int ActiveGrowCount { get; set; }
 }

@@ -204,7 +204,10 @@ public sealed class GrowRepository
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT * FROM GrowSystems ORDER BY DisplayOrder, Name;
+            SELECT s.*,
+                   (SELECT COUNT(*) FROM Grows g WHERE g.SystemId = s.Id AND g.Status IN ('Planning','Running')) AS ActiveGrowCount
+            FROM GrowSystems s
+            ORDER BY s.DisplayOrder, s.Name;
         """;
         var list = new List<GrowSystem>();
         using var reader = command.ExecuteReader();
@@ -1164,7 +1167,8 @@ public sealed class GrowRepository
             ReservoirLiters = reader["ReservoirLiters"] is DBNull or null ? null : Convert.ToDouble(reader["ReservoirLiters"], CultureInfo.InvariantCulture),
             Notes           = NullString(reader["Notes"]),
             DisplayOrder    = Convert.ToInt32(reader["DisplayOrder"], CultureInfo.InvariantCulture),
-            CreatedAtUtc    = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc    = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            ActiveGrowCount = reader["ActiveGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ActiveGrowCount"], CultureInfo.InvariantCulture)
         };
     }
 
