@@ -336,7 +336,7 @@ public sealed class GrowRepository
         command.CommandText = """
             INSERT INTO Grows
             (
-                TentId, Name, Strain, Breeder, Status, MediumType, FeedingStyle, HydroStyle, MediumDetail,
+                TentId, SystemId, Name, Strain, Breeder, Status, MediumType, FeedingStyle, HydroStyle, MediumDetail,
                 Environment, Light, ContainerSize, ReservoirSize, IrrigationStyle, IrrigationType, WaterSource,
                 SeedType, StartMaterial, GerminationMethod, CloneSource, CloneIsRooted,
                 BreederFlowerWeeksMin, BreederFlowerWeeksMax, PlantCount, PhenoNumber,
@@ -346,7 +346,7 @@ public sealed class GrowRepository
             )
             VALUES
             (
-                $tentId, $name, $strain, $breeder, $status, $mediumType, $feedingStyle, $hydroStyle, $mediumDetail,
+                $tentId, $systemId, $name, $strain, $breeder, $status, $mediumType, $feedingStyle, $hydroStyle, $mediumDetail,
                 $environment, $light, $containerSize, $reservoirSize, $irrigationStyle, $irrigationType, $waterSource,
                 $seedType, $startMaterial, $germinationMethod, $cloneSource, $cloneIsRooted,
                 $breederFlowerWeeksMin, $breederFlowerWeeksMax, $plantCount, $phenoNumber,
@@ -370,6 +370,7 @@ public sealed class GrowRepository
             UPDATE Grows
             SET
                 TentId = $tentId,
+                SystemId = $systemId,
                 Name = $name,
                 Strain = $strain,
                 Breeder = $breeder,
@@ -923,6 +924,7 @@ public sealed class GrowRepository
         {
             Id = Convert.ToInt32((long)reader["Id"]),
             TentId = reader["TentId"] is DBNull ? null : Convert.ToInt32((long)reader["TentId"]),
+            SystemId = reader["SystemId"] is DBNull or null ? null : Convert.ToInt32((long)reader["SystemId"]),
             TentName = NullString(reader["TentName"]),
             Name = reader["Name"]?.ToString() ?? string.Empty,
             Strain = NullString(reader["Strain"]),
@@ -1075,6 +1077,7 @@ public sealed class GrowRepository
     private static void AddGrowParameters(SqliteCommand command, GrowRun grow)
     {
         command.Parameters.AddWithValue("$tentId", (object?)grow.TentId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$systemId", (object?)grow.SystemId ?? DBNull.Value);
         command.Parameters.AddWithValue("$name", grow.Name);
         command.Parameters.AddWithValue("$strain", (object?)grow.Strain ?? DBNull.Value);
         command.Parameters.AddWithValue("$breeder", (object?)grow.Breeder ?? DBNull.Value);
