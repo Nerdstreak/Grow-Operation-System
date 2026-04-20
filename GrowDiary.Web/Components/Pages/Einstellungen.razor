@@ -11,10 +11,20 @@
 </div>
 
 <div class="page-scroll">
-    <div class="settings-grid">
+    <div class="settings-layout">
+        <nav class="settings-nav">
+            <ul class="settings-nav-list">
+                <li><a class="settings-nav-link" href="#ha">Home Assistant</a></li>
+                <li><a class="settings-nav-link" href="#zelte">Zelte</a></li>
+                <li><a class="settings-nav-link" href="#systeme">Hydro-Systeme</a></li>
+                <li><a class="settings-nav-link" href="#datenbank">Datenbank</a></li>
+                <li><a class="settings-nav-link" href="#app">App</a></li>
+            </ul>
+        </nav>
+        <div class="settings-grid">
 
         @* Home Assistant *@
-        <div>
+        <div id="ha">
             <div class="section-label">Home Assistant</div>
             <div class="panel-card">
                 <div class="panel-card-header">
@@ -49,7 +59,7 @@
         </div>
 
         @* Zelte *@
-        <div>
+        <div id="zelte">
             <div class="section-label" style="display:flex; justify-content:space-between; align-items:center">
                 <span>Zelte</span>
                 <button class="btn" style="font-size:11px; padding:4px 10px" @onclick="() => _showNewTentForm = !_showNewTentForm">+ Neues Zelt</button>
@@ -250,7 +260,7 @@
         </div>
 
         @* Hydro-Systeme *@
-        <div>
+        <div id="systeme">
             <div class="section-label" style="display:flex; justify-content:space-between; align-items:center">
                 <span>Hydro-Systeme</span>
                 <button class="btn" style="font-size:11px; padding:4px 10px" @onclick="() => _showNewSystemForm = !_showNewSystemForm">+ Neues System</button>
@@ -359,7 +369,7 @@
         </div>
 
         @* Datenbank *@
-        <div>
+        <div id="datenbank">
             <div class="section-label">Datenbank</div>
             <div class="panel-card">
                 <div class="panel-card-header">
@@ -386,7 +396,7 @@
         </div>
 
         @* App-Info *@
-        <div>
+        <div id="app">
             <div class="section-label">App</div>
             <div class="panel-card">
                 <div class="panel-card-header">
@@ -409,8 +419,9 @@
             </div>
         </div>
 
-    </div>
-</div>
+        </div>  @* settings-grid closes here *@
+    </div>      @* settings-layout closes here *@
+</div>          @* page-scroll closes here *@
 
 @code {
     private HomeAssistantSettings _ha = new();
