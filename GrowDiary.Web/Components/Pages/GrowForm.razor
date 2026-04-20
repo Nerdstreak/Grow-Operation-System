@@ -329,10 +329,10 @@ else
         if (systemId is null) return;
         var sys = _systems.FirstOrDefault(s => s.Id == systemId);
         if (sys is null) return;
-        if (Enum.TryParse<HydroStyle>(sys.HydroStyle, out var hs)) _model.HydroStyle = hs;
+        if (Enum.TryParse<HydroStyle>(sys.HydroStyle, ignoreCase: true, out var hs)) _model.HydroStyle = hs;
         if (sys.PotCount.HasValue) _model.PlantCount = sys.PotCount;
-        if (sys.PotSizeLiters.HasValue) _model.ContainerSize = $"{sys.PotSizeLiters:0.#} L";
-        if (sys.ReservoirLiters.HasValue) _model.ReservoirSize = $"{sys.ReservoirLiters:0.#} L";
+        if (sys.PotSizeLiters.HasValue) _model.ContainerSize = $"{sys.PotSizeLiters.Value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} L";
+        if (sys.ReservoirLiters.HasValue) _model.ReservoirSize = $"{sys.ReservoirLiters.Value.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} L";
     }
 
     private async Task SaveAsync()
