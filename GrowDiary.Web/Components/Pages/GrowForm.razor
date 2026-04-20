@@ -68,6 +68,20 @@ else
                                 </InputSelect>
                             </div>
                             <div class="field">
+                                <label for="grow-system">System</label>
+                                <InputSelect id="grow-system"
+                                             TValue="int?"
+                                             Value="@_model.SystemId"
+                                             ValueChanged="@OnSystemChanged"
+                                             ValueExpression="@(() => _model.SystemId)">
+                                    <option value="">— kein System —</option>
+                                    @foreach (var sys in _systems)
+                                    {
+                                        <option value="@sys.Id">@sys.Name</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="field">
                                 <label for="grow-strain">Sorte</label>
                                 <InputText id="grow-strain" @bind-Value="_model.Strain" autocomplete="off" placeholder="z. B. Purple Lemonade" />
                             </div>
@@ -252,6 +266,7 @@ else
 
     private GrowFormViewModel _model = new();
     private List<Tent> _tents = new();
+    private List<GrowSystem> _systems = new();
     private List<GrowTemplate> _templates = new();
     private IReadOnlyList<string> _nutrientSuggestions = Array.Empty<string>();
     private bool _loading = true;
@@ -267,6 +282,7 @@ else
         _error = null;
 
         _tents = GrowRepo.GetTents();
+        _systems = GrowRepo.GetSystems();
         _templates = TemplateRepo.GetAll();
         _nutrientSuggestions = KnowledgeService.GetHydroProgramNames();
 
@@ -305,6 +321,18 @@ else
         _model.StartMaterial = val;
         if (val == StartMaterial.Clone && _model.EntryPoint == GrowEntryPoint.Germination)
             _model.EntryPoint = GrowEntryPoint.Seedling;
+    }
+
+    private void OnSystemChanged(int? systemId)
+    {
+        _model.SystemId = systemId;
+        if (systemId is null) return;
+        var sys = _systems.FirstOrDefault(s => s.Id == systemId);
+        if (sys is null) return;
+        if (Enum.TryParse<HydroStyle>(sys.HydroStyle, out var hs)) _model.HydroStyle = hs;
+        if (sys.PotCount.HasValue) _model.PlantCount = sys.PotCount;
+        if (sys.PotSizeLiters.HasValue) _model.ContainerSize = $"{sys.PotSizeLiters:0.#} L";
+        if (sys.ReservoirLiters.HasValue) _model.ReservoirSize = $"{sys.ReservoirLiters:0.#} L";
     }
 
     private async Task SaveAsync()
