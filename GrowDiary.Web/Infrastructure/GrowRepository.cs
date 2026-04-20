@@ -158,11 +158,30 @@ public sealed class GrowRepository
                 CameraEntityId = $cameraEntityId,
                 LightCycle = $lightCycle,
                 PpfdEntityId = $ppfdEntityId,
-                PpfdTarget = $ppfdTarget
+                PpfdTarget = $ppfdTarget,
+                WidthCm = $widthCm,
+                DepthCm = $depthCm,
+                TentHeightCm = $tentHeightCm,
+                LightType = $lightType,
+                LightWatt = $lightWatt,
+                ExhaustFanCount = $exhaustFanCount,
+                ExhaustM3h = $exhaustM3h,
+                CirculationFanCount = $circulationFanCount,
+                Co2Type = $co2Type,
+                Co2TargetPpm = $co2TargetPpm
             WHERE Id = $id;
         """;
         AddTentParameters(command, tent);
         command.Parameters.AddWithValue("$id", tent.Id);
+        command.ExecuteNonQuery();
+    }
+
+    public void DeleteTent(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM Tents WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
 
@@ -973,6 +992,16 @@ public sealed class GrowRepository
             LightCycle = NullString(reader["LightCycle"]),
             PpfdEntityId = NullString(reader["PpfdEntityId"]),
             PpfdTarget = NullString(reader["PpfdTarget"]),
+            WidthCm             = reader["WidthCm"] is DBNull or null ? null : Convert.ToInt32(reader["WidthCm"], CultureInfo.InvariantCulture),
+            DepthCm             = reader["DepthCm"] is DBNull or null ? null : Convert.ToInt32(reader["DepthCm"], CultureInfo.InvariantCulture),
+            TentHeightCm        = reader["TentHeightCm"] is DBNull or null ? null : Convert.ToInt32(reader["TentHeightCm"], CultureInfo.InvariantCulture),
+            LightType           = NullString(reader["LightType"]),
+            LightWatt           = reader["LightWatt"] is DBNull or null ? null : Convert.ToInt32(reader["LightWatt"], CultureInfo.InvariantCulture),
+            ExhaustFanCount     = reader["ExhaustFanCount"] is DBNull or null ? null : Convert.ToInt32(reader["ExhaustFanCount"], CultureInfo.InvariantCulture),
+            ExhaustM3h          = reader["ExhaustM3h"] is DBNull or null ? null : Convert.ToInt32(reader["ExhaustM3h"], CultureInfo.InvariantCulture),
+            CirculationFanCount = reader["CirculationFanCount"] is DBNull or null ? null : Convert.ToInt32(reader["CirculationFanCount"], CultureInfo.InvariantCulture),
+            Co2Type             = NullString(reader["Co2Type"]),
+            Co2TargetPpm        = reader["Co2TargetPpm"] is DBNull or null ? null : Convert.ToInt32(reader["Co2TargetPpm"], CultureInfo.InvariantCulture),
             ActiveGrowCount = reader["ActiveGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ActiveGrowCount"], CultureInfo.InvariantCulture),
             ArchivedGrowCount = reader["ArchivedGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ArchivedGrowCount"], CultureInfo.InvariantCulture)
         };
@@ -1108,6 +1137,16 @@ public sealed class GrowRepository
         command.Parameters.AddWithValue("$lightCycle", (object?)tent.LightCycle ?? DBNull.Value);
         command.Parameters.AddWithValue("$ppfdEntityId", (object?)tent.PpfdEntityId ?? DBNull.Value);
         command.Parameters.AddWithValue("$ppfdTarget", (object?)tent.PpfdTarget ?? DBNull.Value);
+        command.Parameters.AddWithValue("$widthCm", (object?)tent.WidthCm ?? DBNull.Value);
+        command.Parameters.AddWithValue("$depthCm", (object?)tent.DepthCm ?? DBNull.Value);
+        command.Parameters.AddWithValue("$tentHeightCm", (object?)tent.TentHeightCm ?? DBNull.Value);
+        command.Parameters.AddWithValue("$lightType", (object?)tent.LightType ?? DBNull.Value);
+        command.Parameters.AddWithValue("$lightWatt", (object?)tent.LightWatt ?? DBNull.Value);
+        command.Parameters.AddWithValue("$exhaustFanCount", (object?)tent.ExhaustFanCount ?? DBNull.Value);
+        command.Parameters.AddWithValue("$exhaustM3h", (object?)tent.ExhaustM3h ?? DBNull.Value);
+        command.Parameters.AddWithValue("$circulationFanCount", (object?)tent.CirculationFanCount ?? DBNull.Value);
+        command.Parameters.AddWithValue("$co2Type", (object?)tent.Co2Type ?? DBNull.Value);
+        command.Parameters.AddWithValue("$co2TargetPpm", (object?)tent.Co2TargetPpm ?? DBNull.Value);
     }
 
     private static GrowSystem MapGrowSystem(SqliteDataReader reader)
