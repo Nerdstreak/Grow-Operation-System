@@ -180,6 +180,74 @@ public sealed class GrowRepository
         return new Tent { Id = id, Name = name };
     }
 
+    public List<GrowSystem> GetSystems()
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT * FROM GrowSystems ORDER BY DisplayOrder, Name;
+        """;
+        var list = new List<GrowSystem>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+            list.Add(MapGrowSystem(reader));
+        return list;
+    }
+
+    public GrowSystem? GetSystem(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM GrowSystems WHERE Id = $id LIMIT 1;";
+        command.Parameters.AddWithValue("$id", id);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? MapGrowSystem(reader) : null;
+    }
+
+    public GrowSystem CreateSystem(GrowSystem system)
+    {
+        system.CreatedAtUtc = DateTime.UtcNow;
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO GrowSystems (Name, HydroStyle, PotCount, PotSizeLiters, ReservoirLiters, Notes, DisplayOrder, CreatedAtUtc)
+            VALUES ($name, $hydroStyle, $potCount, $potSizeLiters, $reservoirLiters, $notes, $displayOrder, $createdAtUtc);
+            SELECT last_insert_rowid();
+        """;
+        AddGrowSystemParameters(command, system);
+        system.Id = Convert.ToInt32((long)command.ExecuteScalar()!);
+        return system;
+    }
+
+    public void UpdateSystem(GrowSystem system)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE GrowSystems SET
+                Name            = $name,
+                HydroStyle      = $hydroStyle,
+                PotCount        = $potCount,
+                PotSizeLiters   = $potSizeLiters,
+                ReservoirLiters = $reservoirLiters,
+                Notes           = $notes,
+                DisplayOrder    = $displayOrder
+            WHERE Id = $id;
+        """;
+        AddGrowSystemParameters(command, system);
+        command.Parameters.AddWithValue("$id", system.Id);
+        command.ExecuteNonQuery();
+    }
+
+    public void DeleteSystem(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM GrowSystems WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
     public List<GrowRun> GetActiveGrows(string? search = null)
         => GetGrows("WHERE g.Status IN ('Planning','Running')" + SearchClause(search), search);
 
@@ -1040,6 +1108,34 @@ public sealed class GrowRepository
         command.Parameters.AddWithValue("$lightCycle", (object?)tent.LightCycle ?? DBNull.Value);
         command.Parameters.AddWithValue("$ppfdEntityId", (object?)tent.PpfdEntityId ?? DBNull.Value);
         command.Parameters.AddWithValue("$ppfdTarget", (object?)tent.PpfdTarget ?? DBNull.Value);
+    }
+
+    private static GrowSystem MapGrowSystem(SqliteDataReader reader)
+    {
+        return new GrowSystem
+        {
+            Id              = Convert.ToInt32((long)reader["Id"]),
+            Name            = reader["Name"]?.ToString() ?? string.Empty,
+            HydroStyle      = reader["HydroStyle"]?.ToString() ?? string.Empty,
+            PotCount        = reader["PotCount"] is DBNull or null ? null : Convert.ToInt32(reader["PotCount"], CultureInfo.InvariantCulture),
+            PotSizeLiters   = reader["PotSizeLiters"] is DBNull or null ? null : Convert.ToDouble(reader["PotSizeLiters"], CultureInfo.InvariantCulture),
+            ReservoirLiters = reader["ReservoirLiters"] is DBNull or null ? null : Convert.ToDouble(reader["ReservoirLiters"], CultureInfo.InvariantCulture),
+            Notes           = NullString(reader["Notes"]),
+            DisplayOrder    = Convert.ToInt32(reader["DisplayOrder"], CultureInfo.InvariantCulture),
+            CreatedAtUtc    = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+        };
+    }
+
+    private static void AddGrowSystemParameters(SqliteCommand command, GrowSystem system)
+    {
+        command.Parameters.AddWithValue("$name", system.Name);
+        command.Parameters.AddWithValue("$hydroStyle", system.HydroStyle);
+        command.Parameters.AddWithValue("$potCount", (object?)system.PotCount ?? DBNull.Value);
+        command.Parameters.AddWithValue("$potSizeLiters", (object?)system.PotSizeLiters ?? DBNull.Value);
+        command.Parameters.AddWithValue("$reservoirLiters", (object?)system.ReservoirLiters ?? DBNull.Value);
+        command.Parameters.AddWithValue("$notes", (object?)system.Notes ?? DBNull.Value);
+        command.Parameters.AddWithValue("$displayOrder", system.DisplayOrder);
+        command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(system.CreatedAtUtc));
     }
 
     private static void AddMeasurementParameters(SqliteCommand command, Measurement measurement)
