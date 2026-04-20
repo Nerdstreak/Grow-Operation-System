@@ -308,7 +308,11 @@
                         <span class="panel-card-title">@s.Name</span>
                         <div style="display:flex; align-items:center; gap:10px">
                             <span class="panel-card-count">@s.HydroStyle</span>
-                            <button class="btn" style="font-size:11px; padding:3px 8px; color:var(--red); border-color:var(--red)" @onclick="() => DeleteSystem(s)">Löschen</button>
+                            <span class="panel-card-count">@s.ActiveGrowCount aktive Runs</span>
+                            @if (s.ActiveGrowCount == 0)
+                            {
+                                <button class="btn" style="font-size:11px; padding:3px 8px; color:var(--red); border-color:var(--red)" @onclick="() => DeleteSystem(s)">Löschen</button>
+                            }
                         </div>
                     </div>
                     <div style="padding:16px 14px; display:grid; gap:12px">
@@ -477,6 +481,7 @@
 
     private void DeleteSystem(GrowSystem system)
     {
+        if (system.ActiveGrowCount > 0) return;
         GrowRepo.DeleteSystem(system.Id);
         _systems.Remove(system);
         _systemSaved.Remove(system.Id);
