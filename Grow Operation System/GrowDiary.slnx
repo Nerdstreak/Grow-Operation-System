@@ -1,4 +1,0 @@
-<Solution>
-  <Project Path="GrowDiary.Web.Tests/GrowDiary.Web.Tests.csproj" />
-  <Project Path="GrowDiary.Web/GrowDiary.Web.csproj" />
-</Solution>

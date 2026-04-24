@@ -45,7 +45,7 @@
                             @(g.Status == GrowStatus.Completed ? "Abgeschlossen" : "Abgebrochen")
                         </span>
                     </div>
-                    <div class="row-muted" style="font-size:11px">
+                    <div class="row-muted">
                         @g.StartDate.ToString("dd.MM.yy")
                         @if (g.EndDate.HasValue) { <span> – @g.EndDate.Value.ToString("dd.MM.yy")</span> }
                     </div>
