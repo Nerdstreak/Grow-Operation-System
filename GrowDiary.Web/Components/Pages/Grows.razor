@@ -56,7 +56,7 @@
                     <div>
                         @if (g.LatestMeasurement is { } m)
                         {
-                            <div class="row-val">@(m.ReservoirEc?.ToString("0.00") ?? "–") <span style="color:var(--faint);font-size:11px">mS</span></div>
+                            <div class="row-val">@(m.ReservoirEc?.ToString("0.00") ?? "–") <span class="text-faint text-mono" style="font-size:0.8em">mS</span></div>
                             <div class="row-sub">pH @(m.ReservoirPh?.ToString("0.0") ?? "–")</div>
                         }
                         else
@@ -64,7 +64,7 @@
                             <div class="row-muted">–</div>
                         }
                     </div>
-                    <div class="row-val" style="font-size:12px">@week.Label</div>
+                    <div class="row-muted">@week.Label</div>
                     <div>
                         <button class="tc-open-btn" @onclick:stopPropagation="true"
                                 @onclick='() => Nav.NavigateTo($"/grows/{g.Id}")'>
