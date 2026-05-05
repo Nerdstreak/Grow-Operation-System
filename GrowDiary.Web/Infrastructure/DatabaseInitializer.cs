@@ -28,32 +28,44 @@ public sealed class DatabaseInitializer
     private void DropLegacyTentSchemaIfNeeded()
     {
         using var connection = OpenConnection();
-        using var cmd = connection.CreateCommand();
 
-        cmd.CommandText = @"
-            SELECT COUNT(*) FROM pragma_table_info('Tents')
-            WHERE name = 'TemperatureEntityId';";
-        var hasLegacyColumn = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+        bool hasLegacyColumn;
+        using (var cmd = connection.CreateCommand())
+        {
+            cmd.CommandText = @"
+                SELECT COUNT(*) FROM pragma_table_info('Tents')
+                WHERE name = 'TemperatureEntityId';";
+            hasLegacyColumn = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+        }
 
-        if (!hasLegacyColumn) return;
+        if (!hasLegacyColumn)
+            return;
 
         _logger.LogWarning(
-            "Legacy Tent-Schema erkannt — Tents und abhängige Daten werden gelöscht und neu aufgebaut.");
+            "Legacy Tent-Schema erkannt. Tents und abhängige Daten werden gelöscht " +
+            "(einmalig beim ersten Start mit B1a-Schema).");
 
-        cmd.CommandText = """
-            DROP TABLE IF EXISTS TentSensors;
-            DROP TABLE IF EXISTS Tents;
-            DELETE FROM Grows;
-            DELETE FROM Measurements;
-            DELETE FROM Photos;
-            DELETE FROM JournalEntries;
-            DELETE FROM GrowTasks;
-            DELETE FROM HarvestEntries;
-            DELETE FROM TentSensorReadings;
-            DELETE FROM TentSensorSnapshots;
-            DELETE FROM TentSensorDailyStats;
-            """;
-        cmd.ExecuteNonQuery();
+        foreach (var sql in new[] { "DROP TABLE IF EXISTS TentSensors;", "DROP TABLE IF EXISTS Tents;" })
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.ExecuteNonQuery();
+        }
+
+        var tablesToClear = new[]
+        {
+            "Grows", "Measurements", "Photos", "JournalEntries",
+            "GrowTasks", "HarvestEntries", "TentSensorReadings",
+            "TentSensorSnapshots", "TentSensorDailyStats"
+        };
+
+        foreach (var table in tablesToClear)
+        {
+            if (!TableExists(connection, table)) continue;
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = $"DELETE FROM {table};";
+            cmd.ExecuteNonQuery();
+        }
     }
 
     private void EnsureSchema()
@@ -430,6 +442,15 @@ public sealed class DatabaseInitializer
         using var alter = connection.CreateCommand();
         alter.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition};";
         alter.ExecuteNonQuery();
+    }
+
+    private static bool TableExists(SqliteConnection connection, string tableName)
+    {
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText =
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=@name;";
+        cmd.Parameters.AddWithValue("@name", tableName);
+        return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
     }
 
     private static int GetTentId(SqliteConnection connection, string tentName)

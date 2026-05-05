@@ -1,83 +1,143 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with code in this repository.
-
 ## Commands
 
 ```bash
-# Restore dependencies
-dotnet restore
-
-# Build backend
 dotnet build GrowDiary.Web/GrowDiary.Web.csproj
-
-# Run backend
 dotnet run --project GrowDiary.Web/GrowDiary.Web.csproj
-
-# Run tests
 dotnet test GrowDiary.Web.Tests/GrowDiary.Web.Tests.csproj
-```
 
-For the React frontend:
-
-```bash
 cd GrowDiary.React
 npm install
 npm run build
 ```
 
-The React build writes its output into `GrowDiary.Web/wwwroot`.
+## Architecture Overview
 
-## Architecture
+### Backend (GrowDiary.Web)
 
-**GrowDiary.Web** is an ASP.NET Core 8 application that exposes JSON APIs and serves the built React SPA from `wwwroot`. The active runtime path is React `-> /api/* -> services/repositories -> SQLite`.
+- ASP.NET Core 8, SQLite unter `App_Data/grow-diary.db`, WAL aktiviert.
+- Kein ORM: Datenzugriff laeuft ueber ADO.NET und `Microsoft.Data.Sqlite`.
+- API-first: React spricht mit JSON-Endpunkten unter `/api/*`.
+- Die React-App wird statisch ueber `UseStaticFiles()` ausgeliefert; `MapFallbackToFile("index.html")` bedient SPA-Routen.
+- `Program.cs` registriert Controller, Repositories, Business-Services, `KnowledgeBaseLoader` und den `HomeAssistantSnapshotWorker`.
 
-### Layer structure
+### Frontend (GrowDiary.React)
 
-- **Api/Controllers** - JSON endpoints for the React frontend
-- **Api/Contracts** - request and response DTOs
-- **Api/Mapping** - translation between DTOs, form models, and domain models
-- **Services/** - business logic, dashboard composition, recommendations, background workers
-- **Infrastructure/** - raw ADO.NET repositories over SQLite; no ORM
-- **Models/** - domain entities matching the persisted data model
+- React 19, Vite und TypeScript.
+- Kommunikation laeuft ueber die zentrale `apiFetch`-Fetch-Abstraktion gegen `/api/*`.
+- Kernbereiche: `Dashboard`, `GrowDetail`, `GrowSetup`, `Settings`.
+- Weitere aktuelle Pages: `Tents`, `TentDetail`, `Knowledge`, `Archive`, `Analysis`, `Addback`, `Harvest`, `MeasurementEdit`.
+- Build-Output wird nach `GrowDiary.Web/wwwroot` geschrieben und vom Backend als SPA gehostet.
 
-### Key services
+### Layer-Struktur Backend
 
-| Service | Role |
+- `Api/Controllers/` -> REST-Endpoints fuer Grows, Measurements, Tasks, Journal, Workflow, Settings und Knowledge.
+- `Controllers/` -> Redirect-Shims, Export, Kamera- und `/api/live/*`-Endpoints fuer das React-Dashboard.
+- `Api/Contracts/` -> Request-/Response-DTOs.
+- `Api/Mapping/` -> Handgeschriebene Mapper, kein AutoMapper.
+- `Services/` -> Business-Logik, HA-Integration, Dashboard-Komposition, Empfehlungen, Validierung, Charts, Fotos.
+- `Services/Knowledge/` -> `KnowledgeBaseLoader` plus Schema-Klassen fuer die JSON-Catalogs.
+- `Infrastructure/` -> ADO.NET-Repositories, DB-Initialisierung, Pfade, HA-Config-Import.
+- `Models/` -> Domain-Entities und Enums.
+
+### Knowledge-Base (Sprint A, abgeschlossen)
+
+`App_Data/knowledge/` enthaelt aktive, user-editable JSON-Dateien in 7 Kategorien:
+
+- `treatments/` (30) -> konkrete Massnahmen mit Quellen-Verlinkung.
+- `sops/` (10) -> Standard Operating Procedures (`Linear`, `MultiDay`, `Recurring`).
+- `nutrient-programs/` (3) -> Athena, Canna Aqua, Hydroponic Research VBX.
+- `setpoints/` (1) -> RDWC-Standard-Sollwerte.
+- `pathogens/` (8) -> Pythium, Fusarium etc.
+- `symptoms/` (20) -> Symptom-Catalog mit Treatment-Mapping.
+- `wear/` (12) -> Verschleissteil-Templates.
+
+Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und beim ersten Start nach `App_Data/knowledge/` kopiert. Quell-Dokumente liegen unter `wwwroot/docs/` und sind als `/docs/{name}.pdf` abrufbar.
+
+### Schluessel-Services
+
+| Service | Rolle |
 |---|---|
-| `HomeAssistantService` | HTTP client for Home Assistant REST API; fetches configured tent sensor states and degrades gracefully if HA is unavailable |
-| `GrowDashboardComposer` | Builds the live home and tent dashboard payload from HA data plus repository fallbacks |
-| `RecommendationEngine` | Produces contextual grow advice from stage, measurements, and target values |
-| `TargetValueService` | Resolves profile- and stage-specific target ranges |
-| `DeviationAnalyzerService` | Evaluates measurements against targets and emits findings |
-| `CultivationKnowledgeService` | Serves the in-app knowledge base content |
-| `HomeAssistantSnapshotWorker` | Background worker that polls configured tent sensors and stores daily snapshots |
+| `KnowledgeBaseLoader` | Laedt alle 7 JSON-Catalogs beim App-Start in Memory |
+| `HomeAssistantService` | HTTP-Client fuer HA REST-API, Sensor-States und Kamera-Snapshots |
+| `HomeAssistantSnapshotWorker` | Background-Service: 5-Minuten-Polling, Tagesaggregation, Snapshot- und Cleanup-Job |
+| `GrowDashboardComposer` | Baut Metriken, Charts und Deviations fuer Dashboard- und Detail-Views |
+| `RecommendationEngine` | Aktuelle Empfehlungs-Engine, wird in Sprint D fachlich aufgesplittet |
+| `GrowAlertService` | UI-Fassade, die Empfehlungen in Ampel-Zustaende uebersetzt |
+| `DeviationAnalyzerService` | Sollwert-vs-Istwert-Vergleich; fachliche Drift wird in Sprint D geklaert |
+| `MeasurementSanityService` | Plausibilitaetschecks und blockierende Messwert-Validierung |
+| `CultivationKnowledgeService` | Fassade ueber KnowledgeBaseLoader fuer Programme und Playbooks |
+| `TargetValueService` | Fassade ueber KnowledgeBaseLoader fuer Sollwerte |
 
-### Database schema highlights
+### Datenbank-Schema-Highlights
 
-- **Grows**: grow setup, timing, status, tent assignment, and profile metadata
-- **Measurements**: air, reservoir, irrigation, drain, and lighting-related metrics
-- **Tents**: tent identity, hardware metadata, sizing, camera, and device context
-- **TentSensors**: per-tent sensor mappings with metric type, entity id, label, and active flag
-- **TentSensorSnapshots**: historical live data snapshots for charts
-- **AppSettings**: runtime configuration such as Home Assistant URL and token
+- `Tents`: Multi-Tent-faehig mit `TentType` (`Production`, `Mother`, `Quarantine`, `Propagation`, `MultiPurpose`).
+- `TentSensors`: flexible Sensor-Liste pro Tent statt hartkodierter Sensor-Felder.
+- `Grows`: aktuelles All-in-one Grow-Modell; Sprint B2 spaltet Setup-Hierarchie fuer Mother/Quarantine/Production auf.
+- `Measurements`: pH, EC, ORP, DO, Reservoir-Werte, Air-Werte, PPFD und CO2.
+- `TentSensorReadings`: hochfrequente HA-Messwerte aus dem 5-Minuten-Polling.
+- `TentSensorDailyStats`: Tagesaggregation mit Median, P5, P95, Min, Max und Avg.
 
-### Database initialization
+### DB-Initialisierung
 
-`DatabaseInitializer.Initialize()` runs on startup and handles table creation, additive schema upgrades, default content seeding, and knowledge-base bootstrapping. There is no separate migration framework; schema evolution is implemented in code.
+`DatabaseInitializer.Initialize()` laeuft beim Start:
 
-### Home Assistant integration
+- `DropLegacyTentSchemaIfNeeded()` erkennt alte Tent-Spalten und baut das Tent-Schema neu auf.
+- `EnsureSchema()` legt Tabellen und Indizes an und nutzt additive `EnsureColumn()`-Upgrades.
+- `SeedDefaults()` erzeugt beim Erststart das Default-Tent `Hauptzelt` und Standard-Templates.
+- Es gibt kein Migration-Framework; Schema-Evolution passiert kontrolliert im Initializer.
 
-Home Assistant connection settings live in `AppSettings`. Sensor mappings live on each tent via the `TentSensors` table and are edited through the React settings flow. The app remains usable without HA; manual measurements still drive core grow tracking.
+### Lokalisierung
 
-### Frontend
+UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 
-`GrowDiary.React` is the source frontend. Vite builds directly into `GrowDiary.Web/wwwroot`, and ASP.NET Core serves the resulting SPA with `MapFallbackToFile("index.html")`.
+## Sprint-Status
 
-### Testing
+- Sprint A ABGESCHLOSSEN: Knowledge-Base extrahiert (84 JSONs).
+- Sprint B1a ABGESCHLOSSEN: Tent-Modell mit `TentSensor`.
+- Sprint B1b ABGESCHLOSSEN: HA-Service, Snapshot-Worker und React-Settings fuer Sensor-Mapping.
+- Sprint B1c ABGESCHLOSSEN: App-Start-Fix und Knowledge-API.
+- Sprint B2 PENDING: Setup-Hierarchie fuer Mother, Quarantine und Production.
 
-Backend tests are in `GrowDiary.Web.Tests` and cover repositories, schema behavior, services, recommendations, and Home Assistant-related flows. There is no separate frontend test suite configured at the moment; frontend validation is currently based on TypeScript compilation and Vite production builds.
+## Sprint-Workflow
 
-### Localization
+Die Architektur wird in geplanten Sprints umgesetzt. Tickets kommen mit klarem Scope und expliziten Files. Vor jedem Sprint wird ggf. ein Inventur-Bericht erstellt.
 
-The product UI and most domain content are primarily German.
+REGELN fuer Coding-Agents (Codex, Claude Code):
+
+1. Du arbeitest NUR was im aktuellen Ticket steht. Andere Files nicht anfassen, auch wenn du dort Verbesserungs-Potenzial siehst.
+2. KEIN selbstaendiges Refactoring ausserhalb des Ticket-Scopes. Wenn du Drift siehst: dokumentiere am Ende, repariere nicht.
+3. KEINE Architektur-Entscheidungen treffen. Bei Unklarheit: stoppe und frage zurueck, statt zu raten.
+4. Bei jedem Schema- oder Schluessel-Service-Wechsel: CLAUDE.md im selben Commit aktualisieren.
+5. Test-Suite muss am Ende gruen sein. Bei roten Tests: Status dokumentieren, nicht stillschweigend Tests deaktivieren.
+6. Build-Status: dotnet build muss durchlaufen.
+7. Bei grossen Aenderungen (>20 Files in einem Commit): stoppe und frage zurueck, ob das wirklich gewollt ist.
+
+ZUSAMMENFASSUNGS-PFLICHT:
+Nach jedem Ticket: kurze Zusammenfassung mit
+
+- Liste angelegter/geaenderter/geloeschter Files
+- Test- und Build-Status
+- Etwaige Probleme oder Abweichungen vom Ticket
+- Auffaelligkeiten die nicht im Ticket waren
+
+## Architektur-Vision (9-Domaenen-Modell)
+
+Die App wird systematisch zu einem Multi-Setup-Grow-Operations-System ausgebaut. Jeder Sprint muss klar einer oder mehreren Domaenen zugeordnet werden:
+
+1. Wasser & Naehrloesung
+2. Sensorik & Messung
+3. System & Hardware
+4. Klima & Licht
+5. Pflanze & Genetik, inklusive Mutter- und Quarantaene-Setups
+6. Workflows & SOPs
+7. Hygiene & Pathogene
+8. Risiko & Wartung
+9. Behandlungen & Massnahmen
+
+## Regeln
+
+- `CLAUDE.md` bleibt aktuell; Schema- oder Schluessel-Service-Aenderungen aktualisieren diese Datei im selben Commit.
+- Maximal zwei Seiten, keine Code-Beispiele, keine tiefen Implementierungsdetails.
+- Bei Konflikt zwischen Code und `CLAUDE.md` gewinnt der Code; `CLAUDE.md` wird direkt nachgezogen.

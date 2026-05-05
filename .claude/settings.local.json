@@ -58,7 +58,9 @@
       "Bash(cp \"RDWC Wissen/Häufige Anfängerfehler und Risikomanagement im RDWC-System.pdf\" \"GrowDiary.Web/wwwroot/docs/common-mistakes-rdwc.pdf\")",
       "Bash(cp \"RDWC Wissen/Manueller Addback in Hydroponik - Präzise & Logisch Erklärt.pdf\" \"GrowDiary.Web/wwwroot/docs/manual-addback-hydroponik.pdf\")",
       "Bash(python3 -c ' *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(xargs cat *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('id',''\\)\\)\")"
     ]
   },
   "enabledPlugins": {
