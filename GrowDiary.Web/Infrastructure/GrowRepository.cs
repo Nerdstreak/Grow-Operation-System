@@ -192,8 +192,8 @@ public sealed class GrowRepository
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO Tents (Name, Kind, Notes, DisplayOrder, AccentColor)
-            VALUES ($name, 'Grow Tent', NULL, 99, '#69b578');
+            INSERT INTO Tents (Name, Kind, Notes, DisplayOrder, AccentColor, CreatedAtUtc, UpdatedAtUtc)
+            VALUES ($name, 'Grow Tent', NULL, 99, '#69b578', datetime('now'), datetime('now'));
             SELECT last_insert_rowid();
         """;
         command.Parameters.AddWithValue("$name", name);
