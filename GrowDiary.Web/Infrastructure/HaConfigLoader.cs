@@ -8,22 +8,12 @@ public static class HaConfigLoader
     public static void Apply(AppPaths paths, GrowRepository repository)
     {
         var configPath = Path.Combine(paths.ContentRootPath, "App_Data", "ha-config.json");
-        if (!File.Exists(configPath))
-        {
-            return;
-        }
+        if (!File.Exists(configPath)) return;
 
         using var stream = File.OpenRead(configPath);
         JsonDocument? doc;
-        try
-        {
-            doc = JsonDocument.Parse(stream);
-        }
-        catch
-        {
-            // Invalid JSON file: keep app startup resilient.
-            return;
-        }
+        try { doc = JsonDocument.Parse(stream); }
+        catch { return; }
 
         using (doc)
         {
@@ -31,25 +21,21 @@ public static class HaConfigLoader
 
             if (root.TryGetProperty("homeAssistant", out var ha))
             {
-                var url = ha.TryGetProperty("url", out var u) ? u.GetString() : null;
+                var url   = ha.TryGetProperty("url",   out var u) ? u.GetString() : null;
                 var token = ha.TryGetProperty("token", out var t) ? t.GetString() : null;
-
                 if (!string.IsNullOrWhiteSpace(url) || !string.IsNullOrWhiteSpace(token))
                 {
                     var existing = repository.GetHomeAssistantSettings();
                     repository.SaveHomeAssistantSettings(new HomeAssistantSettings
                     {
-                        BaseUrl = !string.IsNullOrWhiteSpace(url) ? url : existing.BaseUrl,
+                        BaseUrl     = !string.IsNullOrWhiteSpace(url)   ? url   : existing.BaseUrl,
                         AccessToken = !string.IsNullOrWhiteSpace(token) ? token : existing.AccessToken,
-                        Enabled = true
+                        Enabled     = true
                     });
                 }
             }
 
-            if (!root.TryGetProperty("tents", out var tentsEl))
-            {
-                return;
-            }
+            if (!root.TryGetProperty("tents", out var tentsEl)) return;
 
             var tentsByName = repository.GetTents()
                 .ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
@@ -57,10 +43,7 @@ public static class HaConfigLoader
             foreach (var tentEl in tentsEl.EnumerateArray())
             {
                 var name = tentEl.TryGetProperty("name", out var n) ? n.GetString() : null;
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    continue;
-                }
+                if (string.IsNullOrWhiteSpace(name)) continue;
 
                 if (!tentsByName.TryGetValue(name, out var tent))
                 {
@@ -68,15 +51,50 @@ public static class HaConfigLoader
                     tentsByName[name] = tent;
                 }
 
-                // TODO Sprint B1b: TentSensor-Einträge aus ha-config.json laden
-                // (entities-Block wird künftig als TentSensor-Liste persistiert)
-                if (tentEl.TryGetProperty("entities", out var entities))
+                if (tentEl.TryGetProperty("tentType", out var ttEl) &&
+                    Enum.TryParse<TentType>(ttEl.GetString(), out var tentType))
                 {
-                    string? Get(string key) => entities.TryGetProperty(key, out var value) ? value.GetString() : null;
-                    tent.CameraEntityId = Get("camera") ?? tent.CameraEntityId;
+                    tent.TentType = tentType;
                 }
 
+                if (tentEl.TryGetProperty("cameraEntityId", out var camEl))
+                    tent.CameraEntityId = camEl.GetString();
+
                 repository.UpdateTent(tent);
+
+                if (!tentEl.TryGetProperty("sensors", out var sensorsEl)) continue;
+
+                var existingSensors = repository.GetTentSensors(tent.Id)
+                    .ToDictionary(s => s.MetricType);
+
+                foreach (var sensorEl in sensorsEl.EnumerateArray())
+                {
+                    var metricRaw  = sensorEl.TryGetProperty("metricType",   out var m) ? m.GetString() : null;
+                    var haEntityId = sensorEl.TryGetProperty("haEntityId",   out var e) ? e.GetString() : null;
+                    var label      = sensorEl.TryGetProperty("displayLabel", out var l) ? l.GetString() : null;
+
+                    if (string.IsNullOrWhiteSpace(metricRaw) || string.IsNullOrWhiteSpace(haEntityId)) continue;
+                    if (!Enum.TryParse<SensorMetricType>(metricRaw, out var metricType)) continue;
+
+                    if (existingSensors.TryGetValue(metricType, out var existing))
+                    {
+                        existing.HaEntityId   = haEntityId;
+                        existing.DisplayLabel  = label;
+                        existing.IsActive      = true;
+                        repository.UpdateTentSensor(existing);
+                    }
+                    else
+                    {
+                        repository.AddTentSensor(new TentSensor
+                        {
+                            TentId       = tent.Id,
+                            MetricType   = metricType,
+                            HaEntityId   = haEntityId,
+                            DisplayLabel = label,
+                            IsActive     = true
+                        });
+                    }
+                }
             }
         }
     }
