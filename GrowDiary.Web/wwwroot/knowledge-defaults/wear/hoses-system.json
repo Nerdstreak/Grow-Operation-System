@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "id": "hoses-system",
+  "name": "Schläuche und Verbindungen",
+  "category": "Hose",
+  "expectedLifespanDays": 730,
+  "replacementTriggers": [
+    "Schlauch hart geworden, nicht mehr flexibel biegbar",
+    "Verfärbung (Algen oder Biofilm im Material eingewachsen)",
+    "Sichtbare Risse, Brüche oder Quetschungen"
+  ],
+  "inspectionIntervalDays": 90
+}

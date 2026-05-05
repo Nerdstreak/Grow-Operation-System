@@ -1,0 +1,39 @@
+﻿# Codex Memory
+
+- Aktiver Arbeitsordner: `D:\Grow Operation System new`
+- Aktives Repo: Root-Repo in diesem Ordner, nicht `Grow Operation System aktueller stand/`
+- Backend-Stand: ASP.NET Core 8 + Blazor Server in `GrowDiary.Web`, Tests in `GrowDiary.Web.Tests`
+- Frontend-Stand: neues React-Frontend in `GrowDiary.React`
+- `React Umbau.zip` war kein React-Frontend, sondern nur ein API-Refactor-Paket fuer C#-Endpoints unter `/api/*`
+- Bereits umgesetzt im Backend:
+  - Admin-/Einstellungsseiten nur lokal erreichbar
+  - Task-Historie fuer Timeline/Export repariert
+  - Foto-Uploads im MVC-Messungsworkflow validiert
+  - JSON-Responses auf camelCase, Enum-Strings und Null-Unterdrueckung gestellt
+  - Einheitliche API-Fehlerantworten mit `ApiError`
+  - Read/Write-API fuer Grows unter `GET/POST/PUT/DELETE /api/grows`
+  - Measurements-API unter `/api/grows/{id}/measurements` und `/api/measurements/{id}`
+  - Measurement-Foto-API unter `GET/POST /api/measurements/{id}/photos`
+  - Gemeinsamer Foto-Speicherpfad und Validierung in `PhotoStorageService`
+  - Tasks-API unter `/api/grows/{id}/tasks`, `/api/tasks/{id}`, `/api/tasks/{id}/status`
+  - Journal-API unter `/api/grows/{id}/journal` und `/api/journal/{id}`
+  - Settings-API unter `/api/settings`, `/api/settings/home-assistant`, `/api/settings/tents/{id}`
+  - `/api/settings` ist lokal geschuetzt
+- Bereits umgesetzt im Frontend:
+  - Vite + React + TypeScript App in `GrowDiary.React`
+  - Vite-Proxy von `/api/*` auf `http://127.0.0.1:5076`
+  - Dashboard-Ansicht mit Suche, Aktiv/Archiv-Toggle und Grow-Karten
+  - Grow-Detail mit parallelem Laden von Grow, Measurements, Tasks und Journal
+  - Quick Actions fuer Messung, Task und Journal
+  - Growth-Setup-Seite fuer Anlegen und Bearbeiten unter `/grows/new` und `/grows/:id/setup`
+  - Grow-Detail mit Measurement-Fotoselektion, Galerie und Upload gegen `/api/measurements/{id}/photos`
+  - Settings-Ansicht fuer Home Assistant und Zelt-Mapping
+  - `api.ts` unterstuetzt jetzt JSON und `FormData` sauber parallel
+- Bereits vorhanden:
+  - Kamera-Snapshot-Logik pro Zelt ist im aktuellen Repo-Stand schon korrekt
+- Letzte Verifikation:
+  - `npm run lint` in `GrowDiary.React` erfolgreich
+  - `npm run build` in `GrowDiary.React` erfolgreich
+  - `dotnet build GrowDiary.slnx -v:minimal` erfolgreich
+  - `dotnet test GrowDiary.Web.Tests\GrowDiary.Web.Tests.csproj -v:minimal` erfolgreich (`68/68`)
+  - Nicht-destruktiver Playwright-Smoke-Test erfolgreich: Dashboard, Grow-Setup und Grow-Detail auf Desktop plus mobiles Dashboard-Layout

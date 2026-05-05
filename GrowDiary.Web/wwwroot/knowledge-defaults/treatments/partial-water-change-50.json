@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0",
+  "id": "partial-water-change-50",
+  "name": "50% Teilwasserwechsel (außerplanmäßig)",
+  "type": "SystemMaintenance",
+  "targetSymptoms": [
+    "ec-rising-stagnant",
+    "antagonism-suspected"
+  ],
+  "dosage": {
+    "standard": "50% des Reservoirvolumens ablassen, mit frischer NSL auffüllen",
+    "severe": "75% bei starker Salzakkumulation oder pH-Instabilität über mehrere Tage",
+    "context": "Außerplanmäßiger Wechsel bei EC-Stagnation oder steigendem EC trotz normaler Verdunstung — Nährstoff-Antagonismus-Signal."
+  },
+  "application": {
+    "method": "50% ablassen, mit frisch angesetzter NSL (korrekter EC/pH) auffüllen",
+    "timing": "Bei EC-Trend nach oben trotz Top-Off oder bei pH-Instabilität über 3 Tage",
+    "frequency": "Außerplanmäßig bei Bedarf — zusätzlich zu regulären Wochenwechseln",
+    "durationStandard": "Einmalig, dann weiter beobachten",
+    "durationSevere": null
+  },
+  "restrictions": [
+    "Neue NSL auf gleiche Temperatur wie Reservoir vortemperieren",
+    "pH und EC der neuen Lösung vor dem Einbringen prüfen",
+    "Direkt nach Wechsel: EC, pH, ORP dokumentieren"
+  ],
+  "conflicts": [],
+  "phaseFilter": {
+    "allowed": ["Veg", "Transition", "Flower"],
+    "blocked": ["Seedling", "Clone", "Finish", "Dry", "Cure"],
+    "blockAfterFlowerWeek": null
+  },
+  "hardwareRequirements": [
+    "EC-Sensor",
+    "pH-Sensor"
+  ],
+  "sources": [
+    {
+      "type": "GrowPlan",
+      "title": "RDWC Growplan by SKX - Athena Blended Rev.01",
+      "reference": "Punkt 7: Partial-Changeout bei Salzakkumulation",
+      "url": "/docs/athena-blended-rev01-de.pdf",
+      "credibility": "High"
+    },
+    {
+      "type": "GrowPlan",
+      "title": "RDWC Procedure (Metric) — Athena",
+      "reference": "Weekly changeout protocol",
+      "url": "/docs/rdwc-procedure-metric.pdf",
+      "credibility": "High"
+    }
+  ],
+  "difficulty": "Medium",
+  "expectedTimeToEffect": "EC/pH-Stabilisierung innerhalb 2–4 Stunden nach Wechsel",
+  "tags": [
+    "system",
+    "water-change",
+    "salt-flush",
+    "reservoir-management",
+    "rdwc"
+  ]
+}

@@ -1,4 +1,5 @@
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services.Knowledge;
 
 namespace GrowDiary.Web.Services;
 
@@ -23,7 +24,7 @@ public sealed record HydroTargetValues(
     double Co2Max
 );
 
-public static class TargetValueService
+public sealed class TargetValueService
 {
     /// <summary>
     /// EC-Multiplikator für DWC gegenüber RDWC.
@@ -32,76 +33,21 @@ public static class TargetValueService
     /// </summary>
     public const double DwcEcMultiplier = 1.3;
 
-    private static readonly Dictionary<GrowStage, HydroTargetValues> RdwcTargets = new()
+    private readonly Dictionary<GrowStage, HydroTargetValues> _rdwcTargets;
+
+    public TargetValueService(KnowledgeBaseLoader knowledgeBase)
     {
-        // Seedling / Clone: sehr schwache Lösung, empfindliche Wurzeln
-        [GrowStage.Seedling] = new(
-            PhMin: 6.0, PhMax: 6.2,
-            EcMin: 0.2, EcMax: 0.4,
-            OrpMin: 300, OrpMax: 400,
-            WaterTempDayC: 22, WaterTempNightC: 20,
-            VpdMin: 0.4, VpdMax: 0.5,
-            PpfdMin: 200, PpfdMax: 300,
-            Co2Min: 400, Co2Max: 500),
-
-        [GrowStage.Clone] = new(
-            PhMin: 6.0, PhMax: 6.2,
-            EcMin: 0.2, EcMax: 0.4,
-            OrpMin: 300, OrpMax: 400,
-            WaterTempDayC: 22, WaterTempNightC: 20,
-            VpdMin: 0.4, VpdMax: 0.5,
-            PpfdMin: 200, PpfdMax: 300,
-            Co2Min: 400, Co2Max: 500),
-
-        // Veg (späte Veg, Woche 3–4): stärkere Lösung, höhere PPFD
-        [GrowStage.Veg] = new(
-            PhMin: 6.0, PhMax: 6.1,
-            EcMin: 0.6, EcMax: 0.8,
-            OrpMin: 300, OrpMax: 400,
-            WaterTempDayC: 20, WaterTempNightC: 20,
-            VpdMin: 0.7, VpdMax: 0.9,
-            PpfdMin: 500, PpfdMax: 600,
-            Co2Min: 800, Co2Max: 1000),
-
-        // Transition (Woche 1 Blüte): pH leicht abgesenkt, EC steigt
-        [GrowStage.Transition] = new(
-            PhMin: 5.9, PhMax: 6.0,
-            EcMin: 0.8, EcMax: 1.0,
-            OrpMin: 300, OrpMax: 400,
-            WaterTempDayC: 20, WaterTempNightC: 20,
-            VpdMin: 1.0, VpdMax: 1.1,
-            PpfdMin: 600, PpfdMax: 800,
-            Co2Min: 1000, Co2Max: 1200),
-
-        // Flower (früh–mitte, Woche 1–6): Hauptblüte
-        [GrowStage.Flower] = new(
-            PhMin: 5.9, PhMax: 6.0,
-            EcMin: 1.0, EcMax: 1.2,
-            OrpMin: 300, OrpMax: 400,
-            WaterTempDayC: 20, WaterTempNightC: 18,
-            VpdMin: 1.0, VpdMax: 1.2,
-            PpfdMin: 800, PpfdMax: 1000,
-            Co2Min: 1200, Co2Max: 1400),
-
-        // Finish (Woche 7–8 / Spätblüte): pH weiter runter, EC-Peak dann abfallend
-        [GrowStage.Finish] = new(
-            PhMin: 5.6, PhMax: 5.8,
-            EcMin: 1.1, EcMax: 1.6,
-            OrpMin: 300, OrpMax: 400,
-            WaterTempDayC: 18, WaterTempNightC: 16,
-            VpdMin: 1.4, VpdMax: 1.6,
-            PpfdMin: 500, PpfdMax: 1000,
-            Co2Min: 400, Co2Max: 600)
-    };
+        _rdwcTargets = LoadRdwcTargets(knowledgeBase);
+    }
 
     /// <summary>
     /// Gibt Sollwerte für den angegebenen HydroStyle und GrowStage zurück.
     /// Gibt null zurück wenn keine Sollwerte für diese Kombination vorliegen (z.B. Dry, Cure).
     /// DWC-EC wird automatisch mit DwcEcMultiplier hochgerechnet.
     /// </summary>
-    public static HydroTargetValues? GetTargets(HydroStyle hydroStyle, GrowStage stage)
+    public HydroTargetValues? GetTargets(HydroStyle hydroStyle, GrowStage stage)
     {
-        if (!RdwcTargets.TryGetValue(stage, out var targets))
+        if (!_rdwcTargets.TryGetValue(stage, out var targets))
         {
             return null;
         }
@@ -116,5 +62,32 @@ public static class TargetValueService
         }
 
         return targets;
+    }
+
+    private static Dictionary<GrowStage, HydroTargetValues> LoadRdwcTargets(KnowledgeBaseLoader kb)
+    {
+        var setpoint = kb.Setpoints.FirstOrDefault(s => s.Id == "rdwc-default");
+        if (setpoint is null)
+        {
+            return new Dictionary<GrowStage, HydroTargetValues>();
+        }
+
+        var result = new Dictionary<GrowStage, HydroTargetValues>();
+        foreach (var (stageName, sp) in setpoint.Stages)
+        {
+            if (Enum.TryParse<GrowStage>(stageName, ignoreCase: true, out var stage))
+            {
+                result[stage] = new HydroTargetValues(
+                    PhMin: sp.PhMin, PhMax: sp.PhMax,
+                    EcMin: sp.EcMin, EcMax: sp.EcMax,
+                    OrpMin: sp.OrpMin, OrpMax: sp.OrpMax,
+                    WaterTempDayC: sp.WaterTempDayC, WaterTempNightC: sp.WaterTempNightC,
+                    VpdMin: sp.VpdMin, VpdMax: sp.VpdMax,
+                    PpfdMin: sp.PpfdMin, PpfdMax: sp.PpfdMax,
+                    Co2Min: sp.Co2Min, Co2Max: sp.Co2Max
+                );
+            }
+        }
+        return result;
     }
 }

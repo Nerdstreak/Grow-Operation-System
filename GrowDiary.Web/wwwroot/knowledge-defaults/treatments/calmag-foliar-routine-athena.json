@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "id": "calmag-foliar-routine-athena",
+  "name": "CalMag Routine-Blattspray (Athena)",
+  "type": "FoliarSpray",
+  "targetSymptoms": [
+    "routine-prevention",
+    "calmag-baseline"
+  ],
+  "dosage": {
+    "standard": "0.5 ml/L",
+    "severe": null,
+    "context": "Athena-Linie, präventive Routine-Dosis — nicht zur Behebung akuter Mängel"
+  },
+  "application": {
+    "method": "Spray ober- und unterseits der Blätter, vollständige Benetzung",
+    "timing": "1h vor Licht-An (Blätter müssen vor Licht abtrocknen)",
+    "frequency": "alle 2–3 Tage",
+    "durationStandard": "laufend während Veg / Stretch / Frühblüte",
+    "durationSevere": null
+  },
+  "restrictions": [
+    "Block ab Blütewoche 6 (Schimmelrisiko und Tropfenflecken auf Blüten)",
+    "Luftfeuchtigkeit > 70% reduziert Wirkung",
+    "Kein Kaltes Wasser — lauwarmes Wasser für gleichmäßige Verteilung"
+  ],
+  "conflicts": [
+    {
+      "with": "kaliumsilikat-foliar",
+      "reason": "Silikat-Calcium-Ausfällung — mindestens 24h Abstand",
+      "minimumGapHours": 24
+    }
+  ],
+  "phaseFilter": {
+    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower"],
+    "blocked": ["Finish", "Dry", "Cure"],
+    "blockAfterFlowerWeek": 6
+  },
+  "hardwareRequirements": [],
+  "sources": [
+    {
+      "type": "GrowPlan",
+      "title": "RDWC Growplan by SKX - Athena Blended Rev.01",
+      "reference": "Punkt 5: CalMag Blattdüngung — Routine-Dosis",
+      "url": "/docs/athena-blended-rev01-de.pdf",
+      "credibility": "High"
+    }
+  ],
+  "difficulty": "Easy",
+  "expectedTimeToEffect": "Präventiv — kein akuter Effekt erwartet",
+  "tags": [
+    "foliar",
+    "calcium",
+    "magnesium",
+    "athena",
+    "prevention",
+    "routine"
+  ]
+}

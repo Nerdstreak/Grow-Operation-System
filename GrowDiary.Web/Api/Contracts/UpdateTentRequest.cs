@@ -22,4 +22,14 @@ public sealed class UpdateTentRequest
     public string? HvacControllerEntityId { get; set; }
     public bool Co2Available { get; set; }
     public string? CameraEntityId { get; set; }
+    public List<UpdateTentSensorRequest>? Sensors { get; set; }
+}
+
+public sealed class UpdateTentSensorRequest
+{
+    public int Id { get; set; }
+    public string MetricType { get; set; } = string.Empty;
+    public string? HaEntityId { get; set; }
+    public string? DisplayLabel { get; set; }
+    public bool IsActive { get; set; }
 }

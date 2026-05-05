@@ -60,6 +60,9 @@ public sealed class GrowDashboardComposer
             BuildPpfdMetric(tent, states)
         };
 
+        if (tent.Co2Available || measurements.Any(m => m.Co2Ppm.HasValue))
+            cards.Add(Build("CO2", "co2", m => m?.Co2Ppm, explicitUnit: "ppm"));
+
         var hasActiveHydro = tent.ActiveGrows.Any(g => g.IrrigationType == IrrigationType.ActiveHydro);
 
         if (hasActiveHydro || measurements.Any(m => m.ReservoirPh.HasValue))
@@ -70,6 +73,9 @@ public sealed class GrowDashboardComposer
 
         if (hasActiveHydro || measurements.Any(m => m.OrpMv.HasValue))
             cards.Add(Build("ORP", "orp", m => m?.OrpMv, explicitUnit: "mV"));
+
+        if (hasActiveHydro || measurements.Any(m => m.DissolvedOxygenMgL.HasValue))
+            cards.Add(Build("DO", "dissolved-oxygen", m => m?.DissolvedOxygenMgL, explicitUnit: "mg/L"));
 
         if (measurements.Any(m => m.ReservoirLevelLiters.HasValue || m.ReservoirLevelCm.HasValue))
         {
@@ -356,11 +362,15 @@ public sealed class GrowDashboardComposer
             "temperature"     => value.ToString("0.0"),
             "humidity"        => value.ToString("0"),
             "vpd"             => value.ToString("0.00"),
+            "co2"             => value.ToString("0"),
             "reservoir-ph"    => value.ToString("0.00"),
             "reservoir-ec"    => value.ToString("0.00"),
+            "orp"             => value.ToString("0"),
+            "dissolved-oxygen" => value.ToString("0.0"),
             "reservoir-temp"  => value.ToString("0.0"),
             "reservoir-level" => value.ToString("0.0"),
             "ppfd"            => value.ToString("0"),
+            "ups-battery"     => value.ToString("0"),
             _                 => value.ToString("0.#")
         };
     }

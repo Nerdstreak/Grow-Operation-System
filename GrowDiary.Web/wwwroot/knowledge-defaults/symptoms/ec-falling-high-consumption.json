@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ec-falling-high-consumption",
+  "name": "EC fällt + hoher Wasserverbrauch",
+  "category": "Sensor",
+  "possibleCauses": [
+    "Pflanze nimmt aktiv Nährstoffe auf (gesundes Zeichen)",
+    "Phasenübergang zu höherem Bedarf"
+  ],
+  "suggestedTreatmentIds": [
+    "ec-boost-concentrated-addback"
+  ],
+  "suggestedSopIds": [],
+  "diagnosticChecks": [
+    "Verbrauchsrate berechnen (Liter pro Tag)",
+    "Passt Phase zur Verbrauchsrate?",
+    "Pflanzen-Aussehen vital?"
+  ]
+}

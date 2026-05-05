@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0",
+  "id": "kaliumsilikat-foliar",
+  "name": "Kaliumsilikat Blattspray (Stress/Hitze)",
+  "type": "FoliarSpray",
+  "targetSymptoms": [
+    "heat-stress",
+    "weak-stems",
+    "transplant-stress"
+  ],
+  "dosage": {
+    "standard": "0.5 ml/L",
+    "severe": "1.0 ml/L bei starkem Hitzestress",
+    "context": "Stärkt Zellwände, erhöht Stresstoleranz. pH der Sprühlösung vor Anwendung auf 5.8–6.0 anpassen."
+  },
+  "application": {
+    "method": "Spray ober- und unterseits der Blätter, auch Stiele benetzen",
+    "timing": "Morgens oder 1h vor Licht-An",
+    "frequency": "1–2x pro Woche bei Stressbedingungen",
+    "durationStandard": "solange Stressquelle aktiv ist",
+    "durationSevere": null
+  },
+  "restrictions": [
+    "Lösung immer zuerst auf pH 5.8–6.0 anpassen — Kaliumsilikat ist stark basisch",
+    "Nicht mit CalMag in derselben Sprühflasche mischen — Ausfällung",
+    "Nicht im Reservoir dosieren ohne Pufferfähigkeit zu prüfen"
+  ],
+  "conflicts": [
+    {
+      "with": "calmag-foliar-routine-athena",
+      "reason": "Silikat-Calcium-Ausfällung bei Vermischung",
+      "minimumGapHours": 24
+    },
+    {
+      "with": "calmag-foliar-acute-athena",
+      "reason": "Silikat-Calcium-Ausfällung bei Vermischung",
+      "minimumGapHours": 24
+    },
+    {
+      "with": "calmag-foliar-routine-canna",
+      "reason": "Silikat-Calcium-Ausfällung bei Vermischung",
+      "minimumGapHours": 24
+    },
+    {
+      "with": "calmag-foliar-acute-canna",
+      "reason": "Silikat-Calcium-Ausfällung bei Vermischung",
+      "minimumGapHours": 24
+    }
+  ],
+  "phaseFilter": {
+    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower"],
+    "blocked": ["Finish", "Dry", "Cure"],
+    "blockAfterFlowerWeek": 5
+  },
+  "hardwareRequirements": [],
+  "sources": [
+    {
+      "type": "SOP",
+      "title": "SOP-RDWC-CAN-C1: Behandlung und Quarantäne von Stecklingen",
+      "reference": "Abschnitt 5.2: Silikat-Anwendung bei Stresssymptomen",
+      "url": "/docs/sop-quarantine-cuttings-rev01.pdf",
+      "credibility": "High"
+    },
+    {
+      "type": "Research",
+      "title": "Silicon in Horticulture — stress tolerance mechanisms",
+      "reference": "pH-Anpassung und Kompatibilität mit Calcium-Ionen",
+      "url": null,
+      "credibility": "Medium"
+    }
+  ],
+  "difficulty": "Medium",
+  "expectedTimeToEffect": "Strukturelle Wirkung nach 5–7 Tagen sichtbar",
+  "tags": [
+    "foliar",
+    "silica",
+    "potassium",
+    "stress-protection",
+    "stem-strength"
+  ]
+}

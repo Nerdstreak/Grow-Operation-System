@@ -4,6 +4,13 @@ namespace GrowDiary.Web.Services;
 
 public sealed class DeviationAnalyzerService
 {
+    private readonly TargetValueService _targetValues;
+
+    public DeviationAnalyzerService(TargetValueService targetValues)
+    {
+        _targetValues = targetValues;
+    }
+
     /// <summary>
     /// Analysiert die letzten Messungen eines Hydro-Grows und gibt konkrete Handlungsempfehlungen zurück.
     /// Läuft nur für ActiveHydro (RDWC / DWC). Gibt leere Liste zurück für andere Anbauformen.
@@ -22,7 +29,7 @@ public sealed class DeviationAnalyzerService
 
         var sorted = recentMeasurements.OrderByDescending(m => m.TakenAt).ToList();
         var stage = sorted[0].Stage;
-        var targets = TargetValueService.GetTargets(grow.HydroStyle, stage);
+        var targets = _targetValues.GetTargets(grow.HydroStyle, stage);
 
         if (targets is null)
         {

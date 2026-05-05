@@ -1,14 +1,64 @@
+using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
-using Xunit;
+using GrowDiary.Web.Services.Knowledge;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GrowDiary.Web.Tests;
 
-public sealed class RecommendationEngineTests
+public sealed class RecommendationEngineTests : IDisposable
 {
-    private static readonly RecommendationEngine Engine = new(
-        new CultivationKnowledgeService(),
-        new MeasurementSanityService());
+    private readonly string _tempRoot;
+    private readonly RecommendationEngine _engine;
+
+    public RecommendationEngineTests()
+    {
+        _tempRoot = Path.Combine(Path.GetTempPath(), "RecEngTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_tempRoot);
+
+        var projectRoot = FindProjectRoot();
+        var defaultsSource = Path.Combine(projectRoot, "GrowDiary.Web", "wwwroot", "knowledge-defaults");
+        CopyDefaults(defaultsSource, _tempRoot);
+
+        var paths = new AppPaths(_tempRoot);
+        var loader = new KnowledgeBaseLoader(paths, NullLogger<KnowledgeBaseLoader>.Instance);
+        loader.Initialize();
+
+        _engine = new RecommendationEngine(
+            new CultivationKnowledgeService(loader),
+            new MeasurementSanityService());
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_tempRoot))
+            Directory.Delete(_tempRoot, recursive: true);
+    }
+
+    private static string FindProjectRoot()
+    {
+        var dir = AppContext.BaseDirectory;
+        while (dir != null)
+        {
+            if (Directory.GetFiles(dir, "*.sln").Length > 0 ||
+                Directory.Exists(Path.Combine(dir, "GrowDiary.Web")))
+                return dir;
+            dir = Path.GetDirectoryName(dir);
+        }
+        throw new InvalidOperationException("Project root not found");
+    }
+
+    private static void CopyDefaults(string source, string tempRoot)
+    {
+        var dest = Path.Combine(tempRoot, "wwwroot", "knowledge-defaults");
+        foreach (var file in Directory.EnumerateFiles(source, "*.json", SearchOption.AllDirectories))
+        {
+            var rel = Path.GetRelativePath(source, file);
+            var target = Path.Combine(dest, rel);
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(file, target);
+        }
+    }
 
     private static GrowRun CreateHydroGrow(HydroStyle style = HydroStyle.RDWC) => new()
     {
@@ -31,7 +81,7 @@ public sealed class RecommendationEngineTests
     {
         var grow = CreateHydroGrow();
 
-        var result = Engine.Evaluate(grow, null, null, null);
+        var result = _engine.Evaluate(grow, null, null, null);
 
         Assert.Single(result);
         Assert.Equal("info", result[0].Severity);
@@ -44,7 +94,7 @@ public sealed class RecommendationEngineTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.ReservoirPh = 6.4;
 
-        var result = Engine.Evaluate(grow, m, null, null);
+        var result = _engine.Evaluate(grow, m, null, null);
 
         Assert.Contains(result, c => c.Severity is "warning" or "danger");
     }
@@ -56,7 +106,7 @@ public sealed class RecommendationEngineTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.ReservoirPh = 7.0;
 
-        var result = Engine.Evaluate(grow, m, null, null);
+        var result = _engine.Evaluate(grow, m, null, null);
 
         Assert.Contains(result, c => c.Severity == "danger");
     }
@@ -68,7 +118,7 @@ public sealed class RecommendationEngineTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.ReservoirPh = 6.0;
 
-        var result = Engine.Evaluate(grow, m, null, null);
+        var result = _engine.Evaluate(grow, m, null, null);
 
         Assert.DoesNotContain(result, c => c.Title.Contains("pH"));
     }
@@ -80,7 +130,7 @@ public sealed class RecommendationEngineTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.ReservoirWaterTempC = 25.0;
 
-        var result = Engine.Evaluate(grow, m, null, null);
+        var result = _engine.Evaluate(grow, m, null, null);
 
         Assert.Contains(result, c => c.Severity == "danger");
     }
@@ -92,7 +142,7 @@ public sealed class RecommendationEngineTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.ReservoirWaterTempC = 22.5;
 
-        var result = Engine.Evaluate(grow, m, null, null);
+        var result = _engine.Evaluate(grow, m, null, null);
 
         Assert.Contains(result, c => c.Severity == "warning");
     }
@@ -104,7 +154,7 @@ public sealed class RecommendationEngineTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.DissolvedOxygenMgL = 6.8;
 
-        var result = Engine.Evaluate(grow, m, null, null);
+        var result = _engine.Evaluate(grow, m, null, null);
 
         Assert.Contains(result, c => c.Severity == "warning");
     }
@@ -116,7 +166,7 @@ public sealed class RecommendationEngineTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.DissolvedOxygenMgL = 5.5;
 
-        var result = Engine.Evaluate(grow, m, null, null);
+        var result = _engine.Evaluate(grow, m, null, null);
 
         Assert.Contains(result, c => c.Severity == "danger");
     }
@@ -128,7 +178,7 @@ public sealed class RecommendationEngineTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.OrpMv = 390;
 
-        var result = Engine.Evaluate(grow, m, null, null);
+        var result = _engine.Evaluate(grow, m, null, null);
 
         Assert.Contains(result, c => c.Severity == "success");
     }
@@ -140,7 +190,7 @@ public sealed class RecommendationEngineTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.OrpMv = 280;
 
-        var result = Engine.Evaluate(grow, m, null, null);
+        var result = _engine.Evaluate(grow, m, null, null);
 
         Assert.Contains(result, c => c.Severity is "warning" or "danger");
     }
@@ -153,7 +203,7 @@ public sealed class RecommendationEngineTests
         m.ReservoirWaterTempC = 23.0;
         m.DissolvedOxygenMgL = 6.5;
 
-        var result = Engine.Evaluate(grow, m, null, null);
+        var result = _engine.Evaluate(grow, m, null, null);
 
         Assert.Contains(result, c =>
             c.Severity == "danger" &&
@@ -171,7 +221,7 @@ public sealed class RecommendationEngineTests
         m.OrpMv = 380;
         m.ReservoirEc = 1.0;
 
-        var result = Engine.Evaluate(grow, m, null, null);
+        var result = _engine.Evaluate(grow, m, null, null);
 
         Assert.DoesNotContain(result, c => c.Severity == "danger");
     }

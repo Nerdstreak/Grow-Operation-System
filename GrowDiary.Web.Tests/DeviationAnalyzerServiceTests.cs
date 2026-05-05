@@ -1,12 +1,62 @@
+using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
-using Xunit;
+using GrowDiary.Web.Services.Knowledge;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GrowDiary.Web.Tests;
 
-public sealed class DeviationAnalyzerServiceTests
+public sealed class DeviationAnalyzerServiceTests : IDisposable
 {
-    private static readonly DeviationAnalyzerService Svc = new();
+    private readonly string _tempRoot;
+    private readonly DeviationAnalyzerService _svc;
+
+    public DeviationAnalyzerServiceTests()
+    {
+        _tempRoot = Path.Combine(Path.GetTempPath(), "DevAnalyzerTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_tempRoot);
+
+        var projectRoot = FindProjectRoot();
+        var defaultsSource = Path.Combine(projectRoot, "GrowDiary.Web", "wwwroot", "knowledge-defaults");
+        CopyDefaults(defaultsSource, _tempRoot);
+
+        var paths = new AppPaths(_tempRoot);
+        var loader = new KnowledgeBaseLoader(paths, NullLogger<KnowledgeBaseLoader>.Instance);
+        loader.Initialize();
+
+        _svc = new DeviationAnalyzerService(new TargetValueService(loader));
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_tempRoot))
+            Directory.Delete(_tempRoot, recursive: true);
+    }
+
+    private static string FindProjectRoot()
+    {
+        var dir = AppContext.BaseDirectory;
+        while (dir != null)
+        {
+            if (Directory.GetFiles(dir, "*.sln").Length > 0 ||
+                Directory.Exists(Path.Combine(dir, "GrowDiary.Web")))
+                return dir;
+            dir = Path.GetDirectoryName(dir);
+        }
+        throw new InvalidOperationException("Project root not found");
+    }
+
+    private static void CopyDefaults(string source, string tempRoot)
+    {
+        var dest = Path.Combine(tempRoot, "wwwroot", "knowledge-defaults");
+        foreach (var file in Directory.EnumerateFiles(source, "*.json", SearchOption.AllDirectories))
+        {
+            var rel = Path.GetRelativePath(source, file);
+            var target = Path.Combine(dest, rel);
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(file, target);
+        }
+    }
 
     private static GrowRun CreateHydroGrow() => new()
     {
@@ -33,7 +83,7 @@ public sealed class DeviationAnalyzerServiceTests
         var grow = CreateHydroGrow();
         var measurements = new List<Measurement> { CreateMeasurement(GrowStage.Veg) };
 
-        var result = Svc.Analyze(grow, measurements);
+        var result = _svc.Analyze(grow, measurements);
 
         Assert.Empty(result);
     }
@@ -43,7 +93,7 @@ public sealed class DeviationAnalyzerServiceTests
     {
         var grow = CreateHydroGrow();
 
-        var result = Svc.Analyze(grow, new List<Measurement>());
+        var result = _svc.Analyze(grow, new List<Measurement>());
 
         Assert.Empty(result);
     }
@@ -56,7 +106,7 @@ public sealed class DeviationAnalyzerServiceTests
         // Veg-Max = 6.1; Critical ab PhMax + 0.3 = 6.4 → 6.3 ist Warning
         m.ReservoirPh = 6.3;
 
-        var result = Svc.Analyze(grow, new List<Measurement> { m });
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
 
         var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ph);
         Assert.Equal(DeviationSeverity.Warning, dev.Severity);
@@ -74,7 +124,7 @@ public sealed class DeviationAnalyzerServiceTests
             return m;
         }).ToList();
 
-        var result = Svc.Analyze(grow, measurements);
+        var result = _svc.Analyze(grow, measurements);
 
         var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ph);
         Assert.Equal(DeviationSeverity.Critical, dev.Severity);
@@ -88,7 +138,7 @@ public sealed class DeviationAnalyzerServiceTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.ReservoirPh = 6.0; // Veg-Bereich 6.0–6.1
 
-        var result = Svc.Analyze(grow, new List<Measurement> { m });
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
 
         Assert.DoesNotContain(result, d => d.Metric == DeviationMetric.Ph);
     }
@@ -105,7 +155,7 @@ public sealed class DeviationAnalyzerServiceTests
         m2.ReservoirEc = 0.9;
         m2.TakenAt = DateTime.Now.AddHours(-1);
 
-        var result = Svc.Analyze(grow, new List<Measurement> { m1, m2 });
+        var result = _svc.Analyze(grow, new List<Measurement> { m1, m2 });
 
         var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ec);
         Assert.Contains("gefallen", dev.Recommendation);
@@ -123,7 +173,7 @@ public sealed class DeviationAnalyzerServiceTests
         m2.ReservoirEc = 0.9;
         m2.TakenAt = DateTime.Now.AddHours(-1);
 
-        var result = Svc.Analyze(grow, new List<Measurement> { m1, m2 });
+        var result = _svc.Analyze(grow, new List<Measurement> { m1, m2 });
 
         var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ec);
         Assert.Contains("gestiegen", dev.Recommendation);
@@ -136,7 +186,7 @@ public sealed class DeviationAnalyzerServiceTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.ReservoirWaterTempC = 25.0; // über 24°C Critical-Schwelle
 
-        var result = Svc.Analyze(grow, new List<Measurement> { m });
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
 
         var dev = Assert.Single(result, d => d.Metric == DeviationMetric.WaterTemp);
         Assert.Equal(DeviationSeverity.Critical, dev.Severity);
@@ -149,7 +199,7 @@ public sealed class DeviationAnalyzerServiceTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.DissolvedOxygenMgL = 6.5; // unter 7.0 Warning-Schwelle
 
-        var result = Svc.Analyze(grow, new List<Measurement> { m });
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
 
         Assert.Contains(result, d => d.Metric == DeviationMetric.DissolvedOxygen);
     }
@@ -161,7 +211,7 @@ public sealed class DeviationAnalyzerServiceTests
         var m = CreateMeasurement(GrowStage.Veg);
         m.DissolvedOxygenMgL = 4.8; // unter 5.0 Critical-Schwelle
 
-        var result = Svc.Analyze(grow, new List<Measurement> { m });
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
 
         var dev = Assert.Single(result, d => d.Metric == DeviationMetric.DissolvedOxygen);
         Assert.Equal(DeviationSeverity.Critical, dev.Severity);
@@ -174,7 +224,7 @@ public sealed class DeviationAnalyzerServiceTests
         var m = CreateMeasurement(GrowStage.Veg);
         // Alle Werte sicher im Veg-Bereich: pH 6.05, EC 0.7, Temp 20, DO 8.0
 
-        var result = Svc.Analyze(grow, new List<Measurement> { m });
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
 
         Assert.Empty(result);
     }

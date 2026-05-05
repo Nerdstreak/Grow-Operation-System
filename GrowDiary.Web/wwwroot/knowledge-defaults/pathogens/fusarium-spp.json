@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0",
+  "id": "fusarium-spp",
+  "name": "Fusarium (Schimmelpilz)",
+  "scientificName": "Fusarium spp.",
+  "category": "Fungal",
+  "symptoms": [
+    "reddish-roots",
+    "wilting-yellow-leaves",
+    "vascular-discoloration"
+  ],
+  "treatable": true,
+  "treatmentSopId": "root-rot-treatment",
+  "riskLevel": "High",
+  "notes": "Schwerer zu behandeln als Pythium. Kann auch im Pflanzengewebe sitzen (vaskulär), nicht nur im Wasser. HOCl wirkt auf wasserseitige Sporen, aber etablierte Infektionen oft nicht heilbar. Bei rötlich gefärbten Wurzeln und welkenden Blättern: Pflanze isolieren, aggressiv behandeln, im Zweifel entfernen.",
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
+      "reference": "Erwähnt als sekundärer Erreger",
+      "url": "/docs/sop-root-rot-treatment-de.pdf",
+      "credibility": "High"
+    }
+  ]
+}

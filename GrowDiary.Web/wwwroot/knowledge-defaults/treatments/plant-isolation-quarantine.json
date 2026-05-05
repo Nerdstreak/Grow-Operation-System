@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "id": "plant-isolation-quarantine",
+  "name": "Pflanzen-Isolation und Quarantäne",
+  "type": "PhysicalAction",
+  "targetSymptoms": [
+    "root-rot-detected",
+    "contamination-suspected"
+  ],
+  "dosage": {
+    "standard": "Betroffene Pflanze in separaten Quarantäne-Behälter mit frischer Lösung überführen",
+    "severe": null,
+    "context": "Schützt gesunde Pflanzen im RDWC-System vor Ausbreitung. Quarantäne-Behälter = separater Eimer mit eigener Pumpe/Luftstein."
+  },
+  "application": {
+    "method": "Pflanze aus RDWC herausnehmen, in separaten Behälter mit sauberer Lösung setzen — vom Hauptsystem getrennt",
+    "timing": "Sofort nach Feststellung von Wurzelfäule oder unklarer Kontamination",
+    "frequency": "Einmalig, dann tägliche Beobachtung in Quarantäne",
+    "durationStandard": "Bis Erholung oder Entsorgung der Pflanze",
+    "durationSevere": null
+  },
+  "restrictions": [
+    "Werkzeuge nach Handhabung der Quarantänepflanze desinfizieren",
+    "Quarantäne-Behälter nie wieder ungereinigt ins Hauptsystem einführen",
+    "pH und EC in Quarantäne-Behälter täglich prüfen"
+  ],
+  "conflicts": [],
+  "phaseFilter": {
+    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower"],
+    "blocked": ["Finish", "Dry", "Cure"],
+    "blockAfterFlowerWeek": null
+  },
+  "hardwareRequirements": [
+    "Separater Behälter mit Luftstein"
+  ],
+  "sources": [
+    {
+      "type": "SOP",
+      "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
+      "reference": "Pflanzen-Isolation bei akutem Befall",
+      "url": "/docs/sop-root-rot-treatment-de.pdf",
+      "credibility": "High"
+    }
+  ],
+  "difficulty": "Medium",
+  "expectedTimeToEffect": "Schutzziel: Sofortige Unterbrechung der Ausbreitung im Hauptsystem",
+  "tags": [
+    "physical",
+    "quarantine",
+    "isolation",
+    "root-rot",
+    "contamination"
+  ]
+}

@@ -1,73 +1,61 @@
 # Grow Diary Web
 
-Lokale ASP.NET Core Web-App für dein Grow-Tagebuch.
+ASP.NET Core backend plus React SPA fuer das Grow-Tagebuch.
 
-## Start in VS Code
+## Projektstruktur
+
+- `GrowDiary.Web` - Backend, JSON-API, SQLite, Auslieferung der gebauten SPA
+- `GrowDiary.React` - React/Vite-Quellcode
+- `GrowDiary.Web.Tests` - Backend-Tests
+
+## Backend starten
 
 ```bash
-cd GrowDiary.Web
-
 dotnet restore
-dotnet run
+dotnet run --project GrowDiary.Web/GrowDiary.Web.csproj
 ```
 
-Danach im Browser öffnen:
+Danach die von `dotnet run` ausgegebene URL im Browser oeffnen.
 
-- `http://localhost:5076`
-- oder die URL, die `dotnet run` ausgibt
+## Frontend bauen
 
-## Neu in dieser Version
+```bash
+cd GrowDiary.React
+npm install
+npm run build
+```
 
-- Dashboard **Heute** mit Zelt-Karten
-- echte **Zelt-Ebene** mit Live-Werten, Charts und Grow-Karten
-- überarbeitetes **Grow-Detail** mit klaren Bereichen
-- **Dark/Light Toggle**
-- **Home-Assistant-Einstellungen** in der App
-- Standard-Zelte: **Hauptzelt** und **Anzuchtzelt**
-- bestehende Datenbank bereits übernommen
+Der Vite-Build schreibt direkt nach `GrowDiary.Web/wwwroot`.
 
 ## Datenbank
 
-Die App nutzt standardmäßig:
+Standardpfad:
 
-- `App_Data/grow-diary.db`
+- `GrowDiary.Web/App_Data/grow-diary.db`
 
-Als Backup liegt zusätzlich die vorherige Datei hier:
-
-- `App_Data/legacy-grow-diary.db`
-
-## Konfiguration
-
-Die schnellste Methode: eine Datei `App_Data/ha-config.json` anlegen.
-Sie wird beim Start automatisch eingelesen und in die Datenbank geschrieben.
-
-1. Vorlage kopieren: `App_Data/ha-config.example.json` → `App_Data/ha-config.json`
-2. `url` auf deine Home-Assistant-Instanz setzen (z. B. `http://192.168.178.68:8123/api/`)
-3. `token` mit einem Long-Lived Access Token aus HA befüllen
-4. Entity-IDs pro Zelt eintragen (nur die, die du brauchst)
-5. App neu starten — fertig
-
-Die Datei überschreibt beim Start immer die DB-Werte.
-`ha-config.json` ist in `.gitignore` eingetragen und landet nie im Repository.
-
-Alternativ: Verbindung und Entity-IDs direkt in der App unter **Einstellungen → Home Assistant & Zelt-Mapping** eintragen.
+Optional kann ein eigener Pfad ueber `GROWDIARY_DB_PATH` gesetzt werden.
 
 ## Home Assistant
 
-Eine ausführliche Anleitung findest du in:
+Die schnellste Einrichtung erfolgt ueber `GrowDiary.Web/App_Data/ha-config.json`.
+Die Datei wird beim Start eingelesen und in die Datenbank uebernommen.
 
-- `HOME_ASSISTANT_SETUP.md`
+1. `GrowDiary.Web/App_Data/ha-config.example.json` nach `GrowDiary.Web/App_Data/ha-config.json` kopieren
+2. `url` auf deine Home-Assistant-Instanz setzen
+3. `token` mit einem Long-Lived Access Token befuellen
+4. Sensoren den Zelten zuordnen
+5. App neu starten
 
-## Stabiler Dev-Workflow
+Alternativ kann die Konfiguration in der React-App unter `Einstellungen` gepflegt werden.
 
-Bitte aus dem Repo-Root starten (`D:\Grow Operation System new`):
+## Tests
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-dev.ps1 -NoBuild
+```bash
+dotnet test GrowDiary.Web.Tests/GrowDiary.Web.Tests.csproj
 ```
 
-Stabiler Smoke-Check fuer Kernrouten:
+## Hinweise
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke-routes.ps1 -SkipBuild -SkipTests
-```
+- Die aktive UI ist React; das Backend liefert JSON unter `/api/*`.
+- Build-Artefakte der SPA liegen in `GrowDiary.Web/wwwroot`.
+- Es gibt aktuell keine Repo-Skripte unter `scripts/`; alte Verweise darauf sind entfernt.

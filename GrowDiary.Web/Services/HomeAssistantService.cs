@@ -25,9 +25,83 @@ public sealed class HomeAssistantService
         Tent tent,
         CancellationToken cancellationToken = default)
     {
-        // TODO Sprint B1b: TentSensor-Liste verwenden statt hartkodierter Tent-Felder
-        await Task.CompletedTask;
-        return new Dictionary<string, HomeAssistantState>();
+        if (!settings.IsConfigured || tent.Sensors.Count == 0)
+        {
+            return new Dictionary<string, HomeAssistantState>();
+        }
+
+        if (IsCircuitOpen())
+        {
+            return new Dictionary<string, HomeAssistantState>();
+        }
+
+        var sensors = tent.Sensors
+            .Where(sensor => sensor.IsActive && !string.IsNullOrWhiteSpace(sensor.HaEntityId))
+            .GroupBy(sensor => TentSensorMetricKeyMap.Resolve(sensor.MetricType))
+            .Select(group => group.Last())
+            .ToList();
+
+        if (sensors.Count == 0)
+        {
+            return new Dictionary<string, HomeAssistantState>();
+        }
+
+        try
+        {
+            var client = _httpClientFactory.CreateClient(nameof(HomeAssistantService));
+            client.BaseAddress = new Uri(NormalizeBaseUrl(settings.BaseUrl!));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", settings.AccessToken);
+            client.Timeout = RequestTimeout;
+
+            var results = await Task.WhenAll(sensors.Select(sensor =>
+                FetchStateAsync(
+                    client,
+                    TentSensorMetricKeyMap.Resolve(sensor.MetricType),
+                    sensor.HaEntityId,
+                    cancellationToken)));
+
+            var states = results
+                .Where(result => result.State is not null)
+                .ToDictionary(result => result.Key, result => result.State!);
+
+            if (results.Any(result => result.TransportFailure))
+            {
+                if (TryOpenCircuit())
+                {
+                    _logger.LogWarning(
+                        "Home Assistant Statusabfragen fuer Zelt {TentId} hatten Transportfehler. Weitere Abfragen sind fuer {BackoffSeconds} Sekunden pausiert.",
+                        tent.Id,
+                        (int)BackoffWindow.TotalSeconds);
+                }
+            }
+            else
+            {
+                ResetCircuit();
+            }
+
+            return states;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return new Dictionary<string, HomeAssistantState>();
+        }
+        catch (Exception ex)
+        {
+            if (TryOpenCircuit())
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Home Assistant Statusabfragen fuer Zelt {TentId} sind fehlgeschlagen. Weitere Abfragen sind fuer {BackoffSeconds} Sekunden pausiert.",
+                    tent.Id,
+                    (int)BackoffWindow.TotalSeconds);
+            }
+            else
+            {
+                _logger.LogDebug(ex, "Home Assistant Statusabfragen fuer Zelt {TentId} sind fehlgeschlagen.", tent.Id);
+            }
+
+            return new Dictionary<string, HomeAssistantState>();
+        }
     }
 
     private async Task<(string Key, HomeAssistantState? State, bool TransportFailure)> FetchStateAsync(

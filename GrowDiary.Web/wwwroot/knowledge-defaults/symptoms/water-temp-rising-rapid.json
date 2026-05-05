@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "id": "water-temp-rising-rapid",
+  "name": "Wassertemperatur steigt schnell",
+  "category": "Sensor",
+  "possibleCauses": [
+    "Chiller-Ausfall oder Chiller überlastet",
+    "Lufttemperatur in der Umgebung extrem hoch",
+    "Pumpe defekt (erzeugt Reibungswärme)"
+  ],
+  "suggestedTreatmentIds": [
+    "chiller-restart",
+    "ice-pack-emergency-cooling"
+  ],
+  "suggestedSopIds": [],
+  "diagnosticChecks": [
+    "Chiller-Status und Fehlermeldungen prüfen",
+    "Umgebungstemperatur messen",
+    "Pumpen-Geräusche auf Auffälligkeiten prüfen"
+  ]
+}

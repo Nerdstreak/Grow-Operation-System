@@ -157,12 +157,29 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
         var tents = repository.GetTents();
         foreach (var tent in tents)
         {
-            var metricKeys = new[]
+            var metricKeys = tent.Sensors
+                .Where(sensor => sensor.IsActive && !string.IsNullOrWhiteSpace(sensor.HaEntityId))
+                .Select(sensor => TentSensorMetricKeyMap.Resolve(sensor.MetricType))
+                .Distinct()
+                .ToList();
+
+            if (metricKeys.Count == 0)
             {
-                "temperature", "humidity", "vpd",
-                "reservoir-ph", "reservoir-ec",
-                "reservoir-temp", "reservoir-level", "co2"
-            };
+                metricKeys =
+                [
+                    "temperature",
+                    "humidity",
+                    "vpd",
+                    "reservoir-ph",
+                    "reservoir-ec",
+                    "reservoir-temp",
+                    "reservoir-level",
+                    "co2",
+                    "ppfd",
+                    "orp",
+                    "dissolved-oxygen"
+                ];
+            }
 
             foreach (var key in metricKeys)
             {

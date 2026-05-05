@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "id": "antagonism-suspected",
+  "name": "Nährstoff-Antagonismus vermutet",
+  "category": "Sensor",
+  "possibleCauses": [
+    "Salzakkumulation nach mehreren Addbacks ohne Wasserwechsel",
+    "Wasserwechsel überfällig",
+    "EC steigt trotz konstantem oder sinkendem Verbrauch"
+  ],
+  "suggestedTreatmentIds": [
+    "partial-water-change-50"
+  ],
+  "suggestedSopIds": [
+    "weekly-water-change"
+  ],
+  "diagnosticChecks": [
+    "Tage seit letztem Wasserwechsel zählen",
+    "EC-Trend der letzten 7 Tage prüfen"
+  ]
+}

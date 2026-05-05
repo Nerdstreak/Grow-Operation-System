@@ -9,4 +9,19 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.6" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\knowledge-defaults\**\*.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="wwwroot\knowledge-defaults\**\*.md"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="wwwroot\docs\**\*.pdf"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="wwwroot\docs\**\*.md"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
