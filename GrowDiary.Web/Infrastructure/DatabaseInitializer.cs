@@ -1,24 +1,59 @@
 using GrowDiary.Web.Models;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 
 namespace GrowDiary.Web.Infrastructure;
 
 public sealed class DatabaseInitializer
 {
     private readonly AppPaths _paths;
+    private readonly ILogger<DatabaseInitializer> _logger;
 
-    public DatabaseInitializer(AppPaths paths)
+    public DatabaseInitializer(AppPaths paths, ILogger<DatabaseInitializer> logger)
     {
         _paths = paths;
+        _logger = logger;
     }
 
     public void Initialize()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_paths.DatabasePath)!);
         Directory.CreateDirectory(_paths.UploadRootPath);
+        DropLegacyTentSchemaIfNeeded();
         EnsureSchema();
         SeedDefaults();
         AutoAssignExistingGrowsToTents();
+    }
+
+    private void DropLegacyTentSchemaIfNeeded()
+    {
+        using var connection = OpenConnection();
+        using var cmd = connection.CreateCommand();
+
+        cmd.CommandText = @"
+            SELECT COUNT(*) FROM pragma_table_info('Tents')
+            WHERE name = 'TemperatureEntityId';";
+        var hasLegacyColumn = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+
+        if (!hasLegacyColumn) return;
+
+        _logger.LogWarning(
+            "Legacy Tent-Schema erkannt — Tents und abhängige Daten werden gelöscht und neu aufgebaut.");
+
+        cmd.CommandText = """
+            DROP TABLE IF EXISTS TentSensors;
+            DROP TABLE IF EXISTS Tents;
+            DELETE FROM Grows;
+            DELETE FROM Measurements;
+            DELETE FROM Photos;
+            DELETE FROM JournalEntries;
+            DELETE FROM GrowTasks;
+            DELETE FROM HarvestEntries;
+            DELETE FROM TentSensorReadings;
+            DELETE FROM TentSensorSnapshots;
+            DELETE FROM TentSensorDailyStats;
+            """;
+        cmd.ExecuteNonQuery();
     }
 
     private void EnsureSchema()
@@ -101,22 +136,27 @@ public sealed class DatabaseInitializer
             CREATE TABLE IF NOT EXISTS Tents (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Name TEXT NOT NULL,
-                Kind TEXT NOT NULL,
+                Kind TEXT NOT NULL DEFAULT 'Grow Tent',
+                TentType TEXT NOT NULL DEFAULT 'MultiPurpose',
                 Notes TEXT NULL,
-                DisplayOrder INTEGER NOT NULL DEFAULT 0,
+                DisplayOrder INTEGER NOT NULL DEFAULT 99,
                 AccentColor TEXT NOT NULL DEFAULT '#69b578',
-                TemperatureEntityId TEXT NULL,
-                HumidityEntityId TEXT NULL,
-                VpdEntityId TEXT NULL,
-                ReservoirPhEntityId TEXT NULL,
-                ReservoirEcEntityId TEXT NULL,
-                ReservoirLevelEntityId TEXT NULL,
-                ReservoirTempEntityId TEXT NULL,
-                LightEntityId TEXT NULL,
+                WidthCm INTEGER NULL,
+                DepthCm INTEGER NULL,
+                TentHeightCm INTEGER NULL,
+                LightType TEXT NULL,
+                LightWatt INTEGER NULL,
+                LightController TEXT NULL,
+                LightControllerEntityId TEXT NULL,
+                ExhaustFanCount INTEGER NULL,
+                ExhaustM3h INTEGER NULL,
+                CirculationFanCount INTEGER NULL,
+                HvacController TEXT NULL,
+                HvacControllerEntityId TEXT NULL,
+                Co2Available INTEGER NOT NULL DEFAULT 0,
                 CameraEntityId TEXT NULL,
-                LightCycle TEXT NULL,
-                PpfdEntityId TEXT NULL,
-                PpfdTarget TEXT NULL
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS AppSettings (
@@ -133,6 +173,21 @@ public sealed class DatabaseInitializer
                 CapturedAtUtc TEXT NOT NULL,
                 FOREIGN KEY (TentId) REFERENCES Tents (Id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS TentSensors (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                TentId INTEGER NOT NULL,
+                MetricType TEXT NOT NULL,
+                HaEntityId TEXT NOT NULL,
+                DisplayLabel TEXT NULL,
+                IsActive INTEGER NOT NULL DEFAULT 1,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (TentId) REFERENCES Tents(Id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS IX_TentSensors_TentId
+                ON TentSensors(TentId);
 
             CREATE TABLE IF NOT EXISTS JournalEntries (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -251,14 +306,6 @@ public sealed class DatabaseInitializer
         EnsureColumn(connection, "Grows", "ReservoirSize", "TEXT NULL");
         EnsureColumn(connection, "GrowTemplates", "MediumDetail", "TEXT NULL");
         EnsureColumn(connection, "GrowTemplates", "ReservoirSize", "TEXT NULL");
-        EnsureColumn(connection, "Tents", "CameraEntityId", "TEXT NULL");
-        EnsureColumn(connection, "Tents", "LightCycle", "TEXT NULL");
-        EnsureColumn(connection, "Tents", "PpfdEntityId", "TEXT NULL");
-        EnsureColumn(connection, "Tents", "PpfdTarget", "TEXT NULL");
-        // Sprint 7
-        EnsureColumn(connection, "Tents", "OrpEntityId",             "TEXT NULL");
-        EnsureColumn(connection, "Tents", "DissolvedOxygenEntityId", "TEXT NULL");
-        EnsureColumn(connection, "Tents", "Co2EntityId",             "TEXT NULL");
         EnsureColumn(connection, "Measurements", "Source", "TEXT NOT NULL DEFAULT 'Manual'");
         EnsureColumn(connection, "Measurements", "PpfdMol", "REAL NULL");
         EnsureColumn(connection, "Measurements", "Co2Ppm", "REAL NULL");
@@ -285,17 +332,6 @@ public sealed class DatabaseInitializer
         // Sprint 10
         EnsureColumn(connection, "Grows", "GerminatedAt", "TEXT NULL");
         EnsureColumn(connection, "Grows", "RootedAt",     "TEXT NULL");
-        // Group D — Zelt physisches Setup
-        EnsureColumn(connection, "Tents", "WidthCm",             "INTEGER NULL");
-        EnsureColumn(connection, "Tents", "DepthCm",             "INTEGER NULL");
-        EnsureColumn(connection, "Tents", "TentHeightCm",         "INTEGER NULL");
-        EnsureColumn(connection, "Tents", "LightType",           "TEXT NULL");
-        EnsureColumn(connection, "Tents", "LightWatt",           "INTEGER NULL");
-        EnsureColumn(connection, "Tents", "ExhaustFanCount",     "INTEGER NULL");
-        EnsureColumn(connection, "Tents", "ExhaustM3h",          "INTEGER NULL");
-        EnsureColumn(connection, "Tents", "CirculationFanCount", "INTEGER NULL");
-        EnsureColumn(connection, "Tents", "Co2Type",             "TEXT NULL");
-        EnsureColumn(connection, "Tents", "Co2TargetPpm",        "INTEGER NULL");
         // Group D — GrowSystems table first, then Grows FK column
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS GrowSystems (
@@ -324,11 +360,11 @@ public sealed class DatabaseInitializer
         {
             using var insert = connection.CreateCommand();
             insert.CommandText = """
-                INSERT INTO Tents (Name, Kind, Notes, DisplayOrder, AccentColor)
-                VALUES
-                    ('Hauptzelt', 'Blüte / Hauptlauf', 'Dein großes AC Infinity Zelt für Hauptgrows.', 1, '#7dd3a6'),
-                    ('Anzuchtzelt', 'Anzucht / Jungpflanzen', 'Kleines Zelt für Keimung, Stecklinge und frühe Veg.', 2, '#79c3ff');
-            """;
+                INSERT INTO Tents (Name, Kind, TentType, AccentColor, DisplayOrder,
+                                   Co2Available, CreatedAtUtc, UpdatedAtUtc)
+                VALUES ('Hauptzelt', 'Grow Tent', 'MultiPurpose', '#69b578', 1,
+                        0, datetime('now'), datetime('now'));
+                """;
             insert.ExecuteNonQuery();
         }
 
@@ -355,44 +391,23 @@ public sealed class DatabaseInitializer
     private void AutoAssignExistingGrowsToTents()
     {
         using var connection = OpenConnection();
-        using var select = connection.CreateCommand();
-        select.CommandText = "SELECT Id, Name, Notes FROM Grows WHERE TentId IS NULL;";
-
         var mainTentId = GetTentId(connection, "Hauptzelt");
-        var seedTentId = GetTentId(connection, "Anzuchtzelt");
-        if (mainTentId == 0 || seedTentId == 0)
-        {
-            return;
-        }
+        if (mainTentId == 0) return;
 
+        using var select = connection.CreateCommand();
+        select.CommandText = "SELECT Id FROM Grows WHERE TentId IS NULL;";
         using var reader = select.ExecuteReader();
-        var rawItems = new List<(int id, string name, string notes)>();
+        var ids = new List<int>();
         while (reader.Read())
-        {
-            rawItems.Add((
-                Convert.ToInt32((long)reader["Id"]),
-                reader["Name"]?.ToString() ?? string.Empty,
-                reader["Notes"]?.ToString() ?? string.Empty));
-        }
+            ids.Add(Convert.ToInt32((long)reader["Id"]));
         reader.Close();
 
-        var pending = new List<(int id, string name, string notes, int tentId)>();
-        foreach (var raw in rawItems)
-        {
-            var stage = GetLatestStage(connection, raw.id)?.ToLowerInvariant() ?? string.Empty;
-            var combined = $"{raw.name} {raw.notes} {stage}".ToLowerInvariant();
-            var tentId = combined.Contains("easyplug") || combined.Contains("anzucht") || stage is "seedling" or "clone"
-                ? seedTentId
-                : mainTentId;
-            pending.Add((raw.id, raw.name, raw.notes, tentId));
-        }
-
-        foreach (var item in pending)
+        foreach (var id in ids)
         {
             using var update = connection.CreateCommand();
             update.CommandText = "UPDATE Grows SET TentId = $tentId WHERE Id = $id;";
-            update.Parameters.AddWithValue("$tentId", item.tentId);
-            update.Parameters.AddWithValue("$id", item.id);
+            update.Parameters.AddWithValue("$tentId", mainTentId);
+            update.Parameters.AddWithValue("$id", id);
             update.ExecuteNonQuery();
         }
     }
@@ -423,14 +438,6 @@ public sealed class DatabaseInitializer
         command.CommandText = "SELECT Id FROM Tents WHERE Name = $name LIMIT 1;";
         command.Parameters.AddWithValue("$name", tentName);
         return Convert.ToInt32(command.ExecuteScalar() ?? 0);
-    }
-
-    private static string? GetLatestStage(SqliteConnection connection, int growId)
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT Stage FROM Measurements WHERE GrowId = $growId ORDER BY TakenAt DESC, Id DESC LIMIT 1;";
-        command.Parameters.AddWithValue("$growId", growId);
-        return command.ExecuteScalar()?.ToString();
     }
 
     private SqliteConnection OpenConnection()
