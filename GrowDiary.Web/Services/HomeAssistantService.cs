@@ -20,67 +20,14 @@ public sealed class HomeAssistantService
         _logger = logger;
     }
 
-    public async Task<Dictionary<string, HomeAssistantState>> GetStatesAsync(HomeAssistantSettings settings, Tent tent, CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, HomeAssistantState>> GetStatesAsync(
+        HomeAssistantSettings settings,
+        Tent tent,
+        CancellationToken cancellationToken = default)
     {
-        var result = new Dictionary<string, HomeAssistantState>(StringComparer.OrdinalIgnoreCase);
-        if (!settings.IsConfigured) return result;
-        if (IsCircuitOpen()) return result;
-
-        var mappings = new Dictionary<string, string?>
-        {
-            ["temperature"] = tent.TemperatureEntityId,
-            ["humidity"] = tent.HumidityEntityId,
-            ["vpd"] = tent.VpdEntityId,
-            ["reservoir-ph"] = tent.ReservoirPhEntityId,
-            ["reservoir-ec"] = tent.ReservoirEcEntityId,
-            ["reservoir-level"] = tent.ReservoirLevelEntityId,
-            ["reservoir-temp"] = tent.ReservoirTempEntityId,
-            ["light"] = tent.LightEntityId,
-            ["ppfd"]              = tent.PpfdEntityId,
-            ["orp"]              = tent.OrpEntityId,
-            ["dissolved-oxygen"] = tent.DissolvedOxygenEntityId,
-            ["co2"]              = tent.Co2EntityId
-        };
-
-        var activeMappings = mappings
-            .Where(kvp => !string.IsNullOrWhiteSpace(kvp.Value))
-            .ToList();
-        if (activeMappings.Count == 0)
-        {
-            return result;
-        }
-
-        var client = _httpClientFactory.CreateClient(nameof(HomeAssistantService));
-        client.BaseAddress = new Uri(NormalizeBaseUrl(settings.BaseUrl!));
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", settings.AccessToken);
-        client.Timeout = RequestTimeout;
-
-        var tasks = activeMappings
-            .Select(kvp => FetchStateAsync(client, kvp.Key, kvp.Value!, cancellationToken));
-
-        var hadTransportFailure = false;
-        foreach (var (key, state, transportFailure) in await Task.WhenAll(tasks))
-        {
-            hadTransportFailure |= transportFailure;
-            if (state is not null) result[key] = state;
-        }
-
-        if (result.Count > 0)
-        {
-            ResetCircuit();
-        }
-        else if (hadTransportFailure)
-        {
-            if (TryOpenCircuit())
-            {
-                _logger.LogWarning(
-                    "Home Assistant ist derzeit nicht erreichbar. Weitere Abfragen sind für {BackoffSeconds} Sekunden pausiert (Zelt {TentId}).",
-                    (int)BackoffWindow.TotalSeconds,
-                    tent.Id);
-            }
-        }
-
-        return result;
+        // TODO Sprint B1b: TentSensor-Liste verwenden statt hartkodierter Tent-Felder
+        await Task.CompletedTask;
+        return new Dictionary<string, HomeAssistantState>();
     }
 
     private async Task<(string Key, HomeAssistantState? State, bool TransportFailure)> FetchStateAsync(

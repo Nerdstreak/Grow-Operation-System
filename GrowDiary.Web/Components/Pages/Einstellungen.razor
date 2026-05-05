@@ -136,14 +136,6 @@
                                     <label>Lichtstärke (Watt)</label>
                                     <input type="number" @bind="t.LightWatt" placeholder="630" />
                                 </div>
-                                <div class="field">
-                                    <label>Lichtzyklus</label>
-                                    <input @bind="t.LightCycle" placeholder="18/6 oder 12/12" />
-                                </div>
-                                <div class="field">
-                                    <label>PPFD Zielwert</label>
-                                    <input @bind="t.PpfdTarget" placeholder="650" />
-                                </div>
                             </div>
                         </div>
 
@@ -171,87 +163,16 @@
                             <div class="settings-section-label">CO₂</div>
                             <div class="two-col-grid">
                                 <div class="field">
-                                    <label>CO₂-Anlage</label>
-                                    <select @bind="t.Co2Type">
-                                        <option value="">Keine</option>
-                                        <option value="Flasche">CO₂-Flasche</option>
-                                        <option value="Generator">CO₂-Generator</option>
-                                    </select>
-                                </div>
-                                <div class="field">
-                                    <label>CO₂-Zielwert (ppm)</label>
-                                    <input type="number" @bind="t.Co2TargetPpm" placeholder="1200" />
+                                    <label>CO₂ verfügbar</label>
+                                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; margin-top:4px">
+                                        <input type="checkbox" @bind="t.Co2Available" />
+                                        <span>CO₂-Anlage vorhanden</span>
+                                    </label>
                                 </div>
                             </div>
                         </div>
 
-                        @* HA Entities *@
-                        <div class="settings-card-section">
-                            <div class="settings-section-label">Home Assistant — Klima & Umgebung</div>
-                            <div class="two-col-grid">
-                                <div class="field">
-                                    <label>Temperatur Entity</label>
-                                    <input @bind="t.TemperatureEntityId" placeholder="sensor.ac_infinity_temperature" />
-                                </div>
-                                <div class="field">
-                                    <label>Luftfeuchte Entity</label>
-                                    <input @bind="t.HumidityEntityId" placeholder="sensor.ac_infinity_humidity" />
-                                </div>
-                                <div class="field">
-                                    <label>VPD Entity</label>
-                                    <input @bind="t.VpdEntityId" placeholder="sensor.ac_infinity_vpd" />
-                                </div>
-                                <div class="field">
-                                    <label>CO₂ ppm Entity</label>
-                                    <input @bind="t.Co2EntityId" placeholder="sensor.hauptzelt_co2" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-card-section">
-                            <div class="settings-section-label">Home Assistant — Beleuchtung</div>
-                            <div class="two-col-grid">
-                                <div class="field">
-                                    <label>Licht / Status Entity</label>
-                                    <input @bind="t.LightEntityId" placeholder="switch.ac_infinity_light" />
-                                </div>
-                                <div class="field">
-                                    <label>PPFD Entity</label>
-                                    <input @bind="t.PpfdEntityId" placeholder="sensor.hauptzelt_ppfd" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-card-section">
-                            <div class="settings-section-label">Home Assistant — Reservoir</div>
-                            <div class="two-col-grid">
-                                <div class="field">
-                                    <label>Reservoir pH Entity</label>
-                                    <input @bind="t.ReservoirPhEntityId" placeholder="sensor.rdwc_ph" />
-                                </div>
-                                <div class="field">
-                                    <label>Reservoir EC Entity</label>
-                                    <input @bind="t.ReservoirEcEntityId" placeholder="sensor.rdwc_ec" />
-                                </div>
-                                <div class="field">
-                                    <label>Wasserstand Entity</label>
-                                    <input @bind="t.ReservoirLevelEntityId" placeholder="sensor.rdwc_level_liters" />
-                                </div>
-                                <div class="field">
-                                    <label>Wassertemperatur Entity</label>
-                                    <input @bind="t.ReservoirTempEntityId" placeholder="sensor.rdwc_water_temp" />
-                                </div>
-                                <div class="field">
-                                    <label>ORP Sensor</label>
-                                    <input @bind="t.OrpEntityId" placeholder="sensor.rdwc_orp" />
-                                </div>
-                                <div class="field">
-                                    <label>Gelöster Sauerstoff</label>
-                                    <input @bind="t.DissolvedOxygenEntityId" placeholder="sensor.rdwc_do" />
-                                </div>
-                            </div>
-                        </div>
-
+                        @* HA Entities — Sensor-Konfiguration kommt in Sprint B1b *@
                         <div class="settings-card-section">
                             <div class="settings-section-label">Home Assistant — Kamera</div>
                             <div class="two-col-grid">
@@ -261,6 +182,8 @@
                                 </div>
                             </div>
                         </div>
+
+                        <p class="text-muted small"><!-- Sensor-Konfiguration: kommt in Sprint B1b --></p>
 
                         <div class="settings-card-section">
                             <div class="field">
