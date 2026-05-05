@@ -106,6 +106,17 @@ public sealed class GrowRepository
             tent.ActiveGrows = growsByTentId.TryGetValue(tent.Id, out var grows) ? grows : [];
         }
 
+        // Sensors laden
+        if (tents.Count > 0)
+        {
+            var tentIds = tents.Select(t => t.Id).ToList();
+            var sensorsByTentId = LoadSensorsByTentIds(connection, tentIds);
+            foreach (var tent in tents)
+            {
+                tent.Sensors = sensorsByTentId.TryGetValue(tent.Id, out var sensors) ? sensors : new();
+            }
+        }
+
         return tents;
     }
 
@@ -130,6 +141,7 @@ public sealed class GrowRepository
 
         var tent = MapTent(reader);
         tent.ActiveGrows = GetActiveGrowsForTent(tent.Id);
+        tent.Sensors = GetTentSensors(id);
         return tent;
     }
 
@@ -187,6 +199,78 @@ public sealed class GrowRepository
         command.Parameters.AddWithValue("$name", name);
         var id = Convert.ToInt32((long)(command.ExecuteScalar() ?? 0L));
         return new Tent { Id = id, Name = name };
+    }
+
+    public List<TentSensor> GetTentSensors(int tentId)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM TentSensors WHERE TentId = $tentId ORDER BY Id;";
+        command.Parameters.AddWithValue("$tentId", tentId);
+        var list = new List<TentSensor>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+            list.Add(MapTentSensor(reader));
+        return list;
+    }
+
+    public TentSensor AddTentSensor(TentSensor sensor)
+    {
+        sensor.CreatedAtUtc = DateTime.UtcNow;
+        sensor.UpdatedAtUtc = DateTime.UtcNow;
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO TentSensors (TentId, MetricType, HaEntityId, DisplayLabel, IsActive, CreatedAtUtc, UpdatedAtUtc)
+            VALUES ($tentId, $metricType, $haEntityId, $displayLabel, $isActive, $createdAtUtc, $updatedAtUtc);
+            SELECT last_insert_rowid();
+            """;
+        AddTentSensorParameters(command, sensor);
+        sensor.Id = Convert.ToInt32((long)command.ExecuteScalar()!);
+        return sensor;
+    }
+
+    public void UpdateTentSensor(TentSensor sensor)
+    {
+        sensor.UpdatedAtUtc = DateTime.UtcNow;
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE TentSensors SET
+                MetricType = $metricType,
+                HaEntityId = $haEntityId,
+                DisplayLabel = $displayLabel,
+                IsActive = $isActive,
+                UpdatedAtUtc = $updatedAtUtc
+            WHERE Id = $id;
+            """;
+        AddTentSensorParameters(command, sensor);
+        command.Parameters.AddWithValue("$id", sensor.Id);
+        command.ExecuteNonQuery();
+    }
+
+    public void DeleteTentSensor(int sensorId)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM TentSensors WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", sensorId);
+        command.ExecuteNonQuery();
+    }
+
+    public TentSensor? GetTentSensorByMetric(int tentId, SensorMetricType metricType)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT * FROM TentSensors
+            WHERE TentId = $tentId AND MetricType = $metricType
+            ORDER BY Id LIMIT 1;
+            """;
+        command.Parameters.AddWithValue("$tentId", tentId);
+        command.Parameters.AddWithValue("$metricType", metricType.ToString());
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? MapTentSensor(reader) : null;
     }
 
     public List<GrowSystem> GetSystems()
@@ -1058,6 +1142,51 @@ public sealed class GrowRepository
             Unit = NullString(reader["Unit"]),
             CapturedAtUtc = ParseStoredDateTime(reader["CapturedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
+    }
+
+    private static Dictionary<int, List<TentSensor>> LoadSensorsByTentIds(SqliteConnection connection, List<int> tentIds)
+    {
+        var placeholders = string.Join(", ", tentIds.Select((_, i) => $"$s{i}"));
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = $"SELECT * FROM TentSensors WHERE TentId IN ({placeholders}) ORDER BY TentId, Id;";
+        for (var i = 0; i < tentIds.Count; i++)
+            cmd.Parameters.AddWithValue($"$s{i}", tentIds[i]);
+        var result = new Dictionary<int, List<TentSensor>>();
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            var sensor = MapTentSensor(reader);
+            if (!result.ContainsKey(sensor.TentId))
+                result[sensor.TentId] = new();
+            result[sensor.TentId].Add(sensor);
+        }
+        return result;
+    }
+
+    private static TentSensor MapTentSensor(SqliteDataReader reader)
+    {
+        return new TentSensor
+        {
+            Id           = Convert.ToInt32((long)reader["Id"]),
+            TentId       = Convert.ToInt32((long)reader["TentId"]),
+            MetricType   = ParseEnum(reader["MetricType"]?.ToString(), SensorMetricType.AirTemperature),
+            HaEntityId   = reader["HaEntityId"]?.ToString() ?? string.Empty,
+            DisplayLabel = NullString(reader["DisplayLabel"]),
+            IsActive     = reader["IsActive"] is not DBNull and not null && Convert.ToInt32(reader["IsActive"], CultureInfo.InvariantCulture) == 1,
+            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+        };
+    }
+
+    private static void AddTentSensorParameters(SqliteCommand command, TentSensor sensor)
+    {
+        command.Parameters.AddWithValue("$tentId", sensor.TentId);
+        command.Parameters.AddWithValue("$metricType", sensor.MetricType.ToString());
+        command.Parameters.AddWithValue("$haEntityId", sensor.HaEntityId);
+        command.Parameters.AddWithValue("$displayLabel", (object?)sensor.DisplayLabel ?? DBNull.Value);
+        command.Parameters.AddWithValue("$isActive", sensor.IsActive ? 1 : 0);
+        command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(sensor.CreatedAtUtc));
+        command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(sensor.UpdatedAtUtc));
     }
 
     private static void AddGrowParameters(SqliteCommand command, GrowRun grow)
