@@ -158,3 +158,51 @@ public enum GrowEntryPoint
     Flower,
     Flush
 }
+
+public enum TentType
+{
+    Production,
+    Mother,
+    Quarantine,
+    Propagation,
+    MultiPurpose
+}
+
+public enum SensorMetricType
+{
+    AirTemperature,
+    Humidity,
+    Vpd,
+    Co2,
+    Ppfd,
+    LightStatus,
+    ReservoirPh,
+    ReservoirEc,
+    ReservoirOrp,
+    ReservoirDissolvedOxygen,
+    ReservoirWaterTemp,
+    ReservoirLevel,
+    PumpCirculation,
+    PumpAir,
+    Chiller,
+    UpsBattery,
+    UpsStatus
+}
+
+public enum LightControllerType
+{
+    AcInfinityPro69,
+    AcInfinityCloudline,
+    GenericRelay,
+    Manual,
+    Other
+}
+
+public enum HvacControllerType
+{
+    AcInfinityPro69,
+    AcInfinityCloudline,
+    GenericRelay,
+    Manual,
+    Other
+}
