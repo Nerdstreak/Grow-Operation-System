@@ -118,6 +118,7 @@ export interface PhotoAssetDto {
 
 export interface GrowDetail {
   id: number
+  systemId: number | null
   name: string
   strain: string | null
   breeder: string | null

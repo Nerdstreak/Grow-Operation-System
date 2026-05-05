@@ -50,10 +50,6 @@ function TentsPage() {
 
   return (
     <>
-      <div className="topbar">
-        <span className="topbar-title">Zelte</span>
-      </div>
-
       <div className="page-scroll">
         {error && (
           <div className="alert-bar" style={{ marginBottom: 14 }}>
@@ -71,13 +67,12 @@ function TentsPage() {
         {loading ? (
           <div className="empty-hint">Lade Zelte...</div>
         ) : tents.length === 0 ? (
-          <div className="empty-hint">Keine Zelte gefunden.</div>
+          <div className="empty-hint">Keine aktiven Zelte.</div>
         ) : (
           <div className="tents-grid">
             {tents.map((tent) => {
               const live = liveByTentId[tent.id]
               const metrics = live?.metrics.slice(0, 6) ?? []
-              const linkedGrow = tent.activeGrowCount > 0 ? tent.activeGrowCount : null
 
               return (
                 <Link key={tent.id} to={`/zelte/${tent.id}`} className="tent-card" style={{ textDecoration: 'none', display: 'block' }}>
@@ -108,10 +103,6 @@ function TentsPage() {
 
                   <div className="tc-footer">
                     <span className="tc-meta">{tent.activeGrowCount} aktive Grows</span>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <span className="tc-open-btn">Details</span>
-                      {linkedGrow ? <span className="tc-open-btn">Live</span> : null}
-                    </div>
                   </div>
                 </Link>
               )
