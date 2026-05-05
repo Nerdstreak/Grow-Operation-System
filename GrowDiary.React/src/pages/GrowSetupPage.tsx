@@ -285,7 +285,7 @@ function mapGrowToPayload(grow: GrowDetail): GrowUpsertPayload {
     templateId: null,
     name: grow.name,
     tentId: grow.tentId,
-    systemId: null,
+    systemId: grow.systemId,
     strain: grow.strain,
     breeder: grow.breeder,
     seedType: grow.seedType,

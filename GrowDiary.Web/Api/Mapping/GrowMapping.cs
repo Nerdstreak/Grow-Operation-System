@@ -33,6 +33,7 @@ public static class GrowMapping
 
     public static GrowDetailDto ToDetailDto(this GrowRun grow) => new(
         Id: grow.Id,
+        SystemId: grow.SystemId,
         Name: grow.Name,
         Strain: grow.Strain,
         Breeder: grow.Breeder,
