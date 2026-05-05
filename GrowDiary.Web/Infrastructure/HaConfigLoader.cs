@@ -68,26 +68,13 @@ public static class HaConfigLoader
                     tentsByName[name] = tent;
                 }
 
-                if (!tentEl.TryGetProperty("entities", out var entities))
+                // TODO Sprint B1b: TentSensor-Einträge aus ha-config.json laden
+                // (entities-Block wird künftig als TentSensor-Liste persistiert)
+                if (tentEl.TryGetProperty("entities", out var entities))
                 {
-                    continue;
+                    string? Get(string key) => entities.TryGetProperty(key, out var value) ? value.GetString() : null;
+                    tent.CameraEntityId = Get("camera") ?? tent.CameraEntityId;
                 }
-
-                string? Get(string key) => entities.TryGetProperty(key, out var value) ? value.GetString() : null;
-
-                tent.TemperatureEntityId = Get("temperature") ?? tent.TemperatureEntityId;
-                tent.HumidityEntityId = Get("humidity") ?? tent.HumidityEntityId;
-                tent.VpdEntityId = Get("vpd") ?? tent.VpdEntityId;
-                tent.LightEntityId = Get("light") ?? tent.LightEntityId;
-                tent.CameraEntityId = Get("camera") ?? tent.CameraEntityId;
-                tent.ReservoirPhEntityId = Get("reservoirPh") ?? tent.ReservoirPhEntityId;
-                tent.ReservoirEcEntityId = Get("reservoirEc") ?? tent.ReservoirEcEntityId;
-                tent.ReservoirLevelEntityId = Get("reservoirLevel") ?? tent.ReservoirLevelEntityId;
-                tent.ReservoirTempEntityId = Get("reservoirTemp") ?? tent.ReservoirTempEntityId;
-                tent.PpfdEntityId = Get("ppfd") ?? tent.PpfdEntityId;
-                tent.OrpEntityId = Get("orp") ?? tent.OrpEntityId;
-                tent.DissolvedOxygenEntityId = Get("dissolvedOxygen") ?? tent.DissolvedOxygenEntityId;
-                tent.Co2EntityId = Get("co2") ?? tent.Co2EntityId;
 
                 repository.UpdateTent(tent);
             }

@@ -141,34 +141,24 @@ public sealed class GrowRepository
             UPDATE Tents SET
                 Name = $name,
                 Kind = $kind,
+                TentType = $tentType,
                 Notes = $notes,
                 DisplayOrder = $displayOrder,
                 AccentColor = $accentColor,
-                TemperatureEntityId = $temperatureEntityId,
-                HumidityEntityId = $humidityEntityId,
-                VpdEntityId = $vpdEntityId,
-                ReservoirPhEntityId = $reservoirPhEntityId,
-                ReservoirEcEntityId = $reservoirEcEntityId,
-                ReservoirLevelEntityId = $reservoirLevelEntityId,
-                ReservoirTempEntityId = $reservoirTempEntityId,
-                OrpEntityId = $orpEntityId,
-                DissolvedOxygenEntityId = $dissolvedOxygenEntityId,
-                Co2EntityId = $co2EntityId,
-                LightEntityId = $lightEntityId,
-                CameraEntityId = $cameraEntityId,
-                LightCycle = $lightCycle,
-                PpfdEntityId = $ppfdEntityId,
-                PpfdTarget = $ppfdTarget,
                 WidthCm = $widthCm,
                 DepthCm = $depthCm,
                 TentHeightCm = $tentHeightCm,
                 LightType = $lightType,
                 LightWatt = $lightWatt,
+                LightController = $lightController,
+                LightControllerEntityId = $lightControllerEntityId,
                 ExhaustFanCount = $exhaustFanCount,
                 ExhaustM3h = $exhaustM3h,
                 CirculationFanCount = $circulationFanCount,
-                Co2Type = $co2Type,
-                Co2TargetPpm = $co2TargetPpm
+                HvacController = $hvacController,
+                HvacControllerEntityId = $hvacControllerEntityId,
+                Co2Available = $co2Available,
+                CameraEntityId = $cameraEntityId
             WHERE Id = $id;
         """;
         AddTentParameters(command, tent);
@@ -982,34 +972,24 @@ public sealed class GrowRepository
             Id = Convert.ToInt32((long)reader["Id"]),
             Name = reader["Name"]?.ToString() ?? string.Empty,
             Kind = reader["Kind"]?.ToString() ?? "Grow Tent",
+            TentType = ParseEnum(NullString(reader["TentType"]), TentType.MultiPurpose),
             Notes = NullString(reader["Notes"]),
             DisplayOrder = Convert.ToInt32(reader["DisplayOrder"], CultureInfo.InvariantCulture),
             AccentColor = reader["AccentColor"]?.ToString() ?? "#69b578",
-            TemperatureEntityId = NullString(reader["TemperatureEntityId"]),
-            HumidityEntityId = NullString(reader["HumidityEntityId"]),
-            VpdEntityId = NullString(reader["VpdEntityId"]),
-            ReservoirPhEntityId = NullString(reader["ReservoirPhEntityId"]),
-            ReservoirEcEntityId = NullString(reader["ReservoirEcEntityId"]),
-            ReservoirLevelEntityId = NullString(reader["ReservoirLevelEntityId"]),
-            ReservoirTempEntityId = NullString(reader["ReservoirTempEntityId"]),
-            OrpEntityId             = NullString(reader["OrpEntityId"]),
-            DissolvedOxygenEntityId = NullString(reader["DissolvedOxygenEntityId"]),
-            Co2EntityId             = NullString(reader["Co2EntityId"]),
-            LightEntityId = NullString(reader["LightEntityId"]),
-            CameraEntityId = NullString(reader["CameraEntityId"]),
-            LightCycle = NullString(reader["LightCycle"]),
-            PpfdEntityId = NullString(reader["PpfdEntityId"]),
-            PpfdTarget = NullString(reader["PpfdTarget"]),
             WidthCm             = reader["WidthCm"] is DBNull or null ? null : Convert.ToInt32(reader["WidthCm"], CultureInfo.InvariantCulture),
             DepthCm             = reader["DepthCm"] is DBNull or null ? null : Convert.ToInt32(reader["DepthCm"], CultureInfo.InvariantCulture),
             TentHeightCm        = reader["TentHeightCm"] is DBNull or null ? null : Convert.ToInt32(reader["TentHeightCm"], CultureInfo.InvariantCulture),
             LightType           = NullString(reader["LightType"]),
             LightWatt           = reader["LightWatt"] is DBNull or null ? null : Convert.ToInt32(reader["LightWatt"], CultureInfo.InvariantCulture),
+            LightController     = Enum.TryParse<LightControllerType>(NullString(reader["LightController"]), out var lc) ? lc : (LightControllerType?)null,
+            LightControllerEntityId = NullString(reader["LightControllerEntityId"]),
             ExhaustFanCount     = reader["ExhaustFanCount"] is DBNull or null ? null : Convert.ToInt32(reader["ExhaustFanCount"], CultureInfo.InvariantCulture),
             ExhaustM3h          = reader["ExhaustM3h"] is DBNull or null ? null : Convert.ToInt32(reader["ExhaustM3h"], CultureInfo.InvariantCulture),
             CirculationFanCount = reader["CirculationFanCount"] is DBNull or null ? null : Convert.ToInt32(reader["CirculationFanCount"], CultureInfo.InvariantCulture),
-            Co2Type             = NullString(reader["Co2Type"]),
-            Co2TargetPpm        = reader["Co2TargetPpm"] is DBNull or null ? null : Convert.ToInt32(reader["Co2TargetPpm"], CultureInfo.InvariantCulture),
+            HvacController      = Enum.TryParse<HvacControllerType>(NullString(reader["HvacController"]), out var hc) ? hc : (HvacControllerType?)null,
+            HvacControllerEntityId = NullString(reader["HvacControllerEntityId"]),
+            Co2Available        = reader["Co2Available"] is not DBNull and not null && Convert.ToInt32(reader["Co2Available"], CultureInfo.InvariantCulture) == 1,
+            CameraEntityId      = NullString(reader["CameraEntityId"]),
             ActiveGrowCount = reader["ActiveGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ActiveGrowCount"], CultureInfo.InvariantCulture),
             ArchivedGrowCount = reader["ArchivedGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ArchivedGrowCount"], CultureInfo.InvariantCulture)
         };
@@ -1128,34 +1108,24 @@ public sealed class GrowRepository
     {
         command.Parameters.AddWithValue("$name", tent.Name);
         command.Parameters.AddWithValue("$kind", tent.Kind);
+        command.Parameters.AddWithValue("$tentType", tent.TentType.ToString());
         command.Parameters.AddWithValue("$notes", (object?)tent.Notes ?? DBNull.Value);
         command.Parameters.AddWithValue("$displayOrder", tent.DisplayOrder);
         command.Parameters.AddWithValue("$accentColor", tent.AccentColor);
-        command.Parameters.AddWithValue("$temperatureEntityId", (object?)tent.TemperatureEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$humidityEntityId", (object?)tent.HumidityEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$vpdEntityId", (object?)tent.VpdEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$reservoirPhEntityId", (object?)tent.ReservoirPhEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$reservoirEcEntityId", (object?)tent.ReservoirEcEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$reservoirLevelEntityId", (object?)tent.ReservoirLevelEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$reservoirTempEntityId", (object?)tent.ReservoirTempEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$orpEntityId", (object?)tent.OrpEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$dissolvedOxygenEntityId", (object?)tent.DissolvedOxygenEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$co2EntityId", (object?)tent.Co2EntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$lightEntityId", (object?)tent.LightEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$cameraEntityId", (object?)tent.CameraEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$lightCycle", (object?)tent.LightCycle ?? DBNull.Value);
-        command.Parameters.AddWithValue("$ppfdEntityId", (object?)tent.PpfdEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$ppfdTarget", (object?)tent.PpfdTarget ?? DBNull.Value);
         command.Parameters.AddWithValue("$widthCm", (object?)tent.WidthCm ?? DBNull.Value);
         command.Parameters.AddWithValue("$depthCm", (object?)tent.DepthCm ?? DBNull.Value);
         command.Parameters.AddWithValue("$tentHeightCm", (object?)tent.TentHeightCm ?? DBNull.Value);
         command.Parameters.AddWithValue("$lightType", (object?)tent.LightType ?? DBNull.Value);
         command.Parameters.AddWithValue("$lightWatt", (object?)tent.LightWatt ?? DBNull.Value);
+        command.Parameters.AddWithValue("$lightController", (object?)tent.LightController?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$lightControllerEntityId", (object?)tent.LightControllerEntityId ?? DBNull.Value);
         command.Parameters.AddWithValue("$exhaustFanCount", (object?)tent.ExhaustFanCount ?? DBNull.Value);
         command.Parameters.AddWithValue("$exhaustM3h", (object?)tent.ExhaustM3h ?? DBNull.Value);
         command.Parameters.AddWithValue("$circulationFanCount", (object?)tent.CirculationFanCount ?? DBNull.Value);
-        command.Parameters.AddWithValue("$co2Type", (object?)tent.Co2Type ?? DBNull.Value);
-        command.Parameters.AddWithValue("$co2TargetPpm", (object?)tent.Co2TargetPpm ?? DBNull.Value);
+        command.Parameters.AddWithValue("$hvacController", (object?)tent.HvacController?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$hvacControllerEntityId", (object?)tent.HvacControllerEntityId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$co2Available", tent.Co2Available ? 1 : 0);
+        command.Parameters.AddWithValue("$cameraEntityId", (object?)tent.CameraEntityId ?? DBNull.Value);
     }
 
     private static GrowSystem MapGrowSystem(SqliteDataReader reader)

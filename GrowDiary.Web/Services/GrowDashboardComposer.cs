@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using GrowDiary.Web.Models;
 using Microsoft.Extensions.Logging;
 
@@ -63,16 +62,16 @@ public sealed class GrowDashboardComposer
 
         var hasActiveHydro = tent.ActiveGrows.Any(g => g.IrrigationType == IrrigationType.ActiveHydro);
 
-        if (hasActiveHydro || !string.IsNullOrWhiteSpace(tent.ReservoirPhEntityId) || measurements.Any(m => m.ReservoirPh.HasValue))
+        if (hasActiveHydro || measurements.Any(m => m.ReservoirPh.HasValue))
             cards.Add(Build("pH", "reservoir-ph", m => m?.ReservoirPh));
 
-        if (hasActiveHydro || !string.IsNullOrWhiteSpace(tent.ReservoirEcEntityId) || measurements.Any(m => m.ReservoirEc.HasValue))
+        if (hasActiveHydro || measurements.Any(m => m.ReservoirEc.HasValue))
             cards.Add(Build("EC", "reservoir-ec", m => m?.ReservoirEc, explicitUnit: "mS/cm"));
 
-        if (hasActiveHydro || !string.IsNullOrWhiteSpace(tent.OrpEntityId) || measurements.Any(m => m.OrpMv.HasValue))
+        if (hasActiveHydro || measurements.Any(m => m.OrpMv.HasValue))
             cards.Add(Build("ORP", "orp", m => m?.OrpMv, explicitUnit: "mV"));
 
-        if (!string.IsNullOrWhiteSpace(tent.ReservoirLevelEntityId) || measurements.Any(m => m.ReservoirLevelLiters.HasValue || m.ReservoirLevelCm.HasValue))
+        if (measurements.Any(m => m.ReservoirLevelLiters.HasValue || m.ReservoirLevelCm.HasValue))
         {
             states.TryGetValue("reservoir-level", out var levelState);
             cards.Add(new MetricCard
@@ -87,7 +86,7 @@ public sealed class GrowDashboardComposer
             });
         }
 
-        if (hasActiveHydro || !string.IsNullOrWhiteSpace(tent.ReservoirTempEntityId) || measurements.Any(m => m.ReservoirWaterTempC.HasValue))
+        if (hasActiveHydro || measurements.Any(m => m.ReservoirWaterTempC.HasValue))
             cards.Add(Build("Wassertemp.", "reservoir-temp", m => m?.ReservoirWaterTempC, explicitUnit: "°C"));
 
         return cards;
@@ -295,11 +294,7 @@ public sealed class GrowDashboardComposer
             Label = "Lichtzyklus",
             Value = cycle ?? "–",
             Tone = "info",
-            Hint = !string.IsNullOrWhiteSpace(tent.LightCycle)
-                ? "Im Zelt-Setup hinterlegt"
-                : cycle is not null
-                    ? "Aus aktivem Run übernommen"
-                    : "Noch nicht gepflegt"
+            Hint = "Kein Lichtzyklus konfiguriert"
         };
     }
 
@@ -324,10 +319,10 @@ public sealed class GrowDashboardComposer
         {
             Key = "ppfd",
             Label = "PPFD",
-            Value = string.IsNullOrWhiteSpace(tent.PpfdTarget) ? "–" : tent.PpfdTarget,
-            Unit = string.IsNullOrWhiteSpace(tent.PpfdTarget) ? null : "µmol/m²/s",
+            Value = "–",
+            Unit = null,
             Tone = "accent",
-            Hint = string.IsNullOrWhiteSpace(tent.PpfdTarget) ? "Kein Sensor oder Zielwert hinterlegt" : "Hinterlegter Zielwert"
+            Hint = "Kein Sensor konfiguriert"
         };
     }
 
@@ -372,25 +367,7 @@ public sealed class GrowDashboardComposer
 
     private static string? ResolveLightCycle(Tent tent)
     {
-        if (!string.IsNullOrWhiteSpace(tent.LightCycle))
-        {
-            return tent.LightCycle.Trim();
-        }
-
-        foreach (var grow in tent.ActiveGrows)
-        {
-            if (string.IsNullOrWhiteSpace(grow.Light))
-            {
-                continue;
-            }
-
-            var match = Regex.Match(grow.Light, @"\b\d{1,2}\s*/\s*\d{1,2}\b");
-            if (match.Success)
-            {
-                return match.Value.Replace(" ", string.Empty);
-            }
-        }
-
+        // TODO Sprint B1b: LightCycle aus Setup/Phase laden
         return null;
     }
 }
