@@ -28,6 +28,16 @@ public sealed class JournalRepository
         return items;
     }
 
+    public JournalEntry? Get(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM JournalEntries WHERE Id = $id LIMIT 1;";
+        command.Parameters.AddWithValue("$id", id);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? Map(reader) : null;
+    }
+
     public int Create(JournalEntry entry)
     {
         entry.CreatedAtUtc = DateTime.UtcNow;

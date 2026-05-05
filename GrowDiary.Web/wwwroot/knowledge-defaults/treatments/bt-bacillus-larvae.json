@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0",
+  "id": "bt-bacillus-larvae",
+  "name": "Bacillus thuringiensis (BT) gegen Larven",
+  "type": "ReservoirAddition",
+  "targetSymptoms": [
+    "fungus-gnat-larvae",
+    "thrips-larvae"
+  ],
+  "dosage": {
+    "standard": "BT israelensis (BTi): 1–2 ml/L Gießwasser oder Reservoir (produktabhängig)",
+    "severe": null,
+    "context": "BTi (Israelensis-Stamm) wirkt spezifisch gegen Diptera-Larven (Trauermücken). Nicht gegen adulte Insekten wirksam."
+  },
+  "application": {
+    "method": "In Gießwasser oder direkt ins Reservoir — lebende Bakterien müssen aktiv sein",
+    "timing": "Bei Larvensichtung oder als Prävention in Keimungs-/Stecklingsphase",
+    "frequency": "alle 7–10 Tage",
+    "durationStandard": "3–4 Behandlungen bis Zyklus unterbrochen",
+    "durationSevere": null
+  },
+  "restrictions": [
+    "Produkt auf BTi-Stamm (israelensis) prüfen — nicht alle BT-Produkte wirken auf Trauermücken",
+    "Nicht mit Chlor-haltigen Substanzen mischen",
+    "Im Kühlschrank lagern — lebende Bakterien"
+  ],
+  "conflicts": [
+    {
+      "with": "hocl-orp-boost-standard",
+      "reason": "HOCl tötet BT-Bakterien sofort ab",
+      "minimumGapHours": 48
+    },
+    {
+      "with": "h2o2-do-emergency",
+      "reason": "H2O2 tötet BT-Bakterien ab",
+      "minimumGapHours": 48
+    }
+  ],
+  "phaseFilter": {
+    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower"],
+    "blocked": ["Finish", "Dry", "Cure"],
+    "blockAfterFlowerWeek": null
+  },
+  "hardwareRequirements": [],
+  "sources": [
+    {
+      "type": "Research",
+      "title": "Bacillus thuringiensis israelensis — Efficacy against Fungus Gnat Larvae",
+      "reference": "Systematische Wirksamkeit BTi gegen Bradysia spp.",
+      "url": null,
+      "credibility": "High"
+    },
+    {
+      "type": "Community",
+      "title": "r/microgrowery — BTi for fungus gnats in hydro",
+      "reference": "Community-Erfahrungen mit BTi in RDWC/DWC",
+      "url": null,
+      "credibility": "Medium"
+    }
+  ],
+  "difficulty": "Easy",
+  "expectedTimeToEffect": "Larvenpopulation sinkt nach 5–7 Tagen",
+  "tags": [
+    "ipm",
+    "biological",
+    "bt",
+    "fungus-gnats",
+    "larvae",
+    "thrips"
+  ]
+}

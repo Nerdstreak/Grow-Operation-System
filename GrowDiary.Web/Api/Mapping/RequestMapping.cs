@@ -128,6 +128,35 @@ public static class RequestMapping
         CameraEntityId = Normalize(request.CameraEntityId)
     };
 
+    public static List<TentSensor> ToSensors(this UpdateTentRequest request, int tentId)
+        => (request.Sensors ?? [])
+            .Select(sensor =>
+            {
+                if (!Enum.TryParse<SensorMetricType>(sensor.MetricType, out var metricType))
+                {
+                    return null;
+                }
+
+                var haEntityId = Normalize(sensor.HaEntityId);
+                var displayLabel = Normalize(sensor.DisplayLabel);
+
+                return new TentSensor
+                {
+                    Id = sensor.Id,
+                    TentId = tentId,
+                    MetricType = metricType,
+                    HaEntityId = haEntityId ?? string.Empty,
+                    DisplayLabel = displayLabel,
+                    IsActive = sensor.IsActive
+                };
+            })
+            .Where(sensor => sensor is not null)
+            .Select(sensor => sensor!)
+            .GroupBy(sensor => sensor.MetricType)
+            .Select(group => group.Last())
+            .Where(sensor => !string.IsNullOrWhiteSpace(sensor.HaEntityId) || !string.IsNullOrWhiteSpace(sensor.DisplayLabel) || sensor.IsActive)
+            .ToList();
+
     private static string? Normalize(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

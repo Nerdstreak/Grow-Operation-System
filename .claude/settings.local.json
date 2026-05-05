@@ -47,7 +47,18 @@
       "mcp__plugin_chrome-devtools-mcp_chrome-devtools__get_console_message",
       "mcp__plugin_chrome-devtools-mcp_chrome-devtools__list_network_requests",
       "mcp__plugin_chrome-devtools-mcp_chrome-devtools__resize_page",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5076/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5076/)",
+      "Bash(grep -E \"\\\\.\\(md|txt\\)$\")",
+      "Bash(npm run *)",
+      "Bash(echo \"PID: $!\")",
+      "PowerShell(Stop-Process *)",
+      "Bash(mkdir -p \"D:/Grow Operation System new/GrowDiary.Web/wwwroot/docs\")",
+      "Bash(cp \"RDWC Wissen/Easy Grow Guide rootinn_pdf.pdf\" \"GrowDiary.Web/wwwroot/docs/rootinn-easy-grow-guide.pdf\")",
+      "Bash(cp \"RDWC Wissen/EN - RDWC Growplan by SKX - Athena Blended Rev.01.pdf\" \"GrowDiary.Web/wwwroot/docs/athena-blended-rev01-en.pdf\")",
+      "Bash(cp \"RDWC Wissen/Häufige Anfängerfehler und Risikomanagement im RDWC-System.pdf\" \"GrowDiary.Web/wwwroot/docs/common-mistakes-rdwc.pdf\")",
+      "Bash(cp \"RDWC Wissen/Manueller Addback in Hydroponik - Präzise & Logisch Erklärt.pdf\" \"GrowDiary.Web/wwwroot/docs/manual-addback-hydroponik.pdf\")",
+      "Bash(python3 -c ' *)",
+      "Bash(node -e ' *)"
     ]
   },
   "enabledPlugins": {

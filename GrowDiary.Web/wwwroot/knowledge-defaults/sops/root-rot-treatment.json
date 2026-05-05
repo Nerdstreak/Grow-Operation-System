@@ -1,0 +1,171 @@
+{
+  "schemaVersion": "1.0",
+  "id": "root-rot-treatment",
+  "name": "Wurzelfäule-Behandlung (14 Tage)",
+  "type": "MultiDay",
+  "durationDays": 14,
+  "estimatedDurationMinutes": 45,
+  "applicableSetups": ["RDWC", "DWC"],
+  "triggers": [
+    {
+      "type": "Symptom",
+      "symptomTags": [
+        "root-rot-detected",
+        "root-rot-active",
+        "brown-roots-slimy",
+        "foul-water-smell"
+      ]
+    },
+    { "type": "UserInitiated" }
+  ],
+  "requiredMaterials": [
+    "Sterile Schere",
+    "HOCl-Lösung (300–500 ppm)",
+    "H2O2 12% oder 35% (Lebensmittelqualität)",
+    "Quarantänebehälter mit Deckel",
+    "Luftpumpe + Luftsteine für Quarantänebehälter",
+    "Enzympräparat (Cannazym, Sensizym o.ä.)",
+    "pH/EC/ORP/DO-Messgeräte"
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "order": 1,
+      "title": "Tag 0 — Symptom-Dokumentation",
+      "stepType": "Photo",
+      "description": "Wurzeln fotografieren (durch oder unter dem Netztopf). Farbe, Schleim und Geruch dokumentieren.",
+      "photoRequired": true,
+      "photoRecommended": true
+    },
+    {
+      "id": "s2",
+      "order": 2,
+      "title": "Tag 0 — Initial-Messung",
+      "stepType": "Measurement",
+      "description": "Baseline-Messung. DO < 4 mg/L bestätigt oft Wurzelfäule. Wassertemperatur > 22°C weist auf Pythium-Risiko hin.",
+      "expectedInputs": ["ph", "ec", "orp", "do", "waterTemp"],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s3",
+      "order": 3,
+      "title": "Tag 1 — Pflanze isolieren",
+      "stepType": "Action",
+      "description": "Befallene Pflanze in vorbereiteten Quarantänebehälter mit belüfteter Lösung umsetzen.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s4",
+      "order": 4,
+      "title": "Tag 1 — Sterile Wurzelpflege",
+      "stepType": "Action",
+      "description": "Braune, schleimige Wurzelabschnitte mit steriler Schere abschneiden. Saubere Wurzelenden nicht beschädigen.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s5",
+      "order": 5,
+      "title": "Tag 1 — HOCl-Bad",
+      "stepType": "Action",
+      "description": "Verbleibende Wurzeln 5–10 Min in HOCl-Lösung (300–500 ppm) baden.",
+      "waitMinutes": 8,
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s6",
+      "order": 6,
+      "title": "Tag 1 — Hauptsystem H2O2-Behandlung",
+      "stepType": "Action",
+      "description": "H2O2 12% → 1 ml/L im Hauptsystem. Nur bei akutem Befall — H2O2 schädigt Wurzelhärchen. Treatment: h2o2-do-emergency.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s7",
+      "order": 7,
+      "title": "Tag 2 — Wurzelinspektion",
+      "stepType": "Photo",
+      "description": "Sind weiße neue Wurzelspitzen sichtbar? Dokumentieren für Vergleich.",
+      "photoRequired": false,
+      "photoRecommended": true
+    },
+    {
+      "id": "s8",
+      "order": 8,
+      "title": "Tag 2 — Messung",
+      "stepType": "Measurement",
+      "description": "Tageswerte aufnehmen.",
+      "expectedInputs": ["ph", "ec", "orp", "do"],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s9",
+      "order": 9,
+      "title": "Tag 2 — ORP-Boost",
+      "stepType": "Action",
+      "description": "HOCl im Hauptsystem auf ORP 500 mV halten. Kein Dünger, nur RO + HOCl.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s10",
+      "order": 10,
+      "title": "Tag 3 — Erfolgs-Check",
+      "stepType": "Confirmation",
+      "description": "Weiße neue Wurzeln sichtbar? Ja → weiter mit Schritt 11. Nein → SOP von vorne oder Pflanzenverlust akzeptieren.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s11",
+      "order": 11,
+      "title": "Tag 3 — Schwache Nährstofflösung",
+      "stepType": "Action",
+      "description": "50% der normalen NSL ansetzen. Mischreihenfolge einhalten (mixing-order-rdwc-ro mit halben Dosen).",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s12",
+      "order": 12,
+      "title": "Tag 3 — Enzympräparat hinzufügen",
+      "stepType": "Action",
+      "description": "Cannazym oder Sensizym nach Herstellerdosis zugeben. Enzyme bauen abgestorbenes Wurzelmaterial ab.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s13",
+      "order": 13,
+      "title": "Tag 4–7 — Tägliche Inspektion",
+      "stepType": "Photo",
+      "description": "Täglichen Wurzelfortschritt fotografisch dokumentieren. EC schrittweise in 0,2er-Schritten auf Normalwert erhöhen.",
+      "photoRequired": false,
+      "photoRecommended": true
+    },
+    {
+      "id": "s14",
+      "order": 14,
+      "title": "Tag 8–14 — Reduzierte Inspektion und Final-Check",
+      "stepType": "Measurement",
+      "description": "Alle 2–3 Tage Wurzel-Sichtcheck. Bei DO und ORP über 7 Tage stabil → SOP beenden. Bei Rückfall SOP neu starten.",
+      "expectedInputs": ["ph", "ec", "orp", "do"],
+      "photoRequired": false,
+      "photoRecommended": false
+    }
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
+      "reference": "Komplette Behandlung 14 Tage",
+      "url": "/docs/sop-root-rot-treatment-de.pdf",
+      "credibility": "High"
+    }
+  ]
+}

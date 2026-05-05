@@ -136,6 +136,39 @@ public sealed class TentRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void ReplaceTentSensors_ReplacesExistingSet()
+    {
+        var repo = Repo();
+        var tent = repo.GetTents().First();
+
+        repo.AddTentSensor(new TentSensor
+        {
+            TentId = tent.Id,
+            MetricType = SensorMetricType.AirTemperature,
+            HaEntityId = "sensor.temp_old",
+            IsActive = true
+        });
+
+        repo.ReplaceTentSensors(tent.Id, new[]
+        {
+            new TentSensor
+            {
+                TentId = tent.Id,
+                MetricType = SensorMetricType.Humidity,
+                HaEntityId = "sensor.humidity_new",
+                DisplayLabel = "RH",
+                IsActive = true
+            }
+        });
+
+        var sensors = repo.GetTentSensors(tent.Id);
+        Assert.Single(sensors);
+        Assert.Equal(SensorMetricType.Humidity, sensors[0].MetricType);
+        Assert.Equal("sensor.humidity_new", sensors[0].HaEntityId);
+        Assert.Equal("RH", sensors[0].DisplayLabel);
+    }
+
+    [Fact]
     public void GetTentSensorByMetric_ReturnsNullWhenMissing()
     {
         var repo = Repo();

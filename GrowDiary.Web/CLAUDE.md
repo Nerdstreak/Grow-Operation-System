@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with code in this repository.
 
 ## Commands
 
@@ -8,62 +8,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Restore dependencies
 dotnet restore
 
-# Build
-dotnet build
+# Build backend
+dotnet build GrowDiary.Web/GrowDiary.Web.csproj
 
-# Run (development, auto-opens browser at http://localhost:5076)
-dotnet run
+# Run backend
+dotnet run --project GrowDiary.Web/GrowDiary.Web.csproj
 
-# Run with a custom database path
-GROWDIARY_DB_PATH="/path/to/grow.db" dotnet run
-
-# Publish for production
-dotnet publish -c Release
+# Run tests
+dotnet test GrowDiary.Web.Tests/GrowDiary.Web.Tests.csproj
 ```
 
-There are no tests or linting tools configured.
+For the React frontend:
+
+```bash
+cd GrowDiary.React
+npm install
+npm run build
+```
+
+The React build writes its output into `GrowDiary.Web/wwwroot`.
 
 ## Architecture
 
-**GrowDiary.Web** is an ASP.NET Core 8 MVC application for tracking cannabis grows with optional Home Assistant sensor integration. It uses SQLite (`App_Data/grow-diary.db`, WAL mode) with a single NuGet dependency: `Microsoft.Data.Sqlite`.
+**GrowDiary.Web** is an ASP.NET Core 8 application that exposes JSON APIs and serves the built React SPA from `wwwroot`. The active runtime path is React `-> /api/* -> services/repositories -> SQLite`.
 
 ### Layer structure
 
-- **Controllers** — orchestrate requests, build view models, return views or JSON
-- **ViewModels** — per-page/action DTOs assembled by service composers
-- **Services** — all business logic; never touch the DB directly
-- **Infrastructure/** — raw ADO.NET repositories over SQLite; no ORM
-- **Models/** — domain entities matching DB tables
+- **Api/Controllers** - JSON endpoints for the React frontend
+- **Api/Contracts** - request and response DTOs
+- **Api/Mapping** - translation between DTOs, form models, and domain models
+- **Services/** - business logic, dashboard composition, recommendations, background workers
+- **Infrastructure/** - raw ADO.NET repositories over SQLite; no ORM
+- **Models/** - domain entities matching the persisted data model
 
 ### Key services
 
 | Service | Role |
 |---|---|
-| `HomeAssistantService` | HTTP client for HA REST API; fetches entity states, handles auth, degrades gracefully if offline |
-| `GrowDashboardComposer` | Assembles the home dashboard view model from HA live data + fallback measurements |
-| `TimelineComposer` | Merges measurements, journal entries, tasks, and photos into a chronological timeline |
-| `RecommendationEngine` | Produces contextual grow advice based on medium (soil/coco/hydro), stage, and nutrient program |
-| `CultivationKnowledgeService` | In-memory knowledge base of nutrient programs (Athena, HESI, GHF, etc.) and medium playbooks |
-| `MeasurementSanityService` | Stage-aware sanity checks on pH, EC, temperature, humidity; returns severity-rated alerts |
-| `HomeAssistantSnapshotWorker` | Background `IHostedService`; polls HA every 5 min and stores one daily snapshot per sensor |
-| `ChartService` | Formats time-series data for front-end charting |
+| `HomeAssistantService` | HTTP client for Home Assistant REST API; fetches configured tent sensor states and degrades gracefully if HA is unavailable |
+| `GrowDashboardComposer` | Builds the live home and tent dashboard payload from HA data plus repository fallbacks |
+| `RecommendationEngine` | Produces contextual grow advice from stage, measurements, and target values |
+| `TargetValueService` | Resolves profile- and stage-specific target ranges |
+| `DeviationAnalyzerService` | Evaluates measurements against targets and emits findings |
+| `CultivationKnowledgeService` | Serves the in-app knowledge base content |
+| `HomeAssistantSnapshotWorker` | Background worker that polls configured tent sensors and stores daily snapshots |
 
 ### Database schema highlights
 
-- **Grows**: tracks medium (Soil/Coco/Hydro), feeding (Organic/Mineral/None), hydro style (DWC/RDWC/NFT/…), environment, and stage (Seedling → Cure)
-- **Measurements**: covers both air metrics (temp/humidity) and hydro metrics (irrigation/drain/reservoir pH, EC, DO, ORP, reservoir level)
-- **Tents**: each tent stores HA entity ID mappings for 9+ sensor types plus light cycle config
-- **TentSensorSnapshots**: keeps the latest 18 daily snapshots per metric per tent for historical charts
-- **AppSettings**: key-value store for all runtime configuration (HA URL, token, etc.)
+- **Grows**: grow setup, timing, status, tent assignment, and profile metadata
+- **Measurements**: air, reservoir, irrigation, drain, and lighting-related metrics
+- **Tents**: tent identity, hardware metadata, sizing, camera, and device context
+- **TentSensors**: per-tent sensor mappings with metric type, entity id, label, and active flag
+- **TentSensorSnapshots**: historical live data snapshots for charts
+- **AppSettings**: runtime configuration such as Home Assistant URL and token
 
 ### Database initialization
 
-`DatabaseInitializer.Initialize()` runs on startup and handles everything: table creation, `EnsureColumn()` calls for additive migrations, seeding default tents ("Hauptzelt", "Anzuchtzelt") and grow templates, and heuristic auto-assignment of legacy grows to tents. There is no migration framework — schema evolution is done by adding `EnsureColumn()` calls.
+`DatabaseInitializer.Initialize()` runs on startup and handles table creation, additive schema upgrades, default content seeding, and knowledge-base bootstrapping. There is no separate migration framework; schema evolution is implemented in code.
 
 ### Home Assistant integration
 
-All HA config (URL, token, per-tent entity IDs) lives in the `AppSettings` and `Tents` tables — nothing is hardcoded. The app is fully functional without HA configured; it falls back to manually entered measurements everywhere.
+Home Assistant connection settings live in `AppSettings`. Sensor mappings live on each tent via the `TentSensors` table and are edited through the React settings flow. The app remains usable without HA; manual measurements still drive core grow tracking.
+
+### Frontend
+
+`GrowDiary.React` is the source frontend. Vite builds directly into `GrowDiary.Web/wwwroot`, and ASP.NET Core serves the resulting SPA with `MapFallbackToFile("index.html")`.
+
+### Testing
+
+Backend tests are in `GrowDiary.Web.Tests` and cover repositories, schema behavior, services, recommendations, and Home Assistant-related flows. There is no separate frontend test suite configured at the moment; frontend validation is currently based on TypeScript compilation and Vite production builds.
 
 ### Localization
 
-All UI text, labels, recommendations, and knowledge base content are in **German**.
+The product UI and most domain content are primarily German.

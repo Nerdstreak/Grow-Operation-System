@@ -13,12 +13,27 @@ public sealed class TaskRepository
         _paths = paths;
     }
 
-    public List<GrowTask> GetOpenForGrow(int growId)
+    public List<GrowTask> GetOpenForGrow(int growId) => GetForGrow(growId, GrowTaskStatus.Open);
+
+    public List<GrowTask> GetForGrow(int growId, GrowTaskStatus? status = null)
     {
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT gt.*, g.Name AS GrowName FROM GrowTasks gt LEFT JOIN Grows g ON g.Id = gt.GrowId WHERE gt.GrowId = $growId AND gt.Status = 'Open' ORDER BY CASE gt.Priority WHEN 'Critical' THEN 0 WHEN 'High' THEN 1 WHEN 'Normal' THEN 2 ELSE 3 END, gt.DueAtUtc, gt.Id DESC;";
+        var filter = status.HasValue ? "AND gt.Status = $status" : string.Empty;
+        // Open tasks sort by priority; all tasks sort by recency
+        var order = status == GrowTaskStatus.Open
+            ? "ORDER BY CASE gt.Priority WHEN 'Critical' THEN 0 WHEN 'High' THEN 1 WHEN 'Normal' THEN 2 ELSE 3 END, gt.DueAtUtc, gt.Id DESC"
+            : "ORDER BY COALESCE(gt.CompletedAtUtc, gt.DueAtUtc, gt.CreatedAtUtc) DESC, gt.Id DESC";
+        command.CommandText = $"""
+            SELECT gt.*, g.Name AS GrowName
+            FROM GrowTasks gt
+            LEFT JOIN Grows g ON g.Id = gt.GrowId
+            WHERE gt.GrowId = $growId {filter}
+            {order};
+        """;
         command.Parameters.AddWithValue("$growId", growId);
+        if (status.HasValue)
+            command.Parameters.AddWithValue("$status", status.Value.ToString());
         return ReadTasks(command);
     }
 

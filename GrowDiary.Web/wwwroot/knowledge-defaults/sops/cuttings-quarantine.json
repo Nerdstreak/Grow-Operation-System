@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "1.0",
+  "id": "cuttings-quarantine",
+  "name": "Stecklingsquarantäne (7–21 Tage)",
+  "type": "MultiDay",
+  "durationDays": 7,
+  "estimatedDurationMinutes": 25,
+  "applicableSetups": ["Quarantine"],
+  "triggers": [
+    { "type": "UserInitiated" }
+  ],
+  "requiredMaterials": [
+    "HOCl-Lösung 750 ppm",
+    "IPM-Produkte (Athena IPM, Neemöl oder EM)",
+    "Wurzelstimulator (Clonex, Rhizopon oder Aloe vera)",
+    "Fulvosäure (1 ml/L)",
+    "Kaliumsilikat (0,5 ml/L)",
+    "Quarantänebehälter mit Deckel",
+    "Luftpumpe + Luftsteine",
+    "Sprühflasche",
+    "pH/EC/DO-Messgeräte"
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "order": 1,
+      "title": "Tag 0 — Materialien bereitstellen",
+      "stepType": "Action",
+      "description": "Alle Materialien vorbereiten. Quarantänebehälter und Werkzeuge desinfizieren.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s2",
+      "order": 2,
+      "title": "Tag 0 — Arbeitsbereich desinfizieren",
+      "stepType": "Action",
+      "description": "Arbeitsfläche mit HOCl oder Alkohol desinfizieren. Schutzkleidung (Handschuhe) anlegen.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s3",
+      "order": 3,
+      "title": "Tag 1 — Wurzelwäsche",
+      "stepType": "Action",
+      "description": "Wurzeln der eingehenden Stecklinge mit RO-Wasser + HOCl 750 ppm waschen. Erde/Substrat-Reste entfernen.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s4",
+      "order": 4,
+      "title": "Tag 1 — IPM-Behandlung",
+      "stepType": "Action",
+      "description": "Stecklinge mit IPM-Produkt (Athena IPM oder Neemöl-Lösung) besprühen. Ober- und Unterseite der Blätter benetzen.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s5",
+      "order": 5,
+      "title": "Tag 1 — Wurzelstimulator anwenden",
+      "stepType": "Action",
+      "description": "Clonex oder Rhizopon auf Schnittstellen auftragen. Alternativ: Aloe-vera-Gel.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s6",
+      "order": 6,
+      "title": "Tag 1 — Stecklinge in Quarantänebehälter",
+      "stepType": "Action",
+      "description": "Stecklinge in vorbereiteten Quarantänebehälter einsetzen. Erste Lösung: pH 5,8–6,0 / EC 0,4–0,6 / DO > 6 mg/L / HOCl 2 ml/L. Kein Dünger.",
+      "expectedInputs": ["ph", "ec", "do"],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s7",
+      "order": 7,
+      "title": "Tag 2–3 — Klima einrichten",
+      "stepType": "Action",
+      "description": "Temperatur 20–22°C, relative Luftfeuchtigkeit 80–85%, Licht 18/6 bei 80–120 PPFD.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s8",
+      "order": 8,
+      "title": "Tag 3 — Fulvosäure zugeben",
+      "stepType": "Action",
+      "description": "Fulvosäure 1 ml/L zur Lösung geben. Fördert Zellregeneration und Nährstoffaufnahme.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s9",
+      "order": 9,
+      "title": "Tag 3 — Kaliumsilikat zugeben",
+      "stepType": "Action",
+      "description": "Kaliumsilikat 0,5 ml/L — mindestens 6–12 Stunden nach Fulvosäure zugeben. Nicht direkt kombinieren.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s10",
+      "order": 10,
+      "title": "Tag 3–7 — Lösung alle 48h wechseln",
+      "stepType": "Action",
+      "description": "Lösung alle 48 Stunden vollständig erneuern. pH 5,8–6,0 halten. Tägliche Sichtkontrolle auf Schimmel, Verfärbungen und Wurzelwachstum.",
+      "photoRequired": false,
+      "photoRecommended": true
+    },
+    {
+      "id": "s11",
+      "order": 11,
+      "title": "Tag 7–14 — Klima schrittweise anpassen",
+      "stepType": "Action",
+      "description": "RH schrittweise von 80% auf 65% senken. Lichtintensität von 80 auf 120 PPFD erhöhen. EC erhöhen (0,6 → 1,0) wenn Wurzelwachstum gut.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s12",
+      "order": 12,
+      "title": "Tag 7+ — Freigabe-Check",
+      "stepType": "Confirmation",
+      "description": "Erfolgskriterien: (a) Weiße faserige Wurzeln vorhanden? (b) Keine Verfärbungen an Blättern? (c) Mindestdauer 7 Tage erreicht? Bei Ja → Pflanze bereit für Hauptsystem. Bei Nein → bis Tag 14 verlängern.",
+      "photoRequired": false,
+      "photoRecommended": true
+    }
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-C1: Behandlung und Quarantäne von Stecklingen",
+      "reference": "Komplette SOP Phasen 1–4",
+      "url": "/docs/sop-quarantine-cuttings-rev01.pdf",
+      "credibility": "High"
+    }
+  ]
+}

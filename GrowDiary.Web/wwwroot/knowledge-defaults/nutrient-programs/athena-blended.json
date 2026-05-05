@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0",
+  "id": "athena",
+  "name": "Athena Blended",
+  "manufacturer": "Athena",
+  "category": "Mineralisch • RDWC/DWC/Coco",
+  "summary": "Athena Blended muss nach Systemtyp gelesen werden: Coco/Fertigation kann recht aggressiv gefahren werden, dein RDWC-Material und Athenas eigene RDWC-Prozedur sind für rezirkulierendes Hydro aber bewusst konservativer und trendbasiert aufgebaut.",
+  "bestFor": "Coco/Fertigation, Rockwool, saubere RDWC/DWC-Systeme mit RO/VE-Wasser",
+  "waterGuidance": "Für RDWC sauber mit RO/VE-Wasser starten, wöchentlich Changeouts einplanen, Addbacks dokumentieren und Wasserstand plus EC/pH gemeinsam lesen.",
+  "phGuidance": "RDWC-Zielbereich 5,8–6,2. Laut SKX-/Athena-Material erst hart korrigieren, wenn du Richtung 5,5 oder 6,5 driftest. In der späten Blüte darf der pH innerhalb der Safe-Zone natürlicher arbeiten.",
+  "ecGuidance": "Athena-Coco/Fertigation kann in Veg grob um 2,1 EC Input liegen. Im RDWC-Profil startet die Linie dagegen sehr niedrig und endet meist nur bei etwa 1,5–1,6 EC in der späten Blüte. DWC benötigt oft 30–70 % mehr EC als RDWC.",
+  "scheduleStyle": "A/B-Basen plus Addback-Logik, Changeout-Rhythmus und Cleanse/HOCl-Steuerung über ORP",
+  "officialHighlights": "Athena verweist offiziell auf Wasserqualität, Temperatur und Addback-Management als Haupttreiber für pH-/EC-Schwankungen. Das RDWC-Procedure arbeitet mit wöchentlichen Changeouts, einem separaten Addback-Prozess und phasenabhängig dosiertem Cleanse statt blindem Nachkippen.",
+  "practiceNotes": "Für RDWC nicht das fertigationartige Athena-Coco-Schema kopieren. Besser: konservatives Reservoir, tägliche Checks von pH/EC/Temp/ORP/DO, Addback dokumentieren und nur über Trends eskalieren.",
+  "stages": [
+    {
+      "stage": "Clone / frisch integriert",
+      "dose": "sehr sanfter Start",
+      "target": "EC ca. 0,2–0,4",
+      "notes": "Keine Transplantation in zu kaltes Wasser; System möglichst nicht unter ca. 18,9 °C."
+    },
+    {
+      "stage": "frühe Veg",
+      "dose": "A/B sehr konservativ",
+      "target": "EC ca. 0,3–0,6",
+      "notes": "Wurzeln etablieren, pH in der Safe-Zone lassen, nicht hektisch nachregeln."
+    },
+    {
+      "stage": "mittlere / späte Veg",
+      "dose": "A/B abgestuft erhöhen",
+      "target": "EC ca. 0,6–1,2",
+      "notes": "Nach 3 Veg-Wochen ist laut RDWC-Procedure ein Partial-Changeout ein klassischer Kontrollpunkt."
+    },
+    {
+      "stage": "Transition / Stretch",
+      "dose": "Bloom A/B einführen, Addback sauber lesen",
+      "target": "EC ca. 1,2–1,4",
+      "notes": "Bei längerer Veg vor dem Flip eher Full-Changeout einplanen."
+    },
+    {
+      "stage": "späte Blüte",
+      "dose": "stabil, nicht überziehen",
+      "target": "EC ca. 1,4–1,6",
+      "notes": "Strainabhängig: sativalastig oft 1,0–1,4, indica-lastig teils 1,4–1,8 tolerierbar."
+    },
+    {
+      "stage": "Finish",
+      "dose": "EC herunterfahren",
+      "target": "EC ca. 0,4–0,6",
+      "notes": "4–10 Tage Finish/Flush je nach Reifegrad und Ziel."
+    },
+    {
+      "stage": "Cleanse / HOCl",
+      "dose": "Initial / Changeout 10,6 mL pro 10 L; Veg W1 0,4; Veg W2-3 0,5; Veg W4 0,7; Flower/Finish 2,1 mL pro 10 L pro Tag",
+      "target": "ORP meist 350–450 mV",
+      "notes": "Nicht überdosieren: zu hoher ORP kann ORP-Schock mit gelblichem, trocken-krustigem Laub triggern."
+    }
+  ],
+  "tips": [
+    "RDWC mit Athena ist ein Trend-System: Wasserstand, pH und EC immer zusammen lesen, nicht isoliert.",
+    "Steigen pH und EC gleichzeitig, ist das laut Addback-Logik ein Stresssignal - nicht einfach weiter hochfüttern.",
+    "Wenn ORP unter 350 mV fällt, eher kleine HOCl-/Cleanse-Korrekturen und Re-Check nach 48 h statt Schockbehandlung.",
+    "HOCl und H2O2 nicht gleichzeitig fahren; die SOPs behandeln das ausdrücklich als schlechte Kombination.",
+    "DWC darf deutlich höher liegen als RDWC. Erst +30 % testen und nur bei echtem Hunger weiter steigern.",
+    "Wenn du Athena in RDWC fährst, ist die Systemart wichtiger als der Markenname: RDWC ≠ Coco-Chart.",
+    "Stark steigender pH und steigender EC zusammen sind in rezirkulierenden Systemen ein ernstes Warnsignal."
+  ],
+  "searchTerms": [
+    "athena",
+    "athena blended",
+    "grow a",
+    "grow b",
+    "bloom a",
+    "bloom b",
+    "balance",
+    "cleanse"
+  ]
+}

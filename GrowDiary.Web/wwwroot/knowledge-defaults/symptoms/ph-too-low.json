@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ph-too-low",
+  "name": "pH unter Sollbereich",
+  "category": "Sensor",
+  "possibleCauses": [
+    "Pflanze nimmt vermehrt Kationen auf",
+    "Bakterieller Bloom verschiebt pH nach unten",
+    "Düngerzugabe ohne anschließende pH-Korrektur"
+  ],
+  "suggestedTreatmentIds": [
+    "ph-correction-up"
+  ],
+  "suggestedSopIds": [
+    "weekly-water-change"
+  ],
+  "diagnosticChecks": [
+    "Wann letzter Wasserwechsel?",
+    "EC-Trend der letzten Tage prüfen",
+    "ORP-Trend prüfen (Hinweis auf bakterielle Aktivität)"
+  ]
+}

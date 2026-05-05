@@ -1,0 +1,29 @@
+using GrowDiary.Web.Models;
+
+namespace GrowDiary.Web.Services;
+
+public static class TentSensorMetricKeyMap
+{
+    public static string Resolve(SensorMetricType metricType)
+        => metricType switch
+        {
+            SensorMetricType.AirTemperature => "temperature",
+            SensorMetricType.Humidity => "humidity",
+            SensorMetricType.Vpd => "vpd",
+            SensorMetricType.Co2 => "co2",
+            SensorMetricType.Ppfd => "ppfd",
+            SensorMetricType.LightStatus => "light-status",
+            SensorMetricType.ReservoirPh => "reservoir-ph",
+            SensorMetricType.ReservoirEc => "reservoir-ec",
+            SensorMetricType.ReservoirOrp => "orp",
+            SensorMetricType.ReservoirDissolvedOxygen => "dissolved-oxygen",
+            SensorMetricType.ReservoirWaterTemp => "reservoir-temp",
+            SensorMetricType.ReservoirLevel => "reservoir-level",
+            SensorMetricType.PumpCirculation => "pump-circulation",
+            SensorMetricType.PumpAir => "pump-air",
+            SensorMetricType.Chiller => "chiller",
+            SensorMetricType.UpsBattery => "ups-battery",
+            SensorMetricType.UpsStatus => "ups-status",
+            _ => metricType.ToString()
+        };
+}

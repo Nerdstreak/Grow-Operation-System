@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "phytophthora-spp",
+  "name": "Phytophthora (Kraut- und Wurzelfäule)",
+  "scientificName": "Phytophthora spp.",
+  "category": "Fungal",
+  "symptoms": [
+    "complete-root-destruction",
+    "rapid-plant-collapse"
+  ],
+  "treatable": true,
+  "treatmentSopId": "root-rot-treatment",
+  "riskLevel": "Critical",
+  "notes": "Sehr aggressiv, zerstört Wurzeln komplett. Ähnlich Pythium aber oft schneller im Verlauf. Behandlung mit oxidativen Mitteln möglich, aber Erfolgsrate niedriger als bei Pythium. Vorbeugen wichtiger als heilen.",
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
+      "reference": "Aggressive Oomycet-Erreger",
+      "url": "/docs/sop-root-rot-treatment-de.pdf",
+      "credibility": "High"
+    }
+  ]
+}

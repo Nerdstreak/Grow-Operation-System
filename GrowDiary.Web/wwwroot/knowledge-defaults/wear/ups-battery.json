@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ups-battery",
+  "name": "USV-Akku",
+  "category": "UpsBattery",
+  "expectedLifespanDays": 900,
+  "replacementTriggers": [
+    "Manueller Funktionstest schlägt fehl",
+    "USV-Selbstdiagnose meldet Akku-Verschleiß",
+    "Überbrückungsdauer deutlich unter Spezifikation"
+  ],
+  "inspectionIntervalDays": 180
+}

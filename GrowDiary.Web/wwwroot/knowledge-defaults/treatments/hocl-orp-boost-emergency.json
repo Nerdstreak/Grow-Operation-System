@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0",
+  "id": "hocl-orp-boost-emergency",
+  "name": "HOCl Notfall-Boost (System-Reinigung ohne Pflanzen)",
+  "type": "ReservoirAddition",
+  "targetSymptoms": [
+    "emergency-root-rot",
+    "system-contaminated"
+  ],
+  "dosage": {
+    "standard": "HOCl bis ORP 500–600 mV — nur ohne lebende Pflanzen im System",
+    "severe": null,
+    "context": "Ausschließlich für System-Reinigungsphasen zwischen Grows oder nach vollständiger Pflanzenentnahme."
+  },
+  "application": {
+    "method": "Reservoir und Leitungen komplett befüllen, Pumpen laufen, 30–60 Min einwirken lassen",
+    "timing": "Nur bei leerem System (keine Pflanzen)",
+    "frequency": "Einmalig zur System-Sanierung",
+    "durationStandard": "30–60 Minuten Einwirkzeit, dann vollständig spülen",
+    "durationSevere": null
+  },
+  "restrictions": [
+    "NIEMALS mit lebenden Pflanzen im System anwenden",
+    "Nach Behandlung System komplett mit RO-Wasser spülen",
+    "Persönliche Schutzausrüstung (Handschuhe, Schutzbrille)"
+  ],
+  "conflicts": [
+    {
+      "with": "h2o2-do-emergency",
+      "reason": "Beide Oxidationsmittel nicht gleichzeitig",
+      "minimumGapHours": 24
+    }
+  ],
+  "phaseFilter": null,
+  "hardwareRequirements": [
+    "ORP-Sensor"
+  ],
+  "sources": [
+    {
+      "type": "SOP",
+      "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
+      "reference": "System-Reinigungsphase nach Wurzelfäule-Befall",
+      "url": "/docs/sop-root-rot-treatment-de.pdf",
+      "credibility": "High"
+    }
+  ],
+  "difficulty": "Hard",
+  "expectedTimeToEffect": "Sofortige Keimreduktion — System danach spülen",
+  "tags": [
+    "reservoir",
+    "hocl",
+    "orp",
+    "system-cleaning",
+    "emergency",
+    "no-plants"
+  ]
+}

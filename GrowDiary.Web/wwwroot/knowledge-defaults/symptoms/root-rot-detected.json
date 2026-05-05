@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.0",
+  "id": "root-rot-detected",
+  "name": "Wurzelfäule diagnostiziert",
+  "category": "Root",
+  "possibleCauses": [
+    "Bestätigter Befall durch Pythium, Fusarium oder bakterielle Erreger"
+  ],
+  "suggestedTreatmentIds": [
+    "plant-isolation-quarantine"
+  ],
+  "suggestedSopIds": [
+    "root-rot-treatment"
+  ],
+  "diagnosticChecks": []
+}

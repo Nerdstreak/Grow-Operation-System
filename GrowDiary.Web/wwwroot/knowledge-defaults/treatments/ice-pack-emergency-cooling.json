@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ice-pack-emergency-cooling",
+  "name": "Notfallkühlung mit Eis-Packs",
+  "type": "EnvironmentAdjustment",
+  "targetSymptoms": [
+    "water-temp-emergency",
+    "no-chiller-available"
+  ],
+  "dosage": {
+    "standard": "Gefrorene Wasserflaschen / Eis-Packs ins Reservoir — schrittweise bis Zieltemperatur",
+    "severe": null,
+    "context": "Temporäre Überbrückung bis Chiller wieder läuft. Nicht als Dauerlösung."
+  },
+  "application": {
+    "method": "Gefrorene PET-Flaschen (gefüllt mit Wasser/Sole) in das Reservoir hängen",
+    "timing": "Sofort bei Wassertemperatur > 24°C ohne funktionierende Kühlung",
+    "frequency": "Alle 2–4 Stunden ersetzen solange nötig",
+    "durationStandard": "Bis Chiller wieder funktioniert oder Raumtemperatur sinkt",
+    "durationSevere": null
+  },
+  "restrictions": [
+    "Keine direkte Eiswürfel ins Reservoir — starke Temperaturschwankungen stressen Wurzeln",
+    "Temperaturabfall max. 2°C pro Stunde anstreben",
+    "Wenn Wassertemperatur über 26°C: Pflanzen sind in Gefahr — Priorität DO-Check"
+  ],
+  "conflicts": [],
+  "phaseFilter": {
+    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower", "Finish"],
+    "blocked": ["Dry", "Cure"],
+    "blockAfterFlowerWeek": null
+  },
+  "hardwareRequirements": [],
+  "sources": [
+    {
+      "type": "Document",
+      "title": "Häufige Anfängerfehler und Risikomanagement im RDWC-System",
+      "reference": "Notfallmaßnahmen bei Temperaturproblemen",
+      "url": "/docs/common-mistakes-rdwc.pdf",
+      "credibility": "High"
+    },
+    {
+      "type": "Community",
+      "title": "r/HydroDIY — Emergency cooling without chiller",
+      "reference": "Frozen bottle reservoir cooling — community consensus",
+      "url": null,
+      "credibility": "Medium"
+    }
+  ],
+  "difficulty": "Easy",
+  "expectedTimeToEffect": "Temperaturabfall sichtbar innerhalb 30–60 Minuten",
+  "tags": [
+    "environment",
+    "water-temperature",
+    "emergency",
+    "no-chiller",
+    "cooling"
+  ]
+}

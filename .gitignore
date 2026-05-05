@@ -9,3 +9,5 @@ GrowDiary.Web/App_Data/DataProtectionKeys/
 GrowDiary.Web/App_Data/*.db-shm
 GrowDiary.Web/App_Data/*.db-wal
 run.*.log
+RDWC Wissen/
+GrowDiary.Web/wwwroot/docs/

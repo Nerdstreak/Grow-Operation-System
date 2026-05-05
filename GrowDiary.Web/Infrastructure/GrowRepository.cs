@@ -249,6 +249,45 @@ public sealed class GrowRepository
         command.ExecuteNonQuery();
     }
 
+    public void ReplaceTentSensors(int tentId, IReadOnlyCollection<TentSensor> sensors)
+    {
+        using var connection = OpenConnection();
+        using var transaction = connection.BeginTransaction();
+
+        using (var deleteCommand = connection.CreateCommand())
+        {
+            deleteCommand.Transaction = transaction;
+            deleteCommand.CommandText = "DELETE FROM TentSensors WHERE TentId = $tentId;";
+            deleteCommand.Parameters.AddWithValue("$tentId", tentId);
+            deleteCommand.ExecuteNonQuery();
+        }
+
+        foreach (var sensor in sensors)
+        {
+            var stored = new TentSensor
+            {
+                TentId = tentId,
+                MetricType = sensor.MetricType,
+                HaEntityId = sensor.HaEntityId,
+                DisplayLabel = sensor.DisplayLabel,
+                IsActive = sensor.IsActive,
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow
+            };
+
+            using var insertCommand = connection.CreateCommand();
+            insertCommand.Transaction = transaction;
+            insertCommand.CommandText = """
+                INSERT INTO TentSensors (TentId, MetricType, HaEntityId, DisplayLabel, IsActive, CreatedAtUtc, UpdatedAtUtc)
+                VALUES ($tentId, $metricType, $haEntityId, $displayLabel, $isActive, $createdAtUtc, $updatedAtUtc);
+                """;
+            AddTentSensorParameters(insertCommand, stored);
+            insertCommand.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
+    }
+
     public void DeleteTentSensor(int sensorId)
     {
         using var connection = OpenConnection();
