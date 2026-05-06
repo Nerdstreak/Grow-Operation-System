@@ -32,7 +32,7 @@ npm run build
 
 ### Layer-Struktur Backend
 
-- `Api/Controllers/` -> REST-Endpoints fuer Grows, Measurements, Tasks, Journal, Workflow, Settings und Knowledge.
+- `Api/Controllers/` -> REST-Endpoints fuer Grows, Setups, Measurements, Tasks, Journal, Workflow, Settings und Knowledge.
 - `Controllers/` -> Redirect-Shims, Export, Kamera- und `/api/live/*`-Endpoints fuer das React-Dashboard.
 - `Api/Contracts/` -> Request-/Response-DTOs.
 - `Api/Mapping/` -> Handgeschriebene Mapper, kein AutoMapper.
@@ -100,6 +100,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint B1b ABGESCHLOSSEN: HA-Service, Snapshot-Worker und React-Settings fuer Sensor-Mapping.
 - Sprint B1c ABGESCHLOSSEN: App-Start-Fix und Knowledge-API.
 - Sprint B2a-1 ABGESCHLOSSEN: Setup-Grundmodell additiv mit `Setups` und `Grows.SetupId`.
+- Sprint B2a-2 ABGESCHLOSSEN: Minimale JSON-API fuer Setups (`/api/setups`).
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow
