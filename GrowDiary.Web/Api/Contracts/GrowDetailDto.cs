@@ -9,6 +9,7 @@ namespace GrowDiary.Web.Api.Contracts;
 public sealed record GrowDetailDto(
     int Id,
     int? SystemId,
+    int? SetupId,
     string Name,
     string? Strain,
     string? Breeder,

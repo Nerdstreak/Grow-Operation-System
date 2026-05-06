@@ -12,6 +12,7 @@ public sealed class GrowUpsertRequest
 
     public int? TentId { get; set; }
     public int? SystemId { get; set; }
+    public int? SetupId { get; set; }
     public string? Strain { get; set; }
     public string? Breeder { get; set; }
     public SeedType SeedType { get; set; } = SeedType.Feminized;

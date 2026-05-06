@@ -75,7 +75,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 - `Tents`: Multi-Tent-faehig mit `TentType` (`Production`, `Mother`, `Quarantine`, `Propagation`, `MultiPurpose`).
 - `Setups`: Additives Grundmodell mit `SetupType` (`Production`, `Mother`, `Quarantine`) und `SetupStatus`.
 - `TentSensors`: flexible Sensor-Liste pro Tent statt hartkodierter Sensor-Felder.
-- `Grows`: aktuelles All-in-one Grow-Modell; `SetupId` bindet Production-Grows optional an Setups an.
+- `Grows`: aktuelles All-in-one Grow-Modell; `SetupId` kann optional ein Production-Setup referenzieren. Mother/Quarantine sind keine GrowRun-Setups.
 - `Measurements`: pH, EC, ORP, DO, Reservoir-Werte, Air-Werte, PPFD und CO2.
 - `TentSensorReadings`: hochfrequente HA-Messwerte aus dem 5-Minuten-Polling.
 - `TentSensorDailyStats`: Tagesaggregation mit Median, P5, P95, Min, Max und Avg.
@@ -101,6 +101,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint B1c ABGESCHLOSSEN: App-Start-Fix und Knowledge-API.
 - Sprint B2a-1 ABGESCHLOSSEN: Setup-Grundmodell additiv mit `Setups` und `Grows.SetupId`.
 - Sprint B2a-2 ABGESCHLOSSEN: Minimale JSON-API fuer Setups (`/api/setups`).
+- Sprint B2a-3 ABGESCHLOSSEN: Grow-API transportiert und validiert optionale Production-Setup-Zuordnung.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow
