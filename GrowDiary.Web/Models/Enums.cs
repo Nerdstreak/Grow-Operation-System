@@ -182,6 +182,31 @@ public enum SetupStatus
     Archived
 }
 
+public enum PlantRole
+{
+    Production,
+    Mother,
+    Clone,
+    Quarantine
+}
+
+public enum PlantStatus
+{
+    Planned,
+    Active,
+    Archived,
+    Culled,
+    Harvested
+}
+
+public enum StrainDominance
+{
+    Unknown,
+    Indica,
+    Sativa,
+    Hybrid
+}
+
 public enum SensorMetricType
 {
     AirTemperature,

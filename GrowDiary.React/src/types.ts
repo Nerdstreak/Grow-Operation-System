@@ -17,6 +17,9 @@ export type SetupType = 'Production' | 'Mother' | 'Quarantine'
 export type SetupStatus = 'Planning' | 'Active' | 'Archived'
 export type MotherHealthStatus = 'Stable' | 'Watch' | 'Critical'
 export type QuarantineResult = 'Pending' | 'Cleared' | 'Rejected'
+export type PlantRole = 'Production' | 'Mother' | 'Clone' | 'Quarantine'
+export type PlantStatus = 'Planned' | 'Active' | 'Archived' | 'Culled' | 'Harvested'
+export type StrainDominance = 'Unknown' | 'Indica' | 'Sativa' | 'Hybrid'
 
 export interface ApiError {
   code: string
@@ -316,6 +319,69 @@ export interface UpdateSetupRequest {
   quarantinePlannedEndAt?: string | null
   quarantineResult?: QuarantineResult | null
 }
+
+export interface StrainDto {
+  id: number
+  name: string
+  breeder: string | null
+  dominance: StrainDominance
+  flowerWeeksMin: number | null
+  flowerWeeksMax: number | null
+  notes: string | null
+  nutrientDemandFactor: number | null
+  stretchFactor: number | null
+  vpdPreferenceShift: number | null
+  createdAtUtc: string
+  updatedAtUtc: string
+}
+
+export interface CreateStrainRequest {
+  name: string
+  breeder?: string | null
+  dominance: StrainDominance
+  flowerWeeksMin?: number | null
+  flowerWeeksMax?: number | null
+  notes?: string | null
+  nutrientDemandFactor?: number | null
+  stretchFactor?: number | null
+  vpdPreferenceShift?: number | null
+}
+
+export type UpdateStrainRequest = CreateStrainRequest
+
+export interface PlantInstanceDto {
+  id: number
+  strainId: number | null
+  setupId: number | null
+  growId: number | null
+  parentPlantId: number | null
+  label: string
+  plantRole: PlantRole
+  plantStatus: PlantStatus
+  phenoLabel: string | null
+  startedAt: string | null
+  endedAt: string | null
+  notes: string | null
+  strainName: string | null
+  createdAtUtc: string
+  updatedAtUtc: string
+}
+
+export interface CreatePlantInstanceRequest {
+  strainId?: number | null
+  setupId?: number | null
+  growId?: number | null
+  parentPlantId?: number | null
+  label: string
+  plantRole: PlantRole
+  plantStatus: PlantStatus
+  phenoLabel?: string | null
+  startedAt?: string | null
+  endedAt?: string | null
+  notes?: string | null
+}
+
+export type UpdatePlantInstanceRequest = CreatePlantInstanceRequest
 
 export type SensorMetricType =
   | 'AirTemperature'

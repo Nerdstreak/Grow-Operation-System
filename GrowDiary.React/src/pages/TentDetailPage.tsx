@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowSummary, SetupDto, TentDto, TentLivePayload } from '../types'
+import type { GrowSummary, PlantInstanceDto, SetupDto, TentDto, TentLivePayload } from '../types'
 
 function TentDetailPage() {
   const { tentId } = useParams()
@@ -9,6 +9,7 @@ function TentDetailPage() {
   const [live, setLive] = useState<TentLivePayload | null>(null)
   const [grows, setGrows] = useState<GrowSummary[]>([])
   const [setups, setSetups] = useState<SetupDto[]>([])
+  const [plantsBySetupId, setPlantsBySetupId] = useState<Record<number, PlantInstanceDto[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -30,10 +31,19 @@ function TentDetailPage() {
         ])
 
         const selectedTent = tents.find((item) => item.id === Number(tentId)) ?? null
+        const activeSetups = tentSetups.filter((setup) => setup.status === 'Planning' || setup.status === 'Active')
+        const plantEntries = await Promise.all(
+          activeSetups.map(async (setup) => {
+            const plants = await apiFetch<PlantInstanceDto[]>(`/api/plants?setupId=${setup.id}`, { signal: controller.signal })
+            return [setup.id, plants] as const
+          }),
+        )
+
         setTent(selectedTent)
         setLive(livePayload)
         setGrows(activeGrows.filter((grow) => grow.tentId === Number(tentId)))
-        setSetups(tentSetups.filter((setup) => setup.status === 'Planning' || setup.status === 'Active'))
+        setSetups(activeSetups)
+        setPlantsBySetupId(Object.fromEntries(plantEntries))
       } catch (caught) {
         if (controller.signal.aborted) return
         setError(caught instanceof ApiRequestError ? caught.message : 'Zelt-Details konnten nicht geladen werden.')
@@ -96,6 +106,13 @@ function TentDetailPage() {
                         <div>
                           <div className="row-name">{setup.name}</div>
                           <div className="row-sub">{formatSetupDetails(setup).join(' | ') || setup.notes || 'Keine Basisdaten'}</div>
+                          {(plantsBySetupId[setup.id] ?? []).length > 0 && (
+                            <div style={{ display: 'grid', gap: 3, marginTop: 6 }}>
+                              {(plantsBySetupId[setup.id] ?? []).map((plant) => (
+                                <div key={plant.id} className="row-sub">{formatPlantLine(plant)}</div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <div><span className="badge badge-neutral">{setup.setupType}</span></div>
                         <div><span className={`badge ${setup.status === 'Active' ? 'badge-ok' : 'badge-neutral'}`}>{setup.status}</span></div>
@@ -183,6 +200,12 @@ function formatSetupDetails(setup: SetupDto): string[] {
 
 function formatDate(value: string): string {
   return value.slice(0, 10)
+}
+
+function formatPlantLine(plant: PlantInstanceDto): string {
+  const strain = plant.strainName ?? (plant.strainId ? `Strain #${plant.strainId}` : 'Ohne Strain')
+  const pheno = plant.phenoLabel ? ` | ${plant.phenoLabel}` : ''
+  return `${plant.label} | ${plant.plantRole} | ${plant.plantStatus} | ${strain}${pheno}`
 }
 
 export default TentDetailPage
