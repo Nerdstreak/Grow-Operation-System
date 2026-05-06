@@ -85,7 +85,9 @@ function TentDetailPage() {
 
               <div className="section-label">Aktive Grows</div>
               {grows.length === 0 ? (
-                <div className="empty-hint" style={{ padding: '30px 0' }}>Keine aktiven Grows in diesem Zelt.</div>
+                <div className="empty-hint" style={{ padding: '30px 0' }}>
+                  {tent.activeSetupCount > 0 ? 'Keine aktiven Grows, aber aktive Setups in diesem Zelt.' : 'Keine aktiven Grows in diesem Zelt.'}
+                </div>
               ) : (
                 <div className="data-table">
                   {grows.map((grow) => (
@@ -113,6 +115,8 @@ function TentDetailPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Tent-Typ</span><span>{tent.tentType}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Aktive Runs</span><span>{tent.activeGrowCount}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Archivierte Runs</span><span>{tent.archivedGrowCount}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Aktive Setups</span><span>{tent.activeSetupCount}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Archivierte Setups</span><span>{tent.archivedSetupCount}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Sensoren</span><span>{tent.sensors.filter((sensor) => sensor.isActive).length}</span></div>
                 </div>
               </div>

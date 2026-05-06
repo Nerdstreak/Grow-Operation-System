@@ -124,6 +124,44 @@ public sealed class GrowRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void GetTents_CountsActiveAndArchivedSetupsWithoutChangingGrowCounts()
+    {
+        var repo = new GrowRepository(_paths);
+        var tent = repo.GetTents().Single();
+
+        repo.CreateSetup(new Setup { TentId = tent.Id, Name = "Planning Setup", SetupType = SetupType.Production, Status = SetupStatus.Planning });
+        repo.CreateSetup(new Setup { TentId = tent.Id, Name = "Active Setup", SetupType = SetupType.Mother, Status = SetupStatus.Active });
+        repo.CreateSetup(new Setup { TentId = tent.Id, Name = "Archived Setup", SetupType = SetupType.Quarantine, Status = SetupStatus.Archived });
+
+        var activeGrowId = repo.CreateGrow(new GrowRun
+        {
+            Name = "Active Grow",
+            TentId = tent.Id,
+            StartDate = new DateTime(2026, 1, 1),
+            Status = GrowStatus.Planning
+        });
+        repo.CreateGrow(new GrowRun
+        {
+            Name = "Archived Grow",
+            TentId = tent.Id,
+            StartDate = new DateTime(2025, 1, 1),
+            Status = GrowStatus.Completed
+        });
+
+        var loadedFromList = repo.GetTents().Single(item => item.Id == tent.Id);
+        var loadedById = repo.GetTent(tent.Id)!;
+        var loadedForGrow = repo.GetTentForGrow(activeGrowId)!;
+
+        foreach (var loaded in new[] { loadedFromList, loadedById, loadedForGrow })
+        {
+            Assert.Equal(1, loaded.ActiveGrowCount);
+            Assert.Equal(1, loaded.ArchivedGrowCount);
+            Assert.Equal(2, loaded.ActiveSetupCount);
+            Assert.Equal(1, loaded.ArchivedSetupCount);
+        }
+    }
+
+    [Fact]
     public void UpdateGrow_PreservesSystemIdWhenSet()
     {
         var repo = new GrowRepository(_paths);

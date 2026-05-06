@@ -351,6 +351,8 @@ export interface TentDto {
   cameraEntityId: string | null
   activeGrowCount: number
   archivedGrowCount: number
+  activeSetupCount: number
+  archivedSetupCount: number
   sensors: TentSensorDto[]
 }
 
