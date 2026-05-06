@@ -13,6 +13,8 @@ export type GrowEntryPoint = 'Germination' | 'Seedling' | 'Veg' | 'Flower' | 'Fl
 export type GerminationMethod = 'PaperTowel' | 'Rockwool' | 'RapidRooter' | 'DirectInSystem'
 export type PropagationMedium = 'Rockwool' | 'Hydroton' | 'RapidRooter' | 'Neoprene'
 export type PhotoTag = 'Overview' | 'Canopy' | 'Leaf' | 'Root' | 'Training' | 'Flower' | 'Problem' | 'Comparison' | 'Other'
+export type SetupType = 'Production' | 'Mother' | 'Quarantine'
+export type SetupStatus = 'Planning' | 'Active' | 'Archived'
 
 export interface ApiError {
   code: string
@@ -32,6 +34,7 @@ export interface GrowSummary {
   startMaterial: StartMaterial
   plantCount: number | null
   tentId: number | null
+  setupId: number | null
   tentName: string | null
   startDate: string
   endDate: string | null
@@ -119,6 +122,7 @@ export interface PhotoAssetDto {
 export interface GrowDetail {
   id: number
   systemId: number | null
+  setupId: number | null
   name: string
   strain: string | null
   breeder: string | null
@@ -169,6 +173,7 @@ export interface GrowUpsertPayload {
   name: string
   tentId: number | null
   systemId: number | null
+  setupId?: number | null
   strain: string | null
   breeder: string | null
   seedType: SeedType
@@ -268,6 +273,30 @@ export interface HomeAssistantSettingsDto {
 }
 
 export type TentType = 'Production' | 'Mother' | 'Quarantine' | 'Propagation' | 'MultiPurpose'
+export interface SetupDto {
+  id: number
+  tentId: number
+  name: string
+  setupType: SetupType
+  status: SetupStatus
+  notes: string | null
+  createdAtUtc: string
+  updatedAtUtc: string
+}
+
+export interface CreateSetupRequest {
+  tentId: number
+  name: string
+  setupType: SetupType
+  notes?: string | null
+}
+
+export interface UpdateSetupRequest {
+  name: string
+  status: SetupStatus
+  notes?: string | null
+}
+
 export type SensorMetricType =
   | 'AirTemperature'
   | 'Humidity'
