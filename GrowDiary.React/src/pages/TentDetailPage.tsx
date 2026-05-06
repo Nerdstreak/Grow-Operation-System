@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CreateCloneFromMotherRequest, GrowSummary, PlantInstanceDto, SetupDto, TentDto, TentLivePayload } from '../types'
+import type { CreateCloneFromMotherRequest, DecideQuarantinePlantRequest, GrowSummary, PlantInstanceDto, QuarantineDecision, SetupDto, TentDto, TentLivePayload } from '../types'
 
 type CloneDraft = {
   label: string
@@ -17,22 +17,42 @@ const emptyCloneDraft: CloneDraft = {
   targetSetupId: '',
 }
 
+type QuarantineDecisionDraft = {
+  targetSetupId: string
+  targetGrowId: string
+  notes: string
+}
+
+const emptyDecisionDraft: QuarantineDecisionDraft = {
+  targetSetupId: '',
+  targetGrowId: '',
+  notes: '',
+}
+
 function TentDetailPage() {
   const { tentId } = useParams()
   const [tent, setTent] = useState<TentDto | null>(null)
   const [live, setLive] = useState<TentLivePayload | null>(null)
   const [grows, setGrows] = useState<GrowSummary[]>([])
+  const [allActiveGrows, setAllActiveGrows] = useState<GrowSummary[]>([])
   const [setups, setSetups] = useState<SetupDto[]>([])
   const [allSetups, setAllSetups] = useState<SetupDto[]>([])
   const [plantsBySetupId, setPlantsBySetupId] = useState<Record<number, PlantInstanceDto[]>>({})
   const [cloneDrafts, setCloneDrafts] = useState<Record<number, CloneDraft>>({})
   const [cloneErrors, setCloneErrors] = useState<Record<number, string>>({})
   const [savingClonePlantId, setSavingClonePlantId] = useState<number | null>(null)
+  const [decisionDrafts, setDecisionDrafts] = useState<Record<number, QuarantineDecisionDraft>>({})
+  const [decisionErrors, setDecisionErrors] = useState<Record<number, string>>({})
+  const [savingDecisionPlantId, setSavingDecisionPlantId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const quarantineSetups = useMemo(
     () => allSetups.filter((setup) => setup.setupType === 'Quarantine' && isActiveSetup(setup)),
+    [allSetups],
+  )
+  const productionSetups = useMemo(
+    () => allSetups.filter((setup) => setup.setupType === 'Production' && isActiveSetup(setup)),
     [allSetups],
   )
 
@@ -61,6 +81,7 @@ function TentDetailPage() {
         setTent(selectedTent)
         setLive(livePayload)
         setGrows(activeGrows.filter((grow) => grow.tentId === tentIdNumber))
+        setAllActiveGrows(activeGrows)
         setAllSetups(setupList)
         setSetups(activeSetups)
         setPlantsBySetupId(Object.fromEntries(plantEntries))
@@ -83,6 +104,13 @@ function TentDetailPage() {
     setCloneDrafts((current) => ({
       ...current,
       [plantId]: { ...emptyCloneDraft, ...current[plantId], ...patch },
+    }))
+  }
+
+  function updateDecisionDraft(plantId: number, patch: Partial<QuarantineDecisionDraft>) {
+    setDecisionDrafts((current) => ({
+      ...current,
+      [plantId]: { ...emptyDecisionDraft, ...current[plantId], ...patch },
     }))
   }
 
@@ -137,6 +165,101 @@ function TentDetailPage() {
     } finally {
       setSavingClonePlantId(null)
     }
+  }
+
+  async function handleDecideQuarantine(plant: PlantInstanceDto, decision: QuarantineDecision) {
+    const draft = { ...emptyDecisionDraft, ...decisionDrafts[plant.id] }
+    const request: DecideQuarantinePlantRequest = {
+      plantId: plant.id,
+      decision,
+      targetSetupId: decision === 'Cleared' && draft.targetSetupId ? Number(draft.targetSetupId) : null,
+      targetGrowId: decision === 'Cleared' && draft.targetGrowId ? Number(draft.targetGrowId) : null,
+      decidedAt: null,
+      notes: normalizeDraftText(draft.notes),
+    }
+
+    setSavingDecisionPlantId(plant.id)
+    setDecisionErrors((current) => ({ ...current, [plant.id]: '' }))
+
+    try {
+      await apiFetch<PlantInstanceDto>('/api/plants/decide-quarantine', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      setDecisionDrafts((current) => {
+        const next = { ...current }
+        delete next[plant.id]
+        return next
+      })
+      await refreshSetupsAndPlants()
+    } catch (caught) {
+      setDecisionErrors((current) => ({
+        ...current,
+        [plant.id]: caught instanceof ApiRequestError ? caught.message : 'Quarantaene-Entscheidung konnte nicht gespeichert werden.',
+      }))
+    } finally {
+      setSavingDecisionPlantId(null)
+    }
+  }
+
+  function renderQuarantineDecisionForm(plant: PlantInstanceDto) {
+    const draft = { ...emptyDecisionDraft, ...decisionDrafts[plant.id] }
+    const selectedSetupId = draft.targetSetupId ? Number(draft.targetSetupId) : null
+    const growOptions = getCompatibleGrowOptions(allActiveGrows, productionSetups, selectedSetupId)
+
+    return (
+      <form
+        onSubmit={(event) => event.preventDefault()}
+        style={{ display: 'grid', gap: 6, maxWidth: 560 }}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) minmax(150px, 1fr)', gap: 6 }}>
+          <select
+            value={draft.targetSetupId}
+            onChange={(event) => updateDecisionDraft(plant.id, { targetSetupId: event.target.value, targetGrowId: '' })}
+          >
+            <option value="">Ohne Production-Setup</option>
+            {productionSetups.map((target) => (
+              <option key={target.id} value={target.id}>{target.name}</option>
+            ))}
+          </select>
+          <select
+            value={draft.targetGrowId}
+            onChange={(event) => updateDecisionDraft(plant.id, { targetGrowId: event.target.value })}
+          >
+            <option value="">Ohne Grow</option>
+            {growOptions.map((grow) => (
+              <option key={grow.id} value={grow.id}>{grow.name}</option>
+            ))}
+          </select>
+        </div>
+        <textarea
+          rows={2}
+          value={draft.notes}
+          onChange={(event) => updateDecisionDraft(plant.id, { notes: event.target.value })}
+          placeholder="Entscheidungsnotiz optional"
+        />
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-primary"
+            type="button"
+            disabled={savingDecisionPlantId === plant.id}
+            onClick={() => void handleDecideQuarantine(plant, 'Cleared')}
+          >
+            Freigeben
+          </button>
+          <button
+            className="btn"
+            type="button"
+            disabled={savingDecisionPlantId === plant.id}
+            onClick={() => void handleDecideQuarantine(plant, 'Rejected')}
+          >
+            Verwerfen
+          </button>
+        </div>
+        {productionSetups.length === 0 && <div className="row-muted">Kein aktives Production-Setup vorhanden.</div>}
+        {decisionErrors[plant.id] && <div className="row-muted" style={{ color: '#b42318' }}>{decisionErrors[plant.id]}</div>}
+      </form>
+    )
   }
 
   return (
@@ -235,6 +358,7 @@ function TentDetailPage() {
                                       {cloneErrors[plant.id] && <div className="row-muted" style={{ color: '#b42318' }}>{cloneErrors[plant.id]}</div>}
                                     </form>
                                   )}
+                                  {setup.setupType === 'Quarantine' && isDecidablePlant(plant) && renderQuarantineDecisionForm(plant)}
                                 </div>
                               ))}
                             </div>
@@ -336,6 +460,21 @@ function formatPlantLine(plant: PlantInstanceDto): string {
 
 function isActiveSetup(setup: SetupDto): boolean {
   return setup.status === 'Planning' || setup.status === 'Active'
+}
+
+function isDecidablePlant(plant: PlantInstanceDto): boolean {
+  return plant.plantStatus === 'Planned' || plant.plantStatus === 'Active'
+}
+
+function getCompatibleGrowOptions(grows: GrowSummary[], productionSetups: SetupDto[], selectedSetupId: number | null): GrowSummary[] {
+  if (!selectedSetupId) return grows
+
+  const selectedSetup = productionSetups.find((setup) => setup.id === selectedSetupId)
+  return grows.filter((grow) => {
+    if (grow.setupId !== null && grow.setupId !== selectedSetupId) return false
+    if (selectedSetup && grow.tentId !== null && grow.tentId !== selectedSetup.tentId) return false
+    return true
+  })
 }
 
 async function fetchPlantsForSetups(setups: SetupDto[], signal?: AbortSignal): Promise<Array<readonly [number, PlantInstanceDto[]]>> {

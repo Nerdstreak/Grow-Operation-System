@@ -566,6 +566,68 @@ public sealed class GrowRepository
         return created;
     }
 
+    public PlantInstance DecideQuarantinePlant(PlantInstance plant, int quarantineSetupId, string quarantineResult)
+    {
+        plant.UpdatedAtUtc = DateTime.UtcNow;
+
+        using var connection = OpenConnection();
+        using var transaction = connection.BeginTransaction();
+
+        using var plantCommand = connection.CreateCommand();
+        plantCommand.Transaction = transaction;
+        plantCommand.CommandText = """
+            UPDATE PlantInstances SET
+                StrainId = $strainId,
+                SetupId = $setupId,
+                GrowId = $growId,
+                ParentPlantId = $parentPlantId,
+                Label = $label,
+                PlantRole = $plantRole,
+                PlantStatus = $plantStatus,
+                PhenoLabel = $phenoLabel,
+                StartedAt = $startedAt,
+                EndedAt = $endedAt,
+                Notes = $notes,
+                UpdatedAtUtc = $updatedAtUtc
+            WHERE Id = $id;
+        """;
+        AddPlantParameters(plantCommand, plant);
+        plantCommand.Parameters.AddWithValue("$id", plant.Id);
+        plantCommand.ExecuteNonQuery();
+
+        using var setupCommand = connection.CreateCommand();
+        setupCommand.Transaction = transaction;
+        setupCommand.CommandText = """
+            UPDATE Setups
+            SET QuarantineResult = $quarantineResult,
+                UpdatedAtUtc = $updatedAtUtc
+            WHERE Id = $setupId AND SetupType = 'Quarantine';
+        """;
+        setupCommand.Parameters.AddWithValue("$quarantineResult", quarantineResult);
+        setupCommand.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(DateTime.UtcNow));
+        setupCommand.Parameters.AddWithValue("$setupId", quarantineSetupId);
+        setupCommand.ExecuteNonQuery();
+
+        PlantInstance updated;
+        using (var getCommand = connection.CreateCommand())
+        {
+            getCommand.Transaction = transaction;
+            getCommand.CommandText = """
+                SELECT p.*, s.Name AS StrainName
+                FROM PlantInstances p
+                LEFT JOIN Strains s ON s.Id = p.StrainId
+                WHERE p.Id = $id
+                LIMIT 1;
+            """;
+            getCommand.Parameters.AddWithValue("$id", plant.Id);
+            using var reader = getCommand.ExecuteReader();
+            updated = reader.Read() ? MapPlant(reader) : plant;
+        }
+
+        transaction.Commit();
+        return updated;
+    }
+
     public void UpdatePlant(PlantInstance plant)
     {
         plant.UpdatedAtUtc = DateTime.UtcNow;

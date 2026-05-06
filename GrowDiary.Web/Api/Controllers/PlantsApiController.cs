@@ -129,6 +129,123 @@ public sealed class PlantsApiController : ApiControllerBase
         return CreatedAtAction(nameof(Detail), new { id = created.Id }, created.ToDto());
     }
 
+    [HttpPost("decide-quarantine")]
+    [ProducesResponseType(typeof(PlantInstanceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    public ActionResult<PlantInstanceDto> DecideQuarantine([FromBody] DecideQuarantinePlantRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationError();
+        }
+
+        var plant = _repository.GetPlant(request.PlantId);
+        Setup? quarantineSetup = null;
+        if (plant is null)
+        {
+            ModelState.AddModelError(nameof(DecideQuarantinePlantRequest.PlantId), $"Pflanze mit Id {request.PlantId} existiert nicht.");
+        }
+        else if (!plant.SetupId.HasValue)
+        {
+            ModelState.AddModelError(nameof(DecideQuarantinePlantRequest.PlantId), "Pflanze ist keinem Quarantine-Setup zugeordnet.");
+        }
+        else
+        {
+            quarantineSetup = _repository.GetSetup(plant.SetupId.Value);
+            if (quarantineSetup is null || quarantineSetup.SetupType != SetupType.Quarantine)
+            {
+                ModelState.AddModelError(nameof(DecideQuarantinePlantRequest.PlantId), "Nur Plants aus einem Quarantine-Setup koennen entschieden werden.");
+            }
+        }
+
+        var isCleared = string.Equals(request.Decision, "Cleared", StringComparison.Ordinal);
+        var isRejected = string.Equals(request.Decision, "Rejected", StringComparison.Ordinal);
+        if (!isCleared && !isRejected)
+        {
+            ModelState.AddModelError(nameof(DecideQuarantinePlantRequest.Decision), "Decision muss Cleared oder Rejected sein.");
+        }
+
+        Setup? targetSetup = null;
+        GrowRun? targetGrow = null;
+        if (isCleared)
+        {
+            if (request.TargetSetupId.HasValue)
+            {
+                targetSetup = _repository.GetSetup(request.TargetSetupId.Value);
+                if (targetSetup is null)
+                {
+                    ModelState.AddModelError(nameof(DecideQuarantinePlantRequest.TargetSetupId), $"Ziel-Setup mit Id {request.TargetSetupId.Value} existiert nicht.");
+                }
+                else if (targetSetup.SetupType != SetupType.Production)
+                {
+                    ModelState.AddModelError(nameof(DecideQuarantinePlantRequest.TargetSetupId), "Freigabe-Ziel muss ein Production-Setup sein.");
+                }
+            }
+
+            if (request.TargetGrowId.HasValue)
+            {
+                targetGrow = _repository.GetGrow(request.TargetGrowId.Value);
+                if (targetGrow is null)
+                {
+                    ModelState.AddModelError(nameof(DecideQuarantinePlantRequest.TargetGrowId), $"Grow mit Id {request.TargetGrowId.Value} existiert nicht.");
+                }
+            }
+
+            if (targetSetup is not null && targetGrow is not null)
+            {
+                if (targetGrow.SetupId.HasValue && targetGrow.SetupId.Value != targetSetup.Id)
+                {
+                    ModelState.AddModelError(nameof(DecideQuarantinePlantRequest.TargetGrowId), "Grow passt nicht zum gewaehlten Production-Setup.");
+                }
+
+                if (targetGrow.TentId.HasValue && targetGrow.TentId.Value != targetSetup.TentId)
+                {
+                    ModelState.AddModelError(nameof(DecideQuarantinePlantRequest.TargetGrowId), "Grow und Production-Setup liegen in unterschiedlichen Zelten.");
+                }
+            }
+        }
+
+        if (isRejected)
+        {
+            if (request.TargetSetupId.HasValue)
+            {
+                ModelState.AddModelError(nameof(DecideQuarantinePlantRequest.TargetSetupId), "Rejected darf kein Ziel-Setup enthalten.");
+            }
+
+            if (request.TargetGrowId.HasValue)
+            {
+                ModelState.AddModelError(nameof(DecideQuarantinePlantRequest.TargetGrowId), "Rejected darf keinen Ziel-Grow enthalten.");
+            }
+        }
+
+        if (!ModelState.IsValid || plant is null || quarantineSetup is null)
+        {
+            return ValidationError();
+        }
+
+        var decidedAt = request.DecidedAt ?? DateTime.Now;
+        plant.Notes = Normalize(request.Notes);
+        if (isCleared)
+        {
+            plant.SetupId = request.TargetSetupId ?? plant.SetupId;
+            plant.GrowId = request.TargetGrowId ?? plant.GrowId;
+            if (request.TargetSetupId.HasValue || request.TargetGrowId.HasValue)
+            {
+                plant.PlantRole = PlantRole.Production;
+            }
+            plant.PlantStatus = PlantStatus.Active;
+            plant.EndedAt = null;
+        }
+        else
+        {
+            plant.PlantStatus = PlantStatus.Culled;
+            plant.EndedAt = decidedAt;
+        }
+
+        var updated = _repository.DecideQuarantinePlant(plant, quarantineSetup.Id, request.Decision);
+        return Ok(updated.ToDto());
+    }
+
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(PlantInstanceDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]

@@ -393,6 +393,17 @@ export interface CreateCloneFromMotherRequest {
   cutAt?: string | null
 }
 
+export type QuarantineDecision = 'Cleared' | 'Rejected'
+
+export interface DecideQuarantinePlantRequest {
+  plantId: number
+  decision: QuarantineDecision
+  targetSetupId?: number | null
+  targetGrowId?: number | null
+  decidedAt?: string | null
+  notes?: string | null
+}
+
 export type SensorMetricType =
   | 'AirTemperature'
   | 'Humidity'

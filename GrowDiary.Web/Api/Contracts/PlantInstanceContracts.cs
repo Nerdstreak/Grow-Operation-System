@@ -70,3 +70,16 @@ public sealed class CreateCloneFromMotherRequest
     public int? StrainId { get; set; }
     public DateTime? CutAt { get; set; }
 }
+
+public sealed class DecideQuarantinePlantRequest
+{
+    public int PlantId { get; set; }
+
+    [Required]
+    public string Decision { get; set; } = string.Empty;
+
+    public int? TargetSetupId { get; set; }
+    public int? TargetGrowId { get; set; }
+    public DateTime? DecidedAt { get; set; }
+    public string? Notes { get; set; }
+}

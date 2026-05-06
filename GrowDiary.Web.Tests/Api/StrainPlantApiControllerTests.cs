@@ -270,6 +270,169 @@ public sealed class StrainPlantApiControllerTests : IDisposable
         Assert.Contains(nameof(CreateCloneFromMotherRequest.StrainId), AssertValidationError(badStrain.Result).FieldErrors!.Keys);
     }
 
+    [Fact]
+    public void DecideQuarantine_ClearedWithoutTargetKeepsPlantInQuarantineAndSetsResult()
+    {
+        var tent = _repository.GetTents().Single();
+        var quarantineSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Quarantine Setup", SetupType = SetupType.Quarantine });
+        var plant = _repository.CreatePlant(new PlantInstance
+        {
+            SetupId = quarantineSetup.Id,
+            Label = "Clone A1",
+            PlantRole = PlantRole.Clone,
+            PlantStatus = PlantStatus.Planned
+        });
+
+        var result = _plantsController.DecideQuarantine(new DecideQuarantinePlantRequest
+        {
+            PlantId = plant.Id,
+            Decision = "Cleared",
+            Notes = "clean"
+        });
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var updated = Assert.IsType<PlantInstanceDto>(ok.Value);
+        Assert.Equal(quarantineSetup.Id, updated.SetupId);
+        Assert.Null(updated.GrowId);
+        Assert.Equal(PlantRole.Clone, updated.PlantRole);
+        Assert.Equal(PlantStatus.Active, updated.PlantStatus);
+        Assert.Equal("clean", updated.Notes);
+        Assert.Equal("Cleared", _repository.GetSetup(quarantineSetup.Id)!.QuarantineResult);
+    }
+
+    [Fact]
+    public void DecideQuarantine_ClearedCanMovePlantToProductionSetupAndGrow()
+    {
+        var tent = _repository.GetTents().Single();
+        var quarantineSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Quarantine Setup", SetupType = SetupType.Quarantine });
+        var productionSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Production Setup", SetupType = SetupType.Production });
+        var growId = _repository.CreateGrow(new GrowRun
+        {
+            TentId = tent.Id,
+            SetupId = productionSetup.Id,
+            Name = "Production Grow",
+            StartDate = new DateTime(2026, 4, 1),
+            Status = GrowStatus.Planning
+        });
+        var plant = _repository.CreatePlant(new PlantInstance
+        {
+            SetupId = quarantineSetup.Id,
+            Label = "Clone A1",
+            PlantRole = PlantRole.Clone,
+            PlantStatus = PlantStatus.Active
+        });
+
+        var result = _plantsController.DecideQuarantine(new DecideQuarantinePlantRequest
+        {
+            PlantId = plant.Id,
+            Decision = "Cleared",
+            TargetSetupId = productionSetup.Id,
+            TargetGrowId = growId
+        });
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var updated = Assert.IsType<PlantInstanceDto>(ok.Value);
+        Assert.Equal(productionSetup.Id, updated.SetupId);
+        Assert.Equal(growId, updated.GrowId);
+        Assert.Equal(PlantRole.Production, updated.PlantRole);
+        Assert.Equal(PlantStatus.Active, updated.PlantStatus);
+        Assert.Equal("Cleared", _repository.GetSetup(quarantineSetup.Id)!.QuarantineResult);
+    }
+
+    [Fact]
+    public void DecideQuarantine_RejectedCullsPlantAndSetsResult()
+    {
+        var tent = _repository.GetTents().Single();
+        var decidedAt = new DateTime(2026, 4, 2, 8, 45, 0);
+        var quarantineSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Quarantine Setup", SetupType = SetupType.Quarantine });
+        var plant = _repository.CreatePlant(new PlantInstance
+        {
+            SetupId = quarantineSetup.Id,
+            Label = "Clone A1",
+            PlantRole = PlantRole.Clone,
+            PlantStatus = PlantStatus.Active
+        });
+
+        var result = _plantsController.DecideQuarantine(new DecideQuarantinePlantRequest
+        {
+            PlantId = plant.Id,
+            Decision = "Rejected",
+            DecidedAt = decidedAt,
+            Notes = "discard"
+        });
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var updated = Assert.IsType<PlantInstanceDto>(ok.Value);
+        Assert.Equal(PlantStatus.Culled, updated.PlantStatus);
+        Assert.Equal(decidedAt, updated.EndedAt);
+        Assert.Equal("discard", updated.Notes);
+        Assert.Equal("Rejected", _repository.GetSetup(quarantineSetup.Id)!.QuarantineResult);
+    }
+
+    [Fact]
+    public void DecideQuarantine_RejectsInvalidDecisionTargetsAndNonQuarantinePlants()
+    {
+        var tent = _repository.GetTents().Single();
+        var quarantineSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Quarantine Setup", SetupType = SetupType.Quarantine });
+        var motherSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Mother Setup", SetupType = SetupType.Mother });
+        var productionSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Production Setup", SetupType = SetupType.Production });
+        var quarantinePlant = _repository.CreatePlant(new PlantInstance { SetupId = quarantineSetup.Id, Label = "Clone A1", PlantRole = PlantRole.Clone });
+        var motherPlant = _repository.CreatePlant(new PlantInstance { SetupId = motherSetup.Id, Label = "Mother A", PlantRole = PlantRole.Mother });
+        var growId = _repository.CreateGrow(new GrowRun { TentId = tent.Id, Name = "Grow", StartDate = new DateTime(2026, 4, 1), Status = GrowStatus.Planning });
+
+        var invalidDecision = _plantsController.DecideQuarantine(new DecideQuarantinePlantRequest { PlantId = quarantinePlant.Id, Decision = "Pending" });
+        Assert.Contains(nameof(DecideQuarantinePlantRequest.Decision), AssertValidationError(invalidDecision.Result).FieldErrors!.Keys);
+
+        _plantsController.ModelState.Clear();
+        var badSetup = _plantsController.DecideQuarantine(new DecideQuarantinePlantRequest { PlantId = quarantinePlant.Id, Decision = "Cleared", TargetSetupId = motherSetup.Id });
+        Assert.Contains(nameof(DecideQuarantinePlantRequest.TargetSetupId), AssertValidationError(badSetup.Result).FieldErrors!.Keys);
+
+        _plantsController.ModelState.Clear();
+        var rejectedWithTarget = _plantsController.DecideQuarantine(new DecideQuarantinePlantRequest
+        {
+            PlantId = quarantinePlant.Id,
+            Decision = "Rejected",
+            TargetSetupId = productionSetup.Id,
+            TargetGrowId = growId
+        });
+        Assert.Contains(nameof(DecideQuarantinePlantRequest.TargetSetupId), AssertValidationError(rejectedWithTarget.Result).FieldErrors!.Keys);
+        Assert.Contains(nameof(DecideQuarantinePlantRequest.TargetGrowId), AssertValidationError(rejectedWithTarget.Result).FieldErrors!.Keys);
+
+        _plantsController.ModelState.Clear();
+        var nonQuarantine = _plantsController.DecideQuarantine(new DecideQuarantinePlantRequest { PlantId = motherPlant.Id, Decision = "Cleared" });
+        Assert.Contains(nameof(DecideQuarantinePlantRequest.PlantId), AssertValidationError(nonQuarantine.Result).FieldErrors!.Keys);
+    }
+
+    [Fact]
+    public void DecideQuarantine_RejectsMismatchedProductionSetupAndGrow()
+    {
+        var tent = _repository.GetTents().Single();
+        var otherTent = _repository.CreateTent("Other Tent");
+        var quarantineSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Quarantine Setup", SetupType = SetupType.Quarantine });
+        var productionSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Production Setup", SetupType = SetupType.Production });
+        var otherSetup = _repository.CreateSetup(new Setup { TentId = otherTent.Id, Name = "Other Production", SetupType = SetupType.Production });
+        var otherGrowId = _repository.CreateGrow(new GrowRun
+        {
+            TentId = otherTent.Id,
+            SetupId = otherSetup.Id,
+            Name = "Other Grow",
+            StartDate = new DateTime(2026, 4, 1),
+            Status = GrowStatus.Planning
+        });
+        var plant = _repository.CreatePlant(new PlantInstance { SetupId = quarantineSetup.Id, Label = "Clone A1", PlantRole = PlantRole.Clone });
+
+        var result = _plantsController.DecideQuarantine(new DecideQuarantinePlantRequest
+        {
+            PlantId = plant.Id,
+            Decision = "Cleared",
+            TargetSetupId = productionSetup.Id,
+            TargetGrowId = otherGrowId
+        });
+
+        var error = AssertValidationError(result.Result);
+        Assert.Contains(nameof(DecideQuarantinePlantRequest.TargetGrowId), error.FieldErrors!.Keys);
+    }
+
     private static ApiError AssertValidationError(ActionResult? result)
     {
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
