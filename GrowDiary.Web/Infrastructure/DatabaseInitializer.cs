@@ -403,8 +403,6 @@ public sealed class DatabaseInitializer
 
             CREATE INDEX IF NOT EXISTS IX_Measurements_GrowId_TakenAt ON Measurements(GrowId, TakenAt DESC);
             CREATE INDEX IF NOT EXISTS IX_Photos_GrowId_TakenAt ON Photos(GrowId, TakenAtUtc DESC);
-            CREATE INDEX IF NOT EXISTS IX_Grows_TentId_Status ON Grows(TentId, Status);
-            CREATE INDEX IF NOT EXISTS IX_Grows_SetupId ON Grows(SetupId);
             CREATE INDEX IF NOT EXISTS IX_Setups_TentId_Status ON Setups(TentId, Status);
             CREATE INDEX IF NOT EXISTS IX_PlantInstances_SetupId ON PlantInstances(SetupId);
             CREATE INDEX IF NOT EXISTS IX_PlantInstances_GrowId ON PlantInstances(GrowId);
@@ -429,6 +427,11 @@ public sealed class DatabaseInitializer
         EnsureColumn(connection, "Setups", "QuarantineResult", "TEXT NULL");
         EnsureColumn(connection, "Grows", "TentId", "INTEGER NULL");
         EnsureColumn(connection, "Grows", "SetupId", "INTEGER NULL");
+        command.CommandText = """
+            CREATE INDEX IF NOT EXISTS IX_Grows_TentId_Status ON Grows(TentId, Status);
+            CREATE INDEX IF NOT EXISTS IX_Grows_SetupId ON Grows(SetupId);
+        """;
+        command.ExecuteNonQuery();
         EnsureColumn(connection, "Grows", "MediumDetail", "TEXT NULL");
         EnsureColumn(connection, "Grows", "ReservoirSize", "TEXT NULL");
         EnsureColumn(connection, "GrowTemplates", "MediumDetail", "TEXT NULL");
