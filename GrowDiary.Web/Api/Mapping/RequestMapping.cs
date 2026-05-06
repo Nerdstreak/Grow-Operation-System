@@ -12,6 +12,7 @@ public static class RequestMapping
         Name = request.Name,
         TentId = request.TentId,
         SystemId = request.SystemId,
+        SetupId = request.SetupId,
         Strain = request.Strain,
         Breeder = request.Breeder,
         SeedType = request.SeedType,

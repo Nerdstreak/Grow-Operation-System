@@ -77,6 +77,11 @@ public sealed class GrowsApiController : ApiControllerBase
             return ValidationError();
         }
 
+        if (!ValidateSetupAssignment(grow, nameof(request.SetupId)))
+        {
+            return ValidationError();
+        }
+
         var growId = _repository.CreateGrow(grow);
 
         var savedGrow = _repository.GetGrow(growId)!;
@@ -129,6 +134,11 @@ public sealed class GrowsApiController : ApiControllerBase
             return ValidationError();
         }
 
+        if (!ValidateSetupAssignment(grow, nameof(request.SetupId)))
+        {
+            return ValidationError();
+        }
+
         grow.Id = id;
         grow.CreatedAtUtc = existing.CreatedAtUtc;
         _repository.UpdateGrow(grow);
@@ -166,5 +176,47 @@ public sealed class GrowsApiController : ApiControllerBase
         });
 
         return NoContent();
+    }
+
+    private bool ValidateSetupAssignment(GrowRun grow, string fieldName)
+    {
+        if (!grow.SetupId.HasValue)
+        {
+            return true;
+        }
+
+        var setup = _repository.GetSetup(grow.SetupId.Value);
+        if (setup is null)
+        {
+            ModelState.AddModelError(fieldName, $"Setup mit Id {grow.SetupId.Value} existiert nicht.");
+            return false;
+        }
+
+        if (setup.SetupType != SetupType.Production)
+        {
+            ModelState.AddModelError(fieldName, $"Setup-Typ {setup.SetupType} kann keinem GrowRun zugeordnet werden. Erlaubt ist nur Production.");
+            return false;
+        }
+
+        var setupTent = _repository.GetTent(setup.TentId);
+        if (setupTent is null)
+        {
+            ModelState.AddModelError(fieldName, $"Zelt mit Id {setup.TentId} existiert nicht.");
+            return false;
+        }
+
+        if (!SetupTentCompatibilityPolicy.IsCompatible(setupTent.TentType, setup.SetupType))
+        {
+            ModelState.AddModelError(fieldName, $"Setup-Typ {setup.SetupType} ist fuer Tent-Typ {setupTent.TentType} nicht erlaubt.");
+            return false;
+        }
+
+        if (grow.TentId.HasValue && grow.TentId.Value != setup.TentId)
+        {
+            ModelState.AddModelError(fieldName, "Das Production-Setup gehoert zu einem anderen Zelt als der GrowRun.");
+            return false;
+        }
+
+        return true;
     }
 }

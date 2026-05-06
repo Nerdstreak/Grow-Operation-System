@@ -17,6 +17,7 @@ public static class GrowMapping
         StartMaterial: grow.StartMaterial,
         PlantCount: grow.PlantCount,
         TentId: grow.TentId,
+        SetupId: grow.SetupId,
         TentName: grow.TentName,
         StartDate: grow.StartDate,
         EndDate: grow.EndDate,
@@ -34,6 +35,7 @@ public static class GrowMapping
     public static GrowDetailDto ToDetailDto(this GrowRun grow) => new(
         Id: grow.Id,
         SystemId: grow.SystemId,
+        SetupId: grow.SetupId,
         Name: grow.Name,
         Strain: grow.Strain,
         Breeder: grow.Breeder,

@@ -19,4 +19,34 @@ public sealed class GrowMappingTests
 
         Assert.Equal(34, dto.SystemId);
     }
+
+    [Fact]
+    public void ToDetailDto_IncludesSetupId()
+    {
+        var grow = new GrowRun
+        {
+            Id = 12,
+            SetupId = 56,
+            Name = "Setup Grow"
+        };
+
+        var dto = grow.ToDetailDto();
+
+        Assert.Equal(56, dto.SetupId);
+    }
+
+    [Fact]
+    public void ToSummaryDto_IncludesSetupId()
+    {
+        var grow = new GrowRun
+        {
+            Id = 12,
+            SetupId = 56,
+            Name = "Setup Grow"
+        };
+
+        var dto = grow.ToSummaryDto();
+
+        Assert.Equal(56, dto.SetupId);
+    }
 }
