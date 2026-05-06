@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type {
+  CreateSetupRequest,
   HomeAssistantSettingsDto,
   HvacControllerType,
   LightControllerType,
   SensorMetricType,
   SettingsOverviewDto,
+  SetupDto,
+  SetupType,
   TentDto,
   TentSensorDto,
   TentType,
@@ -24,7 +27,14 @@ type SensorGroup = {
   sensors: SensorDefinition[]
 }
 
+type SetupDraft = {
+  name: string
+  setupType: SetupType
+  notes: string
+}
+
 const tentTypeOptions: TentType[] = ['Production', 'Mother', 'Quarantine', 'Propagation', 'MultiPurpose']
+const setupTypeOptions: SetupType[] = ['Production', 'Mother', 'Quarantine']
 const lightControllerOptions: Array<LightControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
 const hvacControllerOptions: Array<HvacControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
 
@@ -72,6 +82,9 @@ const sensorRowStyle: CSSProperties = {
 
 function SettingsPage() {
   const [settings, setSettings] = useState<SettingsOverviewDto | null>(null)
+  const [setups, setSetups] = useState<SetupDto[]>([])
+  const [setupDrafts, setSetupDrafts] = useState<Record<number, SetupDraft>>({})
+  const [setupErrors, setSetupErrors] = useState<Record<number, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
@@ -84,8 +97,12 @@ function SettingsPage() {
       setError(null)
 
       try {
-        const data = await apiFetch<SettingsOverviewDto>('/api/settings', { signal: controller.signal })
+        const [data, setupData] = await Promise.all([
+          apiFetch<SettingsOverviewDto>('/api/settings', { signal: controller.signal }),
+          apiFetch<SetupDto[]>('/api/setups', { signal: controller.signal }),
+        ])
         setSettings(data)
+        setSetups(setupData)
       } catch (caught) {
         if (controller.signal.aborted) return
         setError(caught instanceof ApiRequestError ? caught.message : 'Setup konnte nicht geladen werden.')
@@ -137,11 +154,63 @@ function SettingsPage() {
     }
   }
 
+  async function handleCreateSetup(event: FormEvent<HTMLFormElement>, tent: TentDto) {
+    event.preventDefault()
+
+    const allowedTypes = getAllowedSetupTypes(tent.tentType)
+    if (allowedTypes.length === 0) return
+
+    const draft = getSetupDraft(tent, setupDrafts)
+    const setupType = allowedTypes.includes(draft.setupType) ? draft.setupType : allowedTypes[0]
+    const name = draft.name.trim()
+
+    if (!name) {
+      setSetupErrors((current) => ({ ...current, [tent.id]: 'Name darf nicht leer sein.' }))
+      return
+    }
+
+    const request: CreateSetupRequest = {
+      tentId: tent.id,
+      name,
+      setupType,
+      notes: toNullableString(draft.notes),
+    }
+
+    setSaving(`setup-${tent.id}`)
+    setSetupErrors((current) => {
+      const next = { ...current }
+      delete next[tent.id]
+      return next
+    })
+    setError(null)
+
+    try {
+      const saved = await apiFetch<SetupDto>('/api/setups', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+
+      setSetups((current) => [...current, saved])
+      setSetupDrafts((current) => ({ ...current, [tent.id]: createSetupDraft(tent) }))
+    } catch (caught) {
+      setSetupErrors((current) => ({ ...current, [tent.id]: formatApiError(caught, 'Setup konnte nicht angelegt werden.') }))
+    } finally {
+      setSaving(null)
+    }
+  }
+
   function updateTent(id: number, patch: Partial<TentDto>) {
     setSettings((current) => current ? {
       ...current,
       tents: current.tents.map((tent) => tent.id === id ? { ...tent, ...patch } : tent),
     } : current)
+  }
+
+  function updateSetupDraft(tent: TentDto, patch: Partial<SetupDraft>) {
+    setSetupDrafts((current) => ({
+      ...current,
+      [tent.id]: { ...getSetupDraft(tent, current), ...patch },
+    }))
   }
 
   function updateTentSensor(tentId: number, metricType: SensorMetricType, patch: Partial<TentSensorDto>) {
@@ -308,6 +377,88 @@ function SettingsPage() {
                 </label>
 
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
+                  Setups
+                </div>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {setups.filter((setup) => setup.tentId === tent.id).length === 0 ? (
+                    <div style={{ fontSize: 13, color: 'var(--faint)' }}>Keine Setups angelegt.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {setups.filter((setup) => setup.tentId === tent.id).map((setup) => (
+                        <div
+                          key={setup.id}
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'minmax(0, 1fr) auto auto',
+                            gap: 8,
+                            alignItems: 'center',
+                            padding: '9px 10px',
+                            border: '1px solid var(--border)',
+                            borderRadius: 7,
+                            background: 'var(--surface2)',
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{setup.name}</div>
+                            {setup.notes && (
+                              <div style={{ fontSize: 12, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{setup.notes}</div>
+                            )}
+                          </div>
+                          <span className="badge badge-info">{setup.setupType}</span>
+                          <span className={`badge ${setup.status === 'Active' ? 'badge-ok' : setup.status === 'Archived' ? 'badge-neutral' : 'badge-warn'}`}>
+                            {setup.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {getAllowedSetupTypes(tent.tentType).length === 0 ? (
+                    <div className="field-hint">Propagation wird spaeter unterstuetzt.</div>
+                  ) : (
+                    <form onSubmit={(event) => void handleCreateSetup(event, tent)} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(130px, 170px)', gap: 10, alignItems: 'end' }}>
+                      <label className="field">
+                        <span>Neues Setup</span>
+                        <input
+                          value={getSetupDraft(tent, setupDrafts).name}
+                          onChange={(event) => updateSetupDraft(tent, { name: event.target.value })}
+                          placeholder="Name"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Typ</span>
+                        <select
+                          value={getNormalizedSetupType(tent, setupDrafts)}
+                          onChange={(event) => updateSetupDraft(tent, { setupType: event.target.value as SetupType })}
+                        >
+                          {getAllowedSetupTypes(tent.tentType).map((value) => <option key={value} value={value}>{value}</option>)}
+                        </select>
+                      </label>
+                      <label className="field" style={{ gridColumn: '1 / -1' }}>
+                        <span>Notizen</span>
+                        <textarea
+                          rows={2}
+                          value={getSetupDraft(tent, setupDrafts).notes}
+                          onChange={(event) => updateSetupDraft(tent, { notes: event.target.value })}
+                          placeholder="Optional"
+                        />
+                      </label>
+                      {setupErrors[tent.id] && (
+                        <div style={{ gridColumn: '1 / -1', fontSize: 13, color: 'var(--red)' }}>{setupErrors[tent.id]}</div>
+                      )}
+                      <button
+                        type="submit"
+                        className="btn"
+                        style={{ justifySelf: 'start' }}
+                        disabled={saving === `setup-${tent.id}`}
+                      >
+                        {saving === `setup-${tent.id}` ? 'Legt an...' : 'Setup anlegen'}
+                      </button>
+                    </form>
+                  )}
+                </div>
+
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
                   Abmessungen & Licht
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -459,6 +610,48 @@ function createEmptySensor(tentId: number, metricType: SensorMetricType): TentSe
 
 function getTentSensor(tent: TentDto, metricType: SensorMetricType): TentSensorDto {
   return tent.sensors.find((sensor) => sensor.metricType === metricType) ?? createEmptySensor(tent.id, metricType)
+}
+
+function createSetupDraft(tent: TentDto): SetupDraft {
+  return {
+    name: '',
+    setupType: getAllowedSetupTypes(tent.tentType)[0] ?? 'Production',
+    notes: '',
+  }
+}
+
+function getSetupDraft(tent: TentDto, drafts: Record<number, SetupDraft>): SetupDraft {
+  return drafts[tent.id] ?? createSetupDraft(tent)
+}
+
+function getNormalizedSetupType(tent: TentDto, drafts: Record<number, SetupDraft>): SetupType {
+  const allowedTypes = getAllowedSetupTypes(tent.tentType)
+  const draft = getSetupDraft(tent, drafts)
+  return allowedTypes.includes(draft.setupType) ? draft.setupType : allowedTypes[0]
+}
+
+function getAllowedSetupTypes(tentType: TentType): SetupType[] {
+  switch (tentType) {
+    case 'Production':
+      return ['Production']
+    case 'Mother':
+      return ['Mother']
+    case 'Quarantine':
+      return ['Quarantine']
+    case 'MultiPurpose':
+      return setupTypeOptions
+    case 'Propagation':
+      return []
+  }
+}
+
+function formatApiError(caught: unknown, fallback: string): string {
+  if (caught instanceof ApiRequestError) {
+    const firstFieldError = caught.payload?.fieldErrors ? Object.values(caught.payload.fieldErrors).flat()[0] : null
+    return firstFieldError ?? caught.message
+  }
+
+  return caught instanceof Error ? caught.message : fallback
 }
 
 function toTentUpdateRequest(tent: TentDto): UpdateTentRequest {
