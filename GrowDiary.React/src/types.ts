@@ -20,6 +20,22 @@ export type QuarantineResult = 'Pending' | 'Cleared' | 'Rejected'
 export type PlantRole = 'Production' | 'Mother' | 'Clone' | 'Quarantine'
 export type PlantStatus = 'Planned' | 'Active' | 'Archived' | 'Culled' | 'Harvested'
 export type StrainDominance = 'Unknown' | 'Indica' | 'Sativa' | 'Hybrid'
+export type AutoMeasurementStatus = 'Enabled' | 'Disabled'
+export type AutoMeasurementAggregation = 'Latest' | 'Median' | 'Average'
+export type AutoMeasurementField =
+  | 'AirTemperatureC'
+  | 'HumidityPercent'
+  | 'ReservoirPh'
+  | 'ReservoirEc'
+  | 'ReservoirWaterTempC'
+  | 'ReservoirLevelLiters'
+  | 'ReservoirLevelCm'
+  | 'DissolvedOxygenMgL'
+  | 'OrpMv'
+  | 'PpfdMol'
+  | 'Co2Ppm'
+export type AutoMeasurementTriggerKind = 'Manual' | 'LightOnDelay' | 'LightOffDelay'
+export type AutoMeasurementRunStatus = 'Pending' | 'Created' | 'Skipped' | 'Failed'
 
 export interface ApiError {
   code: string
@@ -402,6 +418,73 @@ export interface DecideQuarantinePlantRequest {
   targetGrowId?: number | null
   decidedAt?: string | null
   notes?: string | null
+}
+
+export interface AutoMeasurementConfigDto {
+  id: number
+  growId: number
+  tentId: number | null
+  name: string
+  status: AutoMeasurementStatus
+  triggerKind: AutoMeasurementTriggerKind
+  delayMinutes: number | null
+  windowMinutes: number
+  createdAtUtc: string
+  updatedAtUtc: string
+}
+
+export interface CreateAutoMeasurementConfigRequest {
+  growId: number
+  tentId?: number | null
+  name: string
+  status: AutoMeasurementStatus
+  triggerKind: AutoMeasurementTriggerKind
+  delayMinutes?: number | null
+  windowMinutes: number
+}
+
+export interface UpdateAutoMeasurementConfigRequest {
+  tentId?: number | null
+  name: string
+  status: AutoMeasurementStatus
+  triggerKind: AutoMeasurementTriggerKind
+  delayMinutes?: number | null
+  windowMinutes: number
+}
+
+export interface AutoMeasurementFieldMappingDto {
+  id: number
+  configId: number
+  measurementField: AutoMeasurementField
+  metricKey: string
+  aggregation: AutoMeasurementAggregation
+  isRequired: boolean
+  createdAtUtc: string
+  updatedAtUtc: string
+}
+
+export interface AutoMeasurementFieldMappingUpsertRequest {
+  measurementField: AutoMeasurementField
+  metricKey: string
+  aggregation: AutoMeasurementAggregation
+  isRequired: boolean
+}
+
+export interface ReplaceAutoMeasurementFieldMappingsRequest {
+  mappings: AutoMeasurementFieldMappingUpsertRequest[]
+}
+
+export interface AutoMeasurementRunDto {
+  id: number
+  configId: number
+  growId: number
+  triggerKind: AutoMeasurementTriggerKind
+  scheduledForUtc: string
+  measurementId: number | null
+  status: AutoMeasurementRunStatus
+  errorMessage: string | null
+  createdAtUtc: string
+  updatedAtUtc: string
 }
 
 export type SensorMetricType =

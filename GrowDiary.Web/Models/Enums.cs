@@ -207,6 +207,49 @@ public enum StrainDominance
     Hybrid
 }
 
+public enum AutoMeasurementStatus
+{
+    Enabled,
+    Disabled
+}
+
+public enum AutoMeasurementAggregation
+{
+    Latest,
+    Median,
+    Average
+}
+
+public enum AutoMeasurementField
+{
+    AirTemperatureC,
+    HumidityPercent,
+    ReservoirPh,
+    ReservoirEc,
+    ReservoirWaterTempC,
+    ReservoirLevelLiters,
+    ReservoirLevelCm,
+    DissolvedOxygenMgL,
+    OrpMv,
+    PpfdMol,
+    Co2Ppm
+}
+
+public enum AutoMeasurementTriggerKind
+{
+    Manual,
+    LightOnDelay,
+    LightOffDelay
+}
+
+public enum AutoMeasurementRunStatus
+{
+    Pending,
+    Created,
+    Skipped,
+    Failed
+}
+
 public enum SensorMetricType
 {
     AirTemperature,

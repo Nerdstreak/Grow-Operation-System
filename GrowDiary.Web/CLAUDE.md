@@ -80,6 +80,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 - `Measurements`: pH, EC, ORP, DO, Reservoir-Werte, Air-Werte, PPFD und CO2.
 - `TentSensorReadings`: hochfrequente HA-Messwerte aus dem 5-Minuten-Polling.
 - `TentSensorDailyStats`: Tagesaggregation mit Median, P5, P95, Min, Max und Avg.
+- `AutoMeasurementConfigs`, `AutoMeasurementFieldMappings` und `AutoMeasurementRuns`: Konfigurations-, Mapping- und Idempotenzgrundlage fuer spaetere automatische Measurements; C1 erzeugt noch keine Messungen.
 
 ### DB-Initialisierung
 
@@ -107,6 +108,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint B2d-1 ABGESCHLOSSEN: Strain- und PlantInstance-Grundfunktion mit einfacher ParentPlantId-Lineage.
 - Sprint B2d-2 ABGESCHLOSSEN: Clone-from-Mother Workflow mit optionalem Quarantine-Ziel und MotherSetup-Counter.
 - Sprint B2d-3 ABGESCHLOSSEN: Quarantine-Plant Decision Workflow fuer Cleared/Rejected mit optionaler Production-Uebernahme.
+- Sprint C1 ABGESCHLOSSEN: AutoMeasurement-Konfigurationen, FieldMappings und Run-Idempotenzgrundlage ohne Job-Ausfuehrung.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow

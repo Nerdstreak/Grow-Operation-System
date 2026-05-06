@@ -2,7 +2,23 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowActionResultDto, GrowDetail, GrowTaskDto, JournalEntryDto, MeasurementDto, PhotoAssetDto, PhotoTag, ValueOrigin } from '../types'
+import type {
+  AutoMeasurementAggregation,
+  AutoMeasurementConfigDto,
+  AutoMeasurementField,
+  AutoMeasurementFieldMappingDto,
+  AutoMeasurementFieldMappingUpsertRequest,
+  AutoMeasurementStatus,
+  AutoMeasurementTriggerKind,
+  GrowActionResultDto,
+  GrowDetail,
+  GrowTaskDto,
+  JournalEntryDto,
+  MeasurementDto,
+  PhotoAssetDto,
+  PhotoTag,
+  ValueOrigin,
+} from '../types'
 import { formatDate, formatDateTime, formatNumber, toLocalInputValue } from '../utils'
 
 interface DetailBundle {
@@ -13,6 +29,35 @@ interface DetailBundle {
 }
 
 const photoTags: PhotoTag[] = ['Overview', 'Canopy', 'Leaf', 'Root', 'Training', 'Flower', 'Problem', 'Comparison', 'Other']
+const autoMeasurementFields: AutoMeasurementField[] = [
+  'AirTemperatureC',
+  'HumidityPercent',
+  'ReservoirPh',
+  'ReservoirEc',
+  'ReservoirWaterTempC',
+  'ReservoirLevelLiters',
+  'ReservoirLevelCm',
+  'DissolvedOxygenMgL',
+  'OrpMv',
+  'PpfdMol',
+  'Co2Ppm',
+]
+const autoMeasurementAggregations: AutoMeasurementAggregation[] = ['Latest', 'Median', 'Average']
+const autoMeasurementTriggerKinds: AutoMeasurementTriggerKind[] = ['Manual', 'LightOnDelay', 'LightOffDelay']
+const autoMeasurementStatuses: AutoMeasurementStatus[] = ['Enabled', 'Disabled']
+const defaultMetricKeyByField: Record<AutoMeasurementField, string> = {
+  AirTemperatureC: 'temperature',
+  HumidityPercent: 'humidity',
+  ReservoirPh: 'reservoir-ph',
+  ReservoirEc: 'reservoir-ec',
+  ReservoirWaterTempC: 'reservoir-temp',
+  ReservoirLevelLiters: 'reservoir-level',
+  ReservoirLevelCm: 'reservoir-level',
+  DissolvedOxygenMgL: 'dissolved-oxygen',
+  OrpMv: 'orp',
+  PpfdMol: 'ppfd',
+  Co2Ppm: 'co2',
+}
 
 const emptyMeasurementForm = () => ({
   takenAtLocal: toLocalInputValue(),
@@ -49,6 +94,21 @@ const emptyPhotoForm = () => ({
   files: [] as File[],
 })
 
+const emptyAutoConfigForm = () => ({
+  name: '',
+  status: 'Enabled' as AutoMeasurementStatus,
+  triggerKind: 'Manual' as AutoMeasurementTriggerKind,
+  delayMinutes: '',
+  windowMinutes: '20',
+})
+
+const emptyMappingDraft = (): AutoMeasurementFieldMappingUpsertRequest => ({
+  measurementField: 'AirTemperatureC',
+  metricKey: defaultMetricKeyByField.AirTemperatureC,
+  aggregation: 'Latest',
+  isRequired: true,
+})
+
 function GrowDetailPage() {
   const { growId } = useParams()
   const [bundle, setBundle] = useState<DetailBundle>({ grow: null, measurements: [], tasks: [], journal: [] })
@@ -63,6 +123,11 @@ function GrowDetailPage() {
   const [taskForm, setTaskForm] = useState(emptyTaskForm)
   const [journalForm, setJournalForm] = useState(emptyJournalForm)
   const [photoForm, setPhotoForm] = useState(emptyPhotoForm)
+  const [autoConfigs, setAutoConfigs] = useState<AutoMeasurementConfigDto[]>([])
+  const [autoMappingsByConfigId, setAutoMappingsByConfigId] = useState<Record<number, AutoMeasurementFieldMappingDto[]>>({})
+  const [mappingDraftsByConfigId, setMappingDraftsByConfigId] = useState<Record<number, AutoMeasurementFieldMappingUpsertRequest[]>>({})
+  const [autoConfigForm, setAutoConfigForm] = useState(emptyAutoConfigForm)
+  const [autoLoading, setAutoLoading] = useState(false)
 
   const loadPhotos = useCallback(async (measurementId: number, signal?: AbortSignal) => {
     setPhotoLoading(true)
@@ -76,6 +141,35 @@ function GrowDetailPage() {
       if (!signal?.aborted) setPhotoLoading(false)
     }
   }, [])
+
+  const loadAutoMeasurements = useCallback(async (signal?: AbortSignal) => {
+    if (!growId) return
+    setAutoLoading(true)
+    try {
+      const configs = await apiFetch<AutoMeasurementConfigDto[]>(`/api/auto-measurements/configs?growId=${growId}`, { signal })
+      const mappingEntries = await Promise.all(configs.map(async (config) => {
+        const mappings = await apiFetch<AutoMeasurementFieldMappingDto[]>(`/api/auto-measurements/configs/${config.id}/mappings`, { signal })
+        return [config.id, mappings] as const
+      }))
+      const nextMappings = Object.fromEntries(mappingEntries)
+      setAutoConfigs(configs)
+      setAutoMappingsByConfigId(nextMappings)
+      setMappingDraftsByConfigId(Object.fromEntries(mappingEntries.map(([configId, mappings]) => [
+        configId,
+        mappings.map((mapping) => ({
+          measurementField: mapping.measurementField,
+          metricKey: mapping.metricKey,
+          aggregation: mapping.aggregation,
+          isRequired: mapping.isRequired,
+        })),
+      ])))
+    } catch (caught) {
+      if (signal?.aborted) return
+      setError(caught instanceof ApiRequestError ? caught.message : 'AutoMeasurement-Konfigurationen konnten nicht geladen werden.')
+    } finally {
+      if (!signal?.aborted) setAutoLoading(false)
+    }
+  }, [growId])
 
   const loadBundle = useCallback(async (signal?: AbortSignal) => {
     if (!growId) return
@@ -105,12 +199,15 @@ function GrowDetailPage() {
 
   useEffect(() => {
     const controller = new AbortController()
-    const handle = window.setTimeout(() => { void loadBundle(controller.signal) }, 0)
+    const handle = window.setTimeout(() => {
+      void loadBundle(controller.signal)
+      void loadAutoMeasurements(controller.signal)
+    }, 0)
     return () => {
       window.clearTimeout(handle)
       controller.abort()
     }
-  }, [loadBundle])
+  }, [loadAutoMeasurements, loadBundle])
 
   const openTasks = useMemo(() => bundle.tasks.filter((task) => task.status === 'Open'), [bundle.tasks])
   const closedTasks = useMemo(() => bundle.tasks.filter((task) => task.status !== 'Open'), [bundle.tasks])
@@ -234,6 +331,95 @@ function GrowDetailPage() {
       await Promise.all([loadBundle(), loadPhotos(selectedMeasurement.id)])
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Fotos konnten nicht gespeichert werden.')
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function handleAutoConfigSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!bundle.grow) return
+
+    const windowMinutes = toNullableInteger(autoConfigForm.windowMinutes)
+    if (!autoConfigForm.name.trim() || !windowMinutes) {
+      setError('Name und gueltiges Zeitfenster sind erforderlich.')
+      return
+    }
+
+    setSaving('auto-config')
+    try {
+      await apiFetch('/api/auto-measurements/configs', {
+        method: 'POST',
+        body: JSON.stringify({
+          growId: bundle.grow.id,
+          tentId: bundle.grow.tentId,
+          name: autoConfigForm.name.trim(),
+          status: autoConfigForm.status,
+          triggerKind: autoConfigForm.triggerKind,
+          delayMinutes: toNullableInteger(autoConfigForm.delayMinutes),
+          windowMinutes,
+        }),
+      })
+      setAutoConfigForm(emptyAutoConfigForm())
+      setNotice('AutoMeasurement-Konfiguration gespeichert.')
+      await loadAutoMeasurements()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'AutoMeasurement-Konfiguration konnte nicht gespeichert werden.')
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  function addMappingDraft(configId: number) {
+    setMappingDraftsByConfigId((current) => ({
+      ...current,
+      [configId]: [...(current[configId] ?? []), emptyMappingDraft()],
+    }))
+  }
+
+  function updateMappingDraft(configId: number, index: number, patch: Partial<AutoMeasurementFieldMappingUpsertRequest>) {
+    setMappingDraftsByConfigId((current) => ({
+      ...current,
+      [configId]: (current[configId] ?? []).map((mapping, currentIndex) => {
+        if (currentIndex !== index) return mapping
+        const next = { ...mapping, ...patch }
+        if (patch.measurementField && patch.metricKey === undefined) {
+          next.metricKey = defaultMetricKeyByField[patch.measurementField]
+        }
+        return next
+      }),
+    }))
+  }
+
+  function removeMappingDraft(configId: number, index: number) {
+    setMappingDraftsByConfigId((current) => ({
+      ...current,
+      [configId]: (current[configId] ?? []).filter((_, currentIndex) => currentIndex !== index),
+    }))
+  }
+
+  async function saveMappingDrafts(configId: number) {
+    const mappings = mappingDraftsByConfigId[configId] ?? []
+    if (mappings.some((mapping) => !mapping.metricKey.trim())) {
+      setError('MetricKey darf nicht leer sein.')
+      return
+    }
+
+    setSaving(`auto-mappings-${configId}`)
+    try {
+      await apiFetch(`/api/auto-measurements/configs/${configId}/mappings`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          mappings: mappings.map((mapping) => ({
+            ...mapping,
+            metricKey: mapping.metricKey.trim(),
+          })),
+        }),
+      })
+      setNotice('Mappings gespeichert.')
+      await loadAutoMeasurements()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Mappings konnten nicht gespeichert werden.')
     } finally {
       setSaving(null)
     }
@@ -498,6 +684,113 @@ function GrowDetailPage() {
                 <button className="btn btn-primary" disabled={saving === 'measurement'}>{saving === 'measurement' ? 'Speichert...' : 'Messung speichern'}</button>
               </form>
             </div>
+
+            <div className="section-label">AutoMeasurement</div>
+            <div className="card" style={{ marginBottom: 14 }}>
+              <div className="card-header">
+                <span className="card-title">Konfigurationen</span>
+                <span className="text-muted" style={{ fontSize: 13 }}>{autoConfigs.length} aktiv</span>
+              </div>
+              <form onSubmit={handleAutoConfigSubmit} style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+                <div className="meas-fields" style={{ marginBottom: 14 }}>
+                  <div className="meas-field">
+                    <label>Name</label>
+                    <input className="meas-input" value={autoConfigForm.name} onChange={(event) => setAutoConfigForm((current) => ({ ...current, name: event.target.value }))} placeholder="z. B. Licht an" />
+                  </div>
+                  <div className="meas-field">
+                    <label>Status</label>
+                    <select className="meas-input" value={autoConfigForm.status} onChange={(event) => setAutoConfigForm((current) => ({ ...current, status: event.target.value as AutoMeasurementStatus }))}>
+                      {autoMeasurementStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
+                    </select>
+                  </div>
+                  <div className="meas-field">
+                    <label>Trigger</label>
+                    <select className="meas-input" value={autoConfigForm.triggerKind} onChange={(event) => setAutoConfigForm((current) => ({ ...current, triggerKind: event.target.value as AutoMeasurementTriggerKind }))}>
+                      {autoMeasurementTriggerKinds.map((trigger) => <option key={trigger} value={trigger}>{trigger}</option>)}
+                    </select>
+                  </div>
+                  <div className="meas-field">
+                    <label>Fenster</label>
+                    <div className="meas-field-inner">
+                      <input className="meas-input" value={autoConfigForm.windowMinutes} onChange={(event) => setAutoConfigForm((current) => ({ ...current, windowMinutes: event.target.value }))} />
+                      <span className="meas-unit">min</span>
+                    </div>
+                  </div>
+                  <div className="meas-field">
+                    <label>Delay</label>
+                    <div className="meas-field-inner">
+                      <input className="meas-input" value={autoConfigForm.delayMinutes} onChange={(event) => setAutoConfigForm((current) => ({ ...current, delayMinutes: event.target.value }))} placeholder="optional" />
+                      <span className="meas-unit">min</span>
+                    </div>
+                  </div>
+                </div>
+                <button className="btn btn-primary" disabled={saving === 'auto-config'}>{saving === 'auto-config' ? 'Speichert...' : 'Config anlegen'}</button>
+              </form>
+
+              {autoLoading ? (
+                <div className="empty-hint">Lade AutoMeasurement-Konfigurationen...</div>
+              ) : autoConfigs.length === 0 ? (
+                <div className="empty-hint">Noch keine AutoMeasurement-Konfigurationen.</div>
+              ) : (
+                autoConfigs.map((config) => {
+                  const drafts = mappingDraftsByConfigId[config.id] ?? []
+                  const savedMappingCount = autoMappingsByConfigId[config.id]?.length ?? 0
+                  return (
+                    <div key={config.id} style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'grid', gap: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <div>
+                          <div className="tl-title">{config.name}</div>
+                          <div className="tl-sub">{config.triggerKind} - {config.windowMinutes} min Fenster{config.delayMinutes !== null ? ` - ${config.delayMinutes} min Delay` : ''}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span className={`badge ${config.status === 'Enabled' ? 'badge-ok' : 'badge-neutral'}`}>{config.status}</span>
+                          <span className="text-muted" style={{ fontSize: 13 }}>{savedMappingCount} Mappings</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        {drafts.length === 0 ? (
+                          <div className="empty-hint" style={{ padding: 0 }}>Keine Mappings.</div>
+                        ) : (
+                          drafts.map((mapping, index) => (
+                            <div key={`${config.id}-${index}`} className="meas-fields" style={{ alignItems: 'end' }}>
+                              <div className="meas-field">
+                                <label>Feld</label>
+                                <select className="meas-input" value={mapping.measurementField} onChange={(event) => updateMappingDraft(config.id, index, { measurementField: event.target.value as AutoMeasurementField })}>
+                                  {autoMeasurementFields.map((field) => <option key={field} value={field}>{field}</option>)}
+                                </select>
+                              </div>
+                              <div className="meas-field">
+                                <label>MetricKey</label>
+                                <input className="meas-input" value={mapping.metricKey} onChange={(event) => updateMappingDraft(config.id, index, { metricKey: event.target.value })} />
+                              </div>
+                              <div className="meas-field">
+                                <label>Aggregation</label>
+                                <select className="meas-input" value={mapping.aggregation} onChange={(event) => updateMappingDraft(config.id, index, { aggregation: event.target.value as AutoMeasurementAggregation })}>
+                                  {autoMeasurementAggregations.map((aggregation) => <option key={aggregation} value={aggregation}>{aggregation}</option>)}
+                                </select>
+                              </div>
+                              <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: 'var(--muted)', minHeight: 40 }}>
+                                <input type="checkbox" checked={mapping.isRequired} onChange={(event) => updateMappingDraft(config.id, index, { isRequired: event.target.checked })} />
+                                Pflicht
+                              </label>
+                              <button type="button" className="btn" onClick={() => removeMappingDraft(config.id, index)}>Entfernen</button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button type="button" className="btn" onClick={() => addMappingDraft(config.id)}>Mapping hinzufuegen</button>
+                        <button type="button" className="btn btn-primary" disabled={saving === `auto-mappings-${config.id}`} onClick={() => void saveMappingDrafts(config.id)}>
+                          {saving === `auto-mappings-${config.id}` ? 'Speichert...' : 'Mappings speichern'}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
           </div>
 
           <div className="side-panel">
@@ -643,6 +936,13 @@ function toNullableNumber(value: string): number | null {
   if (!trimmed) return null
   const parsed = Number(trimmed.replace(',', '.'))
   return Number.isNaN(parsed) ? null : parsed
+}
+
+function toNullableInteger(value: string): number | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const parsed = Number(trimmed)
+  return Number.isInteger(parsed) ? parsed : null
 }
 
 export default GrowDetailPage
