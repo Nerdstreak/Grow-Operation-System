@@ -12,6 +12,7 @@ import type {
   HydroStyle,
   PropagationMedium,
   SeedType,
+  SetupDto,
   StartMaterial,
   TentDto,
   WaterSource,
@@ -32,6 +33,7 @@ const emptyForm = (): GrowUpsertPayload => ({
   name: '',
   tentId: null,
   systemId: null,
+  setupId: null,
   strain: null,
   breeder: null,
   seedType: 'Feminized',
@@ -66,6 +68,7 @@ function GrowSetupPage() {
   const navigate = useNavigate()
   const isEditing = Boolean(growId)
   const [tents, setTents] = useState<TentDto[]>([])
+  const [setups, setSetups] = useState<SetupDto[]>([])
   const [form, setForm] = useState<GrowUpsertPayload>(() => emptyForm())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -80,12 +83,14 @@ function GrowSetupPage() {
 
       try {
         const tentsPromise = apiFetch<TentDto[]>('/api/settings/tents', { signal: controller.signal })
+        const setupsPromise = apiFetch<SetupDto[]>('/api/setups', { signal: controller.signal })
         const growPromise = isEditing && growId
           ? apiFetch<GrowDetail>(`/api/grows/${growId}`, { signal: controller.signal })
           : Promise.resolve(null)
 
-        const [loadedTents, grow] = await Promise.all([tentsPromise, growPromise])
+        const [loadedTents, loadedSetups, grow] = await Promise.all([tentsPromise, setupsPromise, growPromise])
         setTents(loadedTents)
+        setSetups(loadedSetups)
         setForm(grow ? mapGrowToPayload(grow) : emptyForm())
       } catch (caught) {
         if (controller.signal.aborted) {
@@ -109,6 +114,7 @@ function GrowSetupPage() {
   const needsDaysInPhase = form.entryPoint !== 'Germination' && !isAutoflower
   const needsFlipDate = form.entryPoint === 'Flower' && !isAutoflower
   const pageTitle = isEditing ? 'Grow-Setup bearbeiten' : 'Neuen Grow anlegen'
+  const productionSetupsForTent = getProductionSetupsForTent(setups, form.tentId)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -200,9 +206,28 @@ function GrowSetupPage() {
             <div className="card-header"><span className="card-title">System &amp; Hardware</span></div>
             <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <label className="field"><span>Zelt</span><select value={form.tentId ?? ''} onChange={(event) => patchForm(setForm, { tentId: toNullableInteger(event.target.value) })}><option value="">Ohne Zelt</option>{tents.map((tent) => <option key={tent.id} value={tent.id}>{tent.name}</option>)}</select></label>
+                <label className="field"><span>Zelt</span><select value={form.tentId ?? ''} onChange={(event) => {
+                  const tentId = toNullableInteger(event.target.value)
+                  patchForm(setForm, { tentId, setupId: isSetupValidForTent(setups, form.setupId ?? null, tentId) ? form.setupId ?? null : null })
+                }}><option value="">Ohne Zelt</option>{tents.map((tent) => <option key={tent.id} value={tent.id}>{tent.name}</option>)}</select></label>
                 <label className="field"><span>Hydro Style</span><select value={form.hydroStyle} onChange={(event) => patchForm(setForm, { hydroStyle: event.target.value as HydroStyle })}>{hydroStyles.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
               </div>
+              <label className="field">
+                <span>Production-Setup</span>
+                <select
+                  value={form.setupId ?? ''}
+                  onChange={(event) => patchForm(setForm, { setupId: toNullableInteger(event.target.value) })}
+                  disabled={!form.tentId}
+                >
+                  <option value="">Kein Setup</option>
+                  {productionSetupsForTent.map((setup) => <option key={setup.id} value={setup.id}>{setup.name}</option>)}
+                </select>
+                {!form.tentId ? (
+                  <span className="field-hint">Zuerst ein Zelt waehlen.</span>
+                ) : productionSetupsForTent.length === 0 ? (
+                  <span className="field-hint">Production-Setup kann in Einstellungen angelegt werden.</span>
+                ) : null}
+              </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <label className="field"><span>Reservoir</span><input value={form.reservoirSize ?? ''} onChange={(event) => patchForm(setForm, { reservoirSize: toNullableString(event.target.value) })} placeholder="70 L" /></label>
                 <label className="field"><span>Container</span><input value={form.containerSize ?? ''} onChange={(event) => patchForm(setForm, { containerSize: toNullableString(event.target.value) })} placeholder="20 L" /></label>
@@ -280,12 +305,29 @@ function patchForm(
   setForm((current) => ({ ...current, ...patch }))
 }
 
+function getProductionSetupsForTent(setups: SetupDto[], tentId: number | null): SetupDto[] {
+  if (!tentId) {
+    return []
+  }
+
+  return setups.filter((setup) => setup.setupType === 'Production' && setup.tentId === tentId)
+}
+
+function isSetupValidForTent(setups: SetupDto[], setupId: number | null, tentId: number | null): boolean {
+  if (!setupId) {
+    return true
+  }
+
+  return getProductionSetupsForTent(setups, tentId).some((setup) => setup.id === setupId)
+}
+
 function mapGrowToPayload(grow: GrowDetail): GrowUpsertPayload {
   return {
     templateId: null,
     name: grow.name,
     tentId: grow.tentId,
     systemId: grow.systemId,
+    setupId: grow.setupId,
     strain: grow.strain,
     breeder: grow.breeder,
     seedType: grow.seedType,
@@ -335,6 +377,7 @@ function normalizePayload(form: GrowUpsertPayload): GrowUpsertPayload {
     reservoirSize: toNullableString(form.reservoirSize),
     containerSize: toNullableString(form.containerSize),
     propagationMedium: form.propagationMedium,
+    setupId: form.setupId ?? null,
     light: toNullableString(form.light),
     nutrients: toNullableString(form.nutrients),
     daysAlreadyInPhase: needsDaysInPhase ? form.daysAlreadyInPhase : null,
