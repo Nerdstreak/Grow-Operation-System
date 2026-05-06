@@ -358,6 +358,49 @@ public sealed class DatabaseInitializer
             CREATE UNIQUE INDEX IF NOT EXISTS IX_TentSensorDailyStats_Unique
                 ON TentSensorDailyStats(TentId, MetricKey, Date);
 
+            CREATE TABLE IF NOT EXISTS AutoMeasurementConfigs (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                GrowId INTEGER NOT NULL,
+                TentId INTEGER NULL,
+                Name TEXT NOT NULL,
+                Status TEXT NOT NULL DEFAULT 'Enabled',
+                TriggerKind TEXT NOT NULL DEFAULT 'Manual',
+                DelayMinutes INTEGER NULL,
+                WindowMinutes INTEGER NOT NULL DEFAULT 20,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (GrowId) REFERENCES Grows (Id) ON DELETE CASCADE,
+                FOREIGN KEY (TentId) REFERENCES Tents (Id) ON DELETE SET NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS AutoMeasurementFieldMappings (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ConfigId INTEGER NOT NULL,
+                MeasurementField TEXT NOT NULL,
+                MetricKey TEXT NOT NULL,
+                Aggregation TEXT NOT NULL DEFAULT 'Latest',
+                IsRequired INTEGER NOT NULL DEFAULT 0,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (ConfigId) REFERENCES AutoMeasurementConfigs (Id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS AutoMeasurementRuns (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ConfigId INTEGER NOT NULL,
+                GrowId INTEGER NOT NULL,
+                TriggerKind TEXT NOT NULL,
+                ScheduledForUtc TEXT NOT NULL,
+                MeasurementId INTEGER NULL,
+                Status TEXT NOT NULL DEFAULT 'Pending',
+                ErrorMessage TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (ConfigId) REFERENCES AutoMeasurementConfigs (Id) ON DELETE CASCADE,
+                FOREIGN KEY (GrowId) REFERENCES Grows (Id) ON DELETE CASCADE,
+                FOREIGN KEY (MeasurementId) REFERENCES Measurements (Id) ON DELETE SET NULL
+            );
+
             CREATE INDEX IF NOT EXISTS IX_Measurements_GrowId_TakenAt ON Measurements(GrowId, TakenAt DESC);
             CREATE INDEX IF NOT EXISTS IX_Photos_GrowId_TakenAt ON Photos(GrowId, TakenAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_Grows_TentId_Status ON Grows(TentId, Status);
@@ -371,6 +414,10 @@ public sealed class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS IX_JournalEntries_GrowId_OccurredAtUtc ON JournalEntries(GrowId, OccurredAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_GrowTasks_GrowId_Status_DueAtUtc ON GrowTasks(GrowId, Status, DueAtUtc);
             CREATE INDEX IF NOT EXISTS IX_AuditEntries_GrowId_CreatedAtUtc ON AuditEntries(GrowId, CreatedAtUtc DESC);
+            CREATE INDEX IF NOT EXISTS IX_AutoMeasurementConfigs_GrowId ON AutoMeasurementConfigs(GrowId);
+            CREATE INDEX IF NOT EXISTS IX_AutoMeasurementFieldMappings_ConfigId ON AutoMeasurementFieldMappings(ConfigId);
+            CREATE UNIQUE INDEX IF NOT EXISTS IX_AutoMeasurementRuns_ConfigTriggerSchedule ON AutoMeasurementRuns(ConfigId, TriggerKind, ScheduledForUtc);
+            CREATE INDEX IF NOT EXISTS IX_AutoMeasurementRuns_GrowId ON AutoMeasurementRuns(GrowId);
         """;
         command.ExecuteNonQuery();
 
