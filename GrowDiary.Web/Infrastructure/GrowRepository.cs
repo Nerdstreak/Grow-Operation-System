@@ -1,5 +1,6 @@
 using System.Globalization;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
 using Microsoft.Data.Sqlite;
 
 namespace GrowDiary.Web.Infrastructure;
@@ -297,6 +298,78 @@ public sealed class GrowRepository
         command.ExecuteNonQuery();
     }
 
+    public Setup CreateSetup(Setup setup)
+    {
+        ValidateSetupTentCompatibility(setup.TentId, setup.SetupType);
+
+        setup.CreatedAtUtc = DateTime.UtcNow;
+        setup.UpdatedAtUtc = DateTime.UtcNow;
+
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO Setups (TentId, Name, SetupType, Status, Notes, CreatedAtUtc, UpdatedAtUtc)
+            VALUES ($tentId, $name, $setupType, $status, $notes, $createdAtUtc, $updatedAtUtc);
+            SELECT last_insert_rowid();
+        """;
+        AddSetupParameters(command, setup);
+        setup.Id = Convert.ToInt32((long)command.ExecuteScalar()!);
+        return setup;
+    }
+
+    public Setup? GetSetup(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM Setups WHERE Id = $id LIMIT 1;";
+        command.Parameters.AddWithValue("$id", id);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? MapSetup(reader) : null;
+    }
+
+    public List<Setup> GetSetupsForTent(int tentId)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT * FROM Setups
+            WHERE TentId = $tentId
+            ORDER BY CASE Status WHEN 'Active' THEN 0 WHEN 'Planning' THEN 1 ELSE 2 END, Name, Id;
+        """;
+        command.Parameters.AddWithValue("$tentId", tentId);
+
+        var list = new List<Setup>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            list.Add(MapSetup(reader));
+        }
+        return list;
+    }
+
+    public void UpdateSetup(Setup setup)
+    {
+        ValidateSetupTentCompatibility(setup.TentId, setup.SetupType);
+
+        setup.UpdatedAtUtc = DateTime.UtcNow;
+
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE Setups SET
+                TentId = $tentId,
+                Name = $name,
+                SetupType = $setupType,
+                Status = $status,
+                Notes = $notes,
+                UpdatedAtUtc = $updatedAtUtc
+            WHERE Id = $id;
+        """;
+        AddSetupParameters(command, setup);
+        command.Parameters.AddWithValue("$id", setup.Id);
+        command.ExecuteNonQuery();
+    }
+
     public TentSensor? GetTentSensorByMetric(int tentId, SensorMetricType metricType)
     {
         using var connection = OpenConnection();
@@ -455,7 +528,7 @@ public sealed class GrowRepository
         command.CommandText = """
             INSERT INTO Grows
             (
-                TentId, SystemId, Name, Strain, Breeder, Status, MediumType, FeedingStyle, HydroStyle, MediumDetail,
+                TentId, SystemId, SetupId, Name, Strain, Breeder, Status, MediumType, FeedingStyle, HydroStyle, MediumDetail,
                 Environment, Light, ContainerSize, ReservoirSize, IrrigationStyle, IrrigationType, WaterSource,
                 SeedType, StartMaterial, GerminationMethod, CloneSource, CloneIsRooted,
                 BreederFlowerWeeksMin, BreederFlowerWeeksMax, PlantCount, PhenoNumber,
@@ -465,7 +538,7 @@ public sealed class GrowRepository
             )
             VALUES
             (
-                $tentId, $systemId, $name, $strain, $breeder, $status, $mediumType, $feedingStyle, $hydroStyle, $mediumDetail,
+                $tentId, $systemId, $setupId, $name, $strain, $breeder, $status, $mediumType, $feedingStyle, $hydroStyle, $mediumDetail,
                 $environment, $light, $containerSize, $reservoirSize, $irrigationStyle, $irrigationType, $waterSource,
                 $seedType, $startMaterial, $germinationMethod, $cloneSource, $cloneIsRooted,
                 $breederFlowerWeeksMin, $breederFlowerWeeksMax, $plantCount, $phenoNumber,
@@ -490,6 +563,7 @@ public sealed class GrowRepository
             SET
                 TentId = $tentId,
                 SystemId = $systemId,
+                SetupId = $setupId,
                 Name = $name,
                 Strain = $strain,
                 Breeder = $breeder,
@@ -1026,6 +1100,20 @@ public sealed class GrowRepository
         command.ExecuteNonQuery();
     }
 
+    private void ValidateSetupTentCompatibility(int tentId, SetupType setupType)
+    {
+        var tent = GetTent(tentId);
+        if (tent is null)
+        {
+            throw new InvalidOperationException($"Tent with id {tentId} does not exist.");
+        }
+
+        if (!SetupTentCompatibilityPolicy.IsCompatible(tent.TentType, setupType))
+        {
+            throw new InvalidOperationException($"Setup type {setupType} is not supported in tent type {tent.TentType}.");
+        }
+    }
+
     private SqliteConnection OpenConnection()
     {
         var builder = new SqliteConnectionStringBuilder { DataSource = _paths.DatabasePath };
@@ -1044,6 +1132,7 @@ public sealed class GrowRepository
             Id = Convert.ToInt32((long)reader["Id"]),
             TentId = reader["TentId"] is DBNull ? null : Convert.ToInt32((long)reader["TentId"]),
             SystemId = reader["SystemId"] is DBNull or null ? null : Convert.ToInt32((long)reader["SystemId"]),
+            SetupId = reader["SetupId"] is DBNull or null ? null : Convert.ToInt32((long)reader["SetupId"]),
             TentName = NullString(reader["TentName"]),
             Name = reader["Name"]?.ToString() ?? string.Empty,
             Strain = NullString(reader["Strain"]),
@@ -1085,6 +1174,21 @@ public sealed class GrowRepository
             UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             MeasurementCount = reader["MeasurementCount"] is DBNull ? 0 : Convert.ToInt32(reader["MeasurementCount"], CultureInfo.InvariantCulture),
             LatestPhotoPath = NullString(reader["LatestPhotoPath"])
+        };
+    }
+
+    private static Setup MapSetup(SqliteDataReader reader)
+    {
+        return new Setup
+        {
+            Id = Convert.ToInt32((long)reader["Id"]),
+            TentId = Convert.ToInt32((long)reader["TentId"]),
+            Name = reader["Name"]?.ToString() ?? string.Empty,
+            SetupType = ParseEnum(reader["SetupType"]?.ToString(), SetupType.Production),
+            Status = ParseEnum(reader["Status"]?.ToString(), SetupStatus.Planning),
+            Notes = NullString(reader["Notes"]),
+            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 
@@ -1232,6 +1336,7 @@ public sealed class GrowRepository
     {
         command.Parameters.AddWithValue("$tentId", (object?)grow.TentId ?? DBNull.Value);
         command.Parameters.AddWithValue("$systemId", (object?)grow.SystemId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$setupId", (object?)grow.SetupId ?? DBNull.Value);
         command.Parameters.AddWithValue("$name", grow.Name);
         command.Parameters.AddWithValue("$strain", (object?)grow.Strain ?? DBNull.Value);
         command.Parameters.AddWithValue("$breeder", (object?)grow.Breeder ?? DBNull.Value);
@@ -1270,6 +1375,17 @@ public sealed class GrowRepository
         command.Parameters.AddWithValue("$endDate", grow.EndDate.HasValue ? ToStorage(grow.EndDate.Value.Date) : DBNull.Value);
         command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(grow.CreatedAtUtc));
         command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(grow.UpdatedAtUtc));
+    }
+
+    private static void AddSetupParameters(SqliteCommand command, Setup setup)
+    {
+        command.Parameters.AddWithValue("$tentId", setup.TentId);
+        command.Parameters.AddWithValue("$name", setup.Name);
+        command.Parameters.AddWithValue("$setupType", setup.SetupType.ToString());
+        command.Parameters.AddWithValue("$status", setup.Status.ToString());
+        command.Parameters.AddWithValue("$notes", (object?)setup.Notes ?? DBNull.Value);
+        command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(setup.CreatedAtUtc));
+        command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(setup.UpdatedAtUtc));
     }
 
     private static void AddTentParameters(SqliteCommand command, Tent tent)

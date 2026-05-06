@@ -168,6 +168,20 @@ public enum TentType
     MultiPurpose
 }
 
+public enum SetupType
+{
+    Production,
+    Mother,
+    Quarantine
+}
+
+public enum SetupStatus
+{
+    Planning,
+    Active,
+    Archived
+}
+
 public enum SensorMetricType
 {
     AirTemperature,

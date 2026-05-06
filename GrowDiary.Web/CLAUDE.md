@@ -73,8 +73,9 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 ### Datenbank-Schema-Highlights
 
 - `Tents`: Multi-Tent-faehig mit `TentType` (`Production`, `Mother`, `Quarantine`, `Propagation`, `MultiPurpose`).
+- `Setups`: Additives Grundmodell mit `SetupType` (`Production`, `Mother`, `Quarantine`) und `SetupStatus`.
 - `TentSensors`: flexible Sensor-Liste pro Tent statt hartkodierter Sensor-Felder.
-- `Grows`: aktuelles All-in-one Grow-Modell; Sprint B2 spaltet Setup-Hierarchie fuer Mother/Quarantine/Production auf.
+- `Grows`: aktuelles All-in-one Grow-Modell; `SetupId` bindet Production-Grows optional an Setups an.
 - `Measurements`: pH, EC, ORP, DO, Reservoir-Werte, Air-Werte, PPFD und CO2.
 - `TentSensorReadings`: hochfrequente HA-Messwerte aus dem 5-Minuten-Polling.
 - `TentSensorDailyStats`: Tagesaggregation mit Median, P5, P95, Min, Max und Avg.
@@ -98,7 +99,8 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint B1a ABGESCHLOSSEN: Tent-Modell mit `TentSensor`.
 - Sprint B1b ABGESCHLOSSEN: HA-Service, Snapshot-Worker und React-Settings fuer Sensor-Mapping.
 - Sprint B1c ABGESCHLOSSEN: App-Start-Fix und Knowledge-API.
-- Sprint B2 PENDING: Setup-Hierarchie fuer Mother, Quarantine und Production.
+- Sprint B2a-1 ABGESCHLOSSEN: Setup-Grundmodell additiv mit `Setups` und `Grows.SetupId`.
+- Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow
 

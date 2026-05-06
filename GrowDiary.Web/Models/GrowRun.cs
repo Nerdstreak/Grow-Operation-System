@@ -5,6 +5,7 @@ public sealed class GrowRun
     public int Id { get; set; }
     public int? TentId { get; set; }
     public int? SystemId { get; set; }
+    public int? SetupId { get; set; }
     public string? TentName { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Strain { get; set; }

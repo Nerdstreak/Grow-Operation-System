@@ -79,6 +79,7 @@ public sealed class DatabaseInitializer
             CREATE TABLE IF NOT EXISTS Grows (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 TentId INTEGER NULL,
+                SetupId INTEGER NULL,
                 Name TEXT NOT NULL,
                 Strain TEXT NULL,
                 Breeder TEXT NULL,
@@ -169,6 +170,18 @@ public sealed class DatabaseInitializer
                 CameraEntityId TEXT NULL,
                 CreatedAtUtc TEXT NOT NULL,
                 UpdatedAtUtc TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS Setups (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                TentId INTEGER NOT NULL,
+                Name TEXT NOT NULL,
+                SetupType TEXT NOT NULL,
+                Status TEXT NOT NULL,
+                Notes TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (TentId) REFERENCES Tents (Id) ON DELETE CASCADE
             );
 
             CREATE TABLE IF NOT EXISTS AppSettings (
@@ -306,6 +319,8 @@ public sealed class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS IX_Measurements_GrowId_TakenAt ON Measurements(GrowId, TakenAt DESC);
             CREATE INDEX IF NOT EXISTS IX_Photos_GrowId_TakenAt ON Photos(GrowId, TakenAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_Grows_TentId_Status ON Grows(TentId, Status);
+            CREATE INDEX IF NOT EXISTS IX_Grows_SetupId ON Grows(SetupId);
+            CREATE INDEX IF NOT EXISTS IX_Setups_TentId_Status ON Setups(TentId, Status);
             CREATE INDEX IF NOT EXISTS IX_TentSensorSnapshots_TentId_MetricKey_CapturedAtUtc ON TentSensorSnapshots(TentId, MetricKey, CapturedAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_JournalEntries_GrowId_OccurredAtUtc ON JournalEntries(GrowId, OccurredAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_GrowTasks_GrowId_Status_DueAtUtc ON GrowTasks(GrowId, Status, DueAtUtc);
@@ -314,6 +329,7 @@ public sealed class DatabaseInitializer
         command.ExecuteNonQuery();
 
         EnsureColumn(connection, "Grows", "TentId", "INTEGER NULL");
+        EnsureColumn(connection, "Grows", "SetupId", "INTEGER NULL");
         EnsureColumn(connection, "Grows", "MediumDetail", "TEXT NULL");
         EnsureColumn(connection, "Grows", "ReservoirSize", "TEXT NULL");
         EnsureColumn(connection, "GrowTemplates", "MediumDetail", "TEXT NULL");
