@@ -14,8 +14,8 @@
   --border:   oklch(30% 0.02 155 / 0.55);
   --border2:  oklch(40% 0.02 155 / 0.7);
   --text:     oklch(94% 0.01 150);
-  --muted:    oklch(58% 0.02 150);
-  --faint:    oklch(38% 0.015 150);
+  --muted:    oklch(68% 0.018 150);
+  --faint:    oklch(54% 0.014 150);
   --green:    oklch(74% 0.19 145);
   --green-bg: oklch(74% 0.19 145 / 0.1);
   --amber:    oklch(78% 0.17 72);
@@ -26,7 +26,8 @@
   --blue-bg:  oklch(70% 0.16 240 / 0.1);
   --radius:   10px;
   --sidebar:  228px;
-  --mono:     ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono:     'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
   --shadow:   0 4px 24px oklch(0% 0 0 / 0.18);
 }
 
@@ -39,8 +40,8 @@ html[data-theme="light"] {
   --border:   oklch(80% 0.015 150 / 0.7);
   --border2:  oklch(65% 0.015 150 / 0.8);
   --text:     oklch(15% 0.02 155);
-  --muted:    oklch(45% 0.025 155);
-  --faint:    oklch(65% 0.015 155);
+  --muted:    oklch(40% 0.024 155);
+  --faint:    oklch(55% 0.014 155);
   --green-bg: oklch(74% 0.19 145 / 0.08);
   --amber-bg: oklch(78% 0.17 72 / 0.08);
   --red-bg:   oklch(66% 0.22 25 / 0.08);
@@ -50,7 +51,7 @@ html[data-theme="light"] {
 
 /* ─── RESET ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.55; }
+html, body { height: 100%; font-family: var(--font-sans); background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.58; letter-spacing: 0; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 img { max-width: 100%; display: block; }
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -87,7 +88,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .nav-section { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); padding: 14px 10px 4px; }
 .nav-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 10px;
+  min-height: 40px;
+  padding: 0 10px;
   border-radius: 7px;
   color: var(--muted);
   font-size: 14px; font-weight: 500;
@@ -140,7 +142,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ─── BUTTONS ────────────────────────────────────────────────── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 9px 16px;
+  min-height: 40px;
+  padding: 0 16px;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: transparent;
@@ -154,13 +157,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: var(--green);
   color: oklch(10% 0.02 155);
   border: none; font-weight: 700;
-  padding: 10px 18px; border-radius: 7px; font-size: 15px;
+  min-height: 44px;
+  padding: 0 18px; border-radius: 7px; font-size: 15px;
 }
 .btn-primary:hover { opacity: 0.88; color: oklch(10% 0.02 155); }
 .btn-accent { background: var(--green); color: oklch(10% 0.02 155); border: none; font-weight: 600; }
 .btn-accent:hover { opacity: 0.88; color: oklch(10% 0.02 155); }
 .btn-danger { background: var(--red-bg); border-color: oklch(66% 0.22 25 / 0.3); color: var(--red); }
-.theme-toggle { width: 38px; height: 38px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: background 0.12s; }
+.theme-toggle { width: 40px; height: 40px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: background 0.12s; }
 .theme-toggle:hover { background: var(--surface2); }
 
 /* ─── CARDS ──────────────────────────────────────────────────── */
@@ -190,7 +194,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ─── STATS ROW ──────────────────────────────────────────────── */
 .stats-row { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
 .stat-chip { padding: 9px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; font-size: 13px; color: var(--muted); }
-.stat-chip strong { color: var(--text); font-size: 20px; font-family: var(--mono); font-weight: 300; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -0.02em; display: block; line-height: 1.1; margin-bottom: 2px; }
+.stat-chip strong { color: var(--text); font-size: 20px; font-family: var(--mono); font-weight: 600; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: 0; display: block; line-height: 1.1; margin-bottom: 2px; }
 
 /* ─── TENT CARD ──────────────────────────────────────────────── */
 .tent-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: border-color 0.14s, box-shadow 0.14s; }
@@ -211,7 +215,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tc-metric:last-child { border-right: none; }
 
 .tc-metric-label  { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
-.tc-metric-value  { font-family: var(--mono); font-size: 26px; font-weight: 300; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -0.04em; line-height: 1; color: var(--text); }
+.tc-metric-value  { font-family: var(--mono); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: 0; line-height: 1; color: var(--text); }
 .tc-metric-value.ok   { color: var(--green); }
 .tc-metric-value.warn { color: var(--amber); }
 .tc-metric-value.crit { color: var(--red); }
@@ -255,7 +259,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .grow-kpis { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 14px; }
 .grow-kpi { flex: 1; padding: 12px 16px; border-right: 1px solid var(--border); }
 .grow-kpi:last-child { border-right: none; }
-.grow-kpi-val   { font-family: var(--mono); font-size: 24px; font-weight: 300; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -0.03em; line-height: 1; }
+.grow-kpi-val   { font-family: var(--mono); font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: 0; line-height: 1; }
 .grow-kpi-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
 
 /* ─── FOCUS CARD ─────────────────────────────────────────────── */
@@ -275,7 +279,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .task-item { display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
 .task-item:last-child { border-bottom: none; }
 .task-item:hover { background: var(--surface2); }
-.task-check { width: 20px; height: 20px; border-radius: 5px; border: 1px solid var(--border2); flex-shrink: 0; margin-top: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s, border-color 0.1s; background: transparent; padding: 0; color: inherit; }
+.task-check { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border2); flex-shrink: 0; margin-top: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s, border-color 0.1s; background: transparent; padding: 0; color: inherit; }
 .task-check:hover { border-color: var(--green); }
 .task-check.done { background: var(--green); border-color: var(--green); }
 .task-title { font-size: 14px; font-weight: 500; }
@@ -292,7 +296,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .addback-name   { font-size: 13px; font-weight: 500; }
 .addback-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .addback-ec { display: flex; align-items: baseline; gap: 6px; margin-top: 6px; }
-.addback-ec-val { font-family: var(--mono); font-size: 20px; font-weight: 300; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -0.02em; }
+.addback-ec-val { font-family: var(--mono); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: 0; }
 .addback-ec-val.up   { color: var(--amber); }
 .addback-ec-val.down { color: var(--blue); }
 .addback-ec-unit { font-size: 11px; color: var(--muted); font-family: var(--mono); }
@@ -344,9 +348,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border: 1.5px solid var(--border);
   color: var(--text);
   border-radius: 8px;
+  min-height: 44px;
   padding: 12px 14px;
   font-family: var(--mono);
-  font-size: 22px; font-weight: 500;
+  font-size: 22px; font-weight: 600;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -366,12 +371,16 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border: 1.5px solid var(--border);
   color: var(--text);
   border-radius: 8px;
+  min-height: 44px;
   padding: 10px 12px;
   font-size: 15px;
   outline: none;
   width: 100%;
 }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px oklch(74% 0.19 145 / 0.12); }
+.field input.ok, .field select.ok, .field textarea.ok { border-color: oklch(74% 0.19 145 / 0.5); }
+.field input.warn, .field select.warn, .field textarea.warn { border-color: oklch(78% 0.17 72 / 0.55); }
+.field input.error, .field select.error, .field textarea.error { border-color: oklch(66% 0.22 25 / 0.55); }
 .field textarea { resize: vertical; min-height: 90px; line-height: 1.55; }
 .field-hint { font-size: 12px; color: var(--faint); margin-top: 2px; }
 .field input.mono, .field textarea.mono { font-family: var(--mono); font-size: 12px; }
@@ -451,7 +460,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .compare-table th { text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); border-bottom: 1px solid var(--border); background: var(--surface2); }
 .compare-table td { padding: 11px 14px; border-bottom: 1px solid var(--border); font-family: var(--mono); }
 .compare-table tr:last-child td { border-bottom: none; }
-.compare-table td:first-child { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; color: var(--muted); font-weight: 500; }
+.compare-table td:first-child { font-family: var(--font-sans); font-size: 12px; color: var(--muted); font-weight: 500; }
 .td-ok   { color: var(--green); }
 .td-warn { color: var(--amber); }
 .td-crit { color: var(--red); }
