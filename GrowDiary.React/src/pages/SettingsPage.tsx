@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { CSSProperties, FormEvent } from 'react'
+import type { FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type {
   CreateSetupRequest,
@@ -94,13 +94,6 @@ const sensorGroups: SensorGroup[] = [
     ],
   },
 ]
-
-const sensorRowStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 1fr) auto',
-  gap: 10,
-  alignItems: 'end',
-}
 
 function SettingsPage() {
   const [settings, setSettings] = useState<SettingsOverviewDto | null>(null)
@@ -866,7 +859,7 @@ function SettingsPage() {
                     {group.sensors.map((definition) => {
                       const sensor = getTentSensor(tent, definition.metricType)
                       return (
-                        <div key={definition.metricType} style={sensorRowStyle}>
+                        <div key={definition.metricType} className="sensor-map-row">
                           <label className="field">
                             <span>{definition.label}</span>
                             <input
