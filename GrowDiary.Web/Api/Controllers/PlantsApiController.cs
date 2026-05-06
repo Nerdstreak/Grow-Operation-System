@@ -1,6 +1,7 @@
 using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Api.Mapping;
 using GrowDiary.Web.Infrastructure;
+using GrowDiary.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GrowDiary.Web.Api.Controllers;
@@ -59,6 +60,73 @@ public sealed class PlantsApiController : ApiControllerBase
 
         var plant = _repository.CreatePlant(request.ToModel());
         return CreatedAtAction(nameof(Detail), new { id = plant.Id }, plant.ToDto());
+    }
+
+    [HttpPost("clone-from-mother")]
+    [ProducesResponseType(typeof(PlantInstanceDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    public ActionResult<PlantInstanceDto> CloneFromMother([FromBody] CreateCloneFromMotherRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationError();
+        }
+
+        var mother = _repository.GetPlant(request.MotherPlantId);
+        if (mother is null)
+        {
+            ModelState.AddModelError(nameof(CreateCloneFromMotherRequest.MotherPlantId), $"Mutterpflanze mit Id {request.MotherPlantId} existiert nicht.");
+        }
+        else if (mother.PlantRole != PlantRole.Mother)
+        {
+            ModelState.AddModelError(nameof(CreateCloneFromMotherRequest.MotherPlantId), "Nur Pflanzen mit PlantRole Mother koennen als Clone-Quelle genutzt werden.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Label))
+        {
+            ModelState.AddModelError(nameof(CreateCloneFromMotherRequest.Label), "Label darf nicht leer sein.");
+        }
+
+        if (request.TargetSetupId.HasValue)
+        {
+            var targetSetup = _repository.GetSetup(request.TargetSetupId.Value);
+            if (targetSetup is null)
+            {
+                ModelState.AddModelError(nameof(CreateCloneFromMotherRequest.TargetSetupId), $"Ziel-Setup mit Id {request.TargetSetupId.Value} existiert nicht.");
+            }
+            else if (targetSetup.SetupType != SetupType.Quarantine)
+            {
+                ModelState.AddModelError(nameof(CreateCloneFromMotherRequest.TargetSetupId), "Clone-Ziel muss ein Quarantine-Setup sein.");
+            }
+        }
+
+        if (request.StrainId.HasValue && _repository.GetStrain(request.StrainId.Value) is null)
+        {
+            ModelState.AddModelError(nameof(CreateCloneFromMotherRequest.StrainId), $"StrainId {request.StrainId.Value} existiert nicht.");
+        }
+
+        if (!ModelState.IsValid || mother is null)
+        {
+            return ValidationError();
+        }
+
+        var cutAt = request.CutAt ?? DateTime.Now;
+        var clone = new PlantInstance
+        {
+            StrainId = request.StrainId ?? mother.StrainId,
+            SetupId = request.TargetSetupId,
+            GrowId = null,
+            ParentPlantId = mother.Id,
+            Label = request.Label.Trim(),
+            PlantRole = PlantRole.Clone,
+            PlantStatus = PlantStatus.Active,
+            PhenoLabel = Normalize(request.PhenoLabel),
+            StartedAt = cutAt,
+            Notes = Normalize(request.Notes)
+        };
+
+        var created = _repository.CreateCloneFromMother(clone, mother.SetupId, cutAt);
+        return CreatedAtAction(nameof(Detail), new { id = created.Id }, created.ToDto());
     }
 
     [HttpPut("{id:int}")]
@@ -126,4 +194,7 @@ public sealed class PlantsApiController : ApiControllerBase
             ModelState.AddModelError(nameof(CreatePlantInstanceRequest.EndedAt), "EndedAt darf nicht vor StartedAt liegen.");
         }
     }
+
+    private static string? Normalize(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

@@ -56,3 +56,17 @@ public sealed class UpdatePlantInstanceRequest
     public DateTime? EndedAt { get; set; }
     public string? Notes { get; set; }
 }
+
+public sealed class CreateCloneFromMotherRequest
+{
+    public int MotherPlantId { get; set; }
+    public int? TargetSetupId { get; set; }
+
+    [Required]
+    public string Label { get; set; } = string.Empty;
+
+    public string? PhenoLabel { get; set; }
+    public string? Notes { get; set; }
+    public int? StrainId { get; set; }
+    public DateTime? CutAt { get; set; }
+}

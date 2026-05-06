@@ -152,6 +152,124 @@ public sealed class StrainPlantApiControllerTests : IDisposable
         Assert.Contains(nameof(CreatePlantInstanceRequest.EndedAt), AssertValidationError(dates.Result).FieldErrors!.Keys);
     }
 
+    [Fact]
+    public void CloneFromMother_CreatesCloneWithParentAndInheritedStrain()
+    {
+        var tent = _repository.GetTents().Single();
+        var strain = _repository.CreateStrain(new Strain { Name = "Mother Line" });
+        var motherSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Mother Setup", SetupType = SetupType.Mother });
+        var quarantineSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Quarantine Setup", SetupType = SetupType.Quarantine });
+        var mother = _repository.CreatePlant(new PlantInstance
+        {
+            StrainId = strain.Id,
+            SetupId = motherSetup.Id,
+            Label = "Mother A",
+            PlantRole = PlantRole.Mother,
+            PlantStatus = PlantStatus.Active
+        });
+
+        var result = _plantsController.CloneFromMother(new CreateCloneFromMotherRequest
+        {
+            MotherPlantId = mother.Id,
+            TargetSetupId = quarantineSetup.Id,
+            Label = "Clone A1",
+            PhenoLabel = "A",
+            Notes = "fresh cut",
+            CutAt = new DateTime(2026, 3, 4, 10, 30, 0)
+        });
+
+        var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+        var clone = Assert.IsType<PlantInstanceDto>(created.Value);
+        Assert.Equal(PlantRole.Clone, clone.PlantRole);
+        Assert.Equal(PlantStatus.Active, clone.PlantStatus);
+        Assert.Equal(mother.Id, clone.ParentPlantId);
+        Assert.Equal(strain.Id, clone.StrainId);
+        Assert.Equal(quarantineSetup.Id, clone.SetupId);
+        Assert.Null(clone.GrowId);
+    }
+
+    [Fact]
+    public void CloneFromMother_UpdatesMotherSetupCounterAndLastCloneCutAt()
+    {
+        var tent = _repository.GetTents().Single();
+        var cutAt = new DateTime(2026, 3, 5, 9, 15, 0);
+        var motherSetup = _repository.CreateSetup(new Setup
+        {
+            TentId = tent.Id,
+            Name = "Mother Setup",
+            SetupType = SetupType.Mother,
+            CloneCounterTotal = 2
+        });
+        var mother = _repository.CreatePlant(new PlantInstance
+        {
+            SetupId = motherSetup.Id,
+            Label = "Mother A",
+            PlantRole = PlantRole.Mother,
+            PlantStatus = PlantStatus.Active
+        });
+
+        var result = _plantsController.CloneFromMother(new CreateCloneFromMotherRequest
+        {
+            MotherPlantId = mother.Id,
+            Label = "Clone A1",
+            CutAt = cutAt
+        });
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        var updatedSetup = _repository.GetSetup(motherSetup.Id)!;
+        Assert.Equal(3, updatedSetup.CloneCounterTotal);
+        Assert.Equal(cutAt, updatedSetup.LastCloneCutAt);
+    }
+
+    [Fact]
+    public void CloneFromMother_RejectsInvalidSourcesTargetsAndStrains()
+    {
+        var tent = _repository.GetTents().Single();
+        var motherSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Mother Setup", SetupType = SetupType.Mother });
+        var productionSetup = _repository.CreateSetup(new Setup { TentId = tent.Id, Name = "Production Setup", SetupType = SetupType.Production });
+        var source = _repository.CreatePlant(new PlantInstance
+        {
+            SetupId = motherSetup.Id,
+            Label = "Not Mother",
+            PlantRole = PlantRole.Clone,
+            PlantStatus = PlantStatus.Active
+        });
+
+        var nonMother = _plantsController.CloneFromMother(new CreateCloneFromMotherRequest { MotherPlantId = source.Id, Label = "Clone A1" });
+        Assert.Contains(nameof(CreateCloneFromMotherRequest.MotherPlantId), AssertValidationError(nonMother.Result).FieldErrors!.Keys);
+
+        _plantsController.ModelState.Clear();
+        var missingMother = _plantsController.CloneFromMother(new CreateCloneFromMotherRequest { MotherPlantId = 9999, Label = "Clone A1" });
+        Assert.Contains(nameof(CreateCloneFromMotherRequest.MotherPlantId), AssertValidationError(missingMother.Result).FieldErrors!.Keys);
+
+        _plantsController.ModelState.Clear();
+        var badTarget = _plantsController.CloneFromMother(new CreateCloneFromMotherRequest
+        {
+            MotherPlantId = _repository.CreatePlant(new PlantInstance { SetupId = motherSetup.Id, Label = "Mother A", PlantRole = PlantRole.Mother }).Id,
+            TargetSetupId = productionSetup.Id,
+            Label = "Clone A1"
+        });
+        Assert.Contains(nameof(CreateCloneFromMotherRequest.TargetSetupId), AssertValidationError(badTarget.Result).FieldErrors!.Keys);
+
+        _plantsController.ModelState.Clear();
+        var motherTarget = _plantsController.CloneFromMother(new CreateCloneFromMotherRequest
+        {
+            MotherPlantId = _repository.GetPlantsBySetup(motherSetup.Id).Single(plant => plant.PlantRole == PlantRole.Mother).Id,
+            TargetSetupId = motherSetup.Id,
+            Label = "Clone A1"
+        });
+        Assert.Contains(nameof(CreateCloneFromMotherRequest.TargetSetupId), AssertValidationError(motherTarget.Result).FieldErrors!.Keys);
+
+        _plantsController.ModelState.Clear();
+        var badStrain = _plantsController.CloneFromMother(new CreateCloneFromMotherRequest
+        {
+            MotherPlantId = _repository.GetPlantsBySetup(motherSetup.Id).Single(plant => plant.PlantRole == PlantRole.Mother).Id,
+            StrainId = 9999,
+            Label = "Clone A1"
+        });
+        Assert.Contains(nameof(CreateCloneFromMotherRequest.StrainId), AssertValidationError(badStrain.Result).FieldErrors!.Keys);
+    }
+
     private static ApiError AssertValidationError(ActionResult? result)
     {
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);

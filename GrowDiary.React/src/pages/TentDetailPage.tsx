@@ -1,7 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowSummary, PlantInstanceDto, SetupDto, TentDto, TentLivePayload } from '../types'
+import type { CreateCloneFromMotherRequest, GrowSummary, PlantInstanceDto, SetupDto, TentDto, TentLivePayload } from '../types'
+
+type CloneDraft = {
+  label: string
+  phenoLabel: string
+  notes: string
+  targetSetupId: string
+}
+
+const emptyCloneDraft: CloneDraft = {
+  label: '',
+  phenoLabel: '',
+  notes: '',
+  targetSetupId: '',
+}
 
 function TentDetailPage() {
   const { tentId } = useParams()
@@ -9,9 +23,18 @@ function TentDetailPage() {
   const [live, setLive] = useState<TentLivePayload | null>(null)
   const [grows, setGrows] = useState<GrowSummary[]>([])
   const [setups, setSetups] = useState<SetupDto[]>([])
+  const [allSetups, setAllSetups] = useState<SetupDto[]>([])
   const [plantsBySetupId, setPlantsBySetupId] = useState<Record<number, PlantInstanceDto[]>>({})
+  const [cloneDrafts, setCloneDrafts] = useState<Record<number, CloneDraft>>({})
+  const [cloneErrors, setCloneErrors] = useState<Record<number, string>>({})
+  const [savingClonePlantId, setSavingClonePlantId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const quarantineSetups = useMemo(
+    () => allSetups.filter((setup) => setup.setupType === 'Quarantine' && isActiveSetup(setup)),
+    [allSetups],
+  )
 
   useEffect(() => {
     const controller = new AbortController()
@@ -23,25 +46,22 @@ function TentDetailPage() {
       setError(null)
 
       try {
-        const [tents, livePayload, activeGrows, tentSetups] = await Promise.all([
+        const [tents, livePayload, activeGrows, setupList] = await Promise.all([
           apiFetch<TentDto[]>('/api/settings/tents', { signal: controller.signal }),
           apiFetch<TentLivePayload>(`/api/live/tents/${tentId}`, { signal: controller.signal }),
           apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }),
-          apiFetch<SetupDto[]>(`/api/setups?tentId=${tentId}`, { signal: controller.signal }),
+          apiFetch<SetupDto[]>('/api/setups', { signal: controller.signal }),
         ])
 
+        const tentIdNumber = Number(tentId)
         const selectedTent = tents.find((item) => item.id === Number(tentId)) ?? null
-        const activeSetups = tentSetups.filter((setup) => setup.status === 'Planning' || setup.status === 'Active')
-        const plantEntries = await Promise.all(
-          activeSetups.map(async (setup) => {
-            const plants = await apiFetch<PlantInstanceDto[]>(`/api/plants?setupId=${setup.id}`, { signal: controller.signal })
-            return [setup.id, plants] as const
-          }),
-        )
+        const activeSetups = setupList.filter((setup) => setup.tentId === tentIdNumber && isActiveSetup(setup))
+        const plantEntries = await fetchPlantsForSetups(activeSetups, controller.signal)
 
         setTent(selectedTent)
         setLive(livePayload)
-        setGrows(activeGrows.filter((grow) => grow.tentId === Number(tentId)))
+        setGrows(activeGrows.filter((grow) => grow.tentId === tentIdNumber))
+        setAllSetups(setupList)
         setSetups(activeSetups)
         setPlantsBySetupId(Object.fromEntries(plantEntries))
       } catch (caught) {
@@ -58,6 +78,66 @@ function TentDetailPage() {
 
   const hasCritical = useMemo(() => live?.stateTone === 'critical', [live])
   const hasActiveContent = grows.length > 0 || setups.length > 0
+
+  function updateCloneDraft(plantId: number, patch: Partial<CloneDraft>) {
+    setCloneDrafts((current) => ({
+      ...current,
+      [plantId]: { ...emptyCloneDraft, ...current[plantId], ...patch },
+    }))
+  }
+
+  async function refreshSetupsAndPlants() {
+    if (!tentId) return
+
+    const setupList = await apiFetch<SetupDto[]>('/api/setups')
+    const tentIdNumber = Number(tentId)
+    const activeSetups = setupList.filter((setup) => setup.tentId === tentIdNumber && isActiveSetup(setup))
+    const plantEntries = await fetchPlantsForSetups(activeSetups)
+    setAllSetups(setupList)
+    setSetups(activeSetups)
+    setPlantsBySetupId(Object.fromEntries(plantEntries))
+  }
+
+  async function handleCreateClone(mother: PlantInstanceDto) {
+    const draft = { ...emptyCloneDraft, ...cloneDrafts[mother.id] }
+    if (!draft.label.trim()) {
+      setCloneErrors((current) => ({ ...current, [mother.id]: 'Label ist erforderlich.' }))
+      return
+    }
+
+    const request: CreateCloneFromMotherRequest = {
+      motherPlantId: mother.id,
+      targetSetupId: draft.targetSetupId ? Number(draft.targetSetupId) : null,
+      label: draft.label.trim(),
+      phenoLabel: normalizeDraftText(draft.phenoLabel),
+      notes: normalizeDraftText(draft.notes),
+      strainId: null,
+      cutAt: null,
+    }
+
+    setSavingClonePlantId(mother.id)
+    setCloneErrors((current) => ({ ...current, [mother.id]: '' }))
+
+    try {
+      await apiFetch<PlantInstanceDto>('/api/plants/clone-from-mother', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      setCloneDrafts((current) => {
+        const next = { ...current }
+        delete next[mother.id]
+        return next
+      })
+      await refreshSetupsAndPlants()
+    } catch (caught) {
+      setCloneErrors((current) => ({
+        ...current,
+        [mother.id]: caught instanceof ApiRequestError ? caught.message : 'Clone konnte nicht erstellt werden.',
+      }))
+    } finally {
+      setSavingClonePlantId(null)
+    }
+  }
 
   return (
     <>
@@ -109,7 +189,53 @@ function TentDetailPage() {
                           {(plantsBySetupId[setup.id] ?? []).length > 0 && (
                             <div style={{ display: 'grid', gap: 3, marginTop: 6 }}>
                               {(plantsBySetupId[setup.id] ?? []).map((plant) => (
-                                <div key={plant.id} className="row-sub">{formatPlantLine(plant)}</div>
+                                <div key={plant.id} style={{ display: 'grid', gap: 6 }}>
+                                  <div className="row-sub">{formatPlantLine(plant)}</div>
+                                  {setup.setupType === 'Mother' && plant.plantRole === 'Mother' && (
+                                    <form
+                                      onSubmit={(event) => {
+                                        event.preventDefault()
+                                        void handleCreateClone(plant)
+                                      }}
+                                      style={{ display: 'grid', gap: 6, maxWidth: 520 }}
+                                    >
+                                      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) minmax(120px, 1fr)', gap: 6 }}>
+                                        <input
+                                          value={(cloneDrafts[plant.id] ?? emptyCloneDraft).label}
+                                          onChange={(event) => updateCloneDraft(plant.id, { label: event.target.value })}
+                                          placeholder="Clone-Label"
+                                        />
+                                        <input
+                                          value={(cloneDrafts[plant.id] ?? emptyCloneDraft).phenoLabel}
+                                          onChange={(event) => updateCloneDraft(plant.id, { phenoLabel: event.target.value })}
+                                          placeholder="Pheno optional"
+                                        />
+                                      </div>
+                                      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) auto', gap: 6 }}>
+                                        <select
+                                          value={(cloneDrafts[plant.id] ?? emptyCloneDraft).targetSetupId}
+                                          onChange={(event) => updateCloneDraft(plant.id, { targetSetupId: event.target.value })}
+                                        >
+                                          <option value="">Ohne Quarantaene-Ziel</option>
+                                          {quarantineSetups.map((target) => (
+                                            <option key={target.id} value={target.id}>{target.name}</option>
+                                          ))}
+                                        </select>
+                                        <button className="btn btn-primary" type="submit" disabled={savingClonePlantId === plant.id}>
+                                          {savingClonePlantId === plant.id ? 'Erstelle...' : 'Clone erstellen'}
+                                        </button>
+                                      </div>
+                                      <textarea
+                                        rows={2}
+                                        value={(cloneDrafts[plant.id] ?? emptyCloneDraft).notes}
+                                        onChange={(event) => updateCloneDraft(plant.id, { notes: event.target.value })}
+                                        placeholder="Notiz optional"
+                                      />
+                                      {quarantineSetups.length === 0 && <div className="row-muted">Kein aktives Quarantaene-Setup vorhanden.</div>}
+                                      {cloneErrors[plant.id] && <div className="row-muted" style={{ color: '#b42318' }}>{cloneErrors[plant.id]}</div>}
+                                    </form>
+                                  )}
+                                </div>
                               ))}
                             </div>
                           )}
@@ -206,6 +332,24 @@ function formatPlantLine(plant: PlantInstanceDto): string {
   const strain = plant.strainName ?? (plant.strainId ? `Strain #${plant.strainId}` : 'Ohne Strain')
   const pheno = plant.phenoLabel ? ` | ${plant.phenoLabel}` : ''
   return `${plant.label} | ${plant.plantRole} | ${plant.plantStatus} | ${strain}${pheno}`
+}
+
+function isActiveSetup(setup: SetupDto): boolean {
+  return setup.status === 'Planning' || setup.status === 'Active'
+}
+
+async function fetchPlantsForSetups(setups: SetupDto[], signal?: AbortSignal): Promise<Array<readonly [number, PlantInstanceDto[]]>> {
+  return Promise.all(
+    setups.map(async (setup) => {
+      const plants = await apiFetch<PlantInstanceDto[]>(`/api/plants?setupId=${setup.id}`, { signal })
+      return [setup.id, plants] as const
+    }),
+  )
+}
+
+function normalizeDraftText(value: string): string | null {
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
 }
 
 export default TentDetailPage
