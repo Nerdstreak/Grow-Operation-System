@@ -74,7 +74,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 
 - `Tents`: Multi-Tent-faehig mit `TentType` (`Production`, `Mother`, `Quarantine`, `Propagation`, `MultiPurpose`).
 - `Setups`: Additives Grundmodell mit `SetupType` (`Production`, `Mother`, `Quarantine`), `SetupStatus` und optionalen Mother-/Quarantine-Basisfeldern.
-- `Strains` und `PlantInstances`: Sorten und einzelne Pflanzen/Clones mit optionaler `ParentPlantId`-Lineage; Mother-Plants koennen per API Clone erzeugen.
+- `Strains` und `PlantInstances`: Sorten und einzelne Pflanzen/Clones mit optionaler `ParentPlantId`-Lineage; Mother-Plants koennen per API Clone erzeugen, Quarantine-Plants koennen entschieden werden.
 - `TentSensors`: flexible Sensor-Liste pro Tent statt hartkodierter Sensor-Felder.
 - `Grows`: aktuelles All-in-one Grow-Modell; `SetupId` kann optional ein Production-Setup referenzieren. Mother/Quarantine sind keine GrowRun-Setups.
 - `Measurements`: pH, EC, ORP, DO, Reservoir-Werte, Air-Werte, PPFD und CO2.
@@ -106,6 +106,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint B2c-1 ABGESCHLOSSEN: Mother-/Quarantine-Basisdaten fuer Setups und Detaildarstellung.
 - Sprint B2d-1 ABGESCHLOSSEN: Strain- und PlantInstance-Grundfunktion mit einfacher ParentPlantId-Lineage.
 - Sprint B2d-2 ABGESCHLOSSEN: Clone-from-Mother Workflow mit optionalem Quarantine-Ziel und MotherSetup-Counter.
+- Sprint B2d-3 ABGESCHLOSSEN: Quarantine-Plant Decision Workflow fuer Cleared/Rejected mit optionaler Production-Uebernahme.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow
