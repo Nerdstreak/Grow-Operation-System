@@ -17,6 +17,10 @@ import type {
   TentType,
   UpdateSetupRequest,
   UpdateTentRequest,
+  CreateStrainRequest,
+  StrainDto,
+  StrainDominance,
+  UpdateStrainRequest,
 } from '../types'
 
 type SensorDefinition = {
@@ -36,10 +40,23 @@ type SetupDraft = {
   notes: string
 }
 
+type StrainDraft = {
+  name: string
+  breeder: string
+  dominance: StrainDominance
+  flowerWeeksMin: string
+  flowerWeeksMax: string
+  notes: string
+  nutrientDemandFactor: string
+  stretchFactor: string
+  vpdPreferenceShift: string
+}
+
 const tentTypeOptions: TentType[] = ['Production', 'Mother', 'Quarantine', 'Propagation', 'MultiPurpose']
 const setupTypeOptions: SetupType[] = ['Production', 'Mother', 'Quarantine']
 const motherHealthOptions: Array<MotherHealthStatus | ''> = ['', 'Stable', 'Watch', 'Critical']
 const quarantineResultOptions: Array<QuarantineResult | ''> = ['', 'Pending', 'Cleared', 'Rejected']
+const strainDominanceOptions: StrainDominance[] = ['Unknown', 'Indica', 'Sativa', 'Hybrid']
 const lightControllerOptions: Array<LightControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
 const hvacControllerOptions: Array<HvacControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
 
@@ -88,6 +105,9 @@ const sensorRowStyle: CSSProperties = {
 function SettingsPage() {
   const [settings, setSettings] = useState<SettingsOverviewDto | null>(null)
   const [setups, setSetups] = useState<SetupDto[]>([])
+  const [strains, setStrains] = useState<StrainDto[]>([])
+  const [strainDraft, setStrainDraft] = useState<StrainDraft>(createStrainDraft())
+  const [strainError, setStrainError] = useState<string | null>(null)
   const [setupDrafts, setSetupDrafts] = useState<Record<number, SetupDraft>>({})
   const [setupErrors, setSetupErrors] = useState<Record<number, string>>({})
   const [setupEditErrors, setSetupEditErrors] = useState<Record<number, string>>({})
@@ -104,12 +124,14 @@ function SettingsPage() {
       setError(null)
 
       try {
-        const [data, setupData] = await Promise.all([
+        const [data, setupData, strainData] = await Promise.all([
           apiFetch<SettingsOverviewDto>('/api/settings', { signal: controller.signal }),
           apiFetch<SetupDto[]>('/api/setups', { signal: controller.signal }),
+          apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal }),
         ])
         setSettings(data)
         setSetups(setupData)
+        setStrains(strainData)
         setSavedTentTypes(Object.fromEntries(data.tents.map((tent) => [tent.id, tent.tentType])))
       } catch (caught) {
         if (controller.signal.aborted) return
@@ -214,6 +236,65 @@ function SettingsPage() {
     }
   }
 
+  async function handleCreateStrain(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const request = toStrainRequest(strainDraft)
+    if (!request.name) {
+      setStrainError('Name darf nicht leer sein.')
+      return
+    }
+
+    setSaving('strain-new')
+    setStrainError(null)
+
+    try {
+      const saved = await apiFetch<StrainDto>('/api/strains', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      setStrains((current) => [...current, saved])
+      setStrainDraft(createStrainDraft())
+    } catch (caught) {
+      setStrainError(formatApiError(caught, 'Strain konnte nicht angelegt werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function saveStrain(strain: StrainDto) {
+    const request: UpdateStrainRequest = {
+      name: strain.name.trim(),
+      breeder: toNullableString(strain.breeder),
+      dominance: strain.dominance,
+      flowerWeeksMin: strain.flowerWeeksMin,
+      flowerWeeksMax: strain.flowerWeeksMax,
+      notes: toNullableString(strain.notes),
+      nutrientDemandFactor: strain.nutrientDemandFactor,
+      stretchFactor: strain.stretchFactor,
+      vpdPreferenceShift: strain.vpdPreferenceShift,
+    }
+
+    if (!request.name) {
+      setStrainError('Name darf nicht leer sein.')
+      return
+    }
+
+    setSaving(`strain-${strain.id}`)
+    setStrainError(null)
+
+    try {
+      const saved = await apiFetch<StrainDto>(`/api/strains/${strain.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(request),
+      })
+      setStrains((current) => current.map((item) => item.id === saved.id ? saved : item))
+    } catch (caught) {
+      setStrainError(formatApiError(caught, 'Strain konnte nicht gespeichert werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
   async function saveSetup(setup: SetupDto) {
     setSaving(`setup-edit-${setup.id}`)
     setSetupEditErrors((current) => {
@@ -265,6 +346,10 @@ function SettingsPage() {
 
   function updateSetup(id: number, patch: Partial<SetupDto>) {
     setSetups((current) => current.map((setup) => setup.id === id ? { ...setup, ...patch } : setup))
+  }
+
+  function updateStrain(id: number, patch: Partial<StrainDto>) {
+    setStrains((current) => current.map((strain) => strain.id === id ? { ...strain, ...patch } : strain))
   }
 
   function updateTentSensor(tentId: number, metricType: SensorMetricType, patch: Partial<TentSensorDto>) {
@@ -374,6 +459,117 @@ function SettingsPage() {
               {saving === 'ha' ? 'Speichert...' : 'HA-Einstellungen speichern'}
             </button>
           </form>
+        </div>
+
+        <div className="section-label">Strains</div>
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-header"><span className="card-title">Sorten</span></div>
+          <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
+            {strainError && <div style={{ fontSize: 13, color: 'var(--red)' }}>{strainError}</div>}
+            {strains.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--faint)' }}>Keine Strains angelegt.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {strains.map((strain) => (
+                  <div
+                    key={strain.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(150px, 1.2fr) minmax(120px, 1fr) minmax(110px, 0.8fr) repeat(5, minmax(70px, 0.7fr)) auto',
+                      gap: 8,
+                      alignItems: 'end',
+                      padding: '9px 10px',
+                      border: '1px solid var(--border)',
+                      borderRadius: 7,
+                      background: 'var(--surface2)',
+                    }}
+                  >
+                    <label className="field">
+                      <span>Name</span>
+                      <input value={strain.name} onChange={(event) => updateStrain(strain.id, { name: event.target.value })} />
+                    </label>
+                    <label className="field">
+                      <span>Breeder</span>
+                      <input value={strain.breeder ?? ''} onChange={(event) => updateStrain(strain.id, { breeder: toNullableString(event.target.value) })} />
+                    </label>
+                    <label className="field">
+                      <span>Dominanz</span>
+                      <select value={strain.dominance} onChange={(event) => updateStrain(strain.id, { dominance: event.target.value as StrainDominance })}>
+                        {strainDominanceOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Bluete min</span>
+                      <input type="number" value={strain.flowerWeeksMin ?? ''} onChange={(event) => updateStrain(strain.id, { flowerWeeksMin: toNullableInteger(event.target.value) })} />
+                    </label>
+                    <label className="field">
+                      <span>Bluete max</span>
+                      <input type="number" value={strain.flowerWeeksMax ?? ''} onChange={(event) => updateStrain(strain.id, { flowerWeeksMax: toNullableInteger(event.target.value) })} />
+                    </label>
+                    <label className="field">
+                      <span>Naehrstoff</span>
+                      <input type="number" step="0.1" value={strain.nutrientDemandFactor ?? ''} onChange={(event) => updateStrain(strain.id, { nutrientDemandFactor: toNullableNumber(event.target.value) })} />
+                    </label>
+                    <label className="field">
+                      <span>Stretch</span>
+                      <input type="number" step="0.1" value={strain.stretchFactor ?? ''} onChange={(event) => updateStrain(strain.id, { stretchFactor: toNullableNumber(event.target.value) })} />
+                    </label>
+                    <label className="field">
+                      <span>VPD Shift</span>
+                      <input type="number" step="0.1" value={strain.vpdPreferenceShift ?? ''} onChange={(event) => updateStrain(strain.id, { vpdPreferenceShift: toNullableNumber(event.target.value) })} />
+                    </label>
+                    <button type="button" className="btn" disabled={saving === `strain-${strain.id}`} onClick={() => void saveStrain(strain)}>
+                      {saving === `strain-${strain.id}` ? 'Speichert...' : 'Speichern'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={(event) => void handleCreateStrain(event)} style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) minmax(120px, 1fr) minmax(110px, 0.8fr) repeat(5, minmax(70px, 0.7fr)) auto', gap: 8, alignItems: 'end' }}>
+              <label className="field">
+                <span>Neuer Strain</span>
+                <input value={strainDraft.name} onChange={(event) => setStrainDraft((current) => ({ ...current, name: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>Breeder</span>
+                <input value={strainDraft.breeder} onChange={(event) => setStrainDraft((current) => ({ ...current, breeder: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>Dominanz</span>
+                <select value={strainDraft.dominance} onChange={(event) => setStrainDraft((current) => ({ ...current, dominance: event.target.value as StrainDominance }))}>
+                  {strainDominanceOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Bluete min</span>
+                <input type="number" value={strainDraft.flowerWeeksMin} onChange={(event) => setStrainDraft((current) => ({ ...current, flowerWeeksMin: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>Bluete max</span>
+                <input type="number" value={strainDraft.flowerWeeksMax} onChange={(event) => setStrainDraft((current) => ({ ...current, flowerWeeksMax: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>Naehrstoff</span>
+                <input type="number" step="0.1" value={strainDraft.nutrientDemandFactor} onChange={(event) => setStrainDraft((current) => ({ ...current, nutrientDemandFactor: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>Stretch</span>
+                <input type="number" step="0.1" value={strainDraft.stretchFactor} onChange={(event) => setStrainDraft((current) => ({ ...current, stretchFactor: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>VPD Shift</span>
+                <input type="number" step="0.1" value={strainDraft.vpdPreferenceShift} onChange={(event) => setStrainDraft((current) => ({ ...current, vpdPreferenceShift: event.target.value }))} />
+              </label>
+              <button className="btn" disabled={saving === 'strain-new'}>
+                {saving === 'strain-new' ? 'Legt an...' : 'Strain anlegen'}
+              </button>
+              <label className="field" style={{ gridColumn: '1 / -1' }}>
+                <span>Notizen</span>
+                <textarea rows={2} value={strainDraft.notes} onChange={(event) => setStrainDraft((current) => ({ ...current, notes: event.target.value }))} />
+              </label>
+            </form>
+          </div>
         </div>
 
         <div className="section-label">Zelte</div>
@@ -753,6 +949,34 @@ function createSetupDraft(tentType: TentType): SetupDraft {
   }
 }
 
+function createStrainDraft(): StrainDraft {
+  return {
+    name: '',
+    breeder: '',
+    dominance: 'Unknown',
+    flowerWeeksMin: '',
+    flowerWeeksMax: '',
+    notes: '',
+    nutrientDemandFactor: '',
+    stretchFactor: '',
+    vpdPreferenceShift: '',
+  }
+}
+
+function toStrainRequest(draft: StrainDraft): CreateStrainRequest {
+  return {
+    name: draft.name.trim(),
+    breeder: toNullableString(draft.breeder),
+    dominance: draft.dominance,
+    flowerWeeksMin: toNullableInteger(draft.flowerWeeksMin),
+    flowerWeeksMax: toNullableInteger(draft.flowerWeeksMax),
+    notes: toNullableString(draft.notes),
+    nutrientDemandFactor: toNullableNumber(draft.nutrientDemandFactor),
+    stretchFactor: toNullableNumber(draft.stretchFactor),
+    vpdPreferenceShift: toNullableNumber(draft.vpdPreferenceShift),
+  }
+}
+
 function getSetupDraft(tent: TentDto, drafts: Record<number, SetupDraft>, tentType: TentType = tent.tentType): SetupDraft {
   return drafts[tent.id] ?? createSetupDraft(tentType)
 }
@@ -843,6 +1067,14 @@ function toNullableInteger(value: string): number | null {
   if (!normalized) return null
 
   const parsed = Number.parseInt(normalized, 10)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
+function toNullableNumber(value: string): number | null {
+  const normalized = value.trim()
+  if (!normalized) return null
+
+  const parsed = Number.parseFloat(normalized)
   return Number.isNaN(parsed) ? null : parsed
 }
 

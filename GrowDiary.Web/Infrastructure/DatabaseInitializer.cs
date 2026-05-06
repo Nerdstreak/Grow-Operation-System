@@ -190,6 +190,42 @@ public sealed class DatabaseInitializer
                 FOREIGN KEY (TentId) REFERENCES Tents (Id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS Strains (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL,
+                Breeder TEXT NULL,
+                Dominance TEXT NOT NULL DEFAULT 'Unknown',
+                FlowerWeeksMin INTEGER NULL,
+                FlowerWeeksMax INTEGER NULL,
+                Notes TEXT NULL,
+                NutrientDemandFactor REAL NULL,
+                StretchFactor REAL NULL,
+                VpdPreferenceShift REAL NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS PlantInstances (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                StrainId INTEGER NULL,
+                SetupId INTEGER NULL,
+                GrowId INTEGER NULL,
+                ParentPlantId INTEGER NULL,
+                Label TEXT NOT NULL,
+                PlantRole TEXT NOT NULL,
+                PlantStatus TEXT NOT NULL,
+                PhenoLabel TEXT NULL,
+                StartedAt TEXT NULL,
+                EndedAt TEXT NULL,
+                Notes TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (StrainId) REFERENCES Strains (Id) ON DELETE SET NULL,
+                FOREIGN KEY (SetupId) REFERENCES Setups (Id) ON DELETE SET NULL,
+                FOREIGN KEY (GrowId) REFERENCES Grows (Id) ON DELETE SET NULL,
+                FOREIGN KEY (ParentPlantId) REFERENCES PlantInstances (Id) ON DELETE SET NULL
+            );
+
             CREATE TABLE IF NOT EXISTS AppSettings (
                 Key TEXT PRIMARY KEY,
                 Value TEXT NULL
@@ -327,6 +363,10 @@ public sealed class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS IX_Grows_TentId_Status ON Grows(TentId, Status);
             CREATE INDEX IF NOT EXISTS IX_Grows_SetupId ON Grows(SetupId);
             CREATE INDEX IF NOT EXISTS IX_Setups_TentId_Status ON Setups(TentId, Status);
+            CREATE INDEX IF NOT EXISTS IX_PlantInstances_SetupId ON PlantInstances(SetupId);
+            CREATE INDEX IF NOT EXISTS IX_PlantInstances_GrowId ON PlantInstances(GrowId);
+            CREATE INDEX IF NOT EXISTS IX_PlantInstances_ParentPlantId ON PlantInstances(ParentPlantId);
+            CREATE INDEX IF NOT EXISTS IX_PlantInstances_StrainId ON PlantInstances(StrainId);
             CREATE INDEX IF NOT EXISTS IX_TentSensorSnapshots_TentId_MetricKey_CapturedAtUtc ON TentSensorSnapshots(TentId, MetricKey, CapturedAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_JournalEntries_GrowId_OccurredAtUtc ON JournalEntries(GrowId, OccurredAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_GrowTasks_GrowId_Status_DueAtUtc ON GrowTasks(GrowId, Status, DueAtUtc);
