@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowSummary, TentDto, TentLivePayload } from '../types'
+import type { GrowSummary, SetupDto, TentDto, TentLivePayload } from '../types'
 
 function TentDetailPage() {
   const { tentId } = useParams()
   const [tent, setTent] = useState<TentDto | null>(null)
   const [live, setLive] = useState<TentLivePayload | null>(null)
   const [grows, setGrows] = useState<GrowSummary[]>([])
+  const [setups, setSetups] = useState<SetupDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -21,16 +22,18 @@ function TentDetailPage() {
       setError(null)
 
       try {
-        const [tents, livePayload, activeGrows] = await Promise.all([
+        const [tents, livePayload, activeGrows, tentSetups] = await Promise.all([
           apiFetch<TentDto[]>('/api/settings/tents', { signal: controller.signal }),
           apiFetch<TentLivePayload>(`/api/live/tents/${tentId}`, { signal: controller.signal }),
           apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }),
+          apiFetch<SetupDto[]>(`/api/setups?tentId=${tentId}`, { signal: controller.signal }),
         ])
 
         const selectedTent = tents.find((item) => item.id === Number(tentId)) ?? null
         setTent(selectedTent)
         setLive(livePayload)
         setGrows(activeGrows.filter((grow) => grow.tentId === Number(tentId)))
+        setSetups(tentSetups.filter((setup) => setup.status === 'Planning' || setup.status === 'Active'))
       } catch (caught) {
         if (controller.signal.aborted) return
         setError(caught instanceof ApiRequestError ? caught.message : 'Zelt-Details konnten nicht geladen werden.')
@@ -44,6 +47,7 @@ function TentDetailPage() {
   }, [tentId])
 
   const hasCritical = useMemo(() => live?.stateTone === 'critical', [live])
+  const hasActiveContent = grows.length > 0 || setups.length > 0
 
   return (
     <>
@@ -86,7 +90,7 @@ function TentDetailPage() {
               <div className="section-label">Aktive Grows</div>
               {grows.length === 0 ? (
                 <div className="empty-hint" style={{ padding: '30px 0' }}>
-                  {tent.activeSetupCount > 0 ? 'Keine aktiven Grows, aber aktive Setups in diesem Zelt.' : 'Keine aktiven Grows in diesem Zelt.'}
+                  {setups.length > 0 ? 'Keine aktiven Grows.' : 'Keine aktiven Grows in diesem Zelt.'}
                 </div>
               ) : (
                 <div className="data-table">
@@ -100,6 +104,24 @@ function TentDetailPage() {
                       <div><span className={`badge ${hasCritical ? 'badge-crit' : 'badge-ok'}`}>{live?.stateLabel ?? 'stabil'}</span></div>
                       <div className="row-muted">→</div>
                     </Link>
+                  ))}
+                </div>
+              )}
+
+              <div className="section-label">Aktive Setups</div>
+              {setups.length === 0 ? (
+                !hasActiveContent && <div className="empty-hint" style={{ padding: '30px 0' }}>Keine aktiven Grows oder Setups in diesem Zelt.</div>
+              ) : (
+                <div className="data-table">
+                  {setups.map((setup) => (
+                    <div key={setup.id} className="data-row" style={{ gridTemplateColumns: '2fr 1fr 1fr', textDecoration: 'none' }}>
+                      <div>
+                        <div className="row-name">{setup.name}</div>
+                        {setup.notes && <div className="row-sub">{setup.notes}</div>}
+                      </div>
+                      <div><span className="badge badge-neutral">{setup.setupType}</span></div>
+                      <div><span className={`badge ${setup.status === 'Active' ? 'badge-ok' : 'badge-neutral'}`}>{setup.status}</span></div>
+                    </div>
                   ))}
                 </div>
               )}
