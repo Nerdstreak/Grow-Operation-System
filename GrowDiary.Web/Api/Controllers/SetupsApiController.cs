@@ -11,6 +11,20 @@ namespace GrowDiary.Web.Api.Controllers;
 [Produces("application/json")]
 public sealed class SetupsApiController : ApiControllerBase
 {
+    private static readonly HashSet<string> MotherHealthStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Stable",
+        "Watch",
+        "Critical"
+    };
+
+    private static readonly HashSet<string> QuarantineResults = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Pending",
+        "Cleared",
+        "Rejected"
+    };
+
     private readonly GrowRepository _repository;
 
     public SetupsApiController(GrowRepository repository)
@@ -72,6 +86,12 @@ public sealed class SetupsApiController : ApiControllerBase
             return ValidationError();
         }
 
+        ValidateBasisFields(request.MotherHealthStatus, request.QuarantineResult, request.QuarantineStartedAt, request.QuarantinePlannedEndAt);
+        if (!ModelState.IsValid)
+        {
+            return ValidationError();
+        }
+
         var setup = _repository.CreateSetup(request.ToModel());
         return CreatedAtAction(nameof(Detail), new { id = setup.Id }, setup.ToDto());
     }
@@ -99,9 +119,33 @@ public sealed class SetupsApiController : ApiControllerBase
             return NotFoundError("setup_not_found", $"Setup mit Id {id} existiert nicht.");
         }
 
+        ValidateBasisFields(request.MotherHealthStatus, request.QuarantineResult, request.QuarantineStartedAt, request.QuarantinePlannedEndAt);
+        if (!ModelState.IsValid)
+        {
+            return ValidationError();
+        }
+
         request.ApplyTo(setup);
         _repository.UpdateSetup(setup);
 
         return Ok(_repository.GetSetup(id)!.ToDto());
+    }
+
+    private void ValidateBasisFields(string? motherHealthStatus, string? quarantineResult, DateTime? quarantineStartedAt, DateTime? quarantinePlannedEndAt)
+    {
+        if (!string.IsNullOrWhiteSpace(motherHealthStatus) && !MotherHealthStatuses.Contains(motherHealthStatus.Trim()))
+        {
+            ModelState.AddModelError(nameof(UpdateSetupRequest.MotherHealthStatus), "MotherHealthStatus muss Stable, Watch oder Critical sein.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(quarantineResult) && !QuarantineResults.Contains(quarantineResult.Trim()))
+        {
+            ModelState.AddModelError(nameof(UpdateSetupRequest.QuarantineResult), "QuarantineResult muss Pending, Cleared oder Rejected sein.");
+        }
+
+        if (quarantineStartedAt.HasValue && quarantinePlannedEndAt.HasValue && quarantinePlannedEndAt.Value < quarantineStartedAt.Value)
+        {
+            ModelState.AddModelError(nameof(UpdateSetupRequest.QuarantinePlannedEndAt), "Das geplante Ende darf nicht vor dem Quarantaene-Start liegen.");
+        }
     }
 }

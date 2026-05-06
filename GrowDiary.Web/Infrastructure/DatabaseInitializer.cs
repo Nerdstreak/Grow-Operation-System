@@ -179,6 +179,12 @@ public sealed class DatabaseInitializer
                 SetupType TEXT NOT NULL,
                 Status TEXT NOT NULL,
                 Notes TEXT NULL,
+                CloneCounterTotal INTEGER NULL,
+                LastCloneCutAt TEXT NULL,
+                MotherHealthStatus TEXT NULL,
+                QuarantineStartedAt TEXT NULL,
+                QuarantinePlannedEndAt TEXT NULL,
+                QuarantineResult TEXT NULL,
                 CreatedAtUtc TEXT NOT NULL,
                 UpdatedAtUtc TEXT NOT NULL,
                 FOREIGN KEY (TentId) REFERENCES Tents (Id) ON DELETE CASCADE
@@ -328,6 +334,12 @@ public sealed class DatabaseInitializer
         """;
         command.ExecuteNonQuery();
 
+        EnsureColumn(connection, "Setups", "CloneCounterTotal", "INTEGER NULL");
+        EnsureColumn(connection, "Setups", "LastCloneCutAt", "TEXT NULL");
+        EnsureColumn(connection, "Setups", "MotherHealthStatus", "TEXT NULL");
+        EnsureColumn(connection, "Setups", "QuarantineStartedAt", "TEXT NULL");
+        EnsureColumn(connection, "Setups", "QuarantinePlannedEndAt", "TEXT NULL");
+        EnsureColumn(connection, "Setups", "QuarantineResult", "TEXT NULL");
         EnsureColumn(connection, "Grows", "TentId", "INTEGER NULL");
         EnsureColumn(connection, "Grows", "SetupId", "INTEGER NULL");
         EnsureColumn(connection, "Grows", "MediumDetail", "TEXT NULL");

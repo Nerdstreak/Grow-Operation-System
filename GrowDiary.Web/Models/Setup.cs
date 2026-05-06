@@ -8,6 +8,12 @@ public sealed class Setup
     public SetupType SetupType { get; set; } = SetupType.Production;
     public SetupStatus Status { get; set; } = SetupStatus.Planning;
     public string? Notes { get; set; }
+    public int? CloneCounterTotal { get; set; }
+    public DateTime? LastCloneCutAt { get; set; }
+    public string? MotherHealthStatus { get; set; }
+    public DateTime? QuarantineStartedAt { get; set; }
+    public DateTime? QuarantinePlannedEndAt { get; set; }
+    public string? QuarantineResult { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 }

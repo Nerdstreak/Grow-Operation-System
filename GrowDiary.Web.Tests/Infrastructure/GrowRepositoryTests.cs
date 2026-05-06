@@ -39,6 +39,14 @@ public sealed class GrowRepositoryTests : IDisposable
         using var columnCommand = connection.CreateCommand();
         columnCommand.CommandText = "SELECT COUNT(*) FROM pragma_table_info('Grows') WHERE name = 'SetupId' AND [notnull] = 0;";
         Assert.Equal(1L, columnCommand.ExecuteScalar());
+
+        foreach (var column in new[] { "CloneCounterTotal", "LastCloneCutAt", "MotherHealthStatus", "QuarantineStartedAt", "QuarantinePlannedEndAt", "QuarantineResult" })
+        {
+            using var setupColumnCommand = connection.CreateCommand();
+            setupColumnCommand.CommandText = "SELECT COUNT(*) FROM pragma_table_info('Setups') WHERE name = $column AND [notnull] = 0;";
+            setupColumnCommand.Parameters.AddWithValue("$column", column);
+            Assert.Equal(1L, setupColumnCommand.ExecuteScalar());
+        }
     }
 
     [Fact]
@@ -121,6 +129,48 @@ public sealed class GrowRepositoryTests : IDisposable
         Assert.Single(tentSetups);
         Assert.Equal(SetupStatus.Active, tentSetups[0].Status);
         Assert.Equal("Aktiv", tentSetups[0].Notes);
+    }
+
+    [Fact]
+    public void SetupCrud_PersistsMotherAndQuarantineBasisFields()
+    {
+        var repo = new GrowRepository(_paths);
+        var tent = repo.GetTents().Single();
+        var lastCloneCutAt = new DateTime(2026, 2, 3);
+        var quarantineStartedAt = new DateTime(2026, 3, 1);
+        var quarantinePlannedEndAt = new DateTime(2026, 3, 14);
+
+        var created = repo.CreateSetup(new Setup
+        {
+            TentId = tent.Id,
+            Name = "Basis Setup",
+            SetupType = SetupType.Mother,
+            Status = SetupStatus.Active,
+            CloneCounterTotal = 12,
+            LastCloneCutAt = lastCloneCutAt,
+            MotherHealthStatus = "Stable",
+            QuarantineStartedAt = quarantineStartedAt,
+            QuarantinePlannedEndAt = quarantinePlannedEndAt,
+            QuarantineResult = "Pending"
+        });
+
+        var loaded = repo.GetSetup(created.Id)!;
+        Assert.Equal(12, loaded.CloneCounterTotal);
+        Assert.Equal(lastCloneCutAt, loaded.LastCloneCutAt);
+        Assert.Equal("Stable", loaded.MotherHealthStatus);
+        Assert.Equal(quarantineStartedAt, loaded.QuarantineStartedAt);
+        Assert.Equal(quarantinePlannedEndAt, loaded.QuarantinePlannedEndAt);
+        Assert.Equal("Pending", loaded.QuarantineResult);
+
+        loaded.CloneCounterTotal = 15;
+        loaded.MotherHealthStatus = "Watch";
+        loaded.QuarantineResult = "Cleared";
+        repo.UpdateSetup(loaded);
+
+        var updated = repo.GetSetupsForTent(tent.Id).Single();
+        Assert.Equal(15, updated.CloneCounterTotal);
+        Assert.Equal("Watch", updated.MotherHealthStatus);
+        Assert.Equal("Cleared", updated.QuarantineResult);
     }
 
     [Fact]

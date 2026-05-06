@@ -9,6 +9,12 @@ public sealed record SetupDto(
     SetupType SetupType,
     SetupStatus Status,
     string? Notes,
+    int? CloneCounterTotal,
+    DateTime? LastCloneCutAt,
+    string? MotherHealthStatus,
+    DateTime? QuarantineStartedAt,
+    DateTime? QuarantinePlannedEndAt,
+    string? QuarantineResult,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc
 );
