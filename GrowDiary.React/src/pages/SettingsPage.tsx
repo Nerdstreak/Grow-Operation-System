@@ -6,6 +6,8 @@ import type {
   HomeAssistantSettingsDto,
   HvacControllerType,
   LightControllerType,
+  MotherHealthStatus,
+  QuarantineResult,
   SensorMetricType,
   SettingsOverviewDto,
   SetupDto,
@@ -13,6 +15,7 @@ import type {
   TentDto,
   TentSensorDto,
   TentType,
+  UpdateSetupRequest,
   UpdateTentRequest,
 } from '../types'
 
@@ -35,6 +38,8 @@ type SetupDraft = {
 
 const tentTypeOptions: TentType[] = ['Production', 'Mother', 'Quarantine', 'Propagation', 'MultiPurpose']
 const setupTypeOptions: SetupType[] = ['Production', 'Mother', 'Quarantine']
+const motherHealthOptions: Array<MotherHealthStatus | ''> = ['', 'Stable', 'Watch', 'Critical']
+const quarantineResultOptions: Array<QuarantineResult | ''> = ['', 'Pending', 'Cleared', 'Rejected']
 const lightControllerOptions: Array<LightControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
 const hvacControllerOptions: Array<HvacControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
 
@@ -85,6 +90,7 @@ function SettingsPage() {
   const [setups, setSetups] = useState<SetupDto[]>([])
   const [setupDrafts, setSetupDrafts] = useState<Record<number, SetupDraft>>({})
   const [setupErrors, setSetupErrors] = useState<Record<number, string>>({})
+  const [setupEditErrors, setSetupEditErrors] = useState<Record<number, string>>({})
   const [savedTentTypes, setSavedTentTypes] = useState<Record<number, TentType>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -208,6 +214,41 @@ function SettingsPage() {
     }
   }
 
+  async function saveSetup(setup: SetupDto) {
+    setSaving(`setup-edit-${setup.id}`)
+    setSetupEditErrors((current) => {
+      const next = { ...current }
+      delete next[setup.id]
+      return next
+    })
+    setError(null)
+
+    const request: UpdateSetupRequest = {
+      name: setup.name,
+      status: setup.status,
+      notes: setup.notes,
+      cloneCounterTotal: setup.cloneCounterTotal,
+      lastCloneCutAt: setup.lastCloneCutAt,
+      motherHealthStatus: setup.motherHealthStatus,
+      quarantineStartedAt: setup.quarantineStartedAt,
+      quarantinePlannedEndAt: setup.quarantinePlannedEndAt,
+      quarantineResult: setup.quarantineResult,
+    }
+
+    try {
+      const saved = await apiFetch<SetupDto>(`/api/setups/${setup.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(request),
+      })
+
+      setSetups((current) => current.map((item) => item.id === saved.id ? saved : item))
+    } catch (caught) {
+      setSetupEditErrors((current) => ({ ...current, [setup.id]: formatApiError(caught, 'Setup konnte nicht gespeichert werden.') }))
+    } finally {
+      setSaving(null)
+    }
+  }
+
   function updateTent(id: number, patch: Partial<TentDto>) {
     setSettings((current) => current ? {
       ...current,
@@ -220,6 +261,10 @@ function SettingsPage() {
       ...current,
       [tent.id]: { ...getSetupDraft(tent, current), ...patch },
     }))
+  }
+
+  function updateSetup(id: number, patch: Partial<SetupDto>) {
+    setSetups((current) => current.map((setup) => setup.id === id ? { ...setup, ...patch } : setup))
   }
 
   function updateTentSensor(tentId: number, metricType: SensorMetricType, patch: Partial<TentSensorDto>) {
@@ -423,6 +468,73 @@ function SettingsPage() {
                           <span className={`badge ${setup.status === 'Active' ? 'badge-ok' : setup.status === 'Archived' ? 'badge-neutral' : 'badge-warn'}`}>
                             {setup.status}
                           </span>
+                          {setup.setupType === 'Mother' && (
+                            <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr)) auto', gap: 8, alignItems: 'end' }}>
+                              <label className="field">
+                                <span>Clone gesamt</span>
+                                <input
+                                  type="number"
+                                  value={setup.cloneCounterTotal ?? ''}
+                                  onChange={(event) => updateSetup(setup.id, { cloneCounterTotal: toNullableInteger(event.target.value) })}
+                                />
+                              </label>
+                              <label className="field">
+                                <span>Letzter Schnitt</span>
+                                <input
+                                  type="date"
+                                  value={toDateInputValue(setup.lastCloneCutAt)}
+                                  onChange={(event) => updateSetup(setup.id, { lastCloneCutAt: toNullableDate(event.target.value) })}
+                                />
+                              </label>
+                              <label className="field">
+                                <span>Health</span>
+                                <select
+                                  value={setup.motherHealthStatus ?? ''}
+                                  onChange={(event) => updateSetup(setup.id, { motherHealthStatus: toNullableString(event.target.value) as MotherHealthStatus | null })}
+                                >
+                                  {motherHealthOptions.map((value) => <option key={value || 'empty'} value={value}>{value || 'Nicht gesetzt'}</option>)}
+                                </select>
+                              </label>
+                              <button type="button" className="btn" disabled={saving === `setup-edit-${setup.id}`} onClick={() => void saveSetup(setup)}>
+                                {saving === `setup-edit-${setup.id}` ? 'Speichert...' : 'Speichern'}
+                              </button>
+                            </div>
+                          )}
+                          {setup.setupType === 'Quarantine' && (
+                            <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr)) auto', gap: 8, alignItems: 'end' }}>
+                              <label className="field">
+                                <span>Start</span>
+                                <input
+                                  type="date"
+                                  value={toDateInputValue(setup.quarantineStartedAt)}
+                                  onChange={(event) => updateSetup(setup.id, { quarantineStartedAt: toNullableDate(event.target.value) })}
+                                />
+                              </label>
+                              <label className="field">
+                                <span>Geplantes Ende</span>
+                                <input
+                                  type="date"
+                                  value={toDateInputValue(setup.quarantinePlannedEndAt)}
+                                  onChange={(event) => updateSetup(setup.id, { quarantinePlannedEndAt: toNullableDate(event.target.value) })}
+                                />
+                              </label>
+                              <label className="field">
+                                <span>Ergebnis</span>
+                                <select
+                                  value={setup.quarantineResult ?? ''}
+                                  onChange={(event) => updateSetup(setup.id, { quarantineResult: toNullableString(event.target.value) as QuarantineResult | null })}
+                                >
+                                  {quarantineResultOptions.map((value) => <option key={value || 'empty'} value={value}>{value || 'Nicht gesetzt'}</option>)}
+                                </select>
+                              </label>
+                              <button type="button" className="btn" disabled={saving === `setup-edit-${setup.id}`} onClick={() => void saveSetup(setup)}>
+                                {saving === `setup-edit-${setup.id}` ? 'Speichert...' : 'Speichern'}
+                              </button>
+                            </div>
+                          )}
+                          {setupEditErrors[setup.id] && (
+                            <div style={{ gridColumn: '1 / -1', fontSize: 13, color: 'var(--red)' }}>{setupEditErrors[setup.id]}</div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -716,6 +828,14 @@ function toTentUpdateRequest(tent: TentDto): UpdateTentRequest {
 function toNullableString(value: string | null | undefined): string | null {
   const normalized = value?.trim() ?? ''
   return normalized.length > 0 ? normalized : null
+}
+
+function toNullableDate(value: string): string | null {
+  return value ? value : null
+}
+
+function toDateInputValue(value: string | null | undefined): string {
+  return value ? value.slice(0, 10) : ''
 }
 
 function toNullableInteger(value: string): number | null {

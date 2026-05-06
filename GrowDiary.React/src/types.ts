@@ -15,6 +15,8 @@ export type PropagationMedium = 'Rockwool' | 'Hydroton' | 'RapidRooter' | 'Neopr
 export type PhotoTag = 'Overview' | 'Canopy' | 'Leaf' | 'Root' | 'Training' | 'Flower' | 'Problem' | 'Comparison' | 'Other'
 export type SetupType = 'Production' | 'Mother' | 'Quarantine'
 export type SetupStatus = 'Planning' | 'Active' | 'Archived'
+export type MotherHealthStatus = 'Stable' | 'Watch' | 'Critical'
+export type QuarantineResult = 'Pending' | 'Cleared' | 'Rejected'
 
 export interface ApiError {
   code: string
@@ -280,6 +282,12 @@ export interface SetupDto {
   setupType: SetupType
   status: SetupStatus
   notes: string | null
+  cloneCounterTotal: number | null
+  lastCloneCutAt: string | null
+  motherHealthStatus: MotherHealthStatus | null
+  quarantineStartedAt: string | null
+  quarantinePlannedEndAt: string | null
+  quarantineResult: QuarantineResult | null
   createdAtUtc: string
   updatedAtUtc: string
 }
@@ -289,12 +297,24 @@ export interface CreateSetupRequest {
   name: string
   setupType: SetupType
   notes?: string | null
+  cloneCounterTotal?: number | null
+  lastCloneCutAt?: string | null
+  motherHealthStatus?: MotherHealthStatus | null
+  quarantineStartedAt?: string | null
+  quarantinePlannedEndAt?: string | null
+  quarantineResult?: QuarantineResult | null
 }
 
 export interface UpdateSetupRequest {
   name: string
   status: SetupStatus
   notes?: string | null
+  cloneCounterTotal?: number | null
+  lastCloneCutAt?: string | null
+  motherHealthStatus?: MotherHealthStatus | null
+  quarantineStartedAt?: string | null
+  quarantinePlannedEndAt?: string | null
+  quarantineResult?: QuarantineResult | null
 }
 
 export type SensorMetricType =

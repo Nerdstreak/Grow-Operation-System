@@ -312,8 +312,18 @@ public sealed class GrowRepository
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO Setups (TentId, Name, SetupType, Status, Notes, CreatedAtUtc, UpdatedAtUtc)
-            VALUES ($tentId, $name, $setupType, $status, $notes, $createdAtUtc, $updatedAtUtc);
+            INSERT INTO Setups (
+                TentId, Name, SetupType, Status, Notes,
+                CloneCounterTotal, LastCloneCutAt, MotherHealthStatus,
+                QuarantineStartedAt, QuarantinePlannedEndAt, QuarantineResult,
+                CreatedAtUtc, UpdatedAtUtc
+            )
+            VALUES (
+                $tentId, $name, $setupType, $status, $notes,
+                $cloneCounterTotal, $lastCloneCutAt, $motherHealthStatus,
+                $quarantineStartedAt, $quarantinePlannedEndAt, $quarantineResult,
+                $createdAtUtc, $updatedAtUtc
+            );
             SELECT last_insert_rowid();
         """;
         AddSetupParameters(command, setup);
@@ -384,6 +394,12 @@ public sealed class GrowRepository
                 SetupType = $setupType,
                 Status = $status,
                 Notes = $notes,
+                CloneCounterTotal = $cloneCounterTotal,
+                LastCloneCutAt = $lastCloneCutAt,
+                MotherHealthStatus = $motherHealthStatus,
+                QuarantineStartedAt = $quarantineStartedAt,
+                QuarantinePlannedEndAt = $quarantinePlannedEndAt,
+                QuarantineResult = $quarantineResult,
                 UpdatedAtUtc = $updatedAtUtc
             WHERE Id = $id;
         """;
@@ -1211,6 +1227,12 @@ public sealed class GrowRepository
             SetupType = ParseEnum(reader["SetupType"]?.ToString(), SetupType.Production),
             Status = ParseEnum(reader["Status"]?.ToString(), SetupStatus.Planning),
             Notes = NullString(reader["Notes"]),
+            CloneCounterTotal = reader["CloneCounterTotal"] is DBNull or null ? null : Convert.ToInt32(reader["CloneCounterTotal"], CultureInfo.InvariantCulture),
+            LastCloneCutAt = ParseStoredDateTime(reader["LastCloneCutAt"]?.ToString()),
+            MotherHealthStatus = NullString(reader["MotherHealthStatus"]),
+            QuarantineStartedAt = ParseStoredDateTime(reader["QuarantineStartedAt"]?.ToString()),
+            QuarantinePlannedEndAt = ParseStoredDateTime(reader["QuarantinePlannedEndAt"]?.ToString()),
+            QuarantineResult = NullString(reader["QuarantineResult"]),
             CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
@@ -1410,6 +1432,12 @@ public sealed class GrowRepository
         command.Parameters.AddWithValue("$setupType", setup.SetupType.ToString());
         command.Parameters.AddWithValue("$status", setup.Status.ToString());
         command.Parameters.AddWithValue("$notes", (object?)setup.Notes ?? DBNull.Value);
+        command.Parameters.AddWithValue("$cloneCounterTotal", (object?)setup.CloneCounterTotal ?? DBNull.Value);
+        command.Parameters.AddWithValue("$lastCloneCutAt", setup.LastCloneCutAt.HasValue ? ToStorage(setup.LastCloneCutAt.Value) : (object)DBNull.Value);
+        command.Parameters.AddWithValue("$motherHealthStatus", (object?)setup.MotherHealthStatus ?? DBNull.Value);
+        command.Parameters.AddWithValue("$quarantineStartedAt", setup.QuarantineStartedAt.HasValue ? ToStorage(setup.QuarantineStartedAt.Value) : (object)DBNull.Value);
+        command.Parameters.AddWithValue("$quarantinePlannedEndAt", setup.QuarantinePlannedEndAt.HasValue ? ToStorage(setup.QuarantinePlannedEndAt.Value) : (object)DBNull.Value);
+        command.Parameters.AddWithValue("$quarantineResult", (object?)setup.QuarantineResult ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(setup.CreatedAtUtc));
         command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(setup.UpdatedAtUtc));
     }

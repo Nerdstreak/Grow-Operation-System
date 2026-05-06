@@ -87,12 +87,27 @@ function TentDetailPage() {
                 ))}
               </div>
 
-              <div className="section-label">Aktive Grows</div>
-              {grows.length === 0 ? (
-                <div className="empty-hint" style={{ padding: '30px 0' }}>
-                  {setups.length > 0 ? 'Keine aktiven Grows.' : 'Keine aktiven Grows in diesem Zelt.'}
-                </div>
-              ) : (
+              {setups.length > 0 && (
+                <>
+                  <div className="section-label">Aktive Setups</div>
+                  <div className="data-table">
+                    {setups.map((setup) => (
+                      <div key={setup.id} className="data-row" style={{ gridTemplateColumns: '2fr 1fr 1fr', textDecoration: 'none' }}>
+                        <div>
+                          <div className="row-name">{setup.name}</div>
+                          <div className="row-sub">{formatSetupDetails(setup).join(' | ') || setup.notes || 'Keine Basisdaten'}</div>
+                        </div>
+                        <div><span className="badge badge-neutral">{setup.setupType}</span></div>
+                        <div><span className={`badge ${setup.status === 'Active' ? 'badge-ok' : 'badge-neutral'}`}>{setup.status}</span></div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {grows.length > 0 && (
+                <>
+                <div className="section-label">Aktive Grows</div>
                 <div className="data-table">
                   {grows.map((grow) => (
                     <Link key={grow.id} to={`/grows/${grow.id}`} className="data-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 60px', textDecoration: 'none' }}>
@@ -106,25 +121,10 @@ function TentDetailPage() {
                     </Link>
                   ))}
                 </div>
+                </>
               )}
 
-              <div className="section-label">Aktive Setups</div>
-              {setups.length === 0 ? (
-                !hasActiveContent && <div className="empty-hint" style={{ padding: '30px 0' }}>Keine aktiven Grows oder Setups in diesem Zelt.</div>
-              ) : (
-                <div className="data-table">
-                  {setups.map((setup) => (
-                    <div key={setup.id} className="data-row" style={{ gridTemplateColumns: '2fr 1fr 1fr', textDecoration: 'none' }}>
-                      <div>
-                        <div className="row-name">{setup.name}</div>
-                        {setup.notes && <div className="row-sub">{setup.notes}</div>}
-                      </div>
-                      <div><span className="badge badge-neutral">{setup.setupType}</span></div>
-                      <div><span className={`badge ${setup.status === 'Active' ? 'badge-ok' : 'badge-neutral'}`}>{setup.status}</span></div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {!hasActiveContent && <div className="empty-hint" style={{ padding: '30px 0' }}>Keine aktiven Grows oder Setups in diesem Zelt.</div>}
             </div>
 
             <div className="side-panel">
@@ -159,6 +159,30 @@ function TentDetailPage() {
       </div>
     </>
   )
+}
+
+function formatSetupDetails(setup: SetupDto): string[] {
+  if (setup.setupType === 'Mother') {
+    return [
+      setup.cloneCounterTotal !== null ? `${setup.cloneCounterTotal} Clone gesamt` : null,
+      setup.lastCloneCutAt ? `Letzter Schnitt ${formatDate(setup.lastCloneCutAt)}` : null,
+      setup.motherHealthStatus ? `Health ${setup.motherHealthStatus}` : null,
+    ].filter((value): value is string => Boolean(value))
+  }
+
+  if (setup.setupType === 'Quarantine') {
+    return [
+      setup.quarantineStartedAt ? `Start ${formatDate(setup.quarantineStartedAt)}` : null,
+      setup.quarantinePlannedEndAt ? `Ende ${formatDate(setup.quarantinePlannedEndAt)}` : null,
+      setup.quarantineResult ? `Ergebnis ${setup.quarantineResult}` : null,
+    ].filter((value): value is string => Boolean(value))
+  }
+
+  return setup.notes ? [setup.notes] : []
+}
+
+function formatDate(value: string): string {
+  return value.slice(0, 10)
 }
 
 export default TentDetailPage
