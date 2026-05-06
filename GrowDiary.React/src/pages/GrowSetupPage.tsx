@@ -114,7 +114,8 @@ function GrowSetupPage() {
   const needsDaysInPhase = form.entryPoint !== 'Germination' && !isAutoflower
   const needsFlipDate = form.entryPoint === 'Flower' && !isAutoflower
   const pageTitle = isEditing ? 'Grow-Setup bearbeiten' : 'Neuen Grow anlegen'
-  const productionSetupsForTent = getProductionSetupsForTent(setups, form.tentId)
+  const productionSetupsForTent = getSelectableProductionSetupsForTent(setups, form.tentId)
+  const archivedSelectedSetup = getArchivedSelectedSetup(setups, form.setupId ?? null, form.tentId)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -220,10 +221,13 @@ function GrowSetupPage() {
                   disabled={!form.tentId}
                 >
                   <option value="">Kein Setup</option>
+                  {archivedSelectedSetup && <option value={archivedSelectedSetup.id} disabled>{archivedSelectedSetup.name} (archiviert)</option>}
                   {productionSetupsForTent.map((setup) => <option key={setup.id} value={setup.id}>{setup.name}</option>)}
                 </select>
                 {!form.tentId ? (
                   <span className="field-hint">Zuerst ein Zelt waehlen.</span>
+                ) : archivedSelectedSetup ? (
+                  <span className="field-hint">Aktuelles Setup ist archiviert. Zum Entfernen bewusst "Kein Setup" waehlen.</span>
                 ) : productionSetupsForTent.length === 0 ? (
                   <span className="field-hint">Production-Setup kann in Einstellungen angelegt werden.</span>
                 ) : null}
@@ -305,12 +309,20 @@ function patchForm(
   setForm((current) => ({ ...current, ...patch }))
 }
 
-function getProductionSetupsForTent(setups: SetupDto[], tentId: number | null): SetupDto[] {
+function getSelectableProductionSetupsForTent(setups: SetupDto[], tentId: number | null): SetupDto[] {
   if (!tentId) {
     return []
   }
 
-  return setups.filter((setup) => setup.setupType === 'Production' && setup.tentId === tentId)
+  return setups.filter((setup) => setup.setupType === 'Production' && setup.status !== 'Archived' && setup.tentId === tentId)
+}
+
+function getArchivedSelectedSetup(setups: SetupDto[], setupId: number | null, tentId: number | null): SetupDto | null {
+  if (!setupId || !tentId) {
+    return null
+  }
+
+  return setups.find((setup) => setup.id === setupId && setup.tentId === tentId && setup.setupType === 'Production' && setup.status === 'Archived') ?? null
 }
 
 function isSetupValidForTent(setups: SetupDto[], setupId: number | null, tentId: number | null): boolean {
@@ -318,7 +330,7 @@ function isSetupValidForTent(setups: SetupDto[], setupId: number | null, tentId:
     return true
   }
 
-  return getProductionSetupsForTent(setups, tentId).some((setup) => setup.id === setupId)
+  return setups.some((setup) => setup.id === setupId && setup.setupType === 'Production' && setup.tentId === tentId)
 }
 
 function mapGrowToPayload(grow: GrowDetail): GrowUpsertPayload {
