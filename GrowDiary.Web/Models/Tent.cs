@@ -29,6 +29,8 @@ public sealed class Tent
 
     public int ActiveGrowCount { get; set; }
     public int ArchivedGrowCount { get; set; }
+    public int ActiveSetupCount { get; set; }
+    public int ArchivedSetupCount { get; set; }
     public List<GrowRun> ActiveGrows { get; set; } = new();
     public List<TentSensor> Sensors { get; set; } = new();
 }

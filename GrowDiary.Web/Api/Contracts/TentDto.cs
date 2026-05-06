@@ -24,6 +24,8 @@ public sealed record TentDto(
     string? CameraEntityId,
     int ActiveGrowCount,
     int ArchivedGrowCount,
+    int ActiveSetupCount,
+    int ArchivedSetupCount,
     IReadOnlyList<TentSensorDto> Sensors
 );
 

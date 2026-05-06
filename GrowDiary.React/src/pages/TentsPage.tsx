@@ -17,7 +17,7 @@ function TentsPage() {
       setError(null)
       try {
         const allTents = await apiFetch<TentDto[]>('/api/settings/tents', { signal: controller.signal })
-        const activeTents = allTents.filter((tent) => tent.activeGrowCount > 0)
+        const activeTents = allTents.filter((tent) => tent.activeGrowCount > 0 || tent.activeSetupCount > 0)
         setTents(activeTents)
 
         const liveEntries = await Promise.all(
@@ -47,6 +47,7 @@ function TentsPage() {
   }, [])
 
   const activeGrowCount = useMemo(() => tents.reduce((sum, tent) => sum + tent.activeGrowCount, 0), [tents])
+  const activeSetupCount = useMemo(() => tents.reduce((sum, tent) => sum + tent.activeSetupCount, 0), [tents])
 
   return (
     <>
@@ -61,7 +62,8 @@ function TentsPage() {
 
         <div className="stats-row">
           <div className="stat-chip"><strong>{tents.length}</strong>Aktive Zelte</div>
-          <div className="stat-chip"><strong>{activeGrowCount}</strong>Laufende Grows</div>
+          <div className="stat-chip"><strong>{activeGrowCount}</strong>Laufende/geplante Grows</div>
+          <div className="stat-chip"><strong>{activeSetupCount}</strong>Aktive Setups</div>
         </div>
 
         {loading ? (
@@ -73,6 +75,7 @@ function TentsPage() {
             {tents.map((tent) => {
               const live = liveByTentId[tent.id]
               const metrics = live?.metrics.slice(0, 6) ?? []
+              const footerParts = formatTentActivity(tent)
 
               return (
                 <Link key={tent.id} to={`/zelte/${tent.id}`} className="tent-card" style={{ textDecoration: 'none', display: 'block' }}>
@@ -102,7 +105,7 @@ function TentsPage() {
                   </div>
 
                   <div className="tc-footer">
-                    <span className="tc-meta">{tent.activeGrowCount} aktive Grows</span>
+                    <span className="tc-meta">{footerParts.join(' · ')}</span>
                   </div>
                 </Link>
               )
@@ -112,6 +115,17 @@ function TentsPage() {
       </div>
     </>
   )
+}
+
+function formatTentActivity(tent: TentDto): string[] {
+  const parts: string[] = []
+  if (tent.activeGrowCount > 0) {
+    parts.push(`${tent.activeGrowCount} ${tent.activeGrowCount === 1 ? 'aktiver Grow' : 'aktive Grows'}`)
+  }
+  if (tent.activeSetupCount > 0) {
+    parts.push(`${tent.activeSetupCount} ${tent.activeSetupCount === 1 ? 'aktives Setup' : 'aktive Setups'}`)
+  }
+  return parts.length > 0 ? parts : ['Keine aktive Nutzung']
 }
 
 export default TentsPage

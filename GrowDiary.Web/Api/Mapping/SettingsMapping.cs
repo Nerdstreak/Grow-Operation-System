@@ -35,6 +35,8 @@ public static class SettingsMapping
         CameraEntityId: tent.CameraEntityId,
         ActiveGrowCount: tent.ActiveGrowCount,
         ArchivedGrowCount: tent.ArchivedGrowCount,
+        ActiveSetupCount: tent.ActiveSetupCount,
+        ArchivedSetupCount: tent.ArchivedSetupCount,
         Sensors: tent.Sensors.Select(s => new TentSensorDto(
             s.Id, s.TentId, s.MetricType.ToString(), s.HaEntityId, s.DisplayLabel, s.IsActive
         )).ToList()
