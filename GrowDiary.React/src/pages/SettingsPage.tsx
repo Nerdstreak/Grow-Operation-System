@@ -85,6 +85,7 @@ function SettingsPage() {
   const [setups, setSetups] = useState<SetupDto[]>([])
   const [setupDrafts, setSetupDrafts] = useState<Record<number, SetupDraft>>({})
   const [setupErrors, setSetupErrors] = useState<Record<number, string>>({})
+  const [savedTentTypes, setSavedTentTypes] = useState<Record<number, TentType>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
@@ -103,6 +104,7 @@ function SettingsPage() {
         ])
         setSettings(data)
         setSetups(setupData)
+        setSavedTentTypes(Object.fromEntries(data.tents.map((tent) => [tent.id, tent.tentType])))
       } catch (caught) {
         if (controller.signal.aborted) return
         setError(caught instanceof ApiRequestError ? caught.message : 'Setup konnte nicht geladen werden.')
@@ -147,6 +149,7 @@ function SettingsPage() {
       })
 
       setSettings((current) => current ? { ...current, tents: current.tents.map((item) => item.id === tent.id ? saved : item) } : current)
+      setSavedTentTypes((current) => ({ ...current, [saved.id]: saved.tentType }))
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Zelt konnte nicht gespeichert werden.')
     } finally {
@@ -157,10 +160,16 @@ function SettingsPage() {
   async function handleCreateSetup(event: FormEvent<HTMLFormElement>, tent: TentDto) {
     event.preventDefault()
 
-    const allowedTypes = getAllowedSetupTypes(tent.tentType)
+    const savedTentType = getSavedTentType(tent, savedTentTypes)
+    if (tent.tentType !== savedTentType) {
+      setSetupErrors((current) => ({ ...current, [tent.id]: 'Zelttyp erst speichern, bevor Setups angelegt werden.' }))
+      return
+    }
+
+    const allowedTypes = getAllowedSetupTypes(savedTentType)
     if (allowedTypes.length === 0) return
 
-    const draft = getSetupDraft(tent, setupDrafts)
+    const draft = getSetupDraft(tent, setupDrafts, savedTentType)
     const setupType = allowedTypes.includes(draft.setupType) ? draft.setupType : allowedTypes[0]
     const name = draft.name.trim()
 
@@ -191,7 +200,7 @@ function SettingsPage() {
       })
 
       setSetups((current) => [...current, saved])
-      setSetupDrafts((current) => ({ ...current, [tent.id]: createSetupDraft(tent) }))
+      setSetupDrafts((current) => ({ ...current, [tent.id]: createSetupDraft(savedTentType) }))
     } catch (caught) {
       setSetupErrors((current) => ({ ...current, [tent.id]: formatApiError(caught, 'Setup konnte nicht angelegt werden.') }))
     } finally {
@@ -324,8 +333,14 @@ function SettingsPage() {
 
         <div className="section-label">Zelte</div>
         <div className="tents-grid">
-          {settings.tents.map((tent) => (
-            <div key={tent.id} className="card">
+          {settings.tents.map((tent) => {
+            const savedTentType = getSavedTentType(tent, savedTentTypes)
+            const hasUnsavedTentType = tent.tentType !== savedTentType
+            const allowedSetupTypes = getAllowedSetupTypes(savedTentType)
+            const normalizedSetupType = getNormalizedSetupType(tent, setupDrafts, savedTentType)
+
+            return (
+              <div key={tent.id} className="card">
               <div className="card-header">
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 15 }}>{tent.name}</div>
@@ -413,34 +428,39 @@ function SettingsPage() {
                     </div>
                   )}
 
-                  {getAllowedSetupTypes(tent.tentType).length === 0 ? (
+                  {hasUnsavedTentType ? (
+                    <div className="field-hint">Zelttyp erst speichern, bevor Setups angelegt werden.</div>
+                  ) : allowedSetupTypes.length === 0 ? (
                     <div className="field-hint">Propagation wird spaeter unterstuetzt.</div>
                   ) : (
                     <form onSubmit={(event) => void handleCreateSetup(event, tent)} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(130px, 170px)', gap: 10, alignItems: 'end' }}>
                       <label className="field">
                         <span>Neues Setup</span>
                         <input
-                          value={getSetupDraft(tent, setupDrafts).name}
+                          value={getSetupDraft(tent, setupDrafts, savedTentType).name}
                           onChange={(event) => updateSetupDraft(tent, { name: event.target.value })}
                           placeholder="Name"
+                          disabled={hasUnsavedTentType}
                         />
                       </label>
                       <label className="field">
                         <span>Typ</span>
                         <select
-                          value={getNormalizedSetupType(tent, setupDrafts)}
+                          value={normalizedSetupType}
                           onChange={(event) => updateSetupDraft(tent, { setupType: event.target.value as SetupType })}
+                          disabled={hasUnsavedTentType}
                         >
-                          {getAllowedSetupTypes(tent.tentType).map((value) => <option key={value} value={value}>{value}</option>)}
+                          {allowedSetupTypes.map((value) => <option key={value} value={value}>{value}</option>)}
                         </select>
                       </label>
                       <label className="field" style={{ gridColumn: '1 / -1' }}>
                         <span>Notizen</span>
                         <textarea
                           rows={2}
-                          value={getSetupDraft(tent, setupDrafts).notes}
+                          value={getSetupDraft(tent, setupDrafts, savedTentType).notes}
                           onChange={(event) => updateSetupDraft(tent, { notes: event.target.value })}
                           placeholder="Optional"
+                          disabled={hasUnsavedTentType}
                         />
                       </label>
                       {setupErrors[tent.id] && (
@@ -450,7 +470,7 @@ function SettingsPage() {
                         type="submit"
                         className="btn"
                         style={{ justifySelf: 'start' }}
-                        disabled={saving === `setup-${tent.id}`}
+                        disabled={hasUnsavedTentType || saving === `setup-${tent.id}`}
                       >
                         {saving === `setup-${tent.id}` ? 'Legt an...' : 'Setup anlegen'}
                       </button>
@@ -590,7 +610,8 @@ function SettingsPage() {
                 </button>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </>
@@ -612,22 +633,26 @@ function getTentSensor(tent: TentDto, metricType: SensorMetricType): TentSensorD
   return tent.sensors.find((sensor) => sensor.metricType === metricType) ?? createEmptySensor(tent.id, metricType)
 }
 
-function createSetupDraft(tent: TentDto): SetupDraft {
+function createSetupDraft(tentType: TentType): SetupDraft {
   return {
     name: '',
-    setupType: getAllowedSetupTypes(tent.tentType)[0] ?? 'Production',
+    setupType: getAllowedSetupTypes(tentType)[0] ?? 'Production',
     notes: '',
   }
 }
 
-function getSetupDraft(tent: TentDto, drafts: Record<number, SetupDraft>): SetupDraft {
-  return drafts[tent.id] ?? createSetupDraft(tent)
+function getSetupDraft(tent: TentDto, drafts: Record<number, SetupDraft>, tentType: TentType = tent.tentType): SetupDraft {
+  return drafts[tent.id] ?? createSetupDraft(tentType)
 }
 
-function getNormalizedSetupType(tent: TentDto, drafts: Record<number, SetupDraft>): SetupType {
-  const allowedTypes = getAllowedSetupTypes(tent.tentType)
-  const draft = getSetupDraft(tent, drafts)
+function getNormalizedSetupType(tent: TentDto, drafts: Record<number, SetupDraft>, tentType: TentType = tent.tentType): SetupType {
+  const allowedTypes = getAllowedSetupTypes(tentType)
+  const draft = getSetupDraft(tent, drafts, tentType)
   return allowedTypes.includes(draft.setupType) ? draft.setupType : allowedTypes[0]
+}
+
+function getSavedTentType(tent: TentDto, savedTentTypes: Record<number, TentType>): TentType {
+  return savedTentTypes[tent.id] ?? tent.tentType
 }
 
 function getAllowedSetupTypes(tentType: TentType): SetupType[] {
