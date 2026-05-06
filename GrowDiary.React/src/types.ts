@@ -383,6 +383,16 @@ export interface CreatePlantInstanceRequest {
 
 export type UpdatePlantInstanceRequest = CreatePlantInstanceRequest
 
+export interface CreateCloneFromMotherRequest {
+  motherPlantId: number
+  targetSetupId?: number | null
+  label: string
+  phenoLabel?: string | null
+  notes?: string | null
+  strainId?: number | null
+  cutAt?: string | null
+}
+
 export type SensorMetricType =
   | 'AirTemperature'
   | 'Humidity'

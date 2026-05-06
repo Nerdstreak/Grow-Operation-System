@@ -505,6 +505,67 @@ public sealed class GrowRepository
         return GetPlant(plant.Id) ?? plant;
     }
 
+    public PlantInstance CreateCloneFromMother(PlantInstance clone, int? motherSetupId, DateTime cutAt)
+    {
+        clone.CreatedAtUtc = DateTime.UtcNow;
+        clone.UpdatedAtUtc = DateTime.UtcNow;
+
+        using var connection = OpenConnection();
+        using var transaction = connection.BeginTransaction();
+
+        using var insertCommand = connection.CreateCommand();
+        insertCommand.Transaction = transaction;
+        insertCommand.CommandText = """
+            INSERT INTO PlantInstances (
+                StrainId, SetupId, GrowId, ParentPlantId, Label, PlantRole, PlantStatus,
+                PhenoLabel, StartedAt, EndedAt, Notes, CreatedAtUtc, UpdatedAtUtc
+            )
+            VALUES (
+                $strainId, $setupId, $growId, $parentPlantId, $label, $plantRole, $plantStatus,
+                $phenoLabel, $startedAt, $endedAt, $notes, $createdAtUtc, $updatedAtUtc
+            );
+            SELECT last_insert_rowid();
+        """;
+        AddPlantParameters(insertCommand, clone);
+        clone.Id = Convert.ToInt32((long)insertCommand.ExecuteScalar()!);
+
+        if (motherSetupId.HasValue)
+        {
+            using var setupCommand = connection.CreateCommand();
+            setupCommand.Transaction = transaction;
+            setupCommand.CommandText = """
+                UPDATE Setups
+                SET CloneCounterTotal = COALESCE(CloneCounterTotal, 0) + 1,
+                    LastCloneCutAt = $cutAt,
+                    UpdatedAtUtc = $updatedAtUtc
+                WHERE Id = $setupId AND SetupType = 'Mother';
+            """;
+            setupCommand.Parameters.AddWithValue("$cutAt", ToStorage(cutAt));
+            setupCommand.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(DateTime.UtcNow));
+            setupCommand.Parameters.AddWithValue("$setupId", motherSetupId.Value);
+            setupCommand.ExecuteNonQuery();
+        }
+
+        PlantInstance created;
+        using (var getCommand = connection.CreateCommand())
+        {
+            getCommand.Transaction = transaction;
+            getCommand.CommandText = """
+                SELECT p.*, s.Name AS StrainName
+                FROM PlantInstances p
+                LEFT JOIN Strains s ON s.Id = p.StrainId
+                WHERE p.Id = $id
+                LIMIT 1;
+            """;
+            getCommand.Parameters.AddWithValue("$id", clone.Id);
+            using var reader = getCommand.ExecuteReader();
+            created = reader.Read() ? MapPlant(reader) : clone;
+        }
+
+        transaction.Commit();
+        return created;
+    }
+
     public void UpdatePlant(PlantInstance plant)
     {
         plant.UpdatedAtUtc = DateTime.UtcNow;
