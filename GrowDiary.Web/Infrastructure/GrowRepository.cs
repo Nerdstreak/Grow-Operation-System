@@ -327,6 +327,24 @@ public sealed class GrowRepository
         return reader.Read() ? MapSetup(reader) : null;
     }
 
+    public List<Setup> GetSetups()
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT * FROM Setups
+            ORDER BY CASE Status WHEN 'Active' THEN 0 WHEN 'Planning' THEN 1 ELSE 2 END, Name, Id;
+        """;
+
+        var list = new List<Setup>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            list.Add(MapSetup(reader));
+        }
+        return list;
+    }
+
     public List<Setup> GetSetupsForTent(int tentId)
     {
         using var connection = OpenConnection();
