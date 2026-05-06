@@ -209,10 +209,11 @@ function TentDetailPage() {
 
     return (
       <form
+        className="setup-action-form"
         onSubmit={(event) => event.preventDefault()}
         style={{ display: 'grid', gap: 6, maxWidth: 560 }}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) minmax(150px, 1fr)', gap: 6 }}>
+        <div className="setup-action-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) minmax(150px, 1fr)', gap: 6 }}>
           <select
             value={draft.targetSetupId}
             onChange={(event) => updateDecisionDraft(plant.id, { targetSetupId: event.target.value, targetGrowId: '' })}
@@ -316,13 +317,14 @@ function TentDetailPage() {
                                   <div className="row-sub">{formatPlantLine(plant)}</div>
                                   {setup.setupType === 'Mother' && plant.plantRole === 'Mother' && (
                                     <form
+                                      className="setup-action-form"
                                       onSubmit={(event) => {
                                         event.preventDefault()
                                         void handleCreateClone(plant)
                                       }}
                                       style={{ display: 'grid', gap: 6, maxWidth: 520 }}
                                     >
-                                      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) minmax(120px, 1fr)', gap: 6 }}>
+                                      <div className="setup-action-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) minmax(120px, 1fr)', gap: 6 }}>
                                         <input
                                           value={(cloneDrafts[plant.id] ?? emptyCloneDraft).label}
                                           onChange={(event) => updateCloneDraft(plant.id, { label: event.target.value })}
@@ -334,7 +336,7 @@ function TentDetailPage() {
                                           placeholder="Pheno optional"
                                         />
                                       </div>
-                                      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) auto', gap: 6 }}>
+                                      <div className="setup-action-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) auto', gap: 6 }}>
                                         <select
                                           value={(cloneDrafts[plant.id] ?? emptyCloneDraft).targetSetupId}
                                           onChange={(event) => updateCloneDraft(plant.id, { targetSetupId: event.target.value })}

@@ -740,7 +740,7 @@ function GrowDetailPage() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                         <div>
                           <div className="tl-title">{config.name}</div>
-                          <div className="tl-sub">{config.triggerKind} - {config.windowMinutes} min Fenster{config.delayMinutes !== null ? ` - ${config.delayMinutes} min Delay` : ''}</div>
+                          <div className="tl-sub">{config.triggerKind} - {config.windowMinutes} min Fenster{config.delayMinutes != null ? ` - ${config.delayMinutes} min Delay` : ''}</div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span className={`badge ${config.status === 'Enabled' ? 'badge-ok' : 'badge-neutral'}`}>{config.status}</span>
@@ -770,7 +770,7 @@ function GrowDetailPage() {
                                   {autoMeasurementAggregations.map((aggregation) => <option key={aggregation} value={aggregation}>{aggregation}</option>)}
                                 </select>
                               </div>
-                              <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: 'var(--muted)', minHeight: 40 }}>
+                              <label className="checkbox-row" style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: 'var(--muted)', minHeight: 40 }}>
                                 <input type="checkbox" checked={mapping.isRequired} onChange={(event) => updateMappingDraft(config.id, index, { isRequired: event.target.checked })} />
                                 Pflicht
                               </label>

@@ -57,6 +57,20 @@ a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
 
+input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  flex: 0 0 22px;
+  accent-color: var(--green);
+  cursor: pointer;
+}
+
+label:has(input[type="checkbox"]) {
+  min-height: 40px;
+}
+
 /* ─── APP SHELL ──────────────────────────────────────────────── */
 .app { display: flex; height: 100vh; overflow: hidden; }
 .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -385,6 +399,36 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .field-hint { font-size: 12px; color: var(--faint); margin-top: 2px; }
 .field input.mono, .field textarea.mono { font-family: var(--mono); font-size: 12px; }
 
+.checkbox-row {
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.setup-action-form input:not([type="checkbox"]),
+.setup-action-form select,
+.setup-action-form textarea {
+  width: 100%;
+  min-height: 40px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 9px 11px;
+  font-size: 14px;
+  outline: none;
+}
+.setup-action-form textarea {
+  min-height: 64px;
+  resize: vertical;
+  line-height: 1.45;
+}
+.setup-action-form input:focus,
+.setup-action-form select:focus,
+.setup-action-form textarea:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px oklch(74% 0.19 145 / 0.12);
+}
+
 /* ─── LAYOUTS ────────────────────────────────────────────────── */
 .ops-layout     { display: grid; grid-template-columns: 1fr 300px; gap: 22px; align-items: start; }
 .detail-layout  { display: grid; grid-template-columns: 1fr 280px; gap: 22px; align-items: start; }
@@ -404,6 +448,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .settings-section-label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
 .two-col-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
+.sensor-map-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
 /* ─── SETTINGS ───────────────────────────────────────────────── */
 .ha-status { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 7px; font-size: 12px; font-weight: 500; }
 .ha-status.connected    { background: var(--green-bg); color: var(--green); }
@@ -415,6 +466,44 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .sensor-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 5px; padding: 7px 10px; font-size: 13px; font-family: var(--mono); width: 100%; outline: none; }
 .sensor-input:focus { border-color: var(--green); }
 .sensor-last-val { font-family: var(--mono); font-size: 13px; color: var(--green); }
+
+@media (max-width: 680px) {
+  .page-scroll { padding: 18px 16px; }
+  .detail-layout,
+  .measurement-layout,
+  .ops-layout,
+  .settings-layout,
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+  .settings-nav {
+    position: static;
+  }
+  .settings-nav-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .sensor-map-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sensor-map-row .btn {
+    justify-self: start;
+  }
+  .setup-action-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .field label,
+  .settings-section-label,
+  .meas-field label {
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+}
 
 /* ─── WISSEN ─────────────────────────────────────────────────── */
 .wissen-layout  { display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: start; }
