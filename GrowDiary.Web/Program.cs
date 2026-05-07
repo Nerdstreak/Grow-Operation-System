@@ -52,6 +52,7 @@ builder.Services.AddSingleton<ChartService>();
 builder.Services.AddSingleton<HomeAssistantService>();
 builder.Services.AddSingleton<LightStatusTransitionService>();
 builder.Services.AddSingleton<AutoMeasurementValueGuard>();
+builder.Services.AddSingleton<AutoMeasurementStatusService>();
 builder.Services.AddSingleton<PhotoStorageService>();
 builder.Services.AddSingleton<GrowDashboardComposer>();
 builder.Services.AddScoped<SensorReadingRepository>();
