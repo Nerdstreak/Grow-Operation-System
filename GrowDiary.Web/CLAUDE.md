@@ -89,6 +89,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 - `AutoMeasurementConfigs`, `AutoMeasurementFieldMappings` und `AutoMeasurementRuns`: Konfiguration, Mapping, Ausfuehrungsstatus, Hard-Limit-Hinweise und Idempotenz fuer automatische Measurements.
 - `LightSchedules`: additive Lichtplaene pro Tent mit HH:mm-On/Off-Zeiten, Source und optionaler TimeZoneId.
 - `LightTransitionEvents`: LightOn-/LightOff-Events pro Tent als Trigger- und Idempotenzgrundlage; keine automatische Measurement-Erzeugung.
+- `SopInstances` und `SopStepInstances`: aus Knowledge-SOPs gestartete Workflow-Koepfe und materialisierte Steps; SubSOPs werden in E1 nur referenziert, nicht ausgefuehrt.
 
 ### DB-Initialisierung
 
@@ -125,6 +126,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint D2 ABGESCHLOSSEN: TreatmentRecommender liefert Knowledge-basierte Empfehlungen ueber `GET /api/grows/{growId}/treatment-recommendations`.
 - Sprint D3 ABGESCHLOSSEN: RecommendationEngine und GrowAlertService nutzen D1/D2-Diagnosen als bevorzugte Fassadenbasis.
 - Sprint D5 ABGESCHLOSSEN: GrowAlertService kombiniert D1/D2-Diagnosen mit Legacy-Evaluate-Hinweisen ohne dominante Healthy-Card bei echten Warnungen.
+- Sprint E1 ABGESCHLOSSEN: SOP-Instanzen koennen aus Knowledge-SOPs gestartet und mit materialisierten Steps per API gelesen werden.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow

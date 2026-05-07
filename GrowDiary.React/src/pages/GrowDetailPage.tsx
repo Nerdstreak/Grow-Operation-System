@@ -21,6 +21,7 @@ import type {
   MeasurementDto,
   PhotoAssetDto,
   PhotoTag,
+  SopInstanceDto,
   ValueOrigin,
 } from '../types'
 import { formatDate, formatDateTime, formatNumber, toLocalInputValue } from '../utils'
@@ -136,6 +137,8 @@ function GrowDetailPage() {
   const [deviationError, setDeviationError] = useState<string | null>(null)
   const [treatmentRecommendations, setTreatmentRecommendations] = useState<GrowTreatmentRecommendationDto | null>(null)
   const [treatmentRecommendationError, setTreatmentRecommendationError] = useState<string | null>(null)
+  const [sopInstances, setSopInstances] = useState<SopInstanceDto[]>([])
+  const [sopInstanceError, setSopInstanceError] = useState<string | null>(null)
   const [mappingDraftsByConfigId, setMappingDraftsByConfigId] = useState<Record<number, AutoMeasurementFieldMappingUpsertRequest[]>>({})
   const [autoConfigForm, setAutoConfigForm] = useState(emptyAutoConfigForm)
   const [autoLoading, setAutoLoading] = useState(false)
@@ -223,6 +226,19 @@ function GrowDetailPage() {
     }
   }, [growId])
 
+  const loadSopInstances = useCallback(async (signal?: AbortSignal) => {
+    if (!growId) return
+    try {
+      const nextInstances = await apiFetch<SopInstanceDto[]>(`/api/sop-instances?growId=${growId}`, { signal })
+      setSopInstances(nextInstances.filter((instance) => instance.status === 'Active'))
+      setSopInstanceError(null)
+    } catch (caught) {
+      if (signal?.aborted) return
+      setSopInstances([])
+      setSopInstanceError(caught instanceof ApiRequestError ? caught.message : 'SOP-Instanzen konnten nicht geladen werden.')
+    }
+  }, [growId])
+
   const loadBundle = useCallback(async (signal?: AbortSignal) => {
     if (!growId) return
     try {
@@ -256,12 +272,13 @@ function GrowDetailPage() {
       void loadAutoMeasurements(controller.signal)
       void loadDeviations(controller.signal)
       void loadTreatmentRecommendations(controller.signal)
+      void loadSopInstances(controller.signal)
     }, 0)
     return () => {
       window.clearTimeout(handle)
       controller.abort()
     }
-  }, [loadAutoMeasurements, loadBundle, loadDeviations, loadTreatmentRecommendations])
+  }, [loadAutoMeasurements, loadBundle, loadDeviations, loadTreatmentRecommendations, loadSopInstances])
 
   const openTasks = useMemo(() => bundle.tasks.filter((task) => task.status === 'Open'), [bundle.tasks])
   const closedTasks = useMemo(() => bundle.tasks.filter((task) => task.status !== 'Open'), [bundle.tasks])
@@ -686,6 +703,35 @@ function GrowDetailPage() {
                     {recommendation.safetyNotes.length > 0 && <span>Hinweise: {recommendation.safetyNotes.join(' | ')}</span>}
                     {recommendation.conflictTreatmentIds.length > 0 && <span>Konflikte: {recommendation.conflictTreatmentIds.join(', ')}</span>}
                     {recommendation.hardwareRequirements.length > 0 && <span>Hardware: {recommendation.hardwareRequirements.join(', ')}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="section-label">Aktive SOPs</div>
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-header">
+            <span className="card-title">SOP-Instanzen</span>
+            <span className="text-muted" style={{ fontSize: 13 }}>{sopInstances.length}</span>
+          </div>
+          {sopInstanceError ? (
+            <div className="empty-hint" style={{ color: 'var(--red)' }}>{sopInstanceError}</div>
+          ) : sopInstances.length === 0 ? (
+            <div className="empty-hint">Keine aktive SOP-Instanz.</div>
+          ) : (
+            <div style={{ display: 'grid' }}>
+              {sopInstances.map((instance) => (
+                <div key={instance.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) 120px 120px 180px', gap: 10, alignItems: 'center', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
+                  <div>
+                    <div className="tl-title">{instance.sopName}</div>
+                    <div className="tl-sub">{instance.sopId}</div>
+                  </div>
+                  <span className="badge badge-neutral">{instance.sopType}</span>
+                  <span className="badge badge-ok">{instance.status}</span>
+                  <div className="tl-sub">
+                    {instance.stepCount} Steps · Start {formatDateTime(instance.startedAtUtc)}
                   </div>
                 </div>
               ))}

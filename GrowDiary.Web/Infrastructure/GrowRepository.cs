@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.Text.Json;
 using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
+using GrowDiary.Web.Services.Knowledge.Schema;
 using Microsoft.Data.Sqlite;
 
 namespace GrowDiary.Web.Infrastructure;
@@ -1144,6 +1146,165 @@ public sealed class GrowRepository
         return reader.Read() ? MapLightTransitionEvent(reader) : null;
     }
 
+    public SopInstance StartSopInstance(
+        int growId,
+        SopDefinition sopDefinition,
+        SopStartSource source,
+        string? sourceRecommendationKey,
+        string? treatmentRecommendationStableKey,
+        string? notes)
+    {
+        var now = DateTime.UtcNow;
+        var instance = new SopInstance
+        {
+            GrowId = growId,
+            SopId = sopDefinition.Id,
+            SopName = sopDefinition.Name,
+            SopType = sopDefinition.Type,
+            Status = SopInstanceStatus.Active,
+            Source = source,
+            SourceRecommendationKey = NormalizeOptional(sourceRecommendationKey),
+            TreatmentRecommendationStableKey = NormalizeOptional(treatmentRecommendationStableKey),
+            StartedAtUtc = now,
+            Notes = NormalizeOptional(notes),
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
+        };
+
+        using var connection = OpenConnection();
+        using var transaction = connection.BeginTransaction();
+
+        using (var duplicateCommand = connection.CreateCommand())
+        {
+            duplicateCommand.Transaction = transaction;
+            duplicateCommand.CommandText = """
+                SELECT COUNT(*)
+                FROM SopInstances
+                WHERE GrowId = $growId
+                  AND SopId = $sopId
+                  AND Status = $status;
+            """;
+            duplicateCommand.Parameters.AddWithValue("$growId", growId);
+            duplicateCommand.Parameters.AddWithValue("$sopId", sopDefinition.Id);
+            duplicateCommand.Parameters.AddWithValue("$status", SopInstanceStatus.Active.ToString());
+            if (Convert.ToInt32(duplicateCommand.ExecuteScalar(), CultureInfo.InvariantCulture) > 0)
+            {
+                throw new InvalidOperationException("An active SOP instance already exists for this grow and sopId.");
+            }
+        }
+
+        using (var insertCommand = connection.CreateCommand())
+        {
+            insertCommand.Transaction = transaction;
+            insertCommand.CommandText = """
+                INSERT INTO SopInstances (
+                    GrowId, SopId, SopName, SopType, Status, Source, SourceRecommendationKey,
+                    TreatmentRecommendationStableKey, StartedAtUtc, CompletedAtUtc, CancelledAtUtc,
+                    Notes, CreatedAtUtc, UpdatedAtUtc
+                )
+                VALUES (
+                    $growId, $sopId, $sopName, $sopType, $status, $source, $sourceRecommendationKey,
+                    $treatmentRecommendationStableKey, $startedAtUtc, $completedAtUtc, $cancelledAtUtc,
+                    $notes, $createdAtUtc, $updatedAtUtc
+                );
+                SELECT last_insert_rowid();
+            """;
+            AddSopInstanceParameters(insertCommand, instance);
+            instance.Id = Convert.ToInt32((long)insertCommand.ExecuteScalar()!);
+        }
+
+        foreach (var stepDefinition in sopDefinition.Steps.OrderBy(step => step.Order))
+        {
+            var step = new SopStepInstance
+            {
+                SopInstanceId = instance.Id,
+                StepId = stepDefinition.Id,
+                Order = stepDefinition.Order,
+                Title = stepDefinition.Title,
+                Description = NormalizeOptional(stepDefinition.Description),
+                StepType = stepDefinition.StepType,
+                Status = SopStepInstanceStatus.Pending,
+                WaitMinutes = stepDefinition.WaitMinutes,
+                SubSopId = NormalizeOptional(stepDefinition.SubSopId),
+                ExpectedInputsJson = stepDefinition.ExpectedInputs is { Count: > 0 }
+                    ? JsonSerializer.Serialize(stepDefinition.ExpectedInputs)
+                    : null,
+                PhotoRequired = stepDefinition.PhotoRequired,
+                PhotoRecommended = stepDefinition.PhotoRecommended,
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now
+            };
+
+            using var stepCommand = connection.CreateCommand();
+            stepCommand.Transaction = transaction;
+            stepCommand.CommandText = """
+                INSERT INTO SopStepInstances (
+                    SopInstanceId, StepId, "Order", Title, Description, StepType, Status,
+                    WaitMinutes, SubSopId, ExpectedInputsJson, PhotoRequired, PhotoRecommended,
+                    StartedAtUtc, CompletedAtUtc, SkippedAtUtc, Notes, MeasurementId, JournalEntryId,
+                    PhotoAssetId, CreatedAtUtc, UpdatedAtUtc
+                )
+                VALUES (
+                    $sopInstanceId, $stepId, $order, $title, $description, $stepType, $status,
+                    $waitMinutes, $subSopId, $expectedInputsJson, $photoRequired, $photoRecommended,
+                    $startedAtUtc, $completedAtUtc, $skippedAtUtc, $notes, $measurementId, $journalEntryId,
+                    $photoAssetId, $createdAtUtc, $updatedAtUtc
+                );
+            """;
+            AddSopStepInstanceParameters(stepCommand, step);
+            stepCommand.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
+        instance.StepCount = sopDefinition.Steps.Count;
+        return instance;
+    }
+
+    public SopInstance? GetSopInstance(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT si.*, COUNT(ssi.Id) AS StepCount
+            FROM SopInstances si
+            LEFT JOIN SopStepInstances ssi ON ssi.SopInstanceId = si.Id
+            WHERE si.Id = $id
+            GROUP BY si.Id
+            LIMIT 1;
+        """;
+        command.Parameters.AddWithValue("$id", id);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? MapSopInstance(reader) : null;
+    }
+
+    public List<SopInstance> GetSopInstancesByGrow(int growId)
+        => GetSopInstancesByGrow(growId, activeOnly: false);
+
+    public List<SopInstance> GetActiveSopInstancesByGrow(int growId)
+        => GetSopInstancesByGrow(growId, activeOnly: true);
+
+    public List<SopStepInstance> GetSopStepInstances(int sopInstanceId)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT *
+            FROM SopStepInstances
+            WHERE SopInstanceId = $sopInstanceId
+            ORDER BY "Order", Id;
+        """;
+        command.Parameters.AddWithValue("$sopInstanceId", sopInstanceId);
+
+        var steps = new List<SopStepInstance>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            steps.Add(MapSopStepInstance(reader));
+        }
+
+        return steps;
+    }
+
     public TentSensor? GetTentSensorByMetric(int tentId, SensorMetricType metricType)
     {
         using var connection = OpenConnection();
@@ -1908,6 +2069,34 @@ public sealed class GrowRepository
         return runs;
     }
 
+    private List<SopInstance> GetSopInstancesByGrow(int growId, bool activeOnly)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        var statusFilter = activeOnly ? "AND si.Status = $status" : string.Empty;
+        command.CommandText = $"""
+            SELECT si.*, COUNT(ssi.Id) AS StepCount
+            FROM SopInstances si
+            LEFT JOIN SopStepInstances ssi ON ssi.SopInstanceId = si.Id
+            WHERE si.GrowId = $growId {statusFilter}
+            GROUP BY si.Id
+            ORDER BY si.StartedAtUtc DESC, si.Id DESC;
+        """;
+        command.Parameters.AddWithValue("$growId", growId);
+        if (activeOnly)
+        {
+            command.Parameters.AddWithValue("$status", SopInstanceStatus.Active.ToString());
+        }
+
+        var instances = new List<SopInstance>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            instances.Add(MapSopInstance(reader));
+        }
+        return instances;
+    }
+
     private static Dictionary<int, Measurement> GetLatestMeasurementsBatch(SqliteConnection connection, IEnumerable<int> growIds)
     {
         var ids = growIds.ToList();
@@ -2176,6 +2365,60 @@ public sealed class GrowRepository
             Source = ParseEnum(reader["Source"]?.ToString(), LightSource.HomeAssistant),
             RawState = NullString(reader["RawState"]),
             CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+        };
+    }
+
+    private static SopInstance MapSopInstance(SqliteDataReader reader)
+    {
+        return new SopInstance
+        {
+            Id = Convert.ToInt32(reader["Id"], CultureInfo.InvariantCulture),
+            GrowId = Convert.ToInt32(reader["GrowId"], CultureInfo.InvariantCulture),
+            SopId = reader["SopId"]?.ToString() ?? string.Empty,
+            SopName = reader["SopName"]?.ToString() ?? string.Empty,
+            SopType = reader["SopType"]?.ToString() ?? string.Empty,
+            Status = ParseEnum(reader["Status"]?.ToString(), SopInstanceStatus.Active),
+            Source = ParseEnum(reader["Source"]?.ToString(), SopStartSource.Manual),
+            SourceRecommendationKey = NullString(reader["SourceRecommendationKey"]),
+            TreatmentRecommendationStableKey = NullString(reader["TreatmentRecommendationStableKey"]),
+            StartedAtUtc = ParseStoredDateTime(reader["StartedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            CompletedAtUtc = ParseStoredDateTime(reader["CompletedAtUtc"]?.ToString()),
+            CancelledAtUtc = ParseStoredDateTime(reader["CancelledAtUtc"]?.ToString()),
+            Notes = NullString(reader["Notes"]),
+            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            StepCount = HasColumn(reader, "StepCount") && reader["StepCount"] is not DBNull
+                ? Convert.ToInt32(reader["StepCount"], CultureInfo.InvariantCulture)
+                : 0
+        };
+    }
+
+    private static SopStepInstance MapSopStepInstance(SqliteDataReader reader)
+    {
+        return new SopStepInstance
+        {
+            Id = Convert.ToInt32(reader["Id"], CultureInfo.InvariantCulture),
+            SopInstanceId = Convert.ToInt32(reader["SopInstanceId"], CultureInfo.InvariantCulture),
+            StepId = reader["StepId"]?.ToString() ?? string.Empty,
+            Order = Convert.ToInt32(reader["Order"], CultureInfo.InvariantCulture),
+            Title = reader["Title"]?.ToString() ?? string.Empty,
+            Description = NullString(reader["Description"]),
+            StepType = reader["StepType"]?.ToString() ?? string.Empty,
+            Status = ParseEnum(reader["Status"]?.ToString(), SopStepInstanceStatus.Pending),
+            WaitMinutes = reader["WaitMinutes"] is DBNull or null ? null : Convert.ToInt32(reader["WaitMinutes"], CultureInfo.InvariantCulture),
+            SubSopId = NullString(reader["SubSopId"]),
+            ExpectedInputsJson = NullString(reader["ExpectedInputsJson"]),
+            PhotoRequired = reader["PhotoRequired"] is not DBNull and not null && Convert.ToInt32(reader["PhotoRequired"], CultureInfo.InvariantCulture) == 1,
+            PhotoRecommended = reader["PhotoRecommended"] is not DBNull and not null && Convert.ToInt32(reader["PhotoRecommended"], CultureInfo.InvariantCulture) == 1,
+            StartedAtUtc = ParseStoredDateTime(reader["StartedAtUtc"]?.ToString()),
+            CompletedAtUtc = ParseStoredDateTime(reader["CompletedAtUtc"]?.ToString()),
+            SkippedAtUtc = ParseStoredDateTime(reader["SkippedAtUtc"]?.ToString()),
+            Notes = NullString(reader["Notes"]),
+            MeasurementId = reader["MeasurementId"] is DBNull or null ? null : Convert.ToInt32(reader["MeasurementId"], CultureInfo.InvariantCulture),
+            JournalEntryId = reader["JournalEntryId"] is DBNull or null ? null : Convert.ToInt32(reader["JournalEntryId"], CultureInfo.InvariantCulture),
+            PhotoAssetId = reader["PhotoAssetId"] is DBNull or null ? null : Convert.ToInt32(reader["PhotoAssetId"], CultureInfo.InvariantCulture),
+            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 
@@ -2475,6 +2718,49 @@ public sealed class GrowRepository
         command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(transition.CreatedAtUtc));
     }
 
+    private static void AddSopInstanceParameters(SqliteCommand command, SopInstance instance)
+    {
+        command.Parameters.AddWithValue("$growId", instance.GrowId);
+        command.Parameters.AddWithValue("$sopId", instance.SopId);
+        command.Parameters.AddWithValue("$sopName", instance.SopName);
+        command.Parameters.AddWithValue("$sopType", instance.SopType);
+        command.Parameters.AddWithValue("$status", instance.Status.ToString());
+        command.Parameters.AddWithValue("$source", instance.Source.ToString());
+        command.Parameters.AddWithValue("$sourceRecommendationKey", (object?)instance.SourceRecommendationKey ?? DBNull.Value);
+        command.Parameters.AddWithValue("$treatmentRecommendationStableKey", (object?)instance.TreatmentRecommendationStableKey ?? DBNull.Value);
+        command.Parameters.AddWithValue("$startedAtUtc", ToStorageUtc(instance.StartedAtUtc));
+        command.Parameters.AddWithValue("$completedAtUtc", instance.CompletedAtUtc.HasValue ? ToStorageUtc(instance.CompletedAtUtc.Value) : DBNull.Value);
+        command.Parameters.AddWithValue("$cancelledAtUtc", instance.CancelledAtUtc.HasValue ? ToStorageUtc(instance.CancelledAtUtc.Value) : DBNull.Value);
+        command.Parameters.AddWithValue("$notes", (object?)instance.Notes ?? DBNull.Value);
+        command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(instance.CreatedAtUtc));
+        command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(instance.UpdatedAtUtc));
+    }
+
+    private static void AddSopStepInstanceParameters(SqliteCommand command, SopStepInstance step)
+    {
+        command.Parameters.AddWithValue("$sopInstanceId", step.SopInstanceId);
+        command.Parameters.AddWithValue("$stepId", step.StepId);
+        command.Parameters.AddWithValue("$order", step.Order);
+        command.Parameters.AddWithValue("$title", step.Title);
+        command.Parameters.AddWithValue("$description", (object?)step.Description ?? DBNull.Value);
+        command.Parameters.AddWithValue("$stepType", step.StepType);
+        command.Parameters.AddWithValue("$status", step.Status.ToString());
+        command.Parameters.AddWithValue("$waitMinutes", (object?)step.WaitMinutes ?? DBNull.Value);
+        command.Parameters.AddWithValue("$subSopId", (object?)step.SubSopId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$expectedInputsJson", (object?)step.ExpectedInputsJson ?? DBNull.Value);
+        command.Parameters.AddWithValue("$photoRequired", step.PhotoRequired ? 1 : 0);
+        command.Parameters.AddWithValue("$photoRecommended", step.PhotoRecommended ? 1 : 0);
+        command.Parameters.AddWithValue("$startedAtUtc", step.StartedAtUtc.HasValue ? ToStorageUtc(step.StartedAtUtc.Value) : DBNull.Value);
+        command.Parameters.AddWithValue("$completedAtUtc", step.CompletedAtUtc.HasValue ? ToStorageUtc(step.CompletedAtUtc.Value) : DBNull.Value);
+        command.Parameters.AddWithValue("$skippedAtUtc", step.SkippedAtUtc.HasValue ? ToStorageUtc(step.SkippedAtUtc.Value) : DBNull.Value);
+        command.Parameters.AddWithValue("$notes", (object?)step.Notes ?? DBNull.Value);
+        command.Parameters.AddWithValue("$measurementId", (object?)step.MeasurementId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$journalEntryId", (object?)step.JournalEntryId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$photoAssetId", (object?)step.PhotoAssetId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(step.CreatedAtUtc));
+        command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(step.UpdatedAtUtc));
+    }
+
     private static void AddTentParameters(SqliteCommand command, Tent tent)
     {
         command.Parameters.AddWithValue("$name", tent.Name);
@@ -2595,11 +2881,30 @@ public sealed class GrowRepository
     private static string? NullString(object value)
         => value is DBNull ? null : value?.ToString();
 
+    private static string? NormalizeOptional(string? value)
+    {
+        var normalized = value?.Trim();
+        return string.IsNullOrEmpty(normalized) ? null : normalized;
+    }
+
     private static double? NullableDouble(object value)
         => value is DBNull ? null : Convert.ToDouble(value, CultureInfo.InvariantCulture);
 
     private static TEnum ParseEnum<TEnum>(string? raw, TEnum fallback) where TEnum : struct
         => Enum.TryParse<TEnum>(raw, out var parsed) ? parsed : fallback;
+
+    private static bool HasColumn(SqliteDataReader reader, string name)
+    {
+        for (var i = 0; i < reader.FieldCount; i++)
+        {
+            if (string.Equals(reader.GetName(i), name, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static DateTime? ParseStoredDateTime(string? value)
         => DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal | DateTimeStyles.AllowWhiteSpaces, out var result) ? result : null;
