@@ -4,6 +4,8 @@ namespace GrowDiary.Web.Services;
 
 public sealed class DeviationAnalyzerService
 {
+    private const int MaxConsecutiveLookback = 10;
+
     private readonly TargetValueService _targetValues;
 
     public DeviationAnalyzerService(TargetValueService targetValues)
@@ -11,10 +13,6 @@ public sealed class DeviationAnalyzerService
         _targetValues = targetValues;
     }
 
-    /// <summary>
-    /// Analysiert die letzten Messungen eines Hydro-Grows und gibt konkrete Handlungsempfehlungen zurück.
-    /// Läuft nur für ActiveHydro (RDWC / DWC). Gibt leere Liste zurück für andere Anbauformen.
-    /// </summary>
     public IReadOnlyList<GrowDeviation> Analyze(GrowRun grow, IReadOnlyList<Measurement> recentMeasurements)
     {
         if (grow.IrrigationType != IrrigationType.ActiveHydro || !grow.Profile.IsHydro)
@@ -22,202 +20,260 @@ public sealed class DeviationAnalyzerService
             return Array.Empty<GrowDeviation>();
         }
 
-        if (recentMeasurements.Count == 0)
+        var sorted = recentMeasurements
+            .Where(measurement => measurement.GrowId == 0 || measurement.GrowId == grow.Id)
+            .OrderByDescending(measurement => measurement.TakenAt)
+            .ThenByDescending(measurement => measurement.Id)
+            .Take(MaxConsecutiveLookback)
+            .ToList();
+
+        if (sorted.Count == 0)
         {
             return Array.Empty<GrowDeviation>();
         }
 
-        var sorted = recentMeasurements.OrderByDescending(m => m.TakenAt).ToList();
-        var stage = sorted[0].Stage;
-        var targets = _targetValues.GetTargets(grow.HydroStyle, stage);
-
-        if (targets is null)
-        {
-            return Array.Empty<GrowDeviation>();
-        }
-
+        var latest = sorted[0];
+        var targets = _targetValues.GetTargets(grow.HydroStyle, latest.Stage);
         var deviations = new List<GrowDeviation>();
 
         CheckPh(grow, sorted, targets, deviations);
         CheckEc(grow, sorted, targets, deviations);
-        CheckOrp(grow, sorted, targets, deviations);
-        CheckWaterTemp(grow, sorted, targets, deviations);
+        CheckOrp(grow, sorted, deviations);
+        CheckWaterTemp(grow, sorted, deviations);
         CheckDissolvedOxygen(grow, sorted, deviations);
         CheckPpfd(grow, sorted, targets, deviations);
-        CheckCo2(grow, sorted, targets, deviations);
+        CheckCo2(grow, sorted, deviations);
 
         return deviations;
     }
 
-    // ── pH ────────────────────────────────────────────────────────────────────
-
-    private static void CheckPh(GrowRun grow, List<Measurement> sorted, HydroTargetValues targets, List<GrowDeviation> result)
+    private static void CheckPh(GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, List<GrowDeviation> result)
     {
-        var actual = sorted[0].ReservoirPh;
-        if (!actual.HasValue) return;
-
-        if (actual.Value > targets.PhMax)
+        if (sorted[0].ReservoirPh is not { } actual)
         {
-            var count = CountConsecutive(sorted, m => m.ReservoirPh, v => v > targets.PhMax);
-            var severity = actual.Value > targets.PhMax + 0.3 || count >= 3
-                ? DeviationSeverity.Critical
-                : DeviationSeverity.Warning;
-            var text = count >= 2
-                ? $"pH seit {count} Messungen über {actual.Value:F1} – Calciumaufnahme blockiert, jetzt pH-Down einsetzen"
-                : $"pH zu hoch ({actual.Value:F1}, Soll {targets.PhMin:F1}–{targets.PhMax:F1}) – pH-Down prüfen";
-
-            result.Add(Deviation(grow, DeviationMetric.Ph, actual.Value, targets.PhMin, targets.PhMax, severity, text, count));
-        }
-        else if (actual.Value < targets.PhMin)
-        {
-            var count = CountConsecutive(sorted, m => m.ReservoirPh, v => v < targets.PhMin);
-            var severity = actual.Value < targets.PhMin - 0.3 || count >= 3
-                ? DeviationSeverity.Critical
-                : DeviationSeverity.Warning;
-            var text = count >= 2
-                ? $"pH seit {count} Messungen unter {actual.Value:F1} – Magnesiumaufnahme gestört, jetzt pH-Up einsetzen"
-                : $"pH zu niedrig ({actual.Value:F1}, Soll {targets.PhMin:F1}–{targets.PhMax:F1}) – pH-Up prüfen";
-
-            result.Add(Deviation(grow, DeviationMetric.Ph, actual.Value, targets.PhMin, targets.PhMax, severity, text, count));
-        }
-    }
-
-    // ── EC ────────────────────────────────────────────────────────────────────
-
-    private static void CheckEc(GrowRun grow, List<Measurement> sorted, HydroTargetValues targets, List<GrowDeviation> result)
-    {
-        var actual = sorted[0].ReservoirEc;
-        if (!actual.HasValue) return;
-
-        // Absolute check: EC unter Sollbereich
-        if (actual.Value < targets.EcMin)
-        {
-            var count = CountConsecutive(sorted, m => m.ReservoirEc, v => v < targets.EcMin);
-            var severity = count >= 3 ? DeviationSeverity.Critical : DeviationSeverity.Warning;
-            result.Add(Deviation(grow, DeviationMetric.Ec, actual.Value, targets.EcMin, targets.EcMax, severity,
-                $"EC zu niedrig ({actual.Value:F2} mS/cm, Soll {targets.EcMin:F2}–{targets.EcMax:F2}) – Nährstofflösung auffrischen oder Addback erhöhen",
-                count));
             return;
         }
 
-        // Trendcheck: EC gefallen oder gestiegen (Mindestdifferenz 0.2 um Messrauschen zu ignorieren)
-        if (sorted.Count >= 2 && sorted[1].ReservoirEc.HasValue)
+        var outsideTarget = targets is not null && (actual < targets.PhMin || actual > targets.PhMax);
+        var critical = actual < 5.5 || actual > 6.5;
+        if (!outsideTarget && !critical)
         {
-            var diff = actual.Value - sorted[1].ReservoirEc!.Value;
-
-            if (diff < -0.2)
-            {
-                result.Add(Deviation(grow, DeviationMetric.Ec, actual.Value, targets.EcMin, targets.EcMax,
-                    DeviationSeverity.Warning,
-                    "EC gefallen – Pflanzen nehmen mehr Nährstoffe als Wasser auf, konzentrierten Addback mischen",
-                    consecutiveCount: 1));
-            }
-            else if (diff > 0.2)
-            {
-                result.Add(Deviation(grow, DeviationMetric.Ec, actual.Value, targets.EcMin, targets.EcMax,
-                    DeviationSeverity.Warning,
-                    "EC gestiegen – Verdunstung überwiegt, reines RO-Wasser nachfüllen",
-                    consecutiveCount: 1));
-            }
+            return;
         }
+
+        var targetMin = targets?.PhMin;
+        var targetMax = targets?.PhMax;
+        var predicate = targets is not null
+            ? new Func<double, bool>(value => value < targets.PhMin || value > targets.PhMax)
+            : value => value < 5.5 || value > 6.5;
+        var participants = Consecutive(sorted, measurement => measurement.ReservoirPh, predicate);
+        var tooHigh = actual > (targetMax ?? 6.5);
+
+        result.Add(CreateDeviation(
+            grow,
+            "hydro.ph",
+            DeviationMetric.Ph,
+            actual,
+            targetMin,
+            targetMax,
+            "pH",
+            critical ? DeviationSeverity.Critical : DeviationSeverity.Warning,
+            tooHigh
+                ? $"Reservoir-pH {actual:0.00} liegt ueber dem Zielbereich."
+                : $"Reservoir-pH {actual:0.00} liegt unter dem Zielbereich.",
+            tooHigh ? "pH-Down pruefen." : "pH-Up pruefen.",
+            tooHigh ? "ph-too-high" : "ph-too-low",
+            participants));
     }
 
-    // ── ORP ───────────────────────────────────────────────────────────────────
-
-    private static void CheckOrp(GrowRun grow, List<Measurement> sorted, HydroTargetValues targets, List<GrowDeviation> result)
+    private static void CheckEc(GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, List<GrowDeviation> result)
     {
-        var actual = sorted[0].OrpMv;
-        if (!actual.HasValue) return;
-
-        if (actual.Value < targets.OrpMin)
+        if (sorted[0].ReservoirEc is not { } actual)
         {
-            var count = CountConsecutive(sorted, m => m.OrpMv, v => v < targets.OrpMin);
-            var severity = actual.Value < 200 ? DeviationSeverity.Critical : DeviationSeverity.Warning;
-            result.Add(Deviation(grow, DeviationMetric.Orp, actual.Value, targets.OrpMin, targets.OrpMax, severity,
-                "ORP niedrig – System möglicherweise kontaminiert, H₂O₂ Behandlung prüfen",
-                count));
+            return;
         }
+
+        var critical = actual < 0 || actual > 3.0;
+        var outsideTarget = targets is not null && (actual < targets.EcMin || actual > targets.EcMax);
+        var trendParticipants = GetEcTrendParticipants(sorted);
+
+        if (!critical && !outsideTarget && trendParticipants.Count == 0)
+        {
+            return;
+        }
+
+        IReadOnlyList<Measurement> participants;
+        string message;
+        string? hint;
+        if (trendParticipants.Count > 0)
+        {
+            participants = trendParticipants;
+            var diff = sorted[0].ReservoirEc!.Value - sorted[1].ReservoirEc!.Value;
+            message = diff > 0
+                ? $"Reservoir-EC ist um {diff:+0.00;-0.00} mS/cm gestiegen."
+                : $"Reservoir-EC ist um {diff:+0.00;-0.00} mS/cm gefallen.";
+            hint = diff > 0 ? "Verdunstung/Addback pruefen." : "Naehrstoffaufnahme/Addback pruefen.";
+        }
+        else
+        {
+            var predicate = targets is not null
+                ? new Func<double, bool>(value => value < targets.EcMin || value > targets.EcMax)
+                : value => value < 0 || value > 3.0;
+            participants = Consecutive(sorted, measurement => measurement.ReservoirEc, predicate);
+            message = $"Reservoir-EC {actual:0.00} liegt ausserhalb des Zielbereichs.";
+            hint = "EC-Ziel und Addback pruefen.";
+        }
+
+        result.Add(CreateDeviation(
+            grow,
+            "hydro.ec",
+            DeviationMetric.Ec,
+            actual,
+            targets?.EcMin,
+            targets?.EcMax,
+            "mS/cm",
+            critical ? DeviationSeverity.Critical : DeviationSeverity.Warning,
+            message,
+            hint,
+            null,
+            participants));
     }
 
-    // ── Wassertemperatur ──────────────────────────────────────────────────────
-
-    private static void CheckWaterTemp(GrowRun grow, List<Measurement> sorted, HydroTargetValues targets, List<GrowDeviation> result)
+    private static void CheckWaterTemp(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
     {
-        var actual = sorted[0].ReservoirWaterTempC;
-        if (!actual.HasValue) return;
-
-        if (actual.Value > targets.WaterTempDayC + 2)
+        if (sorted[0].ReservoirWaterTempC is not { } actual)
         {
-            var count = CountConsecutive(sorted, m => m.ReservoirWaterTempC, v => v > targets.WaterTempDayC + 2);
-            var severity = actual.Value > 24 ? DeviationSeverity.Critical : DeviationSeverity.Warning;
-            result.Add(Deviation(grow, DeviationMetric.WaterTemp, actual.Value, targets.WaterTempNightC, targets.WaterTempDayC, severity,
-                "Wassertemperatur kritisch – Wurzelfäule-Risiko steigt, sofort kühlen",
-                count));
+            return;
         }
-    }
 
-    // ── Dissolved Oxygen ──────────────────────────────────────────────────────
+        var critical = actual > 24 || actual < 14;
+        var warning = actual > 22 || actual < 17;
+        if (!critical && !warning)
+        {
+            return;
+        }
+
+        var participants = Consecutive(sorted, measurement => measurement.ReservoirWaterTempC, value => value > 22 || value < 17);
+        result.Add(CreateDeviation(
+            grow,
+            "hydro.water-temp",
+            DeviationMetric.WaterTemp,
+            actual,
+            17,
+            22,
+            "C",
+            critical ? DeviationSeverity.Critical : DeviationSeverity.Warning,
+            $"Reservoir-Wassertemperatur {actual:0.0} C liegt ausserhalb des Arbeitsbereichs.",
+            "Wassertemperatur und Kuehlung pruefen.",
+            actual > 22 ? "water-temp-rising-rapid" : null,
+            participants));
+    }
 
     private static void CheckDissolvedOxygen(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
     {
-        var actual = sorted[0].DissolvedOxygenMgL;
-        if (!actual.HasValue) return;
-
-        const double doWarning = 7.0;
-        const double doCritical = 5.0;
-
-        if (actual.Value < doWarning)
+        if (sorted[0].DissolvedOxygenMgL is not { } actual || actual >= 6)
         {
-            var count = CountConsecutive(sorted, m => m.DissolvedOxygenMgL, v => v < doWarning);
-            var severity = actual.Value < doCritical ? DeviationSeverity.Critical : DeviationSeverity.Warning;
-            result.Add(Deviation(grow, DeviationMetric.DissolvedOxygen, actual.Value, doCritical, doWarning, severity,
-                "Sauerstoff niedrig – Luftstein prüfen, Wassertemp senken",
-                count));
+            return;
         }
+
+        var participants = Consecutive(sorted, measurement => measurement.DissolvedOxygenMgL, value => value < 6);
+        result.Add(CreateDeviation(
+            grow,
+            "hydro.do",
+            DeviationMetric.DissolvedOxygen,
+            actual,
+            6,
+            null,
+            "mg/L",
+            actual < 4 ? DeviationSeverity.Critical : DeviationSeverity.Warning,
+            $"Geloester Sauerstoff liegt bei {actual:0.0} mg/L.",
+            "Belueftung, Umwaelzung und Wassertemperatur pruefen.",
+            "do-critical",
+            participants));
     }
 
-    // ── PPFD ──────────────────────────────────────────────────────────────────
-
-    private static void CheckPpfd(GrowRun grow, List<Measurement> sorted, HydroTargetValues targets, List<GrowDeviation> result)
+    private static void CheckOrp(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
     {
-        var actual = sorted[0].PpfdMol;
-        if (!actual.HasValue) return;
+        if (sorted[0].OrpMv is not { } actual)
+        {
+            return;
+        }
 
-        if (actual.Value < targets.PpfdMin)
+        var critical = actual < 250 || actual > 650;
+        var warning = actual < 300 || actual > 500;
+        if (!critical && !warning)
         {
-            var count = CountConsecutive(sorted, m => m.PpfdMol, v => v < targets.PpfdMin);
-            result.Add(Deviation(grow, DeviationMetric.Ppfd, actual.Value, targets.PpfdMin, targets.PpfdMax,
-                DeviationSeverity.Warning,
-                $"PPFD zu niedrig ({actual.Value:F0} µmol/m²/s, Soll {targets.PpfdMin:F0}–{targets.PpfdMax:F0}) – Lichtintensität oder Abstand prüfen",
-                count));
+            return;
         }
-        else if (actual.Value > targets.PpfdMax * 1.2)
-        {
-            result.Add(Deviation(grow, DeviationMetric.Ppfd, actual.Value, targets.PpfdMin, targets.PpfdMax,
-                DeviationSeverity.Warning,
-                $"PPFD sehr hoch ({actual.Value:F0} µmol/m²/s) – Lichtintensität reduzieren oder VPD kontrollieren",
-                consecutiveCount: 1));
-        }
+
+        var participants = Consecutive(sorted, measurement => measurement.OrpMv, value => value < 300 || value > 500);
+        result.Add(CreateDeviation(
+            grow,
+            "hydro.orp",
+            DeviationMetric.Orp,
+            actual,
+            300,
+            500,
+            "mV",
+            critical ? DeviationSeverity.Critical : DeviationSeverity.Warning,
+            $"ORP {actual:0} mV liegt ausserhalb des Arbeitsbereichs.",
+            "Wasserhygiene und Sensor plausibilisieren.",
+            actual < 300 ? "orp-low-mild" : null,
+            participants));
     }
 
-    // ── CO₂ ───────────────────────────────────────────────────────────────────
-
-    private static void CheckCo2(GrowRun grow, List<Measurement> sorted, HydroTargetValues targets, List<GrowDeviation> result)
+    private static void CheckPpfd(GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, List<GrowDeviation> result)
     {
-        var actual = sorted[0].Co2Ppm;
-        if (!actual.HasValue) return;
-
-        if (actual.Value < targets.Co2Min)
+        if (sorted[0].PpfdMol is not { } actual)
         {
-            var count = CountConsecutive(sorted, m => m.Co2Ppm, v => v < targets.Co2Min);
-            var severity = count >= 3 ? DeviationSeverity.Critical : DeviationSeverity.Warning;
-            result.Add(Deviation(grow, DeviationMetric.Co2, actual.Value, targets.Co2Min, targets.Co2Max, severity,
-                $"CO₂ zu niedrig ({actual.Value:F0} ppm, Soll {targets.Co2Min:F0}–{targets.Co2Max:F0}) – CO₂-Zufuhr prüfen oder Belüftung reduzieren",
-                count));
+            return;
         }
+
+        var critical = actual > 1500;
+        var warning = targets is not null && actual > targets.PpfdMax * 1.2;
+        if (!critical && !warning)
+        {
+            return;
+        }
+
+        var participants = Consecutive(sorted, measurement => measurement.PpfdMol, value => value > 1500 || (targets is not null && value > targets.PpfdMax * 1.2));
+        result.Add(CreateDeviation(
+            grow,
+            "hydro.ppfd",
+            DeviationMetric.Ppfd,
+            actual,
+            targets?.PpfdMin,
+            targets?.PpfdMax,
+            "umol/m2/s",
+            critical ? DeviationSeverity.Critical : DeviationSeverity.Warning,
+            $"PPFD {actual:0} liegt deutlich ueber dem Zielbereich.",
+            "Lichtintensitaet oder Abstand pruefen.",
+            "led-bleaching-mild",
+            participants));
     }
 
-    // ── Keimung / Bewurzelung ─────────────────────────────────────────────────
+    private static void CheckCo2(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
+    {
+        if (sorted[0].Co2Ppm is not { } actual || actual <= 1600)
+        {
+            return;
+        }
+
+        var participants = Consecutive(sorted, measurement => measurement.Co2Ppm, value => value > 1600);
+        result.Add(CreateDeviation(
+            grow,
+            "hydro.co2",
+            DeviationMetric.Co2,
+            actual,
+            null,
+            1600,
+            "ppm",
+            actual > 2500 ? DeviationSeverity.Critical : DeviationSeverity.Warning,
+            $"CO2 {actual:0} ppm liegt ueber dem Arbeitsbereich.",
+            "CO2-Zufuhr und Lueftung pruefen.",
+            null,
+            participants));
+    }
 
     public IReadOnlyList<GrowDeviation> CheckGerminationAndRooting(GrowRun grow, GrowWeekInfo weekInfo)
     {
@@ -228,27 +284,11 @@ public sealed class DeviationAnalyzerService
             var days = weekInfo.DaysGerminating.Value;
             if (days >= 14)
             {
-                deviations.Add(new GrowDeviation
-                {
-                    GrowId = grow.Id,
-                    GrowName = grow.Name,
-                    Metric = DeviationMetric.GerminationStatus,
-                    Severity = DeviationSeverity.Critical,
-                    Recommendation = "Keimung nach 14 Tagen nicht bestätigt – Samen wahrscheinlich nicht lebensfähig. Neuen Samen erwägen.",
-                    ConsecutiveCount = days
-                });
+                deviations.Add(LifecycleDeviation(grow, DeviationSeverity.Critical, "Keimung nach 14 Tagen nicht bestaetigt.", days));
             }
             else if (days >= 7)
             {
-                deviations.Add(new GrowDeviation
-                {
-                    GrowId = grow.Id,
-                    GrowName = grow.Name,
-                    Metric = DeviationMetric.GerminationStatus,
-                    Severity = DeviationSeverity.Warning,
-                    Recommendation = "Samen keimt seit 7 Tagen – prüfe Feuchtigkeit (70-90%), Temperatur (22-28°C) und Lichtabschirmung.",
-                    ConsecutiveCount = days
-                });
+                deviations.Add(LifecycleDeviation(grow, DeviationSeverity.Warning, "Samen keimt seit 7 Tagen noch nicht.", days));
             }
         }
 
@@ -257,68 +297,135 @@ public sealed class DeviationAnalyzerService
             var days = weekInfo.DaysRooting.Value;
             if (days >= 14)
             {
-                deviations.Add(new GrowDeviation
-                {
-                    GrowId = grow.Id,
-                    GrowName = grow.Name,
-                    Metric = DeviationMetric.GerminationStatus,
-                    Severity = DeviationSeverity.Critical,
-                    Recommendation = "Bewurzelung nach 14 Tagen nicht bestätigt – Temperatur (22-26°C), Luftfeuchte (75-85%) und Stecklingsgesundheit prüfen.",
-                    ConsecutiveCount = days
-                });
+                deviations.Add(LifecycleDeviation(grow, DeviationSeverity.Critical, "Bewurzelung nach 14 Tagen nicht bestaetigt.", days));
             }
             else if (days >= 7)
             {
-                deviations.Add(new GrowDeviation
-                {
-                    GrowId = grow.Id,
-                    GrowName = grow.Name,
-                    Metric = DeviationMetric.GerminationStatus,
-                    Severity = DeviationSeverity.Warning,
-                    Recommendation = "Steckling bewurzelt noch nicht nach 7 Tagen – prüfe Temperatur und Luftfeuchte unter der Dome.",
-                    ConsecutiveCount = days
-                });
+                deviations.Add(LifecycleDeviation(grow, DeviationSeverity.Warning, "Steckling bewurzelt noch nicht nach 7 Tagen.", days));
             }
         }
 
         return deviations;
     }
 
-    // ── Hilfsmethoden ─────────────────────────────────────────────────────────
-
-    private static int CountConsecutive(List<Measurement> sorted, Func<Measurement, double?> getValue, Func<double, bool> matches)
-    {
-        var count = 0;
-        foreach (var m in sorted)
+    private static GrowDeviation LifecycleDeviation(GrowRun grow, DeviationSeverity severity, string message, int days)
+        => new()
         {
-            var v = getValue(m);
-            if (v.HasValue && matches(v.Value)) count++;
-            else break;
+            GrowId = grow.Id,
+            GrowName = grow.Name,
+            StableKey = "lifecycle.germination-rooting",
+            Metric = DeviationMetric.GerminationStatus,
+            Severity = severity,
+            Message = message,
+            Recommendation = message,
+            RecommendationHint = message,
+            ConsecutiveCount = days,
+            Source = DeviationSource.Unknown
+        };
+
+    private static IReadOnlyList<Measurement> Consecutive(
+        List<Measurement> sorted,
+        Func<Measurement, double?> getValue,
+        Func<double, bool> matches)
+    {
+        var result = new List<Measurement>();
+        foreach (var measurement in sorted)
+        {
+            var value = getValue(measurement);
+            if (!value.HasValue || !matches(value.Value))
+            {
+                break;
+            }
+
+            result.Add(measurement);
         }
-        return count;
+
+        return result;
     }
 
-    private static GrowDeviation Deviation(
+    private static IReadOnlyList<Measurement> GetEcTrendParticipants(List<Measurement> sorted)
+    {
+        if (sorted.Count < 2 || !sorted[1].ReservoirEc.HasValue || !sorted[0].ReservoirEc.HasValue)
+        {
+            return Array.Empty<Measurement>();
+        }
+
+        var diff = sorted[0].ReservoirEc.GetValueOrDefault() - sorted[1].ReservoirEc.GetValueOrDefault();
+        return Math.Abs(diff) > 0.2
+            ? new[] { sorted[0], sorted[1] }
+            : Array.Empty<Measurement>();
+    }
+
+    private static GrowDeviation CreateDeviation(
         GrowRun grow,
+        string stableKey,
         DeviationMetric metric,
         double? actual,
-        double targetMin,
-        double targetMax,
+        double? targetMin,
+        double? targetMax,
+        string? unit,
         DeviationSeverity severity,
-        string recommendation,
-        int consecutiveCount)
+        string message,
+        string? recommendationHint,
+        string? symptomId,
+        IReadOnlyList<Measurement> sourceMeasurements)
     {
+        var sourceIds = sourceMeasurements
+            .Where(measurement => measurement.Id > 0)
+            .Select(measurement => measurement.Id)
+            .ToList();
+        var firstDetected = sourceMeasurements.Count > 0
+            ? sourceMeasurements.Min(measurement => measurement.TakenAt).ToUniversalTime()
+            : (DateTime?)null;
+        var lastDetected = sourceMeasurements.Count > 0
+            ? sourceMeasurements.Max(measurement => measurement.TakenAt).ToUniversalTime()
+            : (DateTime?)null;
+
         return new GrowDeviation
         {
             GrowId = grow.Id,
             GrowName = grow.Name,
+            StableKey = stableKey,
             Metric = metric,
             ActualValue = actual,
             TargetMin = targetMin,
             TargetMax = targetMax,
+            Unit = unit,
             Severity = severity,
-            Recommendation = recommendation,
-            ConsecutiveCount = consecutiveCount
+            Message = message,
+            RecommendationHint = recommendationHint,
+            SymptomId = symptomId,
+            SourceMeasurementIds = sourceIds,
+            Recommendation = message,
+            ConsecutiveCount = Math.Max(1, sourceMeasurements.Count),
+            FirstDetectedAtUtc = firstDetected,
+            LastDetectedAtUtc = lastDetected,
+            Source = ResolveSource(sourceMeasurements)
         };
+    }
+
+    private static DeviationSource ResolveSource(IReadOnlyList<Measurement> measurements)
+    {
+        if (measurements.Count == 0)
+        {
+            return DeviationSource.Unknown;
+        }
+
+        if (measurements.All(measurement => measurement.Source == ValueOrigin.HomeAssistant))
+        {
+            return DeviationSource.HomeAssistant;
+        }
+
+        if (measurements.All(measurement => measurement.Source == ValueOrigin.Manual))
+        {
+            return DeviationSource.Manual;
+        }
+
+        if (measurements.All(measurement => measurement.Source is ValueOrigin.Manual or ValueOrigin.HomeAssistant))
+        {
+            return DeviationSource.Mixed;
+        }
+
+        return DeviationSource.Unknown;
     }
 }

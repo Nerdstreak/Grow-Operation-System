@@ -12,6 +12,7 @@ import type {
   AutoMeasurementRunDto,
   AutoMeasurementStatus,
   AutoMeasurementTriggerKind,
+  GrowDeviationDto,
   GrowActionResultDto,
   GrowDetail,
   GrowTaskDto,
@@ -130,6 +131,8 @@ function GrowDetailPage() {
   const [autoRunsByConfigId, setAutoRunsByConfigId] = useState<Record<number, AutoMeasurementRunDto[]>>({})
   const [autoStatus, setAutoStatus] = useState<AutoMeasurementGrowStatusDto | null>(null)
   const [autoStatusError, setAutoStatusError] = useState<string | null>(null)
+  const [deviations, setDeviations] = useState<GrowDeviationDto[]>([])
+  const [deviationError, setDeviationError] = useState<string | null>(null)
   const [mappingDraftsByConfigId, setMappingDraftsByConfigId] = useState<Record<number, AutoMeasurementFieldMappingUpsertRequest[]>>({})
   const [autoConfigForm, setAutoConfigForm] = useState(emptyAutoConfigForm)
   const [autoLoading, setAutoLoading] = useState(false)
@@ -191,6 +194,19 @@ function GrowDetailPage() {
     }
   }, [growId])
 
+  const loadDeviations = useCallback(async (signal?: AbortSignal) => {
+    if (!growId) return
+    try {
+      const nextDeviations = await apiFetch<GrowDeviationDto[]>(`/api/grows/${growId}/deviations`, { signal })
+      setDeviations(nextDeviations)
+      setDeviationError(null)
+    } catch (caught) {
+      if (signal?.aborted) return
+      setDeviations([])
+      setDeviationError(caught instanceof ApiRequestError ? caught.message : 'Deviations konnten nicht geladen werden.')
+    }
+  }, [growId])
+
   const loadBundle = useCallback(async (signal?: AbortSignal) => {
     if (!growId) return
     try {
@@ -222,12 +238,13 @@ function GrowDetailPage() {
     const handle = window.setTimeout(() => {
       void loadBundle(controller.signal)
       void loadAutoMeasurements(controller.signal)
+      void loadDeviations(controller.signal)
     }, 0)
     return () => {
       window.clearTimeout(handle)
       controller.abort()
     }
-  }, [loadAutoMeasurements, loadBundle])
+  }, [loadAutoMeasurements, loadBundle, loadDeviations])
 
   const openTasks = useMemo(() => bundle.tasks.filter((task) => task.status === 'Open'), [bundle.tasks])
   const closedTasks = useMemo(() => bundle.tasks.filter((task) => task.status !== 'Open'), [bundle.tasks])
@@ -272,7 +289,7 @@ function GrowDetailPage() {
       })
       setMeasurementForm(emptyMeasurementForm())
       setNotice('Messung gespeichert.')
-      await loadBundle()
+      await Promise.all([loadBundle(), loadDeviations()])
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Messung konnte nicht gespeichert werden.')
     } finally {
@@ -588,6 +605,39 @@ function GrowDetailPage() {
               </button>
             )}
           </div>
+        </div>
+
+        <div className="section-label">Deviations</div>
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-header">
+            <span className="card-title">Hydro-Abweichungen</span>
+            <span className="text-muted" style={{ fontSize: 13 }}>{deviations.length}</span>
+          </div>
+          {deviationError ? (
+            <div className="empty-hint" style={{ color: 'var(--red)' }}>{deviationError}</div>
+          ) : deviations.length === 0 ? (
+            <div className="empty-hint">Keine strukturierten Hydro-Deviations erkannt.</div>
+          ) : (
+            <div style={{ display: 'grid' }}>
+              {deviations.map((deviation) => (
+                <div key={deviation.stableKey} style={{ display: 'grid', gridTemplateColumns: '120px minmax(120px, 0.7fr) minmax(180px, 1fr) minmax(0, 2fr)', gap: 10, alignItems: 'center', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
+                  <span className={`badge ${deviation.severity === 'Critical' ? 'badge-warn' : deviation.severity === 'Warning' ? 'badge-neutral' : 'badge-ok'}`}>{deviation.severity}</span>
+                  <div>
+                    <div className="tl-title">{deviation.metric}</div>
+                    <div className="tl-sub">{deviation.source}</div>
+                  </div>
+                  <div className="tl-sub">
+                    Ist {formatDeviationValue(deviation.actualValue, deviation.unit)}
+                    {formatDeviationTarget(deviation) ? ` / Ziel ${formatDeviationTarget(deviation)}` : ''}
+                  </div>
+                  <div className="tl-sub">
+                    {deviation.message}
+                    <span> Folge {deviation.consecutiveCount}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="detail-layout">
@@ -1017,6 +1067,22 @@ function toNullableInteger(value: string): number | null {
   if (!trimmed) return null
   const parsed = Number(trimmed)
   return Number.isInteger(parsed) ? parsed : null
+}
+
+function formatDeviationValue(value: number | null, unit: string | null): string {
+  if (value == null) return '-'
+  return `${formatNumber(value, 2)}${unit ? ` ${unit}` : ''}`
+}
+
+function formatDeviationTarget(deviation: GrowDeviationDto): string | null {
+  if (deviation.targetMin == null && deviation.targetMax == null) return null
+  if (deviation.targetMin != null && deviation.targetMax != null) {
+    return `${formatNumber(deviation.targetMin, 2)}-${formatNumber(deviation.targetMax, 2)}${deviation.unit ? ` ${deviation.unit}` : ''}`
+  }
+  if (deviation.targetMin != null) {
+    return `>= ${formatNumber(deviation.targetMin, 2)}${deviation.unit ? ` ${deviation.unit}` : ''}`
+  }
+  return `<= ${formatNumber(deviation.targetMax, 2)}${deviation.unit ? ` ${deviation.unit}` : ''}`
 }
 
 export default GrowDetailPage

@@ -70,7 +70,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 | `GrowDashboardComposer` | Baut Metriken, Charts und Deviations fuer Dashboard- und Detail-Views |
 | `RecommendationEngine` | Aktuelle Empfehlungs-Engine, wird in Sprint D fachlich aufgesplittet |
 | `GrowAlertService` | UI-Fassade, die Empfehlungen in Ampel-Zustaende uebersetzt |
-| `DeviationAnalyzerService` | Sollwert-vs-Istwert-Vergleich; fachliche Drift wird in Sprint D geklaert |
+| `DeviationAnalyzerService` | Zentrale Hydro-Deviation-Engine mit strukturierten Abweichungen, Quellen und Consecutive-Counts |
 | `MeasurementSanityService` | Plausibilitaetschecks und blockierende Messwert-Validierung |
 | `CultivationKnowledgeService` | Fassade ueber KnowledgeBaseLoader fuer Programme und Playbooks |
 | `TargetValueService` | Fassade ueber KnowledgeBaseLoader fuer Sollwerte |
@@ -120,6 +120,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint C3 ABGESCHLOSSEN: AutoMeasurementWorker erzeugt Measurements aus LightTransitionEvents und TentSensorReadings mit Run-Status/Idempotenz.
 - Sprint C4 ABGESCHLOSSEN: AutoMeasurementValueGuard blockiert harte Ausreisser und dokumentiert Warnungen/Rejections in AutoMeasurementRuns.
 - Sprint C5 ABGESCHLOSSEN: AutoMeasurement-Status-Endpoint und GrowDetail-Diagnose zeigen Config-, Run- und LightTransition-Status.
+- Sprint D1 ABGESCHLOSSEN: DeviationAnalyzerService v2 liefert strukturierte Hydro-Deviations ueber `GET /api/grows/{growId}/deviations`.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow

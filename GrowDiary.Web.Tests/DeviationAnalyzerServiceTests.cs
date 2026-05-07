@@ -68,6 +68,7 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
 
     private static Measurement CreateMeasurement(GrowStage stage) => new()
     {
+        Id = 1,
         Stage = stage,
         TakenAt = DateTime.Now,
         // Veg OK-Bereich: pH 6.0–6.1, EC 0.6–0.8
@@ -110,6 +111,14 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
 
         var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ph);
         Assert.Equal(DeviationSeverity.Warning, dev.Severity);
+        Assert.Equal("hydro.ph", dev.StableKey);
+        Assert.Equal("pH", dev.Unit);
+        Assert.Equal(6.3, dev.ActualValue);
+        Assert.Equal(6.0, dev.TargetMin);
+        Assert.Equal(6.1, dev.TargetMax);
+        Assert.False(string.IsNullOrWhiteSpace(dev.Message));
+        Assert.Contains(m.Id, dev.SourceMeasurementIds);
+        Assert.Equal(DeviationSource.Manual, dev.Source);
     }
 
     [Fact]
@@ -119,7 +128,8 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
         var measurements = Enumerable.Range(0, 3).Select(i =>
         {
             var m = CreateMeasurement(GrowStage.Veg);
-            m.ReservoirPh = 6.5;
+            m.Id = i + 1;
+            m.ReservoirPh = 6.6;
             m.TakenAt = DateTime.Now.AddHours(-i);
             return m;
         }).ToList();
@@ -129,6 +139,24 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
         var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ph);
         Assert.Equal(DeviationSeverity.Critical, dev.Severity);
         Assert.Equal(3, dev.ConsecutiveCount);
+        Assert.Equal(measurements.Select(m => m.Id).ToList(), dev.SourceMeasurementIds);
+        Assert.Equal(measurements.Min(m => m.TakenAt).ToUniversalTime(), dev.FirstDetectedAtUtc);
+        Assert.Equal(measurements.Max(m => m.TakenAt).ToUniversalTime(), dev.LastDetectedAtUtc);
+    }
+
+    [Theory]
+    [InlineData(5.4)]
+    [InlineData(6.6)]
+    public void Ph_DeutlichAusserhalb_Critical(double ph)
+    {
+        var grow = CreateHydroGrow();
+        var m = CreateMeasurement(GrowStage.Veg);
+        m.ReservoirPh = ph;
+
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
+
+        var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ph);
+        Assert.Equal(DeviationSeverity.Critical, dev.Severity);
     }
 
     [Fact]
@@ -180,6 +208,20 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
     }
 
     [Fact]
+    public void EC_UeberZiel_Warning()
+    {
+        var grow = CreateHydroGrow();
+        var m = CreateMeasurement(GrowStage.Veg);
+        m.ReservoirEc = 1.0;
+
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
+
+        var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ec);
+        Assert.Equal(DeviationSeverity.Warning, dev.Severity);
+        Assert.Equal("mS/cm", dev.Unit);
+    }
+
+    [Fact]
     public void WasserTemp_Kritisch_Critical()
     {
         var grow = CreateHydroGrow();
@@ -197,7 +239,7 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
     {
         var grow = CreateHydroGrow();
         var m = CreateMeasurement(GrowStage.Veg);
-        m.DissolvedOxygenMgL = 6.5; // unter 7.0 Warning-Schwelle
+        m.DissolvedOxygenMgL = 5.5; // unter 6.0 Warning-Schwelle
 
         var result = _svc.Analyze(grow, new List<Measurement> { m });
 
@@ -209,12 +251,64 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
     {
         var grow = CreateHydroGrow();
         var m = CreateMeasurement(GrowStage.Veg);
-        m.DissolvedOxygenMgL = 4.8; // unter 5.0 Critical-Schwelle
+        m.DissolvedOxygenMgL = 3.8; // unter 4.0 Critical-Schwelle
 
         var result = _svc.Analyze(grow, new List<Measurement> { m });
 
         var dev = Assert.Single(result, d => d.Metric == DeviationMetric.DissolvedOxygen);
         Assert.Equal(DeviationSeverity.Critical, dev.Severity);
+    }
+
+    [Theory]
+    [InlineData(280, DeviationSeverity.Warning)]
+    [InlineData(700, DeviationSeverity.Critical)]
+    public void ORP_AusserhalbBereich_ErzeugtDeviation(double orp, DeviationSeverity expectedSeverity)
+    {
+        var grow = CreateHydroGrow();
+        var m = CreateMeasurement(GrowStage.Veg);
+        m.OrpMv = orp;
+
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
+
+        var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Orp);
+        Assert.Equal(expectedSeverity, dev.Severity);
+        Assert.Equal("mV", dev.Unit);
+    }
+
+    [Fact]
+    public void Source_WirdAlsMixedBerechnet()
+    {
+        var grow = CreateHydroGrow();
+        var latest = CreateMeasurement(GrowStage.Veg);
+        latest.Id = 10;
+        latest.Source = ValueOrigin.HomeAssistant;
+        latest.ReservoirPh = 6.4;
+        latest.TakenAt = DateTime.UtcNow;
+        var previous = CreateMeasurement(GrowStage.Veg);
+        previous.Id = 9;
+        previous.Source = ValueOrigin.Manual;
+        previous.ReservoirPh = 6.3;
+        previous.TakenAt = latest.TakenAt.AddHours(-1);
+
+        var result = _svc.Analyze(grow, new List<Measurement> { latest, previous });
+
+        var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ph);
+        Assert.Equal(DeviationSource.Mixed, dev.Source);
+        Assert.Equal(new[] { latest.Id, previous.Id }, dev.SourceMeasurementIds);
+    }
+
+    [Fact]
+    public void Source_WirdAlsHomeAssistantBerechnet()
+    {
+        var grow = CreateHydroGrow();
+        var m = CreateMeasurement(GrowStage.Veg);
+        m.Source = ValueOrigin.HomeAssistant;
+        m.ReservoirPh = 6.3;
+
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
+
+        var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ph);
+        Assert.Equal(DeviationSource.HomeAssistant, dev.Source);
     }
 
     [Fact]
