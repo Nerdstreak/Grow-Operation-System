@@ -15,6 +15,9 @@ public sealed class SopStepInstance
     public string? ExpectedInputsJson { get; set; }
     public bool PhotoRequired { get; set; }
     public bool PhotoRecommended { get; set; }
+    public DateTime? DueAtUtc { get; set; }
+    public DateTime? AvailableAtUtc { get; set; }
+    public int? ReminderTaskId { get; set; }
     public DateTime? StartedAtUtc { get; set; }
     public DateTime? CompletedAtUtc { get; set; }
     public DateTime? SkippedAtUtc { get; set; }
