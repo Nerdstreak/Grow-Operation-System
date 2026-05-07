@@ -250,6 +250,25 @@ public enum AutoMeasurementRunStatus
     Failed
 }
 
+public enum LightState
+{
+    Unknown,
+    On,
+    Off
+}
+
+public enum LightTransitionKind
+{
+    LightOn,
+    LightOff
+}
+
+public enum LightSource
+{
+    Manual,
+    HomeAssistant
+}
+
 public enum SensorMetricType
 {
     AirTemperature,

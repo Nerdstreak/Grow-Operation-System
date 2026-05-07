@@ -487,6 +487,52 @@ export interface AutoMeasurementRunDto {
   updatedAtUtc: string
 }
 
+export type LightState = 'Unknown' | 'On' | 'Off'
+export type LightTransitionKind = 'LightOn' | 'LightOff'
+export type LightSource = 'Manual' | 'HomeAssistant'
+
+export interface LightScheduleDto {
+  id: number
+  tentId: number
+  name: string
+  isActive: boolean
+  lightsOnTime: string
+  lightsOffTime: string
+  timeZoneId: string | null
+  source: LightSource
+  createdAtUtc: string
+  updatedAtUtc: string
+}
+
+export interface CreateLightScheduleRequest {
+  tentId: number
+  name: string
+  isActive: boolean
+  lightsOnTime: string
+  lightsOffTime: string
+  timeZoneId?: string | null
+  source: LightSource
+}
+
+export interface UpdateLightScheduleRequest {
+  name: string
+  isActive: boolean
+  lightsOnTime: string
+  lightsOffTime: string
+  timeZoneId?: string | null
+  source: LightSource
+}
+
+export interface LightTransitionEventDto {
+  id: number
+  tentId: number
+  kind: LightTransitionKind
+  occurredAtUtc: string
+  source: LightSource
+  rawState: string | null
+  createdAtUtc: string
+}
+
 export type SensorMetricType =
   | 'AirTemperature'
   | 'Humidity'

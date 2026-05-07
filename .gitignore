@@ -11,3 +11,4 @@ GrowDiary.Web/App_Data/*.db-wal
 run.*.log
 RDWC Wissen/
 GrowDiary.Web/wwwroot/docs/
+GrowDiary.Web/wwwroot/
