@@ -1,3 +1,4 @@
+using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Models;
 
 namespace GrowDiary.Web.Services;
@@ -45,6 +46,55 @@ public sealed class RecommendationEngine
                 Severity = "success",
                 Title = "Keine akuten Auffälligkeiten",
                 Message = "Die letzten Werte sehen stabil aus. Weiter beobachten und Trends im Verlauf vergleichen."
+            });
+        }
+
+        return cards;
+    }
+
+    public IReadOnlyList<RecommendationCard> BuildCardsFromDiagnostics(
+        GrowRun grow,
+        IReadOnlyList<GrowDeviation> deviations,
+        IReadOnlyList<TreatmentRecommendationDto> treatmentRecommendations)
+    {
+        if (deviations.Count == 0)
+        {
+            return new[]
+            {
+                Success(
+                    "Keine strukturierten Deviations",
+                    "Die aktuellen Hydro-Diagnosen zeigen keine kritischen oder warnenden Abweichungen.")
+            };
+        }
+
+        var recommendationsByDeviation = treatmentRecommendations
+            .GroupBy(recommendation => recommendation.DeviationStableKey, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
+
+        var cards = new List<RecommendationCard>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var deviation in deviations)
+        {
+            if (!seen.Add(deviation.StableKey))
+            {
+                continue;
+            }
+
+            recommendationsByDeviation.TryGetValue(deviation.StableKey, out var relatedRecommendations);
+            var primaryRecommendation = relatedRecommendations?
+                .FirstOrDefault(recommendation =>
+                    !string.IsNullOrWhiteSpace(recommendation.TreatmentName) ||
+                    !string.IsNullOrWhiteSpace(recommendation.SopTitle));
+            var actionName = primaryRecommendation?.TreatmentName ?? primaryRecommendation?.SopTitle;
+            var message = string.IsNullOrWhiteSpace(actionName)
+                ? deviation.Message
+                : $"{deviation.Message} Handlungsvorschlag: {actionName}.";
+
+            cards.Add(new RecommendationCard
+            {
+                Severity = ToCardSeverity(deviation.Severity),
+                Title = $"{deviation.Metric}: {ToGermanSeverityLabel(deviation.Severity)}",
+                Message = message
             });
         }
 
@@ -676,4 +726,20 @@ public sealed class RecommendationEngine
 
     private static RecommendationCard Success(string title, string message)
         => new() { Severity = "success", Title = title, Message = message };
+
+    private static string ToCardSeverity(DeviationSeverity severity)
+        => severity switch
+        {
+            DeviationSeverity.Critical => "danger",
+            DeviationSeverity.Warning => "warning",
+            _ => "info"
+        };
+
+    private static string ToGermanSeverityLabel(DeviationSeverity severity)
+        => severity switch
+        {
+            DeviationSeverity.Critical => "kritisch",
+            DeviationSeverity.Warning => "Warnung",
+            _ => "Info"
+        };
 }

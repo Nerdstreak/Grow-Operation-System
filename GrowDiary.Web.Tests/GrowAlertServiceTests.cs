@@ -33,6 +33,40 @@ public sealed class GrowAlertServiceTests
         Assert.Equal("healthy", tone);
     }
 
+    [Fact]
+    public void ResolveStateToneFromDeviations_GibtCriticalBeiCriticalDeviation()
+    {
+        var deviations = new[]
+        {
+            new GrowDeviation { Severity = DeviationSeverity.Critical }
+        };
+
+        var tone = GrowAlertService.ResolveStateToneFromDeviations(deviations, homeAssistantConfigured: true);
+
+        Assert.Equal("critical", tone);
+    }
+
+    [Fact]
+    public void ResolveStateToneFromDeviations_GibtWarningBeiWarningDeviation()
+    {
+        var deviations = new[]
+        {
+            new GrowDeviation { Severity = DeviationSeverity.Warning }
+        };
+
+        var tone = GrowAlertService.ResolveStateToneFromDeviations(deviations, homeAssistantConfigured: true);
+
+        Assert.Equal("attention", tone);
+    }
+
+    [Fact]
+    public void ResolveStateToneFromDeviations_GibtHealthyOhneDeviations()
+    {
+        var tone = GrowAlertService.ResolveStateToneFromDeviations(Array.Empty<GrowDeviation>(), homeAssistantConfigured: true);
+
+        Assert.Equal("healthy", tone);
+    }
+
     [Theory]
     [InlineData("critical", "kritisch")]
     [InlineData("attention", "beobachten")]

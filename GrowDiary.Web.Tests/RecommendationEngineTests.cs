@@ -1,4 +1,5 @@
 using GrowDiary.Web.Infrastructure;
+using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
 using GrowDiary.Web.Services.Knowledge;
@@ -225,4 +226,78 @@ public sealed class RecommendationEngineTests : IDisposable
 
         Assert.DoesNotContain(result, c => c.Severity == "danger");
     }
+
+    [Fact]
+    public void BuildCardsFromDiagnostics_ErzeugtDangerAusCriticalDeviation()
+    {
+        var grow = CreateHydroGrow();
+        var deviation = CreateDeviation(DeviationSeverity.Critical);
+
+        var result = _engine.BuildCardsFromDiagnostics(grow, new[] { deviation }, Array.Empty<TreatmentRecommendationDto>());
+
+        var card = Assert.Single(result);
+        Assert.Equal("danger", card.Severity);
+        Assert.Contains(deviation.Message, card.Message);
+    }
+
+    [Fact]
+    public void BuildCardsFromDiagnostics_ZeigtTreatmentRecommendationAlsHandlungshinweis()
+    {
+        var grow = CreateHydroGrow();
+        var deviation = CreateDeviation(DeviationSeverity.Warning);
+        var recommendation = CreateTreatmentRecommendation(deviation, "pH Korrektur nach unten");
+
+        var result = _engine.BuildCardsFromDiagnostics(grow, new[] { deviation }, new[] { recommendation });
+
+        var card = Assert.Single(result);
+        Assert.Equal("warning", card.Severity);
+        Assert.Contains("pH Korrektur nach unten", card.Message);
+    }
+
+    [Fact]
+    public void BuildCardsFromDiagnostics_DedupliziertDeviationUndTreatmentKombi()
+    {
+        var grow = CreateHydroGrow();
+        var deviation = CreateDeviation(DeviationSeverity.Warning);
+        var recommendation = CreateTreatmentRecommendation(deviation, "pH Korrektur nach unten");
+
+        var result = _engine.BuildCardsFromDiagnostics(grow, new[] { deviation }, new[] { recommendation });
+
+        Assert.Single(result, card => card.Title.Contains("Ph", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static GrowDeviation CreateDeviation(DeviationSeverity severity)
+        => new()
+        {
+            GrowId = 1,
+            StableKey = "hydro.ph",
+            Metric = DeviationMetric.Ph,
+            Severity = severity,
+            ActualValue = severity == DeviationSeverity.Critical ? 6.7 : 6.3,
+            TargetMin = 6.0,
+            TargetMax = 6.1,
+            Unit = "pH",
+            Message = "Reservoir-pH liegt ueber dem Zielbereich.",
+            ConsecutiveCount = 1
+        };
+
+    private static TreatmentRecommendationDto CreateTreatmentRecommendation(GrowDeviation deviation, string treatmentName)
+        => new(
+            StableKey: $"{deviation.StableKey}:treatment:ph-correction-down",
+            DeviationStableKey: deviation.StableKey,
+            Metric: deviation.Metric,
+            Severity: deviation.Severity,
+            SymptomId: "ph-too-high",
+            TreatmentId: "ph-correction-down",
+            TreatmentName: treatmentName,
+            SopId: null,
+            SopTitle: null,
+            Confidence: TreatmentRecommendationConfidence.Medium,
+            Reason: "Knowledge-Symptom passt.",
+            SafetyNotes: Array.Empty<string>(),
+            SourceDocumentIds: Array.Empty<string>(),
+            Conflicts: Array.Empty<string>(),
+            ConflictTreatmentIds: Array.Empty<string>(),
+            PhaseAllowed: null,
+            HardwareRequirements: Array.Empty<string>());
 }
