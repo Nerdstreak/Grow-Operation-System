@@ -39,6 +39,7 @@ export type AutoMeasurementRunStatus = 'Pending' | 'Created' | 'Skipped' | 'Fail
 export type DeviationMetric = 'Ph' | 'Ec' | 'Orp' | 'WaterTemp' | 'Vpd' | 'Ppfd' | 'Co2' | 'DissolvedOxygen' | 'GerminationStatus'
 export type DeviationSeverity = 'Info' | 'Warning' | 'Critical'
 export type DeviationSource = 'Manual' | 'HomeAssistant' | 'Mixed' | 'Unknown'
+export type TreatmentRecommendationConfidence = 'Low' | 'Medium' | 'High'
 
 export interface ApiError {
   code: string
@@ -122,6 +123,31 @@ export interface GrowDeviationDto {
   firstDetectedAtUtc: string | null
   lastDetectedAtUtc: string | null
   source: DeviationSource
+}
+
+export interface TreatmentRecommendationDto {
+  stableKey: string
+  deviationStableKey: string
+  metric: DeviationMetric
+  severity: DeviationSeverity
+  symptomId: string | null
+  treatmentId: string | null
+  treatmentName: string | null
+  sopId: string | null
+  sopTitle: string | null
+  confidence: TreatmentRecommendationConfidence
+  reason: string
+  safetyNotes: string[]
+  sourceDocumentIds: string[]
+  conflicts: string[]
+  conflictTreatmentIds: string[]
+  phaseAllowed: boolean | null
+  hardwareRequirements: string[]
+}
+
+export interface GrowTreatmentRecommendationDto {
+  growId: number
+  recommendations: TreatmentRecommendationDto[]
 }
 
 export interface MeasurementUpsertPayload {

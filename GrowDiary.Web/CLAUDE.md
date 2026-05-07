@@ -71,6 +71,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 | `RecommendationEngine` | Aktuelle Empfehlungs-Engine, wird in Sprint D fachlich aufgesplittet |
 | `GrowAlertService` | UI-Fassade, die Empfehlungen in Ampel-Zustaende uebersetzt |
 | `DeviationAnalyzerService` | Zentrale Hydro-Deviation-Engine mit strukturierten Abweichungen, Quellen und Consecutive-Counts |
+| `TreatmentRecommender` | Verknuepft strukturierte Deviations mit Knowledge-Symptoms, Treatments und SOPs als reine Empfehlungen |
 | `MeasurementSanityService` | Plausibilitaetschecks und blockierende Messwert-Validierung |
 | `CultivationKnowledgeService` | Fassade ueber KnowledgeBaseLoader fuer Programme und Playbooks |
 | `TargetValueService` | Fassade ueber KnowledgeBaseLoader fuer Sollwerte |
@@ -121,6 +122,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint C4 ABGESCHLOSSEN: AutoMeasurementValueGuard blockiert harte Ausreisser und dokumentiert Warnungen/Rejections in AutoMeasurementRuns.
 - Sprint C5 ABGESCHLOSSEN: AutoMeasurement-Status-Endpoint und GrowDetail-Diagnose zeigen Config-, Run- und LightTransition-Status.
 - Sprint D1 ABGESCHLOSSEN: DeviationAnalyzerService v2 liefert strukturierte Hydro-Deviations ueber `GET /api/grows/{growId}/deviations`.
+- Sprint D2 ABGESCHLOSSEN: TreatmentRecommender liefert Knowledge-basierte Empfehlungen ueber `GET /api/grows/{growId}/treatment-recommendations`.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow
