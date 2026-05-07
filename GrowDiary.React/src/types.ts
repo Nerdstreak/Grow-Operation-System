@@ -303,6 +303,10 @@ export interface SopInstanceDto {
   startedAtUtc: string
   completedAtUtc: string | null
   cancelledAtUtc: string | null
+  dueAtUtc: string | null
+  nextStepDueAtUtc: string | null
+  recurrenceIntervalDays: number | null
+  isRecurring: boolean
   notes: string | null
   createdAtUtc: string
   updatedAtUtc: string
@@ -323,6 +327,9 @@ export interface SopStepInstanceDto {
   expectedInputsJson: string | null
   photoRequired: boolean
   photoRecommended: boolean
+  dueAtUtc: string | null
+  availableAtUtc: string | null
+  reminderTaskId: number | null
   startedAtUtc: string | null
   completedAtUtc: string | null
   skippedAtUtc: string | null

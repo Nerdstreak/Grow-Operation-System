@@ -566,6 +566,14 @@ public sealed class DatabaseInitializer
         """;
         command.ExecuteNonQuery();
         EnsureColumn(connection, "Grows", "SystemId", "INTEGER NULL");
+        // Sprint E4 — SOP Scheduling
+        EnsureColumn(connection, "SopInstances",     "DueAtUtc",               "TEXT NULL");
+        EnsureColumn(connection, "SopInstances",     "NextStepDueAtUtc",       "TEXT NULL");
+        EnsureColumn(connection, "SopInstances",     "RecurrenceIntervalDays", "INTEGER NULL");
+        EnsureColumn(connection, "SopInstances",     "IsRecurring",            "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "SopStepInstances", "DueAtUtc",               "TEXT NULL");
+        EnsureColumn(connection, "SopStepInstances", "AvailableAtUtc",         "TEXT NULL");
+        EnsureColumn(connection, "SopStepInstances", "ReminderTaskId",         "INTEGER NULL");
     }
 
     private void SeedDefaults()
