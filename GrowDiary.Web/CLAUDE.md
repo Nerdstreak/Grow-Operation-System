@@ -89,7 +89,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 - `AutoMeasurementConfigs`, `AutoMeasurementFieldMappings` und `AutoMeasurementRuns`: Konfiguration, Mapping, Ausfuehrungsstatus, Hard-Limit-Hinweise und Idempotenz fuer automatische Measurements.
 - `LightSchedules`: additive Lichtplaene pro Tent mit HH:mm-On/Off-Zeiten, Source und optionaler TimeZoneId.
 - `LightTransitionEvents`: LightOn-/LightOff-Events pro Tent als Trigger- und Idempotenzgrundlage; keine automatische Measurement-Erzeugung.
-- `SopInstances` und `SopStepInstances`: aus Knowledge-SOPs gestartete Workflow-Koepfe und materialisierte Steps; Step-Status kann aktualisiert werden, SubSOPs werden nur referenziert. E4: Steps haben DueAtUtc/AvailableAtUtc und optionalen ReminderTaskId-Verweis; SopInstances haben NextStepDueAtUtc, IsRecurring, RecurrenceIntervalDays, DueAtUtc.
+- `SopInstances` und `SopStepInstances`: aus Knowledge-SOPs gestartete Workflow-Koepfe und materialisierte Steps; Step-Status kann aktualisiert werden, SubSOPs werden nur referenziert. E4: Steps haben DueAtUtc/AvailableAtUtc und optionalen ReminderTaskId-Verweis; SopInstances haben NextStepDueAtUtc, IsRecurring, RecurrenceIntervalDays, DueAtUtc. RecurrenceIntervalDays kommt aus triggers[type=Schedule].intervalDays (Fallback: Root-Level SopDefinition.IntervalDays).
 
 ### DB-Initialisierung
 
