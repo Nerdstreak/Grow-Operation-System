@@ -12,6 +12,7 @@ namespace GrowDiary.Web.Tests.Api;
 public sealed class GrowsApiControllerSetupTests : IDisposable
 {
     private readonly string _dbPath;
+    private readonly string _tempRoot;
     private readonly AppPaths _paths;
     private readonly GrowRepository _growRepository;
     private readonly GrowsApiController _controller;
@@ -19,8 +20,11 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
     public GrowsApiControllerSetupTests()
     {
         _dbPath = Path.Combine(Path.GetTempPath(), $"grow-test-{Guid.NewGuid():N}.db");
+        _tempRoot = Path.Combine(Path.GetTempPath(), "GrowControllerTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_tempRoot);
+        CopyDefaults(Path.Combine(FindProjectRoot(), "GrowDiary.Web", "wwwroot", "knowledge-defaults"), _tempRoot);
         Environment.SetEnvironmentVariable("GROWDIARY_DB_PATH", _dbPath);
-        _paths = new AppPaths(Path.GetTempPath());
+        _paths = new AppPaths(_tempRoot);
         var initializer = new DatabaseInitializer(_paths, NullLogger<DatabaseInitializer>.Instance);
         initializer.Initialize();
         _growRepository = new GrowRepository(_paths);
@@ -28,7 +32,8 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
             _growRepository,
             new AuditRepository(_paths),
             new WeekCounterService(),
-            CreateDeviationAnalyzer());
+            CreateDeviationAnalyzer(),
+            CreateTreatmentRecommender());
     }
 
     public void Dispose()
@@ -37,6 +42,7 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
         try { File.Delete(_dbPath); } catch { }
         try { File.Delete(_dbPath + "-shm"); } catch { }
         try { File.Delete(_dbPath + "-wal"); } catch { }
+        try { if (Directory.Exists(_tempRoot)) Directory.Delete(_tempRoot, recursive: true); } catch { }
     }
 
     [Fact]
@@ -158,6 +164,43 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
         Assert.Equal(DeviationSeverity.Critical, deviation.Severity);
     }
 
+    [Fact]
+    public void TreatmentRecommendations_MissingGrow_Returns404()
+    {
+        var result = _controller.TreatmentRecommendations(9999).Result;
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        var error = Assert.IsType<ApiError>(notFound.Value);
+        Assert.Equal("grow_not_found", error.Code);
+    }
+
+    [Fact]
+    public void TreatmentRecommendations_WithMatchingDeviation_ReturnsRecommendations()
+    {
+        var growId = _growRepository.CreateGrow(new GrowRun
+        {
+            Name = "Hydro Grow",
+            StartDate = new DateTime(2026, 1, 1),
+            MediumType = MediumType.Hydro,
+            IrrigationType = IrrigationType.ActiveHydro,
+            HydroStyle = HydroStyle.RDWC,
+            Status = GrowStatus.Running
+        });
+        _growRepository.CreateMeasurement(new Measurement
+        {
+            GrowId = growId,
+            Stage = GrowStage.Veg,
+            TakenAt = DateTime.UtcNow,
+            ReservoirPh = 6.7
+        });
+
+        var result = _controller.TreatmentRecommendations(growId).Result;
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<GrowTreatmentRecommendationDto>(ok.Value);
+        Assert.Contains(dto.Recommendations, item => item.TreatmentId == "ph-correction-down");
+    }
+
     private Tent DefaultTent()
         => _growRepository.GetTents().Single();
 
@@ -187,6 +230,42 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
         var loader = new KnowledgeBaseLoader(_paths, NullLogger<KnowledgeBaseLoader>.Instance);
         loader.Initialize();
         return new DeviationAnalyzerService(new TargetValueService(loader));
+    }
+
+    private TreatmentRecommender CreateTreatmentRecommender()
+    {
+        var loader = new KnowledgeBaseLoader(_paths, NullLogger<KnowledgeBaseLoader>.Instance);
+        loader.Initialize();
+        return new TreatmentRecommender(loader);
+    }
+
+    private static string FindProjectRoot()
+    {
+        var dir = AppContext.BaseDirectory;
+        while (dir != null)
+        {
+            if (Directory.GetFiles(dir, "*.sln").Length > 0 ||
+                Directory.Exists(Path.Combine(dir, "GrowDiary.Web")))
+            {
+                return dir;
+            }
+
+            dir = Path.GetDirectoryName(dir);
+        }
+
+        throw new InvalidOperationException("Project root not found");
+    }
+
+    private static void CopyDefaults(string source, string tempRoot)
+    {
+        var dest = Path.Combine(tempRoot, "wwwroot", "knowledge-defaults");
+        foreach (var file in Directory.EnumerateFiles(source, "*.json", SearchOption.AllDirectories))
+        {
+            var rel = Path.GetRelativePath(source, file);
+            var target = Path.Combine(dest, rel);
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(file, target);
+        }
     }
 
     private static void AssertSetupValidationError(ActionResult? result)

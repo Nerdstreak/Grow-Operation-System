@@ -19,17 +19,20 @@ public sealed class GrowsApiController : ApiControllerBase
     private readonly AuditRepository _auditRepository;
     private readonly WeekCounterService _weekCounter;
     private readonly DeviationAnalyzerService _deviationAnalyzer;
+    private readonly TreatmentRecommender _treatmentRecommender;
 
     public GrowsApiController(
         GrowRepository repository,
         AuditRepository auditRepository,
         WeekCounterService weekCounter,
-        DeviationAnalyzerService deviationAnalyzer)
+        DeviationAnalyzerService deviationAnalyzer,
+        TreatmentRecommender treatmentRecommender)
     {
         _repository = repository;
         _auditRepository = auditRepository;
         _weekCounter = weekCounter;
         _deviationAnalyzer = deviationAnalyzer;
+        _treatmentRecommender = treatmentRecommender;
     }
 
     [HttpGet]
@@ -72,6 +75,22 @@ public sealed class GrowsApiController : ApiControllerBase
 
         var measurements = _repository.GetMeasurementsForGrow(growId);
         return Ok(_deviationAnalyzer.Analyze(grow, measurements).ToList());
+    }
+
+    [HttpGet("{growId:int}/treatment-recommendations")]
+    [ProducesResponseType(typeof(GrowTreatmentRecommendationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<GrowTreatmentRecommendationDto> TreatmentRecommendations(int growId)
+    {
+        var grow = _repository.GetGrow(growId);
+        if (grow is null)
+        {
+            return NotFoundError("grow_not_found", $"Grow mit Id {growId} existiert nicht.");
+        }
+
+        var measurements = _repository.GetMeasurementsForGrow(growId);
+        var deviations = _deviationAnalyzer.Analyze(grow, measurements);
+        return Ok(_treatmentRecommender.Recommend(grow, deviations));
     }
 
     [HttpPost]

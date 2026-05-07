@@ -13,6 +13,7 @@ import type {
   AutoMeasurementStatus,
   AutoMeasurementTriggerKind,
   GrowDeviationDto,
+  GrowTreatmentRecommendationDto,
   GrowActionResultDto,
   GrowDetail,
   GrowTaskDto,
@@ -133,6 +134,8 @@ function GrowDetailPage() {
   const [autoStatusError, setAutoStatusError] = useState<string | null>(null)
   const [deviations, setDeviations] = useState<GrowDeviationDto[]>([])
   const [deviationError, setDeviationError] = useState<string | null>(null)
+  const [treatmentRecommendations, setTreatmentRecommendations] = useState<GrowTreatmentRecommendationDto | null>(null)
+  const [treatmentRecommendationError, setTreatmentRecommendationError] = useState<string | null>(null)
   const [mappingDraftsByConfigId, setMappingDraftsByConfigId] = useState<Record<number, AutoMeasurementFieldMappingUpsertRequest[]>>({})
   const [autoConfigForm, setAutoConfigForm] = useState(emptyAutoConfigForm)
   const [autoLoading, setAutoLoading] = useState(false)
@@ -207,6 +210,19 @@ function GrowDetailPage() {
     }
   }, [growId])
 
+  const loadTreatmentRecommendations = useCallback(async (signal?: AbortSignal) => {
+    if (!growId) return
+    try {
+      const nextRecommendations = await apiFetch<GrowTreatmentRecommendationDto>(`/api/grows/${growId}/treatment-recommendations`, { signal })
+      setTreatmentRecommendations(nextRecommendations)
+      setTreatmentRecommendationError(null)
+    } catch (caught) {
+      if (signal?.aborted) return
+      setTreatmentRecommendations(null)
+      setTreatmentRecommendationError(caught instanceof ApiRequestError ? caught.message : 'Treatment-Empfehlungen konnten nicht geladen werden.')
+    }
+  }, [growId])
+
   const loadBundle = useCallback(async (signal?: AbortSignal) => {
     if (!growId) return
     try {
@@ -239,12 +255,13 @@ function GrowDetailPage() {
       void loadBundle(controller.signal)
       void loadAutoMeasurements(controller.signal)
       void loadDeviations(controller.signal)
+      void loadTreatmentRecommendations(controller.signal)
     }, 0)
     return () => {
       window.clearTimeout(handle)
       controller.abort()
     }
-  }, [loadAutoMeasurements, loadBundle, loadDeviations])
+  }, [loadAutoMeasurements, loadBundle, loadDeviations, loadTreatmentRecommendations])
 
   const openTasks = useMemo(() => bundle.tasks.filter((task) => task.status === 'Open'), [bundle.tasks])
   const closedTasks = useMemo(() => bundle.tasks.filter((task) => task.status !== 'Open'), [bundle.tasks])
@@ -289,7 +306,7 @@ function GrowDetailPage() {
       })
       setMeasurementForm(emptyMeasurementForm())
       setNotice('Messung gespeichert.')
-      await Promise.all([loadBundle(), loadDeviations()])
+      await Promise.all([loadBundle(), loadDeviations(), loadTreatmentRecommendations()])
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Messung konnte nicht gespeichert werden.')
     } finally {
@@ -633,6 +650,42 @@ function GrowDetailPage() {
                   <div className="tl-sub">
                     {deviation.message}
                     <span> Folge {deviation.consecutiveCount}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="section-label">Treatment-Empfehlungen</div>
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-header">
+            <span className="card-title">Knowledge-Vorschlaege</span>
+            <span className="text-muted" style={{ fontSize: 13 }}>{treatmentRecommendations?.recommendations.length ?? 0}</span>
+          </div>
+          {treatmentRecommendationError ? (
+            <div className="empty-hint" style={{ color: 'var(--red)' }}>{treatmentRecommendationError}</div>
+          ) : !treatmentRecommendations || treatmentRecommendations.recommendations.length === 0 ? (
+            <div className="empty-hint">Keine Treatment- oder SOP-Empfehlungen fuer die aktuellen Deviations.</div>
+          ) : (
+            <div style={{ display: 'grid' }}>
+              {treatmentRecommendations.recommendations.map((recommendation) => (
+                <div key={recommendation.stableKey} style={{ display: 'grid', gridTemplateColumns: '120px minmax(180px, 1fr) minmax(0, 2fr)', gap: 10, alignItems: 'start', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    <span className={`badge ${recommendation.confidence === 'High' ? 'badge-warn' : recommendation.confidence === 'Medium' ? 'badge-neutral' : 'badge-ok'}`}>{recommendation.confidence}</span>
+                    <span className="tl-sub">{recommendation.severity}</span>
+                  </div>
+                  <div>
+                    <div className="tl-title">{recommendation.treatmentName ?? recommendation.sopTitle ?? recommendation.metric}</div>
+                    <div className="tl-sub">
+                      {recommendation.treatmentId ?? recommendation.sopId ?? recommendation.symptomId ?? 'Diagnosehinweis'}
+                    </div>
+                  </div>
+                  <div className="tl-sub" style={{ display: 'grid', gap: 5 }}>
+                    <span>{recommendation.reason}</span>
+                    {recommendation.safetyNotes.length > 0 && <span>Hinweise: {recommendation.safetyNotes.join(' | ')}</span>}
+                    {recommendation.conflictTreatmentIds.length > 0 && <span>Konflikte: {recommendation.conflictTreatmentIds.join(', ')}</span>}
+                    {recommendation.hardwareRequirements.length > 0 && <span>Hardware: {recommendation.hardwareRequirements.join(', ')}</span>}
                   </div>
                 </div>
               ))}
