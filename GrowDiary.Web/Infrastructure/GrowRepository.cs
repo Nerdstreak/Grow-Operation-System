@@ -1305,6 +1305,154 @@ public sealed class GrowRepository
         return steps;
     }
 
+    public SopStepInstance? GetSopStepInstance(int stepInstanceId)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT *
+            FROM SopStepInstances
+            WHERE Id = $id
+            LIMIT 1;
+        """;
+        command.Parameters.AddWithValue("$id", stepInstanceId);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? MapSopStepInstance(reader) : null;
+    }
+
+    public SopStepInstance UpdateSopStepInstance(
+        int stepInstanceId,
+        SopStepInstanceStatus status,
+        string? notes,
+        int? measurementId,
+        int? journalEntryId,
+        int? photoAssetId)
+    {
+        var now = DateTime.UtcNow;
+
+        using var connection = OpenConnection();
+        using var transaction = connection.BeginTransaction();
+
+        SopStepInstance step;
+        SopInstance instance;
+        using (var selectCommand = connection.CreateCommand())
+        {
+            selectCommand.Transaction = transaction;
+            selectCommand.CommandText = """
+                SELECT ssi.*
+                FROM SopStepInstances ssi
+                WHERE ssi.Id = $id
+                LIMIT 1;
+            """;
+            selectCommand.Parameters.AddWithValue("$id", stepInstanceId);
+            using var reader = selectCommand.ExecuteReader();
+            if (!reader.Read())
+            {
+                throw new KeyNotFoundException($"SOP step instance with id {stepInstanceId} does not exist.");
+            }
+
+            step = MapSopStepInstance(reader);
+        }
+
+        using (var instanceCommand = connection.CreateCommand())
+        {
+            instanceCommand.Transaction = transaction;
+            instanceCommand.CommandText = """
+                SELECT si.*, COUNT(ssi.Id) AS StepCount
+                FROM SopInstances si
+                LEFT JOIN SopStepInstances ssi ON ssi.SopInstanceId = si.Id
+                WHERE si.Id = $id
+                GROUP BY si.Id
+                LIMIT 1;
+            """;
+            instanceCommand.Parameters.AddWithValue("$id", step.SopInstanceId);
+            using var reader = instanceCommand.ExecuteReader();
+            if (!reader.Read())
+            {
+                throw new KeyNotFoundException($"SOP instance with id {step.SopInstanceId} does not exist.");
+            }
+
+            instance = MapSopInstance(reader);
+        }
+
+        if (instance.Status != SopInstanceStatus.Active)
+        {
+            throw new InvalidOperationException("SOP instance is not active.");
+        }
+
+        step.Status = status;
+        step.Notes = NormalizeOptional(notes);
+        step.MeasurementId = measurementId;
+        step.JournalEntryId = journalEntryId;
+        step.PhotoAssetId = photoAssetId;
+        step.UpdatedAtUtc = now;
+
+        switch (status)
+        {
+            case SopStepInstanceStatus.Pending:
+                step.StartedAtUtc = null;
+                step.CompletedAtUtc = null;
+                step.SkippedAtUtc = null;
+                break;
+            case SopStepInstanceStatus.InProgress:
+                step.StartedAtUtc ??= now;
+                step.CompletedAtUtc = null;
+                step.SkippedAtUtc = null;
+                break;
+            case SopStepInstanceStatus.Done:
+                step.StartedAtUtc ??= now;
+                step.CompletedAtUtc = now;
+                step.SkippedAtUtc = null;
+                break;
+            case SopStepInstanceStatus.Skipped:
+                step.CompletedAtUtc = null;
+                step.SkippedAtUtc = now;
+                break;
+        }
+
+        using (var updateCommand = connection.CreateCommand())
+        {
+            updateCommand.Transaction = transaction;
+            updateCommand.CommandText = """
+                UPDATE SopStepInstances
+                SET Status = $status,
+                    StartedAtUtc = $startedAtUtc,
+                    CompletedAtUtc = $completedAtUtc,
+                    SkippedAtUtc = $skippedAtUtc,
+                    Notes = $notes,
+                    MeasurementId = $measurementId,
+                    JournalEntryId = $journalEntryId,
+                    PhotoAssetId = $photoAssetId,
+                    UpdatedAtUtc = $updatedAtUtc
+                WHERE Id = $id;
+            """;
+            updateCommand.Parameters.AddWithValue("$id", step.Id);
+            updateCommand.Parameters.AddWithValue("$status", step.Status.ToString());
+            updateCommand.Parameters.AddWithValue("$startedAtUtc", step.StartedAtUtc.HasValue ? ToStorageUtc(step.StartedAtUtc.Value) : DBNull.Value);
+            updateCommand.Parameters.AddWithValue("$completedAtUtc", step.CompletedAtUtc.HasValue ? ToStorageUtc(step.CompletedAtUtc.Value) : DBNull.Value);
+            updateCommand.Parameters.AddWithValue("$skippedAtUtc", step.SkippedAtUtc.HasValue ? ToStorageUtc(step.SkippedAtUtc.Value) : DBNull.Value);
+            updateCommand.Parameters.AddWithValue("$notes", (object?)step.Notes ?? DBNull.Value);
+            updateCommand.Parameters.AddWithValue("$measurementId", (object?)step.MeasurementId ?? DBNull.Value);
+            updateCommand.Parameters.AddWithValue("$journalEntryId", (object?)step.JournalEntryId ?? DBNull.Value);
+            updateCommand.Parameters.AddWithValue("$photoAssetId", (object?)step.PhotoAssetId ?? DBNull.Value);
+            updateCommand.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(step.UpdatedAtUtc));
+            updateCommand.ExecuteNonQuery();
+        }
+
+        RecalculateSopInstanceStatus(connection, transaction, step.SopInstanceId, now);
+        transaction.Commit();
+
+        return GetSopStepInstance(step.Id)!;
+    }
+
+    public void RecalculateSopInstanceStatus(int sopInstanceId)
+    {
+        using var connection = OpenConnection();
+        using var transaction = connection.BeginTransaction();
+        RecalculateSopInstanceStatus(connection, transaction, sopInstanceId, DateTime.UtcNow);
+        transaction.Commit();
+    }
+
     public TentSensor? GetTentSensorByMetric(int tentId, SensorMetricType metricType)
     {
         using var connection = OpenConnection();
@@ -2095,6 +2243,49 @@ public sealed class GrowRepository
             instances.Add(MapSopInstance(reader));
         }
         return instances;
+    }
+
+    private static void RecalculateSopInstanceStatus(SqliteConnection connection, SqliteTransaction transaction, int sopInstanceId, DateTime now)
+    {
+        using var countCommand = connection.CreateCommand();
+        countCommand.Transaction = transaction;
+        countCommand.CommandText = """
+            SELECT
+                COUNT(*) AS TotalSteps,
+                COALESCE(SUM(CASE WHEN Status IN ('Done', 'Skipped') THEN 0 ELSE 1 END), 0) AS OpenSteps
+            FROM SopStepInstances
+            WHERE SopInstanceId = $sopInstanceId;
+        """;
+        countCommand.Parameters.AddWithValue("$sopInstanceId", sopInstanceId);
+        using var reader = countCommand.ExecuteReader();
+        if (!reader.Read())
+        {
+            return;
+        }
+
+        var totalSteps = Convert.ToInt32(reader["TotalSteps"], CultureInfo.InvariantCulture);
+        var openSteps = Convert.ToInt32(reader["OpenSteps"], CultureInfo.InvariantCulture);
+        if (totalSteps == 0 || openSteps > 0)
+        {
+            return;
+        }
+
+        using var updateCommand = connection.CreateCommand();
+        updateCommand.Transaction = transaction;
+        updateCommand.CommandText = """
+            UPDATE SopInstances
+            SET Status = $status,
+                CompletedAtUtc = $completedAtUtc,
+                UpdatedAtUtc = $updatedAtUtc
+            WHERE Id = $id
+              AND Status = $activeStatus;
+        """;
+        updateCommand.Parameters.AddWithValue("$id", sopInstanceId);
+        updateCommand.Parameters.AddWithValue("$status", SopInstanceStatus.Completed.ToString());
+        updateCommand.Parameters.AddWithValue("$activeStatus", SopInstanceStatus.Active.ToString());
+        updateCommand.Parameters.AddWithValue("$completedAtUtc", ToStorageUtc(now));
+        updateCommand.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(now));
+        updateCommand.ExecuteNonQuery();
     }
 
     private static Dictionary<int, Measurement> GetLatestMeasurementsBatch(SqliteConnection connection, IEnumerable<int> growIds)

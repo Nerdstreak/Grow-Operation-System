@@ -55,3 +55,12 @@ public sealed class StartSopInstanceRequest
     public string? TreatmentRecommendationStableKey { get; set; }
     public string? Notes { get; set; }
 }
+
+public sealed class UpdateSopStepInstanceRequest
+{
+    public SopStepInstanceStatus Status { get; set; } = SopStepInstanceStatus.Pending;
+    public string? Notes { get; set; }
+    public int? MeasurementId { get; set; }
+    public int? JournalEntryId { get; set; }
+    public int? PhotoAssetId { get; set; }
+}
