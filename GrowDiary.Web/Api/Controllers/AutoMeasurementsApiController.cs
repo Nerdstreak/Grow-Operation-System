@@ -2,6 +2,7 @@ using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Api.Mapping;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GrowDiary.Web.Api.Controllers;
@@ -12,10 +13,12 @@ namespace GrowDiary.Web.Api.Controllers;
 public sealed class AutoMeasurementsApiController : ApiControllerBase
 {
     private readonly GrowRepository _repository;
+    private readonly AutoMeasurementStatusService _statusService;
 
-    public AutoMeasurementsApiController(GrowRepository repository)
+    public AutoMeasurementsApiController(GrowRepository repository, AutoMeasurementStatusService statusService)
     {
         _repository = repository;
+        _statusService = statusService;
     }
 
     [HttpGet("configs")]
@@ -138,6 +141,17 @@ public sealed class AutoMeasurementsApiController : ApiControllerBase
         }
 
         return Ok(_repository.GetAutoMeasurementRunsByConfig(id).Select(run => run.ToDto()).ToList());
+    }
+
+    [HttpGet("grows/{growId:int}/status")]
+    [ProducesResponseType(typeof(AutoMeasurementGrowStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<AutoMeasurementGrowStatusDto> GetGrowStatus(int growId)
+    {
+        var status = _statusService.GetGrowStatus(growId);
+        return status is null
+            ? NotFoundError("grow_not_found", $"Grow mit Id {growId} existiert nicht.")
+            : Ok(status);
     }
 
     private void ValidateConfig(

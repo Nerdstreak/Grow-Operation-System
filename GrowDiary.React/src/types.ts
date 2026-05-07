@@ -487,6 +487,32 @@ export interface AutoMeasurementRunDto {
   updatedAtUtc: string
 }
 
+export interface AutoMeasurementConfigStatusDto {
+  configId: number
+  growId: number
+  name: string
+  status: AutoMeasurementStatus
+  triggerKind: AutoMeasurementTriggerKind
+  delayMinutes: number | null
+  windowMinutes: number
+  mappingCount: number
+  requiredMappingCount: number
+  lastRunStatus: AutoMeasurementRunStatus | null
+  lastRunScheduledForUtc: string | null
+  lastRunMeasurementId: number | null
+  lastRunErrorMessage: string | null
+  createdRunCount: number
+  skippedRunCount: number
+  failedRunCount: number
+  latestRelevantLightTransitionAtUtc: string | null
+  latestRelevantLightTransitionKind: LightTransitionKind | null
+}
+
+export interface AutoMeasurementGrowStatusDto {
+  growId: number
+  configs: AutoMeasurementConfigStatusDto[]
+}
+
 export type LightState = 'Unknown' | 'On' | 'Off'
 export type LightTransitionKind = 'LightOn' | 'LightOff'
 export type LightSource = 'Manual' | 'HomeAssistant'

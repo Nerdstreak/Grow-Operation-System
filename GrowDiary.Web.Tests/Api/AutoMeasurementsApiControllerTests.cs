@@ -2,6 +2,7 @@ using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Api.Controllers;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -21,7 +22,7 @@ public sealed class AutoMeasurementsApiControllerTests : IDisposable
         _paths = new AppPaths(_contentRoot);
         new DatabaseInitializer(_paths, NullLogger<DatabaseInitializer>.Instance).Initialize();
         _repository = new GrowRepository(_paths);
-        _controller = new AutoMeasurementsApiController(_repository);
+        _controller = new AutoMeasurementsApiController(_repository, new AutoMeasurementStatusService(_repository));
     }
 
     public void Dispose()
@@ -123,6 +124,106 @@ public sealed class AutoMeasurementsApiControllerTests : IDisposable
         Assert.Contains(nameof(AutoMeasurementFieldMappingUpsertRequest.MetricKey), AssertValidationError(invalid.Result).FieldErrors!.Keys);
     }
 
+    [Fact]
+    public void StatusApi_ReturnsConfigDiagnosticsForGrow()
+    {
+        var tent = _repository.GetTents().Single();
+        var growId = _repository.CreateGrow(new GrowRun
+        {
+            TentId = tent.Id,
+            Name = "Status Grow",
+            StartDate = new DateTime(2026, 5, 1),
+            Status = GrowStatus.Running
+        });
+        var lightOnConfig = _repository.CreateAutoMeasurementConfig(new AutoMeasurementConfig
+        {
+            GrowId = growId,
+            TentId = tent.Id,
+            Name = "Licht an",
+            Status = AutoMeasurementStatus.Enabled,
+            TriggerKind = AutoMeasurementTriggerKind.LightOnDelay,
+            DelayMinutes = 10,
+            WindowMinutes = 20
+        });
+        var manualConfig = _repository.CreateAutoMeasurementConfig(new AutoMeasurementConfig
+        {
+            GrowId = growId,
+            TentId = tent.Id,
+            Name = "Manuell",
+            Status = AutoMeasurementStatus.Enabled,
+            TriggerKind = AutoMeasurementTriggerKind.Manual,
+            WindowMinutes = 20
+        });
+        _repository.ReplaceAutoMeasurementFieldMappings(lightOnConfig.Id, new[]
+        {
+            new AutoMeasurementFieldMapping
+            {
+                MeasurementField = AutoMeasurementField.AirTemperatureC,
+                MetricKey = "temperature",
+                Aggregation = AutoMeasurementAggregation.Latest,
+                IsRequired = true
+            },
+            new AutoMeasurementFieldMapping
+            {
+                MeasurementField = AutoMeasurementField.HumidityPercent,
+                MetricKey = "humidity",
+                Aggregation = AutoMeasurementAggregation.Average,
+                IsRequired = false
+            }
+        });
+
+        var measurementId = _repository.CreateMeasurement(new Measurement
+        {
+            GrowId = growId,
+            TakenAt = Utc(2026, 5, 7, 8, 0),
+            Source = ValueOrigin.HomeAssistant,
+            AirTemperatureC = 24
+        });
+        CreateRun(lightOnConfig, Utc(2026, 5, 7, 8, 0), AutoMeasurementRunStatus.Created, measurementId);
+        CreateRun(lightOnConfig, Utc(2026, 5, 7, 9, 0), AutoMeasurementRunStatus.Skipped, null, "Pflichtwert fehlt");
+        CreateRun(lightOnConfig, Utc(2026, 5, 7, 10, 0), AutoMeasurementRunStatus.Failed, measurementId, "Sensorfehler");
+        _repository.CreateLightTransitionIfNotDuplicate(new LightTransitionEvent
+        {
+            TentId = tent.Id,
+            Kind = LightTransitionKind.LightOn,
+            OccurredAtUtc = Utc(2026, 5, 7, 7, 45),
+            Source = LightSource.HomeAssistant,
+            RawState = "on"
+        });
+
+        var ok = Assert.IsType<OkObjectResult>(_controller.GetGrowStatus(growId).Result);
+        var status = Assert.IsType<AutoMeasurementGrowStatusDto>(ok.Value);
+
+        Assert.Equal(growId, status.GrowId);
+        Assert.Equal(2, status.Configs.Count);
+        var lightOnStatus = status.Configs.Single(config => config.ConfigId == lightOnConfig.Id);
+        Assert.Equal(2, lightOnStatus.MappingCount);
+        Assert.Equal(1, lightOnStatus.RequiredMappingCount);
+        Assert.Equal(AutoMeasurementRunStatus.Failed, lightOnStatus.LastRunStatus);
+        Assert.Equal(Utc(2026, 5, 7, 10, 0), lightOnStatus.LastRunScheduledForUtc);
+        Assert.Equal(measurementId, lightOnStatus.LastRunMeasurementId);
+        Assert.Equal("Sensorfehler", lightOnStatus.LastRunErrorMessage);
+        Assert.Equal(1, lightOnStatus.CreatedRunCount);
+        Assert.Equal(1, lightOnStatus.SkippedRunCount);
+        Assert.Equal(1, lightOnStatus.FailedRunCount);
+        Assert.Equal(LightTransitionKind.LightOn, lightOnStatus.LatestRelevantLightTransitionKind);
+        Assert.Equal(Utc(2026, 5, 7, 7, 45), lightOnStatus.LatestRelevantLightTransitionAtUtc);
+
+        var manualStatus = status.Configs.Single(config => config.ConfigId == manualConfig.Id);
+        Assert.Null(manualStatus.LatestRelevantLightTransitionKind);
+        Assert.Null(manualStatus.LatestRelevantLightTransitionAtUtc);
+    }
+
+    [Fact]
+    public void StatusApi_ReturnsNotFoundForMissingGrow()
+    {
+        var result = _controller.GetGrowStatus(9999).Result;
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        var error = Assert.IsType<ApiError>(notFound.Value);
+        Assert.Equal("grow_not_found", error.Code);
+    }
+
     private static ApiError AssertValidationError(ActionResult? result)
     {
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
@@ -130,4 +231,26 @@ public sealed class AutoMeasurementsApiControllerTests : IDisposable
         Assert.Equal("validation_failed", error.Code);
         return error;
     }
+
+    private AutoMeasurementRun CreateRun(
+        AutoMeasurementConfig config,
+        DateTime scheduledForUtc,
+        AutoMeasurementRunStatus status,
+        int? measurementId,
+        string? errorMessage = null)
+    {
+        return _repository.CreateAutoMeasurementRunIfNotExists(new AutoMeasurementRun
+        {
+            ConfigId = config.Id,
+            GrowId = config.GrowId,
+            TriggerKind = config.TriggerKind,
+            ScheduledForUtc = scheduledForUtc,
+            Status = status,
+            MeasurementId = measurementId,
+            ErrorMessage = errorMessage
+        });
+    }
+
+    private static DateTime Utc(int year, int month, int day, int hour, int minute)
+        => new(year, month, day, hour, minute, 0, DateTimeKind.Utc);
 }

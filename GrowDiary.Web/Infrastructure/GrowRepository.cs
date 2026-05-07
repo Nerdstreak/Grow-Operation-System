@@ -1126,6 +1126,24 @@ public sealed class GrowRepository
         return reader.Read() ? MapLightTransitionEvent(reader) : null;
     }
 
+    public LightTransitionEvent? GetLatestLightTransitionForTentAndKind(int tentId, LightTransitionKind kind)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT *
+            FROM LightTransitionEvents
+            WHERE TentId = $tentId
+              AND Kind = $kind
+            ORDER BY OccurredAtUtc DESC, Id DESC
+            LIMIT 1;
+        """;
+        command.Parameters.AddWithValue("$tentId", tentId);
+        command.Parameters.AddWithValue("$kind", kind.ToString());
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? MapLightTransitionEvent(reader) : null;
+    }
+
     public TentSensor? GetTentSensorByMetric(int tentId, SensorMetricType metricType)
     {
         using var connection = OpenConnection();

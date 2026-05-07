@@ -79,3 +79,29 @@ public sealed record AutoMeasurementRunDto(
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc
 );
+
+public sealed record AutoMeasurementConfigStatusDto(
+    int ConfigId,
+    int GrowId,
+    string Name,
+    AutoMeasurementStatus Status,
+    AutoMeasurementTriggerKind TriggerKind,
+    int? DelayMinutes,
+    int WindowMinutes,
+    int MappingCount,
+    int RequiredMappingCount,
+    AutoMeasurementRunStatus? LastRunStatus,
+    DateTime? LastRunScheduledForUtc,
+    int? LastRunMeasurementId,
+    string? LastRunErrorMessage,
+    int CreatedRunCount,
+    int SkippedRunCount,
+    int FailedRunCount,
+    DateTime? LatestRelevantLightTransitionAtUtc,
+    LightTransitionKind? LatestRelevantLightTransitionKind
+);
+
+public sealed record AutoMeasurementGrowStatusDto(
+    int GrowId,
+    IReadOnlyList<AutoMeasurementConfigStatusDto> Configs
+);

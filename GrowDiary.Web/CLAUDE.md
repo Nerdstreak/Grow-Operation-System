@@ -65,6 +65,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 | `LightStatusTransitionService` | Normalisiert HA-LightStatus und erzeugt Light-On/Light-Off-Transition-Events als Trigger-Grundlage |
 | `AutoMeasurementExecutionService` | Erzeugt faellige HomeAssistant-Measurements aus LightTransitionEvents und TentSensorReadings |
 | `AutoMeasurementValueGuard` | Prueft automatisch erzeugte Measurement-Werte gegen harte Plausibilitaetsgrenzen vor dem Speichern |
+| `AutoMeasurementStatusService` | Liefert Diagnose-/Statusdaten fuer AutoMeasurement-Configs, Runs und relevante LightTransitions |
 | `AutoMeasurementWorker` | Background-Service: periodische Ausfuehrung der AutoMeasurement-Configs |
 | `GrowDashboardComposer` | Baut Metriken, Charts und Deviations fuer Dashboard- und Detail-Views |
 | `RecommendationEngine` | Aktuelle Empfehlungs-Engine, wird in Sprint D fachlich aufgesplittet |
@@ -118,6 +119,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint C2 ABGESCHLOSSEN: LightSchedule-API, LightTransitionEvent-Grundlage und LightStatus-Normalisierung fuer spaetere AutoMeasurement-Trigger ohne Job-Ausfuehrung.
 - Sprint C3 ABGESCHLOSSEN: AutoMeasurementWorker erzeugt Measurements aus LightTransitionEvents und TentSensorReadings mit Run-Status/Idempotenz.
 - Sprint C4 ABGESCHLOSSEN: AutoMeasurementValueGuard blockiert harte Ausreisser und dokumentiert Warnungen/Rejections in AutoMeasurementRuns.
+- Sprint C5 ABGESCHLOSSEN: AutoMeasurement-Status-Endpoint und GrowDetail-Diagnose zeigen Config-, Run- und LightTransition-Status.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow

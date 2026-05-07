@@ -5,6 +5,7 @@ import { apiFetch, ApiRequestError } from '../api'
 import type {
   AutoMeasurementAggregation,
   AutoMeasurementConfigDto,
+  AutoMeasurementGrowStatusDto,
   AutoMeasurementField,
   AutoMeasurementFieldMappingDto,
   AutoMeasurementFieldMappingUpsertRequest,
@@ -127,6 +128,8 @@ function GrowDetailPage() {
   const [autoConfigs, setAutoConfigs] = useState<AutoMeasurementConfigDto[]>([])
   const [autoMappingsByConfigId, setAutoMappingsByConfigId] = useState<Record<number, AutoMeasurementFieldMappingDto[]>>({})
   const [autoRunsByConfigId, setAutoRunsByConfigId] = useState<Record<number, AutoMeasurementRunDto[]>>({})
+  const [autoStatus, setAutoStatus] = useState<AutoMeasurementGrowStatusDto | null>(null)
+  const [autoStatusError, setAutoStatusError] = useState<string | null>(null)
   const [mappingDraftsByConfigId, setMappingDraftsByConfigId] = useState<Record<number, AutoMeasurementFieldMappingUpsertRequest[]>>({})
   const [autoConfigForm, setAutoConfigForm] = useState(emptyAutoConfigForm)
   const [autoLoading, setAutoLoading] = useState(false)
@@ -149,6 +152,15 @@ function GrowDetailPage() {
     setAutoLoading(true)
     try {
       const configs = await apiFetch<AutoMeasurementConfigDto[]>(`/api/auto-measurements/configs?growId=${growId}`, { signal })
+      try {
+        const status = await apiFetch<AutoMeasurementGrowStatusDto>(`/api/auto-measurements/grows/${growId}/status`, { signal })
+        setAutoStatus(status)
+        setAutoStatusError(null)
+      } catch (caught) {
+        if (signal?.aborted) return
+        setAutoStatus(null)
+        setAutoStatusError(caught instanceof ApiRequestError ? caught.message : 'AutoMeasurement-Status konnte nicht geladen werden.')
+      }
       const detailEntries = await Promise.all(configs.map(async (config) => {
         const [mappings, runs] = await Promise.all([
           apiFetch<AutoMeasurementFieldMappingDto[]>(`/api/auto-measurements/configs/${config.id}/mappings`, { signal }),
@@ -222,6 +234,10 @@ function GrowDetailPage() {
   const selectedMeasurement = useMemo(
     () => bundle.measurements.find((measurement) => measurement.id === selectedMeasurementId) ?? null,
     [bundle.measurements, selectedMeasurementId],
+  )
+  const autoStatusByConfigId = useMemo(
+    () => Object.fromEntries((autoStatus?.configs ?? []).map((configStatus) => [configStatus.configId, configStatus] as const)),
+    [autoStatus],
   )
 
   async function handleMeasurementSelection(nextId: number | null) {
@@ -734,6 +750,9 @@ function GrowDetailPage() {
                 </div>
                 <button className="btn btn-primary" disabled={saving === 'auto-config'}>{saving === 'auto-config' ? 'Speichert...' : 'Config anlegen'}</button>
               </form>
+              {autoStatusError && (
+                <div className="empty-hint" style={{ borderBottom: '1px solid var(--border)' }}>{autoStatusError}</div>
+              )}
 
               {autoLoading ? (
                 <div className="empty-hint">Lade AutoMeasurement-Konfigurationen...</div>
@@ -744,6 +763,9 @@ function GrowDetailPage() {
                   const drafts = mappingDraftsByConfigId[config.id] ?? []
                   const savedMappingCount = autoMappingsByConfigId[config.id]?.length ?? 0
                   const runs = autoRunsByConfigId[config.id] ?? []
+                  const status = autoStatusByConfigId[config.id]
+                  const mappingCount = status?.mappingCount ?? savedMappingCount
+                  const requiredMappingCount = status?.requiredMappingCount ?? (autoMappingsByConfigId[config.id]?.filter((mapping) => mapping.isRequired).length ?? 0)
                   return (
                     <div key={config.id} style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'grid', gap: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -753,7 +775,34 @@ function GrowDetailPage() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span className={`badge ${config.status === 'Enabled' ? 'badge-ok' : 'badge-neutral'}`}>{config.status}</span>
-                          <span className="text-muted" style={{ fontSize: 13 }}>{savedMappingCount} Mappings</span>
+                          <span className="text-muted" style={{ fontSize: 13 }}>{mappingCount} Mappings / {requiredMappingCount} Pflicht</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gap: 6, fontSize: 13, color: 'var(--muted)' }}>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <span>Runs: Created {status?.createdRunCount ?? 0}</span>
+                          <span>Skipped {status?.skippedRunCount ?? 0}</span>
+                          <span>Failed {status?.failedRunCount ?? 0}</span>
+                        </div>
+                        <div>
+                          Letzter Run:{' '}
+                          {status?.lastRunStatus ? (
+                            <>
+                              <span className={`badge ${status.lastRunStatus === 'Created' ? 'badge-ok' : status.lastRunStatus === 'Failed' ? 'badge-warn' : 'badge-neutral'}`}>{status.lastRunStatus}</span>
+                              <span> {status.lastRunScheduledForUtc ? formatDateTime(status.lastRunScheduledForUtc) : '-'} </span>
+                              <span>{status.lastRunMeasurementId ? `M#${status.lastRunMeasurementId}` : '-'}</span>
+                            </>
+                          ) : (
+                            <span>noch keiner</span>
+                          )}
+                        </div>
+                        {status?.lastRunErrorMessage && <div>{status.lastRunErrorMessage}</div>}
+                        <div>
+                          Letzte relevante LightTransition:{' '}
+                          {status?.latestRelevantLightTransitionKind && status.latestRelevantLightTransitionAtUtc
+                            ? `${status.latestRelevantLightTransitionKind} ${formatDateTime(status.latestRelevantLightTransitionAtUtc)}`
+                            : '-'}
                         </div>
                       </div>
 
