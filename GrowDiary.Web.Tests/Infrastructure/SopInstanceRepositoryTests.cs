@@ -232,10 +232,9 @@ public sealed class SopInstanceRepositoryTests : IDisposable
         Assert.Equal("Linear", sop.Type);
         Assert.True(sop.Steps.Count > 1);
 
-        // ParseStoredDateTime gibt Lokalzeit zurück — Vergleich mit DateTime.Now
-        var before = DateTime.Now.AddSeconds(-2);
+        var before = DateTime.UtcNow.AddSeconds(-2);
         var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
-        var after = DateTime.Now.AddSeconds(2);
+        var after = DateTime.UtcNow.AddSeconds(2);
         var steps = _repository.GetSopStepInstances(instance.Id).OrderBy(s => s.Order).ToList();
 
         var firstStep = steps[0];
@@ -259,9 +258,9 @@ public sealed class SopInstanceRepositoryTests : IDisposable
         var waitStepDef = sop.Steps.Single(s => s.WaitMinutes.HasValue);
         Assert.Equal(30, waitStepDef.WaitMinutes);
 
-        var before = DateTime.Now.AddSeconds(-2);
+        var before = DateTime.UtcNow.AddSeconds(-2);
         var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
-        var after = DateTime.Now.AddSeconds(2);
+        var after = DateTime.UtcNow.AddSeconds(2);
         var steps = _repository.GetSopStepInstances(instance.Id);
 
         var waitStep = steps.Single(s => s.WaitMinutes.HasValue);
@@ -283,9 +282,9 @@ public sealed class SopInstanceRepositoryTests : IDisposable
         Assert.Equal("MultiDay", sop.Type);
         Assert.Equal(7, sop.DurationDays);
 
-        var before = DateTime.Now.AddSeconds(-2);
+        var before = DateTime.UtcNow.AddSeconds(-2);
         var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
-        var after = DateTime.Now.AddSeconds(2);
+        var after = DateTime.UtcNow.AddSeconds(2);
         var stored = _repository.GetSopInstance(instance.Id)!;
 
         Assert.NotNull(stored.DueAtUtc);
@@ -315,9 +314,9 @@ public sealed class SopInstanceRepositoryTests : IDisposable
         var growId = CreateGrow();
         var sop = _knowledgeBase.Sops.Single(item => item.Id == "flip-to-flower");
 
-        var before = DateTime.Now.AddSeconds(-2);
+        var before = DateTime.UtcNow.AddSeconds(-2);
         var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
-        var after = DateTime.Now.AddSeconds(2);
+        var after = DateTime.UtcNow.AddSeconds(2);
         var stored = _repository.GetSopInstance(instance.Id)!;
 
         Assert.NotNull(stored.NextStepDueAtUtc);

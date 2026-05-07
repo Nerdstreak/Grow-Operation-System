@@ -3223,7 +3223,16 @@ public sealed class GrowRepository
     {
         if (!HasColumn(reader, columnName) || reader[columnName] is DBNull)
             return null;
-        return ParseStoredDateTime(reader[columnName]?.ToString());
+        var text = reader[columnName]?.ToString();
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+        // Scheduling-Felder (*Utc) werden UTC-konsistent gelesen:
+        // ToStorageUtc schreibt ISO-8601 mit +00:00; TryParse erkennt den Offset,
+        // ToUniversalTime konvertiert das Ergebnis explizit nach UTC.
+        return DateTime.TryParse(text, CultureInfo.InvariantCulture,
+            DateTimeStyles.AllowWhiteSpaces, out var result)
+            ? result.ToUniversalTime()
+            : null;
     }
 
     private static DateTime? ParseStoredDate(string? value)
