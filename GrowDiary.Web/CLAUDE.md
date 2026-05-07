@@ -127,6 +127,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint D3 ABGESCHLOSSEN: RecommendationEngine und GrowAlertService nutzen D1/D2-Diagnosen als bevorzugte Fassadenbasis.
 - Sprint D5 ABGESCHLOSSEN: GrowAlertService kombiniert D1/D2-Diagnosen mit Legacy-Evaluate-Hinweisen ohne dominante Healthy-Card bei echten Warnungen.
 - Sprint E1 ABGESCHLOSSEN: SOP-Instanzen koennen aus Knowledge-SOPs gestartet und mit materialisierten Steps per API gelesen werden.
+- Sprint E2 ABGESCHLOSSEN: SOP-Empfehlungen koennen aus der GrowDetail-Diagnose gestartet werden; SopInstances speichern Recommendation-Bezug, ohne Step-Ausfuehrung.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow

@@ -84,6 +84,27 @@ public sealed class SopInstanceRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void StartSopInstance_SpeichertRecommendationSourceUndKeys()
+    {
+        var growId = CreateGrow();
+        var sop = _knowledgeBase.Sops.Single(item => item.Id == "emergency-power-recovery");
+
+        var instance = _repository.StartSopInstance(
+            growId,
+            sop,
+            SopStartSource.Recommendation,
+            "source-rec-key",
+            "treatment-rec-key",
+            "Gestartet aus Diagnoseempfehlung");
+        var stored = _repository.GetSopInstance(instance.Id)!;
+
+        Assert.Equal(SopStartSource.Recommendation, stored.Source);
+        Assert.Equal("source-rec-key", stored.SourceRecommendationKey);
+        Assert.Equal("treatment-rec-key", stored.TreatmentRecommendationStableKey);
+        Assert.Equal("Gestartet aus Diagnoseempfehlung", stored.Notes);
+    }
+
+    [Fact]
     public void StartSopInstance_VerhindertDoppelteAktiveSop()
     {
         var growId = CreateGrow();

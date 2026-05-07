@@ -334,6 +334,15 @@ export interface SopStepInstanceDto {
   updatedAtUtc: string
 }
 
+export interface StartSopInstanceRequest {
+  growId: number
+  sopId: string
+  source: SopStartSource
+  sourceRecommendationKey: string | null
+  treatmentRecommendationStableKey: string | null
+  notes: string | null
+}
+
 export interface JournalEntryDto {
   id: number
   growId: number
