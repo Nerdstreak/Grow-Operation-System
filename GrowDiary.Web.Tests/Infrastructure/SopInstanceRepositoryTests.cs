@@ -301,11 +301,18 @@ public sealed class SopInstanceRepositoryTests : IDisposable
         var sop = _knowledgeBase.Sops.Single(item => item.Id == "daily-measurement-routine");
         Assert.Equal("Recurring", sop.Type);
 
+        var before = DateTime.UtcNow.AddSeconds(-2);
         var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
+        var after = DateTime.UtcNow.AddSeconds(2);
         var stored = _repository.GetSopInstance(instance.Id)!;
 
         Assert.True(stored.IsRecurring);
-        Assert.Equal(sop.IntervalDays, stored.RecurrenceIntervalDays);
+        // IntervalDays kommt aus triggers[type=Schedule].intervalDays (not root-level)
+        Assert.Equal(1, stored.RecurrenceIntervalDays);
+        // DueAtUtc: startTime + RecurrenceIntervalDays (1 Tag)
+        Assert.NotNull(stored.DueAtUtc);
+        Assert.True(stored.DueAtUtc >= before.AddDays(1) && stored.DueAtUtc <= after.AddDays(1),
+            $"DueAtUtc={stored.DueAtUtc} erwartet in [{before.AddDays(1)}, {after.AddDays(1)}]");
     }
 
     [Fact]
@@ -328,15 +335,26 @@ public sealed class SopInstanceRepositoryTests : IDisposable
     public void UpdateSopStepInstance_AktualisiertNextStepDueAtUtcNachStepDone()
     {
         var growId = CreateGrow();
-        var sop = _knowledgeBase.Sops.Single(item => item.Id == "flip-to-flower");
-        Assert.True(sop.Steps.Count > 1);
+        // emergency-power-recovery: Step 1 non-wait (DueAtUtc=start), Step 3 wait 30min
+        // Nach Step-1-Done: NextStepDueAtUtc soll auf den WaitStep wechseln (start + 30min)
+        var sop = _knowledgeBase.Sops.Single(item => item.Id == "emergency-power-recovery");
+        Assert.Single(sop.Steps.Where(s => s.WaitMinutes.HasValue));
+
+        var before = DateTime.UtcNow.AddSeconds(-2);
         var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
+        var after = DateTime.UtcNow.AddSeconds(2);
         var steps = _repository.GetSopStepInstances(instance.Id).OrderBy(s => s.Order).ToList();
 
         _repository.UpdateSopStepInstance(steps[0].Id, SopStepInstanceStatus.Done, null, null, null, null);
 
         var stored = _repository.GetSopInstance(instance.Id)!;
         Assert.Equal(SopInstanceStatus.Active, stored.Status);
+        // NextStepDueAtUtc muss jetzt auf den WaitStep (30min) zeigen, nicht mehr auf Step 1
+        Assert.NotNull(stored.NextStepDueAtUtc);
+        var expectedMin = before.AddMinutes(30);
+        var expectedMax = after.AddMinutes(30);
+        Assert.True(stored.NextStepDueAtUtc >= expectedMin && stored.NextStepDueAtUtc <= expectedMax,
+            $"NextStepDueAtUtc={stored.NextStepDueAtUtc} erwartet in [{expectedMin}, {expectedMax}]");
     }
 
     [Fact]

@@ -239,6 +239,24 @@ public sealed class SopInstancesApiControllerTests : IDisposable
         Assert.Equal(GrowTaskStatus.Open, task.Status);
     }
 
+    [Fact]
+    public void Start_RecurringSop_ExponiesertRecurrenceIntervalDaysImResponse()
+    {
+        var growId = CreateGrow();
+
+        var create = _controller.Start(new StartSopInstanceRequest
+        {
+            GrowId = growId,
+            SopId = "daily-measurement-routine",
+            Source = SopStartSource.Manual
+        });
+        var dto = Assert.IsType<SopInstanceDto>(Assert.IsType<CreatedAtActionResult>(create.Result).Value);
+
+        Assert.True(dto.IsRecurring);
+        Assert.Equal(1, dto.RecurrenceIntervalDays);
+        Assert.NotNull(dto.DueAtUtc);
+    }
+
     private int CreateGrow()
         => _repository.CreateGrow(new GrowRun
         {

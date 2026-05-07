@@ -1158,10 +1158,14 @@ public sealed class GrowRepository
 
         // Scheduling: berechne Fälligkeiten aus SOP-Typ
         var isRecurring = string.Equals(sopDefinition.Type, "Recurring", StringComparison.OrdinalIgnoreCase);
+        // intervalDays steht in triggers[type=Schedule].intervalDays, Fallback auf Root-Level
+        var scheduleIntervalDays = sopDefinition.Triggers
+            .FirstOrDefault(t => string.Equals(t.Type, "Schedule", StringComparison.OrdinalIgnoreCase))
+            ?.IntervalDays ?? sopDefinition.IntervalDays;
         DateTime? instanceDueAt = string.Equals(sopDefinition.Type, "MultiDay", StringComparison.OrdinalIgnoreCase) && sopDefinition.DurationDays.HasValue
             ? now.AddDays(sopDefinition.DurationDays.Value)
-            : isRecurring && sopDefinition.IntervalDays.HasValue
-                ? now.AddDays(sopDefinition.IntervalDays.Value)
+            : isRecurring && scheduleIntervalDays.HasValue
+                ? now.AddDays(scheduleIntervalDays.Value)
                 : null;
 
         // Erster Pass: NextStepDueAtUtc aus Step-Definitionen berechnen
@@ -1192,7 +1196,7 @@ public sealed class GrowRepository
             DueAtUtc = instanceDueAt,
             NextStepDueAtUtc = nextStepDue,
             IsRecurring = isRecurring,
-            RecurrenceIntervalDays = sopDefinition.IntervalDays,
+            RecurrenceIntervalDays = scheduleIntervalDays,
             Notes = NormalizeOptional(notes),
             CreatedAtUtc = now,
             UpdatedAtUtc = now
