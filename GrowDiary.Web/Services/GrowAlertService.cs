@@ -32,17 +32,18 @@ public sealed class GrowAlertService
             .OrderByDescending(x => x.TakenAt)
             .Select(x => (DateTime?)x.TakenAt)
             .FirstOrDefault();
+        var legacyAlerts = _recommendationEngine.Evaluate(grow, latest, previous, lastSolutionChangeAt);
 
         if (latest is not null && grow.IrrigationType == IrrigationType.ActiveHydro && grow.Profile.IsHydro)
         {
             var deviations = _deviationAnalyzer.Analyze(grow, measurements);
             var treatmentRecommendations = _treatmentRecommender.Recommend(grow, deviations).Recommendations;
             var diagnosticAlerts = _recommendationEngine.BuildCardsFromDiagnostics(grow, deviations, treatmentRecommendations);
-            return maxCount is > 0 ? diagnosticAlerts.Take(maxCount.Value).ToList() : diagnosticAlerts;
+            var mergedAlerts = MergeDiagnosticAndLegacyAlerts(diagnosticAlerts, legacyAlerts);
+            return ApplyMaxCount(mergedAlerts, maxCount);
         }
 
-        var alerts = _recommendationEngine.Evaluate(grow, latest, previous, lastSolutionChangeAt);
-        return maxCount is > 0 ? alerts.Take(maxCount.Value).ToList() : alerts;
+        return ApplyMaxCount(legacyAlerts, maxCount);
     }
 
     public static string ResolveStateToneFromDeviations(IEnumerable<GrowDeviation> deviations, bool homeAssistantConfigured)
@@ -83,4 +84,104 @@ public sealed class GrowAlertService
             "healthy" => "stabil",
             _ => "neutral"
         };
+
+    private static IReadOnlyList<RecommendationCard> ApplyMaxCount(IReadOnlyList<RecommendationCard> alerts, int? maxCount)
+        => maxCount is > 0 ? alerts.Take(maxCount.Value).ToList() : alerts;
+
+    private static IReadOnlyList<RecommendationCard> MergeDiagnosticAndLegacyAlerts(
+        IReadOnlyList<RecommendationCard> diagnosticAlerts,
+        IReadOnlyList<RecommendationCard> legacyAlerts)
+    {
+        var legacyHasWarning = legacyAlerts.Any(IsWarningOrDanger);
+        var merged = diagnosticAlerts
+            .Where(alert => !(legacyHasWarning && alert.Severity == "success"))
+            .ToList();
+        var seenTitles = new HashSet<string>(merged.Select(alert => NormalizeTitle(alert.Title)), StringComparer.OrdinalIgnoreCase);
+        var diagnosticProblemKeys = new HashSet<string>(
+            merged.Where(IsWarningOrDanger).Select(alert => GetProblemKey(alert.Title)),
+            StringComparer.OrdinalIgnoreCase);
+        var hasDiagnosticSuccess = merged.Any(alert => alert.Severity == "success");
+
+        foreach (var legacyAlert in legacyAlerts)
+        {
+            var normalizedTitle = NormalizeTitle(legacyAlert.Title);
+            if (!seenTitles.Add(normalizedTitle))
+            {
+                continue;
+            }
+
+            if (legacyAlert.Severity == "success" && hasDiagnosticSuccess)
+            {
+                continue;
+            }
+
+            if (IsWarningOrDanger(legacyAlert) && diagnosticProblemKeys.Contains(GetProblemKey(legacyAlert.Title)))
+            {
+                continue;
+            }
+
+            merged.Add(legacyAlert);
+            if (legacyAlert.Severity == "success")
+            {
+                hasDiagnosticSuccess = true;
+            }
+        }
+
+        return merged;
+    }
+
+    private static bool IsWarningOrDanger(RecommendationCard alert)
+        => alert.Severity is "danger" or "warning";
+
+    private static string GetProblemKey(string title)
+    {
+        var normalized = NormalizeTitle(title);
+        if (normalized.Contains("loesungswechsel") || normalized.Contains("wasserwechsel") || normalized.Contains("wechsel"))
+        {
+            return "solution-change";
+        }
+
+        if (normalized.Contains("wassertemperatur") || normalized.Contains("wassertemp") || normalized.Contains("watertemp"))
+        {
+            return "water-temp";
+        }
+
+        if (normalized.Contains("reservoirph") || normalized.Contains("ph"))
+        {
+            return "ph";
+        }
+
+        if (normalized.Contains("reservoirect") || normalized.Contains("ec"))
+        {
+            return "ec";
+        }
+
+        if (normalized.Contains("sauerstoff") || normalized.Contains("dissolvedoxygen") || normalized.Contains("do"))
+        {
+            return "do";
+        }
+
+        if (normalized.Contains("orp"))
+        {
+            return "orp";
+        }
+
+        if (normalized.Contains("ppfd") || normalized.Contains("licht"))
+        {
+            return "ppfd";
+        }
+
+        if (normalized.Contains("co2"))
+        {
+            return "co2";
+        }
+
+        return normalized;
+    }
+
+    private static string NormalizeTitle(string title)
+        => new(title
+            .ToLowerInvariant()
+            .Where(char.IsLetterOrDigit)
+            .ToArray());
 }
