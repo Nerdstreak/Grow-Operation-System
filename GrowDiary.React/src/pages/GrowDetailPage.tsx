@@ -806,7 +806,7 @@ function GrowDetailPage() {
             <div style={{ display: 'grid' }}>
               {sopInstances.map((instance) => (
                 <div key={instance.id} style={{ display: 'grid', gap: 10, padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) 120px 120px 180px', gap: 10, alignItems: 'center' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) 120px 120px 1fr', gap: 10, alignItems: 'center' }}>
                   <div>
                     <div className="tl-title">{instance.sopName}</div>
                     <div className="tl-sub">{instance.sopId}</div>
@@ -814,16 +814,30 @@ function GrowDetailPage() {
                   <span className="badge badge-neutral">{instance.sopType}</span>
                   <span className={`badge ${instance.status === 'Completed' ? 'badge-ok' : 'badge-neutral'}`}>{instance.status}</span>
                   <div className="tl-sub">
-                    {instance.stepCount} Steps - Start {formatDateTime(instance.startedAtUtc)}
+                    {instance.stepCount} Steps &ndash; Start {formatDateTime(instance.startedAtUtc)}
+                    {instance.isRecurring && <span className="badge badge-neutral" style={{ marginLeft: 8 }}>Recurring</span>}
+                    {instance.dueAtUtc && <span style={{ marginLeft: 8 }}>Fällig: {formatDateTime(instance.dueAtUtc)}</span>}
+                    {instance.nextStepDueAtUtc && instance.status === 'Active' && (
+                      <span style={{ marginLeft: 8 }}>Nächster Step: {formatDateTime(instance.nextStepDueAtUtc)}</span>
+                    )}
                   </div>
                   </div>
                   <div style={{ display: 'grid', gap: 8 }}>
                     {(sopStepsByInstanceId[instance.id] ?? []).map((step) => (
-                      <div key={step.id} style={{ display: 'grid', gridTemplateColumns: '48px minmax(180px, 1fr) 120px 120px minmax(180px, 1fr) 240px', gap: 8, alignItems: 'center' }}>
+                      <div key={step.id} style={{ display: 'grid', gridTemplateColumns: '48px minmax(180px, 1fr) 120px 120px minmax(180px, 1fr) 240px', gap: 8, alignItems: 'start' }}>
                         <span className="tl-sub">#{step.order}</span>
                         <div>
                           <div className="tl-title">{step.title}</div>
                           <div className="tl-sub">{step.stepType}</div>
+                          {step.dueAtUtc && (
+                            <div className="tl-sub">Fällig: {formatDateTime(step.dueAtUtc)}</div>
+                          )}
+                          {step.availableAtUtc && !step.dueAtUtc && (
+                            <div className="tl-sub">Verfügbar ab: {formatDateTime(step.availableAtUtc)}</div>
+                          )}
+                          {step.reminderTaskId && (
+                            <div className="tl-sub" style={{ opacity: 0.6 }}>Task #{step.reminderTaskId}</div>
+                          )}
                         </div>
                         <span className="badge badge-neutral">{step.status}</span>
                         <span className="tl-sub">{step.subSopId ? `SubSOP: ${step.subSopId}` : ''}</span>
@@ -835,6 +849,11 @@ function GrowDetailPage() {
                         />
                         {instance.status === 'Active' ? (
                           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {step.availableAtUtc && new Date(step.availableAtUtc) > new Date() && (
+                              <span className="tl-sub" style={{ alignSelf: 'center', width: '100%' }}>
+                                Verfügbar ab {formatDateTime(step.availableAtUtc)}
+                              </span>
+                            )}
                             <button type="button" className="btn btn-secondary" disabled={saving === `sop-step-${step.id}-InProgress`} onClick={() => void updateSopStep(step, 'InProgress')}>
                               Starten
                             </button>
