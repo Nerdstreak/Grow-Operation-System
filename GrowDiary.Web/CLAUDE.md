@@ -63,6 +63,8 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 | `HomeAssistantService` | HTTP-Client fuer HA REST-API, Sensor-States und Kamera-Snapshots |
 | `HomeAssistantSnapshotWorker` | Background-Service: 5-Minuten-Polling, Tagesaggregation, Snapshot- und Cleanup-Job; wertet LightStatus nicht-numerisch fuer Transition-Events aus |
 | `LightStatusTransitionService` | Normalisiert HA-LightStatus und erzeugt Light-On/Light-Off-Transition-Events als Trigger-Grundlage |
+| `AutoMeasurementExecutionService` | Erzeugt faellige HomeAssistant-Measurements aus LightTransitionEvents und TentSensorReadings |
+| `AutoMeasurementWorker` | Background-Service: periodische Ausfuehrung der AutoMeasurement-Configs |
 | `GrowDashboardComposer` | Baut Metriken, Charts und Deviations fuer Dashboard- und Detail-Views |
 | `RecommendationEngine` | Aktuelle Empfehlungs-Engine, wird in Sprint D fachlich aufgesplittet |
 | `GrowAlertService` | UI-Fassade, die Empfehlungen in Ampel-Zustaende uebersetzt |
@@ -81,7 +83,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 - `Measurements`: pH, EC, ORP, DO, Reservoir-Werte, Air-Werte, PPFD und CO2.
 - `TentSensorReadings`: hochfrequente HA-Messwerte aus dem 5-Minuten-Polling.
 - `TentSensorDailyStats`: Tagesaggregation mit Median, P5, P95, Min, Max und Avg.
-- `AutoMeasurementConfigs`, `AutoMeasurementFieldMappings` und `AutoMeasurementRuns`: Konfigurations-, Mapping- und Idempotenzgrundlage fuer spaetere automatische Measurements; C1 erzeugt noch keine Messungen.
+- `AutoMeasurementConfigs`, `AutoMeasurementFieldMappings` und `AutoMeasurementRuns`: Konfiguration, Mapping, Ausfuehrungsstatus und Idempotenz fuer automatische Measurements.
 - `LightSchedules`: additive Lichtplaene pro Tent mit HH:mm-On/Off-Zeiten, Source und optionaler TimeZoneId.
 - `LightTransitionEvents`: LightOn-/LightOff-Events pro Tent als Trigger- und Idempotenzgrundlage; keine automatische Measurement-Erzeugung.
 
@@ -113,6 +115,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint B2d-3 ABGESCHLOSSEN: Quarantine-Plant Decision Workflow fuer Cleared/Rejected mit optionaler Production-Uebernahme.
 - Sprint C1 ABGESCHLOSSEN: AutoMeasurement-Konfigurationen, FieldMappings und Run-Idempotenzgrundlage ohne Job-Ausfuehrung.
 - Sprint C2 ABGESCHLOSSEN: LightSchedule-API, LightTransitionEvent-Grundlage und LightStatus-Normalisierung fuer spaetere AutoMeasurement-Trigger ohne Job-Ausfuehrung.
+- Sprint C3 ABGESCHLOSSEN: AutoMeasurementWorker erzeugt Measurements aus LightTransitionEvents und TentSensorReadings mit Run-Status/Idempotenz.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow

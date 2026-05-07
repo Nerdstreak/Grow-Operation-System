@@ -54,7 +54,9 @@ builder.Services.AddSingleton<LightStatusTransitionService>();
 builder.Services.AddSingleton<PhotoStorageService>();
 builder.Services.AddSingleton<GrowDashboardComposer>();
 builder.Services.AddScoped<SensorReadingRepository>();
+builder.Services.AddScoped<AutoMeasurementExecutionService>();
 builder.Services.AddHostedService<HomeAssistantSnapshotWorker>();
+builder.Services.AddHostedService<AutoMeasurementWorker>();
 
 var defaultUrls = builder.Configuration["Hosting:DefaultUrls"];
 if (!string.IsNullOrWhiteSpace(defaultUrls))

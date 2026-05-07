@@ -741,6 +741,26 @@ public sealed class GrowRepository
     public List<AutoMeasurementConfig> GetAutoMeasurementConfigsByGrow(int growId)
         => GetAutoMeasurementConfigsByWhere("WHERE GrowId = $growId", growId);
 
+    public List<AutoMeasurementConfig> GetEnabledAutoMeasurementConfigs()
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT *
+            FROM AutoMeasurementConfigs
+            WHERE Status = 'Enabled'
+            ORDER BY Id;
+        """;
+
+        var configs = new List<AutoMeasurementConfig>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            configs.Add(MapAutoMeasurementConfig(reader));
+        }
+        return configs;
+    }
+
     public void ReplaceAutoMeasurementFieldMappings(int configId, IReadOnlyCollection<AutoMeasurementFieldMapping> mappings)
     {
         using var connection = OpenConnection();
@@ -855,6 +875,47 @@ public sealed class GrowRepository
 
     public List<AutoMeasurementRun> GetAutoMeasurementRunsByGrow(int growId)
         => GetAutoMeasurementRunsByWhere("WHERE GrowId = $growId", null, growId);
+
+    public AutoMeasurementRun? GetAutoMeasurementRun(int configId, AutoMeasurementTriggerKind triggerKind, DateTime scheduledForUtc)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT *
+            FROM AutoMeasurementRuns
+            WHERE ConfigId = $configId
+              AND TriggerKind = $triggerKind
+              AND ScheduledForUtc = $scheduledForUtc
+            LIMIT 1;
+        """;
+        command.Parameters.AddWithValue("$configId", configId);
+        command.Parameters.AddWithValue("$triggerKind", triggerKind.ToString());
+        command.Parameters.AddWithValue("$scheduledForUtc", ToStorageUtc(scheduledForUtc));
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? MapAutoMeasurementRun(reader) : null;
+    }
+
+    public void UpdateAutoMeasurementRun(AutoMeasurementRun run)
+    {
+        run.UpdatedAtUtc = DateTime.UtcNow;
+
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE AutoMeasurementRuns SET
+                MeasurementId = $measurementId,
+                Status = $status,
+                ErrorMessage = $errorMessage,
+                UpdatedAtUtc = $updatedAtUtc
+            WHERE Id = $id;
+        """;
+        command.Parameters.AddWithValue("$measurementId", (object?)run.MeasurementId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$status", run.Status.ToString());
+        command.Parameters.AddWithValue("$errorMessage", (object?)run.ErrorMessage ?? DBNull.Value);
+        command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(run.UpdatedAtUtc));
+        command.Parameters.AddWithValue("$id", run.Id);
+        command.ExecuteNonQuery();
+    }
 
     public LightSchedule CreateLightSchedule(LightSchedule schedule)
     {
@@ -1014,6 +1075,31 @@ public sealed class GrowRepository
             ORDER BY OccurredAtUtc DESC, Id DESC;
         """;
         command.Parameters.AddWithValue("$tentId", tentId);
+
+        var transitions = new List<LightTransitionEvent>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            transitions.Add(MapLightTransitionEvent(reader));
+        }
+        return transitions;
+    }
+
+    public List<LightTransitionEvent> GetLightTransitionsByTentAndKindSince(int tentId, LightTransitionKind kind, DateTime sinceUtc)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT *
+            FROM LightTransitionEvents
+            WHERE TentId = $tentId
+              AND Kind = $kind
+              AND OccurredAtUtc >= $sinceUtc
+            ORDER BY OccurredAtUtc ASC, Id ASC;
+        """;
+        command.Parameters.AddWithValue("$tentId", tentId);
+        command.Parameters.AddWithValue("$kind", kind.ToString());
+        command.Parameters.AddWithValue("$sinceUtc", ToStorageUtc(sinceUtc));
 
         var transitions = new List<LightTransitionEvent>();
         using var reader = command.ExecuteReader();

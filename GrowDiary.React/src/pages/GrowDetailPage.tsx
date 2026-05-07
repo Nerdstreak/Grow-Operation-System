@@ -8,6 +8,7 @@ import type {
   AutoMeasurementField,
   AutoMeasurementFieldMappingDto,
   AutoMeasurementFieldMappingUpsertRequest,
+  AutoMeasurementRunDto,
   AutoMeasurementStatus,
   AutoMeasurementTriggerKind,
   GrowActionResultDto,
@@ -125,6 +126,7 @@ function GrowDetailPage() {
   const [photoForm, setPhotoForm] = useState(emptyPhotoForm)
   const [autoConfigs, setAutoConfigs] = useState<AutoMeasurementConfigDto[]>([])
   const [autoMappingsByConfigId, setAutoMappingsByConfigId] = useState<Record<number, AutoMeasurementFieldMappingDto[]>>({})
+  const [autoRunsByConfigId, setAutoRunsByConfigId] = useState<Record<number, AutoMeasurementRunDto[]>>({})
   const [mappingDraftsByConfigId, setMappingDraftsByConfigId] = useState<Record<number, AutoMeasurementFieldMappingUpsertRequest[]>>({})
   const [autoConfigForm, setAutoConfigForm] = useState(emptyAutoConfigForm)
   const [autoLoading, setAutoLoading] = useState(false)
@@ -147,13 +149,19 @@ function GrowDetailPage() {
     setAutoLoading(true)
     try {
       const configs = await apiFetch<AutoMeasurementConfigDto[]>(`/api/auto-measurements/configs?growId=${growId}`, { signal })
-      const mappingEntries = await Promise.all(configs.map(async (config) => {
-        const mappings = await apiFetch<AutoMeasurementFieldMappingDto[]>(`/api/auto-measurements/configs/${config.id}/mappings`, { signal })
-        return [config.id, mappings] as const
+      const detailEntries = await Promise.all(configs.map(async (config) => {
+        const [mappings, runs] = await Promise.all([
+          apiFetch<AutoMeasurementFieldMappingDto[]>(`/api/auto-measurements/configs/${config.id}/mappings`, { signal }),
+          apiFetch<AutoMeasurementRunDto[]>(`/api/auto-measurements/configs/${config.id}/runs`, { signal }),
+        ])
+        return [config.id, mappings, runs] as const
       }))
+      const mappingEntries = detailEntries.map(([configId, mappings]) => [configId, mappings] as const)
+      const runEntries = detailEntries.map(([configId, , runs]) => [configId, runs] as const)
       const nextMappings = Object.fromEntries(mappingEntries)
       setAutoConfigs(configs)
       setAutoMappingsByConfigId(nextMappings)
+      setAutoRunsByConfigId(Object.fromEntries(runEntries))
       setMappingDraftsByConfigId(Object.fromEntries(mappingEntries.map(([configId, mappings]) => [
         configId,
         mappings.map((mapping) => ({
@@ -735,6 +743,7 @@ function GrowDetailPage() {
                 autoConfigs.map((config) => {
                   const drafts = mappingDraftsByConfigId[config.id] ?? []
                   const savedMappingCount = autoMappingsByConfigId[config.id]?.length ?? 0
+                  const runs = autoRunsByConfigId[config.id] ?? []
                   return (
                     <div key={config.id} style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'grid', gap: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -785,6 +794,22 @@ function GrowDetailPage() {
                         <button type="button" className="btn btn-primary" disabled={saving === `auto-mappings-${config.id}`} onClick={() => void saveMappingDrafts(config.id)}>
                           {saving === `auto-mappings-${config.id}` ? 'Speichert...' : 'Mappings speichern'}
                         </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gap: 6 }}>
+                        <div className="tl-sub">Letzte Runs</div>
+                        {runs.length === 0 ? (
+                          <div style={{ fontSize: 13, color: 'var(--faint)' }}>Noch keine Runs.</div>
+                        ) : (
+                          runs.slice(0, 5).map((run) => (
+                            <div key={run.id} style={{ display: 'grid', gridTemplateColumns: '110px minmax(160px, 1fr) 110px minmax(0, 1.3fr)', gap: 8, fontSize: 13, alignItems: 'center' }}>
+                              <span className={`badge ${run.status === 'Created' ? 'badge-ok' : run.status === 'Failed' ? 'badge-warn' : 'badge-neutral'}`}>{run.status}</span>
+                              <span className="text-muted">{formatDateTime(run.scheduledForUtc)}</span>
+                              <span className="text-muted">{run.measurementId ? `M#${run.measurementId}` : '-'}</span>
+                              <span className="text-muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{run.errorMessage ?? ''}</span>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   )
