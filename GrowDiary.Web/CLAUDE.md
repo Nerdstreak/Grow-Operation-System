@@ -69,7 +69,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 | `AutoMeasurementWorker` | Background-Service: periodische Ausfuehrung der AutoMeasurement-Configs |
 | `GrowDashboardComposer` | Baut Metriken, Charts und Deviations fuer Dashboard- und Detail-Views |
 | `RecommendationEngine` | UI-Card-Fassade; kann strukturierte Deviations und TreatmentRecommendations in RecommendationCards uebersetzen |
-| `GrowAlertService` | UI-/Live-Fassade; nutzt strukturierte Hydro-Deviations bevorzugt fuer Ampel-Zustaende |
+| `GrowAlertService` | UI-/Live-Fassade; nutzt strukturierte Hydro-Deviations bevorzugt und ergaenzt Legacy-Hinweise fuer noch nicht migrierte Live-Cards |
 | `DeviationAnalyzerService` | Zentrale Hydro-Deviation-Engine mit strukturierten Abweichungen, Quellen und Consecutive-Counts |
 | `TreatmentRecommender` | Verknuepft strukturierte Deviations mit Knowledge-Symptoms, Treatments und SOPs als reine Empfehlungen |
 | `MeasurementSanityService` | Plausibilitaetschecks und blockierende Messwert-Validierung |
@@ -124,6 +124,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint D1 ABGESCHLOSSEN: DeviationAnalyzerService v2 liefert strukturierte Hydro-Deviations ueber `GET /api/grows/{growId}/deviations`.
 - Sprint D2 ABGESCHLOSSEN: TreatmentRecommender liefert Knowledge-basierte Empfehlungen ueber `GET /api/grows/{growId}/treatment-recommendations`.
 - Sprint D3 ABGESCHLOSSEN: RecommendationEngine und GrowAlertService nutzen D1/D2-Diagnosen als bevorzugte Fassadenbasis.
+- Sprint D5 ABGESCHLOSSEN: GrowAlertService kombiniert D1/D2-Diagnosen mit Legacy-Evaluate-Hinweisen ohne dominante Healthy-Card bei echten Warnungen.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow
