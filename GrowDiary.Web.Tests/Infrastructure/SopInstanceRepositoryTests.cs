@@ -222,6 +222,141 @@ public sealed class SopInstanceRepositoryTests : IDisposable
         Assert.Null(_repository.GetSopStepInstance(999999));
     }
 
+    // E4 Scheduling Tests
+
+    [Fact]
+    public void StartSopInstance_LinearSop_ErsterStepBekommtDueAtUtcGleichStart()
+    {
+        var growId = CreateGrow();
+        var sop = _knowledgeBase.Sops.Single(item => item.Id == "flip-to-flower");
+        Assert.Equal("Linear", sop.Type);
+        Assert.True(sop.Steps.Count > 1);
+
+        // ParseStoredDateTime gibt Lokalzeit zurück — Vergleich mit DateTime.Now
+        var before = DateTime.Now.AddSeconds(-2);
+        var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
+        var after = DateTime.Now.AddSeconds(2);
+        var steps = _repository.GetSopStepInstances(instance.Id).OrderBy(s => s.Order).ToList();
+
+        var firstStep = steps[0];
+        Assert.NotNull(firstStep.DueAtUtc);
+        Assert.True(firstStep.DueAtUtc >= before && firstStep.DueAtUtc <= after,
+            $"firstStep.DueAtUtc={firstStep.DueAtUtc} nicht in [{before}, {after}]");
+        Assert.Null(firstStep.AvailableAtUtc);
+
+        foreach (var laterStep in steps.Skip(1).Where(s => !s.WaitMinutes.HasValue))
+        {
+            Assert.Null(laterStep.DueAtUtc);
+            Assert.Null(laterStep.AvailableAtUtc);
+        }
+    }
+
+    [Fact]
+    public void StartSopInstance_WaitStep_BekommtAvailableAtUtcUndDueAtUtc()
+    {
+        var growId = CreateGrow();
+        var sop = _knowledgeBase.Sops.Single(item => item.Id == "emergency-power-recovery");
+        var waitStepDef = sop.Steps.Single(s => s.WaitMinutes.HasValue);
+        Assert.Equal(30, waitStepDef.WaitMinutes);
+
+        var before = DateTime.Now.AddSeconds(-2);
+        var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
+        var after = DateTime.Now.AddSeconds(2);
+        var steps = _repository.GetSopStepInstances(instance.Id);
+
+        var waitStep = steps.Single(s => s.WaitMinutes.HasValue);
+        Assert.NotNull(waitStep.DueAtUtc);
+        Assert.NotNull(waitStep.AvailableAtUtc);
+
+        var expectedMinDue = before.AddMinutes(30);
+        var expectedMaxDue = after.AddMinutes(30);
+        Assert.True(waitStep.DueAtUtc >= expectedMinDue && waitStep.DueAtUtc <= expectedMaxDue,
+            $"WaitStep.DueAtUtc={waitStep.DueAtUtc} nicht in [{expectedMinDue}, {expectedMaxDue}]");
+        Assert.Equal(waitStep.DueAtUtc, waitStep.AvailableAtUtc);
+    }
+
+    [Fact]
+    public void StartSopInstance_MultiDaySop_SetztInstanceDueAtUtcAnhandDurationDays()
+    {
+        var growId = CreateGrow();
+        var sop = _knowledgeBase.Sops.Single(item => item.Id == "cuttings-quarantine");
+        Assert.Equal("MultiDay", sop.Type);
+        Assert.Equal(7, sop.DurationDays);
+
+        var before = DateTime.Now.AddSeconds(-2);
+        var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
+        var after = DateTime.Now.AddSeconds(2);
+        var stored = _repository.GetSopInstance(instance.Id)!;
+
+        Assert.NotNull(stored.DueAtUtc);
+        var expectedMinDue = before.AddDays(7);
+        var expectedMaxDue = after.AddDays(7);
+        Assert.True(stored.DueAtUtc >= expectedMinDue && stored.DueAtUtc <= expectedMaxDue,
+            $"DueAtUtc={stored.DueAtUtc} nicht in [{expectedMinDue}, {expectedMaxDue}]");
+    }
+
+    [Fact]
+    public void StartSopInstance_RecurringSop_SetztIsRecurring()
+    {
+        var growId = CreateGrow();
+        var sop = _knowledgeBase.Sops.Single(item => item.Id == "daily-measurement-routine");
+        Assert.Equal("Recurring", sop.Type);
+
+        var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
+        var stored = _repository.GetSopInstance(instance.Id)!;
+
+        Assert.True(stored.IsRecurring);
+        Assert.Equal(sop.IntervalDays, stored.RecurrenceIntervalDays);
+    }
+
+    [Fact]
+    public void StartSopInstance_SetzNextStepDueAtUtc()
+    {
+        var growId = CreateGrow();
+        var sop = _knowledgeBase.Sops.Single(item => item.Id == "flip-to-flower");
+
+        var before = DateTime.Now.AddSeconds(-2);
+        var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
+        var after = DateTime.Now.AddSeconds(2);
+        var stored = _repository.GetSopInstance(instance.Id)!;
+
+        Assert.NotNull(stored.NextStepDueAtUtc);
+        Assert.True(stored.NextStepDueAtUtc >= before && stored.NextStepDueAtUtc <= after,
+            $"NextStepDueAtUtc={stored.NextStepDueAtUtc} nicht in [{before}, {after}]");
+    }
+
+    [Fact]
+    public void UpdateSopStepInstance_AktualisiertNextStepDueAtUtcNachStepDone()
+    {
+        var growId = CreateGrow();
+        var sop = _knowledgeBase.Sops.Single(item => item.Id == "flip-to-flower");
+        Assert.True(sop.Steps.Count > 1);
+        var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
+        var steps = _repository.GetSopStepInstances(instance.Id).OrderBy(s => s.Order).ToList();
+
+        _repository.UpdateSopStepInstance(steps[0].Id, SopStepInstanceStatus.Done, null, null, null, null);
+
+        var stored = _repository.GetSopInstance(instance.Id)!;
+        Assert.Equal(SopInstanceStatus.Active, stored.Status);
+    }
+
+    [Fact]
+    public void UpdateSopStepInstance_NachCompletion_NextStepDueAtUtcIstNull()
+    {
+        var instance = StartRoutine();
+        var steps = _repository.GetSopStepInstances(instance.Id);
+
+        foreach (var step in steps)
+        {
+            _repository.UpdateSopStepInstance(step.Id, SopStepInstanceStatus.Done, null, null, null, null);
+        }
+
+        var stored = _repository.GetSopInstance(instance.Id)!;
+        Assert.Equal(SopInstanceStatus.Completed, stored.Status);
+        Assert.NotNull(stored.CompletedAtUtc);
+        Assert.Null(stored.NextStepDueAtUtc);
+    }
+
     private int CreateGrow()
         => _repository.CreateGrow(new GrowRun
         {

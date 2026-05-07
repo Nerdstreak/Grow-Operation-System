@@ -12,6 +12,7 @@ public sealed class SopInstancesApiControllerTests : IDisposable
 {
     private readonly string _contentRoot;
     private readonly GrowRepository _repository;
+    private readonly TaskRepository _taskRepository;
     private readonly SopInstancesApiController _controller;
 
     public SopInstancesApiControllerTests()
@@ -22,9 +23,10 @@ public sealed class SopInstancesApiControllerTests : IDisposable
         var paths = new AppPaths(_contentRoot);
         new DatabaseInitializer(paths, NullLogger<DatabaseInitializer>.Instance).Initialize();
         _repository = new GrowRepository(paths);
+        _taskRepository = new TaskRepository(paths);
         var knowledgeBase = new KnowledgeBaseLoader(paths, NullLogger<KnowledgeBaseLoader>.Instance);
         knowledgeBase.Initialize();
-        _controller = new SopInstancesApiController(_repository, knowledgeBase);
+        _controller = new SopInstancesApiController(_repository, _taskRepository, knowledgeBase);
     }
 
     public void Dispose()
@@ -207,6 +209,34 @@ public sealed class SopInstancesApiControllerTests : IDisposable
         var conflict = Assert.IsType<ConflictObjectResult>(result);
         var error = Assert.IsType<ApiError>(conflict.Value);
         Assert.Equal("sop_instance_not_active", error.Code);
+    }
+
+    [Fact]
+    public void Start_WaitStepMitDueAtUtc_ErstelltGrowTaskReminder()
+    {
+        var growId = CreateGrow();
+
+        var create = _controller.Start(new StartSopInstanceRequest
+        {
+            GrowId = growId,
+            SopId = "emergency-power-recovery",
+            Source = SopStartSource.Manual
+        });
+        var created = Assert.IsType<CreatedAtActionResult>(create.Result);
+        var dto = Assert.IsType<SopInstanceDto>(created.Value);
+
+        var steps = _repository.GetSopStepInstances(dto.Id);
+        var waitStep = steps.FirstOrDefault(s => s.WaitMinutes.HasValue);
+        Assert.NotNull(waitStep);
+        Assert.NotNull(waitStep.DueAtUtc);
+        Assert.NotNull(waitStep.ReminderTaskId);
+
+        var task = _taskRepository.Get(waitStep.ReminderTaskId!.Value);
+        Assert.NotNull(task);
+        Assert.Equal(growId, task.GrowId);
+        Assert.StartsWith("SOP:", task.Title, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(task.DueAtUtc);
+        Assert.Equal(GrowTaskStatus.Open, task.Status);
     }
 
     private int CreateGrow()

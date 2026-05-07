@@ -1155,6 +1155,29 @@ public sealed class GrowRepository
         string? notes)
     {
         var now = DateTime.UtcNow;
+
+        // Scheduling: berechne Fälligkeiten aus SOP-Typ
+        var isRecurring = string.Equals(sopDefinition.Type, "Recurring", StringComparison.OrdinalIgnoreCase);
+        DateTime? instanceDueAt = string.Equals(sopDefinition.Type, "MultiDay", StringComparison.OrdinalIgnoreCase) && sopDefinition.DurationDays.HasValue
+            ? now.AddDays(sopDefinition.DurationDays.Value)
+            : isRecurring && sopDefinition.IntervalDays.HasValue
+                ? now.AddDays(sopDefinition.IntervalDays.Value)
+                : null;
+
+        // Erster Pass: NextStepDueAtUtc aus Step-Definitionen berechnen
+        // Regel: Step mit waitMinutes → DueAtUtc = startTime + waitMinutes
+        //        Erster Step ohne waitMinutes → DueAtUtc = startTime; weitere → null
+        var orderedStepDefs = sopDefinition.Steps.OrderBy(s => s.Order).ToList();
+        DateTime? nextStepDue = null;
+        for (var i = 0; i < orderedStepDefs.Count; i++)
+        {
+            DateTime? stepDue = orderedStepDefs[i].WaitMinutes.HasValue
+                ? now.AddMinutes(orderedStepDefs[i].WaitMinutes!.Value)
+                : i == 0 ? now : null;
+            if (stepDue.HasValue && (nextStepDue is null || stepDue.Value < nextStepDue.Value))
+                nextStepDue = stepDue;
+        }
+
         var instance = new SopInstance
         {
             GrowId = growId,
@@ -1166,6 +1189,10 @@ public sealed class GrowRepository
             SourceRecommendationKey = NormalizeOptional(sourceRecommendationKey),
             TreatmentRecommendationStableKey = NormalizeOptional(treatmentRecommendationStableKey),
             StartedAtUtc = now,
+            DueAtUtc = instanceDueAt,
+            NextStepDueAtUtc = nextStepDue,
+            IsRecurring = isRecurring,
+            RecurrenceIntervalDays = sopDefinition.IntervalDays,
             Notes = NormalizeOptional(notes),
             CreatedAtUtc = now,
             UpdatedAtUtc = now
@@ -1200,11 +1227,13 @@ public sealed class GrowRepository
                 INSERT INTO SopInstances (
                     GrowId, SopId, SopName, SopType, Status, Source, SourceRecommendationKey,
                     TreatmentRecommendationStableKey, StartedAtUtc, CompletedAtUtc, CancelledAtUtc,
+                    DueAtUtc, NextStepDueAtUtc, RecurrenceIntervalDays, IsRecurring,
                     Notes, CreatedAtUtc, UpdatedAtUtc
                 )
                 VALUES (
                     $growId, $sopId, $sopName, $sopType, $status, $source, $sourceRecommendationKey,
                     $treatmentRecommendationStableKey, $startedAtUtc, $completedAtUtc, $cancelledAtUtc,
+                    $dueAtUtc, $nextStepDueAtUtc, $recurrenceIntervalDays, $isRecurring,
                     $notes, $createdAtUtc, $updatedAtUtc
                 );
                 SELECT last_insert_rowid();
@@ -1213,8 +1242,23 @@ public sealed class GrowRepository
             instance.Id = Convert.ToInt32((long)insertCommand.ExecuteScalar()!);
         }
 
-        foreach (var stepDefinition in sopDefinition.Steps.OrderBy(step => step.Order))
+        for (var idx = 0; idx < orderedStepDefs.Count; idx++)
         {
+            var stepDefinition = orderedStepDefs[idx];
+
+            DateTime? stepDueAt;
+            DateTime? stepAvailableAt;
+            if (stepDefinition.WaitMinutes.HasValue)
+            {
+                stepDueAt = now.AddMinutes(stepDefinition.WaitMinutes.Value);
+                stepAvailableAt = stepDueAt;
+            }
+            else
+            {
+                stepDueAt = idx == 0 ? now : null;
+                stepAvailableAt = null;
+            }
+
             var step = new SopStepInstance
             {
                 SopInstanceId = instance.Id,
@@ -1231,6 +1275,8 @@ public sealed class GrowRepository
                     : null,
                 PhotoRequired = stepDefinition.PhotoRequired,
                 PhotoRecommended = stepDefinition.PhotoRecommended,
+                DueAtUtc = stepDueAt,
+                AvailableAtUtc = stepAvailableAt,
                 CreatedAtUtc = now,
                 UpdatedAtUtc = now
             };
@@ -1241,12 +1287,14 @@ public sealed class GrowRepository
                 INSERT INTO SopStepInstances (
                     SopInstanceId, StepId, "Order", Title, Description, StepType, Status,
                     WaitMinutes, SubSopId, ExpectedInputsJson, PhotoRequired, PhotoRecommended,
+                    DueAtUtc, AvailableAtUtc, ReminderTaskId,
                     StartedAtUtc, CompletedAtUtc, SkippedAtUtc, Notes, MeasurementId, JournalEntryId,
                     PhotoAssetId, CreatedAtUtc, UpdatedAtUtc
                 )
                 VALUES (
                     $sopInstanceId, $stepId, $order, $title, $description, $stepType, $status,
                     $waitMinutes, $subSopId, $expectedInputsJson, $photoRequired, $photoRecommended,
+                    $dueAtUtc, $availableAtUtc, $reminderTaskId,
                     $startedAtUtc, $completedAtUtc, $skippedAtUtc, $notes, $measurementId, $journalEntryId,
                     $photoAssetId, $createdAtUtc, $updatedAtUtc
                 );
@@ -1451,6 +1499,22 @@ public sealed class GrowRepository
         using var transaction = connection.BeginTransaction();
         RecalculateSopInstanceStatus(connection, transaction, sopInstanceId, DateTime.UtcNow);
         transaction.Commit();
+    }
+
+    public void UpdateSopStepReminderTaskId(int stepId, int taskId)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE SopStepInstances
+            SET ReminderTaskId = $taskId,
+                UpdatedAtUtc = $updatedAtUtc
+            WHERE Id = $id;
+        """;
+        command.Parameters.AddWithValue("$id", stepId);
+        command.Parameters.AddWithValue("$taskId", taskId);
+        command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(DateTime.UtcNow));
+        command.ExecuteNonQuery();
     }
 
     public TentSensor? GetTentSensorByMetric(int tentId, SensorMetricType metricType)
@@ -2247,45 +2311,81 @@ public sealed class GrowRepository
 
     private static void RecalculateSopInstanceStatus(SqliteConnection connection, SqliteTransaction transaction, int sopInstanceId, DateTime now)
     {
-        using var countCommand = connection.CreateCommand();
-        countCommand.Transaction = transaction;
-        countCommand.CommandText = """
-            SELECT
-                COUNT(*) AS TotalSteps,
-                COALESCE(SUM(CASE WHEN Status IN ('Done', 'Skipped') THEN 0 ELSE 1 END), 0) AS OpenSteps
-            FROM SopStepInstances
-            WHERE SopInstanceId = $sopInstanceId;
-        """;
-        countCommand.Parameters.AddWithValue("$sopInstanceId", sopInstanceId);
-        using var reader = countCommand.ExecuteReader();
-        if (!reader.Read())
+        int totalSteps;
+        int openSteps;
+        using (var countCommand = connection.CreateCommand())
         {
-            return;
+            countCommand.Transaction = transaction;
+            countCommand.CommandText = """
+                SELECT
+                    COUNT(*) AS TotalSteps,
+                    COALESCE(SUM(CASE WHEN Status IN ('Done', 'Skipped') THEN 0 ELSE 1 END), 0) AS OpenSteps
+                FROM SopStepInstances
+                WHERE SopInstanceId = $sopInstanceId;
+            """;
+            countCommand.Parameters.AddWithValue("$sopInstanceId", sopInstanceId);
+            using var reader = countCommand.ExecuteReader();
+            if (!reader.Read())
+                return;
+            totalSteps = Convert.ToInt32(reader["TotalSteps"], CultureInfo.InvariantCulture);
+            openSteps = Convert.ToInt32(reader["OpenSteps"], CultureInfo.InvariantCulture);
         }
 
-        var totalSteps = Convert.ToInt32(reader["TotalSteps"], CultureInfo.InvariantCulture);
-        var openSteps = Convert.ToInt32(reader["OpenSteps"], CultureInfo.InvariantCulture);
-        if (totalSteps == 0 || openSteps > 0)
-        {
+        if (totalSteps == 0)
             return;
-        }
 
-        using var updateCommand = connection.CreateCommand();
-        updateCommand.Transaction = transaction;
-        updateCommand.CommandText = """
-            UPDATE SopInstances
-            SET Status = $status,
-                CompletedAtUtc = $completedAtUtc,
-                UpdatedAtUtc = $updatedAtUtc
-            WHERE Id = $id
-              AND Status = $activeStatus;
-        """;
-        updateCommand.Parameters.AddWithValue("$id", sopInstanceId);
-        updateCommand.Parameters.AddWithValue("$status", SopInstanceStatus.Completed.ToString());
-        updateCommand.Parameters.AddWithValue("$activeStatus", SopInstanceStatus.Active.ToString());
-        updateCommand.Parameters.AddWithValue("$completedAtUtc", ToStorageUtc(now));
-        updateCommand.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(now));
-        updateCommand.ExecuteNonQuery();
+        if (openSteps == 0)
+        {
+            // Alle Steps erledigt: SOP abschliessen, NextStepDueAtUtc auf null setzen
+            using var updateCommand = connection.CreateCommand();
+            updateCommand.Transaction = transaction;
+            updateCommand.CommandText = """
+                UPDATE SopInstances
+                SET Status = $status,
+                    CompletedAtUtc = $completedAtUtc,
+                    NextStepDueAtUtc = NULL,
+                    UpdatedAtUtc = $updatedAtUtc
+                WHERE Id = $id
+                  AND Status = $activeStatus;
+            """;
+            updateCommand.Parameters.AddWithValue("$id", sopInstanceId);
+            updateCommand.Parameters.AddWithValue("$status", SopInstanceStatus.Completed.ToString());
+            updateCommand.Parameters.AddWithValue("$activeStatus", SopInstanceStatus.Active.ToString());
+            updateCommand.Parameters.AddWithValue("$completedAtUtc", ToStorageUtc(now));
+            updateCommand.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(now));
+            updateCommand.ExecuteNonQuery();
+        }
+        else
+        {
+            // Offene Steps vorhanden: NextStepDueAtUtc aus frühester Fälligkeit berechnen
+            string? minDueRaw;
+            using (var dueCommand = connection.CreateCommand())
+            {
+                dueCommand.Transaction = transaction;
+                dueCommand.CommandText = """
+                    SELECT MIN(COALESCE(DueAtUtc, AvailableAtUtc)) AS MinDue
+                    FROM SopStepInstances
+                    WHERE SopInstanceId = $sopInstanceId
+                      AND Status NOT IN ('Done', 'Skipped');
+                """;
+                dueCommand.Parameters.AddWithValue("$sopInstanceId", sopInstanceId);
+                var raw = dueCommand.ExecuteScalar();
+                minDueRaw = raw is DBNull or null ? null : raw.ToString();
+            }
+
+            using var updateNextCommand = connection.CreateCommand();
+            updateNextCommand.Transaction = transaction;
+            updateNextCommand.CommandText = """
+                UPDATE SopInstances
+                SET NextStepDueAtUtc = $nextStepDueAtUtc,
+                    UpdatedAtUtc = $updatedAtUtc
+                WHERE Id = $id;
+            """;
+            updateNextCommand.Parameters.AddWithValue("$id", sopInstanceId);
+            updateNextCommand.Parameters.AddWithValue("$nextStepDueAtUtc", minDueRaw is not null ? (object)minDueRaw : DBNull.Value);
+            updateNextCommand.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(now));
+            updateNextCommand.ExecuteNonQuery();
+        }
     }
 
     private static Dictionary<int, Measurement> GetLatestMeasurementsBatch(SqliteConnection connection, IEnumerable<int> growIds)
@@ -2575,6 +2675,13 @@ public sealed class GrowRepository
             StartedAtUtc = ParseStoredDateTime(reader["StartedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             CompletedAtUtc = ParseStoredDateTime(reader["CompletedAtUtc"]?.ToString()),
             CancelledAtUtc = ParseStoredDateTime(reader["CancelledAtUtc"]?.ToString()),
+            DueAtUtc = ParseStoredDateTimeIfColumn(reader, "DueAtUtc"),
+            NextStepDueAtUtc = ParseStoredDateTimeIfColumn(reader, "NextStepDueAtUtc"),
+            RecurrenceIntervalDays = HasColumn(reader, "RecurrenceIntervalDays") && reader["RecurrenceIntervalDays"] is not DBNull
+                ? Convert.ToInt32(reader["RecurrenceIntervalDays"], CultureInfo.InvariantCulture)
+                : null,
+            IsRecurring = HasColumn(reader, "IsRecurring") && reader["IsRecurring"] is not DBNull
+                && Convert.ToInt32(reader["IsRecurring"], CultureInfo.InvariantCulture) == 1,
             Notes = NullString(reader["Notes"]),
             CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
@@ -2601,6 +2708,11 @@ public sealed class GrowRepository
             ExpectedInputsJson = NullString(reader["ExpectedInputsJson"]),
             PhotoRequired = reader["PhotoRequired"] is not DBNull and not null && Convert.ToInt32(reader["PhotoRequired"], CultureInfo.InvariantCulture) == 1,
             PhotoRecommended = reader["PhotoRecommended"] is not DBNull and not null && Convert.ToInt32(reader["PhotoRecommended"], CultureInfo.InvariantCulture) == 1,
+            DueAtUtc = ParseStoredDateTimeIfColumn(reader, "DueAtUtc"),
+            AvailableAtUtc = ParseStoredDateTimeIfColumn(reader, "AvailableAtUtc"),
+            ReminderTaskId = HasColumn(reader, "ReminderTaskId") && reader["ReminderTaskId"] is not DBNull
+                ? Convert.ToInt32(reader["ReminderTaskId"], CultureInfo.InvariantCulture)
+                : null,
             StartedAtUtc = ParseStoredDateTime(reader["StartedAtUtc"]?.ToString()),
             CompletedAtUtc = ParseStoredDateTime(reader["CompletedAtUtc"]?.ToString()),
             SkippedAtUtc = ParseStoredDateTime(reader["SkippedAtUtc"]?.ToString()),
@@ -2922,6 +3034,10 @@ public sealed class GrowRepository
         command.Parameters.AddWithValue("$startedAtUtc", ToStorageUtc(instance.StartedAtUtc));
         command.Parameters.AddWithValue("$completedAtUtc", instance.CompletedAtUtc.HasValue ? ToStorageUtc(instance.CompletedAtUtc.Value) : DBNull.Value);
         command.Parameters.AddWithValue("$cancelledAtUtc", instance.CancelledAtUtc.HasValue ? ToStorageUtc(instance.CancelledAtUtc.Value) : DBNull.Value);
+        command.Parameters.AddWithValue("$dueAtUtc", instance.DueAtUtc.HasValue ? ToStorageUtc(instance.DueAtUtc.Value) : DBNull.Value);
+        command.Parameters.AddWithValue("$nextStepDueAtUtc", instance.NextStepDueAtUtc.HasValue ? ToStorageUtc(instance.NextStepDueAtUtc.Value) : DBNull.Value);
+        command.Parameters.AddWithValue("$recurrenceIntervalDays", (object?)instance.RecurrenceIntervalDays ?? DBNull.Value);
+        command.Parameters.AddWithValue("$isRecurring", instance.IsRecurring ? 1 : 0);
         command.Parameters.AddWithValue("$notes", (object?)instance.Notes ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(instance.CreatedAtUtc));
         command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(instance.UpdatedAtUtc));
@@ -2941,6 +3057,9 @@ public sealed class GrowRepository
         command.Parameters.AddWithValue("$expectedInputsJson", (object?)step.ExpectedInputsJson ?? DBNull.Value);
         command.Parameters.AddWithValue("$photoRequired", step.PhotoRequired ? 1 : 0);
         command.Parameters.AddWithValue("$photoRecommended", step.PhotoRecommended ? 1 : 0);
+        command.Parameters.AddWithValue("$dueAtUtc", step.DueAtUtc.HasValue ? ToStorageUtc(step.DueAtUtc.Value) : DBNull.Value);
+        command.Parameters.AddWithValue("$availableAtUtc", step.AvailableAtUtc.HasValue ? ToStorageUtc(step.AvailableAtUtc.Value) : DBNull.Value);
+        command.Parameters.AddWithValue("$reminderTaskId", (object?)step.ReminderTaskId ?? DBNull.Value);
         command.Parameters.AddWithValue("$startedAtUtc", step.StartedAtUtc.HasValue ? ToStorageUtc(step.StartedAtUtc.Value) : DBNull.Value);
         command.Parameters.AddWithValue("$completedAtUtc", step.CompletedAtUtc.HasValue ? ToStorageUtc(step.CompletedAtUtc.Value) : DBNull.Value);
         command.Parameters.AddWithValue("$skippedAtUtc", step.SkippedAtUtc.HasValue ? ToStorageUtc(step.SkippedAtUtc.Value) : DBNull.Value);
@@ -3099,6 +3218,13 @@ public sealed class GrowRepository
 
     private static DateTime? ParseStoredDateTime(string? value)
         => DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal | DateTimeStyles.AllowWhiteSpaces, out var result) ? result : null;
+
+    private static DateTime? ParseStoredDateTimeIfColumn(SqliteDataReader reader, string columnName)
+    {
+        if (!HasColumn(reader, columnName) || reader[columnName] is DBNull)
+            return null;
+        return ParseStoredDateTime(reader[columnName]?.ToString());
+    }
 
     private static DateTime? ParseStoredDate(string? value)
         => DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var result) ? result.Date : null;

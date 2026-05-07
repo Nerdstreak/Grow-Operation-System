@@ -14,6 +14,10 @@ public sealed class SopInstance
     public DateTime StartedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAtUtc { get; set; }
     public DateTime? CancelledAtUtc { get; set; }
+    public DateTime? DueAtUtc { get; set; }
+    public DateTime? NextStepDueAtUtc { get; set; }
+    public int? RecurrenceIntervalDays { get; set; }
+    public bool IsRecurring { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;

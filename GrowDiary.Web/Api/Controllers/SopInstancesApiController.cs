@@ -13,11 +13,13 @@ namespace GrowDiary.Web.Api.Controllers;
 public sealed class SopInstancesApiController : ApiControllerBase
 {
     private readonly GrowRepository _repository;
+    private readonly TaskRepository _taskRepository;
     private readonly KnowledgeBaseLoader _knowledgeBase;
 
-    public SopInstancesApiController(GrowRepository repository, KnowledgeBaseLoader knowledgeBase)
+    public SopInstancesApiController(GrowRepository repository, TaskRepository taskRepository, KnowledgeBaseLoader knowledgeBase)
     {
         _repository = repository;
+        _taskRepository = taskRepository;
         _knowledgeBase = knowledgeBase;
     }
 
@@ -139,11 +141,32 @@ public sealed class SopInstancesApiController : ApiControllerBase
                 request.SourceRecommendationKey,
                 request.TreatmentRecommendationStableKey,
                 request.Notes);
+
+            CreateReminderTasksForSteps(instance);
+
             return CreatedAtAction(nameof(Detail), new { id = instance.Id }, _repository.GetSopInstance(instance.Id)!.ToDto());
         }
         catch (InvalidOperationException)
         {
             return Conflict(new ApiError("active_sop_exists", "Fuer diesen Grow ist diese SOP bereits aktiv."));
+        }
+    }
+
+    private void CreateReminderTasksForSteps(SopInstance instance)
+    {
+        var steps = _repository.GetSopStepInstances(instance.Id);
+        foreach (var step in steps.Where(s => s.DueAtUtc.HasValue))
+        {
+            var task = new GrowTask
+            {
+                GrowId = instance.GrowId,
+                Title = $"SOP: {instance.SopName} \u2013 {step.Title}",
+                DueAtUtc = step.DueAtUtc,
+                Priority = TaskPriority.Normal,
+                Status = GrowTaskStatus.Open
+            };
+            var taskId = _taskRepository.Create(task);
+            _repository.UpdateSopStepReminderTaskId(step.Id, taskId);
         }
     }
 }
