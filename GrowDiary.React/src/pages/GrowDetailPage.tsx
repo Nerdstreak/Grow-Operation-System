@@ -22,6 +22,8 @@ import type {
   PhotoAssetDto,
   PhotoTag,
   SopInstanceDto,
+  StartSopInstanceRequest,
+  TreatmentRecommendationDto,
   ValueOrigin,
 } from '../types'
 import { formatDate, formatDateTime, formatNumber, toLocalInputValue } from '../utils'
@@ -512,6 +514,39 @@ function GrowDetailPage() {
     }
   }
 
+  async function startRecommendedSop(recommendation: TreatmentRecommendationDto) {
+    if (!growId || !recommendation.sopId) return
+    const savingKey = `start-sop-${recommendation.stableKey}`
+    setSaving(savingKey)
+    setNotice(null)
+    try {
+      const payload: StartSopInstanceRequest = {
+        growId: parseInt(growId, 10),
+        sopId: recommendation.sopId,
+        source: 'Recommendation',
+        sourceRecommendationKey: recommendation.stableKey,
+        treatmentRecommendationStableKey: recommendation.stableKey,
+        notes: 'Gestartet aus Diagnoseempfehlung',
+      }
+      await apiFetch<SopInstanceDto>('/api/sop-instances/start', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+      setNotice('SOP gestartet.')
+      setError(null)
+      await loadSopInstances()
+    } catch (caught) {
+      if (caught instanceof ApiRequestError && caught.payload?.code === 'active_sop_exists') {
+        setNotice('SOP ist bereits aktiv.')
+        setError(null)
+      } else {
+        setError(caught instanceof ApiRequestError ? caught.message : 'SOP konnte nicht gestartet werden.')
+      }
+    } finally {
+      setSaving(null)
+    }
+  }
+
   async function handleGrowAction(action: 'germination' | 'rooting' | 'flip') {
     if (!growId) return
 
@@ -703,6 +738,13 @@ function GrowDetailPage() {
                     {recommendation.safetyNotes.length > 0 && <span>Hinweise: {recommendation.safetyNotes.join(' | ')}</span>}
                     {recommendation.conflictTreatmentIds.length > 0 && <span>Konflikte: {recommendation.conflictTreatmentIds.join(', ')}</span>}
                     {recommendation.hardwareRequirements.length > 0 && <span>Hardware: {recommendation.hardwareRequirements.join(', ')}</span>}
+                    {recommendation.sopId && (
+                      <div>
+                        <button type="button" className="btn" disabled={saving === `start-sop-${recommendation.stableKey}`} onClick={() => void startRecommendedSop(recommendation)}>
+                          {saving === `start-sop-${recommendation.stableKey}` ? 'Startet...' : 'SOP starten'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
