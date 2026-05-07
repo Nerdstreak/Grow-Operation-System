@@ -59,6 +59,45 @@ public sealed class SopInstancesApiController : ApiControllerBase
         return Ok(_repository.GetSopStepInstances(id).Select(step => step.ToDto()).ToList());
     }
 
+    [HttpPut("steps/{stepInstanceId:int}")]
+    [ProducesResponseType(typeof(SopStepInstanceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status409Conflict)]
+    public ActionResult<SopStepInstanceDto> UpdateStep(int stepInstanceId, [FromBody] UpdateSopStepInstanceRequest request)
+    {
+        if (_repository.GetSopStepInstance(stepInstanceId) is null)
+        {
+            return NotFoundError("sop_step_not_found", $"SOP-Step mit Id {stepInstanceId} existiert nicht.");
+        }
+
+        if (!Enum.IsDefined(request.Status))
+        {
+            ModelState.AddModelError(nameof(request.Status), "Status muss Pending, InProgress, Done oder Skipped sein.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationError();
+        }
+
+        try
+        {
+            var step = _repository.UpdateSopStepInstance(
+                stepInstanceId,
+                request.Status,
+                request.Notes,
+                request.MeasurementId,
+                request.JournalEntryId,
+                request.PhotoAssetId);
+            return Ok(step.ToDto());
+        }
+        catch (InvalidOperationException)
+        {
+            return Conflict(new ApiError("sop_instance_not_active", "SOP-Instanz ist nicht aktiv und kann nicht mehr geaendert werden."));
+        }
+    }
+
     [HttpPost("start")]
     [ProducesResponseType(typeof(SopInstanceDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]

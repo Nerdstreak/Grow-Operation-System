@@ -343,6 +343,14 @@ export interface StartSopInstanceRequest {
   notes: string | null
 }
 
+export interface UpdateSopStepInstanceRequest {
+  status: SopStepInstanceStatus
+  notes: string | null
+  measurementId: number | null
+  journalEntryId: number | null
+  photoAssetId: number | null
+}
+
 export interface JournalEntryDto {
   id: number
   growId: number

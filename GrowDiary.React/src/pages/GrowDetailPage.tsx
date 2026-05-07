@@ -22,8 +22,11 @@ import type {
   PhotoAssetDto,
   PhotoTag,
   SopInstanceDto,
+  SopStepInstanceDto,
+  SopStepInstanceStatus,
   StartSopInstanceRequest,
   TreatmentRecommendationDto,
+  UpdateSopStepInstanceRequest,
   ValueOrigin,
 } from '../types'
 import { formatDate, formatDateTime, formatNumber, toLocalInputValue } from '../utils'
@@ -140,6 +143,8 @@ function GrowDetailPage() {
   const [treatmentRecommendations, setTreatmentRecommendations] = useState<GrowTreatmentRecommendationDto | null>(null)
   const [treatmentRecommendationError, setTreatmentRecommendationError] = useState<string | null>(null)
   const [sopInstances, setSopInstances] = useState<SopInstanceDto[]>([])
+  const [sopStepsByInstanceId, setSopStepsByInstanceId] = useState<Record<number, SopStepInstanceDto[]>>({})
+  const [sopStepNotesById, setSopStepNotesById] = useState<Record<number, string>>({})
   const [sopInstanceError, setSopInstanceError] = useState<string | null>(null)
   const [mappingDraftsByConfigId, setMappingDraftsByConfigId] = useState<Record<number, AutoMeasurementFieldMappingUpsertRequest[]>>({})
   const [autoConfigForm, setAutoConfigForm] = useState(emptyAutoConfigForm)
@@ -232,11 +237,20 @@ function GrowDetailPage() {
     if (!growId) return
     try {
       const nextInstances = await apiFetch<SopInstanceDto[]>(`/api/sop-instances?growId=${growId}`, { signal })
-      setSopInstances(nextInstances.filter((instance) => instance.status === 'Active'))
+      const visibleInstances = nextInstances.filter((instance) => instance.status !== 'Cancelled')
+      const stepEntries = await Promise.all(visibleInstances.map(async (instance) => {
+        const steps = await apiFetch<SopStepInstanceDto[]>(`/api/sop-instances/${instance.id}/steps`, { signal })
+        return [instance.id, steps] as const
+      }))
+      setSopInstances(visibleInstances)
+      setSopStepsByInstanceId(Object.fromEntries(stepEntries))
+      setSopStepNotesById(Object.fromEntries(stepEntries.flatMap(([, steps]) => steps.map((step) => [step.id, step.notes ?? ''] as const))))
       setSopInstanceError(null)
     } catch (caught) {
       if (signal?.aborted) return
       setSopInstances([])
+      setSopStepsByInstanceId({})
+      setSopStepNotesById({})
       setSopInstanceError(caught instanceof ApiRequestError ? caught.message : 'SOP-Instanzen konnten nicht geladen werden.')
     }
   }, [growId])
@@ -547,6 +561,32 @@ function GrowDetailPage() {
     }
   }
 
+  async function updateSopStep(step: SopStepInstanceDto, status: SopStepInstanceStatus) {
+    const savingKey = `sop-step-${step.id}-${status}`
+    setSaving(savingKey)
+    setNotice(null)
+    try {
+      const payload: UpdateSopStepInstanceRequest = {
+        status,
+        notes: sopStepNotesById[step.id]?.trim() || null,
+        measurementId: null,
+        journalEntryId: null,
+        photoAssetId: null,
+      }
+      await apiFetch<SopStepInstanceDto>(`/api/sop-instances/steps/${step.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      })
+      setNotice('SOP-Step aktualisiert.')
+      setError(null)
+      await loadSopInstances()
+    } catch (caught) {
+      setError(caught instanceof ApiRequestError ? caught.message : 'SOP-Step konnte nicht aktualisiert werden.')
+    } finally {
+      setSaving(null)
+    }
+  }
+
   async function handleGrowAction(action: 'germination' | 'rooting' | 'flip') {
     if (!growId) return
 
@@ -752,7 +792,7 @@ function GrowDetailPage() {
           )}
         </div>
 
-        <div className="section-label">Aktive SOPs</div>
+        <div className="section-label">SOPs</div>
         <div className="card" style={{ marginBottom: 14 }}>
           <div className="card-header">
             <span className="card-title">SOP-Instanzen</span>
@@ -761,19 +801,55 @@ function GrowDetailPage() {
           {sopInstanceError ? (
             <div className="empty-hint" style={{ color: 'var(--red)' }}>{sopInstanceError}</div>
           ) : sopInstances.length === 0 ? (
-            <div className="empty-hint">Keine aktive SOP-Instanz.</div>
+            <div className="empty-hint">Keine SOP-Instanz.</div>
           ) : (
             <div style={{ display: 'grid' }}>
               {sopInstances.map((instance) => (
-                <div key={instance.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) 120px 120px 180px', gap: 10, alignItems: 'center', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
+                <div key={instance.id} style={{ display: 'grid', gap: 10, padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) 120px 120px 180px', gap: 10, alignItems: 'center' }}>
                   <div>
                     <div className="tl-title">{instance.sopName}</div>
                     <div className="tl-sub">{instance.sopId}</div>
                   </div>
                   <span className="badge badge-neutral">{instance.sopType}</span>
-                  <span className="badge badge-ok">{instance.status}</span>
+                  <span className={`badge ${instance.status === 'Completed' ? 'badge-ok' : 'badge-neutral'}`}>{instance.status}</span>
                   <div className="tl-sub">
-                    {instance.stepCount} Steps · Start {formatDateTime(instance.startedAtUtc)}
+                    {instance.stepCount} Steps - Start {formatDateTime(instance.startedAtUtc)}
+                  </div>
+                  </div>
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {(sopStepsByInstanceId[instance.id] ?? []).map((step) => (
+                      <div key={step.id} style={{ display: 'grid', gridTemplateColumns: '48px minmax(180px, 1fr) 120px 120px minmax(180px, 1fr) 240px', gap: 8, alignItems: 'center' }}>
+                        <span className="tl-sub">#{step.order}</span>
+                        <div>
+                          <div className="tl-title">{step.title}</div>
+                          <div className="tl-sub">{step.stepType}</div>
+                        </div>
+                        <span className="badge badge-neutral">{step.status}</span>
+                        <span className="tl-sub">{step.subSopId ? `SubSOP: ${step.subSopId}` : ''}</span>
+                        <input
+                          value={sopStepNotesById[step.id] ?? ''}
+                          onChange={(event) => setSopStepNotesById((current) => ({ ...current, [step.id]: event.target.value }))}
+                          placeholder="Notiz"
+                          disabled={instance.status !== 'Active'}
+                        />
+                        {instance.status === 'Active' ? (
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            <button type="button" className="btn btn-secondary" disabled={saving === `sop-step-${step.id}-InProgress`} onClick={() => void updateSopStep(step, 'InProgress')}>
+                              Starten
+                            </button>
+                            <button type="button" className="btn" disabled={saving === `sop-step-${step.id}-Done`} onClick={() => void updateSopStep(step, 'Done')}>
+                              Erledigt
+                            </button>
+                            <button type="button" className="btn btn-secondary" disabled={saving === `sop-step-${step.id}-Skipped`} onClick={() => void updateSopStep(step, 'Skipped')}>
+                              Ueberspringen
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="tl-sub">Keine Aktionen</span>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}

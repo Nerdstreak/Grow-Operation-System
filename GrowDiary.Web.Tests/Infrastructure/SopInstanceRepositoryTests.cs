@@ -116,6 +116,112 @@ public sealed class SopInstanceRepositoryTests : IDisposable
             _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null));
     }
 
+    [Fact]
+    public void UpdateSopStepInstance_SetztInProgressUndNotes()
+    {
+        var instance = StartRoutine();
+        var step = _repository.GetSopStepInstances(instance.Id).First();
+
+        var updated = _repository.UpdateSopStepInstance(
+            step.Id,
+            SopStepInstanceStatus.InProgress,
+            "In Arbeit",
+            measurementId: null,
+            journalEntryId: null,
+            photoAssetId: null);
+
+        Assert.Equal(SopStepInstanceStatus.InProgress, updated.Status);
+        Assert.NotNull(updated.StartedAtUtc);
+        Assert.Null(updated.CompletedAtUtc);
+        Assert.Null(updated.SkippedAtUtc);
+        Assert.Equal("In Arbeit", updated.Notes);
+        Assert.Equal(SopInstanceStatus.Active, _repository.GetSopInstance(instance.Id)!.Status);
+    }
+
+    [Fact]
+    public void UpdateSopStepInstance_SetztDoneUndCompletedAt()
+    {
+        var instance = StartRoutine();
+        var step = _repository.GetSopStepInstances(instance.Id).First();
+
+        var updated = _repository.UpdateSopStepInstance(step.Id, SopStepInstanceStatus.Done, "Erledigt", null, null, null);
+
+        Assert.Equal(SopStepInstanceStatus.Done, updated.Status);
+        Assert.NotNull(updated.StartedAtUtc);
+        Assert.NotNull(updated.CompletedAtUtc);
+        Assert.Null(updated.SkippedAtUtc);
+        Assert.Equal("Erledigt", updated.Notes);
+    }
+
+    [Fact]
+    public void UpdateSopStepInstance_SetztSkippedUndSkippedAt()
+    {
+        var instance = StartRoutine();
+        var step = _repository.GetSopStepInstances(instance.Id).First();
+
+        var updated = _repository.UpdateSopStepInstance(step.Id, SopStepInstanceStatus.Skipped, "Nicht noetig", null, null, null);
+
+        Assert.Equal(SopStepInstanceStatus.Skipped, updated.Status);
+        Assert.Null(updated.StartedAtUtc);
+        Assert.Null(updated.CompletedAtUtc);
+        Assert.NotNull(updated.SkippedAtUtc);
+        Assert.Equal("Nicht noetig", updated.Notes);
+    }
+
+    [Fact]
+    public void UpdateSopStepInstance_PendingResetLeertZeitstempel()
+    {
+        var instance = StartRoutine();
+        var step = _repository.GetSopStepInstances(instance.Id).First();
+        _repository.UpdateSopStepInstance(step.Id, SopStepInstanceStatus.Done, "Erledigt", null, null, null);
+
+        var reset = _repository.UpdateSopStepInstance(step.Id, SopStepInstanceStatus.Pending, null, null, null, null);
+
+        Assert.Equal(SopStepInstanceStatus.Pending, reset.Status);
+        Assert.Null(reset.StartedAtUtc);
+        Assert.Null(reset.CompletedAtUtc);
+        Assert.Null(reset.SkippedAtUtc);
+        Assert.Null(reset.Notes);
+    }
+
+    [Fact]
+    public void UpdateSopStepInstance_SchliesstSopWennAlleStepsDoneOderSkippedSind()
+    {
+        var instance = StartRoutine();
+        var steps = _repository.GetSopStepInstances(instance.Id);
+
+        for (var i = 0; i < steps.Count; i++)
+        {
+            var status = i % 2 == 0 ? SopStepInstanceStatus.Done : SopStepInstanceStatus.Skipped;
+            _repository.UpdateSopStepInstance(steps[i].Id, status, $"Step {i}", null, null, null);
+        }
+
+        var stored = _repository.GetSopInstance(instance.Id)!;
+        Assert.Equal(SopInstanceStatus.Completed, stored.Status);
+        Assert.NotNull(stored.CompletedAtUtc);
+    }
+
+    [Fact]
+    public void UpdateSopStepInstance_VerweigertUpdateBeiCompletedSop()
+    {
+        var instance = StartRoutine();
+        foreach (var step in _repository.GetSopStepInstances(instance.Id))
+        {
+            _repository.UpdateSopStepInstance(step.Id, SopStepInstanceStatus.Done, null, null, null, null);
+        }
+
+        var completedStep = _repository.GetSopStepInstances(instance.Id).First();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _repository.UpdateSopStepInstance(completedStep.Id, SopStepInstanceStatus.Pending, null, null, null, null));
+    }
+
+    [Fact]
+    public void GetSopStepInstance_GibtNullBeiUnbekanntemStep()
+    {
+        Assert.Null(_repository.GetSopStepInstance(999999));
+    }
+
     private int CreateGrow()
         => _repository.CreateGrow(new GrowRun
         {
@@ -123,6 +229,13 @@ public sealed class SopInstanceRepositoryTests : IDisposable
             StartDate = new DateTime(2026, 5, 1),
             Status = GrowStatus.Running
         });
+
+    private SopInstance StartRoutine()
+    {
+        var growId = CreateGrow();
+        var sop = _knowledgeBase.Sops.Single(item => item.Id == "daily-measurement-routine");
+        return _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);
+    }
 
     private bool TableExists(string tableName)
     {

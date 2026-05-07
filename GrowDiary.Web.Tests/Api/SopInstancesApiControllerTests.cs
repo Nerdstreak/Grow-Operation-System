@@ -149,6 +149,66 @@ public sealed class SopInstancesApiControllerTests : IDisposable
         Assert.Contains(nameof(StartSopInstanceRequest.SopId), error.FieldErrors!.Keys);
     }
 
+    [Fact]
+    public void UpdateStep_SetztStatusUndNotes()
+    {
+        var instance = StartRoutine();
+        var step = _repository.GetSopStepInstances(instance.Id).First();
+
+        var result = _controller.UpdateStep(step.Id, new UpdateSopStepInstanceRequest
+        {
+            Status = SopStepInstanceStatus.InProgress,
+            Notes = "Wird ausgefuehrt"
+        }).Result;
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<SopStepInstanceDto>(ok.Value);
+        Assert.Equal(SopStepInstanceStatus.InProgress, dto.Status);
+        Assert.NotNull(dto.StartedAtUtc);
+        Assert.Equal("Wird ausgefuehrt", dto.Notes);
+    }
+
+    [Fact]
+    public void UpdateStep_ReturnsNotFoundForMissingStep()
+    {
+        var result = _controller.UpdateStep(999999, new UpdateSopStepInstanceRequest { Status = SopStepInstanceStatus.Done }).Result;
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        var error = Assert.IsType<ApiError>(notFound.Value);
+        Assert.Equal("sop_step_not_found", error.Code);
+    }
+
+    [Fact]
+    public void UpdateStep_RejectsInvalidStatus()
+    {
+        var instance = StartRoutine();
+        var step = _repository.GetSopStepInstances(instance.Id).First();
+
+        var result = _controller.UpdateStep(step.Id, new UpdateSopStepInstanceRequest { Status = (SopStepInstanceStatus)999 }).Result;
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        var error = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Equal("validation_failed", error.Code);
+        Assert.Contains(nameof(UpdateSopStepInstanceRequest.Status), error.FieldErrors!.Keys);
+    }
+
+    [Fact]
+    public void UpdateStep_ReturnsConflictForCompletedSop()
+    {
+        var instance = StartRoutine();
+        foreach (var step in _repository.GetSopStepInstances(instance.Id))
+        {
+            _repository.UpdateSopStepInstance(step.Id, SopStepInstanceStatus.Done, null, null, null, null);
+        }
+
+        var completedStep = _repository.GetSopStepInstances(instance.Id).First();
+        var result = _controller.UpdateStep(completedStep.Id, new UpdateSopStepInstanceRequest { Status = SopStepInstanceStatus.Pending }).Result;
+
+        var conflict = Assert.IsType<ConflictObjectResult>(result);
+        var error = Assert.IsType<ApiError>(conflict.Value);
+        Assert.Equal("sop_instance_not_active", error.Code);
+    }
+
     private int CreateGrow()
         => _repository.CreateGrow(new GrowRun
         {
@@ -156,6 +216,18 @@ public sealed class SopInstancesApiControllerTests : IDisposable
             StartDate = new DateTime(2026, 5, 1),
             Status = GrowStatus.Running
         });
+
+    private SopInstance StartRoutine()
+    {
+        var growId = CreateGrow();
+        var create = _controller.Start(new StartSopInstanceRequest
+        {
+            GrowId = growId,
+            SopId = "daily-measurement-routine"
+        });
+        var created = Assert.IsType<CreatedAtActionResult>(create.Result);
+        return _repository.GetSopInstance(Assert.IsType<SopInstanceDto>(created.Value).Id)!;
+    }
 
     private static string FindProjectRoot()
     {
