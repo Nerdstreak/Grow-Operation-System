@@ -9,11 +9,16 @@ public sealed class AutoMeasurementExecutionService
 
     private readonly GrowRepository _repository;
     private readonly SensorReadingRepository _sensorReadings;
+    private readonly AutoMeasurementValueGuard _valueGuard;
 
-    public AutoMeasurementExecutionService(GrowRepository repository, SensorReadingRepository sensorReadings)
+    public AutoMeasurementExecutionService(
+        GrowRepository repository,
+        SensorReadingRepository sensorReadings,
+        AutoMeasurementValueGuard valueGuard)
     {
         _repository = repository;
         _sensorReadings = sensorReadings;
+        _valueGuard = valueGuard;
     }
 
     public int ExecuteDue(DateTime nowUtc)
@@ -121,6 +126,7 @@ public sealed class AutoMeasurementExecutionService
             };
 
             var anyValueSet = false;
+            var runMessages = new List<string>();
             foreach (var mapping in mappings)
             {
                 var readings = _sensorReadings.GetReadings(
@@ -141,6 +147,25 @@ public sealed class AutoMeasurementExecutionService
                 }
 
                 var value = Aggregate(readings, mapping.Aggregation);
+                var guardResult = _valueGuard.Check(mapping.MeasurementField, value);
+                if (guardResult.Severity == AutoMeasurementValueSeverity.Reject)
+                {
+                    var message = guardResult.Message ?? $"{mapping.MeasurementField} Wert {value} wurde verworfen.";
+                    if (mapping.IsRequired)
+                    {
+                        MarkSkipped(run, $"Pflichtfeld abgelehnt: {message}");
+                        return;
+                    }
+
+                    runMessages.Add($"Optionaler Wert verworfen: {message}");
+                    continue;
+                }
+
+                if (guardResult.Severity == AutoMeasurementValueSeverity.Warning && !string.IsNullOrWhiteSpace(guardResult.Message))
+                {
+                    runMessages.Add($"Warnung: {guardResult.Message}");
+                }
+
                 if (ApplyValue(measurement, mapping.MeasurementField, value))
                 {
                     anyValueSet = true;
@@ -149,14 +174,17 @@ public sealed class AutoMeasurementExecutionService
 
             if (!anyValueSet)
             {
-                MarkSkipped(run, "Keine AutoMeasurement-Felder konnten aus Sensorwerten gesetzt werden.");
+                var message = runMessages.Count > 0
+                    ? $"Keine AutoMeasurement-Felder konnten gesetzt werden. {string.Join(" | ", runMessages)}"
+                    : "Keine AutoMeasurement-Felder konnten aus Sensorwerten gesetzt werden.";
+                MarkSkipped(run, message);
                 return;
             }
 
             var measurementId = _repository.CreateMeasurement(measurement);
             run.MeasurementId = measurementId;
             run.Status = AutoMeasurementRunStatus.Created;
-            run.ErrorMessage = null;
+            run.ErrorMessage = runMessages.Count > 0 ? string.Join(" | ", runMessages) : null;
             _repository.UpdateAutoMeasurementRun(run);
         }
         catch (Exception ex)

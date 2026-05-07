@@ -21,7 +21,7 @@ public sealed class AutoMeasurementExecutionServiceTests : IDisposable
         new DatabaseInitializer(_paths, NullLogger<DatabaseInitializer>.Instance).Initialize();
         _repository = new GrowRepository(_paths);
         _sensorReadings = new SensorReadingRepository(_paths);
-        _service = new AutoMeasurementExecutionService(_repository, _sensorReadings);
+        _service = new AutoMeasurementExecutionService(_repository, _sensorReadings, new AutoMeasurementValueGuard());
     }
 
     public void Dispose()
@@ -245,6 +245,111 @@ public sealed class AutoMeasurementExecutionServiceTests : IDisposable
 
         Assert.Empty(_repository.GetMeasurementsForGrow(context.GrowId));
         Assert.Empty(_repository.GetAutoMeasurementRunsByConfig(context.ConfigId));
+    }
+
+    [Fact]
+    public void ExecuteDue_RequiredRejectedValueSkipsRunAndCreatesNoMeasurement()
+    {
+        var context = CreateContext(AutoMeasurementTriggerKind.LightOnDelay, AutoMeasurementField.ReservoirPh, "reservoir-ph");
+        var occurredAt = Utc(2026, 5, 7, 8, 0);
+        AddTransition(context.TentId, LightTransitionKind.LightOn, occurredAt);
+        AddReading(context.TentId, "reservoir-ph", 0, occurredAt);
+
+        _service.ExecuteDue(occurredAt);
+
+        Assert.Empty(_repository.GetMeasurementsForGrow(context.GrowId));
+        var run = Assert.Single(_repository.GetAutoMeasurementRunsByConfig(context.ConfigId));
+        Assert.Equal(AutoMeasurementRunStatus.Skipped, run.Status);
+        Assert.Contains(nameof(AutoMeasurementField.ReservoirPh), run.ErrorMessage);
+        Assert.Contains("0", run.ErrorMessage);
+    }
+
+    [Fact]
+    public void ExecuteDue_OptionalRejectedValueIsOmittedWhenAnotherFieldIsValid()
+    {
+        var context = CreateContext(AutoMeasurementTriggerKind.LightOnDelay, AutoMeasurementField.AirTemperatureC, "temperature");
+        _repository.ReplaceAutoMeasurementFieldMappings(context.ConfigId, new[]
+        {
+            new AutoMeasurementFieldMapping
+            {
+                MeasurementField = AutoMeasurementField.AirTemperatureC,
+                MetricKey = "temperature",
+                Aggregation = AutoMeasurementAggregation.Latest,
+                IsRequired = true
+            },
+            new AutoMeasurementFieldMapping
+            {
+                MeasurementField = AutoMeasurementField.ReservoirPh,
+                MetricKey = "reservoir-ph",
+                Aggregation = AutoMeasurementAggregation.Latest,
+                IsRequired = false
+            }
+        });
+        var occurredAt = Utc(2026, 5, 7, 8, 0);
+        AddTransition(context.TentId, LightTransitionKind.LightOn, occurredAt);
+        AddReading(context.TentId, "temperature", 24, occurredAt);
+        AddReading(context.TentId, "reservoir-ph", 0, occurredAt);
+
+        _service.ExecuteDue(occurredAt);
+
+        var measurement = Assert.Single(_repository.GetMeasurementsForGrow(context.GrowId));
+        Assert.Equal(24, measurement.AirTemperatureC);
+        Assert.Null(measurement.ReservoirPh);
+        var run = Assert.Single(_repository.GetAutoMeasurementRunsByConfig(context.ConfigId));
+        Assert.Equal(AutoMeasurementRunStatus.Created, run.Status);
+        Assert.Contains(nameof(AutoMeasurementField.ReservoirPh), run.ErrorMessage);
+    }
+
+    [Fact]
+    public void ExecuteDue_WarningValueCreatesMeasurementAndStoresWarning()
+    {
+        var context = CreateContext(AutoMeasurementTriggerKind.LightOnDelay, AutoMeasurementField.DissolvedOxygenMgL, "dissolved-oxygen");
+        var occurredAt = Utc(2026, 5, 7, 8, 0);
+        AddTransition(context.TentId, LightTransitionKind.LightOn, occurredAt);
+        AddReading(context.TentId, "dissolved-oxygen", 2, occurredAt);
+
+        _service.ExecuteDue(occurredAt);
+
+        var measurement = Assert.Single(_repository.GetMeasurementsForGrow(context.GrowId));
+        Assert.Equal(2, measurement.DissolvedOxygenMgL);
+        var run = Assert.Single(_repository.GetAutoMeasurementRunsByConfig(context.ConfigId));
+        Assert.Equal(AutoMeasurementRunStatus.Created, run.Status);
+        Assert.Contains("Warnung", run.ErrorMessage);
+        Assert.Contains(nameof(AutoMeasurementField.DissolvedOxygenMgL), run.ErrorMessage);
+    }
+
+    [Fact]
+    public void ExecuteDue_AllValuesRejectedOrMissingSkipsRunAndCreatesNoMeasurement()
+    {
+        var context = CreateContext(AutoMeasurementTriggerKind.LightOnDelay, AutoMeasurementField.ReservoirPh, "reservoir-ph", isRequired: false);
+        _repository.ReplaceAutoMeasurementFieldMappings(context.ConfigId, new[]
+        {
+            new AutoMeasurementFieldMapping
+            {
+                MeasurementField = AutoMeasurementField.ReservoirPh,
+                MetricKey = "reservoir-ph",
+                Aggregation = AutoMeasurementAggregation.Latest,
+                IsRequired = false
+            },
+            new AutoMeasurementFieldMapping
+            {
+                MeasurementField = AutoMeasurementField.Co2Ppm,
+                MetricKey = "co2",
+                Aggregation = AutoMeasurementAggregation.Latest,
+                IsRequired = false
+            }
+        });
+        var occurredAt = Utc(2026, 5, 7, 8, 0);
+        AddTransition(context.TentId, LightTransitionKind.LightOn, occurredAt);
+        AddReading(context.TentId, "reservoir-ph", 0, occurredAt);
+
+        _service.ExecuteDue(occurredAt);
+
+        Assert.Empty(_repository.GetMeasurementsForGrow(context.GrowId));
+        var run = Assert.Single(_repository.GetAutoMeasurementRunsByConfig(context.ConfigId));
+        Assert.Equal(AutoMeasurementRunStatus.Skipped, run.Status);
+        Assert.Contains(nameof(AutoMeasurementField.ReservoirPh), run.ErrorMessage);
+        Assert.Contains("Keine", run.ErrorMessage);
     }
 
     private TestContext CreateContext(
