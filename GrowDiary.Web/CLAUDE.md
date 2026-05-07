@@ -89,7 +89,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 - `AutoMeasurementConfigs`, `AutoMeasurementFieldMappings` und `AutoMeasurementRuns`: Konfiguration, Mapping, Ausfuehrungsstatus, Hard-Limit-Hinweise und Idempotenz fuer automatische Measurements.
 - `LightSchedules`: additive Lichtplaene pro Tent mit HH:mm-On/Off-Zeiten, Source und optionaler TimeZoneId.
 - `LightTransitionEvents`: LightOn-/LightOff-Events pro Tent als Trigger- und Idempotenzgrundlage; keine automatische Measurement-Erzeugung.
-- `SopInstances` und `SopStepInstances`: aus Knowledge-SOPs gestartete Workflow-Koepfe und materialisierte Steps; Step-Status kann aktualisiert werden, SubSOPs werden nur referenziert.
+- `SopInstances` und `SopStepInstances`: aus Knowledge-SOPs gestartete Workflow-Koepfe und materialisierte Steps; Step-Status kann aktualisiert werden, SubSOPs werden nur referenziert. E4: Steps haben DueAtUtc/AvailableAtUtc und optionalen ReminderTaskId-Verweis; SopInstances haben NextStepDueAtUtc, IsRecurring, RecurrenceIntervalDays, DueAtUtc.
 
 ### DB-Initialisierung
 
@@ -129,6 +129,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint E1 ABGESCHLOSSEN: SOP-Instanzen koennen aus Knowledge-SOPs gestartet und mit materialisierten Steps per API gelesen werden.
 - Sprint E2 ABGESCHLOSSEN: SOP-Empfehlungen koennen aus der GrowDetail-Diagnose gestartet werden; SopInstances speichern Recommendation-Bezug, ohne Step-Ausfuehrung.
 - Sprint E3 ABGESCHLOSSEN: SOP-Steps koennen gestartet, abgeschlossen oder uebersprungen werden; SopInstances werden automatisch Completed, wenn alle Steps Done/Skipped sind.
+- Sprint E4 ABGESCHLOSSEN: SOP-Scheduling (DueAtUtc, NextStepDueAtUtc, IsRecurring, RecurrenceIntervalDays); GrowTask-Reminder fuer Steps mit DueAtUtc; Recurring wird markiert, kein automatischer Neustart.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow
