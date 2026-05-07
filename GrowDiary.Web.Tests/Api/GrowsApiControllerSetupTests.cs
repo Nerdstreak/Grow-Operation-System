@@ -3,6 +3,7 @@ using GrowDiary.Web.Api.Controllers;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
+using GrowDiary.Web.Services.Knowledge;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -26,7 +27,8 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
         _controller = new GrowsApiController(
             _growRepository,
             new AuditRepository(_paths),
-            new WeekCounterService());
+            new WeekCounterService(),
+            CreateDeviationAnalyzer());
     }
 
     public void Dispose()
@@ -117,6 +119,45 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
         Assert.Equal(setup.Id, _growRepository.GetGrow(growId)!.SetupId);
     }
 
+    [Fact]
+    public void Deviations_MissingGrow_Returns404()
+    {
+        var result = _controller.Deviations(9999).Result;
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        var error = Assert.IsType<ApiError>(notFound.Value);
+        Assert.Equal("grow_not_found", error.Code);
+    }
+
+    [Fact]
+    public void Deviations_WithHydroMeasurement_ReturnsStructuredDeviations()
+    {
+        var growId = _growRepository.CreateGrow(new GrowRun
+        {
+            Name = "Hydro Grow",
+            StartDate = new DateTime(2026, 1, 1),
+            MediumType = MediumType.Hydro,
+            IrrigationType = IrrigationType.ActiveHydro,
+            HydroStyle = HydroStyle.RDWC,
+            Status = GrowStatus.Running
+        });
+        _growRepository.CreateMeasurement(new Measurement
+        {
+            GrowId = growId,
+            Stage = GrowStage.Veg,
+            TakenAt = DateTime.UtcNow,
+            ReservoirWaterTempC = 25
+        });
+
+        var result = _controller.Deviations(growId).Result;
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var deviations = Assert.IsAssignableFrom<IReadOnlyList<GrowDeviation>>(ok.Value);
+        var deviation = Assert.Single(deviations);
+        Assert.Equal(DeviationMetric.WaterTemp, deviation.Metric);
+        Assert.Equal(DeviationSeverity.Critical, deviation.Severity);
+    }
+
     private Tent DefaultTent()
         => _growRepository.GetTents().Single();
 
@@ -140,6 +181,13 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
             Status = GrowStatus.Planning,
             Environment = GrowEnvironment.Indoor
         };
+
+    private DeviationAnalyzerService CreateDeviationAnalyzer()
+    {
+        var loader = new KnowledgeBaseLoader(_paths, NullLogger<KnowledgeBaseLoader>.Instance);
+        loader.Initialize();
+        return new DeviationAnalyzerService(new TargetValueService(loader));
+    }
 
     private static void AssertSetupValidationError(ActionResult? result)
     {

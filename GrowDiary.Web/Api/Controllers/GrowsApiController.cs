@@ -18,15 +18,18 @@ public sealed class GrowsApiController : ApiControllerBase
     private readonly GrowRepository _repository;
     private readonly AuditRepository _auditRepository;
     private readonly WeekCounterService _weekCounter;
+    private readonly DeviationAnalyzerService _deviationAnalyzer;
 
     public GrowsApiController(
         GrowRepository repository,
         AuditRepository auditRepository,
-        WeekCounterService weekCounter)
+        WeekCounterService weekCounter,
+        DeviationAnalyzerService deviationAnalyzer)
     {
         _repository = repository;
         _auditRepository = auditRepository;
         _weekCounter = weekCounter;
+        _deviationAnalyzer = deviationAnalyzer;
     }
 
     [HttpGet]
@@ -54,6 +57,21 @@ public sealed class GrowsApiController : ApiControllerBase
         }
 
         return Ok(grow.ToDetailDto());
+    }
+
+    [HttpGet("{growId:int}/deviations")]
+    [ProducesResponseType(typeof(IReadOnlyList<GrowDeviation>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<IReadOnlyList<GrowDeviation>> Deviations(int growId)
+    {
+        var grow = _repository.GetGrow(growId);
+        if (grow is null)
+        {
+            return NotFoundError("grow_not_found", $"Grow mit Id {growId} existiert nicht.");
+        }
+
+        var measurements = _repository.GetMeasurementsForGrow(growId);
+        return Ok(_deviationAnalyzer.Analyze(grow, measurements).ToList());
     }
 
     [HttpPost]

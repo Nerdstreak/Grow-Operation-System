@@ -36,6 +36,9 @@ export type AutoMeasurementField =
   | 'Co2Ppm'
 export type AutoMeasurementTriggerKind = 'Manual' | 'LightOnDelay' | 'LightOffDelay'
 export type AutoMeasurementRunStatus = 'Pending' | 'Created' | 'Skipped' | 'Failed'
+export type DeviationMetric = 'Ph' | 'Ec' | 'Orp' | 'WaterTemp' | 'Vpd' | 'Ppfd' | 'Co2' | 'DissolvedOxygen' | 'GerminationStatus'
+export type DeviationSeverity = 'Info' | 'Warning' | 'Critical'
+export type DeviationSource = 'Manual' | 'HomeAssistant' | 'Mixed' | 'Unknown'
 
 export interface ApiError {
   code: string
@@ -98,6 +101,27 @@ export interface MeasurementDto {
   solutionChange: boolean
   ppfdMol: number | null
   co2Ppm: number | null
+}
+
+export interface GrowDeviationDto {
+  growId: number
+  growName: string
+  stableKey: string
+  metric: DeviationMetric
+  actualValue: number | null
+  targetMin: number | null
+  targetMax: number | null
+  unit: string | null
+  severity: DeviationSeverity
+  message: string
+  recommendationHint: string | null
+  symptomId: string | null
+  sourceMeasurementIds: number[]
+  recommendation: string
+  consecutiveCount: number
+  firstDetectedAtUtc: string | null
+  lastDetectedAtUtc: string | null
+  source: DeviationSource
 }
 
 export interface MeasurementUpsertPayload {
