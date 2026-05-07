@@ -65,6 +65,7 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
         var repository  = scope.ServiceProvider.GetRequiredService<GrowRepository>();
         var sensorRepo  = scope.ServiceProvider.GetRequiredService<SensorReadingRepository>();
         var haService   = scope.ServiceProvider.GetRequiredService<HomeAssistantService>();
+        var lightStatus = scope.ServiceProvider.GetRequiredService<LightStatusTransitionService>();
 
         var settings = repository.GetHomeAssistantSettings();
         if (!settings.IsConfigured) return;
@@ -91,6 +92,11 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
                 }
 
                 // Kamera-Snapshot täglich nach 12:00 Uhr
+                if (states.TryGetValue(TentSensorMetricKeyMap.Resolve(SensorMetricType.LightStatus), out var lightState))
+                {
+                    lightStatus.Process(tent.Id, lightState, capturedAt);
+                }
+
                 await TryCaptureCamera(haService, settings, tent, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

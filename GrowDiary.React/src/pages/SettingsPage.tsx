@@ -3,9 +3,12 @@ import type { FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type {
   CreateSetupRequest,
+  CreateLightScheduleRequest,
   HomeAssistantSettingsDto,
   HvacControllerType,
+  LightScheduleDto,
   LightControllerType,
+  LightSource,
   MotherHealthStatus,
   QuarantineResult,
   SensorMetricType,
@@ -15,6 +18,7 @@ import type {
   TentDto,
   TentSensorDto,
   TentType,
+  UpdateLightScheduleRequest,
   UpdateSetupRequest,
   UpdateTentRequest,
   CreateStrainRequest,
@@ -52,11 +56,21 @@ type StrainDraft = {
   vpdPreferenceShift: string
 }
 
+type LightScheduleDraft = {
+  name: string
+  isActive: boolean
+  lightsOnTime: string
+  lightsOffTime: string
+  timeZoneId: string
+  source: LightSource
+}
+
 const tentTypeOptions: TentType[] = ['Production', 'Mother', 'Quarantine', 'Propagation', 'MultiPurpose']
 const setupTypeOptions: SetupType[] = ['Production', 'Mother', 'Quarantine']
 const motherHealthOptions: Array<MotherHealthStatus | ''> = ['', 'Stable', 'Watch', 'Critical']
 const quarantineResultOptions: Array<QuarantineResult | ''> = ['', 'Pending', 'Cleared', 'Rejected']
 const strainDominanceOptions: StrainDominance[] = ['Unknown', 'Indica', 'Sativa', 'Hybrid']
+const lightSourceOptions: LightSource[] = ['Manual', 'HomeAssistant']
 const lightControllerOptions: Array<LightControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
 const hvacControllerOptions: Array<HvacControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
 
@@ -101,6 +115,9 @@ function SettingsPage() {
   const [strains, setStrains] = useState<StrainDto[]>([])
   const [strainDraft, setStrainDraft] = useState<StrainDraft>(createStrainDraft())
   const [strainError, setStrainError] = useState<string | null>(null)
+  const [lightSchedulesByTent, setLightSchedulesByTent] = useState<Record<number, LightScheduleDto[]>>({})
+  const [lightScheduleDrafts, setLightScheduleDrafts] = useState<Record<number, LightScheduleDraft>>({})
+  const [lightScheduleErrors, setLightScheduleErrors] = useState<Record<number, string>>({})
   const [setupDrafts, setSetupDrafts] = useState<Record<number, SetupDraft>>({})
   const [setupErrors, setSetupErrors] = useState<Record<number, string>>({})
   const [setupEditErrors, setSetupEditErrors] = useState<Record<number, string>>({})
@@ -122,9 +139,14 @@ function SettingsPage() {
           apiFetch<SetupDto[]>('/api/setups', { signal: controller.signal }),
           apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal }),
         ])
+        const scheduleEntries = await Promise.all(data.tents.map(async (tent) => [
+          tent.id,
+          await apiFetch<LightScheduleDto[]>(`/api/light-schedules?tentId=${tent.id}`, { signal: controller.signal }),
+        ] as const))
         setSettings(data)
         setSetups(setupData)
         setStrains(strainData)
+        setLightSchedulesByTent(Object.fromEntries(scheduleEntries))
         setSavedTentTypes(Object.fromEntries(data.tents.map((tent) => [tent.id, tent.tentType])))
       } catch (caught) {
         if (controller.signal.aborted) return
@@ -323,6 +345,85 @@ function SettingsPage() {
     }
   }
 
+  async function loadLightSchedules(tentId: number) {
+    const schedules = await apiFetch<LightScheduleDto[]>(`/api/light-schedules?tentId=${tentId}`)
+    setLightSchedulesByTent((current) => ({ ...current, [tentId]: schedules }))
+  }
+
+  async function handleCreateLightSchedule(event: FormEvent<HTMLFormElement>, tent: TentDto) {
+    event.preventDefault()
+    const draft = getLightScheduleDraft(tent.id, lightScheduleDrafts)
+    const request: CreateLightScheduleRequest = {
+      tentId: tent.id,
+      name: draft.name.trim(),
+      isActive: draft.isActive,
+      lightsOnTime: draft.lightsOnTime.trim(),
+      lightsOffTime: draft.lightsOffTime.trim(),
+      timeZoneId: toNullableString(draft.timeZoneId),
+      source: draft.source,
+    }
+
+    if (!request.name) {
+      setLightScheduleErrors((current) => ({ ...current, [tent.id]: 'Name darf nicht leer sein.' }))
+      return
+    }
+
+    setSaving(`light-schedule-${tent.id}`)
+    setLightScheduleErrors((current) => {
+      const next = { ...current }
+      delete next[tent.id]
+      return next
+    })
+
+    try {
+      const saved = await apiFetch<LightScheduleDto>('/api/light-schedules', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      setLightSchedulesByTent((current) => ({ ...current, [tent.id]: [...(current[tent.id] ?? []), saved] }))
+      setLightScheduleDrafts((current) => ({ ...current, [tent.id]: createLightScheduleDraft() }))
+    } catch (caught) {
+      setLightScheduleErrors((current) => ({ ...current, [tent.id]: formatApiError(caught, 'LightSchedule konnte nicht angelegt werden.') }))
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function saveLightSchedule(schedule: LightScheduleDto) {
+    const request: UpdateLightScheduleRequest = {
+      name: schedule.name.trim(),
+      isActive: schedule.isActive,
+      lightsOnTime: schedule.lightsOnTime.trim(),
+      lightsOffTime: schedule.lightsOffTime.trim(),
+      timeZoneId: toNullableString(schedule.timeZoneId),
+      source: schedule.source,
+    }
+
+    if (!request.name) {
+      setLightScheduleErrors((current) => ({ ...current, [schedule.tentId]: 'Name darf nicht leer sein.' }))
+      return
+    }
+
+    setSaving(`light-schedule-edit-${schedule.id}`)
+    setLightScheduleErrors((current) => {
+      const next = { ...current }
+      delete next[schedule.tentId]
+      return next
+    })
+
+    try {
+      await apiFetch<LightScheduleDto>(`/api/light-schedules/${schedule.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(request),
+      })
+      await loadLightSchedules(schedule.tentId)
+    } catch (caught) {
+      setLightScheduleErrors((current) => ({ ...current, [schedule.tentId]: formatApiError(caught, 'LightSchedule konnte nicht gespeichert werden.') }))
+    } finally {
+      setSaving(null)
+    }
+  }
+
   function updateTent(id: number, patch: Partial<TentDto>) {
     setSettings((current) => current ? {
       ...current,
@@ -339,6 +440,20 @@ function SettingsPage() {
 
   function updateSetup(id: number, patch: Partial<SetupDto>) {
     setSetups((current) => current.map((setup) => setup.id === id ? { ...setup, ...patch } : setup))
+  }
+
+  function updateLightScheduleDraft(tentId: number, patch: Partial<LightScheduleDraft>) {
+    setLightScheduleDrafts((current) => ({
+      ...current,
+      [tentId]: { ...getLightScheduleDraft(tentId, current), ...patch },
+    }))
+  }
+
+  function updateLightSchedule(id: number, tentId: number, patch: Partial<LightScheduleDto>) {
+    setLightSchedulesByTent((current) => ({
+      ...current,
+      [tentId]: (current[tentId] ?? []).map((schedule) => schedule.id === id ? { ...schedule, ...patch } : schedule),
+    }))
   }
 
   function updateStrain(id: number, patch: Partial<StrainDto>) {
@@ -572,6 +687,8 @@ function SettingsPage() {
             const hasUnsavedTentType = tent.tentType !== savedTentType
             const allowedSetupTypes = getAllowedSetupTypes(savedTentType)
             const normalizedSetupType = getNormalizedSetupType(tent, setupDrafts, savedTentType)
+            const lightSchedules = lightSchedulesByTent[tent.id] ?? []
+            const lightScheduleDraft = getLightScheduleDraft(tent.id, lightScheduleDrafts)
 
             return (
               <div key={tent.id} className="card">
@@ -780,6 +897,98 @@ function SettingsPage() {
                 </div>
 
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
+                  LightSchedules
+                </div>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {lightSchedules.length === 0 ? (
+                    <div style={{ fontSize: 13, color: 'var(--faint)' }}>Keine LightSchedules angelegt.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      {lightSchedules.map((schedule) => (
+                        <div
+                          key={schedule.id}
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'minmax(120px, 1fr) 92px 92px minmax(110px, 140px) minmax(120px, 1fr) auto auto',
+                            gap: 8,
+                            alignItems: 'end',
+                            padding: '9px 10px',
+                            border: '1px solid var(--border)',
+                            borderRadius: 7,
+                            background: 'var(--surface2)',
+                          }}
+                        >
+                          <label className="field">
+                            <span>Name</span>
+                            <input value={schedule.name} onChange={(event) => updateLightSchedule(schedule.id, tent.id, { name: event.target.value })} />
+                          </label>
+                          <label className="field">
+                            <span>An</span>
+                            <input type="time" value={schedule.lightsOnTime} onChange={(event) => updateLightSchedule(schedule.id, tent.id, { lightsOnTime: event.target.value })} />
+                          </label>
+                          <label className="field">
+                            <span>Aus</span>
+                            <input type="time" value={schedule.lightsOffTime} onChange={(event) => updateLightSchedule(schedule.id, tent.id, { lightsOffTime: event.target.value })} />
+                          </label>
+                          <label className="field">
+                            <span>Source</span>
+                            <select value={schedule.source} onChange={(event) => updateLightSchedule(schedule.id, tent.id, { source: event.target.value as LightSource })}>
+                              {lightSourceOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                            </select>
+                          </label>
+                          <label className="field">
+                            <span>TimeZoneId</span>
+                            <input value={schedule.timeZoneId ?? ''} onChange={(event) => updateLightSchedule(schedule.id, tent.id, { timeZoneId: toNullableString(event.target.value) })} placeholder="Europe/Berlin" />
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, paddingBottom: 9 }}>
+                            <input type="checkbox" style={{ width: 'auto' }} checked={schedule.isActive} onChange={(event) => updateLightSchedule(schedule.id, tent.id, { isActive: event.target.checked })} />
+                            <span>Aktiv</span>
+                          </label>
+                          <button type="button" className="btn" disabled={saving === `light-schedule-edit-${schedule.id}`} onClick={() => void saveLightSchedule(schedule)}>
+                            {saving === `light-schedule-edit-${schedule.id}` ? 'Speichert...' : 'Speichern'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <form onSubmit={(event) => void handleCreateLightSchedule(event, tent)} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) 92px 92px minmax(110px, 140px) minmax(120px, 1fr) auto auto', gap: 8, alignItems: 'end' }}>
+                    <label className="field">
+                      <span>Neuer Plan</span>
+                      <input value={lightScheduleDraft.name} onChange={(event) => updateLightScheduleDraft(tent.id, { name: event.target.value })} placeholder="Bluete 12/12" />
+                    </label>
+                    <label className="field">
+                      <span>An</span>
+                      <input type="time" value={lightScheduleDraft.lightsOnTime} onChange={(event) => updateLightScheduleDraft(tent.id, { lightsOnTime: event.target.value })} />
+                    </label>
+                    <label className="field">
+                      <span>Aus</span>
+                      <input type="time" value={lightScheduleDraft.lightsOffTime} onChange={(event) => updateLightScheduleDraft(tent.id, { lightsOffTime: event.target.value })} />
+                    </label>
+                    <label className="field">
+                      <span>Source</span>
+                      <select value={lightScheduleDraft.source} onChange={(event) => updateLightScheduleDraft(tent.id, { source: event.target.value as LightSource })}>
+                        {lightSourceOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>TimeZoneId</span>
+                      <input value={lightScheduleDraft.timeZoneId} onChange={(event) => updateLightScheduleDraft(tent.id, { timeZoneId: event.target.value })} placeholder="Optional" />
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, paddingBottom: 9 }}>
+                      <input type="checkbox" style={{ width: 'auto' }} checked={lightScheduleDraft.isActive} onChange={(event) => updateLightScheduleDraft(tent.id, { isActive: event.target.checked })} />
+                      <span>Aktiv</span>
+                    </label>
+                    <button type="submit" className="btn" disabled={saving === `light-schedule-${tent.id}`}>
+                      {saving === `light-schedule-${tent.id}` ? 'Legt an...' : 'Anlegen'}
+                    </button>
+                    {lightScheduleErrors[tent.id] && (
+                      <div style={{ gridColumn: '1 / -1', fontSize: 13, color: 'var(--red)' }}>{lightScheduleErrors[tent.id]}</div>
+                    )}
+                  </form>
+                </div>
+
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
                   Abmessungen & Licht
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -954,6 +1163,21 @@ function createStrainDraft(): StrainDraft {
     stretchFactor: '',
     vpdPreferenceShift: '',
   }
+}
+
+function createLightScheduleDraft(): LightScheduleDraft {
+  return {
+    name: '',
+    isActive: true,
+    lightsOnTime: '08:00',
+    lightsOffTime: '20:00',
+    timeZoneId: '',
+    source: 'Manual',
+  }
+}
+
+function getLightScheduleDraft(tentId: number, drafts: Record<number, LightScheduleDraft>): LightScheduleDraft {
+  return drafts[tentId] ?? createLightScheduleDraft()
 }
 
 function toStrainRequest(draft: StrainDraft): CreateStrainRequest {

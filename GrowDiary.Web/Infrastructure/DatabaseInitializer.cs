@@ -358,6 +358,31 @@ public sealed class DatabaseInitializer
             CREATE UNIQUE INDEX IF NOT EXISTS IX_TentSensorDailyStats_Unique
                 ON TentSensorDailyStats(TentId, MetricKey, Date);
 
+            CREATE TABLE IF NOT EXISTS LightSchedules (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                TentId INTEGER NOT NULL,
+                Name TEXT NOT NULL,
+                IsActive INTEGER NOT NULL DEFAULT 1,
+                LightsOnTime TEXT NOT NULL,
+                LightsOffTime TEXT NOT NULL,
+                TimeZoneId TEXT NULL,
+                Source TEXT NOT NULL DEFAULT 'Manual',
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (TentId) REFERENCES Tents (Id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS LightTransitionEvents (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                TentId INTEGER NOT NULL,
+                Kind TEXT NOT NULL,
+                OccurredAtUtc TEXT NOT NULL,
+                Source TEXT NOT NULL DEFAULT 'HomeAssistant',
+                RawState TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (TentId) REFERENCES Tents (Id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS AutoMeasurementConfigs (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 GrowId INTEGER NOT NULL,
@@ -416,6 +441,9 @@ public sealed class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS IX_AutoMeasurementFieldMappings_ConfigId ON AutoMeasurementFieldMappings(ConfigId);
             CREATE UNIQUE INDEX IF NOT EXISTS IX_AutoMeasurementRuns_ConfigTriggerSchedule ON AutoMeasurementRuns(ConfigId, TriggerKind, ScheduledForUtc);
             CREATE INDEX IF NOT EXISTS IX_AutoMeasurementRuns_GrowId ON AutoMeasurementRuns(GrowId);
+            CREATE INDEX IF NOT EXISTS IX_LightSchedules_TentId ON LightSchedules(TentId);
+            CREATE INDEX IF NOT EXISTS IX_LightSchedules_TentActive ON LightSchedules(TentId, IsActive);
+            CREATE INDEX IF NOT EXISTS IX_LightTransitionEvents_TentKindOccurred ON LightTransitionEvents(TentId, Kind, OccurredAtUtc);
         """;
         command.ExecuteNonQuery();
 

@@ -50,6 +50,7 @@ builder.Services.AddSingleton<DeviationAnalyzerService>();
 builder.Services.AddSingleton<WeekCounterService>();
 builder.Services.AddSingleton<ChartService>();
 builder.Services.AddSingleton<HomeAssistantService>();
+builder.Services.AddSingleton<LightStatusTransitionService>();
 builder.Services.AddSingleton<PhotoStorageService>();
 builder.Services.AddSingleton<GrowDashboardComposer>();
 builder.Services.AddScoped<SensorReadingRepository>();
