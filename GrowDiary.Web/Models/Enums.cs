@@ -100,6 +100,28 @@ public enum GrowTaskStatus
     Skipped
 }
 
+public enum SopInstanceStatus
+{
+    Active,
+    Completed,
+    Cancelled
+}
+
+public enum SopStepInstanceStatus
+{
+    Pending,
+    InProgress,
+    Done,
+    Skipped
+}
+
+public enum SopStartSource
+{
+    Manual,
+    Recommendation,
+    System
+}
+
 public enum TaskPriority
 {
     Low,

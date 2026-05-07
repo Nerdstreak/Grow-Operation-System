@@ -283,6 +283,66 @@ public sealed class DatabaseInitializer
                 FOREIGN KEY (GrowId) REFERENCES Grows (Id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS SopInstances (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                GrowId INTEGER NOT NULL,
+                SopId TEXT NOT NULL,
+                SopName TEXT NOT NULL,
+                SopType TEXT NOT NULL,
+                Status TEXT NOT NULL,
+                Source TEXT NOT NULL,
+                SourceRecommendationKey TEXT NULL,
+                TreatmentRecommendationStableKey TEXT NULL,
+                StartedAtUtc TEXT NOT NULL,
+                CompletedAtUtc TEXT NULL,
+                CancelledAtUtc TEXT NULL,
+                Notes TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (GrowId) REFERENCES Grows (Id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS SopStepInstances (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                SopInstanceId INTEGER NOT NULL,
+                StepId TEXT NOT NULL,
+                "Order" INTEGER NOT NULL,
+                Title TEXT NOT NULL,
+                Description TEXT NULL,
+                StepType TEXT NOT NULL,
+                Status TEXT NOT NULL,
+                WaitMinutes INTEGER NULL,
+                SubSopId TEXT NULL,
+                ExpectedInputsJson TEXT NULL,
+                PhotoRequired INTEGER NOT NULL DEFAULT 0,
+                PhotoRecommended INTEGER NOT NULL DEFAULT 0,
+                StartedAtUtc TEXT NULL,
+                CompletedAtUtc TEXT NULL,
+                SkippedAtUtc TEXT NULL,
+                Notes TEXT NULL,
+                MeasurementId INTEGER NULL,
+                JournalEntryId INTEGER NULL,
+                PhotoAssetId INTEGER NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (SopInstanceId) REFERENCES SopInstances (Id) ON DELETE CASCADE,
+                FOREIGN KEY (MeasurementId) REFERENCES Measurements (Id) ON DELETE SET NULL,
+                FOREIGN KEY (JournalEntryId) REFERENCES JournalEntries (Id) ON DELETE SET NULL,
+                FOREIGN KEY (PhotoAssetId) REFERENCES Photos (Id) ON DELETE SET NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS IX_SopInstances_GrowId_Status
+                ON SopInstances(GrowId, Status);
+
+            CREATE INDEX IF NOT EXISTS IX_SopInstances_GrowId_SopId_Status
+                ON SopInstances(GrowId, SopId, Status);
+
+            CREATE INDEX IF NOT EXISTS IX_SopStepInstances_SopInstanceId
+                ON SopStepInstances(SopInstanceId);
+
+            CREATE INDEX IF NOT EXISTS IX_SopStepInstances_SopInstanceId_Order
+                ON SopStepInstances(SopInstanceId, "Order");
+
             CREATE TABLE IF NOT EXISTS AuditEntries (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 GrowId INTEGER NOT NULL,

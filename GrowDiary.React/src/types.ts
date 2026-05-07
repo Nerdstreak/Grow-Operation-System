@@ -3,6 +3,9 @@ export type GrowStage = 'Seedling' | 'Clone' | 'Veg' | 'Transition' | 'Flower' |
 export type ValueOrigin = 'Manual' | 'HomeAssistant' | 'Imported' | 'Derived'
 export type TaskPriority = 'Low' | 'Normal' | 'High' | 'Critical'
 export type GrowTaskStatus = 'Open' | 'Done' | 'Skipped'
+export type SopInstanceStatus = 'Active' | 'Completed' | 'Cancelled'
+export type SopStepInstanceStatus = 'Pending' | 'InProgress' | 'Done' | 'Skipped'
+export type SopStartSource = 'Manual' | 'Recommendation' | 'System'
 export type HydroStyle = 'None' | 'DWC' | 'RDWC' | 'NFT' | 'Aeroponic' | 'Other'
 export type GrowEnvironment = 'Indoor' | 'Outdoor' | 'Greenhouse'
 export type SeedType = 'Feminized' | 'Autoflower' | 'Regular'
@@ -285,6 +288,50 @@ export interface GrowTaskDto {
   status: GrowTaskStatus
   createdAtUtc: string
   completedAtUtc: string | null
+}
+
+export interface SopInstanceDto {
+  id: number
+  growId: number
+  sopId: string
+  sopName: string
+  sopType: string
+  status: SopInstanceStatus
+  source: SopStartSource
+  sourceRecommendationKey: string | null
+  treatmentRecommendationStableKey: string | null
+  startedAtUtc: string
+  completedAtUtc: string | null
+  cancelledAtUtc: string | null
+  notes: string | null
+  createdAtUtc: string
+  updatedAtUtc: string
+  stepCount: number
+}
+
+export interface SopStepInstanceDto {
+  id: number
+  sopInstanceId: number
+  stepId: string
+  order: number
+  title: string
+  description: string | null
+  stepType: string
+  status: SopStepInstanceStatus
+  waitMinutes: number | null
+  subSopId: string | null
+  expectedInputsJson: string | null
+  photoRequired: boolean
+  photoRecommended: boolean
+  startedAtUtc: string | null
+  completedAtUtc: string | null
+  skippedAtUtc: string | null
+  notes: string | null
+  measurementId: number | null
+  journalEntryId: number | null
+  photoAssetId: number | null
+  createdAtUtc: string
+  updatedAtUtc: string
 }
 
 export interface JournalEntryDto {
