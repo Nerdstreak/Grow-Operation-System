@@ -307,9 +307,7 @@ public sealed class SopInstanceRepositoryTests : IDisposable
         var stored = _repository.GetSopInstance(instance.Id)!;
 
         Assert.True(stored.IsRecurring);
-        // IntervalDays kommt aus triggers[type=Schedule].intervalDays (not root-level)
         Assert.Equal(1, stored.RecurrenceIntervalDays);
-        // DueAtUtc: startTime + RecurrenceIntervalDays (1 Tag)
         Assert.NotNull(stored.DueAtUtc);
         Assert.True(stored.DueAtUtc >= before.AddDays(1) && stored.DueAtUtc <= after.AddDays(1),
             $"DueAtUtc={stored.DueAtUtc} erwartet in [{before.AddDays(1)}, {after.AddDays(1)}]");
@@ -335,8 +333,6 @@ public sealed class SopInstanceRepositoryTests : IDisposable
     public void UpdateSopStepInstance_AktualisiertNextStepDueAtUtcNachStepDone()
     {
         var growId = CreateGrow();
-        // emergency-power-recovery: Step 1 non-wait (DueAtUtc=start), Step 3 wait 30min
-        // Nach Step-1-Done: NextStepDueAtUtc soll auf den WaitStep wechseln (start + 30min)
         var sop = _knowledgeBase.Sops.Single(item => item.Id == "emergency-power-recovery");
         Assert.Single(sop.Steps.Where(s => s.WaitMinutes.HasValue));
 
@@ -349,7 +345,6 @@ public sealed class SopInstanceRepositoryTests : IDisposable
 
         var stored = _repository.GetSopInstance(instance.Id)!;
         Assert.Equal(SopInstanceStatus.Active, stored.Status);
-        // NextStepDueAtUtc muss jetzt auf den WaitStep (30min) zeigen, nicht mehr auf Step 1
         Assert.NotNull(stored.NextStepDueAtUtc);
         var expectedMin = before.AddMinutes(30);
         var expectedMax = after.AddMinutes(30);
@@ -375,7 +370,7 @@ public sealed class SopInstanceRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void StartSopInstance_DueAtUtc_RoundtripBehältUtcKindOhneZeitverschiebung()
+    public void StartSopInstance_DueAtUtc_RoundtripBehaeltUtcKindOhneZeitverschiebung()
     {
         var growId = CreateGrow();
         var sop = _knowledgeBase.Sops.Single(item => item.Id == "flip-to-flower");
@@ -387,12 +382,10 @@ public sealed class SopInstanceRepositoryTests : IDisposable
         var steps = _repository.GetSopStepInstances(instance.Id).OrderBy(s => s.Order).ToList();
         var stored = _repository.GetSopInstance(instance.Id)!;
 
-        // Step DueAtUtc: Kind muss Utc sein, kein Local (keine Zeitzonenverschiebung)
         Assert.NotNull(steps[0].DueAtUtc);
         Assert.Equal(DateTimeKind.Utc, steps[0].DueAtUtc!.Value.Kind);
         Assert.True(steps[0].DueAtUtc >= before && steps[0].DueAtUtc <= after);
 
-        // Instance NextStepDueAtUtc: ebenfalls Utc Kind
         Assert.NotNull(stored.NextStepDueAtUtc);
         Assert.Equal(DateTimeKind.Utc, stored.NextStepDueAtUtc!.Value.Kind);
         Assert.True(stored.NextStepDueAtUtc >= before && stored.NextStepDueAtUtc <= after);

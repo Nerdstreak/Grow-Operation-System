@@ -240,7 +240,7 @@ public sealed class SopInstancesApiControllerTests : IDisposable
     }
 
     [Fact]
-    public void Start_RecurringSop_ExponiesertRecurrenceIntervalDaysImResponse()
+    public void Start_RecurringSop_ExponiertRecurrenceIntervalDaysImResponse()
     {
         var growId = CreateGrow();
 
