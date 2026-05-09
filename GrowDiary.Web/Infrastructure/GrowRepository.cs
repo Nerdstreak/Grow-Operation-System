@@ -1158,14 +1158,14 @@ public sealed class GrowRepository
 
         // Scheduling: berechne Fälligkeiten aus SOP-Typ
         var isRecurring = string.Equals(sopDefinition.Type, "Recurring", StringComparison.OrdinalIgnoreCase);
-        // intervalDays steht in triggers[type=Schedule].intervalDays, Fallback auf Root-Level
-        var scheduleIntervalDays = sopDefinition.Triggers
+        // E4-Fix: bevorzugt Schedule-Trigger, Root-Level nur als Fallback.
+        var recurrenceIntervalDays = sopDefinition.Triggers
             .FirstOrDefault(t => string.Equals(t.Type, "Schedule", StringComparison.OrdinalIgnoreCase))
             ?.IntervalDays ?? sopDefinition.IntervalDays;
         DateTime? instanceDueAt = string.Equals(sopDefinition.Type, "MultiDay", StringComparison.OrdinalIgnoreCase) && sopDefinition.DurationDays.HasValue
             ? now.AddDays(sopDefinition.DurationDays.Value)
-            : isRecurring && scheduleIntervalDays.HasValue
-                ? now.AddDays(scheduleIntervalDays.Value)
+            : isRecurring && recurrenceIntervalDays.HasValue
+                ? now.AddDays(recurrenceIntervalDays.Value)
                 : null;
 
         // Erster Pass: NextStepDueAtUtc aus Step-Definitionen berechnen
@@ -1196,7 +1196,7 @@ public sealed class GrowRepository
             DueAtUtc = instanceDueAt,
             NextStepDueAtUtc = nextStepDue,
             IsRecurring = isRecurring,
-            RecurrenceIntervalDays = scheduleIntervalDays,
+            RecurrenceIntervalDays = recurrenceIntervalDays,
             Notes = NormalizeOptional(notes),
             CreatedAtUtc = now,
             UpdatedAtUtc = now
@@ -3230,8 +3230,6 @@ public sealed class GrowRepository
         var text = reader[columnName]?.ToString();
         if (string.IsNullOrWhiteSpace(text))
             return null;
-        // AdjustToUniversal: offset (+00:00) wird direkt zu UTC aufgelöst, kein lokaler Zwischenwert.
-        // AssumeUniversal: Strings ohne Offset (Fallback) werden als UTC behandelt, nicht als Local.
         return DateTime.TryParse(text, CultureInfo.InvariantCulture,
             DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var result)
             ? result
