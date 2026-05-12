@@ -262,7 +262,7 @@ function HardwarePage() {
   async function handleCreateMaintenanceEvent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!maintenanceDraft.hardwareItemId) {
-      setMaintenanceError('HardwareItem auswaehlen.')
+      setMaintenanceError('HardwareItem auswählen.')
       return
     }
 
@@ -329,7 +329,7 @@ function HardwarePage() {
   async function handleCreateCalibrationEvent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!calibrationDraft.hardwareItemId) {
-      setCalibrationError('HardwareItem auswaehlen.')
+      setCalibrationError('HardwareItem auswählen.')
       return
     }
 
@@ -589,8 +589,8 @@ function HardwarePage() {
       <div className="page-scroll">
         <div className="stats-row">
           <div className="stat-chip"><strong>{activeHardwareCount}</strong>Aktive Hardware</div>
-          <div className="stat-chip"><strong>{dueMaintenanceCount}</strong>Wartung faellig</div>
-          <div className="stat-chip"><strong>{dueCalibrationCount}</strong>Kalibrierung faellig</div>
+          <div className="stat-chip"><strong>{dueMaintenanceCount}</strong>Wartung fällig</div>
+          <div className="stat-chip"><strong>{dueCalibrationCount}</strong>Kalibrierung fällig</div>
           <div className="stat-chip"><strong>{criticalOpenRiskCount}</strong>Kritische Risiken</div>
         </div>
 
@@ -746,7 +746,7 @@ function HardwarePage() {
               </label>
               {hardwareDraft.wearTemplateId && (
                 <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--muted)' }}>
-                  Vorlage: {wearTemplates.find((template) => template.id === hardwareDraft.wearTemplateId)?.name ?? hardwareDraft.wearTemplateId}. Name, Category, Lebensdauer und Inspektionsintervall werden bei leeren Feldern serverseitig uebernommen.
+                  Vorlage: {wearTemplates.find((template) => template.id === hardwareDraft.wearTemplateId)?.name ?? hardwareDraft.wearTemplateId}. Name, Category, Lebensdauer und Inspektionsintervall werden bei leeren Feldern serverseitig übernommen.
                 </div>
               )}
             </form>
@@ -836,7 +836,7 @@ function HardwarePage() {
               <label className="field">
                 <span>HardwareItem</span>
                 <select value={maintenanceDraft.hardwareItemId ?? ''} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, hardwareItemId: toNullableInteger(event.target.value) }))}>
-                  <option value="">Auswaehlen</option>
+                  <option value="">Auswählen</option>
                   {hardwareItems.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </label>
@@ -966,7 +966,7 @@ function HardwarePage() {
               <label className="field">
                 <span>HardwareItem</span>
                 <select value={calibrationDraft.hardwareItemId ?? ''} onChange={(event) => setCalibrationDraft((current) => ({ ...current, hardwareItemId: toNullableInteger(event.target.value) }))}>
-                  <option value="">Auswaehlen</option>
+                  <option value="">Auswählen</option>
                   {hardwareItems.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </label>
@@ -984,7 +984,7 @@ function HardwarePage() {
               </label>
               <label className="field">
                 <span>Title</span>
-                <input value={calibrationDraft.title} onChange={(event) => setCalibrationDraft((current) => ({ ...current, title: event.target.value }))} placeholder="pH 7.00 pruefen" />
+                <input value={calibrationDraft.title} onChange={(event) => setCalibrationDraft((current) => ({ ...current, title: event.target.value }))} placeholder="pH 7.00 prüfen" />
               </label>
               <label className="field">
                 <span>ReferenceSolution</span>
@@ -1132,7 +1132,7 @@ function HardwarePage() {
                                   <div style={{ fontSize: 13 }}>{recommendation.confidence}</div>
                                   <div style={{ fontSize: 13, color: 'var(--muted)' }}>
                                     {recommendation.reason}
-                                    {missingGrow ? ' SOP-Start benoetigt Grow-Zuordnung.' : ''}
+                                    {missingGrow ? ' SOP-Start benötigt Grow-Zuordnung.' : ''}
                                     {recommendation.alreadyActive ? ' SOP bereits aktiv.' : ''}
                                   </div>
                                   <button type="button" className="btn" disabled={startDisabled} onClick={() => void startRiskEventSop(item, recommendation)}>

@@ -495,7 +495,7 @@ function SettingsPage() {
       <>
         <div className="topbar"><span className="topbar-title">Einstellungen</span></div>
         <div className="page-scroll">
-          <div className="empty-hint" style={{ color: 'var(--red)' }}>{error ?? 'Setup nicht verfuegbar.'}</div>
+          <div className="empty-hint" style={{ color: 'var(--red)' }}>{error ?? 'Setup nicht verfügbar.'}</div>
         </div>
       </>
     )
@@ -524,17 +524,17 @@ function SettingsPage() {
         <div className="settings-layout">
           <nav className="settings-nav" aria-label="Einstellungsbereiche">
             <ul className="settings-nav-list">
-              <li><a className="settings-nav-link" href="#settings-ha">Home Assistant</a></li>
+              <li><a className="settings-nav-link" href="#settings-home-assistant">Home Assistant</a></li>
               <li><a className="settings-nav-link" href="#settings-tents">Zelte</a></li>
-              <li><a className="settings-nav-link" href="#settings-tents">Sensoren</a></li>
-              <li><a className="settings-nav-link" href="#settings-tents">Licht</a></li>
-              <li><a className="settings-nav-link" href="#settings-tents">Setups</a></li>
+              <li><a className="settings-nav-link" href="#settings-sensors">Sensoren</a></li>
+              <li><a className="settings-nav-link" href="#settings-light">Licht</a></li>
+              <li><a className="settings-nav-link" href="#settings-setups">Setups</a></li>
               <li><a className="settings-nav-link" href="#settings-strains">Strains</a></li>
             </ul>
           </nav>
 
           <div className="settings-grid" style={{ maxWidth: 'none' }}>
-        <section id="settings-ha" className="admin-section">
+        <section id="settings-home-assistant" className="admin-section">
         <div className="section-label">Home Assistant</div>
         <div className="card" style={{ marginBottom: 24, maxWidth: 640 }}>
           <div className="card-header"><span className="card-title">Verbindung</span></div>
@@ -623,15 +623,15 @@ function SettingsPage() {
                       </select>
                     </label>
                     <label className="field">
-                      <span>Bluete min</span>
+                      <span>Blüte min</span>
                       <input type="number" value={strain.flowerWeeksMin ?? ''} onChange={(event) => updateStrain(strain.id, { flowerWeeksMin: toNullableInteger(event.target.value) })} />
                     </label>
                     <label className="field">
-                      <span>Bluete max</span>
+                      <span>Blüte max</span>
                       <input type="number" value={strain.flowerWeeksMax ?? ''} onChange={(event) => updateStrain(strain.id, { flowerWeeksMax: toNullableInteger(event.target.value) })} />
                     </label>
                     <label className="field">
-                      <span>Naehrstoff</span>
+                      <span>Nährstoff</span>
                       <input type="number" step="0.1" value={strain.nutrientDemandFactor ?? ''} onChange={(event) => updateStrain(strain.id, { nutrientDemandFactor: toNullableNumber(event.target.value) })} />
                     </label>
                     <label className="field">
@@ -666,15 +666,15 @@ function SettingsPage() {
                 </select>
               </label>
               <label className="field">
-                <span>Bluete min</span>
+                <span>Blüte min</span>
                 <input type="number" value={strainDraft.flowerWeeksMin} onChange={(event) => setStrainDraft((current) => ({ ...current, flowerWeeksMin: event.target.value }))} />
               </label>
               <label className="field">
-                <span>Bluete max</span>
+                <span>Blüte max</span>
                 <input type="number" value={strainDraft.flowerWeeksMax} onChange={(event) => setStrainDraft((current) => ({ ...current, flowerWeeksMax: event.target.value }))} />
               </label>
               <label className="field">
-                <span>Naehrstoff</span>
+                <span>Nährstoff</span>
                 <input type="number" step="0.1" value={strainDraft.nutrientDemandFactor} onChange={(event) => setStrainDraft((current) => ({ ...current, nutrientDemandFactor: event.target.value }))} />
               </label>
               <label className="field">
@@ -723,7 +723,7 @@ function SettingsPage() {
               </div>
 
               <div style={{ padding: '14px 16px', display: 'grid', gap: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
+                <div id={tent.id === settings.tents[0]?.id ? 'settings-setups' : undefined} style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
                   Stammdaten
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -867,7 +867,7 @@ function SettingsPage() {
                   {hasUnsavedTentType ? (
                     <div className="field-hint">Zelttyp erst speichern, bevor Setups angelegt werden.</div>
                   ) : allowedSetupTypes.length === 0 ? (
-                    <div className="field-hint">Propagation wird spaeter unterstuetzt.</div>
+                    <div className="field-hint">Propagation wird später unterstützt.</div>
                   ) : (
                     <form onSubmit={(event) => void handleCreateSetup(event, tent)} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(130px, 170px)', gap: 10, alignItems: 'end' }}>
                       <label className="field">
@@ -914,7 +914,7 @@ function SettingsPage() {
                   )}
                 </div>
 
-                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
+                <div id={tent.id === settings.tents[0]?.id ? 'settings-light' : undefined} style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
                   LightSchedules
                 </div>
                 <div style={{ display: 'grid', gap: 10 }}>
@@ -973,7 +973,7 @@ function SettingsPage() {
                   <form onSubmit={(event) => void handleCreateLightSchedule(event, tent)} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) 92px 92px minmax(110px, 140px) minmax(120px, 1fr) auto auto', gap: 8, alignItems: 'end' }}>
                     <label className="field">
                       <span>Neuer Plan</span>
-                      <input value={lightScheduleDraft.name} onChange={(event) => updateLightScheduleDraft(tent.id, { name: event.target.value })} placeholder="Bluete 12/12" />
+                      <input value={lightScheduleDraft.name} onChange={(event) => updateLightScheduleDraft(tent.id, { name: event.target.value })} placeholder="Blüte 12/12" />
                     </label>
                     <label className="field">
                       <span>An</span>
@@ -1019,7 +1019,7 @@ function SettingsPage() {
                     <input type="number" value={tent.depthCm ?? ''} onChange={(event) => updateTent(tent.id, { depthCm: toNullableInteger(event.target.value) })} />
                   </label>
                   <label className="field">
-                    <span>Hoehe cm</span>
+                    <span>Höhe cm</span>
                     <input type="number" value={tent.tentHeightCm ?? ''} onChange={(event) => updateTent(tent.id, { tentHeightCm: toNullableInteger(event.target.value) })} />
                   </label>
                   <label className="field">
@@ -1073,11 +1073,11 @@ function SettingsPage() {
                 </div>
 
                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 14 }}>
-                  <span>CO2 verfuegbar</span>
+                  <span>CO2 verfügbar</span>
                   <input type="checkbox" style={{ width: 'auto' }} checked={tent.co2Available} onChange={(event) => updateTent(tent.id, { co2Available: event.target.checked })} />
                 </label>
 
-                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
+                <div id={tent.id === settings.tents[0]?.id ? 'settings-sensors' : undefined} style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
                   Sensor-Mapping
                 </div>
                 {sensorGroups.map((group) => (

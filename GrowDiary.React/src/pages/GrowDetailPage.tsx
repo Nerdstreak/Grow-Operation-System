@@ -41,7 +41,7 @@ interface DetailBundle {
 type GrowDetailSection = 'overview' | 'measurements' | 'diagnosis' | 'sops' | 'journal' | 'automation'
 
 const detailSections: Array<{ key: GrowDetailSection; label: string }> = [
-  { key: 'overview', label: 'Ueberblick' },
+  { key: 'overview', label: 'Überblick' },
   { key: 'measurements', label: 'Messungen' },
   { key: 'diagnosis', label: 'Diagnose' },
   { key: 'sops', label: 'SOPs' },
@@ -413,7 +413,7 @@ function GrowDetailPage() {
   async function handlePhotoSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!selectedMeasurement || photoForm.files.length === 0) {
-      setError('Bitte waehle eine Messung und mindestens ein Foto aus.')
+      setError('Bitte wähle eine Messung und mindestens ein Foto aus.')
       return
     }
 
@@ -445,7 +445,7 @@ function GrowDetailPage() {
 
     const windowMinutes = toNullableInteger(autoConfigForm.windowMinutes)
     if (!autoConfigForm.name.trim() || !windowMinutes) {
-      setError('Name und gueltiges Zeitfenster sind erforderlich.')
+      setError('Name und gültiges Zeitfenster sind erforderlich.')
       return
     }
 
@@ -534,7 +534,7 @@ function GrowDetailPage() {
       await apiFetch(`/api/tasks/${taskId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
       await loadBundle()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Task-Status konnte nicht geaendert werden.')
+      setError(caught instanceof Error ? caught.message : 'Task-Status konnte nicht geändert werden.')
     } finally {
       setSaving(null)
     }
@@ -615,7 +615,7 @@ function GrowDetailPage() {
       setError(null)
       await loadBundle()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Grow-Aktion konnte nicht ausgefuehrt werden.')
+      setError(caught instanceof Error ? caught.message : 'Grow-Aktion konnte nicht ausgeführt werden.')
     } finally {
       setSaving(null)
     }
@@ -633,7 +633,7 @@ function GrowDetailPage() {
   if (!bundle.grow) {
     return (
       <>
-        <div className="topbar"><Link className="btn" to="/">Zurueck</Link></div>
+        <div className="topbar"><Link className="btn" to="/">Zurück</Link></div>
         <div className="page-scroll">
           <div className="empty-hint" style={{ color: 'var(--red)' }}>{error ?? 'Grow nicht gefunden.'}</div>
         </div>
@@ -651,7 +651,7 @@ function GrowDetailPage() {
     <>
       <div className="topbar">
         <div className="topbar-left">
-          <Link className="btn" to="/">Zurueck</Link>
+          <Link className="btn" to="/">Zurück</Link>
           <span className="topbar-title">{grow.name}</span>
         </div>
         <div className="topbar-right">
@@ -725,17 +725,17 @@ function GrowDetailPage() {
             <a className="btn" href={`/grows/${grow.id}/export`}>Export</a>
             {canConfirmGermination && (
               <button type="button" className="btn" disabled={saving === 'action-germination'} onClick={() => void handleGrowAction('germination')}>
-                {saving === 'action-germination' ? 'Bestaetigt...' : 'Keimung bestaetigen'}
+                {saving === 'action-germination' ? 'Bestätigt...' : 'Keimung bestätigen'}
               </button>
             )}
             {canConfirmRooting && (
               <button type="button" className="btn" disabled={saving === 'action-rooting'} onClick={() => void handleGrowAction('rooting')}>
-                {saving === 'action-rooting' ? 'Bestaetigt...' : 'Bewurzelung bestaetigen'}
+                {saving === 'action-rooting' ? 'Bestätigt...' : 'Bewurzelung bestätigen'}
               </button>
             )}
             {canFlipToFlower && (
               <button type="button" className="btn" disabled={saving === 'action-flip'} onClick={() => void handleGrowAction('flip')}>
-                {saving === 'action-flip' ? 'Traegt ein...' : 'Flip zu 12/12'}
+                {saving === 'action-flip' ? 'Trägt ein...' : 'Flip zu 12/12'}
               </button>
             )}
           </div>
@@ -777,13 +777,13 @@ function GrowDetailPage() {
         <div className="section-label" style={{ display: activeSection === 'diagnosis' ? undefined : 'none' }}>Treatment-Empfehlungen</div>
         <div className="card" style={{ marginBottom: 14, display: activeSection === 'diagnosis' ? undefined : 'none' }}>
           <div className="card-header">
-            <span className="card-title">Knowledge-Vorschlaege</span>
+            <span className="card-title">Knowledge-Vorschläge</span>
             <span className="text-muted" style={{ fontSize: 13 }}>{treatmentRecommendations?.recommendations.length ?? 0}</span>
           </div>
           {treatmentRecommendationError ? (
             <div className="empty-hint" style={{ color: 'var(--red)' }}>{treatmentRecommendationError}</div>
           ) : !treatmentRecommendations || treatmentRecommendations.recommendations.length === 0 ? (
-            <div className="empty-hint">Keine Treatment- oder SOP-Empfehlungen fuer die aktuellen Deviations.</div>
+            <div className="empty-hint">Keine Treatment- oder SOP-Empfehlungen für die aktuellen Deviations.</div>
           ) : (
             <div style={{ display: 'grid' }}>
               {treatmentRecommendations.recommendations.map((recommendation) => (
@@ -886,7 +886,7 @@ function GrowDetailPage() {
                               Erledigt
                             </button>
                             <button type="button" className="btn btn-secondary" disabled={saving === `sop-step-${step.id}-Skipped`} onClick={() => void updateSopStep(step, 'Skipped')}>
-                              Ueberspringen
+                              Überspringen
                             </button>
                           </div>
                         ) : (
@@ -939,11 +939,11 @@ function GrowDetailPage() {
             <div className="section-label" style={{ display: activeSection === 'journal' ? undefined : 'none' }}>Journal</div>
             <div className="card" style={{ marginBottom: 14, display: activeSection === 'journal' ? undefined : 'none' }}>
               <div className="card-header">
-                <span className="card-title">Eintraege</span>
+                <span className="card-title">Einträge</span>
                 <span className="text-muted" style={{ fontSize: 13 }}>{bundle.journal.length}</span>
               </div>
               {bundle.journal.length === 0 ? (
-                <div className="empty-hint">Noch keine Journal-Eintraege.</div>
+                <div className="empty-hint">Noch keine Journal-Einträge.</div>
               ) : (
                 bundle.journal.map((entry) => (
                   <div key={entry.id} className="timeline-item" style={{ padding: '12px 16px' }}>
@@ -1014,7 +1014,7 @@ function GrowDetailPage() {
                 </div>
                 <div className="field" style={{ marginBottom: 14 }}>
                   <label>Notiz</label>
-                  <textarea value={measurementForm.notes} onChange={(event) => setMeasurementForm((current) => ({ ...current, notes: event.target.value }))} rows={2} placeholder="Zustand, Auffaelligkeiten, Korrekturen..." />
+                  <textarea value={measurementForm.notes} onChange={(event) => setMeasurementForm((current) => ({ ...current, notes: event.target.value }))} rows={2} placeholder="Zustand, Auffälligkeiten, Korrekturen..." />
                 </div>
                 <button className="btn btn-primary" disabled={saving === 'measurement'}>{saving === 'measurement' ? 'Speichert...' : 'Messung speichern'}</button>
               </form>
@@ -1150,7 +1150,7 @@ function GrowDetailPage() {
                       </div>
 
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <button type="button" className="btn" onClick={() => addMappingDraft(config.id)}>Mapping hinzufuegen</button>
+                        <button type="button" className="btn" onClick={() => addMappingDraft(config.id)}>Mapping hinzufügen</button>
                         <button type="button" className="btn btn-primary" disabled={saving === `auto-mappings-${config.id}`} onClick={() => void saveMappingDrafts(config.id)}>
                           {saving === `auto-mappings-${config.id}` ? 'Speichert...' : 'Mappings speichern'}
                         </button>
@@ -1197,7 +1197,7 @@ function GrowDetailPage() {
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="task-title">{task.title}</div>
-                      {task.dueAtUtc && <div className="task-sub">faellig {formatDate(task.dueAtUtc)}</div>}
+                      {task.dueAtUtc && <div className="task-sub">fällig {formatDate(task.dueAtUtc)}</div>}
                     </div>
                   </div>
                 ))
@@ -1222,7 +1222,7 @@ function GrowDetailPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Wasser</span><span>{grow.waterSource}</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Licht</span><span>{grow.light ?? '—'}</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Reservoir</span><span>{grow.reservoirSize ?? '—'}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Naehrstoffe</span><span>{grow.nutrients ?? '—'}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Nährstoffe</span><span>{grow.nutrients ?? '—'}</span></div>
               </div>
             </div>
 
@@ -1252,7 +1252,7 @@ function GrowDetailPage() {
               <form onSubmit={handleTaskSubmit} style={{ padding: '12px 14px', display: 'grid', gap: 10 }}>
                 <div className="field">
                   <label>Titel</label>
-                  <input value={taskForm.title} onChange={(event) => setTaskForm((current) => ({ ...current, title: event.target.value }))} placeholder="z. B. EC nach Addback pruefen" />
+                  <input value={taskForm.title} onChange={(event) => setTaskForm((current) => ({ ...current, title: event.target.value }))} placeholder="z. B. EC nach Addback prüfen" />
                 </div>
                 <div className="field">
                   <label>Prioritaet</label>
@@ -1297,7 +1297,7 @@ function GrowDetailPage() {
                   <label>Dateien</label>
                   <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setPhotoForm((current) => ({ ...current, files: Array.from(event.target.files ?? []) }))} />
                 </div>
-                <button className="btn btn-primary" disabled={saving === 'photo' || bundle.measurements.length === 0}>{saving === 'photo' ? 'Laedt hoch...' : 'Fotos hochladen'}</button>
+                <button className="btn btn-primary" disabled={saving === 'photo' || bundle.measurements.length === 0}>{saving === 'photo' ? 'Lädt hoch...' : 'Fotos hochladen'}</button>
               </form>
               {photos.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 14px 14px' }}>

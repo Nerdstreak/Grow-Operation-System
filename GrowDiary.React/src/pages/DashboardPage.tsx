@@ -132,8 +132,8 @@ function DashboardPage() {
   const statusText = criticalRiskCount > 0
     ? 'Kritische Risiken brauchen jetzt Aufmerksamkeit.'
     : warningRiskCount > 0 || dueMaintenance.length > 0 || dueCalibrations.length > 0
-      ? 'Es gibt offene Warnungen oder faellige Arbeiten.'
-      : 'Keine offenen Risiken oder faelligen Wartungen im Operations-Fenster.'
+      ? 'Es gibt offene Warnungen oder fällige Arbeiten.'
+      : 'Keine offenen Risiken oder fälligen Wartungen im Operations-Fenster.'
 
   return (
     <>
@@ -156,8 +156,8 @@ function DashboardPage() {
         <div className="section-label">Status Summary</div>
         <div className="stats-row" style={{ marginBottom: 18 }}>
           <div className="stat-chip"><strong>{criticalRiskCount}</strong>Kritische Risiken</div>
-          <div className="stat-chip"><strong>{dueMaintenance.length}</strong>Maintenance faellig</div>
-          <div className="stat-chip"><strong>{dueCalibrations.length}</strong>Calibration faellig</div>
+          <div className="stat-chip"><strong>{dueMaintenance.length}</strong>Maintenance fällig</div>
+          <div className="stat-chip"><strong>{dueCalibrations.length}</strong>Calibration fällig</div>
           <div className="stat-chip"><strong>{activeGrows.length}</strong>Aktive Grows</div>
         </div>
 
@@ -180,7 +180,7 @@ function DashboardPage() {
               <div className="card">
                 <div className="card-header">
                   <span className="card-title">Offene RiskEvents</span>
-                  <Link className="btn" to="/hardware">Hardware oeffnen</Link>
+                  <Link className="btn" to="/hardware">Hardware öffnen</Link>
                 </div>
                 <div style={{ padding: '14px 16px', display: 'grid', gap: 8 }}>
                   {loading ? (
@@ -206,7 +206,7 @@ function DashboardPage() {
             </section>
 
             <section>
-              <div className="section-label">Heute / bald faellig</div>
+              <div className="section-label">Heute / bald fällig</div>
               <div className="card">
                 <div className="card-header">
                   <span className="card-title">Wartung und Kalibrierung</span>
@@ -314,7 +314,7 @@ function DashboardPage() {
                     <div className={`prio-dot ${task.priority === 'Critical' || task.priority === 'High' ? 'prio-high' : task.priority === 'Normal' ? 'prio-med' : 'prio-low'}`} />
                     <div>
                       <div className="task-title">{task.title}</div>
-                      <div className="task-sub">{task.growName}{task.dueAtUtc ? ` · faellig ${formatDate(task.dueAtUtc)}` : ''}</div>
+                      <div className="task-sub">{task.growName}{task.dueAtUtc ? ` · fällig ${formatDate(task.dueAtUtc)}` : ''}</div>
                     </div>
                   </Link>
                 ))
@@ -328,10 +328,10 @@ function DashboardPage() {
               <div style={{ padding: 14, display: 'grid', gap: 8 }}>
                 <Link className="btn btn-primary" to="/grows/new">Neuer Grow</Link>
                 {activeGrows.slice(0, 3).map((grow) => (
-                  <Link key={grow.id} className="btn" to={`/grows/${grow.id}`}>{grow.name} oeffnen</Link>
+                  <Link key={grow.id} className="btn" to={`/grows/${grow.id}`}>{grow.name} öffnen</Link>
                 ))}
-                <Link className="btn" to="/hardware">Hardware oeffnen</Link>
-                <Link className="btn" to="/wissen">Wissen oeffnen</Link>
+                <Link className="btn" to="/hardware">Hardware öffnen</Link>
+                <Link className="btn" to="/wissen">Wissen öffnen</Link>
               </div>
             </div>
           </div>
@@ -358,7 +358,7 @@ function DueList({
       {loading ? (
         <div style={emptyStyle}>Lade...</div>
       ) : items.length === 0 ? (
-        <div style={emptyStyle}>Nichts faellig.</div>
+        <div style={emptyStyle}>Nichts fällig.</div>
       ) : (
         items.slice(0, 8).map((item) => (
           <div key={`${title}-${item.id}`} className="task-item">
@@ -366,7 +366,7 @@ function DueList({
             <div>
               <div className="task-title">{item.title}</div>
               <div className="task-sub">
-                {getHardwareName(hardwareItems, item.hardwareItemId)} · {item.status} · faellig {formatDateTime(item.dueAtUtc)}
+                {getHardwareName(hardwareItems, item.hardwareItemId)} · {item.status} · fällig {formatDateTime(item.dueAtUtc)}
               </div>
             </div>
           </div>

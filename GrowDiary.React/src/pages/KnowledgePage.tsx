@@ -118,7 +118,7 @@ function KnowledgePage() {
       <div className="page-scroll">
         <div className="grow-hero" style={{ marginBottom: 16 }}>
           <div className="grow-hero-title">Knowledge-Browser</div>
-          <div className="grow-hero-sub">Read-only Catalogs fuer Treatments, SOPs, Symptome, Wear, Programme, Setpoints und Pathogene.</div>
+          <div className="grow-hero-sub">Read-only Catalogs für Treatments, SOPs, Symptome, Wear, Programme, Setpoints und Pathogene.</div>
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
@@ -158,7 +158,7 @@ function KnowledgePage() {
         {loading ? (
           <div className="empty-hint">Lade Wissensbasis...</div>
         ) : filteredItems.length === 0 ? (
-          <div className="empty-hint">Keine Eintraege fuer diese Kategorie gefunden.</div>
+          <div className="empty-hint">Keine Einträge für diese Kategorie gefunden.</div>
         ) : (
           <div className="tents-grid">
             {filteredItems.map((item, index) => (

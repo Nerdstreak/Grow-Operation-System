@@ -225,9 +225,9 @@ function GrowSetupPage() {
                   {productionSetupsForTent.map((setup) => <option key={setup.id} value={setup.id}>{setup.name}</option>)}
                 </select>
                 {!form.tentId ? (
-                  <span className="field-hint">Zuerst ein Zelt waehlen.</span>
+                  <span className="field-hint">Zuerst ein Zelt wählen.</span>
                 ) : archivedSelectedSetup ? (
-                  <span className="field-hint">Aktuelles Setup ist archiviert. Zum Entfernen bewusst "Kein Setup" waehlen.</span>
+                  <span className="field-hint">Aktuelles Setup ist archiviert. Zum Entfernen bewusst "Kein Setup" wählen.</span>
                 ) : productionSetupsForTent.length === 0 ? (
                   <span className="field-hint">Production-Setup kann in Einstellungen angelegt werden.</span>
                 ) : null}
@@ -272,7 +272,7 @@ function GrowSetupPage() {
           <div className="card">
             <div className="card-header"><span className="card-title">Nährstoffe &amp; Notizen</span></div>
             <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
-              <label className="field"><span>Naehrstoffe</span><input value={form.nutrients ?? ''} onChange={(event) => patchForm(setForm, { nutrients: toNullableString(event.target.value) })} placeholder="Athena Pro, Canna Aqua, ..." /></label>
+              <label className="field"><span>Nährstoffe</span><input value={form.nutrients ?? ''} onChange={(event) => patchForm(setForm, { nutrients: toNullableString(event.target.value) })} placeholder="Athena Pro, Canna Aqua, ..." /></label>
               <label className="field"><span>Notizen</span><textarea rows={5} value={form.notes ?? ''} onChange={(event) => patchForm(setForm, { notes: toNullableString(event.target.value) })} placeholder="Besonderheiten, Ziele, bekannte Risiken..." /></label>
             </div>
           </div>
