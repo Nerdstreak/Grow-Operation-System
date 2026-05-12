@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type {
+  CalibrationEventDto,
+  CalibrationEventStatus,
+  CalibrationEventType,
+  CalibrationResult,
+  CreateCalibrationEventRequest,
   CreateSetupRequest,
   CreateHardwareItemRequest,
   CreateLightScheduleRequest,
@@ -30,6 +35,7 @@ import type {
   UpdateLightScheduleRequest,
   UpdateSetupRequest,
   UpdateTentRequest,
+  UpdateCalibrationEventRequest,
   UpdateHardwareItemRequest,
   UpdateMaintenanceEventRequest,
   WearTemplateDto,
@@ -101,6 +107,21 @@ type MaintenanceDraft = {
   notes: string
 }
 
+type CalibrationDraft = {
+  hardwareItemId: number | null
+  calibrationType: CalibrationEventType
+  status: CalibrationEventStatus
+  title: string
+  referenceSolution: string
+  referenceValue: string
+  beforeValue: string
+  afterValue: string
+  temperatureC: string
+  dueAtUtc: string
+  performedAtUtc: string
+  notes: string
+}
+
 const tentTypeOptions: TentType[] = ['Production', 'Mother', 'Quarantine', 'Propagation', 'MultiPurpose']
 const setupTypeOptions: SetupType[] = ['Production', 'Mother', 'Quarantine']
 const motherHealthOptions: Array<MotherHealthStatus | ''> = ['', 'Stable', 'Watch', 'Critical']
@@ -114,6 +135,9 @@ const hardwareCriticalityOptions: HardwareItemCriticality[] = ['Low', 'Medium', 
 const maintenanceEventTypeOptions: MaintenanceEventType[] = ['Inspection', 'Cleaning', 'Replacement', 'Repair', 'Other']
 const maintenanceStatusOptions: MaintenanceEventStatus[] = ['Planned', 'Completed', 'Skipped', 'Cancelled']
 const maintenanceResultOptions: MaintenanceResult[] = ['Unknown', 'Passed', 'ActionNeeded', 'Replaced', 'Failed']
+const calibrationEventTypeOptions: CalibrationEventType[] = ['Ph', 'Ec', 'Orp', 'Do', 'Other']
+const calibrationStatusOptions: CalibrationEventStatus[] = ['Planned', 'Completed', 'Failed', 'Skipped', 'Cancelled']
+const calibrationResultOptions: CalibrationResult[] = ['Unknown', 'Passed', 'AdjustmentNeeded', 'Failed']
 
 const sensorGroups: SensorGroup[] = [
   {
@@ -161,6 +185,9 @@ function SettingsPage() {
   const [maintenanceEvents, setMaintenanceEvents] = useState<MaintenanceEventDto[]>([])
   const [maintenanceDraft, setMaintenanceDraft] = useState<MaintenanceDraft>(createMaintenanceDraft())
   const [maintenanceError, setMaintenanceError] = useState<string | null>(null)
+  const [calibrationEvents, setCalibrationEvents] = useState<CalibrationEventDto[]>([])
+  const [calibrationDraft, setCalibrationDraft] = useState<CalibrationDraft>(createCalibrationDraft())
+  const [calibrationError, setCalibrationError] = useState<string | null>(null)
   const [strainDraft, setStrainDraft] = useState<StrainDraft>(createStrainDraft())
   const [strainError, setStrainError] = useState<string | null>(null)
   const [lightSchedulesByTent, setLightSchedulesByTent] = useState<Record<number, LightScheduleDto[]>>({})
@@ -182,12 +209,13 @@ function SettingsPage() {
       setError(null)
 
       try {
-        const [data, setupData, strainData, hardwareData, maintenanceData, wearData] = await Promise.all([
+        const [data, setupData, strainData, hardwareData, maintenanceData, calibrationData, wearData] = await Promise.all([
           apiFetch<SettingsOverviewDto>('/api/settings', { signal: controller.signal }),
           apiFetch<SetupDto[]>('/api/setups', { signal: controller.signal }),
           apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal }),
           apiFetch<HardwareItemDto[]>('/api/hardware-items', { signal: controller.signal }),
           apiFetch<MaintenanceEventDto[]>('/api/maintenance-events', { signal: controller.signal }),
+          apiFetch<CalibrationEventDto[]>('/api/calibration-events', { signal: controller.signal }),
           apiFetch<WearTemplateDto[]>('/api/knowledge/wear', { signal: controller.signal }),
         ])
         const scheduleEntries = await Promise.all(data.tents.map(async (tent) => [
@@ -199,6 +227,7 @@ function SettingsPage() {
         setStrains(strainData)
         setHardwareItems(hardwareData)
         setMaintenanceEvents(maintenanceData)
+        setCalibrationEvents(calibrationData)
         setWearTemplates(wearData)
         setLightSchedulesByTent(Object.fromEntries(scheduleEntries))
         setSavedTentTypes(Object.fromEntries(data.tents.map((tent) => [tent.id, tent.tentType])))
@@ -502,6 +531,81 @@ function SettingsPage() {
     }
   }
 
+  async function handleCreateCalibrationEvent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!calibrationDraft.hardwareItemId) {
+      setCalibrationError('HardwareItem auswaehlen.')
+      return
+    }
+
+    setSaving('calibration-new')
+    setCalibrationError(null)
+
+    const request: CreateCalibrationEventRequest = {
+      hardwareItemId: calibrationDraft.hardwareItemId,
+      calibrationType: calibrationDraft.calibrationType,
+      status: calibrationDraft.status,
+      result: 'Unknown',
+      title: calibrationDraft.title.trim(),
+      referenceSolution: toNullableString(calibrationDraft.referenceSolution),
+      referenceValue: toNullableNumber(calibrationDraft.referenceValue),
+      beforeValue: toNullableNumber(calibrationDraft.beforeValue),
+      afterValue: toNullableNumber(calibrationDraft.afterValue),
+      temperatureC: toNullableNumber(calibrationDraft.temperatureC),
+      dueAtUtc: toNullableDateTime(calibrationDraft.dueAtUtc),
+      performedAtUtc: toNullableDateTime(calibrationDraft.performedAtUtc),
+      notes: toNullableString(calibrationDraft.notes),
+    }
+
+    try {
+      const saved = await apiFetch<CalibrationEventDto>('/api/calibration-events', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      setCalibrationEvents((current) => [...current, saved])
+      setCalibrationDraft(createCalibrationDraft())
+    } catch (caught) {
+      setCalibrationError(formatApiError(caught, 'CalibrationEvent konnte nicht angelegt werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function saveCalibrationEvent(item: CalibrationEventDto) {
+    setSaving(`calibration-${item.id}`)
+    setCalibrationError(null)
+
+    const request: UpdateCalibrationEventRequest = {
+      hardwareItemId: item.hardwareItemId,
+      calibrationType: item.calibrationType,
+      status: item.status,
+      result: item.result,
+      title: item.title,
+      referenceSolution: item.referenceSolution,
+      referenceValue: item.referenceValue,
+      beforeValue: item.beforeValue,
+      afterValue: item.afterValue,
+      temperatureC: item.temperatureC,
+      dueAtUtc: item.dueAtUtc,
+      performedAtUtc: item.performedAtUtc,
+      nextDueAtUtc: item.nextDueAtUtc,
+      growTaskId: item.growTaskId,
+      notes: item.notes,
+    }
+
+    try {
+      const saved = await apiFetch<CalibrationEventDto>(`/api/calibration-events/${item.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(request),
+      })
+      setCalibrationEvents((current) => current.map((existing) => existing.id === saved.id ? saved : existing))
+    } catch (caught) {
+      setCalibrationError(formatApiError(caught, 'CalibrationEvent konnte nicht gespeichert werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
   async function saveSetup(setup: SetupDto) {
     setSaving(`setup-edit-${setup.id}`)
     setSetupEditErrors((current) => {
@@ -658,6 +762,10 @@ function SettingsPage() {
 
   function updateMaintenanceEvent(id: number, patch: Partial<MaintenanceEventDto>) {
     setMaintenanceEvents((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))
+  }
+
+  function updateCalibrationEvent(id: number, patch: Partial<CalibrationEventDto>) {
+    setCalibrationEvents((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))
   }
 
   function updateTentSensor(tentId: number, metricType: SensorMetricType, patch: Partial<TentSensorDto>) {
@@ -1134,6 +1242,151 @@ function SettingsPage() {
               <label className="field" style={{ gridColumn: '2 / -1' }}>
                 <span>Notes</span>
                 <input value={maintenanceDraft.notes} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, notes: event.target.value }))} />
+              </label>
+            </form>
+          </div>
+        </div>
+
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-header"><span className="card-title">CalibrationEvents</span></div>
+          <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
+            {calibrationError && <div style={{ fontSize: 13, color: 'var(--red)' }}>{calibrationError}</div>}
+            {calibrationEvents.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--faint)' }}>Keine CalibrationEvents angelegt.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {calibrationEvents.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(120px, 1fr) minmax(130px, 1.2fr) minmax(95px, 0.7fr) minmax(105px, 0.8fr) minmax(120px, 0.9fr) minmax(95px, 0.7fr) minmax(105px, 0.8fr) minmax(105px, 0.8fr) minmax(80px, 0.6fr) auto',
+                      gap: 8,
+                      alignItems: 'end',
+                      padding: '9px 10px',
+                      border: '1px solid var(--border)',
+                      borderRadius: 7,
+                      background: 'var(--surface2)',
+                    }}
+                  >
+                    <div className="field">
+                      <label>Hardware</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{getHardwareName(hardwareItems, item.hardwareItemId)}</div>
+                    </div>
+                    <label className="field">
+                      <span>Title</span>
+                      <input value={item.title} onChange={(event) => updateCalibrationEvent(item.id, { title: event.target.value })} />
+                    </label>
+                    <div className="field">
+                      <label>Type</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{item.calibrationType}</div>
+                    </div>
+                    <label className="field">
+                      <span>Status</span>
+                      <select value={item.status} onChange={(event) => updateCalibrationEvent(item.id, { status: event.target.value as CalibrationEventStatus })}>
+                        {calibrationStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Result</span>
+                      <select value={item.result} onChange={(event) => updateCalibrationEvent(item.id, { result: event.target.value as CalibrationResult })}>
+                        {calibrationResultOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <div className="field">
+                      <label>DueAt</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.dueAtUtc)}</div>
+                    </div>
+                    <label className="field">
+                      <span>PerformedAt</span>
+                      <input type="datetime-local" value={toDateTimeInputValue(item.performedAtUtc)} onChange={(event) => updateCalibrationEvent(item.id, { performedAtUtc: toNullableDateTime(event.target.value) })} />
+                    </label>
+                    <div className="field">
+                      <label>NextDueAt</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.nextDueAtUtc)}</div>
+                    </div>
+                    <div className="field">
+                      <label>GrowTask</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{item.growTaskId ?? '-'}</div>
+                    </div>
+                    <button type="button" className="btn" disabled={saving === `calibration-${item.id}`} onClick={() => void saveCalibrationEvent(item)}>
+                      {saving === `calibration-${item.id}` ? 'Speichert...' : 'Speichern'}
+                    </button>
+                    <label className="field">
+                      <span>Before</span>
+                      <input type="number" step="0.001" value={item.beforeValue ?? ''} onChange={(event) => updateCalibrationEvent(item.id, { beforeValue: toNullableNumber(event.target.value) })} />
+                    </label>
+                    <label className="field">
+                      <span>After</span>
+                      <input type="number" step="0.001" value={item.afterValue ?? ''} onChange={(event) => updateCalibrationEvent(item.id, { afterValue: toNullableNumber(event.target.value) })} />
+                    </label>
+                    <label className="field" style={{ gridColumn: '3 / -1' }}>
+                      <span>Notes</span>
+                      <input value={item.notes ?? ''} onChange={(event) => updateCalibrationEvent(item.id, { notes: toNullableString(event.target.value) })} />
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={(event) => void handleCreateCalibrationEvent(event)} style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(110px, 1fr)) auto', gap: 8, alignItems: 'end' }}>
+              <label className="field">
+                <span>HardwareItem</span>
+                <select value={calibrationDraft.hardwareItemId ?? ''} onChange={(event) => setCalibrationDraft((current) => ({ ...current, hardwareItemId: toNullableInteger(event.target.value) }))}>
+                  <option value="">Auswaehlen</option>
+                  {hardwareItems.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Type</span>
+                <select value={calibrationDraft.calibrationType} onChange={(event) => setCalibrationDraft((current) => ({ ...current, calibrationType: event.target.value as CalibrationEventType }))}>
+                  {calibrationEventTypeOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Status</span>
+                <select value={calibrationDraft.status} onChange={(event) => setCalibrationDraft((current) => ({ ...current, status: event.target.value as CalibrationEventStatus }))}>
+                  {calibrationStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Title</span>
+                <input value={calibrationDraft.title} onChange={(event) => setCalibrationDraft((current) => ({ ...current, title: event.target.value }))} placeholder="pH 7.00 pruefen" />
+              </label>
+              <label className="field">
+                <span>ReferenceSolution</span>
+                <input value={calibrationDraft.referenceSolution} onChange={(event) => setCalibrationDraft((current) => ({ ...current, referenceSolution: event.target.value }))} placeholder="pH 7.00" />
+              </label>
+              <label className="field">
+                <span>ReferenceValue</span>
+                <input type="number" step="0.001" value={calibrationDraft.referenceValue} onChange={(event) => setCalibrationDraft((current) => ({ ...current, referenceValue: event.target.value }))} />
+              </label>
+              <button type="submit" className="btn" disabled={saving === 'calibration-new'}>
+                {saving === 'calibration-new' ? 'Legt an...' : 'Calibration anlegen'}
+              </button>
+              <label className="field">
+                <span>Before</span>
+                <input type="number" step="0.001" value={calibrationDraft.beforeValue} onChange={(event) => setCalibrationDraft((current) => ({ ...current, beforeValue: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>After</span>
+                <input type="number" step="0.001" value={calibrationDraft.afterValue} onChange={(event) => setCalibrationDraft((current) => ({ ...current, afterValue: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>TemperatureC</span>
+                <input type="number" step="0.1" value={calibrationDraft.temperatureC} onChange={(event) => setCalibrationDraft((current) => ({ ...current, temperatureC: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>DueAt</span>
+                <input type="datetime-local" value={calibrationDraft.dueAtUtc} onChange={(event) => setCalibrationDraft((current) => ({ ...current, dueAtUtc: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>PerformedAt</span>
+                <input type="datetime-local" value={calibrationDraft.performedAtUtc} onChange={(event) => setCalibrationDraft((current) => ({ ...current, performedAtUtc: event.target.value }))} />
+              </label>
+              <label className="field" style={{ gridColumn: '6 / -1' }}>
+                <span>Notes</span>
+                <input value={calibrationDraft.notes} onChange={(event) => setCalibrationDraft((current) => ({ ...current, notes: event.target.value }))} />
               </label>
             </form>
           </div>
@@ -1646,6 +1899,23 @@ function createMaintenanceDraft(): MaintenanceDraft {
     eventType: 'Inspection',
     status: 'Planned',
     title: '',
+    dueAtUtc: '',
+    performedAtUtc: '',
+    notes: '',
+  }
+}
+
+function createCalibrationDraft(): CalibrationDraft {
+  return {
+    hardwareItemId: null,
+    calibrationType: 'Ph',
+    status: 'Planned',
+    title: '',
+    referenceSolution: '',
+    referenceValue: '',
+    beforeValue: '',
+    afterValue: '',
+    temperatureC: '',
     dueAtUtc: '',
     performedAtUtc: '',
     notes: '',

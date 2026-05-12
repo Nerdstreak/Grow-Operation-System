@@ -528,6 +528,27 @@ public sealed class DatabaseInitializer
                 UpdatedAtUtc TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS CalibrationEvents (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                HardwareItemId INTEGER NOT NULL,
+                CalibrationType TEXT NOT NULL,
+                Status TEXT NOT NULL,
+                Result TEXT NOT NULL,
+                Title TEXT NOT NULL,
+                ReferenceSolution TEXT NULL,
+                ReferenceValue REAL NULL,
+                BeforeValue REAL NULL,
+                AfterValue REAL NULL,
+                TemperatureC REAL NULL,
+                DueAtUtc TEXT NULL,
+                PerformedAtUtc TEXT NULL,
+                NextDueAtUtc TEXT NULL,
+                GrowTaskId INTEGER NULL,
+                Notes TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS IX_Measurements_GrowId_TakenAt ON Measurements(GrowId, TakenAt DESC);
             CREATE INDEX IF NOT EXISTS IX_Photos_GrowId_TakenAt ON Photos(GrowId, TakenAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_Setups_TentId_Status ON Setups(TentId, Status);
@@ -558,6 +579,12 @@ public sealed class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS IX_MaintenanceEvents_NextDueAtUtc ON MaintenanceEvents(NextDueAtUtc);
             CREATE INDEX IF NOT EXISTS IX_MaintenanceEvents_GrowTaskId ON MaintenanceEvents(GrowTaskId);
             CREATE INDEX IF NOT EXISTS IX_MaintenanceEvents_SopInstanceId ON MaintenanceEvents(SopInstanceId);
+            CREATE INDEX IF NOT EXISTS IX_CalibrationEvents_HardwareItemId ON CalibrationEvents(HardwareItemId);
+            CREATE INDEX IF NOT EXISTS IX_CalibrationEvents_Status ON CalibrationEvents(Status);
+            CREATE INDEX IF NOT EXISTS IX_CalibrationEvents_DueAtUtc ON CalibrationEvents(DueAtUtc);
+            CREATE INDEX IF NOT EXISTS IX_CalibrationEvents_NextDueAtUtc ON CalibrationEvents(NextDueAtUtc);
+            CREATE INDEX IF NOT EXISTS IX_CalibrationEvents_GrowTaskId ON CalibrationEvents(GrowTaskId);
+            CREATE INDEX IF NOT EXISTS IX_CalibrationEvents_CalibrationType ON CalibrationEvents(CalibrationType);
         """;
         command.ExecuteNonQuery();
 
