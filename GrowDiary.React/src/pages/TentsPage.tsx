@@ -92,7 +92,7 @@ function TentsPage() {
                   <div className="tc-section-label">Live</div>
                   <div className="tc-metrics-row">
                     {metrics.length === 0 ? (
-                      <div className="empty-hint" style={{ padding: 18, gridColumn: '1 / -1' }}>Keine Live-Metriken verfuegbar.</div>
+                      <div className="empty-hint" style={{ padding: 18, gridColumn: '1 / -1' }}>Keine Live-Metriken verfügbar.</div>
                     ) : (
                       metrics.map((metric) => (
                         <div key={metric.key} className="tc-metric">

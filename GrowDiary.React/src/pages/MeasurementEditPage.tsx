@@ -51,11 +51,11 @@ const fieldSections: Array<{ title: string, fields: Array<{ key: MeasurementNume
   {
     title: 'Klima',
     fields: [
-      { key: 'airTemperatureC', label: 'Lufttemp', unit: 'Â°C' },
+      { key: 'airTemperatureC', label: 'Lufttemp', unit: '°C' },
       { key: 'humidityPercent', label: 'Luftfeuchte', unit: '%' },
       { key: 'co2Ppm', label: 'CO2', unit: 'ppm' },
       { key: 'ppfdMol', label: 'PPFD', unit: 'umol/m2/s' },
-      { key: 'heightCm', label: 'Hoehe', unit: 'cm' },
+      { key: 'heightCm', label: 'Höhe', unit: 'cm' },
     ],
   },
   {
@@ -74,7 +74,7 @@ const fieldSections: Array<{ title: string, fields: Array<{ key: MeasurementNume
     fields: [
       { key: 'reservoirPh', label: 'Reservoir-pH', unit: 'pH' },
       { key: 'reservoirEc', label: 'Reservoir-EC', unit: 'mS/cm' },
-      { key: 'reservoirWaterTempC', label: 'Wassertemp', unit: 'Â°C' },
+      { key: 'reservoirWaterTempC', label: 'Wassertemp', unit: '°C' },
       { key: 'reservoirLevelCm', label: 'Level', unit: 'cm' },
       { key: 'reservoirLevelLiters', label: 'Level', unit: 'L' },
       { key: 'topOffLiters', label: 'Top-Off', unit: 'L' },
@@ -148,7 +148,7 @@ function MeasurementEditPage() {
   }
 
   async function handleDelete() {
-    if (!measurementId || !window.confirm('Messung wirklich loeschen?')) return
+    if (!measurementId || !window.confirm('Messung wirklich löschen?')) return
 
     setDeleting(true)
     try {
@@ -164,7 +164,7 @@ function MeasurementEditPage() {
   async function handlePhotoSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!measurementId || photoForm.files.length === 0) {
-      setError('Bitte mindestens ein Foto auswaehlen.')
+      setError('Bitte mindestens ein Foto auswählen.')
       return
     }
 
@@ -194,11 +194,11 @@ function MeasurementEditPage() {
     <>
       <div className="topbar">
         <div className="topbar-left">
-          <Link className="btn" to={grow ? `/grows/${grow.id}` : '/'}>â† Zurueck</Link>
+          <Link className="btn" to={grow ? `/grows/${grow.id}` : '/'}>← Zurück</Link>
           <span className="topbar-title">{grow?.name ?? 'Messung bearbeiten'}</span>
         </div>
         <div className="topbar-right">
-          <button type="button" className="btn btn-danger" disabled={deleting} onClick={() => void handleDelete()}>{deleting ? 'Loeschtâ€¦' : 'Messung loeschen'}</button>
+          <button type="button" className="btn btn-danger" disabled={deleting} onClick={() => void handleDelete()}>{deleting ? 'Löscht…' : 'Messung löschen'}</button>
         </div>
       </div>
 
@@ -220,7 +220,7 @@ function MeasurementEditPage() {
                 <div className="card">
                   <div className="card-header">
                     <span className="card-title">Basisdaten</span>
-                    <span className="text-muted" style={{ fontSize: 12 }}>#{measurement.id} Â· {formatDateTime(measurement.takenAt)}</span>
+                    <span className="text-muted" style={{ fontSize: 12 }}>#{measurement.id} · {formatDateTime(measurement.takenAt)}</span>
                   </div>
                   <div style={{ padding: '16px 18px', display: 'grid', gap: 14 }}>
                     <div className="meas-fields">
@@ -273,7 +273,7 @@ function MeasurementEditPage() {
 
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                   <Link className="btn" to={grow ? `/grows/${grow.id}` : '/'}>Abbrechen</Link>
-                  <button className="btn btn-primary" disabled={saving}>{saving ? 'Speichertâ€¦' : 'Aenderungen speichern'}</button>
+                  <button className="btn btn-primary" disabled={saving}>{saving ? 'Speichert…' : 'Änderungen speichern'}</button>
                 </div>
               </form>
             </div>
@@ -320,7 +320,7 @@ function MeasurementEditPage() {
                     <input type="checkbox" checked={photoForm.useAsReferenceShot} onChange={(event) => setPhotoForm((current) => ({ ...current, useAsReferenceShot: event.target.checked }))} />
                     <span>Als Referenzshot markieren</span>
                   </label>
-                  <button className="btn btn-primary" disabled={uploading}>{uploading ? 'Laedt hochâ€¦' : 'Fotos hochladen'}</button>
+                  <button className="btn btn-primary" disabled={uploading}>{uploading ? 'Lädt hoch…' : 'Fotos hochladen'}</button>
                 </form>
               </div>
             </div>

@@ -77,7 +77,7 @@ function AddbackPage() {
     <>
       <div className="topbar">
         <div className="topbar-left">
-          <Link className="btn" to={growId ? `/grows/${growId}` : '/'}>â† Zurueck</Link>
+          <Link className="btn" to={growId ? `/grows/${growId}` : '/'}>← Zurück</Link>
           <span className="topbar-title">{defaults?.growName ?? 'Addback'}</span>
         </div>
       </div>
@@ -104,11 +104,11 @@ function AddbackPage() {
                   <NumericField label="Reservoir" unit="L" value={form.reservoirLiters} onChange={(value) => setForm((current) => ({ ...current, reservoirLiters: value }))} hint={defaults?.suggestedReservoirLiters == null ? null : `Vorschlag: ${formatNumber(defaults.suggestedReservoirLiters, 1)} L`} />
                   <NumericField label="EC aktuell" unit="mS/cm" value={form.ecIst} onChange={(value) => setForm((current) => ({ ...current, ecIst: value }))} hint={defaults?.suggestedEcIst == null ? null : `Letzte Messung: ${formatNumber(defaults.suggestedEcIst, 2)}`} />
                   <NumericField label="Ziel-EC" unit="mS/cm" value={form.ecZiel} onChange={(value) => setForm((current) => ({ ...current, ecZiel: value }))} hint={defaults?.suggestedEcZiel == null ? null : `Sollwert: ${formatNumber(defaults.suggestedEcZiel, 2)}`} />
-                  <NumericField label="Addback-EC" unit="mS/cm" value={form.ecStock} onChange={(value) => setForm((current) => ({ ...current, ecStock: value }))} hint="Vorgemischte StammlÃ¶sung" />
+                  <NumericField label="Addback-EC" unit="mS/cm" value={form.ecStock} onChange={(value) => setForm((current) => ({ ...current, ecStock: value }))} hint="Vorgemischte Stammlösung" />
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <button className="btn btn-primary" disabled={saving}>{saving ? 'Berechnetâ€¦' : 'Berechnen'}</button>
-                  <button type="button" className="btn" onClick={() => setResult(null)}>Ergebnis loeschen</button>
+                  <button className="btn btn-primary" disabled={saving}>{saving ? 'Berechnet…' : 'Berechnen'}</button>
+                  <button type="button" className="btn" onClick={() => setResult(null)}>Ergebnis löschen</button>
                 </div>
               </form>
             </div>
@@ -123,13 +123,13 @@ function AddbackPage() {
                     <div style={{ color: 'var(--red)', fontWeight: 600 }}>{result.errorMessage}</div>
                   ) : !result.needsAddback ? (
                     <>
-                      <div style={{ fontSize: 18, fontWeight: 600 }}>Kein Addback noetig</div>
-                      <div className="text-muted">EC liegt bereits im Zielbereich oder darueber.</div>
+                      <div style={{ fontSize: 18, fontWeight: 600 }}>Kein Addback nötig</div>
+                      <div className="text-muted">EC liegt bereits im Zielbereich oder darüber.</div>
                     </>
                   ) : (
                     <>
                       <div style={{ fontSize: 34, fontFamily: 'var(--mono)', letterSpacing: '-0.04em' }}>{formatNumber(result.litersToAdd, 2)} L</div>
-                      <div style={{ fontWeight: 600 }}>Addback hinzufuegen</div>
+                      <div style={{ fontWeight: 600 }}>Addback hinzufügen</div>
                       <div className="text-muted">Reservoir danach: {formatNumber(result.newReservoirVolume, 1)} L</div>
                     </>
                   )}

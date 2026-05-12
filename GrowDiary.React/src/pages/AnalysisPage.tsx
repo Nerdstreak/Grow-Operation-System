@@ -89,14 +89,14 @@ function AnalysisPage() {
           <label className="field">
             <span>Grow A</span>
             <select value={leftId} onChange={(event) => updateSelection('leftGrowId', event.target.value)}>
-              <option value="">â€“ Grow waehlen â€“</option>
+              <option value="">– Grow wählen –</option>
               {allGrows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
             </select>
           </label>
           <label className="field">
             <span>Grow B</span>
             <select value={rightId} onChange={(event) => updateSelection('rightGrowId', event.target.value)}>
-              <option value="">â€“ Grow waehlen â€“</option>
+              <option value="">– Grow wählen –</option>
               {allGrows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
             </select>
           </label>
@@ -110,8 +110,8 @@ function AnalysisPage() {
           <div className="data-table">
             <div className="data-table-header" style={{ gridTemplateColumns: '1.2fr 1fr 1fr' }}>
               <span>Kennzahl</span>
-              <span>{leftGrow?.name ?? 'â€“'}</span>
-              <span>{rightGrow?.name ?? 'â€“'}</span>
+              <span>{leftGrow?.name ?? '–'}</span>
+              <span>{rightGrow?.name ?? '–'}</span>
             </div>
             {compareRows(leftGrow, rightGrow).map((row) => (
               <div key={row.label} className="data-row" style={{ gridTemplateColumns: '1.2fr 1fr 1fr', cursor: 'default' }}>
@@ -129,12 +129,12 @@ function AnalysisPage() {
 
 function compareRows(left: GrowDetail | null, right: GrowDetail | null) {
   return [
-    { label: 'Strain', left: left?.strain ?? 'â€“', right: right?.strain ?? 'â€“' },
-    { label: 'Hydro-Stil', left: left?.hydroStyle ?? 'â€“', right: right?.hydroStyle ?? 'â€“' },
-    { label: 'Naehrstoffe', left: left?.nutrients ?? 'â€“', right: right?.nutrients ?? 'â€“' },
+    { label: 'Strain', left: left?.strain ?? '–', right: right?.strain ?? '–' },
+    { label: 'Hydro-Stil', left: left?.hydroStyle ?? '–', right: right?.hydroStyle ?? '–' },
+    { label: 'Nährstoffe', left: left?.nutrients ?? '–', right: right?.nutrients ?? '–' },
     { label: 'Startdatum', left: formatDate(left?.startDate), right: formatDate(right?.startDate) },
-    { label: 'Pflanzen', left: left?.plantCount?.toString() ?? 'â€“', right: right?.plantCount?.toString() ?? 'â€“' },
-    { label: 'Messungen', left: left?.measurementCount?.toString() ?? 'â€“', right: right?.measurementCount?.toString() ?? 'â€“' },
+    { label: 'Pflanzen', left: left?.plantCount?.toString() ?? '–', right: right?.plantCount?.toString() ?? '–' },
+    { label: 'Messungen', left: left?.measurementCount?.toString() ?? '–', right: right?.measurementCount?.toString() ?? '–' },
     { label: 'EC (letzte Messung)', left: formatNumber(left?.latestMeasurement?.reservoirEc, 2), right: formatNumber(right?.latestMeasurement?.reservoirEc, 2) },
     { label: 'pH (letzte Messung)', left: formatNumber(left?.latestMeasurement?.reservoirPh, 2), right: formatNumber(right?.latestMeasurement?.reservoirPh, 2) },
     { label: 'Temperatur (letzte)', left: formatNumber(left?.latestMeasurement?.airTemperatureC, 1), right: formatNumber(right?.latestMeasurement?.airTemperatureC, 1) },
