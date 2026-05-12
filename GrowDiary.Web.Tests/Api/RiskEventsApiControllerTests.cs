@@ -2,6 +2,8 @@ using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Api.Controllers;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
+using GrowDiary.Web.Services.Knowledge;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -21,7 +23,10 @@ public sealed class RiskEventsApiControllerTests : IDisposable
         _paths = new AppPaths(_contentRoot);
         new DatabaseInitializer(_paths, NullLogger<DatabaseInitializer>.Instance).Initialize();
         _repository = new GrowRepository(_paths);
-        _controller = new RiskEventsApiController(_repository);
+        var knowledgeBase = new KnowledgeBaseLoader(_paths, NullLogger<KnowledgeBaseLoader>.Instance);
+        knowledgeBase.Initialize();
+        var recommender = new RiskEventSopRecommender(knowledgeBase, _repository);
+        _controller = new RiskEventsApiController(_repository, new TaskRepository(_paths), knowledgeBase, recommender);
     }
 
     public void Dispose()

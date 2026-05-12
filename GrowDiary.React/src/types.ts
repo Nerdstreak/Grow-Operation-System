@@ -613,6 +613,23 @@ export interface AcknowledgeRiskEventRequest {
   notes?: string | null
 }
 
+export interface RiskEventSopRecommendationDto {
+  riskEventId: number
+  riskEventType: string
+  severity: string
+  sopId: string
+  sopName: string
+  reason: string
+  confidence: string
+  alreadyActive: boolean
+  activeSopInstanceId: number | null
+}
+
+export interface StartRiskEventSopRequest {
+  sopId: string
+  notes?: string | null
+}
+
 export type TentType = 'Production' | 'Mother' | 'Quarantine' | 'Propagation' | 'MultiPurpose'
 export interface SetupDto {
   id: number

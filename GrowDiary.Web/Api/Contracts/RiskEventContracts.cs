@@ -29,6 +29,18 @@ public sealed record RiskEventDto(
     DateTime UpdatedAtUtc
 );
 
+public sealed record RiskEventSopRecommendationDto(
+    int RiskEventId,
+    string RiskEventType,
+    string Severity,
+    string SopId,
+    string SopName,
+    string Reason,
+    string Confidence,
+    bool AlreadyActive,
+    int? ActiveSopInstanceId
+);
+
 public sealed class CreateRiskEventRequest
 {
     public RiskEventType EventType { get; set; } = RiskEventType.Other;
@@ -92,5 +104,11 @@ public sealed class ResolveRiskEventRequest
 public sealed class AcknowledgeRiskEventRequest
 {
     public DateTime? AcknowledgedAtUtc { get; set; }
+    public string? Notes { get; set; }
+}
+
+public sealed class StartRiskEventSopRequest
+{
+    public string SopId { get; set; } = string.Empty;
     public string? Notes { get; set; }
 }
