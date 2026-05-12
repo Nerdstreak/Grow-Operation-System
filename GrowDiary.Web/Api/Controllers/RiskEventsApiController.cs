@@ -117,9 +117,17 @@ public sealed class RiskEventsApiController : ApiControllerBase
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
     public ActionResult<RiskEventDto> Acknowledge(int id, [FromBody] AcknowledgeRiskEventRequest request)
     {
-        if (_repository.GetRiskEvent(id) is null)
+        var item = _repository.GetRiskEvent(id);
+        if (item is null)
         {
             return NotFoundError("risk_event_not_found", $"RiskEvent mit Id {id} existiert nicht.");
+        }
+
+        if (request.AcknowledgedAtUtc.HasValue &&
+            request.AcknowledgedAtUtc.Value.ToUniversalTime() < item.StartedAtUtc.ToUniversalTime())
+        {
+            ModelState.AddModelError(nameof(AcknowledgeRiskEventRequest.AcknowledgedAtUtc), "AcknowledgedAtUtc darf nicht vor StartedAtUtc liegen.");
+            return ValidationError();
         }
 
         return Ok(_repository.AcknowledgeRiskEvent(id, request.AcknowledgedAtUtc ?? DateTime.UtcNow, request.Notes).ToDto());
@@ -130,9 +138,17 @@ public sealed class RiskEventsApiController : ApiControllerBase
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
     public ActionResult<RiskEventDto> Resolve(int id, [FromBody] ResolveRiskEventRequest request)
     {
-        if (_repository.GetRiskEvent(id) is null)
+        var item = _repository.GetRiskEvent(id);
+        if (item is null)
         {
             return NotFoundError("risk_event_not_found", $"RiskEvent mit Id {id} existiert nicht.");
+        }
+
+        if (request.ResolvedAtUtc.HasValue &&
+            request.ResolvedAtUtc.Value.ToUniversalTime() < item.StartedAtUtc.ToUniversalTime())
+        {
+            ModelState.AddModelError(nameof(ResolveRiskEventRequest.ResolvedAtUtc), "ResolvedAtUtc darf nicht vor StartedAtUtc liegen.");
+            return ValidationError();
         }
 
         return Ok(_repository.ResolveRiskEvent(id, request.ResolvedAtUtc ?? DateTime.UtcNow, request.Notes).ToDto());
