@@ -1,0 +1,195 @@
+using GrowDiary.Web.Api.Contracts;
+using GrowDiary.Web.Api.Controllers;
+using GrowDiary.Web.Infrastructure;
+using GrowDiary.Web.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace GrowDiary.Web.Tests.Api;
+
+public sealed class CalibrationEventsApiControllerTests : IDisposable
+{
+    private readonly string _contentRoot;
+    private readonly AppPaths _paths;
+    private readonly GrowRepository _repository;
+    private readonly CalibrationEventsApiController _controller;
+
+    public CalibrationEventsApiControllerTests()
+    {
+        _contentRoot = Path.Combine(Path.GetTempPath(), $"grow-calibration-api-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_contentRoot);
+        _paths = new AppPaths(_contentRoot);
+        new DatabaseInitializer(_paths, NullLogger<DatabaseInitializer>.Instance).Initialize();
+        _repository = new GrowRepository(_paths);
+        _controller = new CalibrationEventsApiController(_repository);
+    }
+
+    public void Dispose()
+    {
+        try { Directory.Delete(_contentRoot, recursive: true); } catch { }
+    }
+
+    [Fact]
+    public void Api_CreateListsGetsAndUpdatesCalibrationEvent()
+    {
+        var hardware = CreateHardware();
+        var dueAt = Utc(2026, 6, 25);
+
+        var create = _controller.Create(new CreateCalibrationEventRequest
+        {
+            HardwareItemId = hardware.Id,
+            CalibrationType = CalibrationEventType.Ph,
+            Status = CalibrationEventStatus.Planned,
+            Result = CalibrationResult.Unknown,
+            Title = "pH 7.00",
+            ReferenceSolution = "pH 7.00",
+            ReferenceValue = 7.00m,
+            BeforeValue = 6.90m,
+            TemperatureC = 22.0m,
+            DueAtUtc = dueAt,
+            Notes = "Vorbereitet"
+        });
+        var created = Assert.IsType<CreatedAtActionResult>(create.Result);
+        var dto = Assert.IsType<CalibrationEventDto>(created.Value);
+        Assert.Equal(hardware.Id, dto.HardwareItemId);
+
+        var detail = Assert.IsType<OkObjectResult>(_controller.Detail(dto.Id).Result);
+        Assert.Equal(dto.Id, Assert.IsType<CalibrationEventDto>(detail.Value).Id);
+
+        var listByHardware = Assert.IsType<OkObjectResult>(_controller.List(hardware.Id, null).Result);
+        Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<CalibrationEventDto>>(listByHardware.Value));
+
+        var dueList = Assert.IsType<OkObjectResult>(_controller.List(null, Utc(2026, 6, 26)).Result);
+        Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<CalibrationEventDto>>(dueList.Value));
+
+        var update = _controller.Update(dto.Id, new UpdateCalibrationEventRequest
+        {
+            HardwareItemId = hardware.Id,
+            CalibrationType = CalibrationEventType.Ph,
+            Status = CalibrationEventStatus.Completed,
+            Result = CalibrationResult.Passed,
+            Title = "pH 7.00 erledigt",
+            ReferenceSolution = "pH 7.00",
+            ReferenceValue = 7.00m,
+            BeforeValue = 6.90m,
+            AfterValue = 7.00m,
+            TemperatureC = 22.0m,
+            DueAtUtc = dueAt,
+            PerformedAtUtc = Utc(2026, 6, 24),
+            Notes = "OK"
+        });
+        var ok = Assert.IsType<OkObjectResult>(update.Result);
+        var updated = Assert.IsType<CalibrationEventDto>(ok.Value);
+        Assert.Equal(CalibrationEventStatus.Completed, updated.Status);
+        Assert.Equal(CalibrationResult.Passed, updated.Result);
+        Assert.Equal(7.00m, updated.AfterValue);
+    }
+
+    [Fact]
+    public void Api_ReturnsNotFoundForMissingCalibrationEvent()
+    {
+        var result = _controller.Detail(9999).Result;
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        var error = Assert.IsType<ApiError>(notFound.Value);
+        Assert.Equal("calibration_event_not_found", error.Code);
+    }
+
+    [Fact]
+    public void Api_RejectsInvalidReferencesEnumsTemperatureAndDates()
+    {
+        var missingHardware = _controller.Create(new CreateCalibrationEventRequest
+        {
+            HardwareItemId = 9999,
+            CalibrationType = CalibrationEventType.Ph,
+            Status = CalibrationEventStatus.Planned,
+            Result = CalibrationResult.Unknown,
+            Title = "Bad"
+        });
+        Assert.Contains(nameof(CreateCalibrationEventRequest.HardwareItemId), AssertValidationError(missingHardware.Result).FieldErrors!.Keys);
+
+        var hardware = CreateHardware();
+
+        _controller.ModelState.Clear();
+        var badType = _controller.Create(new CreateCalibrationEventRequest
+        {
+            HardwareItemId = hardware.Id,
+            CalibrationType = (CalibrationEventType)99,
+            Status = CalibrationEventStatus.Planned,
+            Result = CalibrationResult.Unknown,
+            Title = "Bad"
+        });
+        Assert.Contains(nameof(CreateCalibrationEventRequest.CalibrationType), AssertValidationError(badType.Result).FieldErrors!.Keys);
+
+        _controller.ModelState.Clear();
+        var badStatus = _controller.Create(new CreateCalibrationEventRequest
+        {
+            HardwareItemId = hardware.Id,
+            CalibrationType = CalibrationEventType.Ph,
+            Status = (CalibrationEventStatus)99,
+            Result = CalibrationResult.Unknown,
+            Title = "Bad"
+        });
+        Assert.Contains(nameof(CreateCalibrationEventRequest.Status), AssertValidationError(badStatus.Result).FieldErrors!.Keys);
+
+        _controller.ModelState.Clear();
+        var badResult = _controller.Create(new CreateCalibrationEventRequest
+        {
+            HardwareItemId = hardware.Id,
+            CalibrationType = CalibrationEventType.Ph,
+            Status = CalibrationEventStatus.Planned,
+            Result = (CalibrationResult)99,
+            Title = "Bad"
+        });
+        Assert.Contains(nameof(CreateCalibrationEventRequest.Result), AssertValidationError(badResult.Result).FieldErrors!.Keys);
+
+        _controller.ModelState.Clear();
+        var badTemperature = _controller.Create(new CreateCalibrationEventRequest
+        {
+            HardwareItemId = hardware.Id,
+            CalibrationType = CalibrationEventType.Ph,
+            Status = CalibrationEventStatus.Completed,
+            Result = CalibrationResult.Passed,
+            Title = "Bad Temp",
+            TemperatureC = -20m
+        });
+        Assert.Contains(nameof(CreateCalibrationEventRequest.TemperatureC), AssertValidationError(badTemperature.Result).FieldErrors!.Keys);
+
+        _controller.ModelState.Clear();
+        var badDate = _controller.Create(new CreateCalibrationEventRequest
+        {
+            HardwareItemId = hardware.Id,
+            CalibrationType = CalibrationEventType.Ph,
+            Status = CalibrationEventStatus.Completed,
+            Result = CalibrationResult.Passed,
+            Title = "Bad Date",
+            PerformedAtUtc = Utc(2026, 6, 20),
+            NextDueAtUtc = Utc(2026, 6, 19)
+        });
+        Assert.Contains(nameof(CreateCalibrationEventRequest.NextDueAtUtc), AssertValidationError(badDate.Result).FieldErrors!.Keys);
+    }
+
+    private HardwareItem CreateHardware()
+    {
+        var tent = _repository.GetTents().Single();
+        return _repository.CreateHardwareItem(new HardwareItem
+        {
+            Name = "pH Sonde",
+            Category = "Sensor",
+            Status = HardwareItemStatus.Active,
+            Criticality = HardwareItemCriticality.Medium,
+            TentId = tent.Id
+        });
+    }
+
+    private static ApiError AssertValidationError(ActionResult? result)
+    {
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        var error = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Equal("validation_failed", error.Code);
+        return error;
+    }
+
+    private static DateTime Utc(int year, int month, int day)
+        => new(year, month, day, 0, 0, 0, DateTimeKind.Utc);
+}

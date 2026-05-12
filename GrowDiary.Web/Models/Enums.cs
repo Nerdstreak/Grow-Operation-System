@@ -142,6 +142,32 @@ public enum MaintenanceResult
     Failed
 }
 
+public enum CalibrationEventType
+{
+    Ph,
+    Ec,
+    Orp,
+    Do,
+    Other
+}
+
+public enum CalibrationEventStatus
+{
+    Planned,
+    Completed,
+    Failed,
+    Skipped,
+    Cancelled
+}
+
+public enum CalibrationResult
+{
+    Unknown,
+    Passed,
+    AdjustmentNeeded,
+    Failed
+}
+
 public enum SopInstanceStatus
 {
     Active,

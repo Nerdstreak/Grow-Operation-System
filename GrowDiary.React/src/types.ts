@@ -48,6 +48,9 @@ export type HardwareItemCriticality = 'Low' | 'Medium' | 'High' | 'Critical'
 export type MaintenanceEventType = 'Inspection' | 'Cleaning' | 'Replacement' | 'Repair' | 'Other'
 export type MaintenanceEventStatus = 'Planned' | 'Completed' | 'Skipped' | 'Cancelled'
 export type MaintenanceResult = 'Unknown' | 'Passed' | 'ActionNeeded' | 'Replaced' | 'Failed'
+export type CalibrationEventType = 'Ph' | 'Ec' | 'Orp' | 'Do' | 'Other'
+export type CalibrationEventStatus = 'Planned' | 'Completed' | 'Failed' | 'Skipped' | 'Cancelled'
+export type CalibrationResult = 'Unknown' | 'Passed' | 'AdjustmentNeeded' | 'Failed'
 
 export interface ApiError {
   code: string
@@ -503,6 +506,47 @@ export interface CreateMaintenanceEventRequest {
 }
 
 export type UpdateMaintenanceEventRequest = CreateMaintenanceEventRequest
+
+export interface CalibrationEventDto {
+  id: number
+  hardwareItemId: number
+  calibrationType: CalibrationEventType
+  status: CalibrationEventStatus
+  result: CalibrationResult
+  title: string
+  referenceSolution: string | null
+  referenceValue: number | null
+  beforeValue: number | null
+  afterValue: number | null
+  temperatureC: number | null
+  dueAtUtc: string | null
+  performedAtUtc: string | null
+  nextDueAtUtc: string | null
+  growTaskId: number | null
+  notes: string | null
+  createdAtUtc: string
+  updatedAtUtc: string
+}
+
+export interface CreateCalibrationEventRequest {
+  hardwareItemId: number
+  calibrationType: CalibrationEventType
+  status: CalibrationEventStatus
+  result: CalibrationResult
+  title: string
+  referenceSolution?: string | null
+  referenceValue?: number | null
+  beforeValue?: number | null
+  afterValue?: number | null
+  temperatureC?: number | null
+  dueAtUtc?: string | null
+  performedAtUtc?: string | null
+  nextDueAtUtc?: string | null
+  growTaskId?: number | null
+  notes?: string | null
+}
+
+export type UpdateCalibrationEventRequest = CreateCalibrationEventRequest
 
 export type TentType = 'Production' | 'Mother' | 'Quarantine' | 'Propagation' | 'MultiPurpose'
 export interface SetupDto {
