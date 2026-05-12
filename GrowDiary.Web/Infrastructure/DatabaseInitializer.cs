@@ -549,6 +549,32 @@ public sealed class DatabaseInitializer
                 UpdatedAtUtc TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS RiskEvents (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                EventType TEXT NOT NULL,
+                Severity TEXT NOT NULL,
+                Status TEXT NOT NULL,
+                Source TEXT NOT NULL,
+                Title TEXT NOT NULL,
+                Description TEXT NULL,
+                HardwareItemId INTEGER NULL,
+                TentId INTEGER NULL,
+                GrowId INTEGER NULL,
+                TentSensorId INTEGER NULL,
+                HaEntityId TEXT NULL,
+                SopInstanceId INTEGER NULL,
+                GrowTaskId INTEGER NULL,
+                StartedAtUtc TEXT NOT NULL,
+                LastSeenAtUtc TEXT NULL,
+                ResolvedAtUtc TEXT NULL,
+                AcknowledgedAtUtc TEXT NULL,
+                DedupeKey TEXT NULL,
+                RawValue TEXT NULL,
+                Notes TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS IX_Measurements_GrowId_TakenAt ON Measurements(GrowId, TakenAt DESC);
             CREATE INDEX IF NOT EXISTS IX_Photos_GrowId_TakenAt ON Photos(GrowId, TakenAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_Setups_TentId_Status ON Setups(TentId, Status);
@@ -585,6 +611,15 @@ public sealed class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS IX_CalibrationEvents_NextDueAtUtc ON CalibrationEvents(NextDueAtUtc);
             CREATE INDEX IF NOT EXISTS IX_CalibrationEvents_GrowTaskId ON CalibrationEvents(GrowTaskId);
             CREATE INDEX IF NOT EXISTS IX_CalibrationEvents_CalibrationType ON CalibrationEvents(CalibrationType);
+            CREATE INDEX IF NOT EXISTS IX_RiskEvents_Status ON RiskEvents(Status);
+            CREATE INDEX IF NOT EXISTS IX_RiskEvents_Severity ON RiskEvents(Severity);
+            CREATE INDEX IF NOT EXISTS IX_RiskEvents_EventType ON RiskEvents(EventType);
+            CREATE INDEX IF NOT EXISTS IX_RiskEvents_HardwareItemId ON RiskEvents(HardwareItemId);
+            CREATE INDEX IF NOT EXISTS IX_RiskEvents_TentId ON RiskEvents(TentId);
+            CREATE INDEX IF NOT EXISTS IX_RiskEvents_GrowId ON RiskEvents(GrowId);
+            CREATE INDEX IF NOT EXISTS IX_RiskEvents_TentSensorId ON RiskEvents(TentSensorId);
+            CREATE INDEX IF NOT EXISTS IX_RiskEvents_DedupeKey_Status ON RiskEvents(DedupeKey, Status);
+            CREATE INDEX IF NOT EXISTS IX_RiskEvents_StartedAtUtc ON RiskEvents(StartedAtUtc);
         """;
         command.ExecuteNonQuery();
 

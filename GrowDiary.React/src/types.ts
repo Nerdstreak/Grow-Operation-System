@@ -51,6 +51,10 @@ export type MaintenanceResult = 'Unknown' | 'Passed' | 'ActionNeeded' | 'Replace
 export type CalibrationEventType = 'Ph' | 'Ec' | 'Orp' | 'Do' | 'Other'
 export type CalibrationEventStatus = 'Planned' | 'Completed' | 'Failed' | 'Skipped' | 'Cancelled'
 export type CalibrationResult = 'Unknown' | 'Passed' | 'AdjustmentNeeded' | 'Failed'
+export type RiskEventType = 'PowerOutage' | 'UpsOnBattery' | 'PumpOffline' | 'ChillerOffline' | 'LightMismatch' | 'HomeAssistantUnavailable' | 'CriticalDo' | 'SensorUnavailable' | 'Other'
+export type RiskEventSeverity = 'Info' | 'Warning' | 'Critical'
+export type RiskEventStatus = 'Open' | 'Acknowledged' | 'Resolved' | 'Ignored'
+export type RiskEventSource = 'Manual' | 'HomeAssistant' | 'AutoMeasurement' | 'Deviation' | 'System'
 
 export interface ApiError {
   code: string
@@ -547,6 +551,67 @@ export interface CreateCalibrationEventRequest {
 }
 
 export type UpdateCalibrationEventRequest = CreateCalibrationEventRequest
+
+export interface RiskEventDto {
+  id: number
+  eventType: RiskEventType
+  severity: RiskEventSeverity
+  status: RiskEventStatus
+  source: RiskEventSource
+  title: string
+  description: string | null
+  hardwareItemId: number | null
+  tentId: number | null
+  growId: number | null
+  tentSensorId: number | null
+  haEntityId: string | null
+  sopInstanceId: number | null
+  growTaskId: number | null
+  startedAtUtc: string
+  lastSeenAtUtc: string | null
+  resolvedAtUtc: string | null
+  acknowledgedAtUtc: string | null
+  dedupeKey: string | null
+  rawValue: string | null
+  notes: string | null
+  createdAtUtc: string
+  updatedAtUtc: string
+}
+
+export interface CreateRiskEventRequest {
+  eventType: RiskEventType
+  severity: RiskEventSeverity
+  status: RiskEventStatus
+  source: RiskEventSource
+  title: string
+  description?: string | null
+  hardwareItemId?: number | null
+  tentId?: number | null
+  growId?: number | null
+  tentSensorId?: number | null
+  haEntityId?: string | null
+  sopInstanceId?: number | null
+  growTaskId?: number | null
+  startedAtUtc?: string | null
+  lastSeenAtUtc?: string | null
+  resolvedAtUtc?: string | null
+  acknowledgedAtUtc?: string | null
+  dedupeKey?: string | null
+  rawValue?: string | null
+  notes?: string | null
+}
+
+export type UpdateRiskEventRequest = CreateRiskEventRequest
+
+export interface ResolveRiskEventRequest {
+  resolvedAtUtc?: string | null
+  notes?: string | null
+}
+
+export interface AcknowledgeRiskEventRequest {
+  acknowledgedAtUtc?: string | null
+  notes?: string | null
+}
 
 export type TentType = 'Production' | 'Mother' | 'Quarantine' | 'Propagation' | 'MultiPurpose'
 export interface SetupDto {
