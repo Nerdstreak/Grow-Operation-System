@@ -8,6 +8,7 @@ import GrowSetupPage from './pages/GrowSetupPage'
 import HardwarePage from './pages/HardwarePage'
 import HarvestPage from './pages/HarvestPage'
 import KnowledgePage from './pages/KnowledgePage'
+import LiveDashboardPage from './pages/LiveDashboardPage'
 import MeasurementEditPage from './pages/MeasurementEditPage'
 import MobileActionPage from './pages/MobileActionPage'
 import SettingsPage from './pages/SettingsPage'
@@ -17,6 +18,7 @@ import TentsPage from './pages/TentsPage'
 const navItems = [
   { to: '/', label: 'Operations', end: true },
   { to: '/action', label: 'Aktion', end: true },
+  { to: '/live', label: 'Live', end: true },
   { to: '/zelte', label: 'Zelte', end: true },
   { to: '/hardware', label: 'Hardware', end: true },
   { to: '/archiv', label: 'Archiv', end: true },
@@ -62,6 +64,7 @@ function App() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/action" element={<MobileActionPage />} />
+          <Route path="/live" element={<LiveDashboardPage />} />
           <Route path="/grows" element={<Navigate to="/" replace />} />
           <Route path="/grows/new" element={<GrowSetupPage />} />
           <Route path="/grows/:growId" element={<GrowDetailPage />} />

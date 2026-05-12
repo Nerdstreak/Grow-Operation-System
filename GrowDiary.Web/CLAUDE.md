@@ -33,6 +33,7 @@ npm run build
 - UX-4: `KnowledgePage` zeigt die vorhandenen Knowledge-Catalogs lesend als Browser mit Kategorien fuer Treatments, SOPs, Symptoms, Wear, Programs, Setpoints und Pathogens; keine Knowledge-Bearbeitung.
 - UX-5: `SettingsPage` bleibt Konfigurationsseite; `HardwarePage` ist in Inventar, Wartung, Kalibrierung und Risiken gegliedert.
 - UX-6: `/action` ist ein Mobile Action Hub mit Statuskopf, priorisierten Action-Cards, schnellen Grow-/Hardware-Links und isolierten Ladefehlern; keine neuen Backend-Endpunkte.
+- UX-7: `/live` ist ein Growraum-Live-Dashboard mit Alarmband, grossen Tent-Live-Karten, kompakten aktiven Grows und einfachem 60-Sekunden-Refresh; keine neuen Backend-Endpunkte.
 - Build-Output wird nach `GrowDiary.Web/wwwroot` geschrieben und vom Backend als SPA gehostet.
 
 ### Layer-Struktur Backend
