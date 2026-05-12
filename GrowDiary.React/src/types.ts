@@ -45,6 +45,9 @@ export type DeviationSource = 'Manual' | 'HomeAssistant' | 'Mixed' | 'Unknown'
 export type TreatmentRecommendationConfidence = 'Low' | 'Medium' | 'High'
 export type HardwareItemStatus = 'Active' | 'MaintenanceDue' | 'Offline' | 'Retired'
 export type HardwareItemCriticality = 'Low' | 'Medium' | 'High' | 'Critical'
+export type MaintenanceEventType = 'Inspection' | 'Cleaning' | 'Replacement' | 'Repair' | 'Other'
+export type MaintenanceEventStatus = 'Planned' | 'Completed' | 'Skipped' | 'Cancelled'
+export type MaintenanceResult = 'Unknown' | 'Passed' | 'ActionNeeded' | 'Replaced' | 'Failed'
 
 export interface ApiError {
   code: string
@@ -465,6 +468,41 @@ export interface UpdateHardwareItemRequest extends CreateHardwareItemRequest {
   name: string
   category: string
 }
+
+export interface MaintenanceEventDto {
+  id: number
+  hardwareItemId: number
+  eventType: MaintenanceEventType
+  status: MaintenanceEventStatus
+  result: MaintenanceResult
+  title: string
+  description: string | null
+  dueAtUtc: string | null
+  performedAtUtc: string | null
+  nextDueAtUtc: string | null
+  growTaskId: number | null
+  sopInstanceId: number | null
+  notes: string | null
+  createdAtUtc: string
+  updatedAtUtc: string
+}
+
+export interface CreateMaintenanceEventRequest {
+  hardwareItemId: number
+  eventType: MaintenanceEventType
+  status: MaintenanceEventStatus
+  result: MaintenanceResult
+  title: string
+  description?: string | null
+  dueAtUtc?: string | null
+  performedAtUtc?: string | null
+  nextDueAtUtc?: string | null
+  growTaskId?: number | null
+  sopInstanceId?: number | null
+  notes?: string | null
+}
+
+export type UpdateMaintenanceEventRequest = CreateMaintenanceEventRequest
 
 export type TentType = 'Production' | 'Mother' | 'Quarantine' | 'Propagation' | 'MultiPurpose'
 export interface SetupDto {

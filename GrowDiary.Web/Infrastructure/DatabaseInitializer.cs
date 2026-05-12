@@ -510,6 +510,24 @@ public sealed class DatabaseInitializer
                 UpdatedAtUtc TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS MaintenanceEvents (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                HardwareItemId INTEGER NOT NULL,
+                EventType TEXT NOT NULL,
+                Status TEXT NOT NULL,
+                Result TEXT NOT NULL,
+                Title TEXT NOT NULL,
+                Description TEXT NULL,
+                DueAtUtc TEXT NULL,
+                PerformedAtUtc TEXT NULL,
+                NextDueAtUtc TEXT NULL,
+                GrowTaskId INTEGER NULL,
+                SopInstanceId INTEGER NULL,
+                Notes TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS IX_Measurements_GrowId_TakenAt ON Measurements(GrowId, TakenAt DESC);
             CREATE INDEX IF NOT EXISTS IX_Photos_GrowId_TakenAt ON Photos(GrowId, TakenAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_Setups_TentId_Status ON Setups(TentId, Status);
@@ -534,6 +552,12 @@ public sealed class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS IX_HardwareItems_WearTemplateId ON HardwareItems(WearTemplateId);
             CREATE INDEX IF NOT EXISTS IX_HardwareItems_Status ON HardwareItems(Status);
             CREATE INDEX IF NOT EXISTS IX_HardwareItems_TentSensorId ON HardwareItems(TentSensorId);
+            CREATE INDEX IF NOT EXISTS IX_MaintenanceEvents_HardwareItemId ON MaintenanceEvents(HardwareItemId);
+            CREATE INDEX IF NOT EXISTS IX_MaintenanceEvents_Status ON MaintenanceEvents(Status);
+            CREATE INDEX IF NOT EXISTS IX_MaintenanceEvents_DueAtUtc ON MaintenanceEvents(DueAtUtc);
+            CREATE INDEX IF NOT EXISTS IX_MaintenanceEvents_NextDueAtUtc ON MaintenanceEvents(NextDueAtUtc);
+            CREATE INDEX IF NOT EXISTS IX_MaintenanceEvents_GrowTaskId ON MaintenanceEvents(GrowTaskId);
+            CREATE INDEX IF NOT EXISTS IX_MaintenanceEvents_SopInstanceId ON MaintenanceEvents(SopInstanceId);
         """;
         command.ExecuteNonQuery();
 
