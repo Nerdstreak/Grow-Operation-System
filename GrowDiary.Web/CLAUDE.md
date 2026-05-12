@@ -72,6 +72,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 | `GrowAlertService` | UI-/Live-Fassade; nutzt strukturierte Hydro-Deviations bevorzugt und ergaenzt Legacy-Hinweise fuer noch nicht migrierte Live-Cards |
 | `DeviationAnalyzerService` | Zentrale Hydro-Deviation-Engine mit strukturierten Abweichungen, Quellen und Consecutive-Counts |
 | `TreatmentRecommender` | Verknuepft strukturierte Deviations mit Knowledge-Symptoms, Treatments und SOPs als reine Empfehlungen |
+| `RiskEventSopRecommender` | Verknuepft RiskEvents mit vorhandenen Knowledge-Emergency-SOPs als manuell startbare Empfehlungen |
 | `MeasurementSanityService` | Plausibilitaetschecks und blockierende Messwert-Validierung |
 | `CultivationKnowledgeService` | Fassade ueber KnowledgeBaseLoader fuer Programme und Playbooks |
 | `TargetValueService` | Fassade ueber KnowledgeBaseLoader fuer Sollwerte |
@@ -92,7 +93,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 - `HardwareItems`: Hardware-Inventar fuer echte Komponenten, primaer optional an `TentId` verortet; `SetupId`, `GrowId`, `TentSensorId` und `HaEntityId` sind optionale Bezuege. `WearTemplateId` verweist auf Knowledge-Wear-Templates, ist aber kein DB-FK. F1 umfasst nur Inventar/API/UI, noch keine Maintenance-, Calibration- oder Risk-Events.
 - `MaintenanceEvents`: Wartungsplanung und Wartungshistorie pro HardwareItem. `GrowTaskId` ist nur optionale Reminder-Projektion fuer geplante Events mit DueAtUtc und HardwareItem.GrowId, nicht die fachliche Wahrheit. F2 umfasst noch keine Calibration- oder Risk-Events und keine automatische Reminder-/Recurring-Synchronisation.
 - `CalibrationEvents`: Kalibrierungshistorie und -planung fuer Sensor-Hardware. `GrowTaskId` ist nur optionale Reminder-Projektion. F3 nutzt Default-NextDue-Regeln: pH 14 Tage, EC/ORP/DO 30 Tage; diese koennen spaeter durch strukturierte WearTemplate-Felder ersetzt werden. Noch kein SensorTrustScore.
-- `RiskEvents`: Persistente Risiko-/Ausfallereignisse mit optionalen Bezuegen auf HardwareItem, Tent, Grow, TentSensor, SopInstance und GrowTask. `DedupeKey` verhindert doppelte offene/bestaetigte Events und aktualisiert LastSeenAtUtc; Resolved/Ignored blockieren neue Events nicht. F4 umfasst API/UI-Grundlage, noch keine automatische HA-Erkennung und keinen automatischen SOP-Start.
+- `RiskEvents`: Persistente Risiko-/Ausfallereignisse mit optionalen Bezuegen auf HardwareItem, Tent, Grow, TentSensor, SopInstance und GrowTask. `DedupeKey` verhindert doppelte offene/bestaetigte Events und aktualisiert LastSeenAtUtc; Resolved/Ignored blockieren neue Events nicht. F5 ergaenzt SOP-Empfehlungen und manuellen SOP-Start ueber RiskEvents; noch keine automatische HA-Erkennung und keine automatische SOP-Ausfuehrung.
 - `SopInstances` und `SopStepInstances`: aus Knowledge-SOPs gestartete Workflow-Koepfe und materialisierte Steps; Step-Status kann aktualisiert werden, SubSOPs werden nur referenziert. E4: Steps haben DueAtUtc/AvailableAtUtc und optionalen ReminderTaskId-Verweis; SopInstances haben NextStepDueAtUtc, IsRecurring, RecurrenceIntervalDays, DueAtUtc. RecurrenceIntervalDays kommt bevorzugt aus triggers[type=Schedule].intervalDays (Fallback: Root-Level SopDefinition.IntervalDays).
 
 ### DB-Initialisierung
@@ -138,6 +139,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint F2 ABGESCHLOSSEN: MaintenanceEvent-Grundmodell mit additiver Tabelle, `/api/maintenance-events`, optionaler GrowTask-Reminder-Projektion bei Planned+DueAtUtc+HardwareItem.GrowId und NextDueAtUtc-Ableitung aus InspectionIntervalDays. Keine Calibration-/Risk-Events, keine Background-Engine und keine GrowTask-Status-Synchronisation.
 - Sprint F3 ABGESCHLOSSEN: CalibrationEvent-Grundmodell mit additiver Tabelle, `/api/calibration-events`, optionaler GrowTask-Reminder-Projektion und Default-NextDue-Regeln fuer pH/EC/ORP/DO. Kein SensorTrustScore, keine RiskEvents und keine GrowTask-Status-Synchronisation.
 - Sprint F4 ABGESCHLOSSEN: RiskEvent-Grundmodell mit additiver Tabelle, `/api/risk-events`, DedupeKey-Grundlage, Acknowledge/Resolve-Aktionen und minimaler Settings-UI. Keine automatische HA-Erkennung, keine BackgroundWorker und kein automatischer SOP-Start.
+- Sprint F5 ABGESCHLOSSEN: RiskEvents koennen ueber `GET /api/risk-events/{id}/sop-recommendations` passende vorhandene Emergency-SOPs vorschlagen und ueber `POST /api/risk-events/{id}/start-sop` manuell eine SOP starten; RiskEvent.SopInstanceId wird gesetzt. Keine automatische HA-Erkennung und keine automatische SOP-Ausfuehrung.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow

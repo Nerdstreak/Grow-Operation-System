@@ -31,12 +31,15 @@ import type {
   ResolveRiskEventRequest,
   RiskEventDto,
   RiskEventSeverity,
+  RiskEventSopRecommendationDto,
   RiskEventSource,
   RiskEventStatus,
   RiskEventType,
   SensorMetricType,
   SettingsOverviewDto,
   SetupDto,
+  SopInstanceDto,
+  StartRiskEventSopRequest,
   SetupType,
   TentDto,
   TentSensorDto,
@@ -216,6 +219,7 @@ function SettingsPage() {
   const [calibrationDraft, setCalibrationDraft] = useState<CalibrationDraft>(createCalibrationDraft())
   const [calibrationError, setCalibrationError] = useState<string | null>(null)
   const [riskEvents, setRiskEvents] = useState<RiskEventDto[]>([])
+  const [riskSopRecommendations, setRiskSopRecommendations] = useState<Record<number, RiskEventSopRecommendationDto[]>>({})
   const [riskDraft, setRiskDraft] = useState<RiskDraft>(createRiskDraft())
   const [riskError, setRiskError] = useState<string | null>(null)
   const [strainDraft, setStrainDraft] = useState<StrainDraft>(createStrainDraft())
@@ -262,6 +266,7 @@ function SettingsPage() {
         setMaintenanceEvents(maintenanceData)
         setCalibrationEvents(calibrationData)
         setRiskEvents(riskData)
+        await loadRiskSopRecommendations(riskData, controller.signal)
         setWearTemplates(wearData)
         setLightSchedulesByTent(Object.fromEntries(scheduleEntries))
         setSavedTentTypes(Object.fromEntries(data.tents.map((tent) => [tent.id, tent.tentType])))
@@ -276,6 +281,27 @@ function SettingsPage() {
     void load()
     return () => controller.abort()
   }, [])
+
+  async function loadRiskEvents() {
+    const next = await apiFetch<RiskEventDto[]>('/api/risk-events')
+    setRiskEvents(next)
+    await loadRiskSopRecommendations(next)
+  }
+
+  async function loadRiskSopRecommendations(items: RiskEventDto[], signal?: AbortSignal) {
+    const recommendationCandidates = items.filter((item) => item.status === 'Open' || item.status === 'Acknowledged')
+
+    if (recommendationCandidates.length === 0) {
+      setRiskSopRecommendations({})
+      return
+    }
+
+    const entries = await Promise.all(recommendationCandidates.map(async (item) => [
+      item.id,
+      await apiFetch<RiskEventSopRecommendationDto[]>(`/api/risk-events/${item.id}/sop-recommendations`, { signal }),
+    ] as const))
+    setRiskSopRecommendations(Object.fromEntries(entries))
+  }
 
   async function handleHomeAssistantSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -664,6 +690,10 @@ function SettingsPage() {
         body: JSON.stringify(request),
       })
       setRiskEvents((current) => [saved, ...current.filter((item) => item.id !== saved.id)])
+      if (saved.status === 'Open' || saved.status === 'Acknowledged') {
+        const recommendations = await apiFetch<RiskEventSopRecommendationDto[]>(`/api/risk-events/${saved.id}/sop-recommendations`)
+        setRiskSopRecommendations((current) => ({ ...current, [saved.id]: recommendations }))
+      }
       setRiskDraft(createRiskDraft())
     } catch (caught) {
       setRiskError(formatApiError(caught, 'RiskEvent konnte nicht angelegt werden.'))
@@ -705,6 +735,10 @@ function SettingsPage() {
         body: JSON.stringify(request),
       })
       setRiskEvents((current) => current.map((existing) => existing.id === saved.id ? saved : existing))
+      if (saved.status === 'Open' || saved.status === 'Acknowledged') {
+        const recommendations = await apiFetch<RiskEventSopRecommendationDto[]>(`/api/risk-events/${saved.id}/sop-recommendations`)
+        setRiskSopRecommendations((current) => ({ ...current, [saved.id]: recommendations }))
+      }
     } catch (caught) {
       setRiskError(formatApiError(caught, 'RiskEvent konnte nicht gespeichert werden.'))
     } finally {
@@ -723,6 +757,8 @@ function SettingsPage() {
         body: JSON.stringify(request),
       })
       setRiskEvents((current) => current.map((existing) => existing.id === saved.id ? saved : existing))
+      const recommendations = await apiFetch<RiskEventSopRecommendationDto[]>(`/api/risk-events/${saved.id}/sop-recommendations`)
+      setRiskSopRecommendations((current) => ({ ...current, [saved.id]: recommendations }))
     } catch (caught) {
       setRiskError(formatApiError(caught, 'RiskEvent konnte nicht bestaetigt werden.'))
     } finally {
@@ -741,8 +777,35 @@ function SettingsPage() {
         body: JSON.stringify(request),
       })
       setRiskEvents((current) => current.map((existing) => existing.id === saved.id ? saved : existing))
+      setRiskSopRecommendations((current) => {
+        const next = { ...current }
+        delete next[saved.id]
+        return next
+      })
     } catch (caught) {
       setRiskError(formatApiError(caught, 'RiskEvent konnte nicht geloest werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function startRiskEventSop(item: RiskEventDto, recommendation: RiskEventSopRecommendationDto) {
+    setSaving(`risk-sop-${item.id}-${recommendation.sopId}`)
+    setRiskError(null)
+
+    const request: StartRiskEventSopRequest = {
+      sopId: recommendation.sopId,
+      notes: item.notes,
+    }
+
+    try {
+      await apiFetch<SopInstanceDto>(`/api/risk-events/${item.id}/start-sop`, {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      await loadRiskEvents()
+    } catch (caught) {
+      setRiskError(formatApiError(caught, 'SOP konnte nicht aus RiskEvent gestartet werden.'))
     } finally {
       setSaving(null)
     }
@@ -1546,79 +1609,115 @@ function SettingsPage() {
               <div style={{ fontSize: 13, color: 'var(--faint)' }}>Keine RiskEvents angelegt.</div>
             ) : (
               <div style={{ display: 'grid', gap: 8 }}>
-                {riskEvents.map((item) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'minmax(95px, 0.7fr) minmax(105px, 0.8fr) minmax(125px, 1fr) minmax(150px, 1.2fr) minmax(120px, 1fr) minmax(100px, 0.8fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) auto auto auto',
-                      gap: 8,
-                      alignItems: 'end',
-                      padding: '9px 10px',
-                      border: '1px solid var(--border)',
-                      borderRadius: 7,
-                      background: 'var(--surface2)',
-                    }}
-                  >
-                    <label className="field">
-                      <span>Severity</span>
-                      <select value={item.severity} onChange={(event) => updateRiskEvent(item.id, { severity: event.target.value as RiskEventSeverity })}>
-                        {riskSeverityOptions.map((value) => <option key={value} value={value}>{value}</option>)}
-                      </select>
-                    </label>
-                    <label className="field">
-                      <span>Status</span>
-                      <select value={item.status} onChange={(event) => updateRiskEvent(item.id, { status: event.target.value as RiskEventStatus })}>
-                        {riskStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
-                      </select>
-                    </label>
-                    <div className="field">
-                      <label>EventType</label>
-                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{item.eventType}</div>
+                {riskEvents.map((item) => {
+                  const recommendations = riskSopRecommendations[item.id] ?? []
+                  const canShowRecommendations = item.status === 'Open' || item.status === 'Acknowledged'
+
+                  return (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(95px, 0.7fr) minmax(105px, 0.8fr) minmax(125px, 1fr) minmax(150px, 1.2fr) minmax(120px, 1fr) minmax(100px, 0.8fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) auto auto auto',
+                        gap: 8,
+                        alignItems: 'end',
+                        padding: '9px 10px',
+                        border: '1px solid var(--border)',
+                        borderRadius: 7,
+                        background: 'var(--surface2)',
+                      }}
+                    >
+                      <label className="field">
+                        <span>Severity</span>
+                        <select value={item.severity} onChange={(event) => updateRiskEvent(item.id, { severity: event.target.value as RiskEventSeverity })}>
+                          {riskSeverityOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>Status</span>
+                        <select value={item.status} onChange={(event) => updateRiskEvent(item.id, { status: event.target.value as RiskEventStatus })}>
+                          {riskStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                        </select>
+                      </label>
+                      <div className="field">
+                        <label>EventType</label>
+                        <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{item.eventType}</div>
+                      </div>
+                      <label className="field">
+                        <span>Title</span>
+                        <input value={item.title} onChange={(event) => updateRiskEvent(item.id, { title: event.target.value })} />
+                      </label>
+                      <div className="field">
+                        <label>Hardware</label>
+                        <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{item.hardwareItemId ? getHardwareName(hardwareItems, item.hardwareItemId) : '-'}</div>
+                      </div>
+                      <div className="field">
+                        <label>Tent</label>
+                        <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{getTentName(settings.tents, item.tentId)}</div>
+                      </div>
+                      <div className="field">
+                        <label>Started</label>
+                        <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.startedAtUtc)}</div>
+                      </div>
+                      <div className="field">
+                        <label>LastSeen</label>
+                        <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.lastSeenAtUtc)}</div>
+                      </div>
+                      <div className="field">
+                        <label>Resolved</label>
+                        <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.resolvedAtUtc)}</div>
+                      </div>
+                      <button type="button" className="btn" disabled={saving === `risk-${item.id}`} onClick={() => void saveRiskEvent(item)}>
+                        {saving === `risk-${item.id}` ? 'Speichert...' : 'Speichern'}
+                      </button>
+                      <button type="button" className="btn" disabled={saving === `risk-ack-${item.id}`} onClick={() => void acknowledgeRiskEvent(item)}>
+                        {saving === `risk-ack-${item.id}` ? '...' : 'Ack'}
+                      </button>
+                      <button type="button" className="btn" disabled={saving === `risk-resolve-${item.id}`} onClick={() => void resolveRiskEvent(item)}>
+                        {saving === `risk-resolve-${item.id}` ? '...' : 'Resolve'}
+                      </button>
+                      <label className="field" style={{ gridColumn: '1 / 5' }}>
+                        <span>DedupeKey</span>
+                        <input value={item.dedupeKey ?? ''} onChange={(event) => updateRiskEvent(item.id, { dedupeKey: toNullableString(event.target.value) })} />
+                      </label>
+                      <label className="field" style={{ gridColumn: '5 / -1' }}>
+                        <span>Notes</span>
+                        <input value={item.notes ?? ''} onChange={(event) => updateRiskEvent(item.id, { notes: toNullableString(event.target.value) })} />
+                      </label>
+                      {canShowRecommendations && (
+                        <div style={{ gridColumn: '1 / -1', display: 'grid', gap: 6, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                          <div style={{ fontSize: 12, color: 'var(--muted)' }}>SOP-Empfehlungen</div>
+                          {recommendations.length === 0 ? (
+                            <div style={{ fontSize: 13, color: 'var(--faint)' }}>Keine passende SOP-Empfehlung.</div>
+                          ) : (
+                            recommendations.map((recommendation) => {
+                              const missingGrow = !item.growId
+                              const startDisabled = missingGrow || recommendation.alreadyActive || saving === `risk-sop-${item.id}-${recommendation.sopId}`
+
+                              return (
+                                <div key={`${item.id}-${recommendation.sopId}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) minmax(80px, 0.4fr) minmax(220px, 1.3fr) auto', gap: 8, alignItems: 'center' }}>
+                                  <div style={{ fontSize: 13, fontWeight: 600 }}>
+                                    {recommendation.sopName}
+                                    {recommendation.activeSopInstanceId ? ` (aktiv #${recommendation.activeSopInstanceId})` : ''}
+                                  </div>
+                                  <div style={{ fontSize: 13 }}>{recommendation.confidence}</div>
+                                  <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                                    {recommendation.reason}
+                                    {missingGrow ? ' SOP-Start benoetigt Grow-Zuordnung.' : ''}
+                                    {recommendation.alreadyActive ? ' SOP bereits aktiv.' : ''}
+                                  </div>
+                                  <button type="button" className="btn" disabled={startDisabled} onClick={() => void startRiskEventSop(item, recommendation)}>
+                                    {saving === `risk-sop-${item.id}-${recommendation.sopId}` ? 'Startet...' : 'SOP starten'}
+                                  </button>
+                                </div>
+                              )
+                            })
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <label className="field">
-                      <span>Title</span>
-                      <input value={item.title} onChange={(event) => updateRiskEvent(item.id, { title: event.target.value })} />
-                    </label>
-                    <div className="field">
-                      <label>Hardware</label>
-                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{item.hardwareItemId ? getHardwareName(hardwareItems, item.hardwareItemId) : '-'}</div>
-                    </div>
-                    <div className="field">
-                      <label>Tent</label>
-                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{getTentName(settings.tents, item.tentId)}</div>
-                    </div>
-                    <div className="field">
-                      <label>Started</label>
-                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.startedAtUtc)}</div>
-                    </div>
-                    <div className="field">
-                      <label>LastSeen</label>
-                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.lastSeenAtUtc)}</div>
-                    </div>
-                    <div className="field">
-                      <label>Resolved</label>
-                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.resolvedAtUtc)}</div>
-                    </div>
-                    <button type="button" className="btn" disabled={saving === `risk-${item.id}`} onClick={() => void saveRiskEvent(item)}>
-                      {saving === `risk-${item.id}` ? 'Speichert...' : 'Speichern'}
-                    </button>
-                    <button type="button" className="btn" disabled={saving === `risk-ack-${item.id}`} onClick={() => void acknowledgeRiskEvent(item)}>
-                      {saving === `risk-ack-${item.id}` ? '...' : 'Ack'}
-                    </button>
-                    <button type="button" className="btn" disabled={saving === `risk-resolve-${item.id}`} onClick={() => void resolveRiskEvent(item)}>
-                      {saving === `risk-resolve-${item.id}` ? '...' : 'Resolve'}
-                    </button>
-                    <label className="field" style={{ gridColumn: '1 / 5' }}>
-                      <span>DedupeKey</span>
-                      <input value={item.dedupeKey ?? ''} onChange={(event) => updateRiskEvent(item.id, { dedupeKey: toNullableString(event.target.value) })} />
-                    </label>
-                    <label className="field" style={{ gridColumn: '5 / -1' }}>
-                      <span>Notes</span>
-                      <input value={item.notes ?? ''} onChange={(event) => updateRiskEvent(item.id, { notes: toNullableString(event.target.value) })} />
-                    </label>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 
