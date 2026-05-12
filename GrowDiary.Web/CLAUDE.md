@@ -29,6 +29,7 @@ npm run build
 - Kernbereiche: `Dashboard`, `GrowDetail`, `GrowSetup`, `Hardware`, `Settings`.
 - Weitere aktuelle Pages: `Tents`, `TentDetail`, `Knowledge`, `Archive`, `Analysis`, `Addback`, `Harvest`, `MeasurementEdit`.
 - UX-2: `DashboardPage` ist die Operations-Tageszentrale mit Status Summary, offenen RiskEvents, faelligen Maintenance-/CalibrationEvents, aktiven SOPs, offenen Tasks und aktiven Grows.
+- UX-3: `GrowDetailPage` ist intern in Ueberblick, Messungen, Diagnose, SOPs, Journal/Fotos/Tasks und Automatisierung gegliedert; vorhandene Grow-Aktionen bleiben dort erreichbar.
 - Build-Output wird nach `GrowDiary.Web/wwwroot` geschrieben und vom Backend als SPA gehostet.
 
 ### Layer-Struktur Backend
