@@ -13,6 +13,11 @@ import type {
   LightScheduleDto,
   LightControllerType,
   LightSource,
+  CreateMaintenanceEventRequest,
+  MaintenanceEventDto,
+  MaintenanceEventStatus,
+  MaintenanceEventType,
+  MaintenanceResult,
   MotherHealthStatus,
   QuarantineResult,
   SensorMetricType,
@@ -26,6 +31,7 @@ import type {
   UpdateSetupRequest,
   UpdateTentRequest,
   UpdateHardwareItemRequest,
+  UpdateMaintenanceEventRequest,
   WearTemplateDto,
   CreateStrainRequest,
   StrainDto,
@@ -85,6 +91,16 @@ type HardwareDraft = {
   notes: string
 }
 
+type MaintenanceDraft = {
+  hardwareItemId: number | null
+  eventType: MaintenanceEventType
+  status: MaintenanceEventStatus
+  title: string
+  dueAtUtc: string
+  performedAtUtc: string
+  notes: string
+}
+
 const tentTypeOptions: TentType[] = ['Production', 'Mother', 'Quarantine', 'Propagation', 'MultiPurpose']
 const setupTypeOptions: SetupType[] = ['Production', 'Mother', 'Quarantine']
 const motherHealthOptions: Array<MotherHealthStatus | ''> = ['', 'Stable', 'Watch', 'Critical']
@@ -95,6 +111,9 @@ const lightControllerOptions: Array<LightControllerType | ''> = ['', 'AcInfinity
 const hvacControllerOptions: Array<HvacControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
 const hardwareStatusOptions: HardwareItemStatus[] = ['Active', 'MaintenanceDue', 'Offline', 'Retired']
 const hardwareCriticalityOptions: HardwareItemCriticality[] = ['Low', 'Medium', 'High', 'Critical']
+const maintenanceEventTypeOptions: MaintenanceEventType[] = ['Inspection', 'Cleaning', 'Replacement', 'Repair', 'Other']
+const maintenanceStatusOptions: MaintenanceEventStatus[] = ['Planned', 'Completed', 'Skipped', 'Cancelled']
+const maintenanceResultOptions: MaintenanceResult[] = ['Unknown', 'Passed', 'ActionNeeded', 'Replaced', 'Failed']
 
 const sensorGroups: SensorGroup[] = [
   {
@@ -139,6 +158,9 @@ function SettingsPage() {
   const [wearTemplates, setWearTemplates] = useState<WearTemplateDto[]>([])
   const [hardwareDraft, setHardwareDraft] = useState<HardwareDraft>(createHardwareDraft())
   const [hardwareError, setHardwareError] = useState<string | null>(null)
+  const [maintenanceEvents, setMaintenanceEvents] = useState<MaintenanceEventDto[]>([])
+  const [maintenanceDraft, setMaintenanceDraft] = useState<MaintenanceDraft>(createMaintenanceDraft())
+  const [maintenanceError, setMaintenanceError] = useState<string | null>(null)
   const [strainDraft, setStrainDraft] = useState<StrainDraft>(createStrainDraft())
   const [strainError, setStrainError] = useState<string | null>(null)
   const [lightSchedulesByTent, setLightSchedulesByTent] = useState<Record<number, LightScheduleDto[]>>({})
@@ -160,11 +182,12 @@ function SettingsPage() {
       setError(null)
 
       try {
-        const [data, setupData, strainData, hardwareData, wearData] = await Promise.all([
+        const [data, setupData, strainData, hardwareData, maintenanceData, wearData] = await Promise.all([
           apiFetch<SettingsOverviewDto>('/api/settings', { signal: controller.signal }),
           apiFetch<SetupDto[]>('/api/setups', { signal: controller.signal }),
           apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal }),
           apiFetch<HardwareItemDto[]>('/api/hardware-items', { signal: controller.signal }),
+          apiFetch<MaintenanceEventDto[]>('/api/maintenance-events', { signal: controller.signal }),
           apiFetch<WearTemplateDto[]>('/api/knowledge/wear', { signal: controller.signal }),
         ])
         const scheduleEntries = await Promise.all(data.tents.map(async (tent) => [
@@ -175,6 +198,7 @@ function SettingsPage() {
         setSetups(setupData)
         setStrains(strainData)
         setHardwareItems(hardwareData)
+        setMaintenanceEvents(maintenanceData)
         setWearTemplates(wearData)
         setLightSchedulesByTent(Object.fromEntries(scheduleEntries))
         setSavedTentTypes(Object.fromEntries(data.tents.map((tent) => [tent.id, tent.tentType])))
@@ -411,6 +435,73 @@ function SettingsPage() {
     }
   }
 
+  async function handleCreateMaintenanceEvent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!maintenanceDraft.hardwareItemId) {
+      setMaintenanceError('HardwareItem auswaehlen.')
+      return
+    }
+
+    setSaving('maintenance-new')
+    setMaintenanceError(null)
+
+    const request: CreateMaintenanceEventRequest = {
+      hardwareItemId: maintenanceDraft.hardwareItemId,
+      eventType: maintenanceDraft.eventType,
+      status: maintenanceDraft.status,
+      result: 'Unknown',
+      title: maintenanceDraft.title.trim(),
+      dueAtUtc: toNullableDateTime(maintenanceDraft.dueAtUtc),
+      performedAtUtc: toNullableDateTime(maintenanceDraft.performedAtUtc),
+      notes: toNullableString(maintenanceDraft.notes),
+    }
+
+    try {
+      const saved = await apiFetch<MaintenanceEventDto>('/api/maintenance-events', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      setMaintenanceEvents((current) => [...current, saved])
+      setMaintenanceDraft(createMaintenanceDraft())
+    } catch (caught) {
+      setMaintenanceError(formatApiError(caught, 'MaintenanceEvent konnte nicht angelegt werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function saveMaintenanceEvent(item: MaintenanceEventDto) {
+    setSaving(`maintenance-${item.id}`)
+    setMaintenanceError(null)
+
+    const request: UpdateMaintenanceEventRequest = {
+      hardwareItemId: item.hardwareItemId,
+      eventType: item.eventType,
+      status: item.status,
+      result: item.result,
+      title: item.title,
+      description: item.description,
+      dueAtUtc: item.dueAtUtc,
+      performedAtUtc: item.performedAtUtc,
+      nextDueAtUtc: item.nextDueAtUtc,
+      growTaskId: item.growTaskId,
+      sopInstanceId: item.sopInstanceId,
+      notes: item.notes,
+    }
+
+    try {
+      const saved = await apiFetch<MaintenanceEventDto>(`/api/maintenance-events/${item.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(request),
+      })
+      setMaintenanceEvents((current) => current.map((existing) => existing.id === saved.id ? saved : existing))
+    } catch (caught) {
+      setMaintenanceError(formatApiError(caught, 'MaintenanceEvent konnte nicht gespeichert werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
   async function saveSetup(setup: SetupDto) {
     setSaving(`setup-edit-${setup.id}`)
     setSetupEditErrors((current) => {
@@ -563,6 +654,10 @@ function SettingsPage() {
 
   function updateHardwareItem(id: number, patch: Partial<HardwareItemDto>) {
     setHardwareItems((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))
+  }
+
+  function updateMaintenanceEvent(id: number, patch: Partial<MaintenanceEventDto>) {
+    setMaintenanceEvents((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))
   }
 
   function updateTentSensor(tentId: number, metricType: SensorMetricType, patch: Partial<TentSensorDto>) {
@@ -923,6 +1018,123 @@ function SettingsPage() {
                   Vorlage: {wearTemplates.find((template) => template.id === hardwareDraft.wearTemplateId)?.name ?? hardwareDraft.wearTemplateId}. Name, Category, Lebensdauer und Inspektionsintervall werden bei leeren Feldern serverseitig uebernommen.
                 </div>
               )}
+            </form>
+          </div>
+        </div>
+
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-header"><span className="card-title">MaintenanceEvents</span></div>
+          <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
+            {maintenanceError && <div style={{ fontSize: 13, color: 'var(--red)' }}>{maintenanceError}</div>}
+            {maintenanceEvents.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--faint)' }}>Keine MaintenanceEvents angelegt.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {maintenanceEvents.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(120px, 1fr) minmax(130px, 1.2fr) minmax(105px, 0.8fr) minmax(105px, 0.8fr) minmax(105px, 0.8fr) minmax(105px, 0.8fr) minmax(105px, 0.8fr) minmax(80px, 0.6fr) auto',
+                      gap: 8,
+                      alignItems: 'end',
+                      padding: '9px 10px',
+                      border: '1px solid var(--border)',
+                      borderRadius: 7,
+                      background: 'var(--surface2)',
+                    }}
+                  >
+                    <div className="field">
+                      <label>Hardware</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{getHardwareName(hardwareItems, item.hardwareItemId)}</div>
+                    </div>
+                    <label className="field">
+                      <span>Title</span>
+                      <input value={item.title} onChange={(event) => updateMaintenanceEvent(item.id, { title: event.target.value })} />
+                    </label>
+                    <div className="field">
+                      <label>EventType</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{item.eventType}</div>
+                    </div>
+                    <label className="field">
+                      <span>Status</span>
+                      <select value={item.status} onChange={(event) => updateMaintenanceEvent(item.id, { status: event.target.value as MaintenanceEventStatus })}>
+                        {maintenanceStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Result</span>
+                      <select value={item.result} onChange={(event) => updateMaintenanceEvent(item.id, { result: event.target.value as MaintenanceResult })}>
+                        {maintenanceResultOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <div className="field">
+                      <label>DueAt</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.dueAtUtc)}</div>
+                    </div>
+                    <label className="field">
+                      <span>PerformedAt</span>
+                      <input type="datetime-local" value={toDateTimeInputValue(item.performedAtUtc)} onChange={(event) => updateMaintenanceEvent(item.id, { performedAtUtc: toNullableDateTime(event.target.value) })} />
+                    </label>
+                    <div className="field">
+                      <label>GrowTask</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{item.growTaskId ?? '-'}</div>
+                    </div>
+                    <button type="button" className="btn" disabled={saving === `maintenance-${item.id}`} onClick={() => void saveMaintenanceEvent(item)}>
+                      {saving === `maintenance-${item.id}` ? 'Speichert...' : 'Speichern'}
+                    </button>
+                    <div className="field">
+                      <label>NextDueAt</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.nextDueAtUtc)}</div>
+                    </div>
+                    <label className="field" style={{ gridColumn: '2 / -1' }}>
+                      <span>Notes</span>
+                      <input value={item.notes ?? ''} onChange={(event) => updateMaintenanceEvent(item.id, { notes: toNullableString(event.target.value) })} />
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={(event) => void handleCreateMaintenanceEvent(event)} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(120px, 1fr)) auto', gap: 8, alignItems: 'end' }}>
+              <label className="field">
+                <span>HardwareItem</span>
+                <select value={maintenanceDraft.hardwareItemId ?? ''} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, hardwareItemId: toNullableInteger(event.target.value) }))}>
+                  <option value="">Auswaehlen</option>
+                  {hardwareItems.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>EventType</span>
+                <select value={maintenanceDraft.eventType} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, eventType: event.target.value as MaintenanceEventType }))}>
+                  {maintenanceEventTypeOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Status</span>
+                <select value={maintenanceDraft.status} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, status: event.target.value as MaintenanceEventStatus }))}>
+                  {maintenanceStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Title</span>
+                <input value={maintenanceDraft.title} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Filter reinigen" />
+              </label>
+              <label className="field">
+                <span>DueAt</span>
+                <input type="datetime-local" value={maintenanceDraft.dueAtUtc} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, dueAtUtc: event.target.value }))} />
+              </label>
+              <button type="submit" className="btn" disabled={saving === 'maintenance-new'}>
+                {saving === 'maintenance-new' ? 'Legt an...' : 'Maintenance anlegen'}
+              </button>
+              <label className="field">
+                <span>PerformedAt</span>
+                <input type="datetime-local" value={maintenanceDraft.performedAtUtc} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, performedAtUtc: event.target.value }))} />
+              </label>
+              <label className="field" style={{ gridColumn: '2 / -1' }}>
+                <span>Notes</span>
+                <input value={maintenanceDraft.notes} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, notes: event.target.value }))} />
+              </label>
             </form>
           </div>
         </div>
@@ -1428,6 +1640,18 @@ function createHardwareDraft(): HardwareDraft {
   }
 }
 
+function createMaintenanceDraft(): MaintenanceDraft {
+  return {
+    hardwareItemId: null,
+    eventType: 'Inspection',
+    status: 'Planned',
+    title: '',
+    dueAtUtc: '',
+    performedAtUtc: '',
+    notes: '',
+  }
+}
+
 function createLightScheduleDraft(): LightScheduleDraft {
   return {
     name: '',
@@ -1556,6 +1780,10 @@ function formatDate(value: string | null | undefined): string {
 
 function getTentName(tents: TentDto[], tentId: number | null): string {
   return tentId ? tents.find((tent) => tent.id === tentId)?.name ?? `Tent #${tentId}` : 'Global'
+}
+
+function getHardwareName(items: HardwareItemDto[], hardwareItemId: number): string {
+  return items.find((item) => item.id === hardwareItemId)?.name ?? `Hardware #${hardwareItemId}`
 }
 
 function toNullableInteger(value: string): number | null {

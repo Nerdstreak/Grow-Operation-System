@@ -116,6 +116,32 @@ public enum HardwareItemCriticality
     Critical
 }
 
+public enum MaintenanceEventType
+{
+    Inspection,
+    Cleaning,
+    Replacement,
+    Repair,
+    Other
+}
+
+public enum MaintenanceEventStatus
+{
+    Planned,
+    Completed,
+    Skipped,
+    Cancelled
+}
+
+public enum MaintenanceResult
+{
+    Unknown,
+    Passed,
+    ActionNeeded,
+    Replaced,
+    Failed
+}
+
 public enum SopInstanceStatus
 {
     Active,
