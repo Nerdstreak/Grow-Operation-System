@@ -26,7 +26,7 @@ npm run build
 
 - React 19, Vite und TypeScript.
 - Kommunikation laeuft ueber die zentrale `apiFetch`-Fetch-Abstraktion gegen `/api/*`.
-- Kernbereiche: `Dashboard`, `GrowDetail`, `GrowSetup`, `Settings`.
+- Kernbereiche: `Dashboard`, `GrowDetail`, `GrowSetup`, `Hardware`, `Settings`.
 - Weitere aktuelle Pages: `Tents`, `TentDetail`, `Knowledge`, `Archive`, `Analysis`, `Addback`, `Harvest`, `MeasurementEdit`.
 - Build-Output wird nach `GrowDiary.Web/wwwroot` geschrieben und vom Backend als SPA gehostet.
 
@@ -135,10 +135,10 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint E2 ABGESCHLOSSEN: SOP-Empfehlungen koennen aus der GrowDetail-Diagnose gestartet werden; SopInstances speichern Recommendation-Bezug, ohne Step-Ausfuehrung.
 - Sprint E3 ABGESCHLOSSEN: SOP-Steps koennen gestartet, abgeschlossen oder uebersprungen werden; SopInstances werden automatisch Completed, wenn alle Steps Done/Skipped sind.
 - Sprint E4 ABGESCHLOSSEN: SOP-Scheduling (DueAtUtc, NextStepDueAtUtc, IsRecurring, RecurrenceIntervalDays); GrowTask-Reminder fuer Steps mit DueAtUtc; Recurring wird markiert, kein automatischer Neustart.
-- Sprint F1 ABGESCHLOSSEN: HardwareItem-Grundmodell mit additiver Tabelle, `/api/hardware-items`, WearTemplate-Default-Uebernahme beim Create und minimaler Settings-Inventar-UI. Noch keine Maintenance-/Calibration-/Risk-Events und keine GrowTask-Projektion.
+- Sprint F1 ABGESCHLOSSEN: HardwareItem-Grundmodell mit additiver Tabelle, `/api/hardware-items`, WearTemplate-Default-Uebernahme beim Create und minimaler Inventar-UI. UX-1 verschiebt Hardware/Maintenance/Calibration/Risk aus Settings auf die eigene HardwarePage. Noch keine Maintenance-/Calibration-/Risk-Events und keine GrowTask-Projektion in F1.
 - Sprint F2 ABGESCHLOSSEN: MaintenanceEvent-Grundmodell mit additiver Tabelle, `/api/maintenance-events`, optionaler GrowTask-Reminder-Projektion bei Planned+DueAtUtc+HardwareItem.GrowId und NextDueAtUtc-Ableitung aus InspectionIntervalDays. Keine Calibration-/Risk-Events, keine Background-Engine und keine GrowTask-Status-Synchronisation.
 - Sprint F3 ABGESCHLOSSEN: CalibrationEvent-Grundmodell mit additiver Tabelle, `/api/calibration-events`, optionaler GrowTask-Reminder-Projektion und Default-NextDue-Regeln fuer pH/EC/ORP/DO. Kein SensorTrustScore, keine RiskEvents und keine GrowTask-Status-Synchronisation.
-- Sprint F4 ABGESCHLOSSEN: RiskEvent-Grundmodell mit additiver Tabelle, `/api/risk-events`, DedupeKey-Grundlage, Acknowledge/Resolve-Aktionen und minimaler Settings-UI. Keine automatische HA-Erkennung, keine BackgroundWorker und kein automatischer SOP-Start.
+- Sprint F4 ABGESCHLOSSEN: RiskEvent-Grundmodell mit additiver Tabelle, `/api/risk-events`, DedupeKey-Grundlage, Acknowledge/Resolve-Aktionen und minimaler UI auf der HardwarePage. Keine automatische HA-Erkennung, keine BackgroundWorker und kein automatischer SOP-Start.
 - Sprint F5 ABGESCHLOSSEN: RiskEvents koennen ueber `GET /api/risk-events/{id}/sop-recommendations` passende vorhandene Emergency-SOPs vorschlagen und ueber `POST /api/risk-events/{id}/start-sop` manuell eine SOP starten; RiskEvent.SopInstanceId wird gesetzt. Keine automatische HA-Erkennung und keine automatische SOP-Ausfuehrung.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
