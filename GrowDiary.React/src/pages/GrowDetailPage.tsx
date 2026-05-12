@@ -38,6 +38,17 @@ interface DetailBundle {
   journal: JournalEntryDto[]
 }
 
+type GrowDetailSection = 'overview' | 'measurements' | 'diagnosis' | 'sops' | 'journal' | 'automation'
+
+const detailSections: Array<{ key: GrowDetailSection; label: string }> = [
+  { key: 'overview', label: 'Ueberblick' },
+  { key: 'measurements', label: 'Messungen' },
+  { key: 'diagnosis', label: 'Diagnose' },
+  { key: 'sops', label: 'SOPs' },
+  { key: 'journal', label: 'Journal/Fotos/Tasks' },
+  { key: 'automation', label: 'Automatisierung' },
+]
+
 const photoTags: PhotoTag[] = ['Overview', 'Canopy', 'Leaf', 'Root', 'Training', 'Flower', 'Problem', 'Comparison', 'Other']
 const autoMeasurementFields: AutoMeasurementField[] = [
   'AirTemperatureC',
@@ -149,6 +160,7 @@ function GrowDetailPage() {
   const [mappingDraftsByConfigId, setMappingDraftsByConfigId] = useState<Record<number, AutoMeasurementFieldMappingUpsertRequest[]>>({})
   const [autoConfigForm, setAutoConfigForm] = useState(emptyAutoConfigForm)
   const [autoLoading, setAutoLoading] = useState(false)
+  const [activeSection, setActiveSection] = useState<GrowDetailSection>('overview')
 
   const loadPhotos = useCallback(async (measurementId: number, signal?: AbortSignal) => {
     setPhotoLoading(true)
@@ -664,7 +676,20 @@ function GrowDetailPage() {
           </div>
         )}
 
-        <div className="grow-hero">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+          {detailSections.map((section) => (
+            <button
+              key={section.key}
+              type="button"
+              className={`btn ${activeSection === section.key ? 'btn-primary' : ''}`}
+              onClick={() => setActiveSection(section.key)}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="grow-hero" style={{ display: activeSection === 'overview' ? undefined : 'none' }}>
           <div className="grow-hero-title">{grow.name}</div>
           <div className="grow-hero-sub">{grow.strain ?? 'Unbekannter Strain'} · {grow.breeder ?? 'kein Breeder'} · {grow.hydroStyle} · {grow.tentName ?? 'ohne Zelt'}</div>
           <div className="grow-kpis">
@@ -716,8 +741,8 @@ function GrowDetailPage() {
           </div>
         </div>
 
-        <div className="section-label">Deviations</div>
-        <div className="card" style={{ marginBottom: 14 }}>
+        <div className="section-label" style={{ display: activeSection === 'diagnosis' ? undefined : 'none' }}>Deviations</div>
+        <div className="card" style={{ marginBottom: 14, display: activeSection === 'diagnosis' ? undefined : 'none' }}>
           <div className="card-header">
             <span className="card-title">Hydro-Abweichungen</span>
             <span className="text-muted" style={{ fontSize: 13 }}>{deviations.length}</span>
@@ -749,8 +774,8 @@ function GrowDetailPage() {
           )}
         </div>
 
-        <div className="section-label">Treatment-Empfehlungen</div>
-        <div className="card" style={{ marginBottom: 14 }}>
+        <div className="section-label" style={{ display: activeSection === 'diagnosis' ? undefined : 'none' }}>Treatment-Empfehlungen</div>
+        <div className="card" style={{ marginBottom: 14, display: activeSection === 'diagnosis' ? undefined : 'none' }}>
           <div className="card-header">
             <span className="card-title">Knowledge-Vorschlaege</span>
             <span className="text-muted" style={{ fontSize: 13 }}>{treatmentRecommendations?.recommendations.length ?? 0}</span>
@@ -792,8 +817,8 @@ function GrowDetailPage() {
           )}
         </div>
 
-        <div className="section-label">SOPs</div>
-        <div className="card" style={{ marginBottom: 14 }}>
+        <div className="section-label" style={{ display: activeSection === 'sops' ? undefined : 'none' }}>SOPs</div>
+        <div className="card" style={{ marginBottom: 14, display: activeSection === 'sops' ? undefined : 'none' }}>
           <div className="card-header">
             <span className="card-title">SOP-Instanzen</span>
             <span className="text-muted" style={{ fontSize: 13 }}>{sopInstances.length}</span>
@@ -876,10 +901,10 @@ function GrowDetailPage() {
           )}
         </div>
 
-        <div className="detail-layout">
+        <div className="detail-layout" style={{ display: activeSection === 'overview' || activeSection === 'diagnosis' || activeSection === 'sops' ? 'none' : undefined }}>
           <div>
-            <div className="section-label">Messungen</div>
-            <div className="card" style={{ marginBottom: 14 }}>
+            <div className="section-label" style={{ display: activeSection === 'measurements' ? undefined : 'none' }}>Messungen</div>
+            <div className="card" style={{ marginBottom: 14, display: activeSection === 'measurements' ? undefined : 'none' }}>
               <div className="card-header">
                 <span className="card-title">Verlauf</span>
                 <span className="text-muted" style={{ fontSize: 13 }}>{bundle.measurements.length} gesamt</span>
@@ -911,8 +936,8 @@ function GrowDetailPage() {
               )}
             </div>
 
-            <div className="section-label">Journal</div>
-            <div className="card" style={{ marginBottom: 14 }}>
+            <div className="section-label" style={{ display: activeSection === 'journal' ? undefined : 'none' }}>Journal</div>
+            <div className="card" style={{ marginBottom: 14, display: activeSection === 'journal' ? undefined : 'none' }}>
               <div className="card-header">
                 <span className="card-title">Eintraege</span>
                 <span className="text-muted" style={{ fontSize: 13 }}>{bundle.journal.length}</span>
@@ -936,8 +961,8 @@ function GrowDetailPage() {
               )}
             </div>
 
-            <div className="section-label">Neue Messung</div>
-            <div className="card" style={{ marginBottom: 14 }}>
+            <div className="section-label" style={{ display: activeSection === 'measurements' ? undefined : 'none' }}>Neue Messung</div>
+            <div className="card" style={{ marginBottom: 14, display: activeSection === 'measurements' ? undefined : 'none' }}>
               <div className="card-header"><span className="card-title">Messung eintragen</span></div>
               <form onSubmit={handleMeasurementSubmit} style={{ padding: '16px 20px' }}>
                 <div className="meas-fields" style={{ marginBottom: 16 }}>
@@ -995,8 +1020,8 @@ function GrowDetailPage() {
               </form>
             </div>
 
-            <div className="section-label">AutoMeasurement</div>
-            <div className="card" style={{ marginBottom: 14 }}>
+            <div className="section-label" style={{ display: activeSection === 'automation' ? undefined : 'none' }}>AutoMeasurement</div>
+            <div className="card" style={{ marginBottom: 14, display: activeSection === 'automation' ? undefined : 'none' }}>
               <div className="card-header">
                 <span className="card-title">Konfigurationen</span>
                 <span className="text-muted" style={{ fontSize: 13 }}>{autoConfigs.length} aktiv</span>
@@ -1153,7 +1178,7 @@ function GrowDetailPage() {
             </div>
           </div>
 
-          <div className="side-panel">
+          <div className="side-panel" style={{ display: activeSection === 'journal' ? undefined : 'none' }}>
             <div className="panel-card">
               <div className="panel-card-header">
                 <span className="panel-card-title">Offene Tasks</span>
