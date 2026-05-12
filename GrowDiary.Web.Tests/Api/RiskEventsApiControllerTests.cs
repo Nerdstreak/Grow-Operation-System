@@ -102,6 +102,34 @@ public sealed class RiskEventsApiControllerTests : IDisposable
     }
 
     [Fact]
+    public void Api_RejectsAcknowledgeBeforeStartedAt()
+    {
+        var risk = CreateRisk(startedAtUtc: Utc(2026, 7, 2));
+
+        var result = _controller.Acknowledge(risk.Id, new AcknowledgeRiskEventRequest
+        {
+            AcknowledgedAtUtc = Utc(2026, 7, 1)
+        });
+
+        var error = AssertValidationError(result.Result);
+        Assert.Contains(nameof(AcknowledgeRiskEventRequest.AcknowledgedAtUtc), error.FieldErrors!.Keys);
+    }
+
+    [Fact]
+    public void Api_RejectsResolveBeforeStartedAt()
+    {
+        var risk = CreateRisk(startedAtUtc: Utc(2026, 7, 2));
+
+        var result = _controller.Resolve(risk.Id, new ResolveRiskEventRequest
+        {
+            ResolvedAtUtc = Utc(2026, 7, 1)
+        });
+
+        var error = AssertValidationError(result.Result);
+        Assert.Contains(nameof(ResolveRiskEventRequest.ResolvedAtUtc), error.FieldErrors!.Keys);
+    }
+
+    [Fact]
     public void Api_RejectsInvalidReferencesEnumsAndDates()
     {
         var missingHardware = _controller.Create(new CreateRiskEventRequest
@@ -168,6 +196,17 @@ public sealed class RiskEventsApiControllerTests : IDisposable
             Criticality = HardwareItemCriticality.Critical,
             TentId = tentId,
             GrowId = growId
+        });
+
+    private RiskEvent CreateRisk(DateTime startedAtUtc)
+        => _repository.CreateRiskEvent(new RiskEvent
+        {
+            EventType = RiskEventType.PowerOutage,
+            Severity = RiskEventSeverity.Critical,
+            Status = RiskEventStatus.Open,
+            Source = RiskEventSource.Manual,
+            Title = "Risk",
+            StartedAtUtc = startedAtUtc
         });
 
     private static ApiError AssertValidationError(ActionResult? result)
