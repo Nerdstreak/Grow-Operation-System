@@ -87,6 +87,8 @@ type RiskDraft = {
   notes: string
 }
 
+type HardwareSection = 'inventory' | 'maintenance' | 'calibration' | 'risks'
+
 const hardwareStatusOptions: HardwareItemStatus[] = ['Active', 'MaintenanceDue', 'Offline', 'Retired']
 const hardwareCriticalityOptions: HardwareItemCriticality[] = ['Low', 'Medium', 'High', 'Critical']
 const maintenanceEventTypeOptions: MaintenanceEventType[] = ['Inspection', 'Cleaning', 'Replacement', 'Repair', 'Other']
@@ -101,6 +103,7 @@ const riskStatusOptions: RiskEventStatus[] = ['Open', 'Acknowledged', 'Resolved'
 const riskSourceOptions: RiskEventSource[] = ['Manual', 'HomeAssistant', 'AutoMeasurement', 'Deviation', 'System']
 
 function HardwarePage() {
+  const [activeSection, setActiveSection] = useState<HardwareSection>('inventory')
   const [tents, setTents] = useState<TentDto[]>([])
   const [grows, setGrows] = useState<GrowSummary[]>([])
   const [hardwareItems, setHardwareItems] = useState<HardwareItemDto[]>([])
@@ -120,6 +123,12 @@ function HardwarePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
+
+  const nowUtc = Date.now()
+  const activeHardwareCount = hardwareItems.filter((item) => item.status === 'Active').length
+  const dueMaintenanceCount = maintenanceEvents.filter((item) => isDueOpen(item.status, item.dueAtUtc, nowUtc)).length
+  const dueCalibrationCount = calibrationEvents.filter((item) => isDueOpen(item.status, item.dueAtUtc, nowUtc)).length
+  const criticalOpenRiskCount = riskEvents.filter((item) => item.status === 'Open' && item.severity === 'Critical').length
 
   useEffect(() => {
     const controller = new AbortController()
@@ -578,8 +587,32 @@ function HardwarePage() {
       </div>
 
       <div className="page-scroll">
-        <div className="section-label">Hardware-Inventar</div>
-        <div className="card" style={{ marginBottom: 24 }}>
+        <div className="stats-row">
+          <div className="stat-chip"><strong>{activeHardwareCount}</strong>Aktive Hardware</div>
+          <div className="stat-chip"><strong>{dueMaintenanceCount}</strong>Wartung faellig</div>
+          <div className="stat-chip"><strong>{dueCalibrationCount}</strong>Kalibrierung faellig</div>
+          <div className="stat-chip"><strong>{criticalOpenRiskCount}</strong>Kritische Risiken</div>
+        </div>
+
+        <div className="section-tabs" style={{ marginBottom: 16 }}>
+          <button type="button" className={`btn ${activeSection === 'inventory' ? 'btn-primary' : ''}`} onClick={() => setActiveSection('inventory')}>
+            Inventar
+          </button>
+          <button type="button" className={`btn ${activeSection === 'maintenance' ? 'btn-primary' : ''}`} onClick={() => setActiveSection('maintenance')}>
+            Wartung
+          </button>
+          <button type="button" className={`btn ${activeSection === 'calibration' ? 'btn-primary' : ''}`} onClick={() => setActiveSection('calibration')}>
+            Kalibrierung
+          </button>
+          <button type="button" className={`btn ${activeSection === 'risks' ? 'btn-primary' : ''}`} onClick={() => setActiveSection('risks')}>
+            Risiken
+          </button>
+        </div>
+
+        {activeSection === 'inventory' && (
+        <>
+        <div className="section-label">Inventar</div>
+        <div className="card management-card" style={{ marginBottom: 24 }}>
           <div className="card-header"><span className="card-title">HardwareItems</span></div>
           <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
             {hardwareError && <div style={{ fontSize: 13, color: 'var(--red)' }}>{hardwareError}</div>}
@@ -719,8 +752,13 @@ function HardwarePage() {
             </form>
           </div>
         </div>
+        </>
+        )}
 
-        <div className="card" style={{ marginBottom: 24 }}>
+        {activeSection === 'maintenance' && (
+        <>
+        <div className="section-label">Wartung</div>
+        <div className="card management-card" style={{ marginBottom: 24 }}>
           <div className="card-header"><span className="card-title">MaintenanceEvents</span></div>
           <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
             {maintenanceError && <div style={{ fontSize: 13, color: 'var(--red)' }}>{maintenanceError}</div>}
@@ -836,8 +874,13 @@ function HardwarePage() {
             </form>
           </div>
         </div>
+        </>
+        )}
 
-        <div className="card" style={{ marginBottom: 24 }}>
+        {activeSection === 'calibration' && (
+        <>
+        <div className="section-label">Kalibrierung</div>
+        <div className="card management-card" style={{ marginBottom: 24 }}>
           <div className="card-header"><span className="card-title">CalibrationEvents</span></div>
           <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
             {calibrationError && <div style={{ fontSize: 13, color: 'var(--red)' }}>{calibrationError}</div>}
@@ -981,8 +1024,13 @@ function HardwarePage() {
             </form>
           </div>
         </div>
+        </>
+        )}
 
-        <div className="card" style={{ marginBottom: 24 }}>
+        {activeSection === 'risks' && (
+        <>
+        <div className="section-label">Risiken</div>
+        <div className="card management-card" style={{ marginBottom: 24 }}>
           <div className="card-header"><span className="card-title">RiskEvents</span></div>
           <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
             {riskError && <div style={{ fontSize: 13, color: 'var(--red)' }}>{riskError}</div>}
@@ -1160,6 +1208,8 @@ function HardwarePage() {
             </form>
           </div>
         </div>
+        </>
+        )}
       </div>
     </>
   )
@@ -1248,6 +1298,12 @@ function toDateTimeInputValue(value: string | null | undefined): string {
 
 function formatDate(value: string | null | undefined): string {
   return value ? value.slice(0, 10) : '-'
+}
+
+function isDueOpen(status: string, dueAtUtc: string | null, nowUtc: number): boolean {
+  if (!dueAtUtc || status !== 'Planned') return false
+  const dueAt = Date.parse(dueAtUtc)
+  return Number.isFinite(dueAt) && dueAt <= nowUtc
 }
 
 function getTentName(tents: TentDto[], tentId: number | null): string {

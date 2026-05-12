@@ -521,6 +521,20 @@ function SettingsPage() {
           </div>
         )}
 
+        <div className="settings-layout">
+          <nav className="settings-nav" aria-label="Einstellungsbereiche">
+            <ul className="settings-nav-list">
+              <li><a className="settings-nav-link" href="#settings-ha">Home Assistant</a></li>
+              <li><a className="settings-nav-link" href="#settings-tents">Zelte</a></li>
+              <li><a className="settings-nav-link" href="#settings-tents">Sensoren</a></li>
+              <li><a className="settings-nav-link" href="#settings-tents">Licht</a></li>
+              <li><a className="settings-nav-link" href="#settings-tents">Setups</a></li>
+              <li><a className="settings-nav-link" href="#settings-strains">Strains</a></li>
+            </ul>
+          </nav>
+
+          <div className="settings-grid" style={{ maxWidth: 'none' }}>
+        <section id="settings-ha" className="admin-section">
         <div className="section-label">Home Assistant</div>
         <div className="card" style={{ marginBottom: 24, maxWidth: 640 }}>
           <div className="card-header"><span className="card-title">Verbindung</span></div>
@@ -568,7 +582,9 @@ function SettingsPage() {
             </button>
           </form>
         </div>
+        </section>
 
+        <section id="settings-strains" className="admin-section">
         <div className="section-label">Strains</div>
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header"><span className="card-title">Sorten</span></div>
@@ -679,7 +695,9 @@ function SettingsPage() {
             </form>
           </div>
         </div>
+        </section>
 
+        <section id="settings-tents" className="admin-section">
         <div className="section-label">Zelte</div>
         <div className="tents-grid">
           {settings.tents.map((tent) => {
@@ -1122,6 +1140,9 @@ function SettingsPage() {
             </div>
             )
           })}
+        </div>
+        </section>
+          </div>
         </div>
       </div>
     </>
