@@ -3,7 +3,11 @@ import type { FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type {
   CreateSetupRequest,
+  CreateHardwareItemRequest,
   CreateLightScheduleRequest,
+  HardwareItemCriticality,
+  HardwareItemDto,
+  HardwareItemStatus,
   HomeAssistantSettingsDto,
   HvacControllerType,
   LightScheduleDto,
@@ -21,6 +25,8 @@ import type {
   UpdateLightScheduleRequest,
   UpdateSetupRequest,
   UpdateTentRequest,
+  UpdateHardwareItemRequest,
+  WearTemplateDto,
   CreateStrainRequest,
   StrainDto,
   StrainDominance,
@@ -65,6 +71,20 @@ type LightScheduleDraft = {
   source: LightSource
 }
 
+type HardwareDraft = {
+  name: string
+  category: string
+  status: HardwareItemStatus
+  criticality: HardwareItemCriticality
+  tentId: number | null
+  wearTemplateId: string
+  haEntityId: string
+  manufacturer: string
+  model: string
+  installedAtUtc: string
+  notes: string
+}
+
 const tentTypeOptions: TentType[] = ['Production', 'Mother', 'Quarantine', 'Propagation', 'MultiPurpose']
 const setupTypeOptions: SetupType[] = ['Production', 'Mother', 'Quarantine']
 const motherHealthOptions: Array<MotherHealthStatus | ''> = ['', 'Stable', 'Watch', 'Critical']
@@ -73,6 +93,8 @@ const strainDominanceOptions: StrainDominance[] = ['Unknown', 'Indica', 'Sativa'
 const lightSourceOptions: LightSource[] = ['Manual', 'HomeAssistant']
 const lightControllerOptions: Array<LightControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
 const hvacControllerOptions: Array<HvacControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
+const hardwareStatusOptions: HardwareItemStatus[] = ['Active', 'MaintenanceDue', 'Offline', 'Retired']
+const hardwareCriticalityOptions: HardwareItemCriticality[] = ['Low', 'Medium', 'High', 'Critical']
 
 const sensorGroups: SensorGroup[] = [
   {
@@ -113,6 +135,10 @@ function SettingsPage() {
   const [settings, setSettings] = useState<SettingsOverviewDto | null>(null)
   const [setups, setSetups] = useState<SetupDto[]>([])
   const [strains, setStrains] = useState<StrainDto[]>([])
+  const [hardwareItems, setHardwareItems] = useState<HardwareItemDto[]>([])
+  const [wearTemplates, setWearTemplates] = useState<WearTemplateDto[]>([])
+  const [hardwareDraft, setHardwareDraft] = useState<HardwareDraft>(createHardwareDraft())
+  const [hardwareError, setHardwareError] = useState<string | null>(null)
   const [strainDraft, setStrainDraft] = useState<StrainDraft>(createStrainDraft())
   const [strainError, setStrainError] = useState<string | null>(null)
   const [lightSchedulesByTent, setLightSchedulesByTent] = useState<Record<number, LightScheduleDto[]>>({})
@@ -134,10 +160,12 @@ function SettingsPage() {
       setError(null)
 
       try {
-        const [data, setupData, strainData] = await Promise.all([
+        const [data, setupData, strainData, hardwareData, wearData] = await Promise.all([
           apiFetch<SettingsOverviewDto>('/api/settings', { signal: controller.signal }),
           apiFetch<SetupDto[]>('/api/setups', { signal: controller.signal }),
           apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal }),
+          apiFetch<HardwareItemDto[]>('/api/hardware-items', { signal: controller.signal }),
+          apiFetch<WearTemplateDto[]>('/api/knowledge/wear', { signal: controller.signal }),
         ])
         const scheduleEntries = await Promise.all(data.tents.map(async (tent) => [
           tent.id,
@@ -146,6 +174,8 @@ function SettingsPage() {
         setSettings(data)
         setSetups(setupData)
         setStrains(strainData)
+        setHardwareItems(hardwareData)
+        setWearTemplates(wearData)
         setLightSchedulesByTent(Object.fromEntries(scheduleEntries))
         setSavedTentTypes(Object.fromEntries(data.tents.map((tent) => [tent.id, tent.tentType])))
       } catch (caught) {
@@ -310,6 +340,77 @@ function SettingsPage() {
     }
   }
 
+  async function handleCreateHardwareItem(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setSaving('hardware-new')
+    setHardwareError(null)
+
+    const request: CreateHardwareItemRequest = {
+      name: toNullableString(hardwareDraft.name),
+      category: toNullableString(hardwareDraft.category),
+      status: hardwareDraft.status,
+      criticality: hardwareDraft.criticality,
+      tentId: hardwareDraft.tentId,
+      wearTemplateId: toNullableString(hardwareDraft.wearTemplateId),
+      haEntityId: toNullableString(hardwareDraft.haEntityId),
+      manufacturer: toNullableString(hardwareDraft.manufacturer),
+      model: toNullableString(hardwareDraft.model),
+      installedAtUtc: toNullableDateTime(hardwareDraft.installedAtUtc),
+      notes: toNullableString(hardwareDraft.notes),
+    }
+
+    try {
+      const saved = await apiFetch<HardwareItemDto>('/api/hardware-items', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      setHardwareItems((current) => [...current, saved])
+      setHardwareDraft(createHardwareDraft())
+    } catch (caught) {
+      setHardwareError(formatApiError(caught, 'HardwareItem konnte nicht angelegt werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function saveHardwareItem(item: HardwareItemDto) {
+    setSaving(`hardware-${item.id}`)
+    setHardwareError(null)
+
+    const request: UpdateHardwareItemRequest = {
+      name: item.name.trim(),
+      category: item.category.trim(),
+      status: item.status,
+      criticality: item.criticality,
+      tentId: item.tentId,
+      setupId: item.setupId,
+      growId: item.growId,
+      wearTemplateId: item.wearTemplateId,
+      tentSensorId: item.tentSensorId,
+      haEntityId: item.haEntityId,
+      manufacturer: item.manufacturer,
+      model: item.model,
+      serialNumber: item.serialNumber,
+      installedAtUtc: item.installedAtUtc,
+      retiredAtUtc: item.retiredAtUtc,
+      expectedLifespanDays: item.expectedLifespanDays,
+      inspectionIntervalDays: item.inspectionIntervalDays,
+      notes: item.notes,
+    }
+
+    try {
+      const saved = await apiFetch<HardwareItemDto>(`/api/hardware-items/${item.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(request),
+      })
+      setHardwareItems((current) => current.map((existing) => existing.id === saved.id ? saved : existing))
+    } catch (caught) {
+      setHardwareError(formatApiError(caught, 'HardwareItem konnte nicht gespeichert werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
   async function saveSetup(setup: SetupDto) {
     setSaving(`setup-edit-${setup.id}`)
     setSetupEditErrors((current) => {
@@ -458,6 +559,10 @@ function SettingsPage() {
 
   function updateStrain(id: number, patch: Partial<StrainDto>) {
     setStrains((current) => current.map((strain) => strain.id === id ? { ...strain, ...patch } : strain))
+  }
+
+  function updateHardwareItem(id: number, patch: Partial<HardwareItemDto>) {
+    setHardwareItems((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))
   }
 
   function updateTentSensor(tentId: number, metricType: SensorMetricType, patch: Partial<TentSensorDto>) {
@@ -676,6 +781,148 @@ function SettingsPage() {
                 <span>Notizen</span>
                 <textarea rows={2} value={strainDraft.notes} onChange={(event) => setStrainDraft((current) => ({ ...current, notes: event.target.value }))} />
               </label>
+            </form>
+          </div>
+        </div>
+
+        <div className="section-label">Hardware-Inventar</div>
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-header"><span className="card-title">HardwareItems</span></div>
+          <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
+            {hardwareError && <div style={{ fontSize: 13, color: 'var(--red)' }}>{hardwareError}</div>}
+            {hardwareItems.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--faint)' }}>Keine HardwareItems angelegt.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {hardwareItems.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(130px, 1.2fr) minmax(90px, 0.8fr) minmax(110px, 0.8fr) minmax(90px, 0.8fr) minmax(100px, 0.8fr) minmax(130px, 1fr) minmax(105px, 0.7fr) minmax(70px, 0.5fr) auto',
+                      gap: 8,
+                      alignItems: 'end',
+                      padding: '9px 10px',
+                      border: '1px solid var(--border)',
+                      borderRadius: 7,
+                      background: 'var(--surface2)',
+                    }}
+                  >
+                    <label className="field">
+                      <span>Name</span>
+                      <input value={item.name} onChange={(event) => updateHardwareItem(item.id, { name: event.target.value })} />
+                    </label>
+                    <label className="field">
+                      <span>Category</span>
+                      <input value={item.category} onChange={(event) => updateHardwareItem(item.id, { category: event.target.value })} />
+                    </label>
+                    <label className="field">
+                      <span>Status</span>
+                      <select value={item.status} onChange={(event) => updateHardwareItem(item.id, { status: event.target.value as HardwareItemStatus })}>
+                        {hardwareStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Criticality</span>
+                      <select value={item.criticality} onChange={(event) => updateHardwareItem(item.id, { criticality: event.target.value as HardwareItemCriticality })}>
+                        {hardwareCriticalityOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <div className="field">
+                      <label>Tent</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{getTentName(settings.tents, item.tentId)}</div>
+                    </div>
+                    <div className="field">
+                      <label>WearTemplate</label>
+                      <div className="mono" style={{ fontSize: 12, minHeight: 34, display: 'flex', alignItems: 'center' }}>{item.wearTemplateId ?? '-'}</div>
+                    </div>
+                    <div className="field">
+                      <label>InstalledAt</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.installedAtUtc)}</div>
+                    </div>
+                    <div className="field">
+                      <label>Intervall</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{item.inspectionIntervalDays ?? '-'}</div>
+                    </div>
+                    <button type="button" className="btn" disabled={saving === `hardware-${item.id}`} onClick={() => void saveHardwareItem(item)}>
+                      {saving === `hardware-${item.id}` ? 'Speichert...' : 'Speichern'}
+                    </button>
+                    <label className="field" style={{ gridColumn: '1 / 5' }}>
+                      <span>Notes</span>
+                      <input value={item.notes ?? ''} onChange={(event) => updateHardwareItem(item.id, { notes: toNullableString(event.target.value) })} />
+                    </label>
+                    <label className="field" style={{ gridColumn: '5 / 7' }}>
+                      <span>RetiredAtUtc</span>
+                      <input type="datetime-local" value={toDateTimeInputValue(item.retiredAtUtc)} onChange={(event) => updateHardwareItem(item.id, { retiredAtUtc: toNullableDateTime(event.target.value) })} />
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={(event) => void handleCreateHardwareItem(event)} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(120px, 1fr)) auto', gap: 8, alignItems: 'end' }}>
+              <label className="field">
+                <span>WearTemplate</span>
+                <select value={hardwareDraft.wearTemplateId} onChange={(event) => setHardwareDraft((current) => ({ ...current, wearTemplateId: event.target.value }))}>
+                  <option value="">Keine Vorlage</option>
+                  {wearTemplates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Name</span>
+                <input value={hardwareDraft.name} onChange={(event) => setHardwareDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Backend kann Vorlage übernehmen" />
+              </label>
+              <label className="field">
+                <span>Category</span>
+                <input value={hardwareDraft.category} onChange={(event) => setHardwareDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Sensor, Pump, Filter..." />
+              </label>
+              <label className="field">
+                <span>Tent</span>
+                <select value={hardwareDraft.tentId ?? ''} onChange={(event) => setHardwareDraft((current) => ({ ...current, tentId: toNullableInteger(event.target.value) }))}>
+                  <option value="">Global</option>
+                  {settings.tents.map((tent) => <option key={tent.id} value={tent.id}>{tent.name}</option>)}
+                </select>
+              </label>
+              <button type="submit" className="btn" disabled={saving === 'hardware-new'}>
+                {saving === 'hardware-new' ? 'Legt an...' : 'Hardware anlegen'}
+              </button>
+              <label className="field">
+                <span>Status</span>
+                <select value={hardwareDraft.status} onChange={(event) => setHardwareDraft((current) => ({ ...current, status: event.target.value as HardwareItemStatus }))}>
+                  {hardwareStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Criticality</span>
+                <select value={hardwareDraft.criticality} onChange={(event) => setHardwareDraft((current) => ({ ...current, criticality: event.target.value as HardwareItemCriticality }))}>
+                  {hardwareCriticalityOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>HA Entity</span>
+                <input className="mono" value={hardwareDraft.haEntityId} onChange={(event) => setHardwareDraft((current) => ({ ...current, haEntityId: event.target.value }))} placeholder="sensor.entity" />
+              </label>
+              <label className="field">
+                <span>InstalledAt</span>
+                <input type="datetime-local" value={hardwareDraft.installedAtUtc} onChange={(event) => setHardwareDraft((current) => ({ ...current, installedAtUtc: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>Manufacturer</span>
+                <input value={hardwareDraft.manufacturer} onChange={(event) => setHardwareDraft((current) => ({ ...current, manufacturer: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>Model</span>
+                <input value={hardwareDraft.model} onChange={(event) => setHardwareDraft((current) => ({ ...current, model: event.target.value }))} />
+              </label>
+              <label className="field" style={{ gridColumn: '3 / -1' }}>
+                <span>Notes</span>
+                <input value={hardwareDraft.notes} onChange={(event) => setHardwareDraft((current) => ({ ...current, notes: event.target.value }))} />
+              </label>
+              {hardwareDraft.wearTemplateId && (
+                <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--muted)' }}>
+                  Vorlage: {wearTemplates.find((template) => template.id === hardwareDraft.wearTemplateId)?.name ?? hardwareDraft.wearTemplateId}. Name, Category, Lebensdauer und Inspektionsintervall werden bei leeren Feldern serverseitig uebernommen.
+                </div>
+              )}
             </form>
           </div>
         </div>
@@ -1165,6 +1412,22 @@ function createStrainDraft(): StrainDraft {
   }
 }
 
+function createHardwareDraft(): HardwareDraft {
+  return {
+    name: '',
+    category: '',
+    status: 'Active',
+    criticality: 'Medium',
+    tentId: null,
+    wearTemplateId: '',
+    haEntityId: '',
+    manufacturer: '',
+    model: '',
+    installedAtUtc: '',
+    notes: '',
+  }
+}
+
 function createLightScheduleDraft(): LightScheduleDraft {
   return {
     name: '',
@@ -1275,8 +1538,24 @@ function toNullableDate(value: string): string | null {
   return value ? value : null
 }
 
+function toNullableDateTime(value: string): string | null {
+  return value ? new Date(value).toISOString() : null
+}
+
 function toDateInputValue(value: string | null | undefined): string {
   return value ? value.slice(0, 10) : ''
+}
+
+function toDateTimeInputValue(value: string | null | undefined): string {
+  return value ? value.slice(0, 16) : ''
+}
+
+function formatDate(value: string | null | undefined): string {
+  return value ? value.slice(0, 10) : '-'
+}
+
+function getTentName(tents: TentDto[], tentId: number | null): string {
+  return tentId ? tents.find((tent) => tent.id === tentId)?.name ?? `Tent #${tentId}` : 'Global'
 }
 
 function toNullableInteger(value: string): number | null {

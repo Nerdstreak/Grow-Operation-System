@@ -486,6 +486,30 @@ public sealed class DatabaseInitializer
                 FOREIGN KEY (MeasurementId) REFERENCES Measurements (Id) ON DELETE SET NULL
             );
 
+            CREATE TABLE IF NOT EXISTS HardwareItems (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL,
+                Category TEXT NOT NULL,
+                Status TEXT NOT NULL,
+                Criticality TEXT NOT NULL,
+                TentId INTEGER NULL,
+                SetupId INTEGER NULL,
+                GrowId INTEGER NULL,
+                WearTemplateId TEXT NULL,
+                TentSensorId INTEGER NULL,
+                HaEntityId TEXT NULL,
+                Manufacturer TEXT NULL,
+                Model TEXT NULL,
+                SerialNumber TEXT NULL,
+                InstalledAtUtc TEXT NULL,
+                RetiredAtUtc TEXT NULL,
+                ExpectedLifespanDays INTEGER NULL,
+                InspectionIntervalDays INTEGER NULL,
+                Notes TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS IX_Measurements_GrowId_TakenAt ON Measurements(GrowId, TakenAt DESC);
             CREATE INDEX IF NOT EXISTS IX_Photos_GrowId_TakenAt ON Photos(GrowId, TakenAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_Setups_TentId_Status ON Setups(TentId, Status);
@@ -504,6 +528,12 @@ public sealed class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS IX_LightSchedules_TentId ON LightSchedules(TentId);
             CREATE INDEX IF NOT EXISTS IX_LightSchedules_TentActive ON LightSchedules(TentId, IsActive);
             CREATE INDEX IF NOT EXISTS IX_LightTransitionEvents_TentKindOccurred ON LightTransitionEvents(TentId, Kind, OccurredAtUtc);
+            CREATE INDEX IF NOT EXISTS IX_HardwareItems_TentId ON HardwareItems(TentId);
+            CREATE INDEX IF NOT EXISTS IX_HardwareItems_SetupId ON HardwareItems(SetupId);
+            CREATE INDEX IF NOT EXISTS IX_HardwareItems_GrowId ON HardwareItems(GrowId);
+            CREATE INDEX IF NOT EXISTS IX_HardwareItems_WearTemplateId ON HardwareItems(WearTemplateId);
+            CREATE INDEX IF NOT EXISTS IX_HardwareItems_Status ON HardwareItems(Status);
+            CREATE INDEX IF NOT EXISTS IX_HardwareItems_TentSensorId ON HardwareItems(TentSensorId);
         """;
         command.ExecuteNonQuery();
 

@@ -100,6 +100,22 @@ public enum GrowTaskStatus
     Skipped
 }
 
+public enum HardwareItemStatus
+{
+    Active,
+    MaintenanceDue,
+    Offline,
+    Retired
+}
+
+public enum HardwareItemCriticality
+{
+    Low,
+    Medium,
+    High,
+    Critical
+}
+
 public enum SopInstanceStatus
 {
     Active,
