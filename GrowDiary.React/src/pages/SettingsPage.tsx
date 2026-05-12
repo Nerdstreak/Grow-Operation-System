@@ -2,14 +2,17 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type {
+  AcknowledgeRiskEventRequest,
   CalibrationEventDto,
   CalibrationEventStatus,
   CalibrationEventType,
   CalibrationResult,
   CreateCalibrationEventRequest,
+  CreateRiskEventRequest,
   CreateSetupRequest,
   CreateHardwareItemRequest,
   CreateLightScheduleRequest,
+  GrowSummary,
   HardwareItemCriticality,
   HardwareItemDto,
   HardwareItemStatus,
@@ -25,6 +28,12 @@ import type {
   MaintenanceResult,
   MotherHealthStatus,
   QuarantineResult,
+  ResolveRiskEventRequest,
+  RiskEventDto,
+  RiskEventSeverity,
+  RiskEventSource,
+  RiskEventStatus,
+  RiskEventType,
   SensorMetricType,
   SettingsOverviewDto,
   SetupDto,
@@ -38,6 +47,7 @@ import type {
   UpdateCalibrationEventRequest,
   UpdateHardwareItemRequest,
   UpdateMaintenanceEventRequest,
+  UpdateRiskEventRequest,
   WearTemplateDto,
   CreateStrainRequest,
   StrainDto,
@@ -122,6 +132,18 @@ type CalibrationDraft = {
   notes: string
 }
 
+type RiskDraft = {
+  eventType: RiskEventType
+  severity: RiskEventSeverity
+  source: RiskEventSource
+  title: string
+  hardwareItemId: number | null
+  tentId: number | null
+  growId: number | null
+  dedupeKey: string
+  notes: string
+}
+
 const tentTypeOptions: TentType[] = ['Production', 'Mother', 'Quarantine', 'Propagation', 'MultiPurpose']
 const setupTypeOptions: SetupType[] = ['Production', 'Mother', 'Quarantine']
 const motherHealthOptions: Array<MotherHealthStatus | ''> = ['', 'Stable', 'Watch', 'Critical']
@@ -138,6 +160,10 @@ const maintenanceResultOptions: MaintenanceResult[] = ['Unknown', 'Passed', 'Act
 const calibrationEventTypeOptions: CalibrationEventType[] = ['Ph', 'Ec', 'Orp', 'Do', 'Other']
 const calibrationStatusOptions: CalibrationEventStatus[] = ['Planned', 'Completed', 'Failed', 'Skipped', 'Cancelled']
 const calibrationResultOptions: CalibrationResult[] = ['Unknown', 'Passed', 'AdjustmentNeeded', 'Failed']
+const riskEventTypeOptions: RiskEventType[] = ['PowerOutage', 'UpsOnBattery', 'PumpOffline', 'ChillerOffline', 'LightMismatch', 'HomeAssistantUnavailable', 'CriticalDo', 'SensorUnavailable', 'Other']
+const riskSeverityOptions: RiskEventSeverity[] = ['Info', 'Warning', 'Critical']
+const riskStatusOptions: RiskEventStatus[] = ['Open', 'Acknowledged', 'Resolved', 'Ignored']
+const riskSourceOptions: RiskEventSource[] = ['Manual', 'HomeAssistant', 'AutoMeasurement', 'Deviation', 'System']
 
 const sensorGroups: SensorGroup[] = [
   {
@@ -176,6 +202,7 @@ const sensorGroups: SensorGroup[] = [
 
 function SettingsPage() {
   const [settings, setSettings] = useState<SettingsOverviewDto | null>(null)
+  const [grows, setGrows] = useState<GrowSummary[]>([])
   const [setups, setSetups] = useState<SetupDto[]>([])
   const [strains, setStrains] = useState<StrainDto[]>([])
   const [hardwareItems, setHardwareItems] = useState<HardwareItemDto[]>([])
@@ -188,6 +215,9 @@ function SettingsPage() {
   const [calibrationEvents, setCalibrationEvents] = useState<CalibrationEventDto[]>([])
   const [calibrationDraft, setCalibrationDraft] = useState<CalibrationDraft>(createCalibrationDraft())
   const [calibrationError, setCalibrationError] = useState<string | null>(null)
+  const [riskEvents, setRiskEvents] = useState<RiskEventDto[]>([])
+  const [riskDraft, setRiskDraft] = useState<RiskDraft>(createRiskDraft())
+  const [riskError, setRiskError] = useState<string | null>(null)
   const [strainDraft, setStrainDraft] = useState<StrainDraft>(createStrainDraft())
   const [strainError, setStrainError] = useState<string | null>(null)
   const [lightSchedulesByTent, setLightSchedulesByTent] = useState<Record<number, LightScheduleDto[]>>({})
@@ -209,13 +239,15 @@ function SettingsPage() {
       setError(null)
 
       try {
-        const [data, setupData, strainData, hardwareData, maintenanceData, calibrationData, wearData] = await Promise.all([
+        const [data, growData, setupData, strainData, hardwareData, maintenanceData, calibrationData, riskData, wearData] = await Promise.all([
           apiFetch<SettingsOverviewDto>('/api/settings', { signal: controller.signal }),
+          apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }),
           apiFetch<SetupDto[]>('/api/setups', { signal: controller.signal }),
           apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal }),
           apiFetch<HardwareItemDto[]>('/api/hardware-items', { signal: controller.signal }),
           apiFetch<MaintenanceEventDto[]>('/api/maintenance-events', { signal: controller.signal }),
           apiFetch<CalibrationEventDto[]>('/api/calibration-events', { signal: controller.signal }),
+          apiFetch<RiskEventDto[]>('/api/risk-events', { signal: controller.signal }),
           apiFetch<WearTemplateDto[]>('/api/knowledge/wear', { signal: controller.signal }),
         ])
         const scheduleEntries = await Promise.all(data.tents.map(async (tent) => [
@@ -223,11 +255,13 @@ function SettingsPage() {
           await apiFetch<LightScheduleDto[]>(`/api/light-schedules?tentId=${tent.id}`, { signal: controller.signal }),
         ] as const))
         setSettings(data)
+        setGrows(growData)
         setSetups(setupData)
         setStrains(strainData)
         setHardwareItems(hardwareData)
         setMaintenanceEvents(maintenanceData)
         setCalibrationEvents(calibrationData)
+        setRiskEvents(riskData)
         setWearTemplates(wearData)
         setLightSchedulesByTent(Object.fromEntries(scheduleEntries))
         setSavedTentTypes(Object.fromEntries(data.tents.map((tent) => [tent.id, tent.tentType])))
@@ -606,6 +640,114 @@ function SettingsPage() {
     }
   }
 
+  async function handleCreateRiskEvent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setSaving('risk-new')
+    setRiskError(null)
+
+    const request: CreateRiskEventRequest = {
+      eventType: riskDraft.eventType,
+      severity: riskDraft.severity,
+      status: 'Open',
+      source: riskDraft.source,
+      title: riskDraft.title.trim(),
+      hardwareItemId: riskDraft.hardwareItemId,
+      tentId: riskDraft.tentId,
+      growId: riskDraft.growId,
+      dedupeKey: toNullableString(riskDraft.dedupeKey),
+      notes: toNullableString(riskDraft.notes),
+    }
+
+    try {
+      const saved = await apiFetch<RiskEventDto>('/api/risk-events', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      setRiskEvents((current) => [saved, ...current.filter((item) => item.id !== saved.id)])
+      setRiskDraft(createRiskDraft())
+    } catch (caught) {
+      setRiskError(formatApiError(caught, 'RiskEvent konnte nicht angelegt werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function saveRiskEvent(item: RiskEventDto) {
+    setSaving(`risk-${item.id}`)
+    setRiskError(null)
+
+    const request: UpdateRiskEventRequest = {
+      eventType: item.eventType,
+      severity: item.severity,
+      status: item.status,
+      source: item.source,
+      title: item.title,
+      description: item.description,
+      hardwareItemId: item.hardwareItemId,
+      tentId: item.tentId,
+      growId: item.growId,
+      tentSensorId: item.tentSensorId,
+      haEntityId: item.haEntityId,
+      sopInstanceId: item.sopInstanceId,
+      growTaskId: item.growTaskId,
+      startedAtUtc: item.startedAtUtc,
+      lastSeenAtUtc: item.lastSeenAtUtc,
+      resolvedAtUtc: item.resolvedAtUtc,
+      acknowledgedAtUtc: item.acknowledgedAtUtc,
+      dedupeKey: item.dedupeKey,
+      rawValue: item.rawValue,
+      notes: item.notes,
+    }
+
+    try {
+      const saved = await apiFetch<RiskEventDto>(`/api/risk-events/${item.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(request),
+      })
+      setRiskEvents((current) => current.map((existing) => existing.id === saved.id ? saved : existing))
+    } catch (caught) {
+      setRiskError(formatApiError(caught, 'RiskEvent konnte nicht gespeichert werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function acknowledgeRiskEvent(item: RiskEventDto) {
+    setSaving(`risk-ack-${item.id}`)
+    setRiskError(null)
+    const request: AcknowledgeRiskEventRequest = { notes: item.notes }
+
+    try {
+      const saved = await apiFetch<RiskEventDto>(`/api/risk-events/${item.id}/acknowledge`, {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      setRiskEvents((current) => current.map((existing) => existing.id === saved.id ? saved : existing))
+    } catch (caught) {
+      setRiskError(formatApiError(caught, 'RiskEvent konnte nicht bestaetigt werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function resolveRiskEvent(item: RiskEventDto) {
+    setSaving(`risk-resolve-${item.id}`)
+    setRiskError(null)
+    const request: ResolveRiskEventRequest = { notes: item.notes }
+
+    try {
+      const saved = await apiFetch<RiskEventDto>(`/api/risk-events/${item.id}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      setRiskEvents((current) => current.map((existing) => existing.id === saved.id ? saved : existing))
+    } catch (caught) {
+      setRiskError(formatApiError(caught, 'RiskEvent konnte nicht geloest werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
   async function saveSetup(setup: SetupDto) {
     setSaving(`setup-edit-${setup.id}`)
     setSetupEditErrors((current) => {
@@ -766,6 +908,10 @@ function SettingsPage() {
 
   function updateCalibrationEvent(id: number, patch: Partial<CalibrationEventDto>) {
     setCalibrationEvents((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))
+  }
+
+  function updateRiskEvent(id: number, patch: Partial<RiskEventDto>) {
+    setRiskEvents((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))
   }
 
   function updateTentSensor(tentId: number, metricType: SensorMetricType, patch: Partial<TentSensorDto>) {
@@ -1392,6 +1538,149 @@ function SettingsPage() {
           </div>
         </div>
 
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-header"><span className="card-title">RiskEvents</span></div>
+          <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
+            {riskError && <div style={{ fontSize: 13, color: 'var(--red)' }}>{riskError}</div>}
+            {riskEvents.length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--faint)' }}>Keine RiskEvents angelegt.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {riskEvents.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(95px, 0.7fr) minmax(105px, 0.8fr) minmax(125px, 1fr) minmax(150px, 1.2fr) minmax(120px, 1fr) minmax(100px, 0.8fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) auto auto auto',
+                      gap: 8,
+                      alignItems: 'end',
+                      padding: '9px 10px',
+                      border: '1px solid var(--border)',
+                      borderRadius: 7,
+                      background: 'var(--surface2)',
+                    }}
+                  >
+                    <label className="field">
+                      <span>Severity</span>
+                      <select value={item.severity} onChange={(event) => updateRiskEvent(item.id, { severity: event.target.value as RiskEventSeverity })}>
+                        {riskSeverityOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Status</span>
+                      <select value={item.status} onChange={(event) => updateRiskEvent(item.id, { status: event.target.value as RiskEventStatus })}>
+                        {riskStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <div className="field">
+                      <label>EventType</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{item.eventType}</div>
+                    </div>
+                    <label className="field">
+                      <span>Title</span>
+                      <input value={item.title} onChange={(event) => updateRiskEvent(item.id, { title: event.target.value })} />
+                    </label>
+                    <div className="field">
+                      <label>Hardware</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{item.hardwareItemId ? getHardwareName(hardwareItems, item.hardwareItemId) : '-'}</div>
+                    </div>
+                    <div className="field">
+                      <label>Tent</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{getTentName(settings.tents, item.tentId)}</div>
+                    </div>
+                    <div className="field">
+                      <label>Started</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.startedAtUtc)}</div>
+                    </div>
+                    <div className="field">
+                      <label>LastSeen</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.lastSeenAtUtc)}</div>
+                    </div>
+                    <div className="field">
+                      <label>Resolved</label>
+                      <div style={{ fontSize: 13, minHeight: 34, display: 'flex', alignItems: 'center' }}>{formatDate(item.resolvedAtUtc)}</div>
+                    </div>
+                    <button type="button" className="btn" disabled={saving === `risk-${item.id}`} onClick={() => void saveRiskEvent(item)}>
+                      {saving === `risk-${item.id}` ? 'Speichert...' : 'Speichern'}
+                    </button>
+                    <button type="button" className="btn" disabled={saving === `risk-ack-${item.id}`} onClick={() => void acknowledgeRiskEvent(item)}>
+                      {saving === `risk-ack-${item.id}` ? '...' : 'Ack'}
+                    </button>
+                    <button type="button" className="btn" disabled={saving === `risk-resolve-${item.id}`} onClick={() => void resolveRiskEvent(item)}>
+                      {saving === `risk-resolve-${item.id}` ? '...' : 'Resolve'}
+                    </button>
+                    <label className="field" style={{ gridColumn: '1 / 5' }}>
+                      <span>DedupeKey</span>
+                      <input value={item.dedupeKey ?? ''} onChange={(event) => updateRiskEvent(item.id, { dedupeKey: toNullableString(event.target.value) })} />
+                    </label>
+                    <label className="field" style={{ gridColumn: '5 / -1' }}>
+                      <span>Notes</span>
+                      <input value={item.notes ?? ''} onChange={(event) => updateRiskEvent(item.id, { notes: toNullableString(event.target.value) })} />
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={(event) => void handleCreateRiskEvent(event)} style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(120px, 1fr)) auto', gap: 8, alignItems: 'end' }}>
+              <label className="field">
+                <span>EventType</span>
+                <select value={riskDraft.eventType} onChange={(event) => setRiskDraft((current) => ({ ...current, eventType: event.target.value as RiskEventType }))}>
+                  {riskEventTypeOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Severity</span>
+                <select value={riskDraft.severity} onChange={(event) => setRiskDraft((current) => ({ ...current, severity: event.target.value as RiskEventSeverity }))}>
+                  {riskSeverityOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Source</span>
+                <select value={riskDraft.source} onChange={(event) => setRiskDraft((current) => ({ ...current, source: event.target.value as RiskEventSource }))}>
+                  {riskSourceOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Title</span>
+                <input value={riskDraft.title} onChange={(event) => setRiskDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Pumpe offline" />
+              </label>
+              <label className="field">
+                <span>HardwareItem</span>
+                <select value={riskDraft.hardwareItemId ?? ''} onChange={(event) => setRiskDraft((current) => ({ ...current, hardwareItemId: toNullableInteger(event.target.value) }))}>
+                  <option value="">Optional</option>
+                  {hardwareItems.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Tent</span>
+                <select value={riskDraft.tentId ?? ''} onChange={(event) => setRiskDraft((current) => ({ ...current, tentId: toNullableInteger(event.target.value) }))}>
+                  <option value="">Optional</option>
+                  {settings.tents.map((tent) => <option key={tent.id} value={tent.id}>{tent.name}</option>)}
+                </select>
+              </label>
+              <button type="submit" className="btn" disabled={saving === 'risk-new'}>
+                {saving === 'risk-new' ? 'Legt an...' : 'Risk anlegen'}
+              </button>
+              <label className="field">
+                <span>Grow</span>
+                <select value={riskDraft.growId ?? ''} onChange={(event) => setRiskDraft((current) => ({ ...current, growId: toNullableInteger(event.target.value) }))}>
+                  <option value="">Optional</option>
+                  {grows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
+                </select>
+              </label>
+              <label className="field" style={{ gridColumn: '2 / 4' }}>
+                <span>DedupeKey</span>
+                <input value={riskDraft.dedupeKey} onChange={(event) => setRiskDraft((current) => ({ ...current, dedupeKey: event.target.value }))} placeholder="pump:main" />
+              </label>
+              <label className="field" style={{ gridColumn: '4 / -1' }}>
+                <span>Notes</span>
+                <input value={riskDraft.notes} onChange={(event) => setRiskDraft((current) => ({ ...current, notes: event.target.value }))} />
+              </label>
+            </form>
+          </div>
+        </div>
+
         <div className="section-label">Zelte</div>
         <div className="tents-grid">
           {settings.tents.map((tent) => {
@@ -1918,6 +2207,20 @@ function createCalibrationDraft(): CalibrationDraft {
     temperatureC: '',
     dueAtUtc: '',
     performedAtUtc: '',
+    notes: '',
+  }
+}
+
+function createRiskDraft(): RiskDraft {
+  return {
+    eventType: 'Other',
+    severity: 'Warning',
+    source: 'Manual',
+    title: '',
+    hardwareItemId: null,
+    tentId: null,
+    growId: null,
+    dedupeKey: '',
     notes: '',
   }
 }

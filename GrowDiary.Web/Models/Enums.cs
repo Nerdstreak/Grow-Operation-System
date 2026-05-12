@@ -168,6 +168,43 @@ public enum CalibrationResult
     Failed
 }
 
+public enum RiskEventType
+{
+    PowerOutage,
+    UpsOnBattery,
+    PumpOffline,
+    ChillerOffline,
+    LightMismatch,
+    HomeAssistantUnavailable,
+    CriticalDo,
+    SensorUnavailable,
+    Other
+}
+
+public enum RiskEventSeverity
+{
+    Info,
+    Warning,
+    Critical
+}
+
+public enum RiskEventStatus
+{
+    Open,
+    Acknowledged,
+    Resolved,
+    Ignored
+}
+
+public enum RiskEventSource
+{
+    Manual,
+    HomeAssistant,
+    AutoMeasurement,
+    Deviation,
+    System
+}
+
 public enum SopInstanceStatus
 {
     Active,
