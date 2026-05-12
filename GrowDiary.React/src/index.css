@@ -446,6 +446,9 @@ label:has(input[type="checkbox"]) {
 .settings-card-section { padding-top: 14px; margin-top: 2px; border-top: 1px solid var(--border); }
 .settings-card-section:first-child { padding-top: 0; margin-top: 0; border-top: none; }
 .settings-section-label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.admin-section { scroll-margin-top: 18px; }
+.section-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.management-card { min-width: 0; }
 .two-col-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
 .sensor-map-row {
