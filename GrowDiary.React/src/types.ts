@@ -43,6 +43,8 @@ export type DeviationMetric = 'Ph' | 'Ec' | 'Orp' | 'WaterTemp' | 'Vpd' | 'Ppfd'
 export type DeviationSeverity = 'Info' | 'Warning' | 'Critical'
 export type DeviationSource = 'Manual' | 'HomeAssistant' | 'Mixed' | 'Unknown'
 export type TreatmentRecommendationConfidence = 'Low' | 'Medium' | 'High'
+export type HardwareItemStatus = 'Active' | 'MaintenanceDue' | 'Offline' | 'Retired'
+export type HardwareItemCriticality = 'Low' | 'Medium' | 'High' | 'Critical'
 
 export interface ApiError {
   code: string
@@ -412,6 +414,56 @@ export interface HomeAssistantSettingsDto {
   baseUrl: string | null
   accessToken: string | null
   enabled: boolean
+}
+
+export interface HardwareItemDto {
+  id: number
+  name: string
+  category: string
+  status: HardwareItemStatus
+  criticality: HardwareItemCriticality
+  tentId: number | null
+  setupId: number | null
+  growId: number | null
+  wearTemplateId: string | null
+  tentSensorId: number | null
+  haEntityId: string | null
+  manufacturer: string | null
+  model: string | null
+  serialNumber: string | null
+  installedAtUtc: string | null
+  retiredAtUtc: string | null
+  expectedLifespanDays: number | null
+  inspectionIntervalDays: number | null
+  notes: string | null
+  createdAtUtc: string
+  updatedAtUtc: string
+}
+
+export interface CreateHardwareItemRequest {
+  name?: string | null
+  category?: string | null
+  status: HardwareItemStatus
+  criticality: HardwareItemCriticality
+  tentId?: number | null
+  setupId?: number | null
+  growId?: number | null
+  wearTemplateId?: string | null
+  tentSensorId?: number | null
+  haEntityId?: string | null
+  manufacturer?: string | null
+  model?: string | null
+  serialNumber?: string | null
+  installedAtUtc?: string | null
+  retiredAtUtc?: string | null
+  expectedLifespanDays?: number | null
+  inspectionIntervalDays?: number | null
+  notes?: string | null
+}
+
+export interface UpdateHardwareItemRequest extends CreateHardwareItemRequest {
+  name: string
+  category: string
 }
 
 export type TentType = 'Production' | 'Mother' | 'Quarantine' | 'Propagation' | 'MultiPurpose'
@@ -826,4 +878,14 @@ export interface MediumPlaybookDto {
 export interface KnowledgeOverviewDto {
   programs: NutrientProgramDto[]
   playbooks: MediumPlaybookDto[]
+}
+
+export interface WearTemplateDto {
+  schemaVersion: string
+  id: string
+  name: string
+  category: string
+  expectedLifespanDays: number
+  replacementTriggers: string[]
+  inspectionIntervalDays: number | null
 }

@@ -89,6 +89,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 - `AutoMeasurementConfigs`, `AutoMeasurementFieldMappings` und `AutoMeasurementRuns`: Konfiguration, Mapping, Ausfuehrungsstatus, Hard-Limit-Hinweise und Idempotenz fuer automatische Measurements.
 - `LightSchedules`: additive Lichtplaene pro Tent mit HH:mm-On/Off-Zeiten, Source und optionaler TimeZoneId.
 - `LightTransitionEvents`: LightOn-/LightOff-Events pro Tent als Trigger- und Idempotenzgrundlage; keine automatische Measurement-Erzeugung.
+- `HardwareItems`: Hardware-Inventar fuer echte Komponenten, primaer optional an `TentId` verortet; `SetupId`, `GrowId`, `TentSensorId` und `HaEntityId` sind optionale Bezuege. `WearTemplateId` verweist auf Knowledge-Wear-Templates, ist aber kein DB-FK. F1 umfasst nur Inventar/API/UI, noch keine Maintenance-, Calibration- oder Risk-Events.
 - `SopInstances` und `SopStepInstances`: aus Knowledge-SOPs gestartete Workflow-Koepfe und materialisierte Steps; Step-Status kann aktualisiert werden, SubSOPs werden nur referenziert. E4: Steps haben DueAtUtc/AvailableAtUtc und optionalen ReminderTaskId-Verweis; SopInstances haben NextStepDueAtUtc, IsRecurring, RecurrenceIntervalDays, DueAtUtc. RecurrenceIntervalDays kommt bevorzugt aus triggers[type=Schedule].intervalDays (Fallback: Root-Level SopDefinition.IntervalDays).
 
 ### DB-Initialisierung
@@ -130,6 +131,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint E2 ABGESCHLOSSEN: SOP-Empfehlungen koennen aus der GrowDetail-Diagnose gestartet werden; SopInstances speichern Recommendation-Bezug, ohne Step-Ausfuehrung.
 - Sprint E3 ABGESCHLOSSEN: SOP-Steps koennen gestartet, abgeschlossen oder uebersprungen werden; SopInstances werden automatisch Completed, wenn alle Steps Done/Skipped sind.
 - Sprint E4 ABGESCHLOSSEN: SOP-Scheduling (DueAtUtc, NextStepDueAtUtc, IsRecurring, RecurrenceIntervalDays); GrowTask-Reminder fuer Steps mit DueAtUtc; Recurring wird markiert, kein automatischer Neustart.
+- Sprint F1 ABGESCHLOSSEN: HardwareItem-Grundmodell mit additiver Tabelle, `/api/hardware-items`, WearTemplate-Default-Uebernahme beim Create und minimaler Settings-Inventar-UI. Noch keine Maintenance-/Calibration-/Risk-Events und keine GrowTask-Projektion.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
 
 ## Sprint-Workflow
