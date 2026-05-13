@@ -126,6 +126,8 @@ Wichtige Punkte:
 - Alternativ kann `GrowDiary.Web/App_Data/ha-config.example.json` als Vorlage für eine lokale `ha-config.json` verwendet werden.
 - Danach Zelte und Sensor-Mapping konfigurieren.
 
+Details zur Home-Assistant-Verbindung und zum Sensor-Mapping stehen in [HOME_ASSISTANT.md](HOME_ASSISTANT.md).
+
 ## PWA-Installation
 
 Grow OS bringt Basic Installability mit:

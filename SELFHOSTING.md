@@ -139,4 +139,4 @@ Wichtig: Daraus folgt keine vollständige Nutzerverwaltung. Grow OS hat aktuell 
 - [INSTALL.md](INSTALL.md)
 - [SECURITY.md](SECURITY.md)
 - [BACKUP_RESTORE.md](BACKUP_RESTORE.md)
-- `HOME_ASSISTANT.md` folgt später.
+- [HOME_ASSISTANT.md](HOME_ASSISTANT.md)
