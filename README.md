@@ -142,6 +142,8 @@ Grow OS ist eine MVP/Community Preview mit Fokus auf RDWC/DWC. Soil, Coco und we
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [DEPLOYMENT.md](DEPLOYMENT.md)
 
+Release-ZIP, Docker Compose und `systemd`-Beispiel sind in [DEPLOYMENT.md](DEPLOYMENT.md) beschrieben.
+
 ## Installation
 
 Siehe [INSTALL.md](INSTALL.md).

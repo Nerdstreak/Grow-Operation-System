@@ -17,5 +17,6 @@ docs/superpowers/plans/
 artifacts/
 publish/
 release/
+docker-data/
 GrowDiary.Web/wwwroot/index.html
 GrowDiary.Web/wwwroot/assets/

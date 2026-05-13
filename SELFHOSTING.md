@@ -125,14 +125,15 @@ Wichtig: Daraus folgt keine vollständige Nutzerverwaltung. Grow OS hat aktuell 
 | Server plus Reverse Proxy, HTTPS und Auth | Fortgeschrittener Remote-Betrieb | Möglich, aber sauber absichern |
 
 Für Linux/Raspberry Pi/Mini-PC ist ein `systemd`-Beispiel in [DEPLOYMENT.md](DEPLOYMENT.md) dokumentiert.
+Ein einfacher Docker-Compose-Betrieb ist ebenfalls in [DEPLOYMENT.md](DEPLOYMENT.md) beschrieben.
 
 ## 9. Grenzen aktueller Stand
 
-- Kein offiziell dokumentierter Docker-Betrieb.
 - Kein offizieller Windows Service.
 - Keine vollständige eingebaute Login-/User-Authentifizierung.
 - Kein Service Worker und kein Offline-Modus.
 - `systemd` ist als Beispiel dokumentiert, aber nicht automatisch installiert.
+- Docker ist als einfaches Compose-Beispiel dokumentiert, aber es gibt noch kein offizielles Registry Image.
 
 ## 10. Links
 

@@ -1,6 +1,6 @@
 # Deployment
 
-Diese Anleitung beschreibt den ersten einfachen Release-Weg für Grow Operation System: ein lokales Release-ZIP. Für Linux/Raspberry Pi/Mini-PC gibt es zusätzlich ein einfaches `systemd`-Beispiel. Docker, Windows Service und GitHub Release Automation sind bewusst spätere Schritte.
+Diese Anleitung beschreibt die einfachen Selfhosting-Betriebswege für Grow Operation System: Release-ZIP, Docker Compose und ein `systemd`-Beispiel für Linux/Raspberry Pi/Mini-PC. Windows Service und GitHub Release Automation sind bewusst spätere Schritte.
 
 ## Release-ZIP erstellen
 
@@ -191,11 +191,90 @@ journalctl -u grow-os -n 100
 
 Details zu Backup und Restore stehen in [BACKUP_RESTORE.md](BACKUP_RESTORE.md). Security-Hinweise zum Remote-Betrieb stehen in [SECURITY.md](SECURITY.md) und [SELFHOSTING.md](SELFHOSTING.md).
 
-## Grenzen von DEPLOY-1/DEPLOY-3
+## Docker Compose Betrieb
 
-- kein Dockerfile
-- kein `docker-compose.yml`
+DEPLOY-2 ergänzt ein einfaches lokales Docker-Beispiel. Es baut React im Container, published das ASP.NET Core Backend und startet die App mit persistentem Datenordner unter `/data`.
+
+Voraussetzungen:
+
+- Docker
+- Docker Compose
+- Netzwerkzugriff vom Container auf Home Assistant
+
+Start aus dem Repository-Root:
+
+```bash
+docker compose -f docker-compose.example.yml up -d --build
+```
+
+Zugriff:
+
+- `http://localhost:5076`
+- `http://<server-ip>:5076`
+
+Das Compose-Beispiel nutzt:
+
+- Port-Mapping `5076:5076`
+- Volume `./docker-data/grow-os:/data`
+- `ASPNETCORE_URLS=http://0.0.0.0:5076`
+- `GROWDIARY_DB_PATH=/data/grow-diary.db`
+- `GROWDIARY_ALLOW_REMOTE_ADMIN=false`
+
+Lokale Daten liegen dadurch nicht im Image, sondern auf dem Host unter:
+
+```text
+docker-data/grow-os
+```
+
+Die SQLite-Datenbank liegt im Container unter:
+
+```text
+/data/grow-diary.db
+```
+
+Sichere für Backups den Host-Ordner `docker-data/grow-os`. Dieser Ordner ist per `.gitignore` ausgeschlossen und darf keine Git-Daten werden.
+
+### Home Assistant aus Docker
+
+Grow OS muss Home Assistant aus dem Container erreichen, nicht nur dein Browser oder Handy. Je nach Docker-Netz funktioniert `homeassistant.local` nicht zuverlässig. Verwende für die Home Assistant Base URL im Zweifel eine feste IP oder einen DNS-Namen, den der Container auflösen kann, zum Beispiel:
+
+```text
+http://192.168.x.x:8123
+```
+
+Home Assistant Tokens gehören nicht in das Image und nicht in `docker-compose.example.yml`. Konfiguriere sie in der App oder über lokale Runtime-Daten.
+
+### Docker Update
+
+Vor einem Update:
+
+1. Container stoppen.
+2. `docker-data/grow-os` sichern.
+3. Quellen aktualisieren.
+4. Image neu bauen und Container starten.
+5. Logs prüfen.
+
+Beispiel:
+
+```bash
+docker compose -f docker-compose.example.yml down
+cp -a docker-data/grow-os "$HOME/grow-os-docker-backup-$(date +%Y%m%d-%H%M%S)"
+git pull
+docker compose -f docker-compose.example.yml up -d --build
+docker compose -f docker-compose.example.yml logs -f
+```
+
+Setze den Container nicht ungeschützt ins Internet. Für Remote-Zugriff gelten dieselben Regeln wie außerhalb von Docker: Tailscale/VPN bevorzugt, Reverse Proxy nur mit HTTPS und vorgeschalteter Auth.
+
+Grenzen von DEPLOY-2:
+
+- kein offizielles Registry Image
+- kein GitHub Release Workflow für Docker Images
+- kein Docker-Production-Hardening über das einfache Compose-Beispiel hinaus
+
+## Grenzen von DEPLOY-1/DEPLOY-2/DEPLOY-3
+
 - kein Windows-Service-Setup
 - keine GitHub Release Automation
 
-Docker, Windows Service und GitHub Release Automation folgen in späteren Deployment-Tickets.
+Windows Service und GitHub Release Automation folgen in späteren Deployment-Tickets.
