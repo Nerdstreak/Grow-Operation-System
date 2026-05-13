@@ -1,0 +1,30 @@
+{
+  "name": "Grow Operation System",
+  "short_name": "Grow OS",
+  "description": "Selfhosted Grow-Management mit Home Assistant, Mobile Action Hub und Live-Dashboard.",
+  "start_url": "/action",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#06100b",
+  "theme_color": "#4ecb5b",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/maskable-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
