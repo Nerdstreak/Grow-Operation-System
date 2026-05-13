@@ -676,7 +676,7 @@ function GrowDetailPage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+        <div className="section-tabs detail-tabs" style={{ marginBottom: 18 }}>
           {detailSections.map((section) => (
             <button
               key={section.key}

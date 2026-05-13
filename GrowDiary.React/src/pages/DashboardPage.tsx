@@ -292,7 +292,7 @@ function DashboardPage() {
                   <Link key={instance.id} to={`/grows/${instance.growId}`} className="addback-item" style={{ display: 'block', textDecoration: 'none' }}>
                     <div className="addback-name">{instance.sopName}</div>
                     <div className="addback-detail">
-                      {getGrowName(data.grows, instance.growId)} · {instance.status} · naechster Step {formatDateTime(instance.nextStepDueAtUtc)}
+                      {getGrowName(data.grows, instance.growId)} · {instance.status} · nächster Step {formatDateTime(instance.nextStepDueAtUtc)}
                     </div>
                   </Link>
                 ))

@@ -699,6 +699,9 @@ function SettingsPage() {
 
         <section id="settings-tents" className="admin-section">
         <div className="section-label">Zelte</div>
+        <div id="settings-setups" className="settings-anchor" aria-hidden="true" />
+        <div id="settings-light" className="settings-anchor" aria-hidden="true" />
+        <div id="settings-sensors" className="settings-anchor" aria-hidden="true" />
         <div className="tents-grid">
           {settings.tents.map((tent) => {
             const savedTentType = getSavedTentType(tent, savedTentTypes)
@@ -723,7 +726,7 @@ function SettingsPage() {
               </div>
 
               <div style={{ padding: '14px 16px', display: 'grid', gap: 14 }}>
-                <div id={tent.id === settings.tents[0]?.id ? 'settings-setups' : undefined} style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
                   Stammdaten
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -914,7 +917,7 @@ function SettingsPage() {
                   )}
                 </div>
 
-                <div id={tent.id === settings.tents[0]?.id ? 'settings-light' : undefined} style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
                   LightSchedules
                 </div>
                 <div style={{ display: 'grid', gap: 10 }}>
@@ -1077,7 +1080,7 @@ function SettingsPage() {
                   <input type="checkbox" style={{ width: 'auto' }} checked={tent.co2Available} onChange={(event) => updateTent(tent.id, { co2Available: event.target.checked })} />
                 </label>
 
-                <div id={tent.id === settings.tents[0]?.id ? 'settings-sensors' : undefined} style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
                   Sensor-Mapping
                 </div>
                 {sensorGroups.map((group) => (
