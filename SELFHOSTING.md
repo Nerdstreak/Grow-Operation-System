@@ -124,14 +124,15 @@ Wichtig: Daraus folgt keine vollständige Nutzerverwaltung. Grow OS hat aktuell 
 | Pi/Server plus Tailscale | Privater Remote-Zugriff | Bevorzugte Remote-Variante |
 | Server plus Reverse Proxy, HTTPS und Auth | Fortgeschrittener Remote-Betrieb | Möglich, aber sauber absichern |
 
+Für Linux/Raspberry Pi/Mini-PC ist ein `systemd`-Beispiel in [DEPLOYMENT.md](DEPLOYMENT.md) dokumentiert.
+
 ## 9. Grenzen aktueller Stand
 
 - Kein offiziell dokumentierter Docker-Betrieb.
-- Kein offizieller `systemd` Service.
 - Kein offizieller Windows Service.
 - Keine vollständige eingebaute Login-/User-Authentifizierung.
 - Kein Service Worker und kein Offline-Modus.
-- Keine vollständige Security- oder Backup-/Restore-Dokumentation.
+- `systemd` ist als Beispiel dokumentiert, aber nicht automatisch installiert.
 
 ## 10. Links
 
@@ -140,3 +141,4 @@ Wichtig: Daraus folgt keine vollständige Nutzerverwaltung. Grow OS hat aktuell 
 - [SECURITY.md](SECURITY.md)
 - [BACKUP_RESTORE.md](BACKUP_RESTORE.md)
 - [HOME_ASSISTANT.md](HOME_ASSISTANT.md)
+- [DEPLOYMENT.md](DEPLOYMENT.md)

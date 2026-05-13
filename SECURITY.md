@@ -52,6 +52,12 @@ Standardmäßig sind diese Pfade nur lokal erreichbar. Die Umgebungsvariable `GR
 
 Setze `GROWDIARY_ALLOW_REMOTE_ADMIN=true` nur bewusst und nicht bei ungeschütztem Remote-Betrieb. Die Variable ersetzt keine vollständige Authentifizierung.
 
+## 4.1 Linux-Dienstbetrieb
+
+Wenn Grow OS unter Linux oder auf einem Raspberry Pi dauerhaft läuft, sollte der Dienst nicht als `root` ausgeführt werden. Verwende einen eigenen Service-Nutzer, zum Beispiel `growos`, und gib diesem Nutzer nur Schreibrechte auf den Datenordner wie `/var/lib/grow-os`.
+
+Das `systemd`-Beispiel in [DEPLOYMENT.md](DEPLOYMENT.md) nutzt einen eigenen Nutzer und trennt App-Dateien unter `/opt/grow-os/app` von lokalen Daten unter `/var/lib/grow-os`.
+
 ## 5. Git- und Repo-Sicherheit
 
 Nicht committen:
