@@ -1,6 +1,6 @@
 # Deployment
 
-Diese Anleitung beschreibt den ersten einfachen Release-Weg für Grow Operation System: ein lokales Release-ZIP. Docker, `systemd`, Windows Service und GitHub Release Automation sind bewusst spätere Schritte.
+Diese Anleitung beschreibt den ersten einfachen Release-Weg für Grow Operation System: ein lokales Release-ZIP. Für Linux/Raspberry Pi/Mini-PC gibt es zusätzlich ein einfaches `systemd`-Beispiel. Docker, Windows Service und GitHub Release Automation sind bewusst spätere Schritte.
 
 ## Release-ZIP erstellen
 
@@ -114,12 +114,88 @@ Private Daten und Secrets gehören nicht ins Release:
 
 Weitere Details stehen in [BACKUP_RESTORE.md](BACKUP_RESTORE.md) und [SECURITY.md](SECURITY.md).
 
-## Grenzen von DEPLOY-1
+## Linux/systemd Betrieb
+
+Für dauerhaften Betrieb auf Linux, Raspberry Pi oder Mini-PC kann ein framework-dependent Release als `systemd` Dienst laufen. Das Beispiel liegt unter:
+
+```text
+deploy/systemd/grow-os.service.example
+```
+
+Voraussetzungen auf dem Zielsystem:
+
+- passende .NET Runtime 8
+- Release-ZIP, zum Beispiel `grow-os-0.1.0-linux-x64.zip` oder `grow-os-0.1.0-linux-arm64.zip`
+- eigener Service-Nutzer, zum Beispiel `growos`
+- Datenordner außerhalb der App-Dateien, zum Beispiel `/var/lib/grow-os`
+
+Beispielablauf:
+
+```bash
+sudo useradd --system --home /var/lib/grow-os --shell /usr/sbin/nologin growos
+sudo mkdir -p /opt/grow-os/app /var/lib/grow-os
+sudo chown -R growos:growos /var/lib/grow-os
+```
+
+Release entpacken und die Inhalte des `app`-Ordners nach `/opt/grow-os/app` kopieren. Danach Rechte setzen:
+
+```bash
+sudo chown -R root:root /opt/grow-os
+sudo chmod -R a+rX /opt/grow-os
+sudo chown -R growos:growos /var/lib/grow-os
+```
+
+Service-Datei aus dem Repository nach `/etc/systemd/system/grow-os.service` kopieren. Wenn du nur ein Release-ZIP verwendest, übernimm den Inhalt aus `deploy/systemd/grow-os.service.example` aus dem Projekt-Repository und speichere ihn auf dem Zielsystem als `/etc/systemd/system/grow-os.service`.
+
+```bash
+sudo cp deploy/systemd/grow-os.service.example /etc/systemd/system/grow-os.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now grow-os
+```
+
+Status und Logs prüfen:
+
+```bash
+systemctl status grow-os
+journalctl -u grow-os -f
+```
+
+Die Beispiel-Unit setzt:
+
+- `ASPNETCORE_URLS=http://0.0.0.0:5076`
+- `GROWDIARY_DB_PATH=/var/lib/grow-os/grow-diary.db`
+- `User=growos`
+- `WorkingDirectory=/opt/grow-os/app`
+
+Damit liegen App-Dateien und lokale Daten getrennt. `App_Data` im Release-Ordner wird nicht benötigt, wenn `GROWDIARY_DB_PATH` auf `/var/lib/grow-os/grow-diary.db` zeigt. Prüfe Firewall und Reverse-Proxy/VPN-Setup, bevor du die App aus dem LAN heraus erreichbar machst.
+
+## systemd Update und Backup
+
+Vor einem Update:
+
+1. Dienst stoppen.
+2. `/var/lib/grow-os` sichern.
+3. Neue App-Dateien nach `/opt/grow-os/app` kopieren.
+4. Rechte prüfen.
+5. Dienst starten.
+6. Logs prüfen.
+
+Beispiel:
+
+```bash
+sudo systemctl stop grow-os
+sudo cp -a /var/lib/grow-os "$HOME/grow-os-backup-$(date +%Y%m%d-%H%M%S)"
+sudo systemctl start grow-os
+journalctl -u grow-os -n 100
+```
+
+Details zu Backup und Restore stehen in [BACKUP_RESTORE.md](BACKUP_RESTORE.md). Security-Hinweise zum Remote-Betrieb stehen in [SECURITY.md](SECURITY.md) und [SELFHOSTING.md](SELFHOSTING.md).
+
+## Grenzen von DEPLOY-1/DEPLOY-3
 
 - kein Dockerfile
 - kein `docker-compose.yml`
-- keine `systemd` Unit
 - kein Windows-Service-Setup
 - keine GitHub Release Automation
 
-Diese Themen folgen in späteren Deployment-Tickets.
+Docker, Windows Service und GitHub Release Automation folgen in späteren Deployment-Tickets.
