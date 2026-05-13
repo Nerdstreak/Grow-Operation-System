@@ -91,6 +91,8 @@ Keine `App_Data`-Testdaten, lokalen Datenbanken, Uploads, Snapshots oder Secrets
 
 GitHub Actions führt bei Push und Pull Request Backend-Build, Backend-Tests, Frontend-Install und Frontend-Build aus.
 
+Release-Tags wie `v0.1.0` werden nur durch Maintainer gesetzt. Vor einem Release muss CI grün sein; der Release-Workflow erzeugt anschließend einen Draft/Prerelease zur manuellen Prüfung.
+
 ## 7. Issues und Feature Requests
 
 Bugreport:

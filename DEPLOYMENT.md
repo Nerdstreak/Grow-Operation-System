@@ -272,9 +272,39 @@ Grenzen von DEPLOY-2:
 - kein GitHub Release Workflow für Docker Images
 - kein Docker-Production-Hardening über das einfache Compose-Beispiel hinaus
 
-## Grenzen von DEPLOY-1/DEPLOY-2/DEPLOY-3
+## GitHub Releases
+
+DEPLOY-4 ergänzt einen Tag-basierten GitHub Actions Workflow unter `.github/workflows/release.yml`. Er läuft nicht bei jedem Push, sondern nur bei Versionstags im Format `v*.*.*`, zum Beispiel `v0.1.0`.
+
+Release erstellen:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Der Workflow nutzt `scripts/publish-release.ps1` und erstellt aktuell ein portable framework-dependent ZIP:
+
+```text
+artifacts/releases/grow-os-0.1.0-portable.zip
+```
+
+Das Release wird als Draft und Prerelease angelegt. Maintainer sollen den erzeugten Release prüfen, Release Notes ergänzen und ihn erst danach veröffentlichen.
+
+Wichtig:
+
+- Es werden keine Secrets benötigt.
+- Die App wird im Workflow nicht gestartet.
+- `App_Data`, Datenbanken, Uploads, Snapshots und lokale Secrets sind nicht Teil des ZIPs.
+- Vor einem Update immer lokale Daten sichern. Details stehen in [BACKUP_RESTORE.md](BACKUP_RESTORE.md).
+
+RID-spezifische ZIPs wie `win-x64`, `linux-x64` oder `linux-arm64` können später ergänzt werden, wenn der Publish-Prozess dafür im CI-Kontext separat verifiziert ist. Self-contained Releases sind in DEPLOY-4 bewusst nicht vorgesehen, damit Artefakte klein bleiben.
+
+## Grenzen von DEPLOY-1/DEPLOY-2/DEPLOY-3/DEPLOY-4
 
 - kein Windows-Service-Setup
-- keine GitHub Release Automation
+- kein Docker Registry Push
+- keine self-contained Release-Artefakte
+- keine automatischen Releases ohne Versionstag
 
-Windows Service und GitHub Release Automation folgen in späteren Deployment-Tickets.
+Windows Service, Docker Registry Builds und erweiterte Release-Artefakte folgen in späteren Deployment-Tickets.
