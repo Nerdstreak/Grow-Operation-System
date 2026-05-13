@@ -58,4 +58,5 @@ dotnet test GrowDiary.Web.Tests/GrowDiary.Web.Tests.csproj
 
 - Die aktive UI ist React; das Backend liefert JSON unter `/api/*`.
 - Build-Artefakte der SPA liegen in `GrowDiary.Web/wwwroot`.
-- Es gibt aktuell keine Repo-Skripte unter `scripts/`; alte Verweise darauf sind entfernt.
+- Das Release-ZIP wird ueber `scripts/publish-release.ps1` im Repo-Root erstellt.
+- Deployment-Details stehen in der Root-Dokumentation `DEPLOYMENT.md`.

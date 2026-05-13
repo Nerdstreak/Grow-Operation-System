@@ -35,11 +35,21 @@ Erledigt oder im aktuellen MVP vorhanden:
 - Knowledge-Browser
 - Basic PWA Installability
 - Selfhosting-Dokumentation
+- GitHub Actions CI fuer Build/Test
+- Release-/ZIP-Publish-Skript
+- GitHub Release Workflow fuer Versionstags
+- Dockerfile und `docker-compose.example.yml`
+- `systemd` Beispiel fuer Linux/Raspberry Pi/Mini-PC
+- Deployment-Dokumentation
 
 ## 3. Kurzfristige nächste Schritte
 
 - PWA-2: Service Worker und App-Shell Cache vorsichtig umsetzen.
 - echte Icons und Branding finalisieren.
+- Release-ZIP aus frischem Clone testen.
+- Docker lokal oder in CI vollstaendig verifizieren.
+- Uploads/Fotos aus `wwwroot/uploads` in einen kontrollierten App_Data-/Storage-Pfad verschieben.
+- GitHub Issue Templates ergaenzen.
 - Mobile Flows vertiefen:
   - Messung eintragen
   - SOP-Step abarbeiten
@@ -47,21 +57,21 @@ Erledigt oder im aktuellen MVP vorhanden:
   - Risk bestätigen
 - Dashboard-Modus mit echten Live-Testdaten prüfen.
 - HardwarePage auf Mobile bei Formularen weiter entspannen.
-- CI/GitHub Actions einrichten.
-- Release-/ZIP-Struktur definieren.
 
 ## 4. Mittelfristig
 
-- Docker-Dokumentation und später Docker-Setup.
-- `systemd` Service für Linux/Raspberry Pi.
+- RID-spezifische Release-Artefakte fuer `win-x64`, `linux-x64` und `linux-arm64`.
+- Docker Registry Images oder ein offizieller Image-Build.
 - Windows Service oder klarer Prozessmanager-Ansatz.
 - Backup/Restore UI oder Export.
 - Home Assistant Auto-Detection für RiskEvents.
+- Auth-/Remote-Admin-Konzept fuer sicheren Fernzugriff.
 - SensorTrustScore.
 - bessere Sensor-Calibration-Intervalle aus WearTemplates.
 - Grow-Vergleich und Analyse erweitern.
 - Kamera- und Galerie-Verbesserungen.
 - Community Knowledge Packs.
+- Performance/API-Buendelung fuer Live-, Operations- und Mobile-Ansichten pruefen.
 
 ## 5. Langfristig
 
@@ -70,7 +80,6 @@ Erledigt oder im aktuellen MVP vorhanden:
 - bessere PWA Offline-Erfahrung.
 - optionale AI/Knowledge Assistenz.
 - mehr Grow-Medien außer RDWC/DWC.
-- Docker Compose oder One-click Selfhost.
 - echte Release-Channels.
 
 ## 6. Nicht-Ziele aktuell
