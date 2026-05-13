@@ -135,6 +135,8 @@ Grow OS bringt Basic Installability mit:
 - Manifest
 - Icons
 - mobile Meta-Tags
+- Service Worker für App-Shell und statische Assets
+- Offline-Hinweisseite
 - Startseite `/action`
 
 Installation grob:
@@ -147,7 +149,9 @@ Hinweise:
 
 - Für lokalen Testbetrieb funktionieren Browser unterschiedlich tolerant.
 - Für Remote-Installation ist HTTPS praktisch erforderlich.
-- Es gibt aktuell keinen Service Worker und keine vollständige Offline-Funktion.
+- Es gibt keine vollständige Offline-Funktion. API, Home Assistant Livewerte, Speichern und Uploads benötigen Verbindung zum Grow-OS-Server.
+
+Details stehen in [PWA_INSTALL.md](PWA_INSTALL.md).
 
 ## Update grob
 

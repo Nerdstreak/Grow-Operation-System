@@ -34,6 +34,7 @@ Erledigt oder im aktuellen MVP vorhanden:
 - RiskEvent zu Emergency-SOP
 - Knowledge-Browser
 - Basic PWA Installability
+- PWA-2 Offline-Minimum mit Service Worker, App-Shell Cache und Offline-Hinweis
 - Selfhosting-Dokumentation
 - GitHub Actions CI fuer Build/Test
 - Release-/ZIP-Publish-Skript
@@ -44,7 +45,6 @@ Erledigt oder im aktuellen MVP vorhanden:
 
 ## 3. Kurzfristige nächste Schritte
 
-- PWA-2: Service Worker und App-Shell Cache vorsichtig umsetzen.
 - echte Icons und Branding finalisieren.
 - Release-ZIP aus frischem Clone testen.
 - Docker lokal oder in CI vollstaendig verifizieren.

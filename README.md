@@ -20,7 +20,7 @@ Grow OS ist keine Cloud- oder SaaS-App. Der lokale Betrieb im eigenen Netzwerk s
 - CalibrationEvents
 - RiskEvents mit SOP-Empfehlungen
 - Lesender Knowledge-Browser
-- PWA Basic Installability mit Manifest, Icons und mobilen Meta-Tags
+- PWA Basic Installability mit Manifest, Icons, mobilen Meta-Tags und Offline-Minimum
 
 ## Tech Stack
 
@@ -125,8 +125,12 @@ PWA Basic Installability ist vorbereitet:
 - PWA Icons
 - iOS/Android Meta-Tags
 - Start-URL `/action`
+- Service Worker für App-Shell und statische Assets
+- Offline-Hinweisseite
 
-Es gibt aktuell keinen Service Worker und keine Offline-Strategie. Offline-Minimum und App-Shell-Cache sind für ein späteres Ticket vorgesehen.
+Es gibt keinen vollständigen Offline-Modus. API-Daten, Home Assistant Livewerte, Speichern, Messungen, SOP-Updates, RiskEvents, Uploads und Snapshots werden nicht offline gecacht.
+
+Installationshinweise stehen in [PWA_INSTALL.md](PWA_INSTALL.md).
 
 ## Aktueller Status
 
@@ -138,6 +142,7 @@ Grow OS ist eine MVP/Community Preview mit Fokus auf RDWC/DWC. Soil, Coco und we
 - [SECURITY.md](SECURITY.md)
 - [BACKUP_RESTORE.md](BACKUP_RESTORE.md)
 - [HOME_ASSISTANT.md](HOME_ASSISTANT.md)
+- [PWA_INSTALL.md](PWA_INSTALL.md)
 - [ROADMAP.md](ROADMAP.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [DEPLOYMENT.md](DEPLOYMENT.md)

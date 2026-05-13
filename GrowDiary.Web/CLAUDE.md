@@ -34,7 +34,7 @@ npm run build
 - UX-5: `SettingsPage` bleibt Konfigurationsseite; `HardwarePage` ist in Inventar, Wartung, Kalibrierung und Risiken gegliedert.
 - UX-6: `/action` ist ein Mobile Action Hub mit Statuskopf, priorisierten Action-Cards, schnellen Grow-/Hardware-Links und isolierten Ladefehlern; keine neuen Backend-Endpunkte.
 - UX-7: `/live` ist ein Growraum-Live-Dashboard mit Alarmband, grossen Tent-Live-Karten, kompakten aktiven Grows und einfachem 60-Sekunden-Refresh; keine neuen Backend-Endpunkte.
-- PWA-1: React liefert Manifest, PWA-/iOS-Meta-Tags und Icons fuer Basic Installability; `start_url` ist `/action`, noch kein Service Worker.
+- PWA-2: React liefert Manifest, PWA-/iOS-Meta-Tags, Icons und einen vorsichtigen Service Worker fuer App-Shell/Static-Asset-Cache; `start_url` ist `/action`, API-/Upload-/Runtime-Daten werden nicht offline gecacht.
 - Build-Output wird nach `GrowDiary.Web/wwwroot` geschrieben und vom Backend als SPA gehostet.
 
 ### Layer-Struktur Backend

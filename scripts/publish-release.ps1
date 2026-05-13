@@ -222,6 +222,7 @@ $docFiles = @(
     "SECURITY.md",
     "BACKUP_RESTORE.md",
     "HOME_ASSISTANT.md",
+    "PWA_INSTALL.md",
     "DEPLOYMENT.md"
 )
 
@@ -268,6 +269,7 @@ Docs:
 - SELFHOSTING.md
 - SECURITY.md
 - BACKUP_RESTORE.md
+- PWA_INSTALL.md
 - DEPLOYMENT.md
 "@
 

@@ -18,3 +18,16 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>,
 )
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/service-worker.js')
+      .then((registration) => {
+        console.info('Grow OS service worker registered:', registration.scope)
+      })
+      .catch((error) => {
+        console.warn('Grow OS service worker registration failed:', error)
+      })
+  })
+}
