@@ -29,10 +29,12 @@ Die App hat zwei Modi mit denselben Daten aber verschiedenen Interfaces:
 - **Action-Modus** (Handy): Schnelle Eingabe, Kamera, Spracheingabe, eine Aufgabe pro Screen, für unterwegs
 
 ## Home Assistant
-- Pflicht, nicht optional
-- Onboarding beginnt mit HA-Verbindung
-- App funktioniert bei temporär nicht erreichbarem HA, zeigt aber klar an was live ist und was cached
-- Alarme laufen über HA-Automationen (Telegram, Pushover, Signal etc.)
+- Empfohlene und aktuell primaere Integrationsquelle fuer Sensor- und Statusdaten
+- Fuer reine Dokumentation kann Grow OS technisch auch ohne HA starten, der Hauptnutzen entsteht aber mit HA
+- Live-Daten, Sensorpipeline, LightTransitions und AutoMeasurements sind ohne HA stark eingeschraenkt
+- Onboarding fuehrt frueh zur HA-Verbindung
+- App funktioniert bei temporaer nicht erreichbarem HA, zeigt aber klar an was live ist und was cached
+- Alarme laufen ueber HA-Automationen (Telegram, Pushover, Signal etc.)
 - Die App definiert Schwellenwerte, HA liefert die Benachrichtigung
 
 ## Medium-Strategie
