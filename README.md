@@ -138,6 +138,8 @@ Grow OS ist eine MVP/Community Preview mit Fokus auf RDWC/DWC. Soil, Coco und we
 - [SECURITY.md](SECURITY.md)
 - [BACKUP_RESTORE.md](BACKUP_RESTORE.md)
 - [HOME_ASSISTANT.md](HOME_ASSISTANT.md)
+- [ROADMAP.md](ROADMAP.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Installation
 
