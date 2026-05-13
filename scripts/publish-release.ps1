@@ -100,6 +100,26 @@ function Remove-StaleViteEntryAssets {
         Remove-Item -Force
 }
 
+function Restore-WebIndexHtml {
+    param(
+        [string]$IndexPath,
+        [string]$BackupPath,
+        [bool]$ExistedBefore
+    )
+
+    if ($ExistedBefore) {
+        $indexParent = Split-Path -Parent $IndexPath
+        New-Item -ItemType Directory -Path $indexParent -Force | Out-Null
+        Copy-Item -LiteralPath $BackupPath -Destination $IndexPath -Force
+    } elseif (Test-Path -LiteralPath $IndexPath) {
+        Remove-Item -LiteralPath $IndexPath -Force
+    }
+
+    if (Test-Path -LiteralPath $BackupPath) {
+        Remove-Item -LiteralPath $BackupPath -Force
+    }
+}
+
 function Invoke-Checked {
     param(
         [string]$FilePath,
@@ -116,6 +136,13 @@ function Invoke-Checked {
 $scriptRoot = Split-Path -Parent $PSCommandPath
 $repoRoot = Resolve-Path (Join-Path $scriptRoot "..")
 $repoRootPath = $repoRoot.Path
+$webIndexPath = Join-Path $repoRootPath "GrowDiary.Web/wwwroot/index.html"
+$webIndexBackupPath = Join-Path ([System.IO.Path]::GetTempPath()) "grow-os-wwwroot-index-$([System.Guid]::NewGuid().ToString('N')).html"
+$webIndexExistedBefore = Test-Path -LiteralPath $webIndexPath -PathType Leaf
+
+if ($webIndexExistedBefore) {
+    Copy-Item -LiteralPath $webIndexPath -Destination $webIndexBackupPath -Force
+}
 
 $dotnet = Resolve-Tool @("dotnet")
 $npm = Resolve-Tool @("npm.cmd", "npm")
@@ -141,6 +168,7 @@ $releaseDir = Join-Path $outputRoot $releaseName
 $appDir = Join-Path $releaseDir "app"
 $zipPath = Join-Path $outputRoot "$releaseName.zip"
 
+try {
 Write-Host "Repo root: $repoRootPath"
 Write-Host "Release:   $releaseName"
 Write-Host "Output:    $outputRoot"
@@ -250,3 +278,7 @@ Compress-Archive -Path (Join-Path $releaseDir "*") -DestinationPath $zipPath -Fo
 
 Write-Host "Release directory: $releaseDir"
 Write-Host "Release ZIP:       $zipPath"
+}
+finally {
+    Restore-WebIndexHtml -IndexPath $webIndexPath -BackupPath $webIndexBackupPath -ExistedBefore $webIndexExistedBefore
+}
