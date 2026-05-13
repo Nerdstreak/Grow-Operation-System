@@ -6,8 +6,12 @@ GrowDiary.Web.Tests/obj/
 .appdata/
 .localappdata/
 GrowDiary.Web/App_Data/DataProtectionKeys/
+GrowDiary.Web/App_Data/snapshots/
+GrowDiary.Web/App_Data/uploads/
+GrowDiary.Web/App_Data/*.db
 GrowDiary.Web/App_Data/*.db-shm
 GrowDiary.Web/App_Data/*.db-wal
+GrowDiary.Web/App_Data/ha-config.json
 run.*.log
 RDWC Wissen/
 GrowDiary.Web/wwwroot/docs/
