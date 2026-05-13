@@ -89,6 +89,8 @@ dotnet run --project GrowDiary.Web/GrowDiary.Web.csproj
 
 Details zu LAN-Betrieb, PWA im Heimnetz und Remote-Zugriff stehen in [SELFHOSTING.md](SELFHOSTING.md).
 
+Security-Hinweise stehen in [SECURITY.md](SECURITY.md).
+
 ## Windows-Hinweise
 
 - PowerShell kann lokale npm-Skripte blockieren. Falls `npm run build` wegen `npm.ps1` scheitert, nutze:
@@ -188,4 +190,4 @@ GrowDiary.Web/App_Data
 
 Darin liegen lokale Daten wie SQLite-Datenbank, Home Assistant Konfiguration, Knowledge-Daten und Runtime-Dateien. Tokens und lokale Daten sollten privat bleiben und nicht committed werden.
 
-Eine vollständige Backup-/Restore-Anleitung folgt später in `BACKUP_RESTORE.md`.
+Die Backup-/Restore-Anleitung steht in [BACKUP_RESTORE.md](BACKUP_RESTORE.md).
