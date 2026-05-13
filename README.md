@@ -101,7 +101,7 @@ Wichtig:
 - `App_Data` sollte nicht committed werden.
 - Sichere vor Updates mindestens `GrowDiary.Web/App_Data`.
 - Halte Home Assistant Tokens privat.
-- Details sollen später in `BACKUP_RESTORE.md` und `SECURITY.md` ergänzt werden.
+- Details: [BACKUP_RESTORE.md](BACKUP_RESTORE.md) und [SECURITY.md](SECURITY.md).
 
 ## Sicherheit und Remote-Zugriff
 
@@ -131,6 +131,12 @@ Es gibt aktuell keinen Service Worker und keine Offline-Strategie. Offline-Minim
 ## Aktueller Status
 
 Grow OS ist eine MVP/Community Preview mit Fokus auf RDWC/DWC. Soil, Coco und weitere Medien sind später geplant, sobald die jeweiligen Workflows und Expertendaten sauber modelliert sind.
+
+## Weitere Dokumente
+
+- [SELFHOSTING.md](SELFHOSTING.md)
+- [SECURITY.md](SECURITY.md)
+- [BACKUP_RESTORE.md](BACKUP_RESTORE.md)
 
 ## Installation
 
