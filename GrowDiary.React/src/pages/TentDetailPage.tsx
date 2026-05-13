@@ -195,7 +195,7 @@ function TentDetailPage() {
     } catch (caught) {
       setDecisionErrors((current) => ({
         ...current,
-        [plant.id]: caught instanceof ApiRequestError ? caught.message : 'Quarantaene-Entscheidung konnte nicht gespeichert werden.',
+        [plant.id]: caught instanceof ApiRequestError ? caught.message : 'Quarantäne-Entscheidung konnte nicht gespeichert werden.',
       }))
     } finally {
       setSavingDecisionPlantId(null)
@@ -341,7 +341,7 @@ function TentDetailPage() {
                                           value={(cloneDrafts[plant.id] ?? emptyCloneDraft).targetSetupId}
                                           onChange={(event) => updateCloneDraft(plant.id, { targetSetupId: event.target.value })}
                                         >
-                                          <option value="">Ohne Quarantaene-Ziel</option>
+                                          <option value="">Ohne Quarantäne-Ziel</option>
                                           {quarantineSetups.map((target) => (
                                             <option key={target.id} value={target.id}>{target.name}</option>
                                           ))}
@@ -356,7 +356,7 @@ function TentDetailPage() {
                                         onChange={(event) => updateCloneDraft(plant.id, { notes: event.target.value })}
                                         placeholder="Notiz optional"
                                       />
-                                      {quarantineSetups.length === 0 && <div className="row-muted">Kein aktives Quarantaene-Setup vorhanden.</div>}
+                                      {quarantineSetups.length === 0 && <div className="row-muted">Kein aktives Quarantäne-Setup vorhanden.</div>}
                                       {cloneErrors[plant.id] && <div className="row-muted" style={{ color: '#b42318' }}>{cloneErrors[plant.id]}</div>}
                                     </form>
                                   )}

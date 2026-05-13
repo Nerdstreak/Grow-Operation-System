@@ -495,7 +495,7 @@ function HardwarePage() {
       const recommendations = await apiFetch<RiskEventSopRecommendationDto[]>(`/api/risk-events/${saved.id}/sop-recommendations`)
       setRiskSopRecommendations((current) => ({ ...current, [saved.id]: recommendations }))
     } catch (caught) {
-      setRiskError(formatApiError(caught, 'RiskEvent konnte nicht bestaetigt werden.'))
+      setRiskError(formatApiError(caught, 'RiskEvent konnte nicht bestätigt werden.'))
     } finally {
       setSaving(null)
     }
@@ -518,7 +518,7 @@ function HardwarePage() {
         return next
       })
     } catch (caught) {
-      setRiskError(formatApiError(caught, 'RiskEvent konnte nicht geloest werden.'))
+      setRiskError(formatApiError(caught, 'RiskEvent konnte nicht gelöst werden.'))
     } finally {
       setSaving(null)
     }
@@ -696,7 +696,7 @@ function HardwarePage() {
               </label>
               <label className="field">
                 <span>Name</span>
-                <input value={hardwareDraft.name} onChange={(event) => setHardwareDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Backend kann Vorlage uebernehmen" />
+                <input value={hardwareDraft.name} onChange={(event) => setHardwareDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Backend kann Vorlage übernehmen" />
               </label>
               <label className="field">
                 <span>Category</span>

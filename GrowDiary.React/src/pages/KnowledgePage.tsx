@@ -121,7 +121,7 @@ function KnowledgePage() {
           <div className="grow-hero-sub">Read-only Catalogs für Treatments, SOPs, Symptome, Wear, Programme, Setpoints und Pathogene.</div>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+        <div className="section-tabs knowledge-tabs" style={{ marginBottom: 14 }}>
           {categories.map((category) => (
             <button
               key={category.key}
@@ -221,7 +221,7 @@ function SymptomCard({ item }: { item: KnowledgeRecord }) {
     <BaseCard item={item} subtitle={getString(item, 'category')}>
       <FieldList label="Treatments" values={getStringArray(item, 'suggestedTreatmentIds')} />
       <FieldList label="SOPs" values={getStringArray(item, 'suggestedSopIds')} />
-      <FieldList label="Moegliche Ursachen" values={getStringArray(item, 'possibleCauses')} />
+      <FieldList label="Mögliche Ursachen" values={getStringArray(item, 'possibleCauses')} />
       <FieldList label="Checks" values={getStringArray(item, 'diagnosticChecks')} />
     </BaseCard>
   )

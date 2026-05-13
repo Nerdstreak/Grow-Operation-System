@@ -105,7 +105,7 @@ function AnalysisPage() {
         {loading ? (
           <div className="empty-hint">Lade Analyse...</div>
         ) : !leftGrow && !rightGrow ? (
-          <div className="empty-hint">Waehle zwei Grows zum Vergleichen.</div>
+          <div className="empty-hint">Wähle zwei Grows zum Vergleichen.</div>
         ) : (
           <div className="data-table">
             <div className="data-table-header" style={{ gridTemplateColumns: '1.2fr 1fr 1fr' }}>
