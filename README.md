@@ -109,6 +109,8 @@ Grow OS ist zuerst für lokalen Selfhosting-Betrieb gedacht. Es ist keine öffen
 
 Setze die App nicht ungeschützt ins Internet. Für Fernzugriff ist ein privater Zugriff über Tailscale oder VPN die bevorzugte Richtung. Cloudflare Tunnel, eigene Domain oder Reverse Proxy können später sinnvoll sein, sollten aber nur mit HTTPS und zusätzlichem Schutz/Auth verwendet werden.
 
+Details zu LAN-Betrieb, PWA im Heimnetz und Remote-Optionen stehen in [SELFHOSTING.md](SELFHOSTING.md).
+
 Aktuell nicht versprechen:
 
 - Es gibt keine vollständige Login-/User-Authentifizierung.

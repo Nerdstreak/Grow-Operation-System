@@ -87,6 +87,8 @@ dotnet run --project GrowDiary.Web/GrowDiary.Web.csproj
 - `http://localhost:5076`
 - oder im Heimnetz `http://<server-ip>:5076`
 
+Details zu LAN-Betrieb, PWA im Heimnetz und Remote-Zugriff stehen in [SELFHOSTING.md](SELFHOSTING.md).
+
 ## Windows-Hinweise
 
 - PowerShell kann lokale npm-Skripte blockieren. Falls `npm run build` wegen `npm.ps1` scheitert, nutze:
