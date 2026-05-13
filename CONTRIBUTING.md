@@ -89,6 +89,8 @@ npm run build
 
 Keine `App_Data`-Testdaten, lokalen Datenbanken, Uploads, Snapshots oder Secrets committen.
 
+GitHub Actions führt bei Push und Pull Request Backend-Build, Backend-Tests, Frontend-Install und Frontend-Build aus.
+
 ## 7. Issues und Feature Requests
 
 Bugreport:
