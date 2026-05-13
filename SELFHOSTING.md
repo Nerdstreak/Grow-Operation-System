@@ -53,6 +53,8 @@ Für mobile Nutzung im Heimnetz:
 
 Hinweis: Für volle PWA-Installierbarkeit ist außerhalb von `localhost` in der Praxis HTTPS wichtig. Im reinen Heimnetz verhalten sich Browser je nach Plattform unterschiedlich streng.
 
+PWA-Installation und Offline-Minimum sind in [PWA_INSTALL.md](PWA_INSTALL.md) beschrieben. API, Home Assistant Livewerte, Speichern und Uploads funktionieren nicht offline.
+
 ## 5. Remote-Zugriff Optionen
 
 ### Option A: Tailscale oder VPN
@@ -131,7 +133,7 @@ Ein einfacher Docker-Compose-Betrieb ist ebenfalls in [DEPLOYMENT.md](DEPLOYMENT
 
 - Kein offizieller Windows Service.
 - Keine vollständige eingebaute Login-/User-Authentifizierung.
-- Kein Service Worker und kein Offline-Modus.
+- Kein vollständiger Offline-Modus; nur App-Shell/Offline-Hinweis werden vorsichtig gecacht.
 - `systemd` ist als Beispiel dokumentiert, aber nicht automatisch installiert.
 - Docker ist als einfaches Compose-Beispiel dokumentiert, aber es gibt noch kein offizielles Registry Image.
 
@@ -142,4 +144,5 @@ Ein einfacher Docker-Compose-Betrieb ist ebenfalls in [DEPLOYMENT.md](DEPLOYMENT
 - [SECURITY.md](SECURITY.md)
 - [BACKUP_RESTORE.md](BACKUP_RESTORE.md)
 - [HOME_ASSISTANT.md](HOME_ASSISTANT.md)
+- [PWA_INSTALL.md](PWA_INSTALL.md)
 - [DEPLOYMENT.md](DEPLOYMENT.md)

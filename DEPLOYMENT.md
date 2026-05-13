@@ -89,6 +89,8 @@ Standard-URLs:
 - `http://localhost:5076`
 - `http://<server-ip>:5076`
 
+PWA-Installation und Offline-Minimum sind in [PWA_INSTALL.md](PWA_INSTALL.md) beschrieben.
+
 ## Daten und Updates
 
 `App_Data` ist nicht im ZIP enthalten. Die App legt lokale Daten beim Start an.
