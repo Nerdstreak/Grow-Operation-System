@@ -14,5 +14,8 @@ GrowDiary.Web/wwwroot/docs/
 GrowDiary.Web/wwwroot/
 .claude/settings.local.json
 docs/superpowers/plans/
+artifacts/
+publish/
+release/
 GrowDiary.Web/wwwroot/index.html
 GrowDiary.Web/wwwroot/assets/

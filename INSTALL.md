@@ -193,3 +193,7 @@ GrowDiary.Web/App_Data
 Darin liegen lokale Daten wie SQLite-Datenbank, Home Assistant Konfiguration, Knowledge-Daten und Runtime-Dateien. Tokens und lokale Daten sollten privat bleiben und nicht committed werden.
 
 Die Backup-/Restore-Anleitung steht in [BACKUP_RESTORE.md](BACKUP_RESTORE.md).
+
+## Release-ZIP
+
+Ein lokales Release-ZIP kann mit `scripts/publish-release.ps1` erstellt werden. Details stehen in [DEPLOYMENT.md](DEPLOYMENT.md).
