@@ -6,6 +6,10 @@ namespace GrowDiary.Web.Infrastructure;
 
 public sealed class DatabaseInitializer
 {
+    public const string CurrentSchemaVersion = "backend-core.v0.6-candidate";
+    public const string CurrentSchemaAppSettingKey = "backend:schemaVersion";
+    public const string LastMigrationUtcAppSettingKey = "backend:lastMigrationUtc";
+
     private readonly AppPaths _paths;
     private readonly ILogger<DatabaseInitializer> _logger;
 
@@ -769,6 +773,27 @@ public sealed class DatabaseInitializer
         EnsureColumn(connection, "SopStepInstances", "DueAtUtc",               "TEXT NULL");
         EnsureColumn(connection, "SopStepInstances", "AvailableAtUtc",         "TEXT NULL");
         EnsureColumn(connection, "SopStepInstances", "ReminderTaskId",         "INTEGER NULL");
+
+        RecordSchemaVersion(connection);
+    }
+
+    private static void RecordSchemaVersion(SqliteConnection connection)
+    {
+        UpsertAppSetting(connection, CurrentSchemaAppSettingKey, CurrentSchemaVersion);
+        UpsertAppSetting(connection, LastMigrationUtcAppSettingKey, DateTime.UtcNow.ToString("O"));
+    }
+
+    private static void UpsertAppSetting(SqliteConnection connection, string key, string value)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO AppSettings (Key, Value)
+            VALUES ($key, $value)
+            ON CONFLICT(Key) DO UPDATE SET Value = excluded.Value;
+        """;
+        command.Parameters.AddWithValue("$key", key);
+        command.Parameters.AddWithValue("$value", value);
+        command.ExecuteNonQuery();
     }
 
     private void SeedDefaults()
