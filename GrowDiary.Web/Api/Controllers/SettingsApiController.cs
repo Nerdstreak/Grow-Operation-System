@@ -41,6 +41,11 @@ public sealed class SettingsApiController : ApiControllerBase
         }
 
         var settings = request.ToModel();
+        if (string.Equals(request.AccessToken, "********", StringComparison.Ordinal))
+        {
+            settings.AccessToken = _repository.GetHomeAssistantSettings().AccessToken;
+        }
+
         _repository.SaveHomeAssistantSettings(settings);
         return Ok(_repository.GetHomeAssistantSettings().ToDto());
     }

@@ -410,6 +410,19 @@ public enum AutoMeasurementRunStatus
     Failed
 }
 
+public enum AddbackLogKind
+{
+    Addback,
+    TopOff,
+    Correction
+}
+
+public enum ChangeoutKind
+{
+    Partial,
+    Full
+}
+
 public enum LightState
 {
     Unknown,

@@ -577,7 +577,51 @@ public sealed class DatabaseInitializer
                 UpdatedAtUtc TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS AddbackLogs (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                GrowId INTEGER NOT NULL,
+                HydroSetupId INTEGER NULL,
+                Kind TEXT NOT NULL DEFAULT 'Addback',
+                PerformedAtUtc TEXT NOT NULL,
+                ReservoirLiters REAL NULL,
+                EcBefore REAL NULL,
+                EcTarget REAL NULL,
+                EcStock REAL NULL,
+                EcAfter REAL NULL,
+                PhBefore REAL NULL,
+                PhAfter REAL NULL,
+                LitersAdded REAL NULL,
+                NewReservoirVolumeLiters REAL NULL,
+                UsedHydroSetupVolume INTEGER NOT NULL DEFAULT 0,
+                Notes TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (GrowId) REFERENCES Grows (Id) ON DELETE CASCADE,
+                FOREIGN KEY (HydroSetupId) REFERENCES GrowSystems (Id) ON DELETE SET NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS ChangeoutEntries (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                GrowId INTEGER NOT NULL,
+                HydroSetupId INTEGER NULL,
+                Kind TEXT NOT NULL DEFAULT 'Partial',
+                PerformedAtUtc TEXT NOT NULL,
+                VolumeChangedLiters REAL NULL,
+                PercentChanged REAL NULL,
+                EcBefore REAL NULL,
+                EcAfter REAL NULL,
+                PhBefore REAL NULL,
+                PhAfter REAL NULL,
+                Notes TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (GrowId) REFERENCES Grows (Id) ON DELETE CASCADE,
+                FOREIGN KEY (HydroSetupId) REFERENCES GrowSystems (Id) ON DELETE SET NULL
+            );
+
             CREATE INDEX IF NOT EXISTS IX_Measurements_GrowId_TakenAt ON Measurements(GrowId, TakenAt DESC);
+            CREATE INDEX IF NOT EXISTS IX_AddbackLogs_GrowId_PerformedAt ON AddbackLogs(GrowId, PerformedAtUtc DESC);
+            CREATE INDEX IF NOT EXISTS IX_AddbackLogs_HydroSetupId ON AddbackLogs(HydroSetupId);
+            CREATE INDEX IF NOT EXISTS IX_ChangeoutEntries_GrowId_PerformedAt ON ChangeoutEntries(GrowId, PerformedAtUtc DESC);
+            CREATE INDEX IF NOT EXISTS IX_ChangeoutEntries_HydroSetupId ON ChangeoutEntries(HydroSetupId);
             CREATE INDEX IF NOT EXISTS IX_Photos_GrowId_TakenAt ON Photos(GrowId, TakenAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_Setups_TentId_Status ON Setups(TentId, Status);
             CREATE INDEX IF NOT EXISTS IX_PlantInstances_SetupId ON PlantInstances(SetupId);
