@@ -1,3 +1,4 @@
+using System.Globalization;
 using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Api.Mapping;
 using GrowDiary.Web.Infrastructure;
@@ -114,12 +115,17 @@ public sealed class GrowsApiController : ApiControllerBase
             return ValidationError();
         }
 
-        if (!ValidateSetupAssignment(grow, nameof(request.SetupId)))
+        if (!ValidateHydroStyle(grow.HydroStyle))
         {
             return ValidationError();
         }
 
-        if (!ValidateHydroStyle(grow.HydroStyle))
+        if (!ValidateHydroSetupAssignment(grow, nameof(request.SystemId), requireHydroSetup: true))
+        {
+            return ValidationError();
+        }
+
+        if (!ValidateSetupAssignment(grow, nameof(request.SetupId)))
         {
             return ValidationError();
         }
@@ -142,7 +148,7 @@ public sealed class GrowsApiController : ApiControllerBase
             GrowId = growId,
             EntityType = "Grow",
             Action = "Grow angelegt",
-            Summary = $"Setup '{request.Name}' wurde erstellt{(request.TemplateId.HasValue ? $" auf Basis des Templates #{request.TemplateId}" : string.Empty)}."
+            Summary = $"Grow '{request.Name}' wurde erstellt{(request.TemplateId.HasValue ? $" auf Basis des Templates #{request.TemplateId}" : string.Empty)}."
         });
 
         return CreatedAtAction(nameof(Detail), new { id = growId }, _repository.GetGrow(growId)!.ToDetailDto());
@@ -176,12 +182,22 @@ public sealed class GrowsApiController : ApiControllerBase
             return ValidationError();
         }
 
-        if (!ValidateSetupAssignment(grow, nameof(request.SetupId)))
+        if (!ValidateHydroStyle(grow.HydroStyle))
         {
             return ValidationError();
         }
 
-        if (!ValidateHydroStyle(grow.HydroStyle))
+        if (!grow.SystemId.HasValue && existing.SystemId.HasValue)
+        {
+            grow.SystemId = existing.SystemId;
+        }
+
+        if (!ValidateHydroSetupAssignment(grow, nameof(request.SystemId), requireHydroSetup: !IsLegacyGrowWithoutHydroSetup(existing)))
+        {
+            return ValidationError();
+        }
+
+        if (!ValidateSetupAssignment(grow, nameof(request.SetupId)))
         {
             return ValidationError();
         }
@@ -194,8 +210,8 @@ public sealed class GrowsApiController : ApiControllerBase
             GrowId = id,
             EntityType = "Grow",
             EntityId = id,
-            Action = "Setup geaendert",
-            Summary = $"Setup von '{grow.Name}' aktualisiert. Status: {grow.Status}, Medium: {grow.Profile.Label}."
+            Action = "Grow geaendert",
+            Summary = $"Grow '{grow.Name}' aktualisiert. Status: {grow.Status}, SystemId: {(grow.SystemId.HasValue ? grow.SystemId.Value.ToString(CultureInfo.InvariantCulture) : "Legacy")}."
         });
 
         return Ok(_repository.GetGrow(id)!.ToDetailDto());
@@ -223,6 +239,63 @@ public sealed class GrowsApiController : ApiControllerBase
         });
 
         return NoContent();
+    }
+
+    private bool ValidateHydroSetupAssignment(GrowRun grow, string fieldName, bool requireHydroSetup)
+    {
+        if (!grow.SystemId.HasValue)
+        {
+            if (requireHydroSetup)
+            {
+                ModelState.AddModelError(fieldName, "Neue Grows brauchen ein DWC/RDWC-Hydro-Setup.");
+                return false;
+            }
+
+            return true;
+        }
+
+        var hydroSetup = _repository.GetHydroSetup(grow.SystemId.Value);
+        if (hydroSetup is null)
+        {
+            ModelState.AddModelError(fieldName, $"Hydro-Setup mit Id {grow.SystemId.Value} existiert nicht.");
+            return false;
+        }
+
+        if (hydroSetup.Status == HydroSetupStatus.Archived)
+        {
+            ModelState.AddModelError(fieldName, "Archivierte Hydro-Setups koennen keinem neuen oder aktiven Grow zugeordnet werden.");
+            return false;
+        }
+
+        if (!hydroSetup.TentId.HasValue)
+        {
+            ModelState.AddModelError(fieldName, "Das Hydro-Setup ist keinem Zelt zugeordnet.");
+            return false;
+        }
+
+        if (grow.TentId.HasValue && grow.TentId.Value != hydroSetup.TentId.Value)
+        {
+            ModelState.AddModelError(fieldName, "Das Hydro-Setup gehoert zu einem anderen Zelt als der Grow.");
+            return false;
+        }
+
+        if (!Enum.TryParse<HydroStyle>(hydroSetup.HydroStyle, out var hydroStyle) || hydroStyle is not (HydroStyle.DWC or HydroStyle.RDWC))
+        {
+            ModelState.AddModelError(fieldName, "Das Hydro-Setup muss DWC oder RDWC sein.");
+            return false;
+        }
+
+        grow.TentId = hydroSetup.TentId;
+        grow.HydroStyle = hydroStyle;
+        grow.MediumType = MediumType.Hydro;
+        grow.FeedingStyle = FeedingStyle.None;
+        grow.IrrigationType = IrrigationType.ActiveHydro;
+        grow.MediumDetail = hydroStyle.ToString();
+        grow.HasChiller = hydroSetup.HasChiller;
+        grow.ContainerSize = FormatPotSize(hydroSetup);
+        grow.ReservoirSize = FormatReservoirSize(hydroSetup);
+
+        return true;
     }
 
     private bool ValidateSetupAssignment(GrowRun grow, string fieldName)
@@ -277,4 +350,48 @@ public sealed class GrowsApiController : ApiControllerBase
         ModelState.AddModelError(nameof(GrowUpsertRequest.HydroStyle), "Grow OS unterstuetzt neue Grows aktuell nur mit DWC oder RDWC.");
         return false;
     }
+
+    private static bool IsLegacyGrowWithoutHydroSetup(GrowRun existing)
+        => !existing.SystemId.HasValue;
+
+    private static string? FormatPotSize(GrowSystem hydroSetup)
+    {
+        if (hydroSetup.PotSizeLiters is > 0 && hydroSetup.PotCount is > 0)
+        {
+            return $"{hydroSetup.PotCount.Value.ToString(CultureInfo.InvariantCulture)} x {FormatLiters(hydroSetup.PotSizeLiters.Value)} L";
+        }
+
+        if (hydroSetup.PotSizeLiters is > 0)
+        {
+            return $"{FormatLiters(hydroSetup.PotSizeLiters.Value)} L";
+        }
+
+        return null;
+    }
+
+    private static string? FormatReservoirSize(GrowSystem hydroSetup)
+    {
+        var totalVolume = CalculateTotalVolume(hydroSetup);
+        if (totalVolume is > 0)
+        {
+            return $"{FormatLiters(totalVolume.Value)} L Gesamtvolumen";
+        }
+
+        if (hydroSetup.ReservoirLiters is > 0)
+        {
+            return $"{FormatLiters(hydroSetup.ReservoirLiters.Value)} L Tank";
+        }
+
+        return null;
+    }
+
+    private static double? CalculateTotalVolume(GrowSystem hydroSetup)
+    {
+        var potVolume = hydroSetup.PotCount.GetValueOrDefault() * hydroSetup.PotSizeLiters.GetValueOrDefault();
+        var total = potVolume + hydroSetup.ReservoirLiters.GetValueOrDefault();
+        return total > 0 ? total : null;
+    }
+
+    private static string FormatLiters(double value)
+        => value.ToString("0.##", CultureInfo.InvariantCulture);
 }
