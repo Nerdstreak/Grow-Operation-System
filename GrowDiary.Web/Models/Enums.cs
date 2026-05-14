@@ -299,7 +299,8 @@ public enum SetupType
 {
     Production,
     Mother,
-    Quarantine
+    Quarantine,
+    Propagation
 }
 
 public enum SetupStatus

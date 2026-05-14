@@ -1,5 +1,15 @@
 namespace GrowDiary.Web.Api.Contracts;
 
+public sealed class CreateTentRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string Kind { get; set; } = "Grow Tent";
+    public string? TentType { get; set; }
+    public string? Notes { get; set; }
+    public int DisplayOrder { get; set; } = 99;
+    public string AccentColor { get; set; } = "#69b578";
+}
+
 public sealed class UpdateTentRequest
 {
     public string Name { get; set; } = string.Empty;

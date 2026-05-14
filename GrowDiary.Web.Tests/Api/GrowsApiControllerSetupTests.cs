@@ -70,6 +70,58 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
         Assert.Equal(setup.Id, _growRepository.GetGrow(dto.Id)!.SetupId);
     }
 
+    [Theory]
+    [InlineData(HydroStyle.DWC)]
+    [InlineData(HydroStyle.RDWC)]
+    public void Create_WithDwcOrRdwcHydroStyle_IsAccepted(HydroStyle hydroStyle)
+    {
+        var request = NewGrowRequest($"{hydroStyle} Grow");
+        request.HydroStyle = hydroStyle;
+
+        var result = _controller.Create(request);
+
+        var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+        var dto = Assert.IsType<GrowDetailDto>(created.Value);
+        Assert.Equal(hydroStyle, dto.HydroStyle);
+    }
+
+    [Theory]
+    [InlineData(HydroStyle.NFT)]
+    [InlineData(HydroStyle.Aeroponic)]
+    [InlineData(HydroStyle.Other)]
+    [InlineData(HydroStyle.None)]
+    public void Create_WithNonDwcHydroStyle_IsRejected(HydroStyle hydroStyle)
+    {
+        var request = NewGrowRequest($"{hydroStyle} Grow");
+        request.HydroStyle = hydroStyle;
+
+        var result = _controller.Create(request);
+
+        AssertHydroStyleValidationError(result.Result);
+    }
+
+    [Theory]
+    [InlineData(HydroStyle.NFT)]
+    [InlineData(HydroStyle.Aeroponic)]
+    [InlineData(HydroStyle.Other)]
+    [InlineData(HydroStyle.None)]
+    public void Update_WithNonDwcHydroStyle_IsRejected(HydroStyle hydroStyle)
+    {
+        var growId = _growRepository.CreateGrow(new GrowRun
+        {
+            Name = "Original",
+            StartDate = new DateTime(2026, 1, 1),
+            Status = GrowStatus.Planning,
+            HydroStyle = HydroStyle.RDWC
+        });
+        var request = NewGrowRequest("Updated");
+        request.HydroStyle = hydroStyle;
+
+        var result = _controller.Update(growId, request);
+
+        AssertHydroStyleValidationError(result.Result);
+    }
+
     [Fact]
     public void Create_WithMotherSetup_IsRejected()
     {
@@ -274,5 +326,13 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
         var error = Assert.IsType<ApiError>(badRequest.Value);
         Assert.Equal("validation_failed", error.Code);
         Assert.Contains(nameof(GrowUpsertRequest.SetupId), error.FieldErrors!.Keys);
+    }
+
+    private static void AssertHydroStyleValidationError(ActionResult? result)
+    {
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        var error = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Equal("validation_failed", error.Code);
+        Assert.Contains(nameof(GrowUpsertRequest.HydroStyle), error.FieldErrors!.Keys);
     }
 }

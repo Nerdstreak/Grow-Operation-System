@@ -195,17 +195,40 @@ public sealed class GrowRepository
     }
 
     public Tent CreateTent(string name)
+        => CreateTent(new Tent { Name = name });
+
+    public Tent CreateTent(Tent tent)
     {
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO Tents (Name, Kind, Notes, DisplayOrder, AccentColor, CreatedAtUtc, UpdatedAtUtc)
-            VALUES ($name, 'Grow Tent', NULL, 99, '#69b578', datetime('now'), datetime('now'));
+            INSERT INTO Tents (
+                Name, Kind, TentType, Notes, DisplayOrder, AccentColor,
+                WidthCm, DepthCm, TentHeightCm, LightType, LightWatt,
+                LightController, LightControllerEntityId, ExhaustFanCount, ExhaustM3h,
+                CirculationFanCount, HvacController, HvacControllerEntityId,
+                Co2Available, CameraEntityId, CreatedAtUtc, UpdatedAtUtc
+            )
+            VALUES (
+                $name, $kind, $tentType, $notes, $displayOrder, $accentColor,
+                $widthCm, $depthCm, $tentHeightCm, $lightType, $lightWatt,
+                $lightController, $lightControllerEntityId, $exhaustFanCount, $exhaustM3h,
+                $circulationFanCount, $hvacController, $hvacControllerEntityId,
+                $co2Available, $cameraEntityId, datetime('now'), datetime('now')
+            );
             SELECT last_insert_rowid();
         """;
-        command.Parameters.AddWithValue("$name", name);
+        if (string.IsNullOrWhiteSpace(tent.Name))
+        {
+            throw new InvalidOperationException("Tent name must not be empty.");
+        }
+
+        tent.Name = tent.Name.Trim();
+        tent.Kind = string.IsNullOrWhiteSpace(tent.Kind) ? "Grow Tent" : tent.Kind.Trim();
+        tent.AccentColor = string.IsNullOrWhiteSpace(tent.AccentColor) ? "#69b578" : tent.AccentColor.Trim();
+        AddTentParameters(command, tent);
         var id = Convert.ToInt32((long)(command.ExecuteScalar() ?? 0L));
-        return new Tent { Id = id, Name = name };
+        return GetTent(id) ?? new Tent { Id = id, Name = tent.Name, Kind = tent.Kind, TentType = tent.TentType };
     }
 
     public List<TentSensor> GetTentSensors(int tentId)

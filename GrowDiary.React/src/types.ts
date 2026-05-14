@@ -7,6 +7,7 @@ export type SopInstanceStatus = 'Active' | 'Completed' | 'Cancelled'
 export type SopStepInstanceStatus = 'Pending' | 'InProgress' | 'Done' | 'Skipped'
 export type SopStartSource = 'Manual' | 'Recommendation' | 'System'
 export type HydroStyle = 'None' | 'DWC' | 'RDWC' | 'NFT' | 'Aeroponic' | 'Other'
+export type SelectableHydroStyle = 'DWC' | 'RDWC'
 export type GrowEnvironment = 'Indoor' | 'Outdoor' | 'Greenhouse'
 export type SeedType = 'Feminized' | 'Autoflower' | 'Regular'
 export type StartMaterial = 'Seed' | 'Clone'
@@ -16,7 +17,7 @@ export type GrowEntryPoint = 'Germination' | 'Seedling' | 'Veg' | 'Flower' | 'Fl
 export type GerminationMethod = 'PaperTowel' | 'Rockwool' | 'RapidRooter' | 'DirectInSystem'
 export type PropagationMedium = 'Rockwool' | 'Hydroton' | 'RapidRooter' | 'Neoprene'
 export type PhotoTag = 'Overview' | 'Canopy' | 'Leaf' | 'Root' | 'Training' | 'Flower' | 'Problem' | 'Comparison' | 'Other'
-export type SetupType = 'Production' | 'Mother' | 'Quarantine'
+export type SetupType = 'Production' | 'Mother' | 'Quarantine' | 'Propagation'
 export type SetupStatus = 'Planning' | 'Active' | 'Archived'
 export type MotherHealthStatus = 'Stable' | 'Watch' | 'Critical'
 export type QuarantineResult = 'Pending' | 'Cleared' | 'Rejected'
@@ -985,6 +986,15 @@ export interface UpdateTentRequest {
   co2Available: boolean
   cameraEntityId: string | null
   sensors: UpdateTentSensorRequest[]
+}
+
+export interface CreateTentRequest {
+  name: string
+  kind: string
+  tentType: TentType
+  notes: string | null
+  displayOrder: number
+  accentColor: string
 }
 
 export interface SettingsOverviewDto {

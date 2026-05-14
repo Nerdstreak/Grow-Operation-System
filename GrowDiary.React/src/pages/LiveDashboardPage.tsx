@@ -33,19 +33,28 @@ const riskRank: Record<string, number> = {
   Info: 2,
 }
 
-const metricOrder = [
-  'temperature',
-  'humidity',
-  'vpd',
-  'light-cycle',
-  'ppfd',
-  'co2',
-  'reservoir-ph',
-  'reservoir-ec',
-  'reservoir-temp',
-  'dissolved-oxygen',
-  'orp',
-  'reservoir-level',
+type MetricDefinition = {
+  key: string
+  label: string
+  unit: string | null
+}
+
+const coreMetricDefinitions: MetricDefinition[] = [
+  { key: 'temperature', label: 'Temperatur', unit: '°C' },
+  { key: 'humidity', label: 'Luftfeuchte', unit: '%' },
+  { key: 'vpd', label: 'VPD', unit: 'kPa' },
+  { key: 'reservoir-ph', label: 'pH', unit: null },
+  { key: 'reservoir-ec', label: 'EC', unit: 'mS/cm' },
+  { key: 'orp', label: 'ORP', unit: 'mV' },
+  { key: 'dissolved-oxygen', label: 'DO', unit: 'mg/L' },
+  { key: 'reservoir-temp', label: 'Wasser °C', unit: '°C' },
+]
+
+const optionalMetricDefinitions: MetricDefinition[] = [
+  { key: 'ppfd', label: 'PPFD', unit: 'µmol/m²/s' },
+  { key: 'co2', label: 'CO2', unit: 'ppm' },
+  { key: 'light-cycle', label: 'Lichtstatus', unit: null },
+  { key: 'reservoir-level', label: 'Wasserstand', unit: null },
 ]
 
 function LiveDashboardPage() {
@@ -220,7 +229,7 @@ function LiveDashboardPage() {
 }
 
 function LiveTentCard({ tent, live }: { tent: TentDto; live: TentLivePayload | undefined }) {
-  const orderedMetrics = orderMetrics(live?.metrics ?? [])
+  const orderedMetrics = buildDashboardMetrics(live?.metrics ?? [])
 
   return (
     <article className={classNames('live-card', live?.stateTone === 'critical' && 'is-critical', live?.stateTone === 'attention' && 'is-warning')}>
@@ -235,13 +244,9 @@ function LiveTentCard({ tent, live }: { tent: TentDto; live: TentLivePayload | u
       </div>
 
       <div className="live-metric-grid">
-        {orderedMetrics.length === 0 ? (
-          <div className="live-empty">Keine Live-Metriken.</div>
-        ) : (
-          orderedMetrics.map((metric) => (
-            <MetricTile key={metric.key} metric={metric} />
-          ))
-        )}
+        {orderedMetrics.map((metric) => (
+          <MetricTile key={metric.key} metric={metric} />
+        ))}
       </div>
 
       <div className="live-card-footer">
@@ -257,17 +262,46 @@ function MetricTile({ metric }: { metric: MetricPayload }) {
     <div className={classNames('live-metric', metric.tone === 'danger' && 'is-critical', metric.tone === 'warning' && 'is-warning', metric.tone === 'success' && 'is-ok')}>
       <div className="live-metric-label">{metric.label}</div>
       <div className="live-metric-value">{metric.value}</div>
-      <div className="live-metric-unit">{metric.unit ?? ' '}</div>
+      <div className="live-metric-unit">{metric.hint ?? metric.unit ?? ' '}</div>
     </div>
   )
 }
 
-function orderMetrics(metrics: MetricPayload[]): MetricPayload[] {
-  return [...metrics].sort((left, right) => {
-    const leftIndex = metricOrder.indexOf(left.key)
-    const rightIndex = metricOrder.indexOf(right.key)
-    return (leftIndex === -1 ? 99 : leftIndex) - (rightIndex === -1 ? 99 : rightIndex)
+function buildDashboardMetrics(metrics: MetricPayload[]): MetricPayload[] {
+  const byKey = new Map(metrics.map((metric) => [metric.key, metric]))
+  const coreMetrics = coreMetricDefinitions.map((definition) => {
+    const mapped = byKey.get(definition.key)
+    return mapped ? normalizeMetric(mapped, definition) : createMissingMetric(definition)
   })
+  const optionalMetrics = optionalMetricDefinitions
+    .map((definition) => {
+      const mapped = byKey.get(definition.key)
+      return mapped ? normalizeMetric(mapped, definition) : null
+    })
+    .filter((metric): metric is MetricPayload => metric !== null)
+  const knownKeys = new Set([...coreMetricDefinitions, ...optionalMetricDefinitions].map((definition) => definition.key))
+  const otherMetrics = metrics.filter((metric) => !knownKeys.has(metric.key))
+
+  return [...coreMetrics, ...optionalMetrics, ...otherMetrics]
+}
+
+function normalizeMetric(metric: MetricPayload, definition: MetricDefinition): MetricPayload {
+  return {
+    ...metric,
+    label: definition.label,
+    unit: metric.unit ?? definition.unit,
+  }
+}
+
+function createMissingMetric(definition: MetricDefinition): MetricPayload {
+  return {
+    key: definition.key,
+    label: definition.label,
+    value: '–',
+    unit: definition.unit,
+    tone: 'neutral',
+    hint: 'Kein Wert vorhanden',
+  }
 }
 
 function formatTentActivity(tent: TentDto): string {

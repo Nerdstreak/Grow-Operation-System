@@ -11,6 +11,7 @@ import type {
   GrowUpsertPayload,
   HydroStyle,
   PropagationMedium,
+  SelectableHydroStyle,
   SeedType,
   SetupDto,
   StartMaterial,
@@ -21,7 +22,7 @@ import type {
 const seedTypes: SeedType[] = ['Feminized', 'Autoflower', 'Regular']
 const startMaterials: StartMaterial[] = ['Seed', 'Clone']
 const germinationMethods: GerminationMethod[] = ['PaperTowel', 'Rockwool', 'RapidRooter', 'DirectInSystem']
-const hydroStyles: HydroStyle[] = ['DWC', 'RDWC', 'NFT', 'Aeroponic', 'Other']
+const hydroStyles: SelectableHydroStyle[] = ['DWC', 'RDWC']
 const waterSources: WaterSource[] = ['Tap', 'RO', 'Mixed']
 const entryPoints: GrowEntryPoint[] = ['Germination', 'Seedling', 'Veg', 'Flower', 'Flush']
 const statuses: GrowStatus[] = ['Planning', 'Running', 'Completed', 'Aborted']
@@ -175,8 +176,8 @@ function GrowSetupPage() {
             <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
               <label className="field"><span>Name</span><input required value={form.name} onChange={(event) => patchForm(setForm, { name: event.target.value })} placeholder="Blue Dream RDWC Run" /></label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <label className="field"><span>Strain</span><input value={form.strain ?? ''} onChange={(event) => patchForm(setForm, { strain: toNullableString(event.target.value) })} /></label>
-                <label className="field"><span>Breeder</span><input value={form.breeder ?? ''} onChange={(event) => patchForm(setForm, { breeder: toNullableString(event.target.value) })} /></label>
+                <label className="field"><span>Strain</span><input value={form.strain ?? ''} onChange={(event) => patchForm(setForm, { strain: event.target.value })} /></label>
+                <label className="field"><span>Breeder</span><input value={form.breeder ?? ''} onChange={(event) => patchForm(setForm, { breeder: event.target.value })} /></label>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <label className="field"><span>Seed Type</span><select value={form.seedType} onChange={(event) => patchForm(setForm, { seedType: event.target.value as SeedType })}>{seedTypes.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
@@ -186,7 +187,7 @@ function GrowSetupPage() {
                 <label className="field"><span>Keimmethode</span><select value={form.germinationMethod ?? 'PaperTowel'} onChange={(event) => patchForm(setForm, { germinationMethod: event.target.value as GerminationMethod })}>{germinationMethods.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
               ) : (
                 <>
-                  <label className="field"><span>Clone Source</span><input value={form.cloneSource ?? ''} onChange={(event) => patchForm(setForm, { cloneSource: toNullableString(event.target.value) })} placeholder="Mutterpflanze / Cut Nr. 3" /></label>
+                  <label className="field"><span>Clone Source</span><input value={form.cloneSource ?? ''} onChange={(event) => patchForm(setForm, { cloneSource: event.target.value })} placeholder="Mutterpflanze / Cut Nr. 3" /></label>
                   <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 14, cursor: 'pointer' }}><span>Steckling ist bereits bewurzelt</span><input type="checkbox" checked={form.cloneIsRooted} onChange={(event) => patchForm(setForm, { cloneIsRooted: event.target.checked })} /></label>
                 </>
               )}
@@ -211,7 +212,7 @@ function GrowSetupPage() {
                   const tentId = toNullableInteger(event.target.value)
                   patchForm(setForm, { tentId, setupId: isSetupValidForTent(setups, form.setupId ?? null, tentId) ? form.setupId ?? null : null })
                 }}><option value="">Ohne Zelt</option>{tents.map((tent) => <option key={tent.id} value={tent.id}>{tent.name}</option>)}</select></label>
-                <label className="field"><span>Hydro Style</span><select value={form.hydroStyle} onChange={(event) => patchForm(setForm, { hydroStyle: event.target.value as HydroStyle })}>{hydroStyles.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+                <label className="field"><span>Hydro Style</span><select value={form.hydroStyle} onChange={(event) => patchForm(setForm, { hydroStyle: event.target.value as HydroStyle })}>{!isSelectableHydroStyle(form.hydroStyle) && <option value={form.hydroStyle} disabled>{form.hydroStyle} (Altwert)</option>}{hydroStyles.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
               </div>
               <label className="field">
                 <span>Production-Setup</span>
@@ -233,11 +234,11 @@ function GrowSetupPage() {
                 ) : null}
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <label className="field"><span>Reservoir</span><input value={form.reservoirSize ?? ''} onChange={(event) => patchForm(setForm, { reservoirSize: toNullableString(event.target.value) })} placeholder="70 L" /></label>
-                <label className="field"><span>Container</span><input value={form.containerSize ?? ''} onChange={(event) => patchForm(setForm, { containerSize: toNullableString(event.target.value) })} placeholder="20 L" /></label>
+                <label className="field"><span>Reservoir</span><input value={form.reservoirSize ?? ''} onChange={(event) => patchForm(setForm, { reservoirSize: event.target.value })} placeholder="70 L" /></label>
+                <label className="field"><span>Container</span><input value={form.containerSize ?? ''} onChange={(event) => patchForm(setForm, { containerSize: event.target.value })} placeholder="20 L" /></label>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <label className="field"><span>Licht</span><input value={form.light ?? ''} onChange={(event) => patchForm(setForm, { light: toNullableString(event.target.value) })} placeholder="LED Bar 480W" /></label>
+                <label className="field"><span>Licht</span><input value={form.light ?? ''} onChange={(event) => patchForm(setForm, { light: event.target.value })} placeholder="LED Bar 480W" /></label>
                 <label className="field"><span>Propagation</span><select value={form.propagationMedium ?? ''} onChange={(event) => patchForm(setForm, { propagationMedium: toNullableString(event.target.value) as PropagationMedium | null })}><option value="">Nicht gesetzt</option>{propagationMedia.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
               </div>
               <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 14, cursor: 'pointer' }}><span>Chiller vorhanden</span><input type="checkbox" checked={form.hasChiller} onChange={(event) => patchForm(setForm, { hasChiller: event.target.checked })} /></label>
@@ -272,8 +273,8 @@ function GrowSetupPage() {
           <div className="card">
             <div className="card-header"><span className="card-title">Nährstoffe &amp; Notizen</span></div>
             <div style={{ padding: '14px 16px', display: 'grid', gap: 12 }}>
-              <label className="field"><span>Nährstoffe</span><input value={form.nutrients ?? ''} onChange={(event) => patchForm(setForm, { nutrients: toNullableString(event.target.value) })} placeholder="Athena Pro, Canna Aqua, ..." /></label>
-              <label className="field"><span>Notizen</span><textarea rows={5} value={form.notes ?? ''} onChange={(event) => patchForm(setForm, { notes: toNullableString(event.target.value) })} placeholder="Besonderheiten, Ziele, bekannte Risiken..." /></label>
+              <label className="field"><span>Nährstoffe</span><input value={form.nutrients ?? ''} onChange={(event) => patchForm(setForm, { nutrients: event.target.value })} placeholder="Athena Pro, Canna Aqua, ..." /></label>
+              <label className="field"><span>Notizen</span><textarea rows={5} value={form.notes ?? ''} onChange={(event) => patchForm(setForm, { notes: event.target.value })} placeholder="Besonderheiten, Ziele, bekannte Risiken..." /></label>
             </div>
           </div>
 
@@ -397,6 +398,10 @@ function normalizePayload(form: GrowUpsertPayload): GrowUpsertPayload {
     flipDate: needsFlipDate ? toNullableString(form.flipDate) : null,
     notes: toNullableString(form.notes),
   }
+}
+
+function isSelectableHydroStyle(value: HydroStyle): value is SelectableHydroStyle {
+  return value === 'DWC' || value === 'RDWC'
 }
 
 function toNullableString(value: string | null | undefined): string | null {

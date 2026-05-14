@@ -38,9 +38,10 @@ Die App hat zwei Modi mit denselben Daten aber verschiedenen Interfaces:
 - Die App definiert Schwellenwerte, HA liefert die Benachrichtigung
 
 ## Medium-Strategie
-- **Launch: RDWC und DWC** – vollständig mit Sollwerten, Vorhersage-Mechanik, Addback-Logik, Expertenregeln
-- **Später: Soil, Coco, Living Soil, Autopot, NFT** – sobald Expertendaten gesammelt sind
-- Nie halbfertige Medien launchen – lieber weniger, aber vollständig
+- **Aktueller Launch- und Produktfokus: RDWC und DWC** - vollstaendig mit Sollwerten, Vorhersage-Mechanik, Addback-Logik und Expertenregeln.
+- Andere Medien und Hydro-Stile sind bewusst ausserhalb des aktuellen MVP-Flows.
+- Im normalen UI gibt es keine Soil-, Coco-, NFT-, Aeroponic- oder sonstigen Nicht-DWC/RDWC-Optionen.
+- Nie halbfertige Medien launchen - lieber weniger, aber vollstaendig.
 
 ## Vorhersage-Mechanik (Herzstück)
 - Basiert auf echtem Expertenwissen: Growpläne, SOPs, Messprotokoll-Logik
@@ -63,9 +64,8 @@ Die App hat zwei Modi mit denselben Daten aber verschiedenen Interfaces:
 6. Lieber weniger Features, aber jedes Feature zu Ende gedacht
 
 ## Was als nächstes gebaut wird (Sprint 1 – Datenmodell)
-- Neues IrrigationType Enum: Manual | Autopot | ActiveHydro
-- HydroStyle bereinigen: nur echte Hydro-Typen (DWC, RDWC, NFT, Aeroponic)
-- FeedingStyle erweitern: Organic | Mineral | LivingSoil
-- GrowthProfile auf neue Enums umstellen, String-Checks entfernen
+- DWC/RDWC als verbindlicher MVP-Flow in UI, API und Validierung
+- GrowthProfile auf DWC/RDWC-Regeln ausrichten und String-Checks entfernen
 - PPFD und CO₂ in Measurement ergänzen
 - Wasserquelle (RO / Leitungswasser / gemischt) als Grow-Eigenschaft
+- Weitere Medien und Hydro-Stile erst modellieren, wenn die jeweiligen Workflows vollständig definiert sind
