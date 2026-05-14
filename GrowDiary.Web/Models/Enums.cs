@@ -310,6 +310,32 @@ public enum SetupStatus
     Archived
 }
 
+public enum HydroSetupStatus
+{
+    Active,
+    Archived
+}
+
+public enum HydroSetupLayoutType
+{
+    SingleBucket,
+    Row,
+    Grid2x2,
+    Grid2x3,
+    Grid2x4,
+    Custom
+}
+
+public enum ReservoirPosition
+{
+    None,
+    Left,
+    Right,
+    Top,
+    Bottom,
+    External
+}
+
 public enum PlantRole
 {
     Production,

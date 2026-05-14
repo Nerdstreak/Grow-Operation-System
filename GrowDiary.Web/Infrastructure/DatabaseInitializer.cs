@@ -670,15 +670,45 @@ public sealed class DatabaseInitializer
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS GrowSystems (
                 Id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                TentId          INTEGER NULL,
                 Name            TEXT    NOT NULL,
                 HydroStyle      TEXT    NOT NULL,
                 PotCount        INTEGER NULL,
                 PotSizeLiters   REAL    NULL,
                 ReservoirLiters REAL    NULL,
+                Status          TEXT    NOT NULL DEFAULT 'Active',
+                LayoutType      TEXT    NOT NULL DEFAULT 'SingleBucket',
+                ReservoirPosition TEXT  NOT NULL DEFAULT 'None',
+                HasCirculationPump INTEGER NOT NULL DEFAULT 0,
+                CirculationPumpNotes TEXT NULL,
+                HasAirPump      INTEGER NOT NULL DEFAULT 0,
+                AirPumpNotes    TEXT NULL,
+                AirStoneCount   INTEGER NULL,
+                HasChiller      INTEGER NOT NULL DEFAULT 0,
+                HasUvSterilizer INTEGER NOT NULL DEFAULT 0,
                 Notes           TEXT    NULL,
                 DisplayOrder    INTEGER NOT NULL DEFAULT 99,
-                CreatedAtUtc    TEXT    NOT NULL
+                CreatedAtUtc    TEXT    NOT NULL,
+                UpdatedAtUtc    TEXT    NULL
             );
+        """;
+        command.ExecuteNonQuery();
+        EnsureColumn(connection, "GrowSystems", "TentId", "INTEGER NULL");
+        EnsureColumn(connection, "GrowSystems", "Status", "TEXT NOT NULL DEFAULT 'Active'");
+        EnsureColumn(connection, "GrowSystems", "LayoutType", "TEXT NOT NULL DEFAULT 'SingleBucket'");
+        EnsureColumn(connection, "GrowSystems", "ReservoirPosition", "TEXT NOT NULL DEFAULT 'None'");
+        EnsureColumn(connection, "GrowSystems", "HasCirculationPump", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "GrowSystems", "CirculationPumpNotes", "TEXT NULL");
+        EnsureColumn(connection, "GrowSystems", "HasAirPump", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "GrowSystems", "AirPumpNotes", "TEXT NULL");
+        EnsureColumn(connection, "GrowSystems", "AirStoneCount", "INTEGER NULL");
+        EnsureColumn(connection, "GrowSystems", "HasChiller", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "GrowSystems", "HasUvSterilizer", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "GrowSystems", "UpdatedAtUtc", "TEXT NULL");
+        command.CommandText = """
+            CREATE INDEX IF NOT EXISTS IX_GrowSystems_TentId ON GrowSystems(TentId);
+            CREATE INDEX IF NOT EXISTS IX_GrowSystems_Status ON GrowSystems(Status);
+            CREATE INDEX IF NOT EXISTS IX_GrowSystems_HydroStyle ON GrowSystems(HydroStyle);
         """;
         command.ExecuteNonQuery();
         EnsureColumn(connection, "Grows", "SystemId", "INTEGER NULL");
