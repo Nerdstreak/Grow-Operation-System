@@ -163,6 +163,58 @@ public sealed class HydroSetupsApiControllerTests : IDisposable
     }
 
     [Fact]
+    public void Create_WithRdwcSingleBucketLayout_IsRejected()
+    {
+        var result = _controller.Create(new CreateHydroSetupRequest
+        {
+            TentId = DefaultTent().Id,
+            Name = "Invalid RDWC Layout",
+            HydroStyle = HydroStyle.RDWC,
+            PotCount = 4,
+            PotSizeLiters = 19,
+            ReservoirPosition = ReservoirPosition.External,
+            LayoutType = HydroSetupLayoutType.SingleBucket
+        });
+
+        var error = AssertValidationError(result.Result);
+        Assert.Contains(nameof(CreateHydroSetupRequest.LayoutType), error.FieldErrors!.Keys);
+    }
+
+    [Fact]
+    public void Create_WithRdwcMissingTankPosition_IsRejected()
+    {
+        var result = _controller.Create(new CreateHydroSetupRequest
+        {
+            TentId = DefaultTent().Id,
+            Name = "Invalid RDWC Tank",
+            HydroStyle = HydroStyle.RDWC,
+            PotCount = 4,
+            PotSizeLiters = 19,
+            LayoutType = HydroSetupLayoutType.Grid2x2,
+            ReservoirPosition = ReservoirPosition.None
+        });
+
+        var error = AssertValidationError(result.Result);
+        Assert.Contains(nameof(CreateHydroSetupRequest.ReservoirPosition), error.FieldErrors!.Keys);
+    }
+
+    [Fact]
+    public void Create_WithNegativeDisplayOrder_IsRejected()
+    {
+        var result = _controller.Create(new CreateHydroSetupRequest
+        {
+            TentId = DefaultTent().Id,
+            Name = "Invalid Order",
+            HydroStyle = HydroStyle.DWC,
+            PotSizeLiters = 25,
+            DisplayOrder = -1
+        });
+
+        var error = AssertValidationError(result.Result);
+        Assert.Contains(nameof(CreateHydroSetupRequest.DisplayOrder), error.FieldErrors!.Keys);
+    }
+
+    [Fact]
     public void Archive_SetsStatusArchived()
     {
         var setup = CreateRdwcSetup(DefaultTent().Id, "Archive Me");
@@ -190,6 +242,61 @@ public sealed class HydroSetupsApiControllerTests : IDisposable
         var item = Assert.Single(items);
         Assert.Equal(secondTent.Id, item.TentId);
         Assert.Equal("Second", item.Name);
+    }
+
+    [Fact]
+    public void List_ExcludesArchivedHydroSetupsByDefault()
+    {
+        var tent = DefaultTent();
+        var active = CreateRdwcSetup(tent.Id, "Active");
+        var archived = CreateRdwcSetup(tent.Id, "Archived");
+        _repository.ArchiveHydroSetup(archived.Id);
+
+        var result = _controller.List();
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var items = Assert.IsAssignableFrom<IReadOnlyList<HydroSetupDto>>(ok.Value);
+        var item = Assert.Single(items);
+        Assert.Equal(active.Id, item.Id);
+        Assert.Equal(HydroSetupStatus.Active, item.Status);
+    }
+
+    [Fact]
+    public void List_WithIncludeArchived_ReturnsArchivedHydroSetups()
+    {
+        var tent = DefaultTent();
+        CreateRdwcSetup(tent.Id, "Active");
+        var archived = CreateRdwcSetup(tent.Id, "Archived");
+        _repository.ArchiveHydroSetup(archived.Id);
+
+        var result = _controller.List(includeArchived: true);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var items = Assert.IsAssignableFrom<IReadOnlyList<HydroSetupDto>>(ok.Value);
+        Assert.Equal(2, items.Count);
+        Assert.Contains(items, item => item.Id == archived.Id && item.Status == HydroSetupStatus.Archived);
+    }
+
+    [Fact]
+    public void Update_WithInvalidStatus_IsRejected()
+    {
+        var setup = CreateRdwcSetup(DefaultTent().Id, "Invalid Status");
+
+        var result = _controller.Update(setup.Id, new UpdateHydroSetupRequest
+        {
+            TentId = setup.TentId,
+            Name = setup.Name,
+            HydroStyle = HydroStyle.RDWC,
+            PotCount = setup.PotCount,
+            PotSizeLiters = setup.PotSizeLiters,
+            ReservoirLiters = setup.ReservoirLiters,
+            LayoutType = setup.LayoutType,
+            ReservoirPosition = setup.ReservoirPosition,
+            Status = (HydroSetupStatus)999
+        });
+
+        var error = AssertValidationError(result.Result);
+        Assert.Contains(nameof(UpdateHydroSetupRequest.Status), error.FieldErrors!.Keys);
     }
 
     private GrowSystem CreateRdwcSetup(int tentId, string name)

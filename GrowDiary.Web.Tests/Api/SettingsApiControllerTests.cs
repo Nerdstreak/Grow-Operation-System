@@ -82,4 +82,221 @@ public sealed class SettingsApiControllerTests : IDisposable
         Assert.Equal("validation_failed", error.Code);
         Assert.Contains(nameof(CreateTentRequest.TentType), error.FieldErrors!.Keys);
     }
+    [Fact]
+    public void CreateTent_WithDetailedRequest_PersistsAllTentDetailsAndSensors()
+    {
+        var result = _controller.CreateTent(new CreateTentRequest
+        {
+            Name = "Blütezelt 120",
+            Kind = "Grow Tent",
+            TentType = TentType.Production.ToString(),
+            Status = TentStatus.Active.ToString(),
+            Notes = "RDWC Blüte",
+            DisplayOrder = 3,
+            AccentColor = "#4ecb5b",
+            WidthCm = 120,
+            DepthCm = 120,
+            TentHeightCm = 200,
+            LightType = "LED Bar",
+            LightWatt = 720,
+            LightController = LightControllerType.AcInfinityPro69.ToString(),
+            LightControllerEntityId = "switch.light_controller",
+            ExhaustFanCount = 1,
+            ExhaustM3h = 680,
+            CirculationFanCount = 2,
+            HvacController = HvacControllerType.Manual.ToString(),
+            HvacControllerEntityId = "climate.tent",
+            Co2Available = true,
+            CameraEntityId = "camera.bloom",
+            Sensors =
+            [
+                new UpdateTentSensorRequest
+                {
+                    MetricType = SensorMetricType.AirTemperature.ToString(),
+                    HaEntityId = "sensor.bloom_temp",
+                    DisplayLabel = "Temperatur Blüte",
+                    IsActive = true
+                }
+            ]
+        });
+
+        var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+        var dto = Assert.IsType<TentDto>(created.Value);
+
+        Assert.Equal("Blütezelt 120", dto.Name);
+        Assert.Equal(TentType.Production.ToString(), dto.TentType);
+        Assert.Equal(TentStatus.Active.ToString(), dto.Status);
+        Assert.Equal("RDWC Blüte", dto.Notes);
+        Assert.Equal(3, dto.DisplayOrder);
+        Assert.Equal("#4ecb5b", dto.AccentColor);
+        Assert.Equal(120, dto.WidthCm);
+        Assert.Equal(120, dto.DepthCm);
+        Assert.Equal(200, dto.TentHeightCm);
+        Assert.Equal("LED Bar", dto.LightType);
+        Assert.Equal(720, dto.LightWatt);
+        Assert.Equal(LightControllerType.AcInfinityPro69.ToString(), dto.LightController);
+        Assert.Equal("switch.light_controller", dto.LightControllerEntityId);
+        Assert.Equal(1, dto.ExhaustFanCount);
+        Assert.Equal(680, dto.ExhaustM3h);
+        Assert.Equal(2, dto.CirculationFanCount);
+        Assert.Equal(HvacControllerType.Manual.ToString(), dto.HvacController);
+        Assert.Equal("climate.tent", dto.HvacControllerEntityId);
+        Assert.True(dto.Co2Available);
+        Assert.Equal("camera.bloom", dto.CameraEntityId);
+        Assert.Single(dto.Sensors);
+        Assert.Equal("sensor.bloom_temp", dto.Sensors[0].HaEntityId);
+    }
+
+    [Fact]
+    public void GetTent_ReturnsSingleTentWithDetails()
+    {
+        var createResult = _controller.CreateTent(new CreateTentRequest
+        {
+            Name = "Anzuchtbox",
+            TentType = TentType.Propagation.ToString(),
+            WidthCm = 80,
+            DepthCm = 60,
+            TentHeightCm = 120
+        });
+        var created = Assert.IsType<TentDto>(Assert.IsType<CreatedAtActionResult>(createResult.Result).Value);
+
+        var result = _controller.Tent(created.Id);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<TentDto>(ok.Value);
+        Assert.Equal(created.Id, dto.Id);
+        Assert.Equal("Anzuchtbox", dto.Name);
+        Assert.Equal(TentType.Propagation.ToString(), dto.TentType);
+        Assert.Equal(80, dto.WidthCm);
+        Assert.Equal(60, dto.DepthCm);
+        Assert.Equal(120, dto.TentHeightCm);
+    }
+
+    [Fact]
+    public void UpdateTent_WithDetailedRequest_PersistsAllTentDetails()
+    {
+        var created = _repository.CreateTent("Update Zelt");
+
+        var result = _controller.SaveTent(created.Id, new UpdateTentRequest
+        {
+            Name = "Update Blüte",
+            Kind = "Grow Tent",
+            TentType = TentType.Production.ToString(),
+            Status = TentStatus.Active.ToString(),
+            Notes = "aktualisiert",
+            DisplayOrder = 7,
+            AccentColor = "#111111",
+            WidthCm = 150,
+            DepthCm = 150,
+            TentHeightCm = 220,
+            LightType = "Quantum Board",
+            LightWatt = 500,
+            LightController = LightControllerType.GenericRelay.ToString(),
+            LightControllerEntityId = "switch.light",
+            ExhaustFanCount = 2,
+            ExhaustM3h = 800,
+            CirculationFanCount = 3,
+            HvacController = HvacControllerType.Other.ToString(),
+            HvacControllerEntityId = "climate.other",
+            Co2Available = true,
+            CameraEntityId = "camera.updated",
+            Sensors =
+            [
+                new UpdateTentSensorRequest
+                {
+                    MetricType = SensorMetricType.Humidity.ToString(),
+                    HaEntityId = "sensor.humidity",
+                    DisplayLabel = "RH",
+                    IsActive = true
+                }
+            ]
+        });
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<TentDto>(ok.Value);
+        Assert.Equal("Update Blüte", dto.Name);
+        Assert.Equal(150, dto.WidthCm);
+        Assert.Equal(500, dto.LightWatt);
+        Assert.Equal("camera.updated", dto.CameraEntityId);
+        Assert.Single(dto.Sensors);
+        Assert.Equal(SensorMetricType.Humidity.ToString(), dto.Sensors[0].MetricType);
+    }
+
+    [Fact]
+    public void CreateTent_WithInvalidTechnicalFields_ReturnsValidationError()
+    {
+        var result = _controller.CreateTent(new CreateTentRequest
+        {
+            Name = "Ungültig",
+            TentType = TentType.Production.ToString(),
+            WidthCm = 0,
+            DepthCm = -10,
+            LightWatt = -1,
+            LightController = "BadController",
+            HvacController = "BadHvac",
+            Sensors =
+            [
+                new UpdateTentSensorRequest
+                {
+                    MetricType = "BadMetric",
+                    HaEntityId = "sensor.bad",
+                    IsActive = true
+                },
+                new UpdateTentSensorRequest
+                {
+                    MetricType = SensorMetricType.Vpd.ToString(),
+                    HaEntityId = " ",
+                    IsActive = true
+                }
+            ]
+        });
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var error = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Equal("validation_failed", error.Code);
+        Assert.Contains(nameof(CreateTentRequest.WidthCm), error.FieldErrors!.Keys);
+        Assert.Contains(nameof(CreateTentRequest.DepthCm), error.FieldErrors!.Keys);
+        Assert.Contains(nameof(CreateTentRequest.LightWatt), error.FieldErrors!.Keys);
+        Assert.Contains(nameof(CreateTentRequest.LightController), error.FieldErrors!.Keys);
+        Assert.Contains(nameof(CreateTentRequest.HvacController), error.FieldErrors!.Keys);
+        Assert.Contains("Sensors[0].MetricType", error.FieldErrors!.Keys);
+        Assert.Contains("Sensors[1].HaEntityId", error.FieldErrors!.Keys);
+    }
+
+    [Fact]
+    public void DeleteTent_WithoutDependencies_DeletesTent()
+    {
+        var created = _repository.CreateTent("Leeres Zelt");
+
+        var result = _controller.DeleteTent(created.Id);
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.Null(_repository.GetTent(created.Id));
+    }
+
+    [Fact]
+    public void DeleteTent_WithDependencies_ArchivesTent()
+    {
+        var created = _repository.CreateTent("Zelt mit System");
+        _repository.CreateHydroSetup(new GrowSystem
+        {
+            TentId = created.Id,
+            Name = "RDWC Test",
+            HydroStyle = HydroStyle.RDWC.ToString(),
+            PotCount = 4,
+            PotSizeLiters = 19,
+            ReservoirLiters = 60,
+            LayoutType = HydroSetupLayoutType.Grid2x2,
+            ReservoirPosition = ReservoirPosition.External
+        });
+
+        var result = _controller.DeleteTent(created.Id);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var dto = Assert.IsType<TentDto>(ok.Value);
+        Assert.Equal(TentStatus.Archived.ToString(), dto.Status);
+        Assert.DoesNotContain(_repository.GetTents(), tent => tent.Id == created.Id);
+        Assert.Contains(_repository.GetTents(includeArchived: true), tent => tent.Id == created.Id && tent.Status == TentStatus.Archived);
+    }
+
 }

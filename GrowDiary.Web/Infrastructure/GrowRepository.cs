@@ -2041,7 +2041,7 @@ public sealed class GrowRepository
         return reader.Read() ? MapTentSensor(reader) : null;
     }
 
-    public List<GrowSystem> GetSystems()
+    public List<GrowSystem> GetSystems(bool includeArchived = true)
     {
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
@@ -2050,8 +2050,10 @@ public sealed class GrowRepository
                    (SELECT COUNT(*) FROM Grows g WHERE g.SystemId = s.Id AND g.Status IN ('Planning','Running')) AS ActiveGrowCount
             FROM GrowSystems s
             LEFT JOIN Tents t ON t.Id = s.TentId
+            WHERE ($includeArchived = 1 OR s.Status <> 'Archived')
             ORDER BY s.DisplayOrder, s.Name;
         """;
+        command.Parameters.AddWithValue("$includeArchived", includeArchived ? 1 : 0);
         var list = new List<GrowSystem>();
         using var reader = command.ExecuteReader();
         while (reader.Read())
@@ -2075,13 +2077,13 @@ public sealed class GrowRepository
         return reader.Read() ? MapGrowSystem(reader) : null;
     }
 
-    public List<GrowSystem> GetHydroSetups()
-        => GetSystems();
+    public List<GrowSystem> GetHydroSetups(bool includeArchived = false)
+        => GetSystems(includeArchived);
 
     public GrowSystem? GetHydroSetup(int id)
         => GetSystem(id);
 
-    public List<GrowSystem> GetHydroSetupsByTent(int tentId)
+    public List<GrowSystem> GetHydroSetupsByTent(int tentId, bool includeArchived = false)
     {
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
@@ -2090,10 +2092,11 @@ public sealed class GrowRepository
                    (SELECT COUNT(*) FROM Grows g WHERE g.SystemId = s.Id AND g.Status IN ('Planning','Running')) AS ActiveGrowCount
             FROM GrowSystems s
             LEFT JOIN Tents t ON t.Id = s.TentId
-            WHERE s.TentId = $tentId
+            WHERE s.TentId = $tentId AND ($includeArchived = 1 OR s.Status <> 'Archived')
             ORDER BY s.DisplayOrder, s.Name;
         """;
         command.Parameters.AddWithValue("$tentId", tentId);
+        command.Parameters.AddWithValue("$includeArchived", includeArchived ? 1 : 0);
         var list = new List<GrowSystem>();
         using var reader = command.ExecuteReader();
         while (reader.Read())
@@ -4440,6 +4443,26 @@ public sealed class GrowRepository
             throw new InvalidOperationException("DWC HydroSetup needs pot or reservoir volume.");
         }
 
+        if (!Enum.IsDefined(system.LayoutType))
+        {
+            throw new InvalidOperationException("HydroSetup layout type is invalid.");
+        }
+
+        if (!Enum.IsDefined(system.ReservoirPosition))
+        {
+            throw new InvalidOperationException("HydroSetup reservoir position is invalid.");
+        }
+
+        if (!Enum.IsDefined(system.Status))
+        {
+            throw new InvalidOperationException("HydroSetup status is invalid.");
+        }
+
+        if (system.DisplayOrder < 0)
+        {
+            throw new InvalidOperationException("HydroSetup display order must not be negative.");
+        }
+
         if (hydroStyle == HydroStyle.RDWC)
         {
             if (system.PotCount is null or < 2)
@@ -4450,6 +4473,16 @@ public sealed class GrowRepository
             if (system.PotSizeLiters is not > 0)
             {
                 throw new InvalidOperationException("RDWC HydroSetup needs pot volume.");
+            }
+
+            if (system.LayoutType == HydroSetupLayoutType.SingleBucket)
+            {
+                throw new InvalidOperationException("RDWC HydroSetup needs an RDWC layout.");
+            }
+
+            if (system.ReservoirPosition == ReservoirPosition.None)
+            {
+                throw new InvalidOperationException("RDWC HydroSetup needs a reservoir position.");
             }
         }
     }

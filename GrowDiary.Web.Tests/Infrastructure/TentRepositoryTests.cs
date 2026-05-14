@@ -40,14 +40,55 @@ public sealed class TentRepositoryTests : IDisposable
     public void CreateTent_PersistsAllFields()
     {
         var repo = Repo();
-        var created = repo.CreateTent("Testzelt");
+        var created = repo.CreateTent(new Tent
+        {
+            Name = "Blütezelt",
+            Kind = "Grow Tent",
+            TentType = TentType.Production,
+            Status = TentStatus.Active,
+            Notes = "RDWC Raum",
+            DisplayOrder = 4,
+            AccentColor = "#4ecb5b",
+            WidthCm = 120,
+            DepthCm = 120,
+            TentHeightCm = 200,
+            LightType = "LED",
+            LightWatt = 720,
+            LightController = LightControllerType.AcInfinityPro69,
+            LightControllerEntityId = "switch.light",
+            ExhaustFanCount = 1,
+            ExhaustM3h = 680,
+            CirculationFanCount = 2,
+            HvacController = HvacControllerType.Manual,
+            HvacControllerEntityId = "climate.tent",
+            Co2Available = true,
+            CameraEntityId = "camera.tent"
+        });
+
         Assert.True(created.Id > 0);
-        Assert.Equal("Testzelt", created.Name);
 
         var loaded = repo.GetTent(created.Id);
         Assert.NotNull(loaded);
-        Assert.Equal("Testzelt", loaded!.Name);
-        Assert.Equal(TentType.MultiPurpose, loaded.TentType);
+        Assert.Equal("Blütezelt", loaded!.Name);
+        Assert.Equal(TentType.Production, loaded.TentType);
+        Assert.Equal(TentStatus.Active, loaded.Status);
+        Assert.Equal("RDWC Raum", loaded.Notes);
+        Assert.Equal(4, loaded.DisplayOrder);
+        Assert.Equal("#4ecb5b", loaded.AccentColor);
+        Assert.Equal(120, loaded.WidthCm);
+        Assert.Equal(120, loaded.DepthCm);
+        Assert.Equal(200, loaded.TentHeightCm);
+        Assert.Equal("LED", loaded.LightType);
+        Assert.Equal(720, loaded.LightWatt);
+        Assert.Equal(LightControllerType.AcInfinityPro69, loaded.LightController);
+        Assert.Equal("switch.light", loaded.LightControllerEntityId);
+        Assert.Equal(1, loaded.ExhaustFanCount);
+        Assert.Equal(680, loaded.ExhaustM3h);
+        Assert.Equal(2, loaded.CirculationFanCount);
+        Assert.Equal(HvacControllerType.Manual, loaded.HvacController);
+        Assert.Equal("climate.tent", loaded.HvacControllerEntityId);
+        Assert.True(loaded.Co2Available);
+        Assert.Equal("camera.tent", loaded.CameraEntityId);
     }
 
     [Fact]
