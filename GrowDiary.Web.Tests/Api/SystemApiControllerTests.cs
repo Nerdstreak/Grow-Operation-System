@@ -40,9 +40,10 @@ public sealed class SystemApiControllerTests : IDisposable
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<BackendReleaseReadinessDto>(ok.Value);
-        Assert.Equal("backend.v0.6-ready-not-v1.0", dto.Status);
+        Assert.Equal("backend.v0.7-ready-not-v1.0", dto.Status);
         Assert.Contains(dto.CompletedFoundations, value => value == "zero-tent-startup");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-v1");
+        Assert.Contains(dto.CompletedFoundations, value => value == "api-contract-manifest");
         Assert.Contains(dto.RemainingBeforeV1, value => value == "versioned-database-migrations");
         Assert.Contains(dto.Checks, check => check.Key == "restore_api" && check.Status == "todo");
     }
@@ -57,6 +58,33 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.True(dto.ZeroTentStartupSupported);
         Assert.Contains(dto.Capabilities, capability => capability == "grow-requires-hydro-setup");
         Assert.Contains(dto.Capabilities, capability => capability == "local-backup-without-secrets");
+        Assert.Contains(dto.Capabilities, capability => capability == "api-contract-manifest");
+    }
+
+
+    [Fact]
+    public void ApiManifest_ListsCoreAreasEndpointsAndRules()
+    {
+        var result = _controller.ApiManifest();
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<ApiManifestDto>(ok.Value);
+        Assert.Equal("grow-os.api-manifest.v1", dto.SchemaVersion);
+        Assert.Equal("backend-core.v0.7-candidate", dto.BackendSchema);
+        Assert.Contains(dto.GlobalRules, rule => rule.Contains("HydroSetup", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(dto.Areas, area => area.Key == "tents");
+        Assert.Contains(dto.Areas, area => area.Key == "hydro-setups");
+        Assert.Contains(dto.Areas, area => area.Key == "grows");
+        Assert.Contains(dto.Areas, area => area.Key == "operations");
+        Assert.Contains(dto.Areas, area => area.Key == "export-backup-system");
+
+        var growArea = Assert.Single(dto.Areas, area => area.Key == "grows");
+        Assert.Contains(growArea.Endpoints, endpoint => endpoint.Method == "POST" && endpoint.Path == "/api/grows");
+        Assert.Contains(growArea.Endpoints.Single(endpoint => endpoint.Method == "POST" && endpoint.Path == "/api/grows").Rules,
+            rule => rule.Contains("SystemId", StringComparison.OrdinalIgnoreCase));
+
+        var systemArea = Assert.Single(dto.Areas, area => area.Key == "export-backup-system");
+        Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/api-manifest" && endpoint.LocalAdminOnly);
     }
 
     [Fact]

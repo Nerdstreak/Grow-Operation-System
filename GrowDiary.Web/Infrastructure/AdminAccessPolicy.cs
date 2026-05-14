@@ -13,7 +13,8 @@ public static class AdminAccessPolicy
            || path.StartsWithSegments("/api/settings", StringComparison.OrdinalIgnoreCase)
            || path.StartsWithSegments("/api/system/backup", StringComparison.OrdinalIgnoreCase)
            || path.StartsWithSegments("/api/system/release-readiness", StringComparison.OrdinalIgnoreCase)
-           || path.StartsWithSegments("/api/system/database-status", StringComparison.OrdinalIgnoreCase);
+           || path.StartsWithSegments("/api/system/database-status", StringComparison.OrdinalIgnoreCase)
+           || path.StartsWithSegments("/api/system/api-manifest", StringComparison.OrdinalIgnoreCase);
 
     public static bool CanAccess(HttpContext context)
     {
