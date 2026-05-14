@@ -10,8 +10,8 @@ public static class SetupTentCompatibilityPolicy
             TentType.Production => setupType == SetupType.Production,
             TentType.Mother => setupType == SetupType.Mother,
             TentType.Quarantine => setupType == SetupType.Quarantine,
-            TentType.MultiPurpose => setupType is SetupType.Production or SetupType.Mother or SetupType.Quarantine,
-            TentType.Propagation => false,
+            TentType.Propagation => setupType == SetupType.Propagation,
+            TentType.MultiPurpose => setupType is SetupType.Production or SetupType.Mother or SetupType.Quarantine or SetupType.Propagation,
             _ => false
         };
 }

@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type {
   CreateSetupRequest,
+  CreateTentRequest,
   CreateLightScheduleRequest,
   HomeAssistantSettingsDto,
   HvacControllerType,
@@ -65,8 +66,17 @@ type LightScheduleDraft = {
   source: LightSource
 }
 
+type TentDraft = {
+  name: string
+  kind: string
+  tentType: TentType
+  notes: string
+  displayOrder: string
+  accentColor: string
+}
+
 const tentTypeOptions: TentType[] = ['Production', 'Mother', 'Quarantine', 'Propagation', 'MultiPurpose']
-const setupTypeOptions: SetupType[] = ['Production', 'Mother', 'Quarantine']
+const setupTypeOptions: SetupType[] = ['Production', 'Mother', 'Quarantine', 'Propagation']
 const motherHealthOptions: Array<MotherHealthStatus | ''> = ['', 'Stable', 'Watch', 'Critical']
 const quarantineResultOptions: Array<QuarantineResult | ''> = ['', 'Pending', 'Cleared', 'Rejected']
 const strainDominanceOptions: StrainDominance[] = ['Unknown', 'Indica', 'Sativa', 'Hybrid']
@@ -118,6 +128,8 @@ function SettingsPage() {
   const [lightSchedulesByTent, setLightSchedulesByTent] = useState<Record<number, LightScheduleDto[]>>({})
   const [lightScheduleDrafts, setLightScheduleDrafts] = useState<Record<number, LightScheduleDraft>>({})
   const [lightScheduleErrors, setLightScheduleErrors] = useState<Record<number, string>>({})
+  const [tentDraft, setTentDraft] = useState<TentDraft>(createTentDraft())
+  const [tentCreateError, setTentCreateError] = useState<string | null>(null)
   const [setupDrafts, setSetupDrafts] = useState<Record<number, SetupDraft>>({})
   const [setupErrors, setSetupErrors] = useState<Record<number, string>>({})
   const [setupEditErrors, setSetupEditErrors] = useState<Record<number, string>>({})
@@ -195,6 +207,43 @@ function SettingsPage() {
       setSavedTentTypes((current) => ({ ...current, [saved.id]: saved.tentType }))
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Zelt konnte nicht gespeichert werden.')
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function handleCreateTent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const request: CreateTentRequest = {
+      name: tentDraft.name.trim(),
+      kind: tentDraft.kind.trim() || 'Grow Tent',
+      tentType: tentDraft.tentType,
+      notes: toNullableString(tentDraft.notes),
+      displayOrder: toInteger(tentDraft.displayOrder, settings?.tents.length ?? 99),
+      accentColor: tentDraft.accentColor.trim() || '#69b578',
+    }
+
+    if (!request.name) {
+      setTentCreateError('Name darf nicht leer sein.')
+      return
+    }
+
+    setSaving('tent-new')
+    setTentCreateError(null)
+    setError(null)
+
+    try {
+      const saved = await apiFetch<TentDto>('/api/settings/tents', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+
+      setSettings((current) => current ? { ...current, tents: [...current.tents, saved] } : current)
+      setSavedTentTypes((current) => ({ ...current, [saved.id]: saved.tentType }))
+      setTentDraft(createTentDraft((settings?.tents.length ?? 0) + 1))
+    } catch (caught) {
+      setTentCreateError(formatApiError(caught, 'Zelt konnte nicht angelegt werden.'))
     } finally {
       setSaving(null)
     }
@@ -614,7 +663,7 @@ function SettingsPage() {
                     </label>
                     <label className="field">
                       <span>Breeder</span>
-                      <input value={strain.breeder ?? ''} onChange={(event) => updateStrain(strain.id, { breeder: toNullableString(event.target.value) })} />
+                      <input value={strain.breeder ?? ''} onChange={(event) => updateStrain(strain.id, { breeder: event.target.value })} />
                     </label>
                     <label className="field">
                       <span>Dominanz</span>
@@ -702,6 +751,38 @@ function SettingsPage() {
         <div id="settings-setups" className="settings-anchor" aria-hidden="true" />
         <div id="settings-light" className="settings-anchor" aria-hidden="true" />
         <div id="settings-sensors" className="settings-anchor" aria-hidden="true" />
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-header"><span className="card-title">Zelt anlegen</span></div>
+          <form onSubmit={(event) => void handleCreateTent(event)} style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) minmax(130px, 0.9fr) minmax(130px, 0.8fr) minmax(90px, 0.5fr) auto', gap: 10, alignItems: 'end' }}>
+            <label className="field">
+              <span>Name</span>
+              <input value={tentDraft.name} onChange={(event) => setTentDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Mutter Zelt 1" />
+            </label>
+            <label className="field">
+              <span>Typbezeichnung</span>
+              <input value={tentDraft.kind} onChange={(event) => setTentDraft((current) => ({ ...current, kind: event.target.value }))} placeholder="Grow Tent" />
+            </label>
+            <label className="field">
+              <span>Zelt-Typ</span>
+              <select value={tentDraft.tentType} onChange={(event) => setTentDraft((current) => ({ ...current, tentType: event.target.value as TentType }))}>
+                {tentTypeOptions.map((value) => <option key={value} value={value}>{formatTentType(value)}</option>)}
+              </select>
+              <span className="field-hint">{describeTentType(tentDraft.tentType)}</span>
+            </label>
+            <label className="field">
+              <span>Sortierung</span>
+              <input type="number" value={tentDraft.displayOrder} onChange={(event) => setTentDraft((current) => ({ ...current, displayOrder: event.target.value }))} />
+            </label>
+            <button className="btn btn-primary" disabled={saving === 'tent-new'}>
+              {saving === 'tent-new' ? 'Legt an...' : 'Anlegen'}
+            </button>
+            <label className="field" style={{ gridColumn: '1 / -1' }}>
+              <span>Notizen</span>
+              <textarea rows={2} value={tentDraft.notes} onChange={(event) => setTentDraft((current) => ({ ...current, notes: event.target.value }))} placeholder="Wofür ist dieses Zelt gedacht?" />
+            </label>
+            {tentCreateError && <div style={{ gridColumn: '1 / -1', fontSize: 13, color: 'var(--red)' }}>{tentCreateError}</div>}
+          </form>
+        </div>
         <div className="tents-grid">
           {settings.tents.map((tent) => {
             const savedTentType = getSavedTentType(tent, savedTentTypes)
@@ -741,8 +822,9 @@ function SettingsPage() {
                   <label className="field">
                     <span>Tent-Typ</span>
                     <select value={tent.tentType} onChange={(event) => updateTent(tent.id, { tentType: event.target.value as TentType })}>
-                      {tentTypeOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                      {tentTypeOptions.map((value) => <option key={value} value={value}>{formatTentType(value)}</option>)}
                     </select>
+                    <span className="field-hint">{describeTentType(tent.tentType)}</span>
                   </label>
                   <label className="field">
                     <span>Sortierung</span>
@@ -754,13 +836,13 @@ function SettingsPage() {
                   </label>
                   <label className="field">
                     <span>Kamera</span>
-                    <input className="mono" value={tent.cameraEntityId ?? ''} onChange={(event) => updateTent(tent.id, { cameraEntityId: toNullableString(event.target.value) })} placeholder="camera.main_tent" />
+                    <input className="mono" value={tent.cameraEntityId ?? ''} onChange={(event) => updateTent(tent.id, { cameraEntityId: event.target.value })} placeholder="camera.main_tent" />
                   </label>
                 </div>
 
                 <label className="field">
                   <span>Notizen</span>
-                  <textarea rows={3} value={tent.notes ?? ''} onChange={(event) => updateTent(tent.id, { notes: toNullableString(event.target.value) })} />
+                  <textarea rows={3} value={tent.notes ?? ''} onChange={(event) => updateTent(tent.id, { notes: event.target.value })} />
                 </label>
 
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>
@@ -870,7 +952,7 @@ function SettingsPage() {
                   {hasUnsavedTentType ? (
                     <div className="field-hint">Zelttyp erst speichern, bevor Setups angelegt werden.</div>
                   ) : allowedSetupTypes.length === 0 ? (
-                    <div className="field-hint">Propagation wird später unterstützt.</div>
+                    <div className="field-hint">Für diesen Zelttyp sind keine Setup-Typen verfügbar.</div>
                   ) : (
                     <form onSubmit={(event) => void handleCreateSetup(event, tent)} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(130px, 170px)', gap: 10, alignItems: 'end' }}>
                       <label className="field">
@@ -959,7 +1041,7 @@ function SettingsPage() {
                           </label>
                           <label className="field">
                             <span>TimeZoneId</span>
-                            <input value={schedule.timeZoneId ?? ''} onChange={(event) => updateLightSchedule(schedule.id, tent.id, { timeZoneId: toNullableString(event.target.value) })} placeholder="Europe/Berlin" />
+                            <input value={schedule.timeZoneId ?? ''} onChange={(event) => updateLightSchedule(schedule.id, tent.id, { timeZoneId: event.target.value })} placeholder="Europe/Berlin" />
                           </label>
                           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, paddingBottom: 9 }}>
                             <input type="checkbox" style={{ width: 'auto' }} checked={schedule.isActive} onChange={(event) => updateLightSchedule(schedule.id, tent.id, { isActive: event.target.checked })} />
@@ -1027,7 +1109,7 @@ function SettingsPage() {
                   </label>
                   <label className="field">
                     <span>Lichttyp</span>
-                    <input value={tent.lightType ?? ''} onChange={(event) => updateTent(tent.id, { lightType: toNullableString(event.target.value) })} placeholder="LED Bar 480W" />
+                    <input value={tent.lightType ?? ''} onChange={(event) => updateTent(tent.id, { lightType: event.target.value })} placeholder="LED Bar 480W" />
                   </label>
                   <label className="field">
                     <span>Licht Watt</span>
@@ -1042,7 +1124,7 @@ function SettingsPage() {
                   </label>
                   <label className="field" style={{ gridColumn: '1 / -1' }}>
                     <span>Licht-Controller Entity</span>
-                    <input className="mono" value={tent.lightControllerEntityId ?? ''} onChange={(event) => updateTent(tent.id, { lightControllerEntityId: toNullableString(event.target.value) })} placeholder="climate.light_controller" />
+                    <input className="mono" value={tent.lightControllerEntityId ?? ''} onChange={(event) => updateTent(tent.id, { lightControllerEntityId: event.target.value })} placeholder="climate.light_controller" />
                   </label>
                 </div>
 
@@ -1071,7 +1153,7 @@ function SettingsPage() {
                   </label>
                   <label className="field" style={{ gridColumn: '1 / -1' }}>
                     <span>HVAC-Controller Entity</span>
-                    <input className="mono" value={tent.hvacControllerEntityId ?? ''} onChange={(event) => updateTent(tent.id, { hvacControllerEntityId: toNullableString(event.target.value) })} placeholder="climate.hvac_controller" />
+                    <input className="mono" value={tent.hvacControllerEntityId ?? ''} onChange={(event) => updateTent(tent.id, { hvacControllerEntityId: event.target.value })} placeholder="climate.hvac_controller" />
                   </label>
                 </div>
 
@@ -1095,7 +1177,7 @@ function SettingsPage() {
                             <input
                               className="mono"
                               value={sensor.haEntityId}
-                              onChange={(event) => updateTentSensor(tent.id, definition.metricType, { haEntityId: event.target.value, isActive: sensor.isActive || event.target.value.trim().length > 0 })}
+                              onChange={(event) => updateTentSensor(tent.id, definition.metricType, { haEntityId: event.target.value, isActive: sensor.isActive || event.target.value.length > 0 })}
                               placeholder={definition.placeholder ?? 'sensor.entity_id'}
                             />
                           </label>
@@ -1103,7 +1185,7 @@ function SettingsPage() {
                             <span>Display-Label</span>
                             <input
                               value={sensor.displayLabel ?? ''}
-                              onChange={(event) => updateTentSensor(tent.id, definition.metricType, { displayLabel: toNullableString(event.target.value) })}
+                              onChange={(event) => updateTentSensor(tent.id, definition.metricType, { displayLabel: event.target.value })}
                               placeholder={definition.label}
                             />
                           </label>
@@ -1200,6 +1282,17 @@ function createLightScheduleDraft(): LightScheduleDraft {
   }
 }
 
+function createTentDraft(displayOrder = 99): TentDraft {
+  return {
+    name: '',
+    kind: 'Grow Tent',
+    tentType: 'Production',
+    notes: '',
+    displayOrder: String(displayOrder),
+    accentColor: '#69b578',
+  }
+}
+
 function getLightScheduleDraft(tentId: number, drafts: Record<number, LightScheduleDraft>): LightScheduleDraft {
   return drafts[tentId] ?? createLightScheduleDraft()
 }
@@ -1243,7 +1336,37 @@ function getAllowedSetupTypes(tentType: TentType): SetupType[] {
     case 'MultiPurpose':
       return setupTypeOptions
     case 'Propagation':
-      return []
+      return ['Propagation']
+  }
+}
+
+function formatTentType(tentType: TentType): string {
+  switch (tentType) {
+    case 'Production':
+      return 'Blüte / Run'
+    case 'Mother':
+      return 'Mutter'
+    case 'Propagation':
+      return 'Anzucht'
+    case 'Quarantine':
+      return 'Quarantäne'
+    case 'MultiPurpose':
+      return 'Mehrzweck'
+  }
+}
+
+function describeTentType(tentType: TentType): string {
+  switch (tentType) {
+    case 'Production':
+      return 'Für laufende Blüte- und Production-Runs.'
+    case 'Mother':
+      return 'Für Mutterpflanzen und Clone-Quelle.'
+    case 'Propagation':
+      return 'Für Anzucht, Stecklinge und frühe Propagation.'
+    case 'Quarantine':
+      return 'Für Beobachtung, Isolation und Freigabe.'
+    case 'MultiPurpose':
+      return 'Für mehrere passende Setup-Typen.'
   }
 }
 

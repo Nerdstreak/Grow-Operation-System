@@ -675,7 +675,7 @@ function HardwarePage() {
                     </button>
                     <label className="field" style={{ gridColumn: '1 / 5' }}>
                       <span>Notes</span>
-                      <input value={item.notes ?? ''} onChange={(event) => updateHardwareItem(item.id, { notes: toNullableString(event.target.value) })} />
+                      <input value={item.notes ?? ''} onChange={(event) => updateHardwareItem(item.id, { notes: event.target.value })} />
                     </label>
                     <label className="field" style={{ gridColumn: '5 / 7' }}>
                       <span>RetiredAtUtc</span>
@@ -825,7 +825,7 @@ function HardwarePage() {
                     </div>
                     <label className="field" style={{ gridColumn: '2 / -1' }}>
                       <span>Notes</span>
-                      <input value={item.notes ?? ''} onChange={(event) => updateMaintenanceEvent(item.id, { notes: toNullableString(event.target.value) })} />
+                      <input value={item.notes ?? ''} onChange={(event) => updateMaintenanceEvent(item.id, { notes: event.target.value })} />
                     </label>
                   </div>
                 ))}
@@ -955,7 +955,7 @@ function HardwarePage() {
                     </label>
                     <label className="field" style={{ gridColumn: '3 / -1' }}>
                       <span>Notes</span>
-                      <input value={item.notes ?? ''} onChange={(event) => updateCalibrationEvent(item.id, { notes: toNullableString(event.target.value) })} />
+                      <input value={item.notes ?? ''} onChange={(event) => updateCalibrationEvent(item.id, { notes: event.target.value })} />
                     </label>
                   </div>
                 ))}
@@ -1107,11 +1107,11 @@ function HardwarePage() {
                       </button>
                       <label className="field" style={{ gridColumn: '1 / 5' }}>
                         <span>DedupeKey</span>
-                        <input value={item.dedupeKey ?? ''} onChange={(event) => updateRiskEvent(item.id, { dedupeKey: toNullableString(event.target.value) })} />
+                        <input value={item.dedupeKey ?? ''} onChange={(event) => updateRiskEvent(item.id, { dedupeKey: event.target.value })} />
                       </label>
                       <label className="field" style={{ gridColumn: '5 / -1' }}>
                         <span>Notes</span>
-                        <input value={item.notes ?? ''} onChange={(event) => updateRiskEvent(item.id, { notes: toNullableString(event.target.value) })} />
+                        <input value={item.notes ?? ''} onChange={(event) => updateRiskEvent(item.id, { notes: event.target.value })} />
                       </label>
                       {canShowRecommendations && (
                         <div style={{ gridColumn: '1 / -1', display: 'grid', gap: 6, borderTop: '1px solid var(--border)', paddingTop: 8 }}>

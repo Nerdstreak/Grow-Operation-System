@@ -87,7 +87,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 ### Datenbank-Schema-Highlights
 
 - `Tents`: Multi-Tent-faehig mit `TentType` (`Production`, `Mother`, `Quarantine`, `Propagation`, `MultiPurpose`).
-- `Setups`: Additives Grundmodell mit `SetupType` (`Production`, `Mother`, `Quarantine`), `SetupStatus` und optionalen Mother-/Quarantine-Basisfeldern.
+- `Setups`: Additives Grundmodell mit `SetupType` (`Production`, `Mother`, `Quarantine`, `Propagation`), `SetupStatus` und optionalen Mother-/Quarantine-Basisfeldern.
 - `Strains` und `PlantInstances`: Sorten und einzelne Pflanzen/Clones mit optionaler `ParentPlantId`-Lineage; Mother-Plants koennen per API Clone erzeugen, Quarantine-Plants koennen entschieden werden.
 - `TentSensors`: flexible Sensor-Liste pro Tent statt hartkodierter Sensor-Felder.
 - `Grows`: aktuelles All-in-one Grow-Modell; `SetupId` kann optional ein Production-Setup referenzieren. Mother/Quarantine sind keine GrowRun-Setups.

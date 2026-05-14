@@ -1,6 +1,7 @@
 using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Api.Mapping;
 using GrowDiary.Web.Infrastructure;
+using GrowDiary.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GrowDiary.Web.Api.Controllers;
@@ -49,6 +50,25 @@ public sealed class SettingsApiController : ApiControllerBase
     public ActionResult<IReadOnlyList<TentDto>> Tents()
         => Ok(_repository.GetTents().Select(tent => tent.ToDto()).ToList());
 
+    [HttpPost("tents")]
+    [ProducesResponseType(typeof(TentDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    public ActionResult<TentDto> CreateTent([FromBody] CreateTentRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationError();
+        }
+
+        if (!ValidateTentRequest(request.Name, request.TentType))
+        {
+            return ValidationError();
+        }
+
+        var created = _repository.CreateTent(request.ToModel());
+        return CreatedAtAction(nameof(Tents), new { id = created.Id }, created.ToDto());
+    }
+
     [HttpPut("tents/{id:int}")]
     [ProducesResponseType(typeof(TentDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
@@ -66,9 +86,8 @@ public sealed class SettingsApiController : ApiControllerBase
             return NotFoundError("tent_not_found", $"Zelt mit Id {id} existiert nicht.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.Name))
+        if (!ValidateTentRequest(request.Name, request.TentType))
         {
-            ModelState.AddModelError(nameof(request.Name), "Bitte gib dem Zelt einen Namen.");
             return ValidationError();
         }
 
@@ -79,5 +98,20 @@ public sealed class SettingsApiController : ApiControllerBase
         }
 
         return Ok(_repository.GetTent(id)!.ToDto());
+    }
+
+    private bool ValidateTentRequest(string name, string? tentType)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            ModelState.AddModelError(nameof(UpdateTentRequest.Name), "Bitte gib dem Zelt einen Namen.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(tentType) && !Enum.TryParse<TentType>(tentType, out _))
+        {
+            ModelState.AddModelError(nameof(UpdateTentRequest.TentType), $"Tent-Typ {tentType} ist nicht erlaubt.");
+        }
+
+        return ModelState.IsValid;
     }
 }

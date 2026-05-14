@@ -119,6 +119,11 @@ public sealed class GrowsApiController : ApiControllerBase
             return ValidationError();
         }
 
+        if (!ValidateHydroStyle(grow.HydroStyle))
+        {
+            return ValidationError();
+        }
+
         var growId = _repository.CreateGrow(grow);
 
         var savedGrow = _repository.GetGrow(growId)!;
@@ -172,6 +177,11 @@ public sealed class GrowsApiController : ApiControllerBase
         }
 
         if (!ValidateSetupAssignment(grow, nameof(request.SetupId)))
+        {
+            return ValidationError();
+        }
+
+        if (!ValidateHydroStyle(grow.HydroStyle))
         {
             return ValidationError();
         }
@@ -255,5 +265,16 @@ public sealed class GrowsApiController : ApiControllerBase
         }
 
         return true;
+    }
+
+    private bool ValidateHydroStyle(HydroStyle hydroStyle)
+    {
+        if (hydroStyle is HydroStyle.DWC or HydroStyle.RDWC)
+        {
+            return true;
+        }
+
+        ModelState.AddModelError(nameof(GrowUpsertRequest.HydroStyle), "Grow OS unterstuetzt neue Grows aktuell nur mit DWC oder RDWC.");
+        return false;
     }
 }

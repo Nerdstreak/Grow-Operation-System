@@ -129,6 +129,16 @@ public static class RequestMapping
         CameraEntityId = Normalize(request.CameraEntityId)
     };
 
+    public static Tent ToModel(this CreateTentRequest request) => new()
+    {
+        Name = string.IsNullOrWhiteSpace(request.Name) ? string.Empty : request.Name.Trim(),
+        Kind = string.IsNullOrWhiteSpace(request.Kind) ? "Grow Tent" : request.Kind.Trim(),
+        TentType = Enum.TryParse<TentType>(request.TentType, out var tt) ? tt : TentType.MultiPurpose,
+        Notes = Normalize(request.Notes),
+        DisplayOrder = request.DisplayOrder,
+        AccentColor = string.IsNullOrWhiteSpace(request.AccentColor) ? "#69b578" : request.AccentColor.Trim()
+    };
+
     public static List<TentSensor> ToSensors(this UpdateTentRequest request, int tentId)
         => (request.Sensors ?? [])
             .Select(sensor =>

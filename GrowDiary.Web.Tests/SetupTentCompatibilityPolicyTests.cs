@@ -15,6 +15,7 @@ public sealed class SetupTentCompatibilityPolicyTests
     [InlineData(TentType.Quarantine, SetupType.Production, false)]
     [InlineData(TentType.Quarantine, SetupType.Mother, false)]
     [InlineData(TentType.Quarantine, SetupType.Quarantine, true)]
+    [InlineData(TentType.Propagation, SetupType.Propagation, true)]
     public void IsCompatible_EnforcesDedicatedTentRules(TentType tentType, SetupType setupType, bool expected)
     {
         Assert.Equal(expected, SetupTentCompatibilityPolicy.IsCompatible(tentType, setupType));
@@ -24,17 +25,9 @@ public sealed class SetupTentCompatibilityPolicyTests
     [InlineData(SetupType.Production)]
     [InlineData(SetupType.Mother)]
     [InlineData(SetupType.Quarantine)]
+    [InlineData(SetupType.Propagation)]
     public void IsCompatible_AllowsB2aSetupTypesInMultiPurposeTent(SetupType setupType)
     {
         Assert.True(SetupTentCompatibilityPolicy.IsCompatible(TentType.MultiPurpose, setupType));
-    }
-
-    [Theory]
-    [InlineData(SetupType.Production)]
-    [InlineData(SetupType.Mother)]
-    [InlineData(SetupType.Quarantine)]
-    public void IsCompatible_DoesNotAllowPropagationTentInB2a1(SetupType setupType)
-    {
-        Assert.False(SetupTentCompatibilityPolicy.IsCompatible(TentType.Propagation, setupType));
     }
 }
