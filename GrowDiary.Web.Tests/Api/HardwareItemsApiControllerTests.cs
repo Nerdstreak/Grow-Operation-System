@@ -37,10 +37,12 @@ public sealed class HardwareItemsApiControllerTests : IDisposable
     public void Api_CreateFromWearTemplateListsGetsAndUpdatesHardwareItem()
     {
         var tent = _repository.GetTents().Single();
+        var hydroSetup = CreateHydroSetup(tent.Id);
 
         var create = _controller.Create(new CreateHardwareItemRequest
         {
             TentId = tent.Id,
+            HydroSetupId = hydroSetup.Id,
             WearTemplateId = "ph-probe",
             Status = HardwareItemStatus.Active,
             Criticality = HardwareItemCriticality.High,
@@ -52,6 +54,7 @@ public sealed class HardwareItemsApiControllerTests : IDisposable
         Assert.Equal("Sensor", dto.Category);
         Assert.Equal(450, dto.ExpectedLifespanDays);
         Assert.Equal(30, dto.InspectionIntervalDays);
+        Assert.Equal(hydroSetup.Id, dto.HydroSetupId);
 
         var detail = Assert.IsType<OkObjectResult>(_controller.Detail(dto.Id).Result);
         Assert.Equal(dto.Id, Assert.IsType<HardwareItemDto>(detail.Value).Id);
@@ -62,6 +65,9 @@ public sealed class HardwareItemsApiControllerTests : IDisposable
         var listByStatus = Assert.IsType<OkObjectResult>(_controller.List(null, HardwareItemStatus.Active).Result);
         Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<HardwareItemDto>>(listByStatus.Value));
 
+        var listByHydroSetup = Assert.IsType<OkObjectResult>(_controller.List(hydroSetupId: hydroSetup.Id).Result);
+        Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<HardwareItemDto>>(listByHydroSetup.Value));
+
         var update = _controller.Update(dto.Id, new UpdateHardwareItemRequest
         {
             Name = "pH Sonde aktualisiert",
@@ -69,6 +75,7 @@ public sealed class HardwareItemsApiControllerTests : IDisposable
             Status = HardwareItemStatus.Retired,
             Criticality = HardwareItemCriticality.Critical,
             TentId = tent.Id,
+            HydroSetupId = hydroSetup.Id,
             WearTemplateId = dto.WearTemplateId,
             InstalledAtUtc = dto.InstalledAtUtc,
             Notes = "Ausgetauscht"
@@ -77,6 +84,7 @@ public sealed class HardwareItemsApiControllerTests : IDisposable
         var updated = Assert.IsType<HardwareItemDto>(ok.Value);
         Assert.Equal("pH Sonde aktualisiert", updated.Name);
         Assert.Equal(HardwareItemStatus.Retired, updated.Status);
+        Assert.Equal(hydroSetup.Id, updated.HydroSetupId);
         Assert.NotNull(updated.RetiredAtUtc);
     }
 
@@ -109,6 +117,15 @@ public sealed class HardwareItemsApiControllerTests : IDisposable
             SetupId = 9999
         });
         Assert.Contains(nameof(CreateHardwareItemRequest.SetupId), AssertValidationError(missingSetup.Result).FieldErrors!.Keys);
+
+        _controller.ModelState.Clear();
+        var missingHydroSetup = _controller.Create(new CreateHardwareItemRequest
+        {
+            Name = "Bad",
+            Category = "Sensor",
+            HydroSetupId = 9999
+        });
+        Assert.Contains(nameof(CreateHardwareItemRequest.HydroSetupId), AssertValidationError(missingHydroSetup.Result).FieldErrors!.Keys);
 
         _controller.ModelState.Clear();
         var missingGrow = _controller.Create(new CreateHardwareItemRequest
@@ -155,6 +172,22 @@ public sealed class HardwareItemsApiControllerTests : IDisposable
             Criticality = (HardwareItemCriticality)99
         });
         Assert.Contains(nameof(CreateHardwareItemRequest.Criticality), AssertValidationError(badCriticality.Result).FieldErrors!.Keys);
+    }
+
+    private GrowSystem CreateHydroSetup(int tentId)
+    {
+        return _repository.CreateHydroSetup(new GrowSystem
+        {
+            TentId = tentId,
+            Name = "RDWC Testsystem",
+            HydroStyle = HydroStyle.RDWC.ToString(),
+            PotCount = 4,
+            PotSizeLiters = 19d,
+            ReservoirLiters = 60d,
+            LayoutType = HydroSetupLayoutType.Grid2x2,
+            ReservoirPosition = ReservoirPosition.External,
+            Status = HydroSetupStatus.Active
+        });
     }
 
     private static ApiError AssertValidationError(ActionResult? result)

@@ -36,6 +36,7 @@ public sealed class HardwareItemRepositoryTests : IDisposable
         {
             "IX_HardwareItems_TentId",
             "IX_HardwareItems_SetupId",
+            "IX_HardwareItems_HydroSetupId",
             "IX_HardwareItems_GrowId",
             "IX_HardwareItems_WearTemplateId",
             "IX_HardwareItems_Status",
@@ -54,6 +55,7 @@ public sealed class HardwareItemRepositoryTests : IDisposable
     {
         var repo = new GrowRepository(_paths);
         var tent = repo.GetTents().Single();
+        var hydroSetup = CreateHydroSetup(repo, tent.Id);
 
         var created = repo.CreateHardwareItem(new HardwareItem
         {
@@ -62,6 +64,7 @@ public sealed class HardwareItemRepositoryTests : IDisposable
             Status = HardwareItemStatus.Active,
             Criticality = HardwareItemCriticality.High,
             TentId = tent.Id,
+            HydroSetupId = hydroSetup.Id,
             WearTemplateId = "ph-probe",
             HaEntityId = "sensor.ph",
             Manufacturer = "Atlas",
@@ -76,6 +79,7 @@ public sealed class HardwareItemRepositoryTests : IDisposable
         var loaded = repo.GetHardwareItem(created.Id)!;
         Assert.Equal("pH Sonde", loaded.Name);
         Assert.Equal(tent.Id, loaded.TentId);
+        Assert.Equal(hydroSetup.Id, loaded.HydroSetupId);
         Assert.Equal(HardwareItemStatus.Active, loaded.Status);
 
         loaded.Name = "pH Sonde aktualisiert";
@@ -88,10 +92,29 @@ public sealed class HardwareItemRepositoryTests : IDisposable
         Assert.Equal("pH Sonde aktualisiert", byTent.Name);
         Assert.Equal(HardwareItemCriticality.Critical, byTent.Criticality);
 
+        var byHydroSetup = repo.GetHardwareItemsByHydroSetup(hydroSetup.Id).Single();
+        Assert.Equal(created.Id, byHydroSetup.Id);
+
         var byStatus = repo.GetHardwareItemsByStatus(HardwareItemStatus.MaintenanceDue).Single();
         Assert.Equal(created.Id, byStatus.Id);
 
         Assert.Single(repo.GetHardwareItems());
+    }
+
+    private static GrowSystem CreateHydroSetup(GrowRepository repo, int tentId)
+    {
+        return repo.CreateHydroSetup(new GrowSystem
+        {
+            TentId = tentId,
+            Name = "RDWC Testsystem",
+            HydroStyle = HydroStyle.RDWC.ToString(),
+            PotCount = 4,
+            PotSizeLiters = 19d,
+            ReservoirLiters = 60d,
+            LayoutType = HydroSetupLayoutType.Grid2x2,
+            ReservoirPosition = ReservoirPosition.External,
+            Status = HydroSetupStatus.Active
+        });
     }
 
     private SqliteConnection OpenConnection()

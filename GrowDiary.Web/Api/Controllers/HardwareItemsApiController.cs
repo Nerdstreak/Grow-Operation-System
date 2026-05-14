@@ -24,11 +24,17 @@ public sealed class HardwareItemsApiController : ApiControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<HardwareItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
-    public ActionResult<IReadOnlyList<HardwareItemDto>> List([FromQuery] int? tentId = null, [FromQuery] HardwareItemStatus? status = null)
+    public ActionResult<IReadOnlyList<HardwareItemDto>> List([FromQuery] int? tentId = null, [FromQuery] HardwareItemStatus? status = null, [FromQuery] int? hydroSetupId = null)
     {
         if (tentId.HasValue && _repository.GetTent(tentId.Value) is null)
         {
             ModelState.AddModelError(nameof(tentId), $"Zelt mit Id {tentId.Value} existiert nicht.");
+            return ValidationError();
+        }
+
+        if (hydroSetupId.HasValue && _repository.GetHydroSetup(hydroSetupId.Value) is null)
+        {
+            ModelState.AddModelError(nameof(hydroSetupId), $"HydroSetup mit Id {hydroSetupId.Value} existiert nicht.");
             return ValidationError();
         }
 
@@ -38,11 +44,13 @@ public sealed class HardwareItemsApiController : ApiControllerBase
             return ValidationError();
         }
 
-        var items = tentId.HasValue
-            ? _repository.GetHardwareItemsByTent(tentId.Value)
-            : status.HasValue
-                ? _repository.GetHardwareItemsByStatus(status.Value)
-                : _repository.GetHardwareItems();
+        var items = hydroSetupId.HasValue
+            ? _repository.GetHardwareItemsByHydroSetup(hydroSetupId.Value)
+            : tentId.HasValue
+                ? _repository.GetHardwareItemsByTent(tentId.Value)
+                : status.HasValue
+                    ? _repository.GetHardwareItemsByStatus(status.Value)
+                    : _repository.GetHardwareItems();
 
         return Ok(items.Select(item => item.ToDto()).ToList());
     }
@@ -64,7 +72,7 @@ public sealed class HardwareItemsApiController : ApiControllerBase
     public ActionResult<HardwareItemDto> Create([FromBody] CreateHardwareItemRequest request)
     {
         ApplyWearTemplateDefaults(request);
-        Validate(request.Name, request.Category, request.Status, request.Criticality, request.TentId, request.SetupId, request.GrowId, request.TentSensorId, request.InstalledAtUtc, request.RetiredAtUtc);
+        Validate(request.Name, request.Category, request.Status, request.Criticality, request.TentId, request.SetupId, request.HydroSetupId, request.GrowId, request.TentSensorId, request.InstalledAtUtc, request.RetiredAtUtc);
         if (!ModelState.IsValid)
         {
             return ValidationError();
@@ -91,7 +99,7 @@ public sealed class HardwareItemsApiController : ApiControllerBase
             return NotFoundError("hardware_item_not_found", $"HardwareItem mit Id {id} existiert nicht.");
         }
 
-        Validate(request.Name, request.Category, request.Status, request.Criticality, request.TentId, request.SetupId, request.GrowId, request.TentSensorId, request.InstalledAtUtc, request.RetiredAtUtc);
+        Validate(request.Name, request.Category, request.Status, request.Criticality, request.TentId, request.SetupId, request.HydroSetupId, request.GrowId, request.TentSensorId, request.InstalledAtUtc, request.RetiredAtUtc);
         if (!ModelState.IsValid)
         {
             return ValidationError();
@@ -130,6 +138,7 @@ public sealed class HardwareItemsApiController : ApiControllerBase
         HardwareItemCriticality criticality,
         int? tentId,
         int? setupId,
+        int? hydroSetupId,
         int? growId,
         int? tentSensorId,
         DateTime? installedAtUtc,
@@ -163,6 +172,17 @@ public sealed class HardwareItemsApiController : ApiControllerBase
         if (setupId.HasValue && _repository.GetSetup(setupId.Value) is null)
         {
             ModelState.AddModelError(nameof(CreateHardwareItemRequest.SetupId), $"Setup mit Id {setupId.Value} existiert nicht.");
+        }
+
+        var hydroSetup = hydroSetupId.HasValue ? _repository.GetHydroSetup(hydroSetupId.Value) : null;
+        if (hydroSetupId.HasValue && hydroSetup is null)
+        {
+            ModelState.AddModelError(nameof(CreateHardwareItemRequest.HydroSetupId), $"HydroSetup mit Id {hydroSetupId.Value} existiert nicht.");
+        }
+
+        if (hydroSetup is not null && tentId.HasValue && hydroSetup.TentId.HasValue && hydroSetup.TentId.Value != tentId.Value)
+        {
+            ModelState.AddModelError(nameof(CreateHardwareItemRequest.HydroSetupId), "HydroSetup gehoert nicht zum angegebenen Zelt.");
         }
 
         if (growId.HasValue && _repository.GetGrow(growId.Value) is null)

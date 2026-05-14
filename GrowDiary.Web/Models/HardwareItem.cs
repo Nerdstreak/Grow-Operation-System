@@ -9,6 +9,7 @@ public sealed class HardwareItem
     public HardwareItemCriticality Criticality { get; set; } = HardwareItemCriticality.Medium;
     public int? TentId { get; set; }
     public int? SetupId { get; set; }
+    public int? HydroSetupId { get; set; }
     public int? GrowId { get; set; }
     public string? WearTemplateId { get; set; }
     public int? TentSensorId { get; set; }
