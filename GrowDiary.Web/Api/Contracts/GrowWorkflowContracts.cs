@@ -15,7 +15,6 @@ public sealed record AddbackDefaultsDto(
 
 public sealed class AddbackCalculateRequest
 {
-    [Required]
     public double? ReservoirLiters { get; set; }
 
     [Required]
