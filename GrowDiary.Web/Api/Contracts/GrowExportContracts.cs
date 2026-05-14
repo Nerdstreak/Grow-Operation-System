@@ -2,8 +2,11 @@ namespace GrowDiary.Web.Api.Contracts;
 
 public sealed record GrowExportDto(
     string SchemaVersion,
+    string ExportId,
     DateTime ExportedAtUtc,
     bool Anonymized,
+    string IntegrityHash,
+    GrowExportSectionCountsDto SectionCounts,
     GrowDetailDto Grow,
     TentDto? TentSnapshot,
     HydroSetupDto? HydroSetupSnapshot,
@@ -15,6 +18,29 @@ public sealed record GrowExportDto(
     IReadOnlyList<AddbackLogDto> AddbackLogs,
     IReadOnlyList<ChangeoutDto> Changeouts,
     IReadOnlyList<PhotoAssetDto> Photos,
+    IReadOnlyList<string> Warnings);
+
+public sealed record GrowExportSectionCountsDto(
+    int Measurements,
+    int JournalEntries,
+    int Tasks,
+    int HardwareItems,
+    int AddbackLogs,
+    int Changeouts,
+    int Photos);
+
+public sealed record GrowExportValidationDto(
+    string ValidationSchema,
+    DateTime CheckedAtUtc,
+    string? ExportSchemaVersion,
+    string? ExportId,
+    bool IsValid,
+    bool IntegrityHashValid,
+    bool SectionCountsValid,
+    bool ContainsPotentialSecrets,
+    GrowExportSectionCountsDto? DeclaredSectionCounts,
+    GrowExportSectionCountsDto? ActualSectionCounts,
+    IReadOnlyList<string> Errors,
     IReadOnlyList<string> Warnings);
 
 public sealed record BackendHealthDto(

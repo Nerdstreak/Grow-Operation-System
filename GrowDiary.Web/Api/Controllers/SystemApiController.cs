@@ -30,7 +30,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new BackendHealthDto(
             AppName: "Grow OS",
-            BackendSchema: "backend-core.v0.7-candidate",
+            BackendSchema: "backend-core.v0.8-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             TentCount: tents.Count,
             HydroSetupCount: hydroSetups.Count,
@@ -50,7 +50,9 @@ public sealed class SystemApiController : ApiControllerBase
                 "local-backup-without-secrets",
                 "database-status",
                 "backup-validation",
-                "api-contract-manifest"
+                "api-contract-manifest",
+                "grow-export-integrity",
+                "grow-export-validation"
             }));
     }
 
@@ -72,6 +74,8 @@ public sealed class SystemApiController : ApiControllerBase
             new("database_status", "pass", "Das Backend stellt einen Datenbank-Status mit Schema-Version und Pflichttabellen-/Spaltencheck bereit."),
             new("backup_validation", "pass", "Backups können vor einem Restore auf Struktur und ausgeschlossene Secrets geprüft werden."),
             new("api_contract_manifest", "pass", "Das Backend liefert ein maschinenlesbares API-Manifest für Kernbereiche, Endpunkte und Produktregeln."),
+            new("export_integrity", "pass", "Grow-Exports enthalten ExportId, SectionCounts und IntegrityHash."),
+            new("import_validate", "pass", "Grow-Export-Dateien können serverseitig validiert werden, ohne Daten zu importieren."),
             new("restore_api", "todo", "Ein validierter Restore-Flow ist noch nicht implementiert."),
             new("migration_engine", "todo", "Explizite versionierte Migrationen fehlen noch; aktuell arbeitet das Backend mit additiven Schema-Checks."),
             new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
@@ -79,8 +83,8 @@ public sealed class SystemApiController : ApiControllerBase
         };
 
         return Ok(new BackendReleaseReadinessDto(
-            Status: "backend.v0.7-ready-not-v1.0",
-            BackendSchema: "backend-core.v0.7-candidate",
+            Status: "backend.v0.8-ready-not-v1.0",
+            BackendSchema: "backend-core.v0.8-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
             CompletedFoundations: new[]
@@ -97,7 +101,9 @@ public sealed class SystemApiController : ApiControllerBase
                 "local-backup-without-secrets",
                 "database-status",
                 "backup-validation",
-                "api-contract-manifest"
+                "api-contract-manifest",
+                "grow-export-integrity",
+                "grow-export-validation"
             },
             RemainingBeforeV1: new[]
             {
@@ -121,6 +127,7 @@ public sealed class SystemApiController : ApiControllerBase
             "Neue Grows benötigen ein aktives HydroSetup.",
             "HydroSetups sind im MVP DWC/RDWC-only.",
             "Secrets wie Home-Assistant-Tokens dürfen nicht in API-Responses, Exports oder Backups erscheinen.",
+            "Grow-Exports müssen SectionCounts und IntegrityHash tragen, bevor sie importiert werden dürfen.",
             "Administrative System-Endpunkte sind lokal/admin-geschützt.",
             "Runtime-Daten aus App_Data werden nicht als Source-Artefakte behandelt."
         };
@@ -199,7 +206,8 @@ public sealed class SystemApiController : ApiControllerBase
                 Description: "Produktnahe Systemendpunkte für Export, Backup, Schema und Release-Readiness.",
                 Endpoints: new[]
                 {
-                    Endpoint("GET", "/api/exports/grows/{id}", "Grow exportieren.", false, "anonymize=true entfernt/neutralisiert nutzerbezogene Angaben."),
+                    Endpoint("GET", "/api/exports/grows/{id}", "Grow exportieren.", false, "anonymize=true entfernt/neutralisiert nutzerbezogene Angaben.", "Export enthält ExportId, SectionCounts und IntegrityHash."),
+                    Endpoint("POST", "/api/exports/grows/validate", "Grow-Export validieren, ohne Daten zu importieren.", false, "Prüft SchemaVersion, SectionCounts, IntegrityHash und potenzielle Secrets."),
                     Endpoint("GET", "/api/system/backend-health", "Backend-Zustand und Capabilities laden.", false),
                     Endpoint("GET", "/api/system/release-readiness", "Release-Readiness prüfen.", true),
                     Endpoint("GET", "/api/system/database-status", "Datenbankstatus und Pflichtschema prüfen.", true),
@@ -212,7 +220,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new ApiManifestDto(
             SchemaVersion: "grow-os.api-manifest.v1",
-            BackendSchema: "backend-core.v0.7-candidate",
+            BackendSchema: "backend-core.v0.8-candidate",
             GeneratedAtUtc: DateTime.UtcNow,
             GlobalRules: globalRules,
             Areas: areas));
