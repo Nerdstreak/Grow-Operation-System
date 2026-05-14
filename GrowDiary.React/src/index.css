@@ -722,10 +722,27 @@ label:has(input[type="checkbox"]) {
     flex: 1 1 100%;
   }
   .systems-form,
+  .hydro-builder-step,
+  .hydro-choice-grid,
+  .hydro-review-grid,
+  .hydro-review-card,
   .systems-summary-card,
   .systems-tent-grid,
   .systems-setup-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .hydro-stepper {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hydro-step {
+    min-height: 44px;
+  }
+  .hydro-builder-actions,
+  .hydro-builder-actions .btn {
+    width: 100%;
+  }
+  .hydro-builder-actions .btn {
+    flex: 1 1 100%;
   }
   .system-facts {
     grid-template-columns: minmax(0, 1fr);
@@ -830,12 +847,40 @@ label:has(input[type="checkbox"]) {
 .systems-empty-compact { min-height: 86px; justify-content: space-between; text-align: left; }
 .systems-form-card { overflow: visible; }
 .systems-form { padding: 16px; display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 12px; align-items: end; }
-.systems-form .field > span { color: var(--faint); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.systems-form .field > span,
+.hydro-builder .field > span { color: var(--faint); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
 .systems-form-wide,
 .systems-summary-card,
 .systems-toggle-grid,
 .systems-form-error,
 .systems-form-actions { grid-column: 1 / -1; }
+.hydro-builder { padding: 16px; display: grid; gap: 16px; }
+.hydro-stepper { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.hydro-step { min-height: 56px; display: flex; align-items: center; gap: 9px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--muted); text-align: left; cursor: pointer; }
+.hydro-step span { flex: 0 0 26px; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-family: var(--mono); font-size: 12px; }
+.hydro-step strong { font-size: 13px; line-height: 1.15; overflow-wrap: anywhere; }
+.hydro-step.is-active { color: var(--text); border-color: oklch(74% 0.19 145 / 0.42); background: var(--green-bg); }
+.hydro-step.is-active span,
+.hydro-step.is-complete span { color: var(--green); border-color: oklch(74% 0.19 145 / 0.42); }
+.hydro-builder-step { display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 12px; align-items: end; }
+.hydro-step-copy,
+.hydro-choice-grid,
+.hydro-review-grid,
+.hydro-step-summary { grid-column: 1 / -1; }
+.hydro-step-copy { display: grid; gap: 4px; padding: 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); }
+.hydro-step-copy strong { font-size: 16px; }
+.hydro-step-copy p { color: var(--muted); font-size: 14px; max-width: 780px; }
+.hydro-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.hydro-choice { min-height: 96px; padding: 14px; display: grid; align-content: start; gap: 6px; text-align: left; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); cursor: pointer; }
+.hydro-choice span { color: var(--muted); font-size: 13px; }
+.hydro-choice.is-selected { border-color: oklch(74% 0.19 145 / 0.42); background: var(--green-bg); }
+.hydro-review-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr); gap: 12px; align-items: stretch; }
+.hydro-review-card { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.hydro-review-card > div { min-height: 64px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); display: grid; align-content: center; gap: 2px; min-width: 0; }
+.hydro-review-card span { color: var(--faint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.hydro-review-card strong { font-family: var(--mono); font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.hydro-review-side { display: grid; gap: 10px; align-content: start; }
+.hydro-builder-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
 .systems-toggle-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
 .systems-toggle-grid label { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); color: var(--muted); font-size: 14px; }
 .systems-summary-card { display: grid; grid-template-columns: minmax(170px, 0.45fr) minmax(220px, 1fr); gap: 12px; align-items: stretch; }
@@ -852,8 +897,12 @@ label:has(input[type="checkbox"]) {
 .layout-sites.layout-grid2x4 { grid-template-columns: repeat(4, 38px); }
 .layout-sites.layout-custom { grid-template-columns: repeat(3, 38px); }
 .layout-sites span,
-.layout-tank { display: grid; place-items: center; min-width: 34px; min-height: 34px; border-radius: 7px; font-family: var(--mono); font-size: 12px; font-weight: 700; }
+.layout-tank,
+.layout-bucket,
+.layout-custom-preview { display: grid; place-items: center; min-width: 34px; min-height: 34px; border-radius: 7px; font-family: var(--mono); font-size: 12px; font-weight: 700; }
 .layout-sites span { background: var(--green-bg); border: 1px solid oklch(74% 0.19 145 / 0.35); color: var(--green); }
+.layout-bucket { min-width: 64px; min-height: 64px; border-radius: 12px; background: var(--green-bg); border: 1px solid oklch(74% 0.19 145 / 0.35); color: var(--green); }
+.layout-custom-preview { min-width: 140px; min-height: 56px; padding: 0 16px; border: 1px dashed var(--border2); color: var(--muted); background: var(--surface); }
 .layout-tank { position: absolute; background: var(--blue-bg); border: 1px solid oklch(70% 0.16 240 / 0.35); color: var(--blue); padding: 0 8px; }
 .tank-left { left: 12px; top: 50%; transform: translateY(-50%); }
 .tank-right { right: 12px; top: 50%; transform: translateY(-50%); }
@@ -1042,6 +1091,115 @@ label:has(input[type="checkbox"]) {
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+  }
+
+  .systems-page,
+  .systems-form-card,
+  .hydro-builder,
+  .hydro-builder-step,
+  .hydro-review-grid,
+  .hydro-review-card,
+  .hydro-review-side {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .hydro-builder {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .hydro-stepper {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .hydro-step {
+    min-height: 42px;
+    justify-content: center;
+    padding: 6px 4px;
+  }
+
+  .hydro-step span {
+    flex: 0 0 26px;
+  }
+
+  .hydro-step strong {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .hydro-builder-step,
+  .hydro-choice-grid,
+  .hydro-review-grid,
+  .hydro-review-card,
+  .systems-summary-card,
+  .systems-toggle-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hydro-builder-step {
+    gap: 10px;
+  }
+
+  .hydro-builder-step > *,
+  .hydro-builder .field,
+  .hydro-builder input,
+  .hydro-builder select,
+  .hydro-builder textarea {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .hydro-builder input,
+  .hydro-builder select,
+  .hydro-builder textarea {
+    width: 100%;
+  }
+
+  .hydro-step-copy {
+    padding: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .hydro-step-copy p {
+    max-width: 100%;
+  }
+
+  .hydro-step-summary {
+    width: 100%;
+  }
+
+  .hydro-review-grid {
+    align-items: stretch;
+  }
+
+  .hydro-review-card > div {
+    min-height: 58px;
+  }
+
+  .hydro-review-side {
+    order: 2;
+  }
+
+  .hydro-review-side .layout-preview {
+    width: 100%;
+  }
+
+  .hydro-builder-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .hydro-builder-actions .btn {
+    width: 100%;
+    min-height: 46px;
   }
 }
 
