@@ -16,6 +16,7 @@ public static class SettingsMapping
         Name: tent.Name,
         Kind: tent.Kind,
         TentType: tent.TentType.ToString(),
+        Status: tent.Status.ToString(),
         Notes: tent.Notes,
         DisplayOrder: tent.DisplayOrder,
         AccentColor: tent.AccentColor,

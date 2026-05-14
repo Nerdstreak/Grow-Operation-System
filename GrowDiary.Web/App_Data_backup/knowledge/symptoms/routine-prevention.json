@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "id": "routine-prevention",
+  "name": "Präventive Routine-Maßnahme",
+  "category": "Leaf",
+  "possibleCauses": [],
+  "suggestedTreatmentIds": [
+    "calmag-foliar-routine-athena",
+    "calmag-foliar-routine-canna"
+  ],
+  "suggestedSopIds": [],
+  "diagnosticChecks": []
+}

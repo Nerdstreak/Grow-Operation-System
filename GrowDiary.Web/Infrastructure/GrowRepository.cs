@@ -43,7 +43,7 @@ public sealed class GrowRepository
         };
     }
 
-    public List<Tent> GetTents()
+    public List<Tent> GetTents(bool includeArchived = false)
     {
         using var connection = OpenConnection();
         using var tentCommand = connection.CreateCommand();
@@ -54,8 +54,10 @@ public sealed class GrowRepository
                    (SELECT COUNT(*) FROM Setups s WHERE s.TentId = t.Id AND s.Status IN ('Planning','Active')) AS ActiveSetupCount,
                    (SELECT COUNT(*) FROM Setups s WHERE s.TentId = t.Id AND s.Status = 'Archived') AS ArchivedSetupCount
             FROM Tents t
+            WHERE ($includeArchived = 1 OR t.Status != 'Archived')
             ORDER BY t.DisplayOrder, t.Name;
         """;
+        tentCommand.Parameters.AddWithValue("$includeArchived", includeArchived ? 1 : 0);
 
         var tents = new List<Tent>();
         using (var reader = tentCommand.ExecuteReader())
@@ -161,6 +163,7 @@ public sealed class GrowRepository
                 Name = $name,
                 Kind = $kind,
                 TentType = $tentType,
+                Status = $status,
                 Notes = $notes,
                 DisplayOrder = $displayOrder,
                 AccentColor = $accentColor,
@@ -177,7 +180,8 @@ public sealed class GrowRepository
                 HvacController = $hvacController,
                 HvacControllerEntityId = $hvacControllerEntityId,
                 Co2Available = $co2Available,
-                CameraEntityId = $cameraEntityId
+                CameraEntityId = $cameraEntityId,
+                UpdatedAtUtc = datetime('now')
             WHERE Id = $id;
         """;
         AddTentParameters(command, tent);
@@ -194,6 +198,36 @@ public sealed class GrowRepository
         command.ExecuteNonQuery();
     }
 
+    public bool HasTentDependencies(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT
+                (SELECT COUNT(*) FROM Grows WHERE TentId = $id) +
+                (SELECT COUNT(*) FROM Setups WHERE TentId = $id) +
+                (SELECT COUNT(*) FROM GrowSystems WHERE TentId = $id) +
+                (SELECT COUNT(*) FROM TentSensors WHERE TentId = $id) +
+                (SELECT COUNT(*) FROM LightSchedules WHERE TentId = $id) +
+                (SELECT COUNT(*) FROM LightTransitionEvents WHERE TentId = $id) +
+                (SELECT COUNT(*) FROM AutoMeasurementConfigs WHERE TentId = $id) +
+                (SELECT COUNT(*) FROM TentSensorReadings WHERE TentId = $id) +
+                (SELECT COUNT(*) FROM TentSensorSnapshots WHERE TentId = $id) +
+                (SELECT COUNT(*) FROM TentSensorDailyStats WHERE TentId = $id);
+            """;
+        command.Parameters.AddWithValue("$id", id);
+        return Convert.ToInt64(command.ExecuteScalar() ?? 0L) > 0;
+    }
+
+    public void ArchiveTent(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE Tents SET Status = 'Archived', UpdatedAtUtc = datetime('now') WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
     public Tent CreateTent(string name)
         => CreateTent(new Tent { Name = name });
 
@@ -203,14 +237,14 @@ public sealed class GrowRepository
         using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO Tents (
-                Name, Kind, TentType, Notes, DisplayOrder, AccentColor,
+                Name, Kind, TentType, Status, Notes, DisplayOrder, AccentColor,
                 WidthCm, DepthCm, TentHeightCm, LightType, LightWatt,
                 LightController, LightControllerEntityId, ExhaustFanCount, ExhaustM3h,
                 CirculationFanCount, HvacController, HvacControllerEntityId,
                 Co2Available, CameraEntityId, CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
-                $name, $kind, $tentType, $notes, $displayOrder, $accentColor,
+                $name, $kind, $tentType, $status, $notes, $displayOrder, $accentColor,
                 $widthCm, $depthCm, $tentHeightCm, $lightType, $lightWatt,
                 $lightController, $lightControllerEntityId, $exhaustFanCount, $exhaustM3h,
                 $circulationFanCount, $hvacController, $hvacControllerEntityId,
@@ -3732,6 +3766,7 @@ public sealed class GrowRepository
             Name = reader["Name"]?.ToString() ?? string.Empty,
             Kind = reader["Kind"]?.ToString() ?? "Grow Tent",
             TentType = ParseEnum(NullString(reader["TentType"]), TentType.MultiPurpose),
+            Status = ParseEnum(NullString(reader["Status"]), TentStatus.Active),
             Notes = NullString(reader["Notes"]),
             DisplayOrder = Convert.ToInt32(reader["DisplayOrder"], CultureInfo.InvariantCulture),
             AccentColor = reader["AccentColor"]?.ToString() ?? "#69b578",
@@ -4269,6 +4304,7 @@ public sealed class GrowRepository
         command.Parameters.AddWithValue("$name", tent.Name);
         command.Parameters.AddWithValue("$kind", tent.Kind);
         command.Parameters.AddWithValue("$tentType", tent.TentType.ToString());
+        command.Parameters.AddWithValue("$status", tent.Status.ToString());
         command.Parameters.AddWithValue("$notes", (object?)tent.Notes ?? DBNull.Value);
         command.Parameters.AddWithValue("$displayOrder", tent.DisplayOrder);
         command.Parameters.AddWithValue("$accentColor", tent.AccentColor);

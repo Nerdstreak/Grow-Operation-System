@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ro-membrane",
+  "name": "RO-Membran",
+  "category": "Filter",
+  "expectedLifespanDays": 900,
+  "replacementTriggers": [
+    "TDS-Reduktion fällt unter 95% (Leitfähigkeits-Test)",
+    "Wasserdurchsatz stark reduziert trotz sauberem Vorfilter"
+  ],
+  "inspectionIntervalDays": 180
+}

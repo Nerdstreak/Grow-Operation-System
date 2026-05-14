@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ph-sensor-drift",
+  "name": "pH-Sondendrift",
+  "category": "Sensor",
+  "possibleCauses": [
+    "Sonde seit > 30 Tagen nicht kalibriert",
+    "Sondenkopf mit Biofilm oder Rückständen belegt",
+    "Sonde hat ihr Lebensende erreicht"
+  ],
+  "suggestedTreatmentIds": [
+    "sensor-calibration-ph"
+  ],
+  "suggestedSopIds": [],
+  "diagnosticChecks": [
+    "Wann war die letzte Kalibrierung?",
+    "Sondenkopf visuell auf Belag prüfen",
+    "Vergleichsmessung mit zweitem Gerät durchführen"
+  ]
+}

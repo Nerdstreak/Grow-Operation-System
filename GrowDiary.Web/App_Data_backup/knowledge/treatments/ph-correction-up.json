@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ph-correction-up",
+  "name": "pH Korrektur nach oben (pH-Plus)",
+  "type": "ReservoirAddition",
+  "targetSymptoms": [
+    "ph-too-low"
+  ],
+  "dosage": {
+    "standard": "In 0,1er-Schritten dosieren — exakte Menge hängt von Pufferkapazität des Reservoirs ab",
+    "severe": null,
+    "context": "Nie mehr als 0,3 pH-Einheiten pro Tag korrigieren. Kleinste Menge zugeben, 10 Min warten, nachmessen."
+  },
+  "application": {
+    "method": "Verdünnt in Wasser vordilutieren, dann gleichmäßig ins Reservoir",
+    "timing": "Nach Bestätigung niedrigem pH in zwei aufeinanderfolgenden Messungen",
+    "frequency": "Bedarfsgesteuert",
+    "durationStandard": null,
+    "durationSevere": null
+  },
+  "restrictions": [
+    "Maximal 0,3 pH-Einheiten Korrektur pro 24h",
+    "Nicht unverdünnt direkt in Leitungen geben",
+    "pH 30 Min nach Zugabe nachmessen",
+    "Bei wiederholtem schnellem pH-Abfall: Ursache suchen (CO2-Sättigung, Bioproduktion)"
+  ],
+  "conflicts": [
+    {
+      "with": "ph-correction-down",
+      "reason": "Nicht gleichzeitig pH hoch und runter korrigieren",
+      "minimumGapHours": 4
+    }
+  ],
+  "phaseFilter": {
+    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower", "Finish"],
+    "blocked": ["Dry", "Cure"],
+    "blockAfterFlowerWeek": null
+  },
+  "hardwareRequirements": [
+    "pH-Sensor"
+  ],
+  "sources": [
+    {
+      "type": "SOP",
+      "title": "SOP-RDWC-CAN-N1: pH- & Nährstoff-Stabilisierung",
+      "reference": "pH-Korrektur schrittweise nach oben",
+      "url": "/docs/sop-ph-nutrient-stabilization.pdf",
+      "credibility": "High"
+    }
+  ],
+  "difficulty": "Easy",
+  "expectedTimeToEffect": "10–30 Minuten bis stabiler neuer pH-Wert",
+  "tags": [
+    "reservoir",
+    "ph",
+    "correction",
+    "ph-up"
+  ]
+}

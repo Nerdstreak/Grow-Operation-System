@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0",
+  "id": "mold-risk-high",
+  "name": "Schimmel-Risiko erhöht",
+  "category": "Solution",
+  "possibleCauses": [
+    "Relative Luftfeuchtigkeit zu hoch in Spätblüte",
+    "Unzureichende Luftzirkulation im Zelt",
+    "Tau-Bildung an kühlen Oberflächen in der Nacht"
+  ],
+  "suggestedTreatmentIds": [
+    "humidity-adjust-mold-prevention"
+  ],
+  "suggestedSopIds": [],
+  "diagnosticChecks": [
+    "RH tagsüber und nachts messen",
+    "Lüfter-Stufe und Platzierung prüfen",
+    "Tau-Bildung an Pflanzen oder Innenwänden erkennbar?"
+  ]
+}

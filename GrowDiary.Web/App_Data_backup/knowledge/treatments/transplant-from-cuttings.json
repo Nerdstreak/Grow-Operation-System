@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "id": "transplant-from-cuttings",
+  "name": "Steckling Integration ins Hauptsystem",
+  "type": "PhysicalAction",
+  "targetSymptoms": [
+    "cutting-ready-for-system"
+  ],
+  "dosage": {
+    "standard": "Steckling aus Quarantäne ins RDWC-Hauptsystem überführen",
+    "severe": null,
+    "context": "Kriterien: Wurzeln weiß und faserig, mind. 7 Tage Quarantäne absolviert, keine Symptome."
+  },
+  "application": {
+    "method": "Steckling aus Quarantäne-Behälter vorsichtig entnehmen, in RDWC-Netztopf einsetzen — Wurzeln nicht stauchen",
+    "timing": "Wenn Wurzeln weiß, faserig und mind. 2–3 cm lang",
+    "frequency": "Einmalig",
+    "durationStandard": null,
+    "durationSevere": null
+  },
+  "restrictions": [
+    "Mindestens 7 Tage Quarantäne ohne Symptome",
+    "Systemtemperatur beim Einsetzen 19–21°C",
+    "Direkt nach Integration EC sanft halten (nicht erhöhen)",
+    "Erste 48h nach Integration sorgfältig beobachten"
+  ],
+  "conflicts": [],
+  "phaseFilter": {
+    "allowed": ["Clone"],
+    "blocked": ["Seedling", "Veg", "Transition", "Flower", "Finish", "Dry", "Cure"],
+    "blockAfterFlowerWeek": null
+  },
+  "hardwareRequirements": [],
+  "sources": [
+    {
+      "type": "SOP",
+      "title": "SOP-RDWC-CAN-C1: Behandlung und Quarantäne von Stecklingen",
+      "reference": "Abschnitt 6: Integration nach bestandener Quarantäne",
+      "url": "/docs/sop-quarantine-cuttings-rev01.pdf",
+      "credibility": "High"
+    }
+  ],
+  "difficulty": "Easy",
+  "expectedTimeToEffect": "Pflanzenreaktion auf neues System nach 24–48h sichtbar",
+  "tags": [
+    "physical",
+    "transplant",
+    "cutting",
+    "integration",
+    "rdwc"
+  ]
+}

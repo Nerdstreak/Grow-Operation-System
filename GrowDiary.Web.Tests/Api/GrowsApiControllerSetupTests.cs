@@ -25,8 +25,7 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
         CopyDefaults(Path.Combine(FindProjectRoot(), "GrowDiary.Web", "wwwroot", "knowledge-defaults"), _tempRoot);
         Environment.SetEnvironmentVariable("GROWDIARY_DB_PATH", _dbPath);
         _paths = new AppPaths(_tempRoot);
-        var initializer = new DatabaseInitializer(_paths, NullLogger<DatabaseInitializer>.Instance);
-        initializer.Initialize();
+        GrowDiary.Web.Tests.TestDatabase.InitializeWithDefaultTent(_paths);
         _growRepository = new GrowRepository(_paths);
         _controller = new GrowsApiController(
             _growRepository,

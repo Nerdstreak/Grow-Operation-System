@@ -110,7 +110,7 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 
 - `DropLegacyTentSchemaIfNeeded()` erkennt alte Tent-Spalten und baut das Tent-Schema neu auf.
 - `EnsureSchema()` legt Tabellen und Indizes an und nutzt additive `EnsureColumn()`-Upgrades.
-- `SeedDefaults()` erzeugt beim Erststart das Default-Tent `Hauptzelt` und Standard-Templates.
+- `SeedDefaults()` erzeugt keine Standard-Zelte mehr. Grow OS startet bewusst mit 0 Zelten; Nutzer legen Zelte unter `/zelte` selbst an. Standard-GrowTemplates bleiben additiv/separat.
 - Es gibt kein Migration-Framework; Schema-Evolution passiert kontrolliert im Initializer.
 
 ### Lokalisierung

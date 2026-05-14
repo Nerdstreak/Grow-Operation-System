@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Dispatch, FormEvent, SetStateAction } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type {
@@ -29,7 +29,7 @@ const entryPoints: GrowEntryPoint[] = ['Germination', 'Seedling', 'Veg', 'Flower
 const statuses: GrowStatus[] = ['Planning', 'Running', 'Completed', 'Aborted']
 const environments: GrowEnvironment[] = ['Indoor', 'Outdoor', 'Greenhouse']
 const propagationMedia: PropagationMedium[] = ['Rockwool', 'Hydroton', 'RapidRooter', 'Neoprene']
-const growWizardSteps = ['Grow', 'Zelt', 'Hydro-Setup', 'Start & Methode', 'Vorschau'] as const
+const growWizardSteps = ['Grow', 'Zelt', 'Hydro-Setup', 'Start', 'Prüfen'] as const
 
 const emptyForm = (): GrowUpsertPayload => ({
   templateId: null,
@@ -121,16 +121,21 @@ function GrowSetupPage() {
   const isAutoflower = form.seedType === 'Autoflower'
   const needsDaysInPhase = form.entryPoint !== 'Germination' && !isAutoflower
   const needsFlipDate = form.entryPoint === 'Flower' && !isAutoflower
-  const pageTitle = isEditing ? 'Grow bearbeiten' : 'Neuen Grow anlegen'
+  const pageTitle = isEditing ? 'Grow bearbeiten' : 'Neuen Grow starten'
   const productionSetupsForTent = getSelectableProductionSetupsForTent(setups, form.tentId)
   const archivedSelectedSetup = getArchivedSelectedSetup(setups, form.setupId ?? null, form.tentId)
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function handleSaveGrow() {
     const invalid = getFirstInvalidWizardStep(form, selectedHydroSetup)
     if (invalid) {
       setWizardStep(invalid.step)
       setError(invalid.message)
+      return
+    }
+
+    if (wizardStep !== growWizardSteps.length) {
+      setWizardStep(growWizardSteps.length)
+      setError('Prüfe die Zusammenfassung. Gespeichert wird erst mit „Grow starten“.')
       return
     }
 
@@ -195,7 +200,7 @@ function GrowSetupPage() {
       <div className="topbar">
         <div className="topbar-left">
           <Link className="btn" to={isEditing && growId ? `/grows/${growId}` : '/'}>
-            {isEditing ? 'Zurueck zum Grow' : 'Zurueck'}
+            {isEditing ? 'Zurück zum Grow' : 'Zurück'}
           </Link>
           <span className="topbar-title">{pageTitle}</span>
         </div>
@@ -215,11 +220,10 @@ function GrowSetupPage() {
             <div>
               <div className="live-kicker">Grow / Run</div>
               <h1>{pageTitle}</h1>
-              <p>Waehle zuerst Grow-Zelt und Hydro-Setup. Technische DWC/RDWC-Daten kommen aus dem System.</p>
             </div>
           </header>
 
-          <form className="hydro-builder grow-wizard" onSubmit={(event) => void handleSubmit(event)}>
+          <div className="hydro-builder grow-wizard" role="group" aria-label="Grow-Wizard">
             <div className="hydro-stepper" aria-label="Grow-Wizard Schritte">
               {growWizardSteps.map((label, index) => {
                 const step = index + 1
@@ -241,7 +245,6 @@ function GrowSetupPage() {
               <div className="hydro-builder-step">
                 <div className="hydro-step-copy">
                   <strong>Grow</strong>
-                  <p>Beschreibe den konkreten Run. Hydro-Technik kommt spaeter ueber das Hydro-Setup.</p>
                 </div>
                 <label className="field">
                   <span>Grow-Name</span>
@@ -301,7 +304,6 @@ function GrowSetupPage() {
               <div className="hydro-builder-step">
                 <div className="hydro-step-copy">
                   <strong>Grow-Zelt</strong>
-                  <p>Das Zelt ist der physische Raum fuer Klima, Licht, Kamera und Sensorik.</p>
                 </div>
                 {tents.length === 0 ? (
                   <div className="systems-empty systems-form-wide">
@@ -311,23 +313,13 @@ function GrowSetupPage() {
                 ) : (
                   <div className="grow-choice-grid systems-form-wide">
                     {tents.map((tent) => (
-                      <button
+                      <TentChoiceCard
                         key={tent.id}
-                        type="button"
-                        className={`grow-choice-card ${form.tentId === tent.id ? 'is-selected' : ''}`}
-                        onClick={() => selectTent(tent.id)}
-                      >
-                        <div>
-                          <strong>{tent.name}</strong>
-                          <span>{formatTentType(tent.tentType)}</span>
-                        </div>
-                        <div className="system-facts">
-                          <Fact label="Typ" value={tent.kind} />
-                          <Fact label="Masse" value={formatTentDimensions(tent)} />
-                          <Fact label="Aktive Grows" value={String(tent.activeGrowCount)} />
-                          <Fact label="Hydro-Setups" value={String(hydroSetups.filter((setup) => setup.tentId === tent.id && setup.status === 'Active').length)} />
-                        </div>
-                      </button>
+                        tent={tent}
+                        selected={form.tentId === tent.id}
+                        hydroSetupCount={hydroSetups.filter((setup) => setup.tentId === tent.id && setup.status === 'Active').length}
+                        onSelect={() => selectTent(tent.id)}
+                      />
                     ))}
                   </div>
                 )}
@@ -338,13 +330,12 @@ function GrowSetupPage() {
               <div className="hydro-builder-step">
                 <div className="hydro-step-copy">
                   <strong>Hydro-Setup</strong>
-                  <p>Waehle das DWC/RDWC-System im Grow-Zelt. Volumen, Sites und Technik werden uebernommen.</p>
                 </div>
                 {!form.tentId ? (
-                  <div className="systems-empty systems-form-wide">Waehle zuerst ein Grow-Zelt.</div>
+                  <div className="systems-empty systems-form-wide">Wähle zuerst ein Grow-Zelt.</div>
                 ) : activeHydroSetupsForTent.length === 0 && !legacySelectedHydroSetup ? (
                   <div className="systems-empty systems-form-wide">
-                    <strong>Noch kein DWC/RDWC-System fuer dieses Zelt.</strong>
+                    <strong>Noch kein DWC/RDWC-System für dieses Zelt.</strong>
                     <Link className="btn btn-primary" to="/zelte">Hydro-Setup anlegen</Link>
                   </div>
                 ) : (
@@ -364,7 +355,6 @@ function GrowSetupPage() {
               <div className="hydro-builder-step">
                 <div className="hydro-step-copy">
                   <strong>Start &amp; Methode</strong>
-                  <p>Startdatum, Phase und Naehrstoffschema. Technische Volumenfelder bleiben aus dem Hauptflow raus.</p>
                 </div>
                 <label className="field">
                   <span>Startdatum</span>
@@ -395,7 +385,7 @@ function GrowSetupPage() {
                   </select>
                 </label>
                 <label className="field">
-                  <span>Naehrstoffschema</span>
+                  <span>Nährstoffschema</span>
                   <input value={form.nutrients ?? ''} onChange={(event) => patchForm(setForm, { nutrients: event.target.value })} placeholder="Athena Pro, Canna Aqua, ..." />
                 </label>
                 <label className="field">
@@ -418,7 +408,7 @@ function GrowSetupPage() {
                   <input type="date" value={form.flipDate ?? ''} onChange={(event) => patchForm(setForm, { flipDate: toNullableString(event.target.value) })} disabled={!needsFlipDate} />
                 </label>
                 <details className="grow-legacy-details systems-form-wide">
-                  <summary>Legacy-Details fuer bestehende Grows</summary>
+                  <summary>Erweiterte Legacy-Details für bestehende Grows</summary>
                   <div className="grow-legacy-grid">
                     <label className="field">
                       <span>Production-Setup (Plant-Kontext)</span>
@@ -455,11 +445,10 @@ function GrowSetupPage() {
             {wizardStep === 5 && (
               <div className="hydro-builder-step">
                 <div className="hydro-step-copy">
-                  <strong>Vorschau &amp; Speichern</strong>
-                  <p>Pruefe Grow-Zelt und Hydro-Setup. Gespeichert wird erst mit dem Button unten.</p>
+                  <strong>Prüfen &amp; starten</strong>
                 </div>
                 <div className="hydro-review-grid systems-form-wide">
-                  <div className="hydro-review-card">
+                  <div className="hydro-review-card grow-final-summary">
                     <Fact label="Grow" value={form.name.trim() || '–'} />
                     <Fact label="Sorte" value={form.strain?.trim() || '–'} />
                     <Fact label="Grow-Zelt" value={selectedTent?.name ?? '–'} />
@@ -477,37 +466,62 @@ function GrowSetupPage() {
               </div>
             )}
 
-            <div className="hydro-builder-actions">
+            <div className="hydro-builder-actions grow-wizard-actions">
               <Link className="btn" to={isEditing && growId ? `/grows/${growId}` : '/'}>Abbrechen</Link>
-              <button type="button" className="btn" onClick={() => goToStep(Math.max(1, wizardStep - 1))} disabled={wizardStep === 1}>Zurueck</button>
+              <button type="button" className="btn" onClick={() => goToStep(Math.max(1, wizardStep - 1))} disabled={wizardStep === 1}>Zurück</button>
               {wizardStep < growWizardSteps.length ? (
-                <button type="button" className="btn btn-primary" onClick={() => goToStep(wizardStep + 1)}>Weiter</button>
+                <button type="button" className="btn btn-primary" onClick={() => goToStep(wizardStep + 1)}>
+                  {wizardStep === growWizardSteps.length - 1 ? 'Prüfen' : 'Weiter'}
+                </button>
               ) : (
-                <button className="btn btn-primary" disabled={saving}>{saving ? 'Speichert...' : isEditing ? 'Grow aktualisieren' : 'Grow anlegen'}</button>
+                <button type="button" className="btn btn-primary" disabled={saving} onClick={() => void handleSaveGrow()}>
+                  {saving ? 'Speichert...' : isEditing ? 'Grow aktualisieren' : 'Grow starten'}
+                </button>
               )}
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </>
   )
 }
 
-function HydroSetupChoiceCard({ setup, selected, onSelect, legacy = false }: { setup: HydroSetupDto; selected: boolean; onSelect: () => void; legacy?: boolean }) {
+function TentChoiceCard(props: { tent: TentDto; selected: boolean; hydroSetupCount: number; onSelect: () => void }) {
+  const { tent, selected, hydroSetupCount, onSelect } = props
+
   return (
-    <button type="button" className={`grow-choice-card ${selected ? 'is-selected' : ''}`} onClick={onSelect}>
-      <div>
-        <strong>{setup.name}</strong>
-        <span>{legacy ? 'Legacy-Zuordnung ausserhalb des gewaehlten Zelts' : `${setup.hydroStyle} DWC/RDWC-System`}</span>
+    <button type="button" className={`grow-pick-card ${selected ? 'is-selected' : ''}`} onClick={onSelect}>
+      <div className="grow-pick-main">
+        <span className="grow-pick-kicker">Grow-Zelt</span>
+        <strong>{tent.name}</strong>
+        <span>{formatTentType(tent.tentType)} · {formatTentDimensions(tent)}</span>
       </div>
-      <HydroSetupMiniSummary setup={setup} />
+      <div className="grow-pick-meta">
+        <span>{tent.kind}</span>
+        <span>{hydroSetupCount} Hydro-Setup{hydroSetupCount === 1 ? '' : 's'}</span>
+      </div>
+      {selected && <div className="grow-pick-selected">Ausgewählt</div>}
     </button>
   )
 }
 
-function HydroSetupMiniSummary({ setup }: { setup: HydroSetupDto }) {
+function HydroSetupChoiceCard({ setup, selected, onSelect, legacy = false }: { setup: HydroSetupDto; selected: boolean; onSelect: () => void; legacy?: boolean }) {
+  return (
+    <button type="button" className={`grow-pick-card grow-pick-card-hydro ${selected ? 'is-selected' : ''}`} onClick={onSelect}>
+      <div className="grow-pick-main">
+        <span className="grow-pick-kicker">{legacy ? 'Legacy-Zuordnung' : 'Hydro-Setup'}</span>
+        <strong>{setup.name}</strong>
+        <span>{legacy ? 'außerhalb des gewählten Zelts' : `${setup.hydroStyle} DWC/RDWC-System`}</span>
+      </div>
+      <HydroSetupMiniSummary setup={setup} compact />
+      {selected && <div className="grow-pick-selected">Ausgewählt</div>}
+    </button>
+  )
+}
+
+function HydroSetupMiniSummary({ setup, compact = false }: { setup: HydroSetupDto; compact?: boolean }) {
   const chips = [
-    setup.hasCirculationPump && 'Umwaelzpumpe',
+    setup.hasCirculationPump && 'Umwälzpumpe',
     setup.hasAirPump && 'Luftpumpe',
     typeof setup.airStoneCount === 'number' && `${setup.airStoneCount} Luftsteine`,
     setup.hasChiller && 'Chiller',
@@ -515,14 +529,16 @@ function HydroSetupMiniSummary({ setup }: { setup: HydroSetupDto }) {
   ].filter(Boolean) as string[]
 
   return (
-    <div className="grow-hydro-summary">
-      <div className="system-facts">
-        <Fact label="Sites/Toepfe" value={formatNullableNumber(setup.potCount)} />
-        <Fact label="Topfvolumen" value={formatLiters(setup.potSizeLiters)} />
-        <Fact label="Tankvolumen" value={formatLiters(setup.reservoirLiters)} />
-        <Fact label="Gesamtvolumen" value={formatLiters(setup.totalVolumeLiters)} />
-        <Fact label="Layout" value={formatLayout(setup.layoutType)} />
-        <Fact label="Tankposition" value={formatReservoirPosition(setup.reservoirPosition)} />
+    <div className={compact ? 'grow-system-brief' : 'grow-hydro-summary'}>
+      <div className="grow-system-volume">
+        <span>Gesamtvolumen</span>
+        <strong>{formatLiters(setup.totalVolumeLiters)}</strong>
+      </div>
+      <div className="grow-system-lines">
+        <span>{formatNullableNumber(setup.potCount)} Sites/Töpfe</span>
+        <span>{formatLiters(setup.potSizeLiters)} pro Site</span>
+        <span>{formatLiters(setup.reservoirLiters)} Tank</span>
+        <span>{formatLayout(setup.layoutType)} · Tank {formatReservoirPosition(setup.reservoirPosition)}</span>
       </div>
       <div className="system-chip-row">
         {(chips.length > 0 ? chips : ['Keine Technik markiert']).map((chip) => <span key={chip}>{chip}</span>)}
@@ -630,9 +646,9 @@ function normalizePayload(form: GrowUpsertPayload, hydroSetup: HydroSetupDto | n
 
 function validateWizardStep(form: GrowUpsertPayload, hydroSetup: HydroSetupDto | null, step: number): string | null {
   if (step === 1 && form.name.trim().length === 0) return 'Bitte gib einen Grow-Namen ein.'
-  if (step === 2 && !form.tentId) return 'Bitte waehle ein Grow-Zelt aus.'
-  if (step === 3 && !hydroSetup) return 'Bitte waehle ein Hydro-Setup aus.'
-  if (step === 4 && !form.startDate) return 'Bitte waehle ein Startdatum.'
+  if (step === 2 && !form.tentId) return 'Bitte wähle ein Grow-Zelt aus.'
+  if (step === 3 && !hydroSetup) return 'Bitte wähle ein Hydro-Setup aus.'
+  if (step === 4 && !form.startDate) return 'Bitte wähle ein Startdatum.'
   return null
 }
 
@@ -662,10 +678,10 @@ function toNullableInteger(value: string): number | null {
 
 function formatTentType(value: TentType): string {
   switch (value) {
-    case 'Production': return 'Bluete / Run'
+    case 'Production': return 'Blüte / Run'
     case 'Mother': return 'Mutter'
     case 'Propagation': return 'Anzucht'
-    case 'Quarantine': return 'Quarantaene'
+    case 'Quarantine': return 'Quarantäne'
     case 'MultiPurpose': return 'Mehrzweck'
   }
 }
@@ -713,7 +729,7 @@ function formatStartMaterial(value: StartMaterial): string {
 
 function formatGerminationMethod(value: GerminationMethod): string {
   switch (value) {
-    case 'PaperTowel': return 'Kuechenpapier'
+    case 'PaperTowel': return 'Küchenpapier'
     case 'Rockwool': return 'Steinwolle'
     case 'RapidRooter': return 'Rapid Rooter'
     case 'DirectInSystem': return 'Direkt im System'
@@ -725,7 +741,7 @@ function formatEntryPoint(value: GrowEntryPoint): string {
     case 'Germination': return 'Keimung'
     case 'Seedling': return 'Seedling'
     case 'Veg': return 'Vegetation'
-    case 'Flower': return 'Bluete'
+    case 'Flower': return 'Blüte'
     case 'Flush': return 'Flush'
   }
 }
@@ -733,7 +749,7 @@ function formatEntryPoint(value: GrowEntryPoint): string {
 function formatGrowStatus(value: GrowStatus): string {
   switch (value) {
     case 'Planning': return 'Planung'
-    case 'Running': return 'Laeuft'
+    case 'Running': return 'Läuft'
     case 'Completed': return 'Abgeschlossen'
     case 'Aborted': return 'Abgebrochen'
   }

@@ -13,6 +13,7 @@ import type {
   TentDto,
   TentLivePayload,
   TentType,
+  UpdateTentRequest,
   UpdateHydroSetupRequest,
 } from '../types'
 
@@ -60,6 +61,7 @@ function TentsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [formMode, setFormMode] = useState<'tent' | 'hydro' | null>(null)
+  const [editingTentId, setEditingTentId] = useState<number | null>(null)
   const [editingHydroSetupId, setEditingHydroSetupId] = useState<number | null>(null)
   const [tentDraft, setTentDraft] = useState<TentDraft>(() => createTentDraft())
   const [hydroDraft, setHydroDraft] = useState<HydroSetupDraft>(() => createHydroDraft())
@@ -115,9 +117,10 @@ function TentsPage() {
   const activeHydroSetupCount = useMemo(() => hydroSetups.filter((setup) => setup.status === 'Active').length, [hydroSetups])
   const totalVolume = calculateTotalVolume(hydroDraft)
 
-  function openTentForm() {
+  function openTentForm(tent?: TentDto) {
     setFormError(null)
-    setTentDraft(createTentDraft(tents.length + 1))
+    setEditingTentId(tent?.id ?? null)
+    setTentDraft(tent ? createTentDraftFromTent(tent) : createTentDraft(tents.length + 1))
     setEditingHydroSetupId(null)
     setFormMode('tent')
   }
@@ -130,12 +133,12 @@ function TentsPage() {
     setFormMode('hydro')
   }
 
-  async function handleCreateTent(event: FormEvent<HTMLFormElement>) {
+  async function handleSaveTent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSaving('tent')
     setFormError(null)
     try {
-      const request: CreateTentRequest = {
+      const baseRequest = {
         name: tentDraft.name.trim(),
         kind: tentDraft.kind.trim() || 'Grow Tent',
         tentType: tentDraft.tentType,
@@ -143,19 +146,59 @@ function TentsPage() {
         displayOrder: toIntOrDefault(tentDraft.displayOrder, 99),
         accentColor: '#69b578',
       }
-      const created = await apiFetch<TentDto>('/api/settings/tents', {
-        method: 'POST',
-        body: JSON.stringify(request),
-      })
-      setTents((current) => [...current, created].sort((left, right) => left.displayOrder - right.displayOrder || left.name.localeCompare(right.name)))
+
+      if (editingTentId) {
+        const existing = tents.find((tent) => tent.id === editingTentId)
+        if (!existing) throw new Error('Zelt nicht gefunden.')
+        const request: UpdateTentRequest = {
+          ...baseRequest,
+          status: existing.status,
+          widthCm: existing.widthCm,
+          depthCm: existing.depthCm,
+          tentHeightCm: existing.tentHeightCm,
+          lightType: existing.lightType,
+          lightWatt: existing.lightWatt,
+          lightController: existing.lightController,
+          lightControllerEntityId: existing.lightControllerEntityId,
+          exhaustFanCount: existing.exhaustFanCount,
+          exhaustM3h: existing.exhaustM3h,
+          circulationFanCount: existing.circulationFanCount,
+          hvacController: existing.hvacController,
+          hvacControllerEntityId: existing.hvacControllerEntityId,
+          co2Available: existing.co2Available,
+          cameraEntityId: existing.cameraEntityId,
+          sensors: existing.sensors.map((sensor) => ({
+            id: sensor.id,
+            metricType: sensor.metricType,
+            haEntityId: sensor.haEntityId,
+            displayLabel: sensor.displayLabel,
+            isActive: sensor.isActive,
+          })),
+        }
+        const saved = await apiFetch<TentDto>(`/api/settings/tents/${editingTentId}`, {
+          method: 'PUT',
+          body: JSON.stringify(request),
+        })
+        setTents((current) => current.map((tent) => (tent.id === saved.id ? saved : tent)).sort((left, right) => left.displayOrder - right.displayOrder || left.name.localeCompare(right.name)))
+      } else {
+        const request: CreateTentRequest = baseRequest
+        const created = await apiFetch<TentDto>('/api/settings/tents', {
+          method: 'POST',
+          body: JSON.stringify(request),
+        })
+        setTents((current) => [...current, created].sort((left, right) => left.displayOrder - right.displayOrder || left.name.localeCompare(right.name)))
+      }
+
       setTentDraft(createTentDraft(tents.length + 2))
+      setEditingTentId(null)
       setFormMode(null)
     } catch (caught) {
-      setFormError(formatApiError(caught, 'Zelt konnte nicht angelegt werden.'))
+      setFormError(formatApiError(caught, editingTentId ? 'Zelt konnte nicht gespeichert werden.' : 'Zelt konnte nicht angelegt werden.'))
     } finally {
       setSaving(null)
     }
   }
+
 
   async function handleSaveHydroSetup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -203,6 +246,20 @@ function TentsPage() {
       setHydroSetups((current) => current.map((item) => (item.id === setup.id ? archived : item)))
     } catch (caught) {
       setFormError(formatApiError(caught, 'Hydro-Setup konnte nicht archiviert werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function removeTent(tent: TentDto) {
+    setSaving(`tent-remove-${tent.id}`)
+    setFormError(null)
+    try {
+      const response = await apiFetch<TentDto | null>(`/api/settings/tents/${tent.id}`, { method: 'DELETE' })
+      setTents((current) => current.filter((item) => item.id !== tent.id))
+      setHydroSetups((current) => current.filter((setup) => setup.tentId !== tent.id || response?.status === 'Active'))
+    } catch (caught) {
+      setFormError(formatApiError(caught, 'Zelt konnte nicht entfernt werden.'))
     } finally {
       setSaving(null)
     }
@@ -261,7 +318,7 @@ function TentsPage() {
             <p>Zelte sind dein physischer Raum. Hydro-Setups sind deine DWC/RDWC-Systeme.</p>
           </div>
           <div className="systems-header-actions">
-            <button type="button" className="btn" onClick={openTentForm}>Zelt anlegen</button>
+            <button type="button" className="btn" onClick={() => openTentForm()}>Zelt anlegen</button>
             <button type="button" className="btn btn-primary" onClick={() => openHydroForm(tents[0]?.id)} disabled={tents.length === 0}>
               Hydro-Setup anlegen
             </button>
@@ -277,10 +334,10 @@ function TentsPage() {
         {formMode === 'tent' && (
           <section className="card systems-form-card">
             <div className="card-header">
-              <span className="card-title">Zelt anlegen</span>
+              <span className="card-title">{editingTentId ? 'Zelt bearbeiten' : 'Zelt anlegen'}</span>
               <button type="button" className="btn" onClick={() => setFormMode(null)}>Schließen</button>
             </div>
-            <form className="systems-form" onSubmit={(event) => void handleCreateTent(event)}>
+            <form className="systems-form" onSubmit={(event) => void handleSaveTent(event)}>
               <label className="field">
                 <span>Name</span>
                 <input value={tentDraft.name} onChange={(event) => setTentDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Mutter Zelt 1" />
@@ -306,7 +363,7 @@ function TentsPage() {
               {formError && <div className="systems-form-error">{formError}</div>}
               <div className="systems-form-actions">
                 <button type="button" className="btn" onClick={() => setFormMode(null)}>Abbrechen</button>
-                <button type="submit" className="btn btn-primary" disabled={saving === 'tent'}>{saving === 'tent' ? 'Speichert...' : 'Zelt speichern'}</button>
+                <button type="submit" className="btn btn-primary" disabled={saving === 'tent'}>{saving === 'tent' ? 'Speichert...' : editingTentId ? 'Zelt speichern' : 'Zelt anlegen'}</button>
               </div>
             </form>
           </section>
@@ -511,7 +568,7 @@ function TentsPage() {
               {tents.length === 0 ? (
                 <div className="systems-empty">
                   <strong>Noch kein Zelt eingerichtet.</strong>
-                  <button type="button" className="btn btn-primary" onClick={openTentForm}>Erstes Zelt anlegen</button>
+                  <button type="button" className="btn btn-primary" onClick={() => openTentForm()}>Erstes Zelt anlegen</button>
                 </div>
               ) : (
                 <div className="systems-tent-grid">
@@ -538,7 +595,11 @@ function TentsPage() {
                         {tent.notes && <p className="system-note">{tent.notes}</p>}
                         <div className="system-actions">
                           <Link className="btn" to={`/zelte/${tent.id}`}>Details öffnen</Link>
+                          <button type="button" className="btn" onClick={() => openTentForm(tent)}>Bearbeiten</button>
                           <button type="button" className="btn" onClick={() => openHydroForm(tent.id)}>Hydro-Setup hinzufügen</button>
+                          <button type="button" className="btn" disabled={saving === `tent-remove-${tent.id}`} onClick={() => void removeTent(tent)}>
+                            {saving === `tent-remove-${tent.id}` ? 'Entfernt...' : 'Entfernen'}
+                          </button>
                         </div>
                       </article>
                     )
@@ -698,6 +759,16 @@ function createTentDraft(order = 99): TentDraft {
     tentType: 'Production',
     notes: '',
     displayOrder: String(order),
+  }
+}
+
+function createTentDraftFromTent(tent: TentDto): TentDraft {
+  return {
+    name: tent.name,
+    kind: tent.kind,
+    tentType: tent.tentType,
+    notes: tent.notes ?? '',
+    displayOrder: String(tent.displayOrder),
   }
 }
 

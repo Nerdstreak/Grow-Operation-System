@@ -1,0 +1,27 @@
+{
+  "homeAssistant": {
+    "url": "http://YOUR_HA_IP:8123/api/",
+    "token": "YOUR_LONG_LIVED_ACCESS_TOKEN"
+  },
+  "tents": [
+    {
+      "name": "Hauptzelt",
+      "tentType": "MultiPurpose",
+      "cameraEntityId": "camera.your_camera_entity",
+      "sensors": [
+        { "metricType": "AirTemperature",           "haEntityId": "sensor.your_temp_entity" },
+        { "metricType": "Humidity",                 "haEntityId": "sensor.your_humidity_entity" },
+        { "metricType": "Vpd",                      "haEntityId": "sensor.your_vpd_entity" },
+        { "metricType": "Ppfd",                     "haEntityId": "sensor.your_ppfd_entity" },
+        { "metricType": "LightStatus",              "haEntityId": "binary_sensor.your_light_entity" },
+        { "metricType": "Co2",                      "haEntityId": "sensor.your_co2_entity" },
+        { "metricType": "ReservoirPh",              "haEntityId": "sensor.your_reservoir_ph_entity" },
+        { "metricType": "ReservoirEc",              "haEntityId": "sensor.your_reservoir_ec_entity" },
+        { "metricType": "ReservoirLevel",           "haEntityId": "sensor.your_reservoir_level_entity" },
+        { "metricType": "ReservoirWaterTemp",       "haEntityId": "sensor.your_reservoir_temp_entity" },
+        { "metricType": "ReservoirOrp",             "haEntityId": "sensor.your_orp_entity" },
+        { "metricType": "ReservoirDissolvedOxygen", "haEntityId": "sensor.your_do_entity" }
+      ]
+    }
+  ]
+}

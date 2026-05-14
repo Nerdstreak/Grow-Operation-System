@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "1.0",
+  "id": "flip-to-flower",
+  "name": "Flip: Wechsel auf Blüte (12/12)",
+  "type": "Linear",
+  "estimatedDurationMinutes": 30,
+  "applicableSetups": ["RDWC", "DWC"],
+  "triggers": [
+    { "type": "UserInitiated" },
+    { "type": "PhaseTransition" }
+  ],
+  "requiredMaterials": [
+    "Zugriff auf Lichtsteuerung (z.B. AC Infinity Pro 69 oder Timer)",
+    "pH/EC-Messgeräte"
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "order": 1,
+      "title": "Bereitschafts-Check",
+      "stepType": "Confirmation",
+      "description": "Pflanze hat ausreichende Größe? Letztes Topping/LST mindestens 7 Tage her? Mindestens 4 Internodien vorhanden?",
+      "photoRequired": false,
+      "photoRecommended": true
+    },
+    {
+      "id": "s2",
+      "order": 2,
+      "title": "Letzte Veg-Messung dokumentieren",
+      "stepType": "Measurement",
+      "description": "Abschlussmessung der Veg-Phase als Referenz speichern.",
+      "expectedInputs": ["ph", "ec", "orp", "do"],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s3",
+      "order": 3,
+      "title": "Lichtzeit auf 12/12 umstellen",
+      "stepType": "Action",
+      "description": "Timer oder AC Infinity Pro 69 auf 12 Stunden Licht / 12 Stunden Dunkel umstellen. Flip-Datum wird im Grow gespeichert.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s4",
+      "order": 4,
+      "title": "Sollwerte auf Stretch-Phase wechseln",
+      "stepType": "Confirmation",
+      "description": "System wechselt automatisch auf Stretch-Phase-Sollwerte: EC steigt, RH 65%, PPFD erhöht. Wechsel bestätigen.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s5",
+      "order": 5,
+      "title": "EC schrittweise erhöhen",
+      "stepType": "Action",
+      "description": "EC über 3–5 Tage von Veg-EC auf Stretch-EC erhöhen. Nicht abrupt steigern — Pflanzen brauchen Eingewöhnungszeit.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s6",
+      "order": 6,
+      "title": "CO2 aktivieren (falls vorhanden)",
+      "stepType": "Action",
+      "description": "CO2-Schedule auf 1200–1400 ppm während der Lichtphase aktivieren. Nur wenn CO2-Anlage vorhanden.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s7",
+      "order": 7,
+      "title": "Erntedatum schätzen",
+      "stepType": "Confirmation",
+      "description": "Basierend auf der Strain-Blütedauer (Standard 8–9 Wochen) wird ein vorläufiges Erntedatum gesetzt. Bei bekannter Genetik anpassen.",
+      "photoRequired": false,
+      "photoRecommended": false
+    }
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "Workshop Lehrmaterial — VPD und Phasen-Übergänge",
+      "reference": "Phasenwechsel Veg → Stretch",
+      "url": "/docs/workshop-vpd-rdwc.pdf",
+      "credibility": "High"
+    },
+    {
+      "type": "UserDocument",
+      "title": "RDWC Growplan Athena Blended Rev.01",
+      "reference": "Phasenwechsel Veg → Stretch",
+      "url": "/docs/athena-blended-rev01-de.pdf",
+      "credibility": "High"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ppfd-increase-50",
+  "name": "PPFD um 50 µmol/m²/s erhöhen",
+  "type": "EnvironmentAdjustment",
+  "targetSymptoms": [
+    "slow-growth-good-values",
+    "stretching-toward-light"
+  ],
+  "dosage": {
+    "standard": "Lichtintensität um 50 µmol/m²/s erhöhen (Dimmer oder Abstand verringern)",
+    "severe": null,
+    "context": "Nur erhöhen wenn Pflanzenwerte gut sind — EC, pH, VPD in Ordnung. Stretching kann auch genetisch bedingt sein."
+  },
+  "application": {
+    "method": "Dimmer um ca. 5–10% erhöhen oder Lampe 5 cm tiefer hängen",
+    "timing": "Schrittweise über 2–3 Tage steigern",
+    "frequency": "Einmalige Anpassung, dann 48h beobachten",
+    "durationStandard": "Permanent wenn Pflanzen positiv reagieren",
+    "durationSevere": null
+  },
+  "restrictions": [
+    "Mindestabstand Lampe zu Canopy einhalten (LED: mindestens 30 cm, herstellerabhängig)",
+    "VPD nach Anpassung prüfen — höhere Lichtintensität erhöht Blatttemperatur"
+  ],
+  "conflicts": [
+    {
+      "with": "ppfd-reduce-50",
+      "reason": "Nicht gleichzeitig erhöhen und reduzieren",
+      "minimumGapHours": 24
+    }
+  ],
+  "phaseFilter": {
+    "allowed": ["Veg", "Transition", "Flower"],
+    "blocked": ["Seedling", "Clone", "Finish", "Dry", "Cure"],
+    "blockAfterFlowerWeek": null
+  },
+  "hardwareRequirements": [
+    "PPFD-Meter (optional aber empfohlen)"
+  ],
+  "sources": [
+    {
+      "type": "GrowPlan",
+      "title": "RDWC Growplan by SKX - Athena Blended Rev.01",
+      "reference": "Punkt 11d: Lichtintensität erhöhen bei Untersättigung",
+      "url": "/docs/athena-blended-rev01-de.pdf",
+      "credibility": "High"
+    }
+  ],
+  "difficulty": "Easy",
+  "expectedTimeToEffect": "Wachstumsreaktion nach 3–5 Tagen",
+  "tags": [
+    "environment",
+    "light",
+    "ppfd",
+    "growth-boost"
+  ]
+}

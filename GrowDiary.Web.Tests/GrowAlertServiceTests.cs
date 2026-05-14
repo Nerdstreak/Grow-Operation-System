@@ -23,8 +23,7 @@ public sealed class GrowAlertServiceTests : IDisposable
         Environment.SetEnvironmentVariable("GROWDIARY_DB_PATH", _dbPath);
 
         var paths = new AppPaths(_tempRoot);
-        var initializer = new DatabaseInitializer(paths, NullLogger<DatabaseInitializer>.Instance);
-        initializer.Initialize();
+        GrowDiary.Web.Tests.TestDatabase.InitializeWithDefaultTent(paths);
         _repository = new GrowRepository(paths);
 
         var loader = new KnowledgeBaseLoader(paths, NullLogger<KnowledgeBaseLoader>.Instance);

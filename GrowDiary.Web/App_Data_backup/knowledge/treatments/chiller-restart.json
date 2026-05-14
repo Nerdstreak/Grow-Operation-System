@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "id": "chiller-restart",
+  "name": "Chiller Neustart (Fehlerdiagnose)",
+  "type": "EnvironmentAdjustment",
+  "targetSymptoms": [
+    "water-temp-rising-rapid",
+    "chiller-suspected-failure"
+  ],
+  "dosage": {
+    "standard": "Chiller ausschalten, 2–3 Min warten, neu starten. Bei Fehlercode: Hersteller-Handbuch.",
+    "severe": null,
+    "context": "Häufiger Fehler: Chiller schaltet bei Überhitzung ab (Thermoschutz). Manueller Neustart nach Abkühlphase."
+  },
+  "application": {
+    "method": "Strom trennen (nicht nur Standby), 2–3 Min warten, wieder einschalten",
+    "timing": "Bei unerwartetem Temperaturanstieg im Reservoir trotz laufendem Chiller",
+    "frequency": "Einmalig zur Diagnose",
+    "durationStandard": null,
+    "durationSevere": null
+  },
+  "restrictions": [
+    "Wenn Chiller nach zweitem Neustart wieder abschaltet: Technischen Defekt prüfen (Kältemittel, Filter)",
+    "Raumtemperatur und Luftstrom um den Chiller prüfen (Wärmeabfuhr blockiert?)",
+    "Parallel Eispack-Notfallmaßnahme einleiten wenn Wassertemperatur > 24°C"
+  ],
+  "conflicts": [],
+  "phaseFilter": null,
+  "hardwareRequirements": [
+    "WaterChiller"
+  ],
+  "sources": [
+    {
+      "type": "Document",
+      "title": "Häufige Anfängerfehler und Risikomanagement im RDWC-System",
+      "reference": "Chiller-Ausfälle und Diagnose",
+      "url": "/docs/common-mistakes-rdwc.pdf",
+      "credibility": "High"
+    }
+  ],
+  "difficulty": "Easy",
+  "expectedTimeToEffect": "Sofort (wenn Thermoschutz) oder Techniker nötig",
+  "tags": [
+    "environment",
+    "water-temperature",
+    "chiller",
+    "hardware",
+    "diagnosis"
+  ]
+}

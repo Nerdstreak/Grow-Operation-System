@@ -15,7 +15,7 @@ public sealed class MaintenanceEventRepositoryTests : IDisposable
         _contentRoot = Path.Combine(Path.GetTempPath(), $"grow-maintenance-test-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_contentRoot);
         _paths = new AppPaths(_contentRoot);
-        new DatabaseInitializer(_paths, NullLogger<DatabaseInitializer>.Instance).Initialize();
+        GrowDiary.Web.Tests.TestDatabase.InitializeWithDefaultTent(_paths);
     }
 
     public void Dispose()

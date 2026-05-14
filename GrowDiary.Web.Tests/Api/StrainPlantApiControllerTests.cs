@@ -20,7 +20,7 @@ public sealed class StrainPlantApiControllerTests : IDisposable
         _dbPath = Path.Combine(Path.GetTempPath(), $"grow-test-{Guid.NewGuid():N}.db");
         Environment.SetEnvironmentVariable("GROWDIARY_DB_PATH", _dbPath);
         _paths = new AppPaths(Path.GetTempPath());
-        new DatabaseInitializer(_paths, NullLogger<DatabaseInitializer>.Instance).Initialize();
+        GrowDiary.Web.Tests.TestDatabase.InitializeWithDefaultTent(_paths);
         _repository = new GrowRepository(_paths);
         _strainsController = new StrainsApiController(_repository);
         _plantsController = new PlantsApiController(_repository);

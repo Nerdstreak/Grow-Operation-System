@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "1.0",
+  "id": "emergency-power-recovery",
+  "name": "Notfall-Recovery nach Stromausfall",
+  "type": "Linear",
+  "estimatedDurationMinutes": 20,
+  "applicableSetups": ["RDWC", "DWC"],
+  "triggers": [
+    {
+      "type": "Symptom",
+      "symptomTags": [
+        "power-outage-detected",
+        "post-power-outage",
+        "do-critical-recent"
+      ]
+    },
+    { "type": "UserInitiated" }
+  ],
+  "requiredMaterials": [
+    "pH/EC/ORP/DO-Messgeräte",
+    "H2O2 12% (für Notfall-DO-Boost)",
+    "HOCl (für ORP-Boost falls nötig)",
+    "Zweite Luftpumpe/Backup-Belüftung falls vorhanden"
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "order": 1,
+      "title": "Pumpen-Status prüfen",
+      "stepType": "Action",
+      "description": "Laufen Wasserpumpe und Luftpumpe wieder? Falls nicht: Manuelle Neustart-Versuche, Sicherungen prüfen.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s2",
+      "order": 2,
+      "title": "Sofort-Messung",
+      "stepType": "Measurement",
+      "description": "Alle Werte sofort aufnehmen. Wurzel-Foto für Vorher-Vergleich machen.",
+      "expectedInputs": ["ph", "ec", "orp", "do", "waterTemp"],
+      "photoRequired": false,
+      "photoRecommended": true
+    },
+    {
+      "id": "s3",
+      "order": 3,
+      "title": "DO-Recovery abwarten",
+      "stepType": "Wait",
+      "description": "DO sollte bei laufenden Pumpen innerhalb von 30 Min auf > 6 mg/L steigen. Wenn nicht → Notfallmaßnahme.",
+      "waitMinutes": 30,
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s4",
+      "order": 4,
+      "title": "DO-Notfallmaßnahme bei < 5 mg/L",
+      "stepType": "Action",
+      "description": "H2O2 12% → 0,5 ml/L als Soforthilfe zugeben (Treatment: h2o2-do-emergency). Sauerstoff wird direkt freigesetzt.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s5",
+      "order": 5,
+      "title": "Wassertemperatur kontrollieren",
+      "stepType": "Confirmation",
+      "description": "Wassertemperatur über 22°C? Dann aktiv kühlen (Chiller-Neustart oder Eisbeutel-Notfallkühlung).",
+      "expectedInputs": ["waterTemp"],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s6",
+      "order": 6,
+      "title": "ORP wiederherstellen",
+      "stepType": "Action",
+      "description": "ORP unter 300 mV? HOCl zugeben bis ORP 350–450 mV erreicht (Treatment: hocl-orp-boost-standard).",
+      "expectedInputs": ["orp"],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s7",
+      "order": 7,
+      "title": "Visuelle Pflanzen-Inspektion",
+      "stepType": "Photo",
+      "description": "Alle Pflanzen kontrollieren, besonders Wurzeln durch den Netztopf fotografieren. Welkende Blätter dokumentieren.",
+      "photoRequired": false,
+      "photoRecommended": true
+    },
+    {
+      "id": "s8",
+      "order": 8,
+      "title": "7-tägige Folge-Beobachtung",
+      "stepType": "Action",
+      "description": "Erhöhte Aufmerksamkeit für Wurzelfäule-Symptome über die nächsten 7 Tage. Bei Anzeichen von Wurzelfäule → SOP root-rot-treatment starten.",
+      "photoRequired": false,
+      "photoRecommended": false
+    }
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "Häufige Anfängerfehler im RDWC-System",
+      "reference": "Stromausfall und fehlende Notfallsysteme",
+      "url": "/docs/common-mistakes-rdwc.pdf",
+      "credibility": "High"
+    },
+    {
+      "type": "Community",
+      "title": "r/microgrowery — Power outage recovery protocols",
+      "reference": "Etablierte Recovery-Praxis nach Stromausfall",
+      "url": null,
+      "credibility": "Medium"
+    }
+  ]
+}

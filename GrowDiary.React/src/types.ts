@@ -635,6 +635,7 @@ export interface StartRiskEventSopRequest {
 }
 
 export type TentType = 'Production' | 'Mother' | 'Quarantine' | 'Propagation' | 'MultiPurpose'
+export type TentStatus = 'Active' | 'Archived'
 export interface SetupDto {
   id: number
   tentId: number
@@ -935,6 +936,7 @@ export interface TentDto {
   name: string
   kind: string
   tentType: TentType
+  status: TentStatus
   notes: string | null
   displayOrder: number
   accentColor: string
@@ -969,6 +971,7 @@ export interface UpdateTentSensorRequest {
 
 export interface UpdateTentRequest {
   name: string
+  status: TentStatus
   kind: string
   tentType: TentType
   notes: string | null

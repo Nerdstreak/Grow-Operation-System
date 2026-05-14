@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "1.0",
+  "id": "mixing-order-rdwc-soft-water",
+  "name": "Mischreihenfolge RDWC/DWC — Weichwasser",
+  "type": "Linear",
+  "estimatedDurationMinutes": 35,
+  "applicableSetups": ["RDWC", "DWC"],
+  "triggers": [
+    { "type": "UserInitiated" }
+  ],
+  "requiredMaterials": [
+    "Weichwasser oder gemischtes Leitungswasser",
+    "pH-Messgerät, EC-Messgerät, ORP-Messgerät",
+    "CalMag (Athena CalMag oder Canna CalMag)",
+    "Hauptkomponenten A + B",
+    "PK 13/14 (in Blütephase)",
+    "Kaliumsilikat (Zugabe zuletzt!)",
+    "HOCl",
+    "pH+/pH- Korrekturlösung",
+    "Mischbehälter, Pipetten/Messbecher"
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "order": 1,
+      "title": "Wasser aufbereiten",
+      "stepType": "Action",
+      "description": "Weichwasser oder gemischtes Leitungswasser ins Reservoir füllen. WICHTIG: Bei Weichwasser ist die Reihenfolge umgekehrt — CalMag zuerst, Silikat zuletzt.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s2",
+      "order": 2,
+      "title": "pH auf 6,0 eichen",
+      "stepType": "Measurement",
+      "description": "pH messen und auf 6,0 korrigieren.",
+      "expectedInputs": ["ph"],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s3",
+      "order": 3,
+      "title": "CalMag zuerst zugeben",
+      "stepType": "Action",
+      "description": "Phasen-Dosis CalMag zugeben: Veg 0,3 ml/L / Stretch 0,5 ml/L / Flower 0,7 ml/L. Bei Weichwasser zuerst — sonst Ausfällung mit Silikat.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s4",
+      "order": 4,
+      "title": "pH nach CalMag korrigieren",
+      "stepType": "Measurement",
+      "description": "pH wieder auf 6,0 einstellen.",
+      "expectedInputs": ["ph"],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s5",
+      "order": 5,
+      "title": "Hauptkomponenten zugeben",
+      "stepType": "Action",
+      "description": "Komponenten A + B nach Plan. 1–2 Min durchmischen.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s6",
+      "order": 6,
+      "title": "pH nach Hauptnährstoffen korrigieren",
+      "stepType": "Measurement",
+      "description": "pH auf 6,0 eichen.",
+      "expectedInputs": ["ph"],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s7",
+      "order": 7,
+      "title": "PK zugeben (Blüte)",
+      "stepType": "Action",
+      "description": "PK 13/14 nur in der Blütephase zugeben. In Veg diesen Schritt überspringen.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s8",
+      "order": 8,
+      "title": "Kaliumsilikat zuletzt zugeben",
+      "stepType": "Action",
+      "description": "Silikat immer als letzten Nährstoff zugeben. Phasen-Dosis: Veg 0,15 ml/L / Stretch 0,3 ml/L / Flower 0,4 ml/L. 5–10 Min Standzeit.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s9",
+      "order": 9,
+      "title": "pH-Final korrigieren",
+      "stepType": "Measurement",
+      "description": "Final-pH auf 6,0 einstellen.",
+      "expectedInputs": ["ph"],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s10",
+      "order": 10,
+      "title": "HOCl bis ORP-Ziel",
+      "stepType": "Measurement",
+      "description": "HOCl iterativ zugeben bis ORP 350–450 mV. Final-Werte dokumentieren.",
+      "expectedInputs": ["orp", "ph", "ec"],
+      "photoRequired": false,
+      "photoRecommended": false
+    }
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-N1: pH- und Nährstoff-Stabilisierung",
+      "reference": "Hinweis Weichwasser-Variante",
+      "url": "/docs/sop-ph-nutrient-stabilization.pdf",
+      "credibility": "High"
+    },
+    {
+      "type": "UserDocument",
+      "title": "RDWC Growplan Canna Aqua Rev.01",
+      "reference": "Punkt 3: Weichwasser-Aufbereitung",
+      "url": "/docs/canna-aqua-rev01.pdf",
+      "credibility": "High"
+    }
+  ]
+}

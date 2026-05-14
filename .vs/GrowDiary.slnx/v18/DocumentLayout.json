@@ -1,0 +1,71 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Grow Operation System new\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF30BF0-D639-6EF5-9198-121FFE17A728}|GrowDiary.Web\\GrowDiary.Web.csproj|d:\\grow operation system new\\growdiary.web\\api\\contracts\\apierror.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1BF30BF0-D639-6EF5-9198-121FFE17A728}|GrowDiary.Web\\GrowDiary.Web.csproj|solutionrelative:growdiary.web\\api\\contracts\\apierror.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF30BF0-D639-6EF5-9198-121FFE17A728}|GrowDiary.Web\\GrowDiary.Web.csproj|d:\\grow operation system new\\growdiary.web\\api\\contracts\\automeasurementcontracts.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1BF30BF0-D639-6EF5-9198-121FFE17A728}|GrowDiary.Web\\GrowDiary.Web.csproj|solutionrelative:growdiary.web\\api\\contracts\\automeasurementcontracts.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF30BF0-D639-6EF5-9198-121FFE17A728}|GrowDiary.Web\\GrowDiary.Web.csproj|d:\\grow operation system new\\growdiary.web\\api\\contracts\\growsummarydto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1BF30BF0-D639-6EF5-9198-121FFE17A728}|GrowDiary.Web\\GrowDiary.Web.csproj|solutionrelative:growdiary.web\\api\\contracts\\growsummarydto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ApiError.cs",
+              "DocumentMoniker": "D:\\Grow Operation System new\\GrowDiary.Web\\Api\\Contracts\\ApiError.cs",
+              "RelativeDocumentMoniker": "GrowDiary.Web\\Api\\Contracts\\ApiError.cs",
+              "ToolTip": "D:\\Grow Operation System new\\GrowDiary.Web\\Api\\Contracts\\ApiError.cs",
+              "RelativeToolTip": "GrowDiary.Web\\Api\\Contracts\\ApiError.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-14T20:33:45.511Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "AutoMeasurementContracts.cs",
+              "DocumentMoniker": "D:\\Grow Operation System new\\GrowDiary.Web\\Api\\Contracts\\AutoMeasurementContracts.cs",
+              "RelativeDocumentMoniker": "GrowDiary.Web\\Api\\Contracts\\AutoMeasurementContracts.cs",
+              "ToolTip": "D:\\Grow Operation System new\\GrowDiary.Web\\Api\\Contracts\\AutoMeasurementContracts.cs",
+              "RelativeToolTip": "GrowDiary.Web\\Api\\Contracts\\AutoMeasurementContracts.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-14T20:33:44.221Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "GrowSummaryDto.cs",
+              "DocumentMoniker": "D:\\Grow Operation System new\\GrowDiary.Web\\Api\\Contracts\\GrowSummaryDto.cs",
+              "RelativeDocumentMoniker": "GrowDiary.Web\\Api\\Contracts\\GrowSummaryDto.cs",
+              "ToolTip": "D:\\Grow Operation System new\\GrowDiary.Web\\Api\\Contracts\\GrowSummaryDto.cs",
+              "RelativeToolTip": "GrowDiary.Web\\Api\\Contracts\\GrowSummaryDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-14T20:33:38.115Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

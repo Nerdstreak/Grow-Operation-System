@@ -16,7 +16,7 @@ public sealed class LightStatusTransitionServiceTests : IDisposable
         _contentRoot = Path.Combine(Path.GetTempPath(), $"grow-test-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_contentRoot);
         _paths = new AppPaths(_contentRoot);
-        new DatabaseInitializer(_paths, NullLogger<DatabaseInitializer>.Instance).Initialize();
+        GrowDiary.Web.Tests.TestDatabase.InitializeWithDefaultTent(_paths);
         _repository = new GrowRepository(_paths);
     }
 

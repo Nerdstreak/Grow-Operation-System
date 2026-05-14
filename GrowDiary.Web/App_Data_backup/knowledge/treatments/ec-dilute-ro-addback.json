@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ec-dilute-ro-addback",
+  "name": "EC-Verdünnung: RO-Wasser Addback (EC gestiegen)",
+  "type": "ReservoirAddition",
+  "targetSymptoms": [
+    "ec-rising-rejection",
+    "salt-accumulation"
+  ],
+  "dosage": {
+    "standard": "RO-/Reinwasser ohne Nährstoffe nachfüllen bis Ziel-EC erreicht",
+    "severe": null,
+    "context": "Wenn EC steigt, verdunsten Pflanzen mehr Wasser als sie Nährstoffe aufnehmen — Nährsalze akkumulieren."
+  },
+  "application": {
+    "method": "Reines RO-Wasser direkt ins Reservoir auffüllen",
+    "timing": "Morgencheck — wenn EC über Sollwert plus 0,2 mS/cm gestiegen",
+    "frequency": "Bedarfsgesteuert täglich",
+    "durationStandard": null,
+    "durationSevere": null
+  },
+  "restrictions": [
+    "Kein Leitungswasser ohne Aufbereitung — Chlor und Härte verändern pH und EC unkontrolliert",
+    "Nach Top-Off EC und Wasserstand notieren",
+    "Wenn EC dauerhaft steigt ohne Wasserstandsänderung: Teilwechsel erwägen"
+  ],
+  "conflicts": [
+    {
+      "with": "ec-boost-concentrated-addback",
+      "reason": "Nicht gleichzeitig verdünnen und konzentrieren",
+      "minimumGapHours": 2
+    }
+  ],
+  "phaseFilter": {
+    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower", "Finish"],
+    "blocked": ["Dry", "Cure"],
+    "blockAfterFlowerWeek": null
+  },
+  "hardwareRequirements": [
+    "EC-Sensor"
+  ],
+  "sources": [
+    {
+      "type": "Document",
+      "title": "Manueller Addback in Hydroponik - Präzise & Logisch Erklärt",
+      "reference": "Punkt 2B: RO-Top-Off bei EC-Anstieg",
+      "url": "/docs/manual-addback-hydroponik.pdf",
+      "credibility": "High"
+    }
+  ],
+  "difficulty": "Easy",
+  "expectedTimeToEffect": "EC-Anpassung sofort nach Zugabe",
+  "tags": [
+    "reservoir",
+    "ec",
+    "addback",
+    "dilution",
+    "ro-water",
+    "rdwc"
+  ]
+}
