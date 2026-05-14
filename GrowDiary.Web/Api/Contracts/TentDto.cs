@@ -5,6 +5,7 @@ public sealed record TentDto(
     string Name,
     string Kind,
     string TentType,
+    string Status,
     string? Notes,
     int DisplayOrder,
     string AccentColor,

@@ -30,12 +30,10 @@ public sealed class TentRepositoryTests : IDisposable
     private GrowRepository Repo() => new(_paths);
 
     [Fact]
-    public void DefaultTent_IsCreatedOnFirstStart()
+    public void FreshDatabase_StartsWithoutTents()
     {
         var tents = Repo().GetTents();
-        Assert.Single(tents);
-        Assert.Equal("Hauptzelt", tents[0].Name);
-        Assert.Equal(TentType.MultiPurpose, tents[0].TentType);
+        Assert.Empty(tents);
     }
 
     [Fact]
@@ -56,7 +54,7 @@ public sealed class TentRepositoryTests : IDisposable
     public void GetTent_LoadsSensorsCorrectly()
     {
         var repo = Repo();
-        var tent = repo.GetTents().First();
+        var tent = repo.CreateTent("Testzelt");
 
         repo.AddTentSensor(new TentSensor
         {
@@ -77,7 +75,7 @@ public sealed class TentRepositoryTests : IDisposable
     public void AddTentSensor_PersistsCorrectly()
     {
         var repo = Repo();
-        var tent = repo.GetTents().First();
+        var tent = repo.CreateTent("Testzelt");
 
         var sensor = repo.AddTentSensor(new TentSensor
         {
@@ -99,7 +97,7 @@ public sealed class TentRepositoryTests : IDisposable
     public void UpdateTentSensor_UpdatesValue()
     {
         var repo = Repo();
-        var tent = repo.GetTents().First();
+        var tent = repo.CreateTent("Testzelt");
 
         var sensor = repo.AddTentSensor(new TentSensor
         {
@@ -120,7 +118,7 @@ public sealed class TentRepositoryTests : IDisposable
     public void DeleteTentSensor_RemovesEntry()
     {
         var repo = Repo();
-        var tent = repo.GetTents().First();
+        var tent = repo.CreateTent("Testzelt");
 
         var sensor = repo.AddTentSensor(new TentSensor
         {
@@ -139,7 +137,7 @@ public sealed class TentRepositoryTests : IDisposable
     public void ReplaceTentSensors_ReplacesExistingSet()
     {
         var repo = Repo();
-        var tent = repo.GetTents().First();
+        var tent = repo.CreateTent("Testzelt");
 
         repo.AddTentSensor(new TentSensor
         {
@@ -172,7 +170,7 @@ public sealed class TentRepositoryTests : IDisposable
     public void GetTentSensorByMetric_ReturnsNullWhenMissing()
     {
         var repo = Repo();
-        var tent = repo.GetTents().First();
+        var tent = repo.CreateTent("Testzelt");
 
         var result = repo.GetTentSensorByMetric(tent.Id, SensorMetricType.ReservoirPh);
         Assert.Null(result);
@@ -182,7 +180,7 @@ public sealed class TentRepositoryTests : IDisposable
     public void GetTentSensorByMetric_ReturnsCorrectEntry()
     {
         var repo = Repo();
-        var tent = repo.GetTents().First();
+        var tent = repo.CreateTent("Testzelt");
 
         repo.AddTentSensor(new TentSensor
         {

@@ -110,6 +110,7 @@ public static class RequestMapping
         Name = string.IsNullOrWhiteSpace(request.Name) ? string.Empty : request.Name.Trim(),
         Kind = string.IsNullOrWhiteSpace(request.Kind) ? "Grow Tent" : request.Kind.Trim(),
         TentType = Enum.TryParse<TentType>(request.TentType, out var tt) ? tt : TentType.MultiPurpose,
+        Status = Enum.TryParse<TentStatus>(request.Status, out var status) ? status : TentStatus.Active,
         Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
         DisplayOrder = request.DisplayOrder,
         AccentColor = string.IsNullOrWhiteSpace(request.AccentColor) ? "#69b578" : request.AccentColor.Trim(),

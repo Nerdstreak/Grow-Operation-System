@@ -12,6 +12,7 @@ public sealed class CreateTentRequest
 
 public sealed class UpdateTentRequest
 {
+    public string? Status { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Kind { get; set; } = "Grow Tent";
     public string? TentType { get; set; }

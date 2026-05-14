@@ -1256,3 +1256,97 @@ label:has(input[type="checkbox"]) {
 /* ─── REACT ROOT ─────────────────────────────────────────────────────────── */
 html, body, #root { height: 100%; margin: 0; }
 #root { display: flex; flex-direction: column; }
+
+/* Grow Wizard Polish */
+.grow-pick-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 1px 0 oklch(100% 0 0 / 0.03) inset;
+}
+.grow-pick-card:hover { border-color: var(--border2); background: var(--surface3); }
+.grow-pick-card.is-selected { border-color: oklch(74% 0.19 145 / 0.55); background: var(--green-bg); }
+.grow-pick-main { display: grid; gap: 4px; min-width: 0; }
+.grow-pick-kicker { color: var(--faint); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
+.grow-pick-main strong { font-size: 18px; line-height: 1.2; overflow-wrap: anywhere; }
+.grow-pick-main span:last-child { color: var(--muted); font-size: 13px; }
+.grow-pick-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.grow-pick-meta span,
+.grow-pick-selected { min-height: 28px; display: inline-flex; align-items: center; width: fit-content; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 12px; }
+.grow-pick-selected { color: var(--green); border-color: oklch(74% 0.19 145 / 0.35); background: var(--green-bg); font-weight: 700; }
+.grow-system-brief { display: grid; gap: 10px; min-width: 0; }
+.grow-system-volume { display: grid; gap: 3px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.grow-system-volume span { color: var(--faint); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
+.grow-system-volume strong { font-family: var(--mono); font-size: 26px; line-height: 1; }
+.grow-system-lines { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.grow-system-lines span { min-width: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.grow-review-notice { padding: 12px 14px; border: 1px solid oklch(74% 0.19 145 / 0.32); border-radius: 10px; background: var(--green-bg); color: var(--green); font-weight: 700; }
+.grow-final-summary > div:first-child,
+.grow-final-summary > div:nth-child(3),
+.grow-final-summary > div:nth-child(4),
+.grow-final-summary > div:nth-child(6) { background: var(--green-bg); border-color: oklch(74% 0.19 145 / 0.28); }
+
+@media (max-width: 680px) {
+  .grow-pick-card { padding: 14px; }
+  .grow-system-lines { grid-template-columns: minmax(0, 1fr); }
+  .grow-system-volume strong { font-size: 22px; }
+  .grow-review-notice { font-size: 13px; }
+}
+
+/* Structure fix: Settings is configuration only; Zelte/Systeme live on /zelte. */
+.settings-page-clean {
+  display: grid;
+  gap: 22px;
+}
+
+.settings-token-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.settings-strain-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.settings-form-wide {
+  grid-column: 1 / -1;
+}
+
+.settings-strain-list,
+.settings-link-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.settings-strain-card,
+.settings-link-card {
+  display: grid;
+  gap: 5px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.settings-strain-card span,
+.settings-link-card span {
+  color: var(--faint);
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .settings-token-row {
+    grid-template-columns: 1fr;
+  }
+}

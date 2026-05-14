@@ -295,6 +295,12 @@ public enum TentType
     MultiPurpose
 }
 
+public enum TentStatus
+{
+    Active,
+    Archived
+}
+
 public enum SetupType
 {
     Production,

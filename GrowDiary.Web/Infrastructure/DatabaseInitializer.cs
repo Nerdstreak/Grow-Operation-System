@@ -151,6 +151,7 @@ public sealed class DatabaseInitializer
                 Name TEXT NOT NULL,
                 Kind TEXT NOT NULL DEFAULT 'Grow Tent',
                 TentType TEXT NOT NULL DEFAULT 'MultiPurpose',
+                Status TEXT NOT NULL DEFAULT 'Active',
                 Notes TEXT NULL,
                 DisplayOrder INTEGER NOT NULL DEFAULT 99,
                 AccentColor TEXT NOT NULL DEFAULT '#69b578',
@@ -693,6 +694,7 @@ public sealed class DatabaseInitializer
             );
         """;
         command.ExecuteNonQuery();
+        EnsureColumn(connection, "Tents", "Status", "TEXT NOT NULL DEFAULT 'Active'");
         EnsureColumn(connection, "GrowSystems", "TentId", "INTEGER NULL");
         EnsureColumn(connection, "GrowSystems", "Status", "TEXT NOT NULL DEFAULT 'Active'");
         EnsureColumn(connection, "GrowSystems", "LayoutType", "TEXT NOT NULL DEFAULT 'SingleBucket'");
@@ -725,20 +727,8 @@ public sealed class DatabaseInitializer
     private void SeedDefaults()
     {
         using var connection = OpenConnection();
-        using var countCommand = connection.CreateCommand();
-        countCommand.CommandText = "SELECT COUNT(*) FROM Tents;";
-        var tentCount = Convert.ToInt32((long)(countCommand.ExecuteScalar() ?? 0L));
-        if (tentCount == 0)
-        {
-            using var insert = connection.CreateCommand();
-            insert.CommandText = """
-                INSERT INTO Tents (Name, Kind, TentType, AccentColor, DisplayOrder,
-                                   Co2Available, CreatedAtUtc, UpdatedAtUtc)
-                VALUES ('Hauptzelt', 'Grow Tent', 'MultiPurpose', '#69b578', 1,
-                        0, datetime('now'), datetime('now'));
-                """;
-            insert.ExecuteNonQuery();
-        }
+        // Keine Standard-Zelte seeden: Grow OS startet bewusst leer.
+        // Nutzer legen ihre Zelte unter /zelte selbst an.
 
         // Entferne nicht-Hydro-Templates – App ist RDWC/DWC-only
         using var deleteNonHydro = connection.CreateCommand();

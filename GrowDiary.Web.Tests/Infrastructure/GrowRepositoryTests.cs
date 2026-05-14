@@ -15,8 +15,7 @@ public sealed class GrowRepositoryTests : IDisposable
         _dbPath = Path.Combine(Path.GetTempPath(), $"grow-test-{Guid.NewGuid():N}.db");
         Environment.SetEnvironmentVariable("GROWDIARY_DB_PATH", _dbPath);
         _paths = new AppPaths(Path.GetTempPath());
-        var initializer = new DatabaseInitializer(_paths, NullLogger<DatabaseInitializer>.Instance);
-        initializer.Initialize();
+        GrowDiary.Web.Tests.TestDatabase.InitializeWithDefaultTent(_paths);
     }
 
     public void Dispose()

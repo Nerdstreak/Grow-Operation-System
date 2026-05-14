@@ -86,7 +86,7 @@ public sealed class SettingsApiController : ApiControllerBase
             return NotFoundError("tent_not_found", $"Zelt mit Id {id} existiert nicht.");
         }
 
-        if (!ValidateTentRequest(request.Name, request.TentType))
+        if (!ValidateTentRequest(request.Name, request.TentType, request.Status))
         {
             return ValidationError();
         }
@@ -100,7 +100,45 @@ public sealed class SettingsApiController : ApiControllerBase
         return Ok(_repository.GetTent(id)!.ToDto());
     }
 
-    private bool ValidateTentRequest(string name, string? tentType)
+
+    [HttpPost("tents/{id:int}/archive")]
+    [ProducesResponseType(typeof(TentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<TentDto> ArchiveTent(int id)
+    {
+        var existing = _repository.GetTent(id);
+        if (existing is null)
+        {
+            return NotFoundError("tent_not_found", $"Zelt mit Id {id} existiert nicht.");
+        }
+
+        _repository.ArchiveTent(id);
+        return Ok(_repository.GetTent(id)!.ToDto());
+    }
+
+    [HttpDelete("tents/{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(TentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public IActionResult DeleteTent(int id)
+    {
+        var existing = _repository.GetTent(id);
+        if (existing is null)
+        {
+            return NotFoundError("tent_not_found", $"Zelt mit Id {id} existiert nicht.");
+        }
+
+        if (_repository.HasTentDependencies(id))
+        {
+            _repository.ArchiveTent(id);
+            return Ok(_repository.GetTent(id)!.ToDto());
+        }
+
+        _repository.DeleteTent(id);
+        return NoContent();
+    }
+
+    private bool ValidateTentRequest(string name, string? tentType, string? status = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -110,6 +148,11 @@ public sealed class SettingsApiController : ApiControllerBase
         if (!string.IsNullOrWhiteSpace(tentType) && !Enum.TryParse<TentType>(tentType, out _))
         {
             ModelState.AddModelError(nameof(UpdateTentRequest.TentType), $"Tent-Typ {tentType} ist nicht erlaubt.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && !Enum.TryParse<TentStatus>(status, out _))
+        {
+            ModelState.AddModelError(nameof(UpdateTentRequest.Status), $"Tent-Status {status} ist nicht erlaubt.");
         }
 
         return ModelState.IsValid;

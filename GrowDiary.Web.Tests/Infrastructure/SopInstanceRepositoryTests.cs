@@ -19,7 +19,7 @@ public sealed class SopInstanceRepositoryTests : IDisposable
         Directory.CreateDirectory(_contentRoot);
         CopyDefaults(Path.Combine(FindProjectRoot(), "GrowDiary.Web", "wwwroot", "knowledge-defaults"), _contentRoot);
         _paths = new AppPaths(_contentRoot);
-        new DatabaseInitializer(_paths, NullLogger<DatabaseInitializer>.Instance).Initialize();
+        GrowDiary.Web.Tests.TestDatabase.InitializeWithDefaultTent(_paths);
         _repository = new GrowRepository(_paths);
         _knowledgeBase = new KnowledgeBaseLoader(_paths, NullLogger<KnowledgeBaseLoader>.Instance);
         _knowledgeBase.Initialize();

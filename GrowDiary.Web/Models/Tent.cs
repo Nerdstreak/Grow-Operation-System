@@ -6,6 +6,7 @@ public sealed class Tent
     public string Name { get; set; } = string.Empty;
     public string Kind { get; set; } = "Grow Tent";
     public TentType TentType { get; set; } = TentType.MultiPurpose;
+    public TentStatus Status { get; set; } = TentStatus.Active;
     public string? Notes { get; set; }
     public int DisplayOrder { get; set; }
     public string AccentColor { get; set; } = "#69b578";

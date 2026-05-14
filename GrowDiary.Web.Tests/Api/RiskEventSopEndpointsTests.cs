@@ -21,7 +21,7 @@ public sealed class RiskEventSopEndpointsTests : IDisposable
         Directory.CreateDirectory(_contentRoot);
         CopyDefaults(Path.Combine(FindProjectRoot(), "GrowDiary.Web", "wwwroot", "knowledge-defaults"), _contentRoot);
         var paths = new AppPaths(_contentRoot);
-        new DatabaseInitializer(paths, NullLogger<DatabaseInitializer>.Instance).Initialize();
+        GrowDiary.Web.Tests.TestDatabase.InitializeWithDefaultTent(paths);
         _repository = new GrowRepository(paths);
         var taskRepository = new TaskRepository(paths);
         var knowledgeBase = new KnowledgeBaseLoader(paths, NullLogger<KnowledgeBaseLoader>.Instance);

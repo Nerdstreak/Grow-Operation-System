@@ -21,7 +21,7 @@ public sealed class HardwareItemsApiControllerTests : IDisposable
         Directory.CreateDirectory(_contentRoot);
         CopyKnowledgeDefaults(_contentRoot);
         _paths = new AppPaths(_contentRoot);
-        new DatabaseInitializer(_paths, NullLogger<DatabaseInitializer>.Instance).Initialize();
+        GrowDiary.Web.Tests.TestDatabase.InitializeWithDefaultTent(_paths);
         _repository = new GrowRepository(_paths);
         var knowledgeBase = new KnowledgeBaseLoader(_paths, NullLogger<KnowledgeBaseLoader>.Instance);
         knowledgeBase.Initialize();
