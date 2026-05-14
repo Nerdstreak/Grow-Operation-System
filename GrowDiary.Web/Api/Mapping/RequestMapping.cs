@@ -135,13 +135,34 @@ public static class RequestMapping
         Name = string.IsNullOrWhiteSpace(request.Name) ? string.Empty : request.Name.Trim(),
         Kind = string.IsNullOrWhiteSpace(request.Kind) ? "Grow Tent" : request.Kind.Trim(),
         TentType = Enum.TryParse<TentType>(request.TentType, out var tt) ? tt : TentType.MultiPurpose,
+        Status = Enum.TryParse<TentStatus>(request.Status, out var status) ? status : TentStatus.Active,
         Notes = Normalize(request.Notes),
         DisplayOrder = request.DisplayOrder,
-        AccentColor = string.IsNullOrWhiteSpace(request.AccentColor) ? "#69b578" : request.AccentColor.Trim()
+        AccentColor = string.IsNullOrWhiteSpace(request.AccentColor) ? "#69b578" : request.AccentColor.Trim(),
+        WidthCm = request.WidthCm,
+        DepthCm = request.DepthCm,
+        TentHeightCm = request.TentHeightCm,
+        LightType = Normalize(request.LightType),
+        LightWatt = request.LightWatt,
+        LightController = Enum.TryParse<LightControllerType>(request.LightController, out var lc) ? lc : (LightControllerType?)null,
+        LightControllerEntityId = Normalize(request.LightControllerEntityId),
+        ExhaustFanCount = request.ExhaustFanCount,
+        ExhaustM3h = request.ExhaustM3h,
+        CirculationFanCount = request.CirculationFanCount,
+        HvacController = Enum.TryParse<HvacControllerType>(request.HvacController, out var hc) ? hc : (HvacControllerType?)null,
+        HvacControllerEntityId = Normalize(request.HvacControllerEntityId),
+        Co2Available = request.Co2Available,
+        CameraEntityId = Normalize(request.CameraEntityId)
     };
 
+    public static List<TentSensor> ToSensors(this CreateTentRequest request, int tentId)
+        => MapTentSensors(request.Sensors, tentId);
+
     public static List<TentSensor> ToSensors(this UpdateTentRequest request, int tentId)
-        => (request.Sensors ?? [])
+        => MapTentSensors(request.Sensors, tentId);
+
+    private static List<TentSensor> MapTentSensors(List<UpdateTentSensorRequest>? sensors, int tentId)
+        => (sensors ?? [])
             .Select(sensor =>
             {
                 if (!Enum.TryParse<SensorMetricType>(sensor.MetricType, out var metricType))

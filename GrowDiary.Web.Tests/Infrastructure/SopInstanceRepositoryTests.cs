@@ -334,7 +334,7 @@ public sealed class SopInstanceRepositoryTests : IDisposable
     {
         var growId = CreateGrow();
         var sop = _knowledgeBase.Sops.Single(item => item.Id == "emergency-power-recovery");
-        Assert.Single(sop.Steps.Where(s => s.WaitMinutes.HasValue));
+        Assert.Single(sop.Steps, s => s.WaitMinutes.HasValue);
 
         var before = DateTime.UtcNow.AddSeconds(-2);
         var instance = _repository.StartSopInstance(growId, sop, SopStartSource.Manual, null, null, null);

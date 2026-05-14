@@ -21,7 +21,7 @@ public sealed class HydroSetupsApiController : ApiControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<HydroSetupDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
-    public ActionResult<IReadOnlyList<HydroSetupDto>> List([FromQuery] int? tentId = null)
+    public ActionResult<IReadOnlyList<HydroSetupDto>> List([FromQuery] int? tentId = null, [FromQuery] bool includeArchived = false)
     {
         if (tentId.HasValue && _repository.GetTent(tentId.Value) is null)
         {
@@ -30,8 +30,8 @@ public sealed class HydroSetupsApiController : ApiControllerBase
         }
 
         var systems = tentId.HasValue
-            ? _repository.GetHydroSetupsByTent(tentId.Value)
-            : _repository.GetHydroSetups();
+            ? _repository.GetHydroSetupsByTent(tentId.Value, includeArchived)
+            : _repository.GetHydroSetups(includeArchived);
 
         return Ok(systems.Select(system => system.ToDto()).ToList());
     }
@@ -124,9 +124,29 @@ public sealed class HydroSetupsApiController : ApiControllerBase
             ModelState.AddModelError(nameof(CreateHydroSetupRequest.TentId), $"Zelt mit Id {request.TentId.Value} existiert nicht.");
         }
 
-        if (request.HydroStyle is not (HydroStyle.DWC or HydroStyle.RDWC))
+        if (!Enum.IsDefined(request.HydroStyle) || request.HydroStyle is not (HydroStyle.DWC or HydroStyle.RDWC))
         {
-            ModelState.AddModelError(nameof(CreateHydroSetupRequest.HydroStyle), "HydroSetups duerfen nur DWC oder RDWC sein.");
+            ModelState.AddModelError(nameof(CreateHydroSetupRequest.HydroStyle), "HydroSetups dürfen nur DWC oder RDWC sein.");
+        }
+
+        if (!Enum.IsDefined(request.LayoutType))
+        {
+            ModelState.AddModelError(nameof(CreateHydroSetupRequest.LayoutType), "LayoutType ist ungültig.");
+        }
+
+        if (!Enum.IsDefined(request.ReservoirPosition))
+        {
+            ModelState.AddModelError(nameof(CreateHydroSetupRequest.ReservoirPosition), "ReservoirPosition ist ungültig.");
+        }
+
+        if (request is UpdateHydroSetupRequest updateRequest && !Enum.IsDefined(updateRequest.Status))
+        {
+            ModelState.AddModelError(nameof(UpdateHydroSetupRequest.Status), "HydroSetupStatus ist ungültig.");
+        }
+
+        if (request.DisplayOrder < 0)
+        {
+            ModelState.AddModelError(nameof(CreateHydroSetupRequest.DisplayOrder), "DisplayOrder darf nicht negativ sein.");
         }
 
         if (request.PotCount.HasValue && request.PotCount.Value < 1)
@@ -136,7 +156,7 @@ public sealed class HydroSetupsApiController : ApiControllerBase
 
         if (request.PotSizeLiters.HasValue && request.PotSizeLiters.Value < 0)
         {
-            ModelState.AddModelError(nameof(CreateHydroSetupRequest.PotSizeLiters), "Liter pro Topf duerfen nicht negativ sein.");
+            ModelState.AddModelError(nameof(CreateHydroSetupRequest.PotSizeLiters), "Liter pro Topf dürfen nicht negativ sein.");
         }
 
         if (request.ReservoirLiters.HasValue && request.ReservoirLiters.Value < 0)
@@ -146,7 +166,7 @@ public sealed class HydroSetupsApiController : ApiControllerBase
 
         if (request.AirStoneCount.HasValue && request.AirStoneCount.Value < 0)
         {
-            ModelState.AddModelError(nameof(CreateHydroSetupRequest.AirStoneCount), "AirStoneCount darf nicht negativ sein.");
+            ModelState.AddModelError(nameof(CreateHydroSetupRequest.AirStoneCount), "Luftstein-Anzahl darf nicht negativ sein.");
         }
 
         if (request.HydroStyle == HydroStyle.DWC && request.PotSizeLiters is not > 0 && request.ReservoirLiters is not > 0)
@@ -164,6 +184,16 @@ public sealed class HydroSetupsApiController : ApiControllerBase
             if (request.PotSizeLiters is not > 0)
             {
                 ModelState.AddModelError(nameof(CreateHydroSetupRequest.PotSizeLiters), "RDWC braucht Liter pro Site.");
+            }
+
+            if (request.LayoutType == HydroSetupLayoutType.SingleBucket)
+            {
+                ModelState.AddModelError(nameof(CreateHydroSetupRequest.LayoutType), "RDWC braucht ein RDWC-Layout.");
+            }
+
+            if (request.ReservoirPosition == ReservoirPosition.None)
+            {
+                ModelState.AddModelError(nameof(CreateHydroSetupRequest.ReservoirPosition), "RDWC braucht eine Tankposition.");
             }
         }
     }
