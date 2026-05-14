@@ -34,13 +34,13 @@ public sealed class SystemApiControllerTests : IDisposable
     }
 
     [Fact]
-    public void ReleaseReadiness_ReturnsBackendV05CandidateAndRemainingV1Items()
+    public void ReleaseReadiness_ReturnsBackendV06CandidateAndRemainingV1Items()
     {
         var result = _controller.ReleaseReadiness();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<BackendReleaseReadinessDto>(ok.Value);
-        Assert.Equal("backend.v0.5-ready-not-v1.0", dto.Status);
+        Assert.Equal("backend.v0.6-ready-not-v1.0", dto.Status);
         Assert.Contains(dto.CompletedFoundations, value => value == "zero-tent-startup");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-v1");
         Assert.Contains(dto.RemainingBeforeV1, value => value == "versioned-database-migrations");
@@ -94,6 +94,54 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.DoesNotContain("App_Data/DataProtectionKeys/key.xml", entries);
         Assert.DoesNotContain("wwwroot/uploads/plant.jpg", entries);
         Assert.DoesNotContain("runtime.log", entries);
+    }
+
+
+    [Fact]
+    public void DatabaseStatus_ReturnsCurrentSchemaAndRequiredTables()
+    {
+        var result = _controller.DatabaseStatus();
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<DatabaseStatusDto>(ok.Value);
+        Assert.True(dto.DatabaseExists);
+        Assert.Equal(DatabaseInitializer.CurrentSchemaVersion, dto.ExpectedSchemaVersion);
+        Assert.Equal(DatabaseInitializer.CurrentSchemaVersion, dto.StoredSchemaVersion);
+        Assert.True(dto.IsCurrent);
+        Assert.Contains("Tents", dto.RequiredTablesPresent);
+        Assert.Contains("GrowSystems", dto.RequiredTablesPresent);
+        Assert.Contains("Grows.SystemId", dto.RequiredColumnsPresent);
+        Assert.Contains("HardwareItems.HydroSetupId", dto.RequiredColumnsPresent);
+        Assert.Empty(dto.MissingRequiredTables);
+        Assert.Empty(dto.MissingRequiredColumns);
+    }
+
+    [Fact]
+    public void ValidateBackup_ReturnsValidResultForCreatedBackup()
+    {
+        var created = Assert.IsType<BackupManifestDto>(Assert.IsType<CreatedResult>(_controller.CreateBackup().Result).Value);
+
+        var result = _controller.ValidateBackup(created.FileName);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<BackupValidationDto>(ok.Value);
+        Assert.True(dto.Exists);
+        Assert.True(dto.IsValid);
+        Assert.True(dto.ContainsDatabase);
+        Assert.False(dto.ContainsSecrets);
+        Assert.False(dto.ContainsDataProtectionKeys);
+        Assert.False(dto.ContainsUploads);
+        Assert.True(dto.EntryCount >= 1);
+    }
+
+    [Fact]
+    public void ValidateBackup_RejectsUnsafeFileNames()
+    {
+        var result = _controller.ValidateBackup("../ha-config.json");
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var error = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Equal("invalid_backup_file", error.Code);
     }
 
     [Fact]

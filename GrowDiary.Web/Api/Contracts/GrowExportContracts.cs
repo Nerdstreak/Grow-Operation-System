@@ -54,3 +54,29 @@ public sealed record ReleaseReadinessCheckDto(
     string Key,
     string Status,
     string Message);
+
+public sealed record DatabaseStatusDto(
+    string ExpectedSchemaVersion,
+    string? StoredSchemaVersion,
+    DateTime CheckedAtUtc,
+    bool DatabaseExists,
+    bool IsCurrent,
+    IReadOnlyList<string> RequiredTablesPresent,
+    IReadOnlyList<string> MissingRequiredTables,
+    IReadOnlyList<string> RequiredColumnsPresent,
+    IReadOnlyList<string> MissingRequiredColumns,
+    IReadOnlyList<string> Warnings);
+
+public sealed record BackupValidationDto(
+    string BackupSchema,
+    string FileName,
+    DateTime CheckedAtUtc,
+    bool Exists,
+    bool IsValid,
+    bool ContainsDatabase,
+    bool ContainsWal,
+    bool ContainsSecrets,
+    bool ContainsDataProtectionKeys,
+    bool ContainsUploads,
+    int EntryCount,
+    IReadOnlyList<string> Warnings);
