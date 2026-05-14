@@ -910,6 +910,22 @@ label:has(input[type="checkbox"]) {
 .tank-bottom { bottom: 10px; left: 50%; transform: translateX(-50%); }
 .tank-external { right: 12px; bottom: 10px; }
 
+/* Grow Wizard */
+.grow-wizard-page { display: grid; gap: 18px; max-width: 1280px; margin: 0 auto; }
+.grow-wizard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.grow-choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.grow-choice-card { display: grid; gap: 12px; padding: 14px; min-width: 0; text-align: left; color: var(--text); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.grow-choice-card:hover { border-color: var(--border2); }
+.grow-choice-card.is-selected { border-color: oklch(74% 0.19 145 / 0.55); background: var(--green-bg); }
+.grow-choice-card > div:first-child { display: grid; gap: 3px; }
+.grow-choice-card > div:first-child strong { font-size: 17px; line-height: 1.2; overflow-wrap: anywhere; }
+.grow-choice-card > div:first-child span { color: var(--muted); font-size: 13px; }
+.grow-hydro-summary { display: grid; gap: 10px; min-width: 0; }
+.grow-legacy-details { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); }
+.grow-legacy-details summary { cursor: pointer; color: var(--muted); font-weight: 700; }
+.grow-legacy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.systems-check { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); color: var(--muted); font-size: 14px; }
+
 @media (max-width: 680px) {
   .systems-header,
   .system-card-header,
@@ -1094,6 +1110,11 @@ label:has(input[type="checkbox"]) {
   }
 
   .systems-page,
+  .grow-wizard-page,
+  .grow-wizard,
+  .grow-choice-grid,
+  .grow-choice-card,
+  .grow-hydro-summary,
   .systems-form-card,
   .hydro-builder,
   .hydro-builder-step,
@@ -1136,6 +1157,8 @@ label:has(input[type="checkbox"]) {
 
   .hydro-builder-step,
   .hydro-choice-grid,
+  .grow-choice-grid,
+  .grow-legacy-grid,
   .hydro-review-grid,
   .hydro-review-card,
   .systems-summary-card,
@@ -1160,6 +1183,15 @@ label:has(input[type="checkbox"]) {
   .hydro-builder select,
   .hydro-builder textarea {
     width: 100%;
+  }
+
+  .grow-choice-card {
+    padding: 12px;
+  }
+
+  .grow-choice-card .system-facts,
+  .grow-hydro-summary .system-facts {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .hydro-step-copy {
