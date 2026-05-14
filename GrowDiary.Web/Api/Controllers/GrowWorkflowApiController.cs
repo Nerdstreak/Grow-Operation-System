@@ -57,7 +57,7 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         double? suggestedEcTarget = targets is null
             ? null
             : Math.Round((targets.EcMin + targets.EcMax) / 2, 2);
-        var suggestedReservoir = TryParseReservoirSize(grow.ReservoirSize);
+        var suggestedReservoir = ResolveAddbackReservoirLiters(grow);
 
         return Ok(new AddbackDefaultsDto(
             id,
@@ -77,9 +77,31 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
     public ActionResult<AddbackResultDto> CalculateAddback(int id, [FromBody] AddbackCalculateRequest request)
     {
-        if (_repository.GetGrow(id) is null)
+        var grow = _repository.GetGrow(id);
+        if (grow is null)
         {
             return NotFoundError("grow_not_found", $"Grow mit Id {id} existiert nicht.");
+        }
+
+        if (!request.EcIst.HasValue)
+        {
+            ModelState.AddModelError(nameof(request.EcIst), "Ist-EC ist erforderlich.");
+        }
+
+        if (!request.EcZiel.HasValue)
+        {
+            ModelState.AddModelError(nameof(request.EcZiel), "Ziel-EC ist erforderlich.");
+        }
+
+        if (!request.EcStock.HasValue)
+        {
+            ModelState.AddModelError(nameof(request.EcStock), "Addback-EC ist erforderlich.");
+        }
+
+        var reservoirLiters = request.ReservoirLiters ?? ResolveAddbackReservoirLiters(grow);
+        if (!reservoirLiters.HasValue)
+        {
+            ModelState.AddModelError(nameof(request.ReservoirLiters), "Reservoir-Volumen konnte nicht aus dem HydroSetup oder Legacy-Grow gelesen werden.");
         }
 
         if (!ModelState.IsValid)
@@ -88,7 +110,7 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         }
 
         var result = AddbackCalculator.Calculate(
-            request.ReservoirLiters!.Value,
+            reservoirLiters!.Value,
             request.EcIst!.Value,
             request.EcZiel!.Value,
             request.EcStock!.Value);
@@ -272,6 +294,35 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         }
 
         return Ok(new GrowActionResultDto(_repository.GetGrow(id)!.ToDetailDto(), "Flip zu 12/12 eingetragen."));
+    }
+
+    private double? ResolveAddbackReservoirLiters(GrowRun grow)
+    {
+        if (grow.SystemId.HasValue)
+        {
+            var hydroSetup = _repository.GetHydroSetup(grow.SystemId.Value);
+            var totalVolume = CalculateHydroSetupTotalVolumeLiters(hydroSetup);
+            if (totalVolume.HasValue)
+            {
+                return totalVolume;
+            }
+        }
+
+        return TryParseReservoirSize(grow.ReservoirSize);
+    }
+
+    private static double? CalculateHydroSetupTotalVolumeLiters(GrowSystem? hydroSetup)
+    {
+        if (hydroSetup is null)
+        {
+            return null;
+        }
+
+        var siteVolume = (hydroSetup.PotCount ?? 0) * (hydroSetup.PotSizeLiters ?? 0);
+        var reservoirVolume = hydroSetup.ReservoirLiters ?? 0;
+        var total = siteVolume + reservoirVolume;
+
+        return total > 0 ? Math.Round(total, 1) : null;
     }
 
     private static double? TryParseReservoirSize(string? reservoirSize)
