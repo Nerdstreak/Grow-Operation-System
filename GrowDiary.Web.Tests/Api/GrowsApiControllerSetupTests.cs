@@ -45,13 +45,25 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
     }
 
     [Fact]
-    public void Create_WithoutSetupId_RemainsValid()
+    public void Create_WithoutSystemId_IsRejected()
     {
-        var result = _controller.Create(NewGrowRequest("Grow ohne Setup"));
+        var request = NewGrowRequest("Grow ohne HydroSetup");
+        request.SystemId = null;
+
+        var result = _controller.Create(request);
+
+        AssertSystemValidationError(result.Result);
+    }
+
+    [Fact]
+    public void Create_WithoutSetupId_RemainsValidWhenHydroSetupIsSelected()
+    {
+        var result = _controller.Create(NewGrowRequest("Grow ohne Plant-Setup"));
 
         var created = Assert.IsType<CreatedAtActionResult>(result.Result);
         var dto = Assert.IsType<GrowDetailDto>(created.Value);
         Assert.Null(dto.SetupId);
+        Assert.NotNull(dto.SystemId);
     }
 
     [Fact]
@@ -59,29 +71,58 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
     {
         var tent = DefaultTent();
         var setup = CreateSetup(tent.Id, SetupType.Production);
+        var system = CreateHydroSetup(tent.Id, HydroStyle.RDWC);
 
-        var result = _controller.Create(NewGrowRequest("Production Grow", tent.Id, setup.Id));
+        var result = _controller.Create(NewGrowRequest("Production Grow", tent.Id, setup.Id, system.Id));
 
         var created = Assert.IsType<CreatedAtActionResult>(result.Result);
         var dto = Assert.IsType<GrowDetailDto>(created.Value);
         Assert.Equal(setup.Id, dto.SetupId);
+        Assert.Equal(system.Id, dto.SystemId);
         Assert.Equal(tent.Id, dto.TentId);
-        Assert.Equal(setup.Id, _growRepository.GetGrow(dto.Id)!.SetupId);
+        var loaded = _growRepository.GetGrow(dto.Id)!;
+        Assert.Equal(setup.Id, loaded.SetupId);
+        Assert.Equal(system.Id, loaded.SystemId);
     }
 
     [Theory]
     [InlineData(HydroStyle.DWC)]
     [InlineData(HydroStyle.RDWC)]
-    public void Create_WithDwcOrRdwcHydroStyle_IsAccepted(HydroStyle hydroStyle)
+    public void Create_WithDwcOrRdwcHydroSetup_IsAcceptedAndAlignsHydroStyle(HydroStyle hydroStyle)
     {
-        var request = NewGrowRequest($"{hydroStyle} Grow");
-        request.HydroStyle = hydroStyle;
+        var tent = DefaultTent();
+        var system = CreateHydroSetup(tent.Id, hydroStyle);
+        var request = NewGrowRequest($"{hydroStyle} Grow", tent.Id, systemId: system.Id);
+        request.HydroStyle = HydroStyle.RDWC;
 
         var result = _controller.Create(request);
 
         var created = Assert.IsType<CreatedAtActionResult>(result.Result);
         var dto = Assert.IsType<GrowDetailDto>(created.Value);
+        Assert.Equal(system.Id, dto.SystemId);
         Assert.Equal(hydroStyle, dto.HydroStyle);
+    }
+
+    [Fact]
+    public void Create_WithHydroSetup_AlignsTechnicalFieldsFromHydroSetup()
+    {
+        var tent = DefaultTent();
+        var system = CreateHydroSetup(tent.Id, HydroStyle.RDWC, hasChiller: true);
+        var request = NewGrowRequest("Aligned Grow", tent.Id, systemId: system.Id);
+        request.HydroStyle = HydroStyle.RDWC;
+        request.ContainerSize = "Legacy Container";
+        request.ReservoirSize = "Legacy Reservoir";
+        request.HasChiller = false;
+
+        var result = _controller.Create(request);
+
+        var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+        var dto = Assert.IsType<GrowDetailDto>(created.Value);
+        Assert.Equal(system.Id, dto.SystemId);
+        Assert.Equal(HydroStyle.RDWC, dto.HydroStyle);
+        Assert.True(dto.HasChiller);
+        Assert.Equal("4 x 19 L", dto.ContainerSize);
+        Assert.Equal("136 L Gesamtvolumen", dto.ReservoirSize);
     }
 
     [Theory]
@@ -106,14 +147,18 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
     [InlineData(HydroStyle.None)]
     public void Update_WithNonDwcHydroStyle_IsRejected(HydroStyle hydroStyle)
     {
+        var tent = DefaultTent();
+        var system = CreateHydroSetup(tent.Id, HydroStyle.RDWC);
         var growId = _growRepository.CreateGrow(new GrowRun
         {
+            TentId = tent.Id,
+            SystemId = system.Id,
             Name = "Original",
             StartDate = new DateTime(2026, 1, 1),
             Status = GrowStatus.Planning,
             HydroStyle = HydroStyle.RDWC
         });
-        var request = NewGrowRequest("Updated");
+        var request = NewGrowRequest("Updated", tent.Id, systemId: system.Id);
         request.HydroStyle = hydroStyle;
 
         var result = _controller.Update(growId, request);
@@ -126,8 +171,9 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
     {
         var tent = DefaultTent();
         var setup = CreateSetup(tent.Id, SetupType.Mother);
+        var system = CreateHydroSetup(tent.Id, HydroStyle.RDWC);
 
-        var result = _controller.Create(NewGrowRequest("Mother Grow", tent.Id, setup.Id));
+        var result = _controller.Create(NewGrowRequest("Mother Grow", tent.Id, setup.Id, system.Id));
 
         AssertSetupValidationError(result.Result);
     }
@@ -137,8 +183,9 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
     {
         var tent = DefaultTent();
         var setup = CreateSetup(tent.Id, SetupType.Quarantine);
+        var system = CreateHydroSetup(tent.Id, HydroStyle.RDWC);
 
-        var result = _controller.Create(NewGrowRequest("Quarantine Grow", tent.Id, setup.Id));
+        var result = _controller.Create(NewGrowRequest("Quarantine Grow", tent.Id, setup.Id, system.Id));
 
         AssertSetupValidationError(result.Result);
     }
@@ -149,31 +196,109 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
         var growTent = DefaultTent();
         var setupTent = _growRepository.CreateTent("Second Tent");
         var setup = CreateSetup(setupTent.Id, SetupType.Production);
+        var system = CreateHydroSetup(growTent.Id, HydroStyle.RDWC);
 
-        var result = _controller.Create(NewGrowRequest("Wrong Tent Grow", growTent.Id, setup.Id));
+        var result = _controller.Create(NewGrowRequest("Wrong Tent Grow", growTent.Id, setup.Id, system.Id));
 
         AssertSetupValidationError(result.Result);
     }
 
     [Fact]
-    public void Update_WithProductionSetup_PersistsSetupId()
+    public void Create_WithHydroSetupFromDifferentTent_IsRejected()
+    {
+        var growTent = DefaultTent();
+        var systemTent = _growRepository.CreateTent("System Tent");
+        var system = CreateHydroSetup(systemTent.Id, HydroStyle.RDWC);
+
+        var result = _controller.Create(NewGrowRequest("Wrong System Grow", growTent.Id, systemId: system.Id));
+
+        AssertSystemValidationError(result.Result);
+    }
+
+    [Fact]
+    public void Create_WithArchivedHydroSetup_IsRejected()
+    {
+        var tent = DefaultTent();
+        var system = CreateHydroSetup(tent.Id, HydroStyle.RDWC);
+        _growRepository.ArchiveHydroSetup(system.Id);
+
+        var result = _controller.Create(NewGrowRequest("Archived System Grow", tent.Id, systemId: system.Id));
+
+        AssertSystemValidationError(result.Result);
+    }
+
+    [Fact]
+    public void Update_WithProductionSetup_PersistsSetupIdAndHydroSetupId()
     {
         var tent = DefaultTent();
         var setup = CreateSetup(tent.Id, SetupType.Production);
+        var system = CreateHydroSetup(tent.Id, HydroStyle.RDWC);
         var growId = _growRepository.CreateGrow(new GrowRun
         {
             TentId = tent.Id,
+            SystemId = system.Id,
             Name = "Original",
             StartDate = new DateTime(2026, 1, 1),
-            Status = GrowStatus.Planning
+            Status = GrowStatus.Planning,
+            HydroStyle = HydroStyle.RDWC
         });
 
-        var result = _controller.Update(growId, NewGrowRequest("Updated", tent.Id, setup.Id));
+        var result = _controller.Update(growId, NewGrowRequest("Updated", tent.Id, setup.Id, system.Id));
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<GrowDetailDto>(ok.Value);
         Assert.Equal(setup.Id, dto.SetupId);
-        Assert.Equal(setup.Id, _growRepository.GetGrow(growId)!.SetupId);
+        Assert.Equal(system.Id, dto.SystemId);
+        var loaded = _growRepository.GetGrow(growId)!;
+        Assert.Equal(setup.Id, loaded.SetupId);
+        Assert.Equal(system.Id, loaded.SystemId);
+    }
+
+    [Fact]
+    public void Update_WithoutSystemId_PreservesExistingSystemId()
+    {
+        var tent = DefaultTent();
+        var system = CreateHydroSetup(tent.Id, HydroStyle.RDWC);
+        var growId = _growRepository.CreateGrow(new GrowRun
+        {
+            TentId = tent.Id,
+            SystemId = system.Id,
+            Name = "Original",
+            StartDate = new DateTime(2026, 1, 1),
+            Status = GrowStatus.Planning,
+            HydroStyle = HydroStyle.RDWC
+        });
+        var request = NewGrowRequest("Updated", tent.Id, systemId: system.Id);
+        request.SystemId = null;
+
+        var result = _controller.Update(growId, request);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<GrowDetailDto>(ok.Value);
+        Assert.Equal(system.Id, dto.SystemId);
+        Assert.Equal(system.Id, _growRepository.GetGrow(growId)!.SystemId);
+    }
+
+    [Fact]
+    public void Update_LegacyGrowWithoutHydroSetup_CanRemainLegacy()
+    {
+        var growId = _growRepository.CreateGrow(new GrowRun
+        {
+            Name = "Legacy",
+            StartDate = new DateTime(2026, 1, 1),
+            Status = GrowStatus.Planning,
+            HydroStyle = HydroStyle.RDWC
+        });
+        var request = NewGrowRequest("Legacy Updated");
+        request.SystemId = null;
+        request.TentId = null;
+
+        var result = _controller.Update(growId, request);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<GrowDetailDto>(ok.Value);
+        Assert.Null(dto.SystemId);
+        Assert.Null(dto.TentId);
     }
 
     [Fact]
@@ -264,17 +389,37 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
             Status = SetupStatus.Active
         });
 
-    private static GrowUpsertRequest NewGrowRequest(string name, int? tentId = null, int? setupId = null)
-        => new()
+    private GrowSystem CreateHydroSetup(int tentId, HydroStyle hydroStyle, bool hasChiller = false)
+        => _growRepository.CreateHydroSetup(new GrowSystem
+        {
+            TentId = tentId,
+            Name = $"{hydroStyle} System",
+            HydroStyle = hydroStyle.ToString(),
+            PotCount = hydroStyle == HydroStyle.RDWC ? 4 : 1,
+            PotSizeLiters = hydroStyle == HydroStyle.RDWC ? 19 : 25,
+            ReservoirLiters = hydroStyle == HydroStyle.RDWC ? 60 : 0,
+            LayoutType = hydroStyle == HydroStyle.RDWC ? HydroSetupLayoutType.Grid2x2 : HydroSetupLayoutType.SingleBucket,
+            ReservoirPosition = hydroStyle == HydroStyle.RDWC ? ReservoirPosition.External : ReservoirPosition.None,
+            HasChiller = hasChiller,
+            Status = HydroSetupStatus.Active
+        });
+
+    private GrowUpsertRequest NewGrowRequest(string name, int? tentId = null, int? setupId = null, int? systemId = null)
+    {
+        var resolvedTentId = tentId ?? DefaultTent().Id;
+        var resolvedSystemId = systemId ?? CreateHydroSetup(resolvedTentId, HydroStyle.RDWC).Id;
+        return new GrowUpsertRequest
         {
             Name = name,
-            TentId = tentId,
+            TentId = resolvedTentId,
+            SystemId = resolvedSystemId,
             SetupId = setupId,
             HydroStyle = HydroStyle.RDWC,
             StartDate = "2026-01-01",
             Status = GrowStatus.Planning,
             Environment = GrowEnvironment.Indoor
         };
+    }
 
     private DeviationAnalyzerService CreateDeviationAnalyzer()
     {
@@ -333,5 +478,13 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
         var error = Assert.IsType<ApiError>(badRequest.Value);
         Assert.Equal("validation_failed", error.Code);
         Assert.Contains(nameof(GrowUpsertRequest.HydroStyle), error.FieldErrors!.Keys);
+    }
+
+    private static void AssertSystemValidationError(ActionResult? result)
+    {
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        var error = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Equal("validation_failed", error.Code);
+        Assert.Contains(nameof(GrowUpsertRequest.SystemId), error.FieldErrors!.Keys);
     }
 }
