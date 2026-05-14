@@ -8,6 +8,9 @@ export type SopStepInstanceStatus = 'Pending' | 'InProgress' | 'Done' | 'Skipped
 export type SopStartSource = 'Manual' | 'Recommendation' | 'System'
 export type HydroStyle = 'None' | 'DWC' | 'RDWC' | 'NFT' | 'Aeroponic' | 'Other'
 export type SelectableHydroStyle = 'DWC' | 'RDWC'
+export type HydroSetupStatus = 'Active' | 'Archived'
+export type HydroSetupLayoutType = 'SingleBucket' | 'Row' | 'Grid2x2' | 'Grid2x3' | 'Grid2x4' | 'Custom'
+export type ReservoirPosition = 'None' | 'Left' | 'Right' | 'Top' | 'Bottom' | 'External'
 export type GrowEnvironment = 'Indoor' | 'Outdoor' | 'Greenhouse'
 export type SeedType = 'Feminized' | 'Autoflower' | 'Regular'
 export type StartMaterial = 'Seed' | 'Clone'
@@ -995,6 +998,56 @@ export interface CreateTentRequest {
   notes: string | null
   displayOrder: number
   accentColor: string
+}
+
+export interface HydroSetupDto {
+  id: number
+  name: string
+  tentId: number | null
+  tentName: string | null
+  hydroStyle: HydroStyle
+  potCount: number | null
+  potSizeLiters: number | null
+  reservoirLiters: number | null
+  totalVolumeLiters: number | null
+  layoutType: HydroSetupLayoutType
+  reservoirPosition: ReservoirPosition
+  status: HydroSetupStatus
+  hasCirculationPump: boolean
+  circulationPumpNotes: string | null
+  hasAirPump: boolean
+  airPumpNotes: string | null
+  airStoneCount: number | null
+  hasChiller: boolean
+  hasUvSterilizer: boolean
+  notes: string | null
+  displayOrder: number
+  createdAtUtc: string
+  updatedAtUtc: string
+}
+
+export interface CreateHydroSetupRequest {
+  tentId: number | null
+  name: string
+  hydroStyle: SelectableHydroStyle
+  potCount: number | null
+  potSizeLiters: number | null
+  reservoirLiters: number | null
+  layoutType: HydroSetupLayoutType
+  reservoirPosition: ReservoirPosition
+  hasCirculationPump: boolean
+  circulationPumpNotes?: string | null
+  hasAirPump: boolean
+  airPumpNotes?: string | null
+  airStoneCount: number | null
+  hasChiller: boolean
+  hasUvSterilizer: boolean
+  notes?: string | null
+  displayOrder: number
+}
+
+export interface UpdateHydroSetupRequest extends CreateHydroSetupRequest {
+  status: HydroSetupStatus
 }
 
 export interface SettingsOverviewDto {
