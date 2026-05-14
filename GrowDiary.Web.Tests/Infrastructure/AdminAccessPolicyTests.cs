@@ -12,6 +12,7 @@ public sealed class AdminAccessPolicyTests
     [InlineData("/api/system/backup/grow-os-backup-20260101-120000.zip")]
     [InlineData("/api/system/release-readiness")]
     [InlineData("/api/system/database-status")]
+    [InlineData("/api/system/api-manifest")]
     [InlineData("/api/system/backup/grow-os-backup-20260101-120000.zip/validate")]
     public void IsProtectedPath_ProtectsAdminAndBackupRoutes(string path)
     {

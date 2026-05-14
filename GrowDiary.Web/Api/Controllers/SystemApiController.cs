@@ -30,7 +30,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new BackendHealthDto(
             AppName: "Grow OS",
-            BackendSchema: "backend-core.v0.6-candidate",
+            BackendSchema: "backend-core.v0.7-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             TentCount: tents.Count,
             HydroSetupCount: hydroSetups.Count,
@@ -49,7 +49,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "grow-export-v1",
                 "local-backup-without-secrets",
                 "database-status",
-                "backup-validation"
+                "backup-validation",
+                "api-contract-manifest"
             }));
     }
 
@@ -70,6 +71,7 @@ public sealed class SystemApiController : ApiControllerBase
             new("local_backup", "pass", "Lokale Backups schließen HA-Config, DataProtectionKeys, Uploads und Logs aus."),
             new("database_status", "pass", "Das Backend stellt einen Datenbank-Status mit Schema-Version und Pflichttabellen-/Spaltencheck bereit."),
             new("backup_validation", "pass", "Backups können vor einem Restore auf Struktur und ausgeschlossene Secrets geprüft werden."),
+            new("api_contract_manifest", "pass", "Das Backend liefert ein maschinenlesbares API-Manifest für Kernbereiche, Endpunkte und Produktregeln."),
             new("restore_api", "todo", "Ein validierter Restore-Flow ist noch nicht implementiert."),
             new("migration_engine", "todo", "Explizite versionierte Migrationen fehlen noch; aktuell arbeitet das Backend mit additiven Schema-Checks."),
             new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
@@ -77,8 +79,8 @@ public sealed class SystemApiController : ApiControllerBase
         };
 
         return Ok(new BackendReleaseReadinessDto(
-            Status: "backend.v0.6-ready-not-v1.0",
-            BackendSchema: "backend-core.v0.6-candidate",
+            Status: "backend.v0.7-ready-not-v1.0",
+            BackendSchema: "backend-core.v0.7-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
             CompletedFoundations: new[]
@@ -94,7 +96,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "grow-export-v1",
                 "local-backup-without-secrets",
                 "database-status",
-                "backup-validation"
+                "backup-validation",
+                "api-contract-manifest"
             },
             RemainingBeforeV1: new[]
             {
@@ -106,6 +109,113 @@ public sealed class SystemApiController : ApiControllerBase
                 "uniform-error-format-across-all-controllers",
                 "release-upgrade-test-with-existing-app-data"
             }));
+    }
+
+    [HttpGet("api-manifest")]
+    [ProducesResponseType(typeof(ApiManifestDto), StatusCodes.Status200OK)]
+    public ActionResult<ApiManifestDto> ApiManifest()
+    {
+        var globalRules = new[]
+        {
+            "Frische Datenbanken starten ohne automatisch gesetzte Zelte.",
+            "Neue Grows benötigen ein aktives HydroSetup.",
+            "HydroSetups sind im MVP DWC/RDWC-only.",
+            "Secrets wie Home-Assistant-Tokens dürfen nicht in API-Responses, Exports oder Backups erscheinen.",
+            "Administrative System-Endpunkte sind lokal/admin-geschützt.",
+            "Runtime-Daten aus App_Data werden nicht als Source-Artefakte behandelt."
+        };
+
+        var areas = new[]
+        {
+            new ApiAreaDto(
+                Key: "tents",
+                Title: "Zelte",
+                Description: "Physische Räume für Klima, Licht, Sensoren und Systemzuordnung.",
+                Endpoints: new[]
+                {
+                    Endpoint("GET", "/api/settings/tents", "Zelte listen, optional inklusive archivierter Zelte.", true, "includeArchived=true lädt archivierte Zelte mit."),
+                    Endpoint("GET", "/api/settings/tents/{id}", "Ein einzelnes Zelt mit technischen Details laden.", true),
+                    Endpoint("POST", "/api/settings/tents", "Zelt anlegen.", true, "Name und TentType müssen gültig sein."),
+                    Endpoint("PUT", "/api/settings/tents/{id}", "Zelt bearbeiten.", true, "Sensor-Mappings werden validiert."),
+                    Endpoint("POST", "/api/settings/tents/{id}/archive", "Zelt archivieren.", true),
+                    Endpoint("DELETE", "/api/settings/tents/{id}", "Zelt löschen oder bei Abhängigkeiten archivieren.", true)
+                }),
+            new ApiAreaDto(
+                Key: "hydro-setups",
+                Title: "HydroSetups",
+                Description: "Technische DWC/RDWC-Systeme mit Volumen, Layout und Technikmerkmalen.",
+                Endpoints: new[]
+                {
+                    Endpoint("GET", "/api/hydro-setups", "HydroSetups listen.", false, "Standardmäßig nur aktive HydroSetups.", "includeArchived=true lädt archivierte HydroSetups mit."),
+                    Endpoint("GET", "/api/hydro-setups?tentId={id}", "HydroSetups nach Zelt filtern.", false),
+                    Endpoint("GET", "/api/hydro-setups/{id}", "Ein HydroSetup laden.", false),
+                    Endpoint("POST", "/api/hydro-setups", "HydroSetup anlegen.", false, "Nur DWC oder RDWC erlaubt.", "TentId muss existieren.", "RDWC benötigt mindestens zwei Sites und eine Tankposition."),
+                    Endpoint("PUT", "/api/hydro-setups/{id}", "HydroSetup bearbeiten.", false),
+                    Endpoint("POST", "/api/hydro-setups/{id}/archive", "HydroSetup archivieren.", false)
+                }),
+            new ApiAreaDto(
+                Key: "grows",
+                Title: "Grows",
+                Description: "Konkrete Pflanzenläufe, die an Zelt und HydroSetup hängen.",
+                Endpoints: new[]
+                {
+                    Endpoint("GET", "/api/grows", "Grows listen.", false),
+                    Endpoint("GET", "/api/grows/{id}", "Grow-Details laden.", false),
+                    Endpoint("POST", "/api/grows", "Neuen Grow erstellen.", false, "SystemId/HydroSetup ist für neue Grows Pflicht.", "HydroSetup muss aktiv sein und zum Zelt passen."),
+                    Endpoint("PUT", "/api/grows/{id}", "Grow bearbeiten.", false, "Bestehende Legacy-Grows bleiben updatefähig."),
+                    Endpoint("DELETE", "/api/grows/{id}", "Grow archivieren/löschen gemäß Repository-Regel.", false)
+                }),
+            new ApiAreaDto(
+                Key: "operations",
+                Title: "Addback, Changeout und Messungen",
+                Description: "Betriebsprotokolle und Messdaten für DWC/RDWC-Grows.",
+                Endpoints: new[]
+                {
+                    Endpoint("GET", "/api/grows/{id}/addback", "Addback-Kontext laden.", false, "Volumen wird zuerst aus HydroSetup berechnet."),
+                    Endpoint("POST", "/api/grows/{id}/addback/calculate", "Addback berechnen.", false),
+                    Endpoint("GET", "/api/grows/{id}/addback/logs", "Addback-Protokoll laden.", false),
+                    Endpoint("POST", "/api/grows/{id}/addback/logs", "Addback-Protokolleintrag speichern.", false),
+                    Endpoint("GET", "/api/grows/{id}/changeouts", "Changeout-Protokoll laden.", false),
+                    Endpoint("POST", "/api/grows/{id}/changeouts", "Changeout-Protokolleintrag speichern.", false),
+                    Endpoint("GET", "/api/grows/{growId}/measurements", "Messwerte eines Grows laden.", false),
+                    Endpoint("POST", "/api/grows/{growId}/measurements", "Messwert anlegen.", false)
+                }),
+            new ApiAreaDto(
+                Key: "hardware",
+                Title: "Hardware",
+                Description: "Inventar, Sensoren, Wartung und Kalibrierung.",
+                Endpoints: new[]
+                {
+                    Endpoint("GET", "/api/hardware-items", "Hardware listen und filtern.", false, "Filter nach TentId, GrowId, SetupId oder HydroSetupId möglich."),
+                    Endpoint("POST", "/api/hardware-items", "Hardware anlegen.", false, "HydroSetupId muss existieren, wenn gesetzt."),
+                    Endpoint("PUT", "/api/hardware-items/{id}", "Hardware bearbeiten.", false),
+                    Endpoint("GET", "/api/maintenance-events", "Wartungen listen.", false),
+                    Endpoint("GET", "/api/calibration-events", "Kalibrierungen listen.", false),
+                    Endpoint("GET", "/api/risk-events", "Risiken listen.", false)
+                }),
+            new ApiAreaDto(
+                Key: "export-backup-system",
+                Title: "Export, Backup und System",
+                Description: "Produktnahe Systemendpunkte für Export, Backup, Schema und Release-Readiness.",
+                Endpoints: new[]
+                {
+                    Endpoint("GET", "/api/exports/grows/{id}", "Grow exportieren.", false, "anonymize=true entfernt/neutralisiert nutzerbezogene Angaben."),
+                    Endpoint("GET", "/api/system/backend-health", "Backend-Zustand und Capabilities laden.", false),
+                    Endpoint("GET", "/api/system/release-readiness", "Release-Readiness prüfen.", true),
+                    Endpoint("GET", "/api/system/database-status", "Datenbankstatus und Pflichtschema prüfen.", true),
+                    Endpoint("GET", "/api/system/api-manifest", "Maschinenlesbares API-Manifest laden.", true),
+                    Endpoint("POST", "/api/system/backup", "Lokales Backup ohne Secrets erstellen.", true),
+                    Endpoint("GET", "/api/system/backup/{fileName}", "Backup herunterladen.", true),
+                    Endpoint("GET", "/api/system/backup/{fileName}/validate", "Backup vor Restore validieren.", true)
+                })
+        };
+
+        return Ok(new ApiManifestDto(
+            SchemaVersion: "grow-os.api-manifest.v1",
+            BackendSchema: "backend-core.v0.7-candidate",
+            GeneratedAtUtc: DateTime.UtcNow,
+            GlobalRules: globalRules,
+            Areas: areas));
     }
 
     [HttpGet("database-status")]
@@ -339,6 +449,15 @@ public sealed class SystemApiController : ApiControllerBase
 
         return fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase) ? fullPath : null;
     }
+
+
+    private static ApiEndpointDto Endpoint(string method, string path, string purpose, bool localAdminOnly, params string[] rules)
+        => new(
+            Method: method,
+            Path: path,
+            Purpose: purpose,
+            LocalAdminOnly: localAdminOnly,
+            Rules: rules);
 
     private SqliteConnection OpenReadConnection()
     {
