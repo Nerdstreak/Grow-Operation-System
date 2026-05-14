@@ -13,6 +13,7 @@ public static class HardwareItemMapping
         Criticality: item.Criticality,
         TentId: item.TentId,
         SetupId: item.SetupId,
+        HydroSetupId: item.HydroSetupId,
         GrowId: item.GrowId,
         WearTemplateId: item.WearTemplateId,
         TentSensorId: item.TentSensorId,
@@ -37,6 +38,7 @@ public static class HardwareItemMapping
         Criticality = request.Criticality,
         TentId = request.TentId,
         SetupId = request.SetupId,
+        HydroSetupId = request.HydroSetupId,
         GrowId = request.GrowId,
         WearTemplateId = NormalizeOptional(request.WearTemplateId),
         TentSensorId = request.TentSensorId,
@@ -59,6 +61,7 @@ public static class HardwareItemMapping
         item.Criticality = request.Criticality;
         item.TentId = request.TentId;
         item.SetupId = request.SetupId;
+        item.HydroSetupId = request.HydroSetupId;
         item.GrowId = request.GrowId;
         item.WearTemplateId = NormalizeOptional(request.WearTemplateId);
         item.TentSensorId = request.TentSensorId;

@@ -495,6 +495,7 @@ public sealed class DatabaseInitializer
                 Criticality TEXT NOT NULL,
                 TentId INTEGER NULL,
                 SetupId INTEGER NULL,
+                HydroSetupId INTEGER NULL,
                 GrowId INTEGER NULL,
                 WearTemplateId TEXT NULL,
                 TentSensorId INTEGER NULL,
@@ -596,6 +597,7 @@ public sealed class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS IX_LightTransitionEvents_TentKindOccurred ON LightTransitionEvents(TentId, Kind, OccurredAtUtc);
             CREATE INDEX IF NOT EXISTS IX_HardwareItems_TentId ON HardwareItems(TentId);
             CREATE INDEX IF NOT EXISTS IX_HardwareItems_SetupId ON HardwareItems(SetupId);
+            CREATE INDEX IF NOT EXISTS IX_HardwareItems_HydroSetupId ON HardwareItems(HydroSetupId);
             CREATE INDEX IF NOT EXISTS IX_HardwareItems_GrowId ON HardwareItems(GrowId);
             CREATE INDEX IF NOT EXISTS IX_HardwareItems_WearTemplateId ON HardwareItems(WearTemplateId);
             CREATE INDEX IF NOT EXISTS IX_HardwareItems_Status ON HardwareItems(Status);
@@ -694,6 +696,7 @@ public sealed class DatabaseInitializer
             );
         """;
         command.ExecuteNonQuery();
+        EnsureColumn(connection, "HardwareItems", "HydroSetupId", "INTEGER NULL");
         EnsureColumn(connection, "Tents", "Status", "TEXT NOT NULL DEFAULT 'Active'");
         EnsureColumn(connection, "GrowSystems", "TentId", "INTEGER NULL");
         EnsureColumn(connection, "GrowSystems", "Status", "TEXT NOT NULL DEFAULT 'Active'");

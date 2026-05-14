@@ -11,6 +11,7 @@ public sealed record HardwareItemDto(
     HardwareItemCriticality Criticality,
     int? TentId,
     int? SetupId,
+    int? HydroSetupId,
     int? GrowId,
     string? WearTemplateId,
     int? TentSensorId,
@@ -35,6 +36,7 @@ public sealed class CreateHardwareItemRequest
     public HardwareItemCriticality Criticality { get; set; } = HardwareItemCriticality.Medium;
     public int? TentId { get; set; }
     public int? SetupId { get; set; }
+    public int? HydroSetupId { get; set; }
     public int? GrowId { get; set; }
     public string? WearTemplateId { get; set; }
     public int? TentSensorId { get; set; }
@@ -61,6 +63,7 @@ public sealed class UpdateHardwareItemRequest
     public HardwareItemCriticality Criticality { get; set; } = HardwareItemCriticality.Medium;
     public int? TentId { get; set; }
     public int? SetupId { get; set; }
+    public int? HydroSetupId { get; set; }
     public int? GrowId { get; set; }
     public string? WearTemplateId { get; set; }
     public int? TentSensorId { get; set; }

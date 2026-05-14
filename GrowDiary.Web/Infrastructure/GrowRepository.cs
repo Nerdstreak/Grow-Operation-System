@@ -383,7 +383,7 @@ public sealed class GrowRepository
         command.CommandText = """
             INSERT INTO HardwareItems (
                 Name, Category, Status, Criticality,
-                TentId, SetupId, GrowId, WearTemplateId, TentSensorId, HaEntityId,
+                TentId, SetupId, HydroSetupId, GrowId, WearTemplateId, TentSensorId, HaEntityId,
                 Manufacturer, Model, SerialNumber,
                 InstalledAtUtc, RetiredAtUtc,
                 ExpectedLifespanDays, InspectionIntervalDays, Notes,
@@ -391,7 +391,7 @@ public sealed class GrowRepository
             )
             VALUES (
                 $name, $category, $status, $criticality,
-                $tentId, $setupId, $growId, $wearTemplateId, $tentSensorId, $haEntityId,
+                $tentId, $setupId, $hydroSetupId, $growId, $wearTemplateId, $tentSensorId, $haEntityId,
                 $manufacturer, $model, $serialNumber,
                 $installedAtUtc, $retiredAtUtc,
                 $expectedLifespanDays, $inspectionIntervalDays, $notes,
@@ -455,6 +455,9 @@ public sealed class GrowRepository
 
     public List<HardwareItem> GetHardwareItemsByTent(int tentId)
         => GetHardwareItemsByWhere("WHERE TentId = $value", tentId);
+
+    public List<HardwareItem> GetHardwareItemsByHydroSetup(int hydroSetupId)
+        => GetHardwareItemsByWhere("WHERE HydroSetupId = $value", hydroSetupId);
 
     public List<HardwareItem> GetHardwareItemsByStatus(HardwareItemStatus status)
         => GetHardwareItemsByWhere("WHERE Status = $value", status.ToString());
@@ -3166,6 +3169,17 @@ public sealed class GrowRepository
             throw new InvalidOperationException($"Setup with id {item.SetupId.Value} does not exist.");
         }
 
+        var hydroSetup = item.HydroSetupId.HasValue ? GetHydroSetup(item.HydroSetupId.Value) : null;
+        if (item.HydroSetupId.HasValue && hydroSetup is null)
+        {
+            throw new InvalidOperationException($"HydroSetup with id {item.HydroSetupId.Value} does not exist.");
+        }
+
+        if (hydroSetup is not null && item.TentId.HasValue && hydroSetup.TentId.HasValue && hydroSetup.TentId.Value != item.TentId.Value)
+        {
+            throw new InvalidOperationException("HydroSetup must belong to the selected tent.");
+        }
+
         if (item.GrowId.HasValue && GetGrow(item.GrowId.Value) is null)
         {
             throw new InvalidOperationException($"Grow with id {item.GrowId.Value} does not exist.");
@@ -3904,6 +3918,7 @@ public sealed class GrowRepository
             Criticality = ParseEnum(reader["Criticality"]?.ToString(), HardwareItemCriticality.Medium),
             TentId = reader["TentId"] is DBNull or null ? null : Convert.ToInt32(reader["TentId"], CultureInfo.InvariantCulture),
             SetupId = reader["SetupId"] is DBNull or null ? null : Convert.ToInt32(reader["SetupId"], CultureInfo.InvariantCulture),
+            HydroSetupId = reader["HydroSetupId"] is DBNull or null ? null : Convert.ToInt32(reader["HydroSetupId"], CultureInfo.InvariantCulture),
             GrowId = reader["GrowId"] is DBNull or null ? null : Convert.ToInt32(reader["GrowId"], CultureInfo.InvariantCulture),
             WearTemplateId = NullString(reader["WearTemplateId"]),
             TentSensorId = reader["TentSensorId"] is DBNull or null ? null : Convert.ToInt32(reader["TentSensorId"], CultureInfo.InvariantCulture),
@@ -4017,6 +4032,7 @@ public sealed class GrowRepository
         command.Parameters.AddWithValue("$criticality", item.Criticality.ToString());
         command.Parameters.AddWithValue("$tentId", (object?)item.TentId ?? DBNull.Value);
         command.Parameters.AddWithValue("$setupId", (object?)item.SetupId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$hydroSetupId", (object?)item.HydroSetupId ?? DBNull.Value);
         command.Parameters.AddWithValue("$growId", (object?)item.GrowId ?? DBNull.Value);
         command.Parameters.AddWithValue("$wearTemplateId", (object?)NormalizeOptional(item.WearTemplateId) ?? DBNull.Value);
         command.Parameters.AddWithValue("$tentSensorId", (object?)item.TentSensorId ?? DBNull.Value);
