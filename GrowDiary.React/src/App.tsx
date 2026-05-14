@@ -19,7 +19,7 @@ const navItems = [
   { to: '/', label: 'Operations', end: true },
   { to: '/action', label: 'Aktion', end: true },
   { to: '/live', label: 'Live', end: true },
-  { to: '/zelte', label: 'Zelte', end: true },
+  { to: '/zelte', label: 'Zelte & Systeme', end: true },
   { to: '/hardware', label: 'Hardware', end: true },
   { to: '/archiv', label: 'Archiv', end: true },
   { to: '/grows/new', label: 'Neuer Grow', end: true },
