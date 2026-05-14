@@ -87,7 +87,8 @@ Defaults werden mit der App unter `wwwroot/knowledge-defaults/` ausgeliefert und
 ### Datenbank-Schema-Highlights
 
 - `Tents`: Multi-Tent-faehig mit `TentType` (`Production`, `Mother`, `Quarantine`, `Propagation`, `MultiPurpose`).
-- `Setups`: Additives Grundmodell mit `SetupType` (`Production`, `Mother`, `Quarantine`, `Propagation`), `SetupStatus` und optionalen Mother-/Quarantine-Basisfeldern.
+- `GrowSystems`: Ab MODEL-1 fachliche HydroSetup-Basis fuer echte DWC/RDWC-Systeme mit Tent-Bezug, Status, Layout, Tankposition, strukturierten Volumenfeldern und Pumpen-/Chiller-/UV-C-Basisfeldern. Die API laeuft ueber `/api/hydro-setups`; die Tabelle bleibt additiv `GrowSystems`.
+- `Setups`: Additives Grundmodell fuer Plant-/Zeltkontexte mit `SetupType` (`Production`, `Mother`, `Quarantine`, `Propagation`), `SetupStatus` und optionalen Mother-/Quarantine-Basisfeldern. `Setups` sind keine HydroSetups.
 - `Strains` und `PlantInstances`: Sorten und einzelne Pflanzen/Clones mit optionaler `ParentPlantId`-Lineage; Mother-Plants koennen per API Clone erzeugen, Quarantine-Plants koennen entschieden werden.
 - `TentSensors`: flexible Sensor-Liste pro Tent statt hartkodierter Sensor-Felder.
 - `Grows`: aktuelles All-in-one Grow-Modell; `SetupId` kann optional ein Production-Setup referenzieren. Mother/Quarantine sind keine GrowRun-Setups.
@@ -148,6 +149,7 @@ UI-Texte, Empfehlungen und Knowledge-Inhalte sind primaer deutsch.
 - Sprint F4 ABGESCHLOSSEN: RiskEvent-Grundmodell mit additiver Tabelle, `/api/risk-events`, DedupeKey-Grundlage, Acknowledge/Resolve-Aktionen und minimaler UI auf der HardwarePage. Keine automatische HA-Erkennung, keine BackgroundWorker und kein automatischer SOP-Start.
 - Sprint F5 ABGESCHLOSSEN: RiskEvents koennen ueber `GET /api/risk-events/{id}/sop-recommendations` passende vorhandene Emergency-SOPs vorschlagen und ueber `POST /api/risk-events/{id}/start-sop` manuell eine SOP starten; RiskEvent.SopInstanceId wird gesetzt. Keine automatische HA-Erkennung und keine automatische SOP-Ausfuehrung.
 - Sprint B2 PENDING: Setup-Hierarchie fachlich weiter ausbauen.
+- MODEL-1 ABGESCHLOSSEN: `GrowSystems` additiv als HydroSetup-Basis erweitert und `/api/hydro-setups` ergaenzt. Keine UI-/Onboarding-Umsetzung; bestehende `Setups` bleiben Plant-/Zeltkontexte.
 
 ## Sprint-Workflow
 
