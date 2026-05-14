@@ -7,7 +7,7 @@ public static class SettingsMapping
 {
     public static HomeAssistantSettingsDto ToDto(this HomeAssistantSettings settings) => new(
         BaseUrl: settings.BaseUrl,
-        AccessToken: settings.AccessToken,
+        AccessToken: string.IsNullOrWhiteSpace(settings.AccessToken) ? null : "********",
         Enabled: settings.Enabled
     );
 

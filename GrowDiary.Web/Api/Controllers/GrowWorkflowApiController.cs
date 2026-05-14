@@ -118,6 +118,144 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         return Ok(result.ToDto());
     }
 
+    [HttpGet("{id:int}/addback/logs")]
+    [ProducesResponseType(typeof(IReadOnlyList<AddbackLogDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<IReadOnlyList<AddbackLogDto>> GetAddbackLogs(int id)
+    {
+        if (_repository.GetGrow(id) is null)
+        {
+            return NotFoundError("grow_not_found", $"Grow mit Id {id} existiert nicht.");
+        }
+
+        return Ok(_repository.GetAddbackLogsForGrow(id).Select(entry => entry.ToDto()).ToList());
+    }
+
+    [HttpPost("{id:int}/addback/logs")]
+    [ProducesResponseType(typeof(AddbackLogDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<AddbackLogDto> CreateAddbackLog(int id, [FromBody] CreateAddbackLogRequest request)
+    {
+        var grow = _repository.GetGrow(id);
+        if (grow is null)
+        {
+            return NotFoundError("grow_not_found", $"Grow mit Id {id} existiert nicht.");
+        }
+
+        ValidateOperationLogValues(
+            (request.ReservoirLiters, nameof(request.ReservoirLiters)),
+            (request.EcBefore, nameof(request.EcBefore)),
+            (request.EcTarget, nameof(request.EcTarget)),
+            (request.EcStock, nameof(request.EcStock)),
+            (request.EcAfter, nameof(request.EcAfter)),
+            (request.LitersAdded, nameof(request.LitersAdded)),
+            (request.NewReservoirVolumeLiters, nameof(request.NewReservoirVolumeLiters)));
+        ValidatePh(request.PhBefore, nameof(request.PhBefore));
+        ValidatePh(request.PhAfter, nameof(request.PhAfter));
+
+        if (!Enum.IsDefined(request.Kind))
+        {
+            ModelState.AddModelError(nameof(request.Kind), "Addback-Art ist ungueltig.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationError();
+        }
+
+        var resolvedReservoir = request.ReservoirLiters ?? ResolveAddbackReservoirLiters(grow);
+        var usedHydroVolume = request.UsedHydroSetupVolume
+            ?? (!request.ReservoirLiters.HasValue && grow.SystemId.HasValue && CalculateHydroSetupTotalVolumeLiters(_repository.GetHydroSetup(grow.SystemId.Value)).HasValue);
+
+        var created = _repository.CreateAddbackLog(new AddbackLogEntry
+        {
+            GrowId = id,
+            HydroSetupId = grow.SystemId,
+            Kind = request.Kind,
+            PerformedAtUtc = request.PerformedAtUtc ?? DateTime.UtcNow,
+            ReservoirLiters = resolvedReservoir,
+            EcBefore = request.EcBefore,
+            EcTarget = request.EcTarget,
+            EcStock = request.EcStock,
+            EcAfter = request.EcAfter,
+            PhBefore = request.PhBefore,
+            PhAfter = request.PhAfter,
+            LitersAdded = request.LitersAdded,
+            NewReservoirVolumeLiters = request.NewReservoirVolumeLiters,
+            UsedHydroSetupVolume = usedHydroVolume,
+            Notes = request.Notes
+        });
+
+        return CreatedAtAction(nameof(GetAddbackLogs), new { id }, created.ToDto());
+    }
+
+    [HttpGet("{id:int}/changeouts")]
+    [ProducesResponseType(typeof(IReadOnlyList<ChangeoutDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<IReadOnlyList<ChangeoutDto>> GetChangeouts(int id)
+    {
+        if (_repository.GetGrow(id) is null)
+        {
+            return NotFoundError("grow_not_found", $"Grow mit Id {id} existiert nicht.");
+        }
+
+        return Ok(_repository.GetChangeoutsForGrow(id).Select(entry => entry.ToDto()).ToList());
+    }
+
+    [HttpPost("{id:int}/changeouts")]
+    [ProducesResponseType(typeof(ChangeoutDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<ChangeoutDto> CreateChangeout(int id, [FromBody] CreateChangeoutRequest request)
+    {
+        var grow = _repository.GetGrow(id);
+        if (grow is null)
+        {
+            return NotFoundError("grow_not_found", $"Grow mit Id {id} existiert nicht.");
+        }
+
+        ValidateOperationLogValues(
+            (request.VolumeChangedLiters, nameof(request.VolumeChangedLiters)),
+            (request.PercentChanged, nameof(request.PercentChanged)),
+            (request.EcBefore, nameof(request.EcBefore)),
+            (request.EcAfter, nameof(request.EcAfter)));
+        ValidatePh(request.PhBefore, nameof(request.PhBefore));
+        ValidatePh(request.PhAfter, nameof(request.PhAfter));
+
+        if (request.PercentChanged is < 0 or > 100)
+        {
+            ModelState.AddModelError(nameof(request.PercentChanged), "Prozentwert muss zwischen 0 und 100 liegen.");
+        }
+
+        if (!Enum.IsDefined(request.Kind))
+        {
+            ModelState.AddModelError(nameof(request.Kind), "Changeout-Art ist ungueltig.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationError();
+        }
+
+        var created = _repository.CreateChangeout(new ChangeoutEntry
+        {
+            GrowId = id,
+            HydroSetupId = grow.SystemId,
+            Kind = request.Kind,
+            PerformedAtUtc = request.PerformedAtUtc ?? DateTime.UtcNow,
+            VolumeChangedLiters = request.VolumeChangedLiters,
+            PercentChanged = request.PercentChanged,
+            EcBefore = request.EcBefore,
+            EcAfter = request.EcAfter,
+            PhBefore = request.PhBefore,
+            PhAfter = request.PhAfter,
+            Notes = request.Notes
+        });
+
+        return CreatedAtAction(nameof(GetChangeouts), new { id }, created.ToDto());
+    }
+
     [HttpGet("{id:int}/harvest")]
     [ProducesResponseType(typeof(HarvestDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
@@ -294,6 +432,25 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         }
 
         return Ok(new GrowActionResultDto(_repository.GetGrow(id)!.ToDetailDto(), "Flip zu 12/12 eingetragen."));
+    }
+
+    private void ValidateOperationLogValues(params (double? Value, string FieldName)[] values)
+    {
+        foreach (var (value, fieldName) in values)
+        {
+            if (value is < 0)
+            {
+                ModelState.AddModelError(fieldName, "Wert darf nicht negativ sein.");
+            }
+        }
+    }
+
+    private void ValidatePh(double? value, string fieldName)
+    {
+        if (value is < 0 or > 14)
+        {
+            ModelState.AddModelError(fieldName, "pH-Wert muss zwischen 0 und 14 liegen.");
+        }
     }
 
     private double? ResolveAddbackReservoirLiters(GrowRun grow)
