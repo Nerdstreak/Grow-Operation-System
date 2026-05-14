@@ -35,4 +35,22 @@ public sealed record BackupManifestDto(
     bool IncludesDatabase,
     bool IncludesWal,
     bool IncludesKnowledgeRuntimeCopy,
-    bool ExcludesSecrets);
+    bool ExcludesSecrets,
+    bool ExcludesHomeAssistantConfig,
+    bool ExcludesDataProtectionKeys,
+    bool ExcludesUploads,
+    bool RestoreSupported,
+    string DownloadUrl);
+
+public sealed record BackendReleaseReadinessDto(
+    string Status,
+    string BackendSchema,
+    DateTime CheckedAtUtc,
+    IReadOnlyList<ReleaseReadinessCheckDto> Checks,
+    IReadOnlyList<string> CompletedFoundations,
+    IReadOnlyList<string> RemainingBeforeV1);
+
+public sealed record ReleaseReadinessCheckDto(
+    string Key,
+    string Status,
+    string Message);

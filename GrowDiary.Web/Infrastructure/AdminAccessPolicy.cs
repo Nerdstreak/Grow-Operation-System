@@ -10,7 +10,9 @@ public static class AdminAccessPolicy
     public static bool IsProtectedPath(PathString path)
         => path.StartsWithSegments("/settings", StringComparison.OrdinalIgnoreCase)
            || path.StartsWithSegments("/einstellungen", StringComparison.OrdinalIgnoreCase)
-           || path.StartsWithSegments("/api/settings", StringComparison.OrdinalIgnoreCase);
+           || path.StartsWithSegments("/api/settings", StringComparison.OrdinalIgnoreCase)
+           || path.StartsWithSegments("/api/system/backup", StringComparison.OrdinalIgnoreCase)
+           || path.StartsWithSegments("/api/system/release-readiness", StringComparison.OrdinalIgnoreCase);
 
     public static bool CanAccess(HttpContext context)
     {
