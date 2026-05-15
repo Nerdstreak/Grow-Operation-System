@@ -3,7 +3,6 @@ import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import AddbackPage from './pages/AddbackPage'
 import AnalysisPage from './pages/AnalysisPage'
 import ArchivePage from './pages/ArchivePage'
-import DashboardPage from './pages/DashboardPage'
 import GrowDetailPage from './pages/GrowDetailPage'
 import GrowSetupPage from './pages/GrowSetupPage'
 import HardwarePage from './pages/HardwarePage'
@@ -17,7 +16,7 @@ import TentDetailPage from './pages/TentDetailPage'
 import TentsPage from './pages/TentsPage'
 
 const navItems = [
-  { to: '/', label: 'Operations', end: true },
+  { to: '/', label: 'Dashboard', end: true },
   { to: '/action', label: 'Aktion', end: true },
   { to: '/live', label: 'Live', end: true },
   { to: '/zelte', label: 'Zelte & Systeme', end: true },
@@ -30,14 +29,14 @@ const navItems = [
 ]
 
 const mobilePrimaryItems = [
+  { to: '/', label: 'Dashboard', end: true },
   { to: '/action', label: 'Aktion', end: true },
-  { to: '/live', label: 'Live', end: true },
   { to: '/zelte', label: 'Zelte', end: true },
   { to: '/grows/new', label: 'Grow', end: true },
 ]
 
 const mobileMoreItems = [
-  { to: '/', label: 'Operations', end: true },
+  { to: '/live', label: 'Live', end: true },
   { to: '/hardware', label: 'Hardware', end: true },
   { to: '/wissen', label: 'Wissen', end: true },
   { to: '/analyse', label: 'Analyse', end: true },
@@ -138,7 +137,7 @@ function App() {
 
       <div className="content">
         <Routes>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={<LiveDashboardPage />} />
           <Route path="/action" element={<MobileActionPage />} />
           <Route path="/live" element={<LiveDashboardPage />} />
           <Route path="/grows" element={<Navigate to="/" replace />} />
@@ -163,7 +162,7 @@ function App() {
 }
 
 function getCurrentTitle(pathname: string): string {
-  if (pathname === '/') return 'Operations'
+  if (pathname === '/') return 'Dashboard'
   if (pathname.startsWith('/action')) return 'Aktion'
   if (pathname.startsWith('/live')) return 'Live'
   if (pathname.startsWith('/zelte')) return 'Zelte & Systeme'
