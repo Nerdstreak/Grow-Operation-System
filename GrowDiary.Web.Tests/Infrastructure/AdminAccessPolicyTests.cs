@@ -27,6 +27,7 @@ public sealed class AdminAccessPolicyTests : IDisposable
     [InlineData("/api/system/backup/grow-os-backup-20260101-120000.zip/restore-plan")]
     [InlineData("/api/exports/grows/1")]
     [InlineData("/api/exports/grows/validate")]
+    [InlineData("/api/exports/grows/import-plan")]
     public void IsProtectedPath_ProtectsAdminBackupAndExportRoutes(string path)
     {
         Assert.True(AdminAccessPolicy.IsProtectedPath(new PathString(path)));

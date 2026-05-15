@@ -43,6 +43,42 @@ public sealed record GrowExportValidationDto(
     IReadOnlyList<string> Errors,
     IReadOnlyList<string> Warnings);
 
+
+public sealed record GrowImportPlanDto(
+    string ImportPlanSchema,
+    DateTime CheckedAtUtc,
+    bool ExportValid,
+    bool ImportSupported,
+    bool WouldModifyDatabase,
+    bool IsAnonymized,
+    string? ExportId,
+    string? ExportSchemaVersion,
+    string? IntegrityHash,
+    GrowImportPlanSourceDto? Source,
+    GrowExportSectionCountsDto? SectionCounts,
+    IReadOnlyList<GrowImportPlanItemDto> PlannedItems,
+    IReadOnlyList<GrowImportPlanConflictDto> Conflicts,
+    IReadOnlyList<string> Blockers,
+    IReadOnlyList<string> Warnings);
+
+public sealed record GrowImportPlanSourceDto(
+    int? OriginalGrowId,
+    string? GrowName,
+    string? TentName,
+    string? HydroSetupName,
+    DateTime? ExportedAtUtc);
+
+public sealed record GrowImportPlanItemDto(
+    string Kind,
+    string Action,
+    int Count,
+    string? Notes);
+
+public sealed record GrowImportPlanConflictDto(
+    string Kind,
+    string Severity,
+    string Message);
+
 public sealed record BackendHealthDto(
     string AppName,
     string BackendSchema,
