@@ -6,7 +6,7 @@ namespace GrowDiary.Web.Infrastructure;
 
 public sealed class DatabaseInitializer
 {
-    public const string CurrentSchemaVersion = "backend-core.v0.16-candidate";
+    public const string CurrentSchemaVersion = "backend-core.v0.17-candidate";
     public const string CurrentSchemaAppSettingKey = "backend:schemaVersion";
     public const string LastMigrationUtcAppSettingKey = "backend:lastMigrationUtc";
 
@@ -28,7 +28,8 @@ public sealed class DatabaseInitializer
         new SchemaMigrationDescriptor("0014-system-audit-events", "System audit events for critical backend operations", CurrentSchemaVersion),
         new SchemaMigrationDescriptor("0015-api-error-format", "Uniform API error contract for backend endpoints", CurrentSchemaVersion),
         new SchemaMigrationDescriptor("0016-legacy-mvc-containment", "Legacy MVC endpoint containment for backup/export/camera routes", CurrentSchemaVersion),
-        new SchemaMigrationDescriptor("0017-product-api-remote-guard", "Product API remote access guardrails", CurrentSchemaVersion)
+        new SchemaMigrationDescriptor("0017-product-api-remote-guard", "Product API remote access guardrails", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0018-migration-engine-foundation", "Idempotent migration engine foundation and destructive migration guardrails", CurrentSchemaVersion, RequiresBackup: true)
     };
 
     private readonly AppPaths _paths;
@@ -66,31 +67,41 @@ public sealed class DatabaseInitializer
         if (!hasLegacyColumn)
             return;
 
+        var suffix = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
         _logger.LogWarning(
-            "Legacy Tent-Schema erkannt. Tents und abhängige Daten werden gelöscht " +
-            "(einmalig beim ersten Start mit B1a-Schema).");
+            "Legacy Tent-Schema erkannt. Tents/TentSensors werden nicht mehr gelöscht, " +
+            "sondern als Legacy-Backup-Tabellen archiviert. Suffix: {Suffix}", suffix);
 
-        foreach (var sql in new[] { "DROP TABLE IF EXISTS TentSensors;", "DROP TABLE IF EXISTS Tents;" })
+        RenameTableIfExists(connection, "TentSensors", $"LegacyTentSensors_{suffix}");
+        RenameTableIfExists(connection, "Tents", $"LegacyTents_{suffix}");
+
+        using var warning = connection.CreateCommand();
+        warning.CommandText = """
+            CREATE TABLE IF NOT EXISTS SchemaMigrationWarnings (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                WarningKey TEXT NOT NULL,
+                Message TEXT NOT NULL,
+                CreatedAtUtc TEXT NOT NULL
+            );
+
+            INSERT INTO SchemaMigrationWarnings (WarningKey, Message, CreatedAtUtc)
+            VALUES ('legacy-tent-schema-archived', $message, $createdAtUtc);
+        """;
+        warning.Parameters.AddWithValue("$message", $"Legacy Tent-Schema wurde als LegacyTents_{suffix}/LegacyTentSensors_{suffix} archiviert. Es wurden keine Grow-Daten gelöscht.");
+        warning.Parameters.AddWithValue("$createdAtUtc", DateTime.UtcNow.ToString("O"));
+        warning.ExecuteNonQuery();
+    }
+
+    private static void RenameTableIfExists(SqliteConnection connection, string sourceTable, string targetTable)
+    {
+        if (!TableExists(connection, sourceTable) || TableExists(connection, targetTable))
         {
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.ExecuteNonQuery();
+            return;
         }
 
-        var tablesToClear = new[]
-        {
-            "Grows", "Measurements", "Photos", "JournalEntries",
-            "GrowTasks", "HarvestEntries", "TentSensorReadings",
-            "TentSensorSnapshots", "TentSensorDailyStats"
-        };
-
-        foreach (var table in tablesToClear)
-        {
-            if (!TableExists(connection, table)) continue;
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = $"DELETE FROM {table};";
-            cmd.ExecuteNonQuery();
-        }
+        using var command = connection.CreateCommand();
+        command.CommandText = $"ALTER TABLE \"{sourceTable}\" RENAME TO \"{targetTable}\";";
+        command.ExecuteNonQuery();
     }
 
     private void EnsureSchema()
@@ -722,6 +733,8 @@ public sealed class DatabaseInitializer
         """;
         command.ExecuteNonQuery();
 
+        EnsureSchemaMigrationMetadataColumns(connection);
+
         EnsureColumn(connection, "Setups", "CloneCounterTotal", "INTEGER NULL");
         EnsureColumn(connection, "Setups", "LastCloneCutAt", "TEXT NULL");
         EnsureColumn(connection, "Setups", "MotherHealthStatus", "TEXT NULL");
@@ -839,22 +852,59 @@ public sealed class DatabaseInitializer
             return;
         }
 
+        EnsureSchemaMigrationMetadataColumns(connection);
+        var now = DateTime.UtcNow.ToString("O");
+
         foreach (var migration in RequiredMigrations)
         {
             using var command = connection.CreateCommand();
             command.CommandText = """
-                INSERT INTO AppliedSchemaMigrations (Id, Name, RequiredForSchemaVersion, AppliedAtUtc)
-                VALUES ($id, $name, $requiredForSchemaVersion, $appliedAtUtc)
+                INSERT INTO AppliedSchemaMigrations (
+                    Id, Name, RequiredForSchemaVersion, AppliedAtUtc,
+                    Status, StartedAtUtc, CompletedAtUtc, Error,
+                    RequiresBackup, IsDestructive, Checksum, EngineVersion)
+                VALUES (
+                    $id, $name, $requiredForSchemaVersion, $appliedAtUtc,
+                    'Applied', $startedAtUtc, $completedAtUtc, NULL,
+                    $requiresBackup, $isDestructive, $checksum, 'migration-engine.v1')
                 ON CONFLICT(Id) DO UPDATE SET
                     Name = excluded.Name,
-                    RequiredForSchemaVersion = excluded.RequiredForSchemaVersion;
+                    RequiredForSchemaVersion = excluded.RequiredForSchemaVersion,
+                    Status = 'Applied',
+                    CompletedAtUtc = COALESCE(AppliedSchemaMigrations.CompletedAtUtc, excluded.CompletedAtUtc),
+                    RequiresBackup = excluded.RequiresBackup,
+                    IsDestructive = excluded.IsDestructive,
+                    Checksum = excluded.Checksum,
+                    EngineVersion = excluded.EngineVersion;
             """;
             command.Parameters.AddWithValue("$id", migration.Id);
             command.Parameters.AddWithValue("$name", migration.Name);
             command.Parameters.AddWithValue("$requiredForSchemaVersion", migration.RequiredForSchemaVersion);
-            command.Parameters.AddWithValue("$appliedAtUtc", DateTime.UtcNow.ToString("O"));
+            command.Parameters.AddWithValue("$appliedAtUtc", now);
+            command.Parameters.AddWithValue("$startedAtUtc", now);
+            command.Parameters.AddWithValue("$completedAtUtc", now);
+            command.Parameters.AddWithValue("$requiresBackup", migration.RequiresBackup ? 1 : 0);
+            command.Parameters.AddWithValue("$isDestructive", migration.IsDestructive ? 1 : 0);
+            command.Parameters.AddWithValue("$checksum", migration.Checksum ?? string.Empty);
             command.ExecuteNonQuery();
         }
+    }
+
+    private static void EnsureSchemaMigrationMetadataColumns(SqliteConnection connection)
+    {
+        if (!TableExists(connection, "AppliedSchemaMigrations"))
+        {
+            return;
+        }
+
+        EnsureColumn(connection, "AppliedSchemaMigrations", "Status", "TEXT NOT NULL DEFAULT 'Applied'");
+        EnsureColumn(connection, "AppliedSchemaMigrations", "StartedAtUtc", "TEXT NULL");
+        EnsureColumn(connection, "AppliedSchemaMigrations", "CompletedAtUtc", "TEXT NULL");
+        EnsureColumn(connection, "AppliedSchemaMigrations", "Error", "TEXT NULL");
+        EnsureColumn(connection, "AppliedSchemaMigrations", "RequiresBackup", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "AppliedSchemaMigrations", "IsDestructive", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "AppliedSchemaMigrations", "Checksum", "TEXT NULL");
+        EnsureColumn(connection, "AppliedSchemaMigrations", "EngineVersion", "TEXT NOT NULL DEFAULT 'migration-engine.v1'");
     }
 
     private static void UpsertAppSetting(SqliteConnection connection, string key, string value)
@@ -969,4 +1019,10 @@ public sealed class DatabaseInitializer
     }
 }
 
-public sealed record SchemaMigrationDescriptor(string Id, string Name, string RequiredForSchemaVersion);
+public sealed record SchemaMigrationDescriptor(
+    string Id,
+    string Name,
+    string RequiredForSchemaVersion,
+    bool IsDestructive = false,
+    bool RequiresBackup = false,
+    string? Checksum = null);

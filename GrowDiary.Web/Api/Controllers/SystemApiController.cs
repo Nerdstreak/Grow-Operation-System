@@ -34,7 +34,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new BackendHealthDto(
             AppName: "Grow OS",
-            BackendSchema: "backend-core.v0.16-candidate",
+            BackendSchema: "backend-core.v0.17-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             TentCount: tents.Count,
             HydroSetupCount: hydroSetups.Count,
@@ -67,7 +67,9 @@ public sealed class SystemApiController : ApiControllerBase
                 "system-audit-events",
                 "uniform-api-error-format",
                 "legacy-mvc-endpoint-containment",
-                "remote-product-api-guard"
+                "remote-product-api-guard",
+                "schema-migration-plan",
+                "safe-migration-engine-foundation"
             }));
     }
 
@@ -102,14 +104,15 @@ public sealed class SystemApiController : ApiControllerBase
             new("legacy_mvc_containment", "pass", "Alte MVC-Backup-/Export-/Kamera-/Mutationsrouten umgehen die neuen Backup-, Export- und Security-Regeln nicht mehr."),
             new("remote_product_api_guard", "pass", "Produkt-APIs sind bei Remote-Zugriff ebenfalls lokal/admin-geschuetzt; Mobile/PWA muss fuer echten Remote-Betrieb einen sicheren Zugriffskanal nutzen."),
             new("restore_api", "todo", "Ein destruktiver Restore-Flow ist noch nicht implementiert; Restore-Planung ist nur Read-only."),
+            new("migration_engine_foundation", "pass", "Migrationen besitzen einen maschinenlesbaren Plan, Backup-Pflicht und Destructive-Guardrails als Fundament."),
             new("migration_engine", "partial", "Schema-Migrationen werden protokolliert; destructive Rollbacks und echte Restore-/Rollback-Automation fehlen noch."),
             new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
             new("import_merge", "todo", "Import und Merge von Grow-Exports sind noch nicht implementiert.")
         };
 
         var dto = new BackendReleaseReadinessDto(
-            Status: "backend.v0.16-ready-not-v1.0",
-            BackendSchema: "backend-core.v0.16-candidate",
+            Status: "backend.v0.17-ready-not-v1.0",
+            BackendSchema: "backend-core.v0.17-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
             CompletedFoundations: new[]
@@ -139,7 +142,9 @@ public sealed class SystemApiController : ApiControllerBase
                 "system-audit-events",
                 "uniform-api-error-format",
                 "legacy-mvc-endpoint-containment",
-                "remote-product-api-guard"
+                "remote-product-api-guard",
+                "schema-migration-plan",
+                "safe-migration-engine-foundation"
             },
             RemainingBeforeV1: new[]
             {
@@ -174,6 +179,7 @@ public sealed class SystemApiController : ApiControllerBase
             "Upgrade-Preflight erstellt vor riskanten Updates ein validierbares Backup.",
             "Restore-Planung ist ein Dry-Run und überschreibt keine Dateien.",
             "Schema-Migrationen werden in AppliedSchemaMigrations protokolliert.",
+            "Migrationen liefern einen Dry-Run-Plan mit Backup-Pflicht und Destructive-Guardrails, bevor riskante Updates umgesetzt werden.",
             "Kritische Backend-Operationen werden im SystemAuditEvents-Log protokolliert.",
             "API-Fehler folgen dem einheitlichen grow-os.api-error.v1 Format.",
             "Runtime-Daten aus App_Data werden nicht als Source-Artefakte behandelt.",
@@ -270,6 +276,7 @@ public sealed class SystemApiController : ApiControllerBase
                     Endpoint("GET", "/api/system/audit-events", "System-Audit-Events fuer kritische Backend-Operationen laden.", true),
                     Endpoint("GET", "/api/system/error-contract", "Einheitlichen API-Fehlervertrag laden.", true),
                     Endpoint("GET", "/api/system/migration-status", "Schema-Migrationen und offene Migrationen prüfen.", true),
+                    Endpoint("GET", "/api/system/migration-plan", "Schema-Migrationsplan als Dry-Run laden.", true, "Zeigt Pending/Applied, Backup-Pflicht und destructive Guardrails."),
                     Endpoint("POST", "/api/system/upgrade-preflight", "Update-Vorprüfung mit Datenbankstatus, Migrationstatus und validiertem Backup ausführen.", true),
                     Endpoint("POST", "/api/system/backup", "Lokales Backup ohne Secrets erstellen.", true),
                     Endpoint("GET", "/api/system/backup/{fileName}", "Backup herunterladen.", true),
@@ -280,7 +287,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         var dto = new ApiManifestDto(
             SchemaVersion: "grow-os.api-manifest.v1",
-            BackendSchema: "backend-core.v0.16-candidate",
+            BackendSchema: "backend-core.v0.17-candidate",
             GeneratedAtUtc: DateTime.UtcNow,
             GlobalRules: globalRules,
             Areas: areas);
@@ -410,7 +417,7 @@ public sealed class SystemApiController : ApiControllerBase
             ["HardwareItems"] = new[] { "Id", "TentId", "HydroSetupId", "Name", "Category", "Status" },
             ["AddbackLogs"] = new[] { "Id", "GrowId", "HydroSetupId", "Kind", "PerformedAtUtc", "ReservoirLiters", "EcBefore", "EcTarget", "LitersAdded", "CreatedAtUtc" },
             ["ChangeoutEntries"] = new[] { "Id", "GrowId", "HydroSetupId", "Kind", "PerformedAtUtc", "VolumeChangedLiters", "Notes", "CreatedAtUtc" },
-            ["AppliedSchemaMigrations"] = new[] { "Id", "Name", "RequiredForSchemaVersion", "AppliedAtUtc" },
+            ["AppliedSchemaMigrations"] = new[] { "Id", "Name", "RequiredForSchemaVersion", "AppliedAtUtc", "Status", "CompletedAtUtc", "RequiresBackup", "IsDestructive", "EngineVersion" },
             ["SystemAuditEvents"] = new[] { "Id", "EventType", "Action", "Summary", "Severity", "Source", "Success", "CreatedAtUtc" }
         };
 
@@ -493,6 +500,15 @@ public sealed class SystemApiController : ApiControllerBase
     {
         var dto = BuildMigrationStatus();
         LogSystemAudit("system", "migration-status-read", "Migration-Status abgefragt.", dto.IsCurrent, severity: dto.IsCurrent ? "info" : "warning");
+        return Ok(dto);
+    }
+
+    [HttpGet("migration-plan")]
+    [ProducesResponseType(typeof(SchemaMigrationPlanDto), StatusCodes.Status200OK)]
+    public ActionResult<SchemaMigrationPlanDto> MigrationPlan()
+    {
+        var dto = BuildMigrationPlan();
+        LogSystemAudit("system", "migration-plan-read", "Migration-Plan abgefragt.", true);
         return Ok(dto);
     }
 
@@ -861,6 +877,53 @@ public sealed class SystemApiController : ApiControllerBase
         {
             // Audit logging must never break core system endpoints.
         }
+    }
+
+    private SchemaMigrationPlanDto BuildMigrationPlan()
+    {
+        var status = BuildMigrationStatus();
+        var appliedIds = status.AppliedMigrations.Select(m => m.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var items = DatabaseInitializer.RequiredMigrations
+            .Select(m => new SchemaMigrationPlanItemDto(
+                Id: m.Id,
+                Name: m.Name,
+                RequiredForSchemaVersion: m.RequiredForSchemaVersion,
+                Status: appliedIds.Contains(m.Id) ? "applied" : "pending",
+                IsDestructive: m.IsDestructive,
+                RequiresBackup: m.RequiresBackup || m.IsDestructive,
+                ExecutionMode: m.IsDestructive ? "manual-blocked" : "idempotent",
+                Checksum: m.Checksum))
+            .ToArray();
+
+        var pending = items.Where(item => string.Equals(item.Status, "pending", StringComparison.OrdinalIgnoreCase)).ToArray();
+        var blockers = new List<string>();
+        var warnings = new List<string>
+        {
+            "Migration-Plan ist ein Dry-Run. Dieser Endpoint führt keine Migration aus.",
+            "Echte destructive Migrationen bleiben blockiert, bis Backup, Restore und manueller Rollback-Prozess vollständig implementiert sind."
+        };
+
+        if (pending.Any(item => item.IsDestructive))
+        {
+            blockers.Add("Mindestens eine destructive Migration ist pending und darf nicht automatisch ausgeführt werden.");
+        }
+
+        if (!status.IsCurrent)
+        {
+            warnings.Add("Migration-Status ist nicht vollständig aktuell; Upgrade-Preflight sollte vor jeder neuen Version ausgeführt werden.");
+        }
+
+        return new SchemaMigrationPlanDto(
+            PlanSchema: "grow-os.schema-migration-plan.v1",
+            CurrentSchemaVersion: DatabaseInitializer.CurrentSchemaVersion,
+            CheckedAtUtc: DateTime.UtcNow,
+            WouldModifyDatabase: pending.Length > 0,
+            RequiresBackupBeforeApply: pending.Any(item => item.RequiresBackup),
+            HasDestructiveSteps: items.Any(item => item.IsDestructive),
+            ApplySupported: false,
+            Items: items,
+            Blockers: blockers,
+            Warnings: warnings);
     }
 
     private SchemaMigrationStatusDto BuildMigrationStatus()
