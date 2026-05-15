@@ -26,6 +26,27 @@ public static class AdminAccessPolicy
         "/api/exports"
     };
 
+    private static readonly string[] ProtectedProductApiPrefixes =
+    {
+        "/api/auto-measurements",
+        "/api/calibration-events",
+        "/api/grows",
+        "/api/hardware-items",
+        "/api/hydro-setups",
+        "/api/journal",
+        "/api/knowledge",
+        "/api/light-schedules",
+        "/api/light-transitions",
+        "/api/maintenance-events",
+        "/api/measurements",
+        "/api/plants",
+        "/api/risk-events",
+        "/api/setups",
+        "/api/sop-instances",
+        "/api/strains",
+        "/api/tasks"
+    };
+
     private static readonly string[] ProtectedLegacyCameraSuffixes =
     {
         "/camera.jpg",
@@ -33,11 +54,18 @@ public static class AdminAccessPolicy
         "/latest-snapshot"
     };
 
-    public static IReadOnlyList<string> ProtectedRoutePrefixes => ProtectedPrefixes;
+    public static IReadOnlyList<string> ProtectedRoutePrefixes => ProtectedPrefixes.Concat(ProtectedProductApiPrefixes).ToArray();
+
+    public static IReadOnlyList<string> ProtectedProductApiRoutePrefixes => ProtectedProductApiPrefixes;
 
     public static bool IsProtectedPath(PathString path)
     {
         if (ProtectedPrefixes.Any(prefix => path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        if (ProtectedProductApiPrefixes.Any(prefix => path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase)))
         {
             return true;
         }

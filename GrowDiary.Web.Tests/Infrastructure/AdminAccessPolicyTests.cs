@@ -30,23 +30,51 @@ public sealed class AdminAccessPolicyTests : IDisposable
     [InlineData("/api/exports/grows/1")]
     [InlineData("/api/exports/grows/validate")]
     [InlineData("/api/exports/grows/import-plan")]
+    [InlineData("/api/grows")]
+    [InlineData("/api/grows/1")]
+    [InlineData("/api/grows/1/addback")]
+    [InlineData("/api/grows/1/measurements")]
+    [InlineData("/api/hydro-setups")]
+    [InlineData("/api/hardware-items")]
+    [InlineData("/api/measurements/1")]
+    [InlineData("/api/tasks/1")]
+    [InlineData("/api/journal/1")]
+    [InlineData("/api/plants")]
+    [InlineData("/api/strains")]
+    [InlineData("/api/risk-events")]
+    [InlineData("/api/sop-instances")]
+    [InlineData("/api/maintenance-events")]
+    [InlineData("/api/calibration-events")]
+    [InlineData("/api/auto-measurements")]
+    [InlineData("/api/light-schedules")]
+    [InlineData("/api/light-transitions")]
+    [InlineData("/api/knowledge")]
     [InlineData("/tents/1/camera.jpg")]
     [InlineData("/tents/1/camera-stream")]
     [InlineData("/tents/1/latest-snapshot")]
-    public void IsProtectedPath_ProtectsAdminBackupExportAndLegacyCameraRoutes(string path)
+    public void IsProtectedPath_ProtectsAdminBackupExportProductApiAndLegacyCameraRoutes(string path)
     {
         Assert.True(AdminAccessPolicy.IsProtectedPath(new PathString(path)));
     }
 
     [Theory]
     [InlineData("/api/system/backend-health")]
-    [InlineData("/api/grows")]
-    [InlineData("/api/hydro-setups")]
+    [InlineData("/api/error")]
     [InlineData("/tents")]
     [InlineData("/tents/1")]
-    public void IsProtectedPath_DoesNotProtectReadOnlyProductRoutes(string path)
+    public void IsProtectedPath_DoesNotProtectExplicitlySafeReadOnlyRoutes(string path)
     {
         Assert.False(AdminAccessPolicy.IsProtectedPath(new PathString(path)));
+    }
+
+
+    [Fact]
+    public void ProductApiRoutePrefixes_AreListedSeparatelyForSecurityStatus()
+    {
+        Assert.Contains(AdminAccessPolicy.ProtectedProductApiRoutePrefixes, prefix => prefix == "/api/grows");
+        Assert.Contains(AdminAccessPolicy.ProtectedProductApiRoutePrefixes, prefix => prefix == "/api/hydro-setups");
+        Assert.Contains(AdminAccessPolicy.ProtectedProductApiRoutePrefixes, prefix => prefix == "/api/hardware-items");
+        Assert.Contains(AdminAccessPolicy.ProtectedRoutePrefixes, prefix => prefix == "/api/grows");
     }
 
     [Fact]

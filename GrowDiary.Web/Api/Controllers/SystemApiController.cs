@@ -34,7 +34,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new BackendHealthDto(
             AppName: "Grow OS",
-            BackendSchema: "backend-core.v0.15-candidate",
+            BackendSchema: "backend-core.v0.16-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             TentCount: tents.Count,
             HydroSetupCount: hydroSetups.Count,
@@ -66,7 +66,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "grow-import-plan",
                 "system-audit-events",
                 "uniform-api-error-format",
-                "legacy-mvc-endpoint-containment"
+                "legacy-mvc-endpoint-containment",
+                "remote-product-api-guard"
             }));
     }
 
@@ -99,6 +100,7 @@ public sealed class SystemApiController : ApiControllerBase
             new("system_audit_events", "pass", "Kritische Backend-Operationen werden in einem System-Audit-Log protokolliert."),
             new("api_error_format", "pass", "API-Fehler verwenden ein einheitliches ApiError-Format mit Code, Message, FieldErrors, Status, TraceId und SchemaVersion."),
             new("legacy_mvc_containment", "pass", "Alte MVC-Backup-/Export-/Kamera-/Mutationsrouten umgehen die neuen Backup-, Export- und Security-Regeln nicht mehr."),
+            new("remote_product_api_guard", "pass", "Produkt-APIs sind bei Remote-Zugriff ebenfalls lokal/admin-geschuetzt; Mobile/PWA muss fuer echten Remote-Betrieb einen sicheren Zugriffskanal nutzen."),
             new("restore_api", "todo", "Ein destruktiver Restore-Flow ist noch nicht implementiert; Restore-Planung ist nur Read-only."),
             new("migration_engine", "partial", "Schema-Migrationen werden protokolliert; destructive Rollbacks und echte Restore-/Rollback-Automation fehlen noch."),
             new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
@@ -106,8 +108,8 @@ public sealed class SystemApiController : ApiControllerBase
         };
 
         var dto = new BackendReleaseReadinessDto(
-            Status: "backend.v0.15-ready-not-v1.0",
-            BackendSchema: "backend-core.v0.15-candidate",
+            Status: "backend.v0.16-ready-not-v1.0",
+            BackendSchema: "backend-core.v0.16-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
             CompletedFoundations: new[]
@@ -136,7 +138,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "grow-import-plan",
                 "system-audit-events",
                 "uniform-api-error-format",
-                "legacy-mvc-endpoint-containment"
+                "legacy-mvc-endpoint-containment",
+                "remote-product-api-guard"
             },
             RemainingBeforeV1: new[]
             {
@@ -166,6 +169,7 @@ public sealed class SystemApiController : ApiControllerBase
             "Grow-Exports müssen SectionCounts und IntegrityHash tragen, bevor sie importiert werden dürfen.",
             "Import-Planung ist ein Dry-Run und schreibt keine Daten in die Datenbank.",
             "Administrative System-, Settings- und Export-Endpunkte sind lokal/admin-geschützt.",
+            "Produkt-APIs sind fuer Remote-Zugriff ebenfalls lokal/admin-geschützt.",
             "Remote-Adminzugriff ist standardmaessig blockiert und erfordert Admin-Key oder bewusste Override-Variable.",
             "Upgrade-Preflight erstellt vor riskanten Updates ein validierbares Backup.",
             "Restore-Planung ist ein Dry-Run und überschreibt keine Dateien.",
@@ -197,12 +201,12 @@ public sealed class SystemApiController : ApiControllerBase
                 Description: "Technische DWC/RDWC-Systeme mit Volumen, Layout und Technikmerkmalen.",
                 Endpoints: new[]
                 {
-                    Endpoint("GET", "/api/hydro-setups", "HydroSetups listen.", false, "Standardmäßig nur aktive HydroSetups.", "includeArchived=true lädt archivierte HydroSetups mit."),
-                    Endpoint("GET", "/api/hydro-setups?tentId={id}", "HydroSetups nach Zelt filtern.", false),
-                    Endpoint("GET", "/api/hydro-setups/{id}", "Ein HydroSetup laden.", false),
-                    Endpoint("POST", "/api/hydro-setups", "HydroSetup anlegen.", false, "Nur DWC oder RDWC erlaubt.", "TentId muss existieren.", "RDWC benötigt mindestens zwei Sites und eine Tankposition."),
-                    Endpoint("PUT", "/api/hydro-setups/{id}", "HydroSetup bearbeiten.", false),
-                    Endpoint("POST", "/api/hydro-setups/{id}/archive", "HydroSetup archivieren.", false)
+                    Endpoint("GET", "/api/hydro-setups", "HydroSetups listen.", true, "Standardmäßig nur aktive HydroSetups.", "includeArchived=true lädt archivierte HydroSetups mit."),
+                    Endpoint("GET", "/api/hydro-setups?tentId={id}", "HydroSetups nach Zelt filtern.", true),
+                    Endpoint("GET", "/api/hydro-setups/{id}", "Ein HydroSetup laden.", true),
+                    Endpoint("POST", "/api/hydro-setups", "HydroSetup anlegen.", true, "Nur DWC oder RDWC erlaubt.", "TentId muss existieren.", "RDWC benötigt mindestens zwei Sites und eine Tankposition."),
+                    Endpoint("PUT", "/api/hydro-setups/{id}", "HydroSetup bearbeiten.", true),
+                    Endpoint("POST", "/api/hydro-setups/{id}/archive", "HydroSetup archivieren.", true)
                 }),
             new ApiAreaDto(
                 Key: "grows",
@@ -210,11 +214,11 @@ public sealed class SystemApiController : ApiControllerBase
                 Description: "Konkrete Pflanzenläufe, die an Zelt und HydroSetup hängen.",
                 Endpoints: new[]
                 {
-                    Endpoint("GET", "/api/grows", "Grows listen.", false),
-                    Endpoint("GET", "/api/grows/{id}", "Grow-Details laden.", false),
-                    Endpoint("POST", "/api/grows", "Neuen Grow erstellen.", false, "SystemId/HydroSetup ist für neue Grows Pflicht.", "HydroSetup muss aktiv sein und zum Zelt passen."),
-                    Endpoint("PUT", "/api/grows/{id}", "Grow bearbeiten.", false, "Bestehende Legacy-Grows bleiben updatefähig."),
-                    Endpoint("DELETE", "/api/grows/{id}", "Grow archivieren/löschen gemäß Repository-Regel.", false)
+                    Endpoint("GET", "/api/grows", "Grows listen.", true),
+                    Endpoint("GET", "/api/grows/{id}", "Grow-Details laden.", true),
+                    Endpoint("POST", "/api/grows", "Neuen Grow erstellen.", true, "SystemId/HydroSetup ist für neue Grows Pflicht.", "HydroSetup muss aktiv sein und zum Zelt passen."),
+                    Endpoint("PUT", "/api/grows/{id}", "Grow bearbeiten.", true, "Bestehende Legacy-Grows bleiben updatefähig."),
+                    Endpoint("DELETE", "/api/grows/{id}", "Grow archivieren/löschen gemäß Repository-Regel.", true)
                 }),
             new ApiAreaDto(
                 Key: "operations",
@@ -222,14 +226,14 @@ public sealed class SystemApiController : ApiControllerBase
                 Description: "Betriebsprotokolle und Messdaten für DWC/RDWC-Grows.",
                 Endpoints: new[]
                 {
-                    Endpoint("GET", "/api/grows/{id}/addback", "Addback-Kontext laden.", false, "Volumen wird zuerst aus HydroSetup berechnet."),
-                    Endpoint("POST", "/api/grows/{id}/addback/calculate", "Addback berechnen.", false),
-                    Endpoint("GET", "/api/grows/{id}/addback/logs", "Addback-Protokoll laden.", false),
-                    Endpoint("POST", "/api/grows/{id}/addback/logs", "Addback-Protokolleintrag speichern.", false),
-                    Endpoint("GET", "/api/grows/{id}/changeouts", "Changeout-Protokoll laden.", false),
-                    Endpoint("POST", "/api/grows/{id}/changeouts", "Changeout-Protokolleintrag speichern.", false),
-                    Endpoint("GET", "/api/grows/{growId}/measurements", "Messwerte eines Grows laden.", false),
-                    Endpoint("POST", "/api/grows/{growId}/measurements", "Messwert anlegen.", false)
+                    Endpoint("GET", "/api/grows/{id}/addback", "Addback-Kontext laden.", true, "Volumen wird zuerst aus HydroSetup berechnet."),
+                    Endpoint("POST", "/api/grows/{id}/addback/calculate", "Addback berechnen.", true),
+                    Endpoint("GET", "/api/grows/{id}/addback/logs", "Addback-Protokoll laden.", true),
+                    Endpoint("POST", "/api/grows/{id}/addback/logs", "Addback-Protokolleintrag speichern.", true),
+                    Endpoint("GET", "/api/grows/{id}/changeouts", "Changeout-Protokoll laden.", true),
+                    Endpoint("POST", "/api/grows/{id}/changeouts", "Changeout-Protokolleintrag speichern.", true),
+                    Endpoint("GET", "/api/grows/{growId}/measurements", "Messwerte eines Grows laden.", true),
+                    Endpoint("POST", "/api/grows/{growId}/measurements", "Messwert anlegen.", true)
                 }),
             new ApiAreaDto(
                 Key: "hardware",
@@ -237,12 +241,12 @@ public sealed class SystemApiController : ApiControllerBase
                 Description: "Inventar, Sensoren, Wartung und Kalibrierung.",
                 Endpoints: new[]
                 {
-                    Endpoint("GET", "/api/hardware-items", "Hardware listen und filtern.", false, "Filter nach TentId, GrowId, SetupId oder HydroSetupId möglich."),
-                    Endpoint("POST", "/api/hardware-items", "Hardware anlegen.", false, "HydroSetupId muss existieren, wenn gesetzt."),
-                    Endpoint("PUT", "/api/hardware-items/{id}", "Hardware bearbeiten.", false),
-                    Endpoint("GET", "/api/maintenance-events", "Wartungen listen.", false),
-                    Endpoint("GET", "/api/calibration-events", "Kalibrierungen listen.", false),
-                    Endpoint("GET", "/api/risk-events", "Risiken listen.", false)
+                    Endpoint("GET", "/api/hardware-items", "Hardware listen und filtern.", true, "Filter nach TentId, GrowId, SetupId oder HydroSetupId möglich."),
+                    Endpoint("POST", "/api/hardware-items", "Hardware anlegen.", true, "HydroSetupId muss existieren, wenn gesetzt."),
+                    Endpoint("PUT", "/api/hardware-items/{id}", "Hardware bearbeiten.", true),
+                    Endpoint("GET", "/api/maintenance-events", "Wartungen listen.", true),
+                    Endpoint("GET", "/api/calibration-events", "Kalibrierungen listen.", true),
+                    Endpoint("GET", "/api/risk-events", "Risiken listen.", true)
                 }),
             new ApiAreaDto(
                 Key: "export-backup-system",
@@ -276,7 +280,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         var dto = new ApiManifestDto(
             SchemaVersion: "grow-os.api-manifest.v1",
-            BackendSchema: "backend-core.v0.15-candidate",
+            BackendSchema: "backend-core.v0.16-candidate",
             GeneratedAtUtc: DateTime.UtcNow,
             GlobalRules: globalRules,
             Areas: areas);
@@ -336,6 +340,7 @@ public sealed class SystemApiController : ApiControllerBase
         {
             warnings.Add("Admin-Key ist konfiguriert. Fuer Internet-Freigaben trotzdem HTTPS und einen externen Zugriffsschutz verwenden.");
         }
+        warnings.Add("Produkt-APIs sind fuer Remote-Zugriff geschuetzt. Mobile/PWA-Zugriff ausserhalb des Servers braucht Admin-Key, VPN/Tailscale oder Cloudflare Access.");
 
         var mode = AdminAccessPolicy.IsRemoteAdminExplicitlyAllowed()
             ? "remote-admin-override"
@@ -367,7 +372,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "Home-Assistant-Token werden in API-Responses maskiert.",
                 "Backups schliessen ha-config.json, DataProtectionKeys, Uploads und Logs aus.",
                 "Grow-Exports pruefen potenzielle Secrets und tragen IntegrityHash.",
-                "Admin-Key wird nur aus Environment gelesen und nicht in API-Responses ausgegeben."
+                "Admin-Key wird nur aus Environment gelesen und nicht in API-Responses ausgegeben.",
+                "Produkt-APIs sind nicht mehr als ungeschuetzte Remote-Oberflaeche gedacht."
             });
 
         LogSystemAudit("security", "security-status-read", "Security-Status abgefragt.", true);
