@@ -338,7 +338,7 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
 
         if (grow.StartMaterial != StartMaterial.Seed)
         {
-            return BadRequest(new ApiError("invalid_action", "Keimungsbestaetigung ist nur fuer Samen-Grows moeglich."));
+            return BadRequestError("invalid_action", "Keimungsbestaetigung ist nur fuer Samen-Grows moeglich.");
         }
 
         if (!grow.GerminatedAt.HasValue)
@@ -376,7 +376,7 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
 
         if (grow.StartMaterial != StartMaterial.Clone)
         {
-            return BadRequest(new ApiError("invalid_action", "Bewurzelungsbestaetigung ist nur fuer Stecklinge moeglich."));
+            return BadRequestError("invalid_action", "Bewurzelungsbestaetigung ist nur fuer Stecklinge moeglich.");
         }
 
         if (!grow.RootedAt.HasValue)
@@ -415,7 +415,7 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
 
         if (grow.SeedType == SeedType.Autoflower)
         {
-            return BadRequest(new ApiError("invalid_action", "Autoflower braucht keinen Flip."));
+            return BadRequestError("invalid_action", "Autoflower braucht keinen Flip.");
         }
 
         if (!grow.FlipDate.HasValue)

@@ -34,7 +34,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new BackendHealthDto(
             AppName: "Grow OS",
-            BackendSchema: "backend-core.v0.13-candidate",
+            BackendSchema: "backend-core.v0.14-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             TentCount: tents.Count,
             HydroSetupCount: hydroSetups.Count,
@@ -64,7 +64,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "upgrade-preflight-backup",
                 "backup-restore-plan",
                 "grow-import-plan",
-                "system-audit-events"
+                "system-audit-events",
+                "uniform-api-error-format"
             }));
     }
 
@@ -95,6 +96,7 @@ public sealed class SystemApiController : ApiControllerBase
             new("restore_plan", "pass", "Backups können als Restore-Dry-Run analysiert werden, ohne Dateien zu überschreiben."),
             new("grow_import_plan", "pass", "Grow-Exports können als Import-Dry-Run analysiert werden, ohne Daten zu schreiben."),
             new("system_audit_events", "pass", "Kritische Backend-Operationen werden in einem System-Audit-Log protokolliert."),
+            new("api_error_format", "pass", "API-Fehler verwenden ein einheitliches ApiError-Format mit Code, Message, FieldErrors, Status, TraceId und SchemaVersion."),
             new("restore_api", "todo", "Ein destruktiver Restore-Flow ist noch nicht implementiert; Restore-Planung ist nur Read-only."),
             new("migration_engine", "partial", "Schema-Migrationen werden protokolliert; destructive Rollbacks und echte Restore-/Rollback-Automation fehlen noch."),
             new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
@@ -102,8 +104,8 @@ public sealed class SystemApiController : ApiControllerBase
         };
 
         var dto = new BackendReleaseReadinessDto(
-            Status: "backend.v0.13-ready-not-v1.0",
-            BackendSchema: "backend-core.v0.13-candidate",
+            Status: "backend.v0.14-ready-not-v1.0",
+            BackendSchema: "backend-core.v0.14-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
             CompletedFoundations: new[]
@@ -130,7 +132,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "upgrade-preflight-backup",
                 "backup-restore-plan",
                 "grow-import-plan",
-                "system-audit-events"
+                "system-audit-events",
+                "uniform-api-error-format"
             },
             RemainingBeforeV1: new[]
             {
@@ -140,7 +143,6 @@ public sealed class SystemApiController : ApiControllerBase
                 "destructive-grow-import-execute",
                 "grow-export-import-merge",
                 "user-auth-session-management",
-                "uniform-error-format-across-all-controllers",
                 "release-upgrade-test-with-existing-app-data"
             });
 
@@ -166,6 +168,7 @@ public sealed class SystemApiController : ApiControllerBase
             "Restore-Planung ist ein Dry-Run und überschreibt keine Dateien.",
             "Schema-Migrationen werden in AppliedSchemaMigrations protokolliert.",
             "Kritische Backend-Operationen werden im SystemAuditEvents-Log protokolliert.",
+            "API-Fehler folgen dem einheitlichen grow-os.api-error.v1 Format.",
             "Runtime-Daten aus App_Data werden nicht als Source-Artefakte behandelt."
         };
 
@@ -252,6 +255,7 @@ public sealed class SystemApiController : ApiControllerBase
                     Endpoint("GET", "/api/system/api-manifest", "Maschinenlesbares API-Manifest laden.", true),
                     Endpoint("GET", "/api/system/security-status", "Security-Status und Remote-Admin-Guardrails laden.", true),
                     Endpoint("GET", "/api/system/audit-events", "System-Audit-Events fuer kritische Backend-Operationen laden.", true),
+                    Endpoint("GET", "/api/system/error-contract", "Einheitlichen API-Fehlervertrag laden.", true),
                     Endpoint("GET", "/api/system/migration-status", "Schema-Migrationen und offene Migrationen prüfen.", true),
                     Endpoint("POST", "/api/system/upgrade-preflight", "Update-Vorprüfung mit Datenbankstatus, Migrationstatus und validiertem Backup ausführen.", true),
                     Endpoint("POST", "/api/system/backup", "Lokales Backup ohne Secrets erstellen.", true),
@@ -263,12 +267,46 @@ public sealed class SystemApiController : ApiControllerBase
 
         var dto = new ApiManifestDto(
             SchemaVersion: "grow-os.api-manifest.v1",
-            BackendSchema: "backend-core.v0.13-candidate",
+            BackendSchema: "backend-core.v0.14-candidate",
             GeneratedAtUtc: DateTime.UtcNow,
             GlobalRules: globalRules,
             Areas: areas);
 
         LogSystemAudit("system", "api-manifest-read", "API-Manifest abgefragt.", true);
+        return Ok(dto);
+    }
+
+    [HttpGet("error-contract")]
+    [ProducesResponseType(typeof(ApiErrorContractDto), StatusCodes.Status200OK)]
+    public ActionResult<ApiErrorContractDto> ErrorContract()
+    {
+        var dto = new ApiErrorContractDto(
+            SchemaVersion: ApiErrorFactory.SchemaVersion,
+            Format: "ApiError",
+            GeneratedAtUtc: DateTime.UtcNow,
+            RequiredFields: new[] { "code", "message", "schemaVersion" },
+            OptionalFields: new[] { "fieldErrors", "status", "traceId" },
+            StandardCodes: new[]
+            {
+                "validation_failed",
+                "not_found",
+                "invalid_export",
+                "invalid_backup_file",
+                "admin_access_required",
+                "active_sop_exists",
+                "internal_server_error"
+            },
+            StandardStatuses: new[] { "400", "403", "404", "409", "500" },
+            Rules: new[]
+            {
+                "Fehlerantworten enthalten immer code, message und schemaVersion.",
+                "Validierungsfehler verwenden fieldErrors als Feldname-zu-Fehlerliste Dictionary.",
+                "status und traceId werden gesetzt, wenn der Fehler über die Backend-Helper erzeugt wird.",
+                "Controller sollen BadRequestError, NotFoundError, ConflictError, ForbiddenError oder ValidationError verwenden.",
+                "Remote-Admin-Blockaden und unerwartete Fehler verwenden dasselbe ApiError-Format."
+            });
+
+        LogSystemAudit("system", "error-contract-read", "API-Error-Contract abgefragt.", true);
         return Ok(dto);
     }
 
@@ -523,7 +561,7 @@ public sealed class SystemApiController : ApiControllerBase
     {
         if (!IsSafeBackupFileName(fileName))
         {
-            return BadRequest(new ApiError("invalid_backup_file", "Backup-Dateiname ist ungueltig."));
+            return BadRequestError("invalid_backup_file", "Backup-Dateiname ist ungueltig.");
         }
 
         var backupPath = ResolveBackupPath(fileName);
@@ -589,7 +627,7 @@ public sealed class SystemApiController : ApiControllerBase
     {
         if (!IsSafeBackupFileName(fileName))
         {
-            return BadRequest(new ApiError("invalid_backup_file", "Backup-Dateiname ist ungueltig."));
+            return BadRequestError("invalid_backup_file", "Backup-Dateiname ist ungueltig.");
         }
 
         var backupPath = ResolveBackupPath(fileName);
@@ -773,7 +811,7 @@ public sealed class SystemApiController : ApiControllerBase
     {
         if (!IsSafeBackupFileName(fileName))
         {
-            return BadRequest(new ApiError("invalid_backup_file", "Backup-Dateiname ist ungueltig."));
+            return BadRequestError("invalid_backup_file", "Backup-Dateiname ist ungueltig.");
         }
 
         var fullPath = ResolveBackupPath(fileName);

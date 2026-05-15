@@ -96,7 +96,7 @@ public sealed class SopInstancesApiController : ApiControllerBase
         }
         catch (InvalidOperationException)
         {
-            return Conflict(new ApiError("sop_instance_not_active", "SOP-Instanz ist nicht aktiv und kann nicht mehr geaendert werden."));
+            return ConflictError("sop_instance_not_active", "SOP-Instanz ist nicht aktiv und kann nicht mehr geaendert werden.");
         }
     }
 
@@ -148,7 +148,7 @@ public sealed class SopInstancesApiController : ApiControllerBase
         }
         catch (InvalidOperationException)
         {
-            return Conflict(new ApiError("active_sop_exists", "Fuer diesen Grow ist diese SOP bereits aktiv."));
+            return ConflictError("active_sop_exists", "Fuer diesen Grow ist diese SOP bereits aktiv.");
         }
     }
 

@@ -36,11 +36,11 @@ public sealed class KnowledgeApiController : ApiControllerBase
 
     [HttpGet("treatments/{id}")]
     [ProducesResponseType(typeof(TreatmentDefinition), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
     public ActionResult<TreatmentDefinition> GetTreatment(string id)
     {
         var item = _knowledgeBase.Treatments.FirstOrDefault(t => t.Id == id);
-        return item is null ? NotFound() : Ok(item);
+        return item is null ? NotFoundError("treatment_not_found", $"Treatment mit Id {id} existiert nicht.") : Ok(item);
     }
 
     [HttpGet("sops")]
@@ -50,11 +50,11 @@ public sealed class KnowledgeApiController : ApiControllerBase
 
     [HttpGet("sops/{id}")]
     [ProducesResponseType(typeof(SopDefinition), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
     public ActionResult<SopDefinition> GetSop(string id)
     {
         var item = _knowledgeBase.Sops.FirstOrDefault(t => t.Id == id);
-        return item is null ? NotFound() : Ok(item);
+        return item is null ? NotFoundError("sop_not_found", $"SOP mit Id {id} existiert nicht.") : Ok(item);
     }
 
     [HttpGet("setpoints")]

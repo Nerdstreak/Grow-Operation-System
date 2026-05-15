@@ -48,7 +48,7 @@ public sealed class GrowExportsApiController : ApiControllerBase
     {
         if (export is null)
         {
-            return BadRequest(new ApiError("invalid_export", "Export konnte nicht gelesen werden."));
+            return BadRequestError("invalid_export", "Export konnte nicht gelesen werden.");
         }
 
         var validation = BuildValidation(export);
@@ -69,7 +69,7 @@ public sealed class GrowExportsApiController : ApiControllerBase
     {
         if (export is null)
         {
-            return BadRequest(new ApiError("invalid_export", "Export konnte nicht gelesen werden."));
+            return BadRequestError("invalid_export", "Export konnte nicht gelesen werden.");
         }
 
         var validation = BuildValidation(export);
