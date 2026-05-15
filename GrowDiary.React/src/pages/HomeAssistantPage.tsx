@@ -34,6 +34,7 @@ function HomeAssistantPage() {
   const [tents, setTents] = useState<TentDto[]>([])
   const [drafts, setDrafts] = useState<Record<number, TentMappingDraft>>({})
   const [showToken, setShowToken] = useState(false)
+  const [selectedTentId, setSelectedTentId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<SavingState>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -60,6 +61,7 @@ function HomeAssistantPage() {
   }, [])
 
   const mappedCount = useMemo(() => Object.values(drafts).reduce((sum, draft) => sum + draft.sensors.filter((sensor) => sensor.isActive && sensor.haEntityId.trim()).length + (draft.cameraEntityId.trim() ? 1 : 0), 0), [drafts])
+  const selectedTent = useMemo(() => tents.find((tent) => tent.id === selectedTentId) ?? tents[0] ?? null, [selectedTentId, tents])
 
   async function saveHomeAssistant(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -156,27 +158,39 @@ function HomeAssistantPage() {
             <div className="empty-hint tight"><Link to="/zelte" className="btn btn-primary">Zelt anlegen</Link></div>
           ) : (
             <section className="ha-mapping-stack">
-              {tents.map((tent) => {
-                const draft = drafts[tent.id]
-                if (!draft) return null
-                return (
-                  <article key={tent.id} className="ops-card ha-map-card">
-                    <header className="ops-card-header">
-                      <div><h2>{tent.name}</h2><span>{formatTentSize(tent)}</span></div>
-                      <button type="button" className="btn btn-primary" disabled={saving === `tent-${tent.id}`} onClick={() => void saveTentMapping(tent)}>{saving === `tent-${tent.id}` ? 'Speichert...' : 'Speichern'}</button>
-                    </header>
+              <div className="ha-tent-switcher" aria-label="Zelt auswählen">
+                {tents.map((tent) => (
+                  <button
+                    key={tent.id}
+                    type="button"
+                    className={classNames('ha-tent-tab', selectedTent?.id === tent.id && 'active')}
+                    onClick={() => setSelectedTentId(tent.id)}
+                  >
+                    <strong>{tent.name}</strong>
+                    <span>{formatTentSize(tent)}</span>
+                  </button>
+                ))}
+              </div>
 
-                    <label className="entity-row camera-entity-row">
-                      <span>Kamera</span>
-                      <input value={draft.cameraEntityId} onChange={(event) => updateCamera(tent.id, event.target.value)} placeholder="camera.zelt" />
-                    </label>
+              {selectedTent && drafts[selectedTent.id] && (
+                <article className="ops-card ha-map-card">
+                  <header className="ops-card-header">
+                    <div><h2>{selectedTent.name}</h2><span>{formatTentSize(selectedTent)}</span></div>
+                    <button type="button" className="btn btn-primary" disabled={saving === `tent-${selectedTent.id}`} onClick={() => void saveTentMapping(selectedTent)}>
+                      {saving === `tent-${selectedTent.id}` ? 'Speichert...' : 'Speichern'}
+                    </button>
+                  </header>
 
-                    <EntityGroup title="Zelt" definitions={entityDefinitions.filter((definition) => definition.group === 'tent')} draft={draft} onChange={(metricType, patch) => updateSensor(tent.id, metricType, patch)} />
-                    <EntityGroup title="RDWC/DWC" definitions={entityDefinitions.filter((definition) => definition.group === 'reservoir')} draft={draft} onChange={(metricType, patch) => updateSensor(tent.id, metricType, patch)} />
-                    <EntityGroup title="Technik" definitions={entityDefinitions.filter((definition) => definition.group === 'hardware')} draft={draft} onChange={(metricType, patch) => updateSensor(tent.id, metricType, patch)} />
-                  </article>
-                )
-              })}
+                  <label className="entity-row camera-entity-row">
+                    <span>Kamera</span>
+                    <input value={drafts[selectedTent.id].cameraEntityId} onChange={(event) => updateCamera(selectedTent.id, event.target.value)} placeholder="camera.zelt" />
+                  </label>
+
+                  <EntityGroup title="Zelt" definitions={entityDefinitions.filter((definition) => definition.group === 'tent')} draft={drafts[selectedTent.id]} onChange={(metricType, patch) => updateSensor(selectedTent.id, metricType, patch)} />
+                  <EntityGroup title="RDWC/DWC" definitions={entityDefinitions.filter((definition) => definition.group === 'reservoir')} draft={drafts[selectedTent.id]} onChange={(metricType, patch) => updateSensor(selectedTent.id, metricType, patch)} />
+                  <EntityGroup title="Technik" definitions={entityDefinitions.filter((definition) => definition.group === 'hardware')} draft={drafts[selectedTent.id]} onChange={(metricType, patch) => updateSensor(selectedTent.id, metricType, patch)} />
+                </article>
+              )}
             </section>
           )}
         </>

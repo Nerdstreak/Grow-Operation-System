@@ -41,6 +41,7 @@ const routes: RouteTarget[] = [
   { path: '/addback', name: 'addback' },
   { path: '/action', name: 'action' },
   { path: '/zelte', name: 'zelte' },
+  { path: '/hydro', name: 'hydro' },
   { path: '/home-assistant', name: 'home-assistant' },
   { path: '/grows/new', name: 'grow-starten' },
   { path: '/settings', name: 'settings' },
