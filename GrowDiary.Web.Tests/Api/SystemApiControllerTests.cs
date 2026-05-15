@@ -34,13 +34,13 @@ public sealed class SystemApiControllerTests : IDisposable
     }
 
     [Fact]
-    public void ReleaseReadiness_ReturnsBackendV10CandidateAndRemainingV1Items()
+    public void ReleaseReadiness_ReturnsBackendV11CandidateAndRemainingV1Items()
     {
         var result = _controller.ReleaseReadiness();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<BackendReleaseReadinessDto>(ok.Value);
-        Assert.Equal("backend.v0.10-ready-not-v1.0", dto.Status);
+        Assert.Equal("backend.v0.11-ready-not-v1.0", dto.Status);
         Assert.Contains(dto.CompletedFoundations, value => value == "zero-tent-startup");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-v1");
         Assert.Contains(dto.CompletedFoundations, value => value == "api-contract-manifest");
@@ -50,8 +50,10 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.CompletedFoundations, value => value == "admin-key-remote-guard");
         Assert.Contains(dto.CompletedFoundations, value => value == "schema-migration-status");
         Assert.Contains(dto.CompletedFoundations, value => value == "upgrade-preflight-backup");
+        Assert.Contains(dto.CompletedFoundations, value => value == "backup-restore-plan");
         Assert.Contains(dto.RemainingBeforeV1, value => value == "destructive-migration-rollback");
         Assert.Contains(dto.Checks, check => check.Key == "security_guardrails" && check.Status == "pass");
+        Assert.Contains(dto.Checks, check => check.Key == "restore_plan" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "restore_api" && check.Status == "todo");
     }
 
@@ -72,6 +74,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.Capabilities, capability => capability == "local-only-admin-default");
         Assert.Contains(dto.Capabilities, capability => capability == "schema-migration-status");
         Assert.Contains(dto.Capabilities, capability => capability == "upgrade-preflight-backup");
+        Assert.Contains(dto.Capabilities, capability => capability == "backup-restore-plan");
     }
 
 
@@ -83,7 +86,7 @@ public sealed class SystemApiControllerTests : IDisposable
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<ApiManifestDto>(ok.Value);
         Assert.Equal("grow-os.api-manifest.v1", dto.SchemaVersion);
-        Assert.Equal("backend-core.v0.10-candidate", dto.BackendSchema);
+        Assert.Equal("backend-core.v0.11-candidate", dto.BackendSchema);
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("HydroSetup", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("Remote-Adminzugriff", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.Areas, area => area.Key == "tents");
@@ -102,6 +105,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/security-status" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/migration-status" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/upgrade-preflight" && endpoint.LocalAdminOnly);
+        Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/backup/{fileName}/restore-plan" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/exports/grows/validate" && endpoint.LocalAdminOnly);
     }
 
@@ -119,6 +123,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.True(dto.IsCurrent);
         Assert.Empty(dto.PendingMigrations);
         Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0011-upgrade-preflight");
+        Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0012-restore-plan");
     }
 
     [Fact]
@@ -257,6 +262,142 @@ public sealed class SystemApiControllerTests : IDisposable
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         var error = Assert.IsType<ApiError>(badRequest.Value);
         Assert.Equal("invalid_backup_file", error.Code);
+    }
+
+
+
+    [Fact]
+    public void RestorePlan_ReturnsDryRunForValidBackupWithoutChangingFiles()
+    {
+        var created = Assert.IsType<BackupManifestDto>(Assert.IsType<CreatedResult>(_controller.CreateBackup().Result).Value);
+
+        var result = _controller.RestorePlan(created.FileName);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<BackupRestorePlanDto>(ok.Value);
+        Assert.Equal("grow-os.restore-plan.v1", dto.RestorePlanSchema);
+        Assert.Equal(created.FileName, dto.FileName);
+        Assert.True(dto.BackupValid);
+        Assert.True(dto.DatabaseIncluded);
+        Assert.True(dto.SchemaCompatible);
+        Assert.False(dto.RestoreSupported);
+        Assert.True(dto.RequiresManualStop);
+        Assert.True(dto.WouldOverwriteExistingDatabase);
+        Assert.Equal(DatabaseInitializer.CurrentSchemaVersion, dto.BackupSchemaVersion);
+        Assert.Equal(DatabaseInitializer.CurrentSchemaVersion, dto.CurrentSchemaVersion);
+        Assert.Empty(dto.Blockers);
+        Assert.Contains(dto.Warnings, warning => warning.Contains("Dry-Run", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(dto.Files, file => file.EntryName == "App_Data/grow-diary.db" && file.Kind == "database");
+    }
+
+    [Fact]
+    public void RestorePlan_RejectsUnsafeFileNames()
+    {
+        var result = _controller.RestorePlan("../grow-os-backup-20260101-120000.zip");
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var error = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Equal("invalid_backup_file", error.Code);
+    }
+
+    [Fact]
+    public void RestorePlan_DetectsSchemaMismatchWithoutRestoring()
+    {
+        var created = Assert.IsType<BackupManifestDto>(Assert.IsType<CreatedResult>(_controller.CreateBackup().Result).Value);
+        var backupPath = Path.Combine(_tempRoot, "App_Data", "backups", created.FileName);
+        RewriteBackupSchemaVersion(backupPath, "backend-core.v0.0-old");
+
+        var result = _controller.RestorePlan(created.FileName);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<BackupRestorePlanDto>(ok.Value);
+        Assert.False(dto.SchemaCompatible);
+        Assert.Equal("backend-core.v0.0-old", dto.BackupSchemaVersion);
+        Assert.Contains(dto.Blockers, blocker => blocker.Contains("Schema", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static void RewriteBackupSchemaVersion(string backupPath, string schemaVersion)
+    {
+        var workRoot = Path.Combine(Path.GetTempPath(), "GrowBackupRewrite_" + Guid.NewGuid().ToString("N"));
+        var extractRoot = Path.Combine(workRoot, "extract");
+        Directory.CreateDirectory(extractRoot);
+        ZipFile.ExtractToDirectory(backupPath, extractRoot);
+
+        var dbPath = Path.Combine(extractRoot, "App_Data", "grow-diary.db");
+        var builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = dbPath };
+        using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(builder.ToString()))
+        {
+            connection.Open();
+            using (var checkpoint = connection.CreateCommand())
+            {
+                checkpoint.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
+                checkpoint.ExecuteNonQuery();
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "UPDATE AppSettings SET Value = $value WHERE Key = $key;";
+                command.Parameters.AddWithValue("$value", schemaVersion);
+                command.Parameters.AddWithValue("$key", DatabaseInitializer.CurrentSchemaAppSettingKey);
+                command.ExecuteNonQuery();
+            }
+
+            using (var checkpoint = connection.CreateCommand())
+            {
+                checkpoint.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
+                checkpoint.ExecuteNonQuery();
+            }
+        }
+
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+
+        File.Delete(backupPath);
+        CreateZipFromDirectoryAllowingOpenFiles(extractRoot, backupPath);
+        DeleteDirectoryWithRetries(workRoot);
+    }
+
+    private static void CreateZipFromDirectoryAllowingOpenFiles(string sourceDirectory, string destinationArchiveFileName)
+    {
+        using var archive = ZipFile.Open(destinationArchiveFileName, ZipArchiveMode.Create);
+        foreach (var filePath in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(sourceDirectory, filePath).Replace(Path.DirectorySeparatorChar, '/');
+            var entry = archive.CreateEntry(relativePath);
+            using var entryStream = entry.Open();
+            using var sourceStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            sourceStream.CopyTo(entryStream);
+        }
+    }
+
+    private static void DeleteDirectoryWithRetries(string path)
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                if (Directory.Exists(path))
+                {
+                    Directory.Delete(path, recursive: true);
+                }
+
+                return;
+            }
+            catch (IOException) when (attempt < 4)
+            {
+                Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                System.Threading.Thread.Sleep(50);
+            }
+            catch (UnauthorizedAccessException) when (attempt < 4)
+            {
+                Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                System.Threading.Thread.Sleep(50);
+            }
+        }
+
+        if (Directory.Exists(path))
+        {
+            Directory.Delete(path, recursive: true);
+        }
     }
 
     [Fact]

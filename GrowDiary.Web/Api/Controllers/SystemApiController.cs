@@ -30,7 +30,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new BackendHealthDto(
             AppName: "Grow OS",
-            BackendSchema: "backend-core.v0.10-candidate",
+            BackendSchema: "backend-core.v0.11-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             TentCount: tents.Count,
             HydroSetupCount: hydroSetups.Count,
@@ -57,7 +57,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "local-only-admin-default",
                 "admin-key-remote-guard",
                 "schema-migration-status",
-                "upgrade-preflight-backup"
+                "upgrade-preflight-backup",
+                "backup-restore-plan"
             }));
     }
 
@@ -85,15 +86,16 @@ public sealed class SystemApiController : ApiControllerBase
             new("security_status", "pass", "Das Backend stellt einen Security-Status fuer Remote-/Admin-Guardrails bereit."),
             new("migration_status", "pass", "Das Backend protokolliert angewendete Schema-Migrationen und zeigt offene Migrationen an."),
             new("upgrade_preflight", "pass", "Vor einem Update kann ein Preflight mit Datenbankstatus, Migrationstatus und validiertem Backup ausgeführt werden."),
-            new("restore_api", "todo", "Ein validierter Restore-Flow ist noch nicht implementiert."),
+            new("restore_plan", "pass", "Backups können als Restore-Dry-Run analysiert werden, ohne Dateien zu überschreiben."),
+            new("restore_api", "todo", "Ein destruktiver Restore-Flow ist noch nicht implementiert; Restore-Planung ist nur Read-only."),
             new("migration_engine", "partial", "Schema-Migrationen werden protokolliert; destructive Rollbacks und echte Restore-/Rollback-Automation fehlen noch."),
             new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
             new("import_merge", "todo", "Import und Merge von Grow-Exports sind noch nicht implementiert.")
         };
 
         return Ok(new BackendReleaseReadinessDto(
-            Status: "backend.v0.10-ready-not-v1.0",
-            BackendSchema: "backend-core.v0.10-candidate",
+            Status: "backend.v0.11-ready-not-v1.0",
+            BackendSchema: "backend-core.v0.11-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
             CompletedFoundations: new[]
@@ -117,7 +119,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "local-only-admin-default",
                 "admin-key-remote-guard",
                 "schema-migration-status",
-                "upgrade-preflight-backup"
+                "upgrade-preflight-backup",
+                "backup-restore-plan"
             },
             RemainingBeforeV1: new[]
             {
@@ -145,6 +148,7 @@ public sealed class SystemApiController : ApiControllerBase
             "Administrative System-, Settings- und Export-Endpunkte sind lokal/admin-geschützt.",
             "Remote-Adminzugriff ist standardmaessig blockiert und erfordert Admin-Key oder bewusste Override-Variable.",
             "Upgrade-Preflight erstellt vor riskanten Updates ein validierbares Backup.",
+            "Restore-Planung ist ein Dry-Run und überschreibt keine Dateien.",
             "Schema-Migrationen werden in AppliedSchemaMigrations protokolliert.",
             "Runtime-Daten aus App_Data werden nicht als Source-Artefakte behandelt."
         };
@@ -234,13 +238,14 @@ public sealed class SystemApiController : ApiControllerBase
                     Endpoint("POST", "/api/system/upgrade-preflight", "Update-Vorprüfung mit Datenbankstatus, Migrationstatus und validiertem Backup ausführen.", true),
                     Endpoint("POST", "/api/system/backup", "Lokales Backup ohne Secrets erstellen.", true),
                     Endpoint("GET", "/api/system/backup/{fileName}", "Backup herunterladen.", true),
-                    Endpoint("GET", "/api/system/backup/{fileName}/validate", "Backup vor Restore validieren.", true)
+                    Endpoint("GET", "/api/system/backup/{fileName}/validate", "Backup vor Restore validieren.", true),
+                    Endpoint("POST", "/api/system/backup/{fileName}/restore-plan", "Restore-Dry-Run erzeugen, ohne Dateien zu überschreiben.", true, "Prüft Backupvalidität, Schema-Kompatibilität und betroffene Zielpfade.")
                 })
         };
 
         return Ok(new ApiManifestDto(
             SchemaVersion: "grow-os.api-manifest.v1",
-            BackendSchema: "backend-core.v0.10-candidate",
+            BackendSchema: "backend-core.v0.11-candidate",
             GeneratedAtUtc: DateTime.UtcNow,
             GlobalRules: globalRules,
             Areas: areas));
@@ -530,6 +535,137 @@ public sealed class SystemApiController : ApiControllerBase
             Warnings: warnings));
     }
 
+
+
+    [HttpPost("backup/{fileName}/restore-plan")]
+    [ProducesResponseType(typeof(BackupRestorePlanDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<BackupRestorePlanDto> RestorePlan(string fileName)
+    {
+        if (!IsSafeBackupFileName(fileName))
+        {
+            return BadRequest(new ApiError("invalid_backup_file", "Backup-Dateiname ist ungueltig."));
+        }
+
+        var backupPath = ResolveBackupPath(fileName);
+        if (backupPath is null || !System.IO.File.Exists(backupPath))
+        {
+            return NotFoundError("backup_not_found", "Backup wurde nicht gefunden.");
+        }
+
+        var files = new List<BackupRestorePlanFileDto>();
+        var blockers = new List<string>();
+        var warnings = new List<string>
+        {
+            "Restore-Plan ist ein Dry-Run. Es wurden keine Dateien geaendert.",
+            "Automatischer Restore ist noch nicht unterstuetzt; vor einem echten Restore muss die App gestoppt und ein aktuelles Backup erstellt werden."
+        };
+
+        string? backupSchemaVersion = null;
+        bool containsDatabase;
+        bool containsWal;
+        bool containsShm;
+        bool containsKnowledge;
+        bool containsSecrets;
+        bool containsKeys;
+        bool containsUploads;
+        bool hasUnsafeEntries;
+
+        using (var archive = ZipFile.OpenRead(backupPath))
+        {
+            var entries = archive.Entries
+                .Where(entry => !string.IsNullOrWhiteSpace(entry.Name))
+                .ToArray();
+            var normalizedEntries = entries
+                .Select(entry => entry.FullName.Replace('\\', '/'))
+                .ToArray();
+
+            containsDatabase = normalizedEntries.Contains("App_Data/grow-diary.db", StringComparer.OrdinalIgnoreCase);
+            containsWal = normalizedEntries.Contains("App_Data/grow-diary.db-wal", StringComparer.OrdinalIgnoreCase);
+            containsShm = normalizedEntries.Contains("App_Data/grow-diary.db-shm", StringComparer.OrdinalIgnoreCase);
+            containsKnowledge = normalizedEntries.Any(entry => entry.StartsWith("App_Data/knowledge/", StringComparison.OrdinalIgnoreCase));
+            containsSecrets = normalizedEntries.Any(entry =>
+                entry.Equals("App_Data/ha-config.json", StringComparison.OrdinalIgnoreCase)
+                || entry.Contains("token", StringComparison.OrdinalIgnoreCase)
+                || entry.Contains("secret", StringComparison.OrdinalIgnoreCase));
+            containsKeys = normalizedEntries.Any(entry => entry.StartsWith("App_Data/DataProtectionKeys/", StringComparison.OrdinalIgnoreCase));
+            containsUploads = normalizedEntries.Any(entry => entry.StartsWith("wwwroot/uploads/", StringComparison.OrdinalIgnoreCase));
+            hasUnsafeEntries = normalizedEntries.Any(IsUnsafeZipEntryName);
+
+            foreach (var entry in entries)
+            {
+                var normalized = entry.FullName.Replace('\\', '/');
+                var kind = ResolveRestoreEntryKind(normalized);
+                if (kind is null)
+                {
+                    continue;
+                }
+
+                files.Add(new BackupRestorePlanFileDto(
+                    EntryName: normalized,
+                    RelativeTargetPath: normalized,
+                    Kind: kind,
+                    SizeBytes: entry.Length,
+                    WouldOverwrite: WouldOverwriteRestoreTarget(normalized)));
+            }
+
+            if (containsDatabase)
+            {
+                backupSchemaVersion = ReadSchemaVersionFromBackupDatabase(archive, warnings);
+            }
+        }
+
+        var backupValid = containsDatabase && !containsSecrets && !containsKeys && !containsUploads && !hasUnsafeEntries;
+        var schemaCompatible = containsDatabase
+            && !string.IsNullOrWhiteSpace(backupSchemaVersion)
+            && string.Equals(backupSchemaVersion, DatabaseInitializer.CurrentSchemaVersion, StringComparison.Ordinal);
+
+        if (!containsDatabase)
+        {
+            blockers.Add("Backup enthaelt keine Hauptdatenbank.");
+        }
+        if (containsSecrets)
+        {
+            blockers.Add("Backup enthaelt potenzielle Secrets.");
+        }
+        if (containsKeys)
+        {
+            blockers.Add("Backup enthaelt DataProtectionKeys.");
+        }
+        if (containsUploads)
+        {
+            blockers.Add("Backup enthaelt Upload-Dateien und ist nicht restore-ready.");
+        }
+        if (hasUnsafeEntries)
+        {
+            blockers.Add("Backup enthaelt unsichere Pfade.");
+        }
+        if (containsDatabase && !schemaCompatible)
+        {
+            blockers.Add("Backup-Schema ist nicht mit der aktuellen Backend-Version kompatibel.");
+        }
+
+        return Ok(new BackupRestorePlanDto(
+            RestorePlanSchema: "grow-os.restore-plan.v1",
+            FileName: fileName,
+            CheckedAtUtc: DateTime.UtcNow,
+            BackupValid: backupValid,
+            DatabaseIncluded: containsDatabase,
+            WalIncluded: containsWal,
+            ShmIncluded: containsShm,
+            KnowledgeIncluded: containsKnowledge,
+            SchemaCompatible: schemaCompatible,
+            RestoreSupported: false,
+            RequiresManualStop: true,
+            WouldOverwriteExistingDatabase: System.IO.File.Exists(_paths.DatabasePath),
+            BackupSchemaVersion: backupSchemaVersion,
+            CurrentSchemaVersion: DatabaseInitializer.CurrentSchemaVersion,
+            Files: files,
+            Blockers: blockers,
+            Warnings: warnings));
+    }
+
     [HttpPost("backup")]
     [ProducesResponseType(typeof(BackupManifestDto), StatusCodes.Status201Created)]
     public ActionResult<BackupManifestDto> CreateBackup()
@@ -762,6 +898,99 @@ public sealed class SystemApiController : ApiControllerBase
            && !fileName.Contains('/')
            && !fileName.Contains('\\')
            && fileName.Length <= 120;
+
+
+
+    private static string? ResolveRestoreEntryKind(string entryName)
+    {
+        if (entryName.Equals("App_Data/grow-diary.db", StringComparison.OrdinalIgnoreCase))
+        {
+            return "database";
+        }
+        if (entryName.Equals("App_Data/grow-diary.db-wal", StringComparison.OrdinalIgnoreCase))
+        {
+            return "database-wal";
+        }
+        if (entryName.Equals("App_Data/grow-diary.db-shm", StringComparison.OrdinalIgnoreCase))
+        {
+            return "database-shm";
+        }
+        if (entryName.StartsWith("App_Data/knowledge/", StringComparison.OrdinalIgnoreCase))
+        {
+            return "knowledge";
+        }
+
+        return null;
+    }
+
+    private bool WouldOverwriteRestoreTarget(string relativePath)
+    {
+        var normalized = relativePath.Replace('/', Path.DirectorySeparatorChar);
+        var targetPath = Path.GetFullPath(Path.Combine(_paths.ContentRootPath, normalized));
+        var root = Path.GetFullPath(_paths.ContentRootPath);
+        return targetPath.StartsWith(root, StringComparison.OrdinalIgnoreCase)
+               && System.IO.File.Exists(targetPath);
+    }
+
+    private static bool IsUnsafeZipEntryName(string entryName)
+    {
+        if (string.IsNullOrWhiteSpace(entryName))
+        {
+            return true;
+        }
+
+        var normalized = entryName.Replace('\\', '/');
+        return normalized.StartsWith("/", StringComparison.Ordinal)
+               || normalized.Contains("../", StringComparison.Ordinal)
+               || normalized.Contains("/..", StringComparison.Ordinal)
+               || normalized.Equals("..", StringComparison.Ordinal);
+    }
+
+    private static string? ReadSchemaVersionFromBackupDatabase(ZipArchive archive, List<string> warnings)
+    {
+        var entry = archive.GetEntry("App_Data/grow-diary.db");
+        if (entry is null)
+        {
+            return null;
+        }
+
+        var tempRoot = Path.Combine(Path.GetTempPath(), "GrowOSRestorePlan_" + Guid.NewGuid().ToString("N"));
+        var tempDb = Path.Combine(tempRoot, "grow-diary.db");
+        try
+        {
+            Directory.CreateDirectory(tempRoot);
+            entry.ExtractToFile(tempDb, overwrite: true);
+            archive.GetEntry("App_Data/grow-diary.db-wal")?.ExtractToFile(tempDb + "-wal", overwrite: true);
+            archive.GetEntry("App_Data/grow-diary.db-shm")?.ExtractToFile(tempDb + "-shm", overwrite: true);
+            var builder = new SqliteConnectionStringBuilder
+            {
+                DataSource = tempDb,
+                Mode = SqliteOpenMode.ReadOnly
+            };
+            using var connection = new SqliteConnection(builder.ToString());
+            connection.Open();
+            return ReadAppSetting(connection, DatabaseInitializer.CurrentSchemaAppSettingKey);
+        }
+        catch
+        {
+            warnings.Add("Backup-Datenbank konnte nicht fuer die Schema-Pruefung gelesen werden.");
+            return null;
+        }
+        finally
+        {
+            try
+            {
+                if (Directory.Exists(tempRoot))
+                {
+                    Directory.Delete(tempRoot, recursive: true);
+                }
+            }
+            catch
+            {
+                // Best-effort cleanup only.
+            }
+        }
+    }
 
     private static void AddIfExists(ZipArchive archive, string sourcePath, string entryName)
     {
