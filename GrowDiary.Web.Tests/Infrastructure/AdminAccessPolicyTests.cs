@@ -30,7 +30,10 @@ public sealed class AdminAccessPolicyTests : IDisposable
     [InlineData("/api/exports/grows/1")]
     [InlineData("/api/exports/grows/validate")]
     [InlineData("/api/exports/grows/import-plan")]
-    public void IsProtectedPath_ProtectsAdminBackupAndExportRoutes(string path)
+    [InlineData("/tents/1/camera.jpg")]
+    [InlineData("/tents/1/camera-stream")]
+    [InlineData("/tents/1/latest-snapshot")]
+    public void IsProtectedPath_ProtectsAdminBackupExportAndLegacyCameraRoutes(string path)
     {
         Assert.True(AdminAccessPolicy.IsProtectedPath(new PathString(path)));
     }
@@ -39,6 +42,8 @@ public sealed class AdminAccessPolicyTests : IDisposable
     [InlineData("/api/system/backend-health")]
     [InlineData("/api/grows")]
     [InlineData("/api/hydro-setups")]
+    [InlineData("/tents")]
+    [InlineData("/tents/1")]
     public void IsProtectedPath_DoesNotProtectReadOnlyProductRoutes(string path)
     {
         Assert.False(AdminAccessPolicy.IsProtectedPath(new PathString(path)));

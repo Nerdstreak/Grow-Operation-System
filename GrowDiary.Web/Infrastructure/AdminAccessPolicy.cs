@@ -26,10 +26,35 @@ public static class AdminAccessPolicy
         "/api/exports"
     };
 
+    private static readonly string[] ProtectedLegacyCameraSuffixes =
+    {
+        "/camera.jpg",
+        "/camera-stream",
+        "/latest-snapshot"
+    };
+
     public static IReadOnlyList<string> ProtectedRoutePrefixes => ProtectedPrefixes;
 
     public static bool IsProtectedPath(PathString path)
-        => ProtectedPrefixes.Any(prefix => path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase));
+    {
+        if (ProtectedPrefixes.Any(prefix => path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        return IsProtectedLegacyTentCameraPath(path);
+    }
+
+    private static bool IsProtectedLegacyTentCameraPath(PathString path)
+    {
+        var value = path.Value;
+        if (string.IsNullOrWhiteSpace(value) || !value.StartsWith("/tents/", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return ProtectedLegacyCameraSuffixes.Any(suffix => value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
+    }
 
     public static bool CanAccess(HttpContext context)
     {

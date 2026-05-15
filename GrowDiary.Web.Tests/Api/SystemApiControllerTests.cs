@@ -42,7 +42,7 @@ public sealed class SystemApiControllerTests : IDisposable
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<BackendReleaseReadinessDto>(ok.Value);
-        Assert.Equal("backend.v0.14-ready-not-v1.0", dto.Status);
+        Assert.Equal("backend.v0.15-ready-not-v1.0", dto.Status);
         Assert.Contains(dto.CompletedFoundations, value => value == "zero-tent-startup");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-v1");
         Assert.Contains(dto.CompletedFoundations, value => value == "api-contract-manifest");
@@ -56,6 +56,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-import-plan");
         Assert.Contains(dto.CompletedFoundations, value => value == "system-audit-events");
         Assert.Contains(dto.CompletedFoundations, value => value == "uniform-api-error-format");
+        Assert.Contains(dto.CompletedFoundations, value => value == "legacy-mvc-endpoint-containment");
         Assert.Contains(dto.RemainingBeforeV1, value => value == "destructive-migration-rollback");
         Assert.Contains(dto.Checks, check => check.Key == "security_guardrails" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "restore_plan" && check.Status == "pass");
@@ -86,6 +87,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.Capabilities, capability => capability == "grow-import-plan");
         Assert.Contains(dto.Capabilities, capability => capability == "system-audit-events");
         Assert.Contains(dto.Capabilities, capability => capability == "uniform-api-error-format");
+        Assert.Contains(dto.Capabilities, capability => capability == "legacy-mvc-endpoint-containment");
     }
 
 
@@ -119,7 +121,7 @@ public sealed class SystemApiControllerTests : IDisposable
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<ApiManifestDto>(ok.Value);
         Assert.Equal("grow-os.api-manifest.v1", dto.SchemaVersion);
-        Assert.Equal("backend-core.v0.14-candidate", dto.BackendSchema);
+        Assert.Equal("backend-core.v0.15-candidate", dto.BackendSchema);
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("HydroSetup", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("Remote-Adminzugriff", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.Areas, area => area.Key == "tents");

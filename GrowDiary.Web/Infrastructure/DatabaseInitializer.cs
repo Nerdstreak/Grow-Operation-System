@@ -6,7 +6,7 @@ namespace GrowDiary.Web.Infrastructure;
 
 public sealed class DatabaseInitializer
 {
-    public const string CurrentSchemaVersion = "backend-core.v0.14-candidate";
+    public const string CurrentSchemaVersion = "backend-core.v0.15-candidate";
     public const string CurrentSchemaAppSettingKey = "backend:schemaVersion";
     public const string LastMigrationUtcAppSettingKey = "backend:lastMigrationUtc";
 
@@ -26,7 +26,8 @@ public sealed class DatabaseInitializer
         new SchemaMigrationDescriptor("0012-restore-plan", "Backup restore dry-run and restore readiness", CurrentSchemaVersion),
         new SchemaMigrationDescriptor("0013-grow-import-plan", "Grow export import planning dry-run", CurrentSchemaVersion),
         new SchemaMigrationDescriptor("0014-system-audit-events", "System audit events for critical backend operations", CurrentSchemaVersion),
-        new SchemaMigrationDescriptor("0015-api-error-format", "Uniform API error contract for backend endpoints", CurrentSchemaVersion)
+        new SchemaMigrationDescriptor("0015-api-error-format", "Uniform API error contract for backend endpoints", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0016-legacy-mvc-containment", "Legacy MVC endpoint containment for backup/export/camera routes", CurrentSchemaVersion)
     };
 
     private readonly AppPaths _paths;
