@@ -154,7 +154,6 @@ function LiveDashboardPage() {
           <div>
             <div className="live-kicker">Grow-Zentrale</div>
             <h1>Dashboard</h1>
-            <p>Zeltklima und RDWC/DWC-Reservoir getrennt im Blick. HA-Kamera wird nur angezeigt, wenn sie eingerichtet ist.</p>
           </div>
           <div className="live-hero-actions">
             <span className="text-muted">Refresh {formatDateTime(data.refreshedAtUtc)}</span>
@@ -219,7 +218,7 @@ function LiveCameraPanel({ camera }: { camera: { tent: TentDto; live: TentLivePa
     <section className="live-camera-panel" aria-label={`Live-Kamera ${camera.tent.name}`}>
       <div className="live-camera-frame">
         <img src={camera.live.cameraUrl ?? ''} alt={`Livebild ${camera.tent.name}`} loading="lazy" />
-        <div className="cam-live-badge"><span className="cam-live-dot" />HA Kamera</div>
+        <div className="cam-live-badge"><span className="cam-live-dot" />Live</div>
       </div>
       <div className="live-camera-meta">
         <div className="live-kicker">Livebild</div>
