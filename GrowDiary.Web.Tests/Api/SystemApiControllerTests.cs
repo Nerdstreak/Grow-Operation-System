@@ -34,13 +34,13 @@ public sealed class SystemApiControllerTests : IDisposable
     }
 
     [Fact]
-    public void ReleaseReadiness_ReturnsBackendV09CandidateAndRemainingV1Items()
+    public void ReleaseReadiness_ReturnsBackendV10CandidateAndRemainingV1Items()
     {
         var result = _controller.ReleaseReadiness();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<BackendReleaseReadinessDto>(ok.Value);
-        Assert.Equal("backend.v0.9-ready-not-v1.0", dto.Status);
+        Assert.Equal("backend.v0.10-ready-not-v1.0", dto.Status);
         Assert.Contains(dto.CompletedFoundations, value => value == "zero-tent-startup");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-v1");
         Assert.Contains(dto.CompletedFoundations, value => value == "api-contract-manifest");
@@ -48,7 +48,9 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-validation");
         Assert.Contains(dto.CompletedFoundations, value => value == "security-status");
         Assert.Contains(dto.CompletedFoundations, value => value == "admin-key-remote-guard");
-        Assert.Contains(dto.RemainingBeforeV1, value => value == "versioned-database-migrations");
+        Assert.Contains(dto.CompletedFoundations, value => value == "schema-migration-status");
+        Assert.Contains(dto.CompletedFoundations, value => value == "upgrade-preflight-backup");
+        Assert.Contains(dto.RemainingBeforeV1, value => value == "destructive-migration-rollback");
         Assert.Contains(dto.Checks, check => check.Key == "security_guardrails" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "restore_api" && check.Status == "todo");
     }
@@ -68,6 +70,8 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.Capabilities, capability => capability == "grow-export-validation");
         Assert.Contains(dto.Capabilities, capability => capability == "security-status");
         Assert.Contains(dto.Capabilities, capability => capability == "local-only-admin-default");
+        Assert.Contains(dto.Capabilities, capability => capability == "schema-migration-status");
+        Assert.Contains(dto.Capabilities, capability => capability == "upgrade-preflight-backup");
     }
 
 
@@ -79,7 +83,7 @@ public sealed class SystemApiControllerTests : IDisposable
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<ApiManifestDto>(ok.Value);
         Assert.Equal("grow-os.api-manifest.v1", dto.SchemaVersion);
-        Assert.Equal("backend-core.v0.9-candidate", dto.BackendSchema);
+        Assert.Equal("backend-core.v0.10-candidate", dto.BackendSchema);
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("HydroSetup", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("Remote-Adminzugriff", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.Areas, area => area.Key == "tents");
@@ -96,7 +100,43 @@ public sealed class SystemApiControllerTests : IDisposable
         var systemArea = Assert.Single(dto.Areas, area => area.Key == "export-backup-system");
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/api-manifest" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/security-status" && endpoint.LocalAdminOnly);
+        Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/migration-status" && endpoint.LocalAdminOnly);
+        Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/upgrade-preflight" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/exports/grows/validate" && endpoint.LocalAdminOnly);
+    }
+
+    [Fact]
+    public void MigrationStatus_ReturnsAppliedSchemaMigrations()
+    {
+        var result = _controller.MigrationStatus();
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<SchemaMigrationStatusDto>(ok.Value);
+        Assert.Equal("grow-os.schema-migrations.v1", dto.MigrationSchema);
+        Assert.Equal(DatabaseInitializer.CurrentSchemaVersion, dto.CurrentSchemaVersion);
+        Assert.Equal(DatabaseInitializer.CurrentSchemaVersion, dto.StoredSchemaVersion);
+        Assert.True(dto.MigrationTableExists);
+        Assert.True(dto.IsCurrent);
+        Assert.Empty(dto.PendingMigrations);
+        Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0011-upgrade-preflight");
+    }
+
+    [Fact]
+    public void UpgradePreflight_CreatesAndValidatesBackupWhenDatabaseIsCurrent()
+    {
+        var result = _controller.UpgradePreflight();
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<UpgradePreflightDto>(ok.Value);
+        Assert.Equal("grow-os.upgrade-preflight.v1", dto.PreflightSchema);
+        Assert.True(dto.IsSafeToUpgrade);
+        Assert.True(dto.DatabaseCurrent);
+        Assert.True(dto.BackupCreated);
+        Assert.True(dto.BackupValid);
+        Assert.NotNull(dto.BackupFileName);
+        Assert.NotNull(dto.BackupValidation);
+        Assert.True(dto.MigrationStatus.IsCurrent);
+        Assert.Empty(dto.Blockers);
     }
 
 
