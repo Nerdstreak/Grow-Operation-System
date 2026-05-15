@@ -6,6 +6,7 @@ import ArchivePage from './pages/ArchivePage'
 import GrowDetailPage from './pages/GrowDetailPage'
 import GrowSetupPage from './pages/GrowSetupPage'
 import HardwarePage from './pages/HardwarePage'
+import HomeAssistantPage from './pages/HomeAssistantPage'
 import HarvestPage from './pages/HarvestPage'
 import KnowledgePage from './pages/KnowledgePage'
 import LiveDashboardPage from './pages/LiveDashboardPage'
@@ -18,8 +19,8 @@ import TentsPage from './pages/TentsPage'
 const navItems = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/action', label: 'Aktion', end: true },
-  { to: '/live', label: 'Live', end: true },
   { to: '/zelte', label: 'Zelte & Systeme', end: true },
+  { to: '/home-assistant', label: 'Home Assistant', end: true },
   { to: '/hardware', label: 'Hardware', end: true },
   { to: '/archiv', label: 'Archiv', end: true },
   { to: '/grows/new', label: 'Neuer Grow', end: true },
@@ -37,6 +38,7 @@ const mobilePrimaryItems = [
 
 const mobileMoreItems = [
   { to: '/live', label: 'Live', end: true },
+  { to: '/home-assistant', label: 'Home Assistant', end: true },
   { to: '/hardware', label: 'Hardware', end: true },
   { to: '/wissen', label: 'Wissen', end: true },
   { to: '/analyse', label: 'Analyse', end: true },
@@ -150,6 +152,7 @@ function App() {
           <Route path="/zelte" element={<TentsPage />} />
           <Route path="/zelte/:tentId" element={<TentDetailPage />} />
           <Route path="/hardware" element={<HardwarePage />} />
+          <Route path="/home-assistant" element={<HomeAssistantPage />} />
           <Route path="/archiv" element={<ArchivePage />} />
           <Route path="/wissen" element={<KnowledgePage />} />
           <Route path="/analyse" element={<AnalysisPage />} />
@@ -167,6 +170,7 @@ function getCurrentTitle(pathname: string): string {
   if (pathname.startsWith('/live')) return 'Live'
   if (pathname.startsWith('/zelte')) return 'Zelte & Systeme'
   if (pathname.startsWith('/hardware')) return 'Hardware'
+  if (pathname.startsWith('/home-assistant')) return 'Home Assistant'
   if (pathname.startsWith('/grows/new')) return 'Neuer Grow'
   if (pathname.startsWith('/grows')) return 'Grow'
   if (pathname.startsWith('/wissen')) return 'Wissen'

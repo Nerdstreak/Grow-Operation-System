@@ -26,7 +26,6 @@ type MetricDefinition = {
 
 type MetricGroup = {
   title: string
-  description: string
   metrics: MetricPayload[]
 }
 
@@ -152,11 +151,10 @@ function LiveDashboardPage() {
       <div className="live-dashboard live-dashboard-home">
         <section className="live-hero-panel">
           <div>
-            <div className="live-kicker">Grow-Zentrale</div>
             <h1>Dashboard</h1>
           </div>
           <div className="live-hero-actions">
-            <span className="text-muted">Refresh {formatDateTime(data.refreshedAtUtc)}</span>
+            <span className="text-muted">{formatDateTime(data.refreshedAtUtc)}</span>
             <button type="button" className="btn btn-primary" onClick={() => setRefreshTick((current) => current + 1)} disabled={loading}>
               {loading ? 'Aktualisiert...' : 'Aktualisieren'}
             </button>
@@ -176,11 +174,11 @@ function LiveDashboardPage() {
         )}
 
         <section>
-          <div className="section-label">Zelte & Systeme</div>
+          <div className="section-label">Live</div>
           {loading && visibleTents.length === 0 ? (
-            <div className="empty-hint">Lade Live-Dashboard...</div>
+            <div className="empty-hint">Lade...</div>
           ) : visibleTents.length === 0 ? (
-            <div className="empty-hint">Keine aktiven Zelte oder Hydro-Setups gefunden.</div>
+            <div className="empty-hint live-empty-actions"><Link to="/zelte" className="btn btn-primary">Zelt anlegen</Link><Link to="/home-assistant" className="btn">Home Assistant</Link></div>
           ) : (
             <div className="live-grid live-grid-separated">
               {visibleTents.map((tent) => (
@@ -191,9 +189,9 @@ function LiveDashboardPage() {
         </section>
 
         <section>
-          <div className="section-label">Aktive Grows</div>
+          <div className="section-label">Grows</div>
           {activeGrows.length === 0 ? (
-            <div className="empty-hint">Keine aktiven Grows gefunden.</div>
+            <div className="empty-hint"><Link to="/grows/new" className="btn btn-primary">Grow starten</Link></div>
           ) : (
             <div className="live-grow-grid compact">
               {activeGrows.map((grow) => (
@@ -221,10 +219,9 @@ function LiveCameraPanel({ camera }: { camera: { tent: TentDto; live: TentLivePa
         <div className="cam-live-badge"><span className="cam-live-dot" />Live</div>
       </div>
       <div className="live-camera-meta">
-        <div className="live-kicker">Livebild</div>
         <h2>{camera.tent.name}</h2>
-        <p>Aktualisiert {formatDateTime(camera.live.refreshedAtUtc)} · {camera.live.stateLabel}</p>
-        <Link to={`/zelte/${camera.tent.id}`} className="btn">Zelt öffnen</Link>
+        <div className="live-camera-status">{camera.live.stateLabel} · {formatDateTime(camera.live.refreshedAtUtc)}</div>
+        <Link to={`/zelte/${camera.tent.id}`} className="btn">Öffnen</Link>
       </div>
     </section>
   )
@@ -237,7 +234,6 @@ function RiskSummary({ criticalRisks, warningRisks, sortedRisks }: { criticalRis
     return (
       <section className="live-status-strip is-quiet">
         <span className="badge badge-ok">Stabil</span>
-        <span>Keine kritischen RiskEvents.</span>
       </section>
     )
   }
@@ -245,7 +241,6 @@ function RiskSummary({ criticalRisks, warningRisks, sortedRisks }: { criticalRis
   return (
     <section className={classNames('live-alarm-band', criticalRisks.length > 0 && 'is-critical', criticalRisks.length === 0 && warningRisks.length > 0 && 'is-warning')}>
       <div>
-        <div className="live-kicker">Alarme</div>
         <div className="live-alarm-title">
           {criticalRisks.length > 0
             ? `${criticalRisks.length} kritische RiskEvents`
@@ -288,7 +283,6 @@ function LiveTentCard({ tent, live }: { tent: TentDto; live: TentLivePayload | u
         <section key={group.title} className="live-metric-section">
           <div className="live-metric-section-header">
             <h3>{group.title}</h3>
-            <p>{group.description}</p>
           </div>
           <div className="live-metric-grid live-metric-grid-compact">
             {group.metrics.map((metric) => (
@@ -319,13 +313,11 @@ function MetricTile({ metric }: { metric: MetricPayload }) {
 function buildMetricGroups(metrics: MetricPayload[]): MetricGroup[] {
   return [
     {
-      title: 'Zelt / Umgebung',
-      description: 'Klima, Licht und Transpiration.',
+      title: 'Zelt',
       metrics: mapMetricDefinitions(metrics, tentMetricDefinitions),
     },
     {
-      title: 'RDWC/DWC / Reservoir',
-      description: 'Nährlösung, Sauerstoff und Wasserstand.',
+      title: 'RDWC/DWC',
       metrics: mapMetricDefinitions(metrics, reservoirMetricDefinitions),
     },
   ]
@@ -354,7 +346,7 @@ function createMissingMetric(definition: MetricDefinition): MetricPayload {
     value: '–',
     unit: definition.unit,
     tone: 'neutral',
-    hint: 'Kein Wert vorhanden',
+    hint: null,
   }
 }
 
