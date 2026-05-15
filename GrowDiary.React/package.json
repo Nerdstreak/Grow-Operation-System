@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "audit:install": "playwright install chromium",
+    "audit:visual": "playwright test --config=playwright.config.ts",
+    "audit:visual:headed": "playwright test --config=playwright.config.ts --headed"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
