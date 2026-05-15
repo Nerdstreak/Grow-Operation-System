@@ -34,7 +34,10 @@ function AddbackHubPage() {
   return (
     <V1Page eyebrow="Reservoir" title="Addback" action={<V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>}>
       {error && <V1Alert message={error} tone="warn" />}
-      <section className="v1-kpi-grid"><V1Stat label="Aktive Grows" value={activeGrows.length} /><V1Stat label="Hydro" value={hydroGrows.length} /><V1Stat label="Bereit" value={hydroGrows.length} /></section>
+      <section className="v1-addback-flow-strip" aria-label="Addback Ablauf">
+        {['Grow', 'Istwerte', 'Ziel', 'Dosierung', 'Nachmessung'].map((item, index) => <div key={item}><span>{index + 1}</span><strong>{item}</strong></div>)}
+      </section>
+      <section className="v1-kpi-grid v1-kpi-grid-compact"><V1Stat label="Aktive Grows" value={activeGrows.length} /><V1Stat label="Hydro" value={hydroGrows.length} /><V1Stat label="Bereit" value={hydroGrows.length} /></section>
       <V1Section title="Grow wählen">
         {loading ? <V1Empty title="Lade Grows..." /> : hydroGrows.length === 0 ? <V1Empty title="Kein DWC/RDWC-Grow" text="Addback braucht einen aktiven Grow mit Hydro-Setup." action={<V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>} /> : (
           <div className="v1-card-grid">

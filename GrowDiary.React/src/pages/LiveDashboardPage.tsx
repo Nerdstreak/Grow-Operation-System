@@ -186,13 +186,13 @@ function CameraTile({ tent, live }: { tent: TentDto; live: TentLivePayload | und
 
   if (!source || state === 'failed' || state === 'hidden') {
     return (
-      <V1Card className="v1-camera-empty">
+      <V1Card className="v1-camera-empty is-compact">
         <div>
           <span className="v1-card-kicker">Kamera</span>
-          <h2>{tent.name}</h2>
-          <p>{tent.cameraEntityId ? 'Bild aktuell nicht erreichbar.' : 'Keine Kamera gemappt.'}</p>
+          <h2>{tent.cameraEntityId ? 'Nicht erreichbar' : 'Nicht eingerichtet'}</h2>
+          <p>{tent.name}</p>
         </div>
-        <V1LinkButton to="/home-assistant">Einrichten</V1LinkButton>
+        <V1LinkButton to="/home-assistant">HA öffnen</V1LinkButton>
       </V1Card>
     )
   }
@@ -218,7 +218,7 @@ function Row({ label, value }: { label: string; value: string }) {
 function mapMetrics(items: MetricPayload[], definitions: MetricDefinition[]): MetricPayload[] {
   return definitions.map((definition) => {
     const found = items.find((item) => item.key === definition.key)
-    return found ? { ...found, label: definition.label, unit: found.unit ?? definition.unit } : { key: definition.key, label: definition.label, value: '–', unit: definition.unit, tone: 'muted', hint: 'nicht gemappt' }
+    return found ? { ...found, label: definition.label, unit: found.unit ?? definition.unit } : { key: definition.key, label: definition.label, value: '–', unit: definition.unit, tone: 'muted', hint: null }
   })
 }
 

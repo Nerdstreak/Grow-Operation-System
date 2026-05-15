@@ -196,7 +196,29 @@ function StepReview({ draft, tents, totalVolume }: { draft: HydroDraft; tents: T
 }
 
 function HydroDetail({ setup, saving, onEdit, onArchive }: { setup: HydroSetupDto; saving: boolean; onEdit: (setup: HydroSetupDto) => void; onArchive: (setup: HydroSetupDto) => void }) {
-  return <V1Section title={setup.name} action={<V1Badge tone={setup.status === 'Active' ? 'ok' : 'neutral'}>{setup.status === 'Active' ? 'aktiv' : 'Archiv'}</V1Badge>}><div className="v1-review-layout"><V1Card><div className="v1-info-grid"><Info label="Zelt" value={setup.tentName ?? '–'} /><Info label="Typ" value={setup.hydroStyle} /><Info label="Sites" value={String(setup.potCount ?? '–')} /><Info label="Topf" value={formatLiters(setup.potSizeLiters)} /><Info label="Tank" value={formatLiters(setup.reservoirLiters)} /><Info label="Gesamt" value={formatLiters(setup.totalVolumeLiters)} /><Info label="Layout" value={formatLayout(setup.layoutType)} /><Info label="Tank" value={formatReservoirPosition(setup.reservoirPosition)} /></div><div className="v1-chip-row">{setup.hasCirculationPump && <span>Pumpe</span>}{setup.hasAirPump && <span>Luft</span>}{setup.hasChiller && <span>Chiller</span>}{setup.hasUvSterilizer && <span>UV-C</span>}</div><div className="v1-action-row"><V1Button onClick={() => onEdit(setup)}>Bearbeiten</V1Button>{setup.status === 'Active' && <V1Button variant="ghost" disabled={saving} onClick={() => void onArchive(setup)}>{saving ? 'Archiviert...' : 'Archivieren'}</V1Button>}</div></V1Card><RdwcLayoutPreview setup={setup} /></div></V1Section>
+  return (
+    <V1Section title={setup.name} action={<V1Badge tone={setup.status === 'Active' ? 'ok' : 'neutral'}>{setup.status === 'Active' ? 'aktiv' : 'Archiv'}</V1Badge>}>
+      <div className="v1-hydro-detail">
+        <V1Card className="v1-hydro-summary">
+          <div className="v1-hydro-title-line">
+            <span className="v1-card-kicker">{setup.hydroStyle}</span>
+            <strong>{formatLiters(setup.totalVolumeLiters)}</strong>
+          </div>
+          <div className="v1-info-grid compact">
+            <Info label="Zelt" value={setup.tentName ?? '–'} />
+            <Info label="Sites" value={String(setup.potCount ?? '–')} />
+            <Info label="Topf" value={formatLiters(setup.potSizeLiters)} />
+            <Info label="Tank" value={formatLiters(setup.reservoirLiters)} />
+            <Info label="Layout" value={formatLayout(setup.layoutType)} />
+            <Info label="Position" value={formatReservoirPosition(setup.reservoirPosition)} />
+          </div>
+          <div className="v1-chip-row">{setup.hasCirculationPump && <span>Pumpe</span>}{setup.hasAirPump && <span>Luft</span>}{setup.hasChiller && <span>Chiller</span>}{setup.hasUvSterilizer && <span>UV-C</span>}</div>
+          <div className="v1-action-row"><V1Button onClick={() => onEdit(setup)}>Bearbeiten</V1Button>{setup.status === 'Active' && <V1Button variant="ghost" disabled={saving} onClick={() => void onArchive(setup)}>{saving ? 'Archiviert...' : 'Archivieren'}</V1Button>}</div>
+        </V1Card>
+        <RdwcLayoutPreview setup={setup} />
+      </div>
+    </V1Section>
+  )
 }
 
 function RdwcLayoutPreview({ draft, setup }: { draft?: HydroDraft; setup?: HydroSetupDto }) {
