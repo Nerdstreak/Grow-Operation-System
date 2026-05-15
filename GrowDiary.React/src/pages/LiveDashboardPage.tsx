@@ -18,6 +18,18 @@ type LiveDashboardData = {
   refreshedAtUtc: string | null
 }
 
+type MetricDefinition = {
+  key: string
+  label: string
+  unit: string | null
+}
+
+type MetricGroup = {
+  title: string
+  description: string
+  metrics: MetricPayload[]
+}
+
 const emptyData: LiveDashboardData = {
   tents: [],
   liveByTentId: {},
@@ -33,27 +45,21 @@ const riskRank: Record<string, number> = {
   Info: 2,
 }
 
-type MetricDefinition = {
-  key: string
-  label: string
-  unit: string | null
-}
-
-const coreMetricDefinitions: MetricDefinition[] = [
-  { key: 'temperature', label: 'Temperatur', unit: '°C' },
+const tentMetricDefinitions: MetricDefinition[] = [
+  { key: 'temperature', label: 'Lufttemperatur', unit: '°C' },
   { key: 'humidity', label: 'Luftfeuchte', unit: '%' },
   { key: 'vpd', label: 'VPD', unit: 'kPa' },
+  { key: 'ppfd', label: 'PPFD', unit: 'µmol/m²/s' },
+  { key: 'co2', label: 'CO₂', unit: 'ppm' },
+  { key: 'light-cycle', label: 'Licht', unit: null },
+]
+
+const reservoirMetricDefinitions: MetricDefinition[] = [
   { key: 'reservoir-ph', label: 'pH', unit: null },
   { key: 'reservoir-ec', label: 'EC', unit: 'mS/cm' },
   { key: 'orp', label: 'ORP', unit: 'mV' },
-  { key: 'dissolved-oxygen', label: 'DO', unit: 'mg/L' },
+  { key: 'dissolved-oxygen', label: 'Sauerstoff', unit: 'mg/L' },
   { key: 'reservoir-temp', label: 'Wasser °C', unit: '°C' },
-]
-
-const optionalMetricDefinitions: MetricDefinition[] = [
-  { key: 'ppfd', label: 'PPFD', unit: 'µmol/m²/s' },
-  { key: 'co2', label: 'CO2', unit: 'ppm' },
-  { key: 'light-cycle', label: 'Lichtstatus', unit: null },
   { key: 'reservoir-level', label: 'Wasserstand', unit: null },
 ]
 
@@ -138,116 +144,160 @@ function LiveDashboardPage() {
   )
   const criticalRisks = sortedRisks.filter((event) => event.severity === 'Critical')
   const warningRisks = sortedRisks.filter((event) => event.severity === 'Warning')
+  const cameraSource = findPrimaryCamera(data.tents, data.liveByTentId)
+  const visibleTents = data.tents
 
   return (
-    <>
-      <div className="topbar">
-        <span className="topbar-title">Live Dashboard</span>
-        <div className="topbar-right">
-          <span className="text-muted" style={{ fontSize: 12 }}>Refresh {formatDateTime(data.refreshedAtUtc)}</span>
-          <button type="button" className="btn btn-primary" onClick={() => setRefreshTick((current) => current + 1)} disabled={loading}>
-            {loading ? 'Aktualisiert...' : 'Aktualisieren'}
-          </button>
-        </div>
-      </div>
+    <div className="page-scroll">
+      <div className="live-dashboard live-dashboard-home">
+        <section className="live-hero-panel">
+          <div>
+            <div className="live-kicker">Grow-Zentrale</div>
+            <h1>Dashboard</h1>
+            <p>Zeltklima und RDWC/DWC-Reservoir getrennt im Blick. HA-Kamera wird nur angezeigt, wenn sie eingerichtet ist.</p>
+          </div>
+          <div className="live-hero-actions">
+            <span className="text-muted">Refresh {formatDateTime(data.refreshedAtUtc)}</span>
+            <button type="button" className="btn btn-primary" onClick={() => setRefreshTick((current) => current + 1)} disabled={loading}>
+              {loading ? 'Aktualisiert...' : 'Aktualisieren'}
+            </button>
+          </div>
+        </section>
 
-      <div className="page-scroll">
-        <div className="live-dashboard">
-          <section className={classNames('live-alarm-band', criticalRisks.length > 0 && 'is-critical', criticalRisks.length === 0 && warningRisks.length > 0 && 'is-warning')}>
-            <div>
-              <div className="live-kicker">Alarme</div>
-              <div className="live-alarm-title">
-                {criticalRisks.length > 0
-                  ? `${criticalRisks.length} kritische RiskEvents`
-                  : warningRisks.length > 0
-                    ? `${warningRisks.length} Warnungen offen`
-                    : 'Keine kritischen RiskEvents'}
-              </div>
-            </div>
-            {sortedRisks.length > 0 ? (
-              <div className="live-alarm-list">
-                {sortedRisks.slice(0, 3).map((event) => (
-                  <div key={event.id} className="live-alarm-item">
-                    <span className={classNames('badge', event.severity === 'Critical' ? 'badge-crit' : event.severity === 'Warning' ? 'badge-warn' : 'badge-info')}>
-                      {event.severity}
-                    </span>
-                    <span>{event.title}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-muted">System im Beobachtungsfenster stabil.</div>
-            )}
-            <Link className="btn action-primary" to="/hardware">Hardware öffnen</Link>
-          </section>
+        {cameraSource && <LiveCameraPanel camera={cameraSource} />}
 
-          {data.issues.length > 0 && (
-            <div className="alert-bar">
-              <div className="alert-dot" />
-              <strong>Teilweise geladen</strong>
-              <span>{data.issues.map((issue) => `${issue.area}: ${issue.message}`).join(' | ')}</span>
+        <RiskSummary criticalRisks={criticalRisks} warningRisks={warningRisks} sortedRisks={sortedRisks} />
+
+        {data.issues.length > 0 && (
+          <div className="alert-bar">
+            <div className="alert-dot" />
+            <strong>Teilweise geladen</strong>
+            <span>{data.issues.map((issue) => `${issue.area}: ${issue.message}`).join(' | ')}</span>
+          </div>
+        )}
+
+        <section>
+          <div className="section-label">Zelte & Systeme</div>
+          {loading && visibleTents.length === 0 ? (
+            <div className="empty-hint">Lade Live-Dashboard...</div>
+          ) : visibleTents.length === 0 ? (
+            <div className="empty-hint">Keine aktiven Zelte oder Hydro-Setups gefunden.</div>
+          ) : (
+            <div className="live-grid live-grid-separated">
+              {visibleTents.map((tent) => (
+                <LiveTentCard key={tent.id} tent={tent} live={data.liveByTentId[tent.id]} />
+              ))}
             </div>
           )}
+        </section>
 
-          <section>
-            <div className="section-label">Tent Live Grid</div>
-            {loading && data.tents.length === 0 ? (
-              <div className="empty-hint">Lade Live-Dashboard...</div>
-            ) : data.tents.length === 0 ? (
-              <div className="empty-hint">Keine aktiven Zelte oder Setups gefunden.</div>
-            ) : (
-              <div className="live-grid">
-                {data.tents.map((tent) => (
-                  <LiveTentCard key={tent.id} tent={tent} live={data.liveByTentId[tent.id]} />
-                ))}
-              </div>
-            )}
-          </section>
+        <section>
+          <div className="section-label">Aktive Grows</div>
+          {activeGrows.length === 0 ? (
+            <div className="empty-hint">Keine aktiven Grows gefunden.</div>
+          ) : (
+            <div className="live-grow-grid compact">
+              {activeGrows.map((grow) => (
+                <Link key={grow.id} to={`/grows/${grow.id}`} className="live-grow-card">
+                  <div>
+                    <div className="live-grow-name">{grow.name}</div>
+                    <div className="live-grow-meta">{grow.strain ?? 'Unbekannter Strain'} · {grow.tentName ?? 'Ohne Zelt'}</div>
+                  </div>
+                  <span className="badge badge-neutral">{grow.latestStage ?? grow.status}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  )
+}
 
-          <section>
-            <div className="section-label">Aktive Grows</div>
-            {activeGrows.length === 0 ? (
-              <div className="empty-hint">Keine aktiven Grows gefunden.</div>
-            ) : (
-              <div className="live-grow-grid">
-                {activeGrows.map((grow) => (
-                  <Link key={grow.id} to={`/grows/${grow.id}`} className="live-grow-card">
-                    <div>
-                      <div className="live-grow-name">{grow.name}</div>
-                      <div className="live-grow-meta">{grow.strain ?? 'Unbekannter Strain'} · {grow.tentName ?? 'Ohne Zelt'}</div>
-                    </div>
-                    <span className="badge badge-neutral">{grow.latestStage ?? grow.status}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </section>
+function LiveCameraPanel({ camera }: { camera: { tent: TentDto; live: TentLivePayload } }) {
+  return (
+    <section className="live-camera-panel" aria-label={`Live-Kamera ${camera.tent.name}`}>
+      <div className="live-camera-frame">
+        <img src={camera.live.cameraUrl ?? ''} alt={`Livebild ${camera.tent.name}`} loading="lazy" />
+        <div className="cam-live-badge"><span className="cam-live-dot" />HA Kamera</div>
+      </div>
+      <div className="live-camera-meta">
+        <div className="live-kicker">Livebild</div>
+        <h2>{camera.tent.name}</h2>
+        <p>Aktualisiert {formatDateTime(camera.live.refreshedAtUtc)} · {camera.live.stateLabel}</p>
+        <Link to={`/zelte/${camera.tent.id}`} className="btn">Zelt öffnen</Link>
+      </div>
+    </section>
+  )
+}
+
+function RiskSummary({ criticalRisks, warningRisks, sortedRisks }: { criticalRisks: RiskEventDto[]; warningRisks: RiskEventDto[]; sortedRisks: RiskEventDto[] }) {
+  const hasEvents = sortedRisks.length > 0
+
+  if (!hasEvents) {
+    return (
+      <section className="live-status-strip is-quiet">
+        <span className="badge badge-ok">Stabil</span>
+        <span>Keine kritischen RiskEvents.</span>
+      </section>
+    )
+  }
+
+  return (
+    <section className={classNames('live-alarm-band', criticalRisks.length > 0 && 'is-critical', criticalRisks.length === 0 && warningRisks.length > 0 && 'is-warning')}>
+      <div>
+        <div className="live-kicker">Alarme</div>
+        <div className="live-alarm-title">
+          {criticalRisks.length > 0
+            ? `${criticalRisks.length} kritische RiskEvents`
+            : warningRisks.length > 0
+              ? `${warningRisks.length} Warnungen offen`
+              : `${sortedRisks.length} Hinweise offen`}
         </div>
       </div>
-    </>
+      <div className="live-alarm-list">
+        {sortedRisks.slice(0, 3).map((event) => (
+          <div key={event.id} className="live-alarm-item">
+            <span className={classNames('badge', event.severity === 'Critical' ? 'badge-crit' : event.severity === 'Warning' ? 'badge-warn' : 'badge-info')}>
+              {event.severity}
+            </span>
+            <span>{event.title}</span>
+          </div>
+        ))}
+      </div>
+      <Link className="btn action-primary" to="/hardware">Hardware öffnen</Link>
+    </section>
   )
 }
 
 function LiveTentCard({ tent, live }: { tent: TentDto; live: TentLivePayload | undefined }) {
-  const orderedMetrics = buildDashboardMetrics(live?.metrics ?? [])
+  const groups = buildMetricGroups(live?.metrics ?? [])
 
   return (
-    <article className={classNames('live-card', live?.stateTone === 'critical' && 'is-critical', live?.stateTone === 'attention' && 'is-warning')}>
+    <article className={classNames('live-card live-card-separated', live?.stateTone === 'critical' && 'is-critical', live?.stateTone === 'attention' && 'is-warning')}>
       <div className="live-card-header">
         <div>
           <div className="live-card-title">{tent.name}</div>
-          <div className="live-card-meta">{tent.tentType} · {formatTentActivity(tent)}</div>
+          <div className="live-card-meta">{formatTentType(tent.tentType)} · {formatTentSize(tent)} · {formatTentActivity(tent)}</div>
         </div>
         <span className={classNames('badge', live?.stateTone === 'critical' ? 'badge-crit' : live?.stateTone === 'attention' ? 'badge-warn' : live ? 'badge-ok' : 'badge-neutral')}>
           {live?.stateLabel ?? 'offline'}
         </span>
       </div>
 
-      <div className="live-metric-grid">
-        {orderedMetrics.map((metric) => (
-          <MetricTile key={metric.key} metric={metric} />
-        ))}
-      </div>
+      {groups.map((group) => (
+        <section key={group.title} className="live-metric-section">
+          <div className="live-metric-section-header">
+            <h3>{group.title}</h3>
+            <p>{group.description}</p>
+          </div>
+          <div className="live-metric-grid live-metric-grid-compact">
+            {group.metrics.map((metric) => (
+              <MetricTile key={metric.key} metric={metric} />
+            ))}
+          </div>
+        </section>
+      ))}
 
       <div className="live-card-footer">
         <span>Aktualisiert {formatDateTime(live?.refreshedAtUtc)}</span>
@@ -267,22 +317,27 @@ function MetricTile({ metric }: { metric: MetricPayload }) {
   )
 }
 
-function buildDashboardMetrics(metrics: MetricPayload[]): MetricPayload[] {
+function buildMetricGroups(metrics: MetricPayload[]): MetricGroup[] {
+  return [
+    {
+      title: 'Zelt / Umgebung',
+      description: 'Klima, Licht und Transpiration.',
+      metrics: mapMetricDefinitions(metrics, tentMetricDefinitions),
+    },
+    {
+      title: 'RDWC/DWC / Reservoir',
+      description: 'Nährlösung, Sauerstoff und Wasserstand.',
+      metrics: mapMetricDefinitions(metrics, reservoirMetricDefinitions),
+    },
+  ]
+}
+
+function mapMetricDefinitions(metrics: MetricPayload[], definitions: MetricDefinition[]): MetricPayload[] {
   const byKey = new Map(metrics.map((metric) => [metric.key, metric]))
-  const coreMetrics = coreMetricDefinitions.map((definition) => {
+  return definitions.map((definition) => {
     const mapped = byKey.get(definition.key)
     return mapped ? normalizeMetric(mapped, definition) : createMissingMetric(definition)
   })
-  const optionalMetrics = optionalMetricDefinitions
-    .map((definition) => {
-      const mapped = byKey.get(definition.key)
-      return mapped ? normalizeMetric(mapped, definition) : null
-    })
-    .filter((metric): metric is MetricPayload => metric !== null)
-  const knownKeys = new Set([...coreMetricDefinitions, ...optionalMetricDefinitions].map((definition) => definition.key))
-  const otherMetrics = metrics.filter((metric) => !knownKeys.has(metric.key))
-
-  return [...coreMetrics, ...optionalMetrics, ...otherMetrics]
 }
 
 function normalizeMetric(metric: MetricPayload, definition: MetricDefinition): MetricPayload {
@@ -304,6 +359,17 @@ function createMissingMetric(definition: MetricDefinition): MetricPayload {
   }
 }
 
+function findPrimaryCamera(tents: TentDto[], liveByTentId: Record<number, TentLivePayload>): { tent: TentDto; live: TentLivePayload } | null {
+  for (const tent of tents) {
+    const live = liveByTentId[tent.id]
+    if (live?.cameraUrl) {
+      return { tent, live }
+    }
+  }
+
+  return null
+}
+
 function formatTentActivity(tent: TentDto): string {
   const parts: string[] = []
   if (tent.activeGrowCount > 0) {
@@ -313,6 +379,28 @@ function formatTentActivity(tent: TentDto): string {
     parts.push(`${tent.activeSetupCount} ${tent.activeSetupCount === 1 ? 'Setup' : 'Setups'}`)
   }
   return parts.length > 0 ? parts.join(' · ') : 'Keine aktive Nutzung'
+}
+
+function formatTentSize(tent: TentDto): string {
+  if (!tent.widthCm && !tent.depthCm && !tent.tentHeightCm) {
+    return 'Größe offen'
+  }
+
+  const width = tent.widthCm ?? '–'
+  const depth = tent.depthCm ?? '–'
+  const height = tent.tentHeightCm ?? '–'
+  return `${width}×${depth}×${height} cm`
+}
+
+function formatTentType(value: string): string {
+  switch (value) {
+    case 'Flower': return 'Blüte'
+    case 'Mother': return 'Mutter'
+    case 'Propagation': return 'Anzucht'
+    case 'Quarantine': return 'Quarantäne'
+    case 'MultiPurpose': return 'Mehrzweck'
+    default: return value
+  }
 }
 
 function formatApiError(caught: unknown, fallback: string): string {
