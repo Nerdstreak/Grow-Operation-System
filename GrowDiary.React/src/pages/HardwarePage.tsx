@@ -587,6 +587,7 @@ function HardwarePage() {
       </div>
 
       <div className="page-scroll">
+        <h1 className="sr-only">Hardware</h1>
         <div className="stats-row">
           <div className="stat-chip"><strong>{activeHardwareCount}</strong>Aktive Hardware</div>
           <div className="stat-chip"><strong>{dueMaintenanceCount}</strong>Wartung fällig</div>

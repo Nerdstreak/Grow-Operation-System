@@ -200,7 +200,7 @@ function MetricTile({ metric }: { metric: MetricPayload }) {
       <span>{metric.label}</span>
       <div className="ops-metric-value">
         <strong>{metric.value}</strong>
-        {showUnit && <em>{metric.unit}</em>}
+        {showUnit && <span className="ops-unit">{metric.unit}</span>}
       </div>
       <small>{metric.hint ?? ' '}</small>
     </div>
@@ -210,6 +210,29 @@ function MetricTile({ metric }: { metric: MetricPayload }) {
 function CameraPanel({ camera }: { camera: { tent: TentDto; live: TentLivePayload } }) {
   if (!camera.live.cameraUrl) return null
   const cameraUrl = resolveCameraUrl(camera.live.cameraUrl)
+  const [imageReady, setImageReady] = useState(false)
+  const [imageFailed, setImageFailed] = useState(false)
+
+  useEffect(() => {
+    setImageReady(false)
+    setImageFailed(false)
+  }, [cameraUrl])
+
+  if (imageFailed) return null
+
+  if (!imageReady) {
+    return (
+      <img
+        className="camera-preload"
+        src={cameraUrl}
+        alt=""
+        aria-hidden="true"
+        onLoad={() => setImageReady(true)}
+        onError={() => setImageFailed(true)}
+      />
+    )
+  }
+
   return (
     <section className="camera-panel">
       <div className="camera-frame">

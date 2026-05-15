@@ -117,7 +117,7 @@ function KnowledgePage() {
 
       <div className="page-scroll">
         <div className="grow-hero" style={{ marginBottom: 16 }}>
-          <div className="grow-hero-title">Knowledge-Browser</div>
+          <h1 className="grow-hero-title">Knowledge-Browser</h1>
           <div className="grow-hero-sub">Read-only Catalogs für Treatments, SOPs, Symptome, Wear, Programme, Setpoints und Pathogene.</div>
         </div>
 
