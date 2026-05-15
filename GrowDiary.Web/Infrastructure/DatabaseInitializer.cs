@@ -6,7 +6,7 @@ namespace GrowDiary.Web.Infrastructure;
 
 public sealed class DatabaseInitializer
 {
-    public const string CurrentSchemaVersion = "backend-core.v0.12-candidate";
+    public const string CurrentSchemaVersion = "backend-core.v0.13-candidate";
     public const string CurrentSchemaAppSettingKey = "backend:schemaVersion";
     public const string LastMigrationUtcAppSettingKey = "backend:lastMigrationUtc";
 
@@ -24,7 +24,8 @@ public sealed class DatabaseInitializer
         new SchemaMigrationDescriptor("0010-import-readiness", "Export integrity and import validation preflight", CurrentSchemaVersion),
         new SchemaMigrationDescriptor("0011-upgrade-preflight", "Migration status and upgrade preflight", CurrentSchemaVersion),
         new SchemaMigrationDescriptor("0012-restore-plan", "Backup restore dry-run and restore readiness", CurrentSchemaVersion),
-        new SchemaMigrationDescriptor("0013-grow-import-plan", "Grow export import planning dry-run", CurrentSchemaVersion)
+        new SchemaMigrationDescriptor("0013-grow-import-plan", "Grow export import planning dry-run", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0014-system-audit-events", "System audit events for critical backend operations", CurrentSchemaVersion)
     };
 
     private readonly AppPaths _paths;
@@ -383,6 +384,23 @@ public sealed class DatabaseInitializer
                 FOREIGN KEY (GrowId) REFERENCES Grows (Id) ON DELETE CASCADE
             );
 
+
+
+            CREATE TABLE IF NOT EXISTS SystemAuditEvents (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                EventType TEXT NOT NULL,
+                Action TEXT NOT NULL,
+                Summary TEXT NOT NULL,
+                Severity TEXT NOT NULL,
+                Source TEXT NOT NULL,
+                RemoteAddress TEXT NULL,
+                RelatedGrowId INTEGER NULL,
+                RelatedFileName TEXT NULL,
+                Success INTEGER NOT NULL DEFAULT 1,
+                CreatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (RelatedGrowId) REFERENCES Grows (Id) ON DELETE SET NULL
+            );
+
             CREATE TABLE IF NOT EXISTS GrowTemplates (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Name TEXT NOT NULL,
@@ -660,6 +678,9 @@ public sealed class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS IX_JournalEntries_GrowId_OccurredAtUtc ON JournalEntries(GrowId, OccurredAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_GrowTasks_GrowId_Status_DueAtUtc ON GrowTasks(GrowId, Status, DueAtUtc);
             CREATE INDEX IF NOT EXISTS IX_AuditEntries_GrowId_CreatedAtUtc ON AuditEntries(GrowId, CreatedAtUtc DESC);
+            CREATE INDEX IF NOT EXISTS IX_SystemAuditEvents_CreatedAtUtc ON SystemAuditEvents(CreatedAtUtc DESC);
+            CREATE INDEX IF NOT EXISTS IX_SystemAuditEvents_EventType_CreatedAtUtc ON SystemAuditEvents(EventType, CreatedAtUtc DESC);
+            CREATE INDEX IF NOT EXISTS IX_SystemAuditEvents_RelatedGrowId_CreatedAtUtc ON SystemAuditEvents(RelatedGrowId, CreatedAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_AutoMeasurementConfigs_GrowId ON AutoMeasurementConfigs(GrowId);
             CREATE INDEX IF NOT EXISTS IX_AutoMeasurementFieldMappings_ConfigId ON AutoMeasurementFieldMappings(ConfigId);
             CREATE UNIQUE INDEX IF NOT EXISTS IX_AutoMeasurementRuns_ConfigTriggerSchedule ON AutoMeasurementRuns(ConfigId, TriggerKind, ScheduledForUtc);

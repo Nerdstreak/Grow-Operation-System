@@ -39,6 +39,7 @@ builder.Services.AddSingleton<GrowRepository>();
 builder.Services.AddSingleton<TaskRepository>();
 builder.Services.AddSingleton<JournalRepository>();
 builder.Services.AddSingleton<AuditRepository>();
+builder.Services.AddSingleton<SystemAuditRepository>();
 builder.Services.AddSingleton<TemplateRepository>();
 builder.Services.AddSingleton<HarvestRepository>();
 builder.Services.AddSingleton<KnowledgeBaseLoader>();
@@ -94,22 +95,53 @@ app.Use(async (context, next) =>
 
 app.Use(async (context, next) =>
 {
-    if (AdminAccessPolicy.IsProtectedPath(context.Request.Path)
-        && !AdminAccessPolicy.CanAccess(context))
+    if (AdminAccessPolicy.IsProtectedPath(context.Request.Path))
     {
-        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-        context.Response.ContentType = "application/json; charset=utf-8";
-        await JsonSerializer.SerializeAsync(
-            context.Response.Body,
-            new ApiError(
-                "admin_access_required",
-                "Dieser administrative Bereich ist standardmaessig nur lokal erreichbar. Fuer Remote-Adminzugriff ist ein Admin-Key oder eine bewusst gesetzte Remote-Freigabe erforderlich."),
-            new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        return;
+        var isLocal = AdminAccessPolicy.IsLocalRequest(context);
+        var canAccess = AdminAccessPolicy.CanAccess(context);
+        if (!isLocal)
+        {
+            TryLogAdminAccess(context, canAccess);
+        }
+
+        if (!canAccess)
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            context.Response.ContentType = "application/json; charset=utf-8";
+            await JsonSerializer.SerializeAsync(
+                context.Response.Body,
+                new ApiError(
+                    "admin_access_required",
+                    "Dieser administrative Bereich ist standardmaessig nur lokal erreichbar. Fuer Remote-Adminzugriff ist ein Admin-Key oder eine bewusst gesetzte Remote-Freigabe erforderlich."),
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            return;
+        }
     }
 
     await next();
 });
+
+static void TryLogAdminAccess(HttpContext context, bool allowed)
+{
+    try
+    {
+        var audit = context.RequestServices.GetService<SystemAuditRepository>();
+        audit?.Add(new GrowDiary.Web.Models.SystemAuditEvent
+        {
+            EventType = "security",
+            Action = allowed ? "remote-admin-access-allowed" : "remote-admin-access-blocked",
+            Summary = $"{context.Request.Method} {context.Request.Path}",
+            Severity = allowed ? "warning" : "critical",
+            Source = "admin-access-middleware",
+            RemoteAddress = context.Connection.RemoteIpAddress?.ToString(),
+            Success = allowed
+        });
+    }
+    catch
+    {
+        // Audit logging must never block request handling.
+    }
+}
 
 app.UseStaticFiles();
 app.UseRouting();

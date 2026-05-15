@@ -1,6 +1,8 @@
 using System.IO.Compression;
 using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Infrastructure;
+using GrowDiary.Web.Api.Mapping;
+using GrowDiary.Web.Models;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,11 +15,13 @@ public sealed class SystemApiController : ApiControllerBase
 {
     private readonly AppPaths _paths;
     private readonly GrowRepository _repository;
+    private readonly SystemAuditRepository _auditRepository;
 
-    public SystemApiController(AppPaths paths, GrowRepository repository)
+    public SystemApiController(AppPaths paths, GrowRepository repository, SystemAuditRepository auditRepository)
     {
         _paths = paths;
         _repository = repository;
+        _auditRepository = auditRepository;
     }
 
     [HttpGet("backend-health")]
@@ -30,7 +34,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new BackendHealthDto(
             AppName: "Grow OS",
-            BackendSchema: "backend-core.v0.12-candidate",
+            BackendSchema: "backend-core.v0.13-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             TentCount: tents.Count,
             HydroSetupCount: hydroSetups.Count,
@@ -59,7 +63,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "schema-migration-status",
                 "upgrade-preflight-backup",
                 "backup-restore-plan",
-                "grow-import-plan"
+                "grow-import-plan",
+                "system-audit-events"
             }));
     }
 
@@ -89,15 +94,16 @@ public sealed class SystemApiController : ApiControllerBase
             new("upgrade_preflight", "pass", "Vor einem Update kann ein Preflight mit Datenbankstatus, Migrationstatus und validiertem Backup ausgeführt werden."),
             new("restore_plan", "pass", "Backups können als Restore-Dry-Run analysiert werden, ohne Dateien zu überschreiben."),
             new("grow_import_plan", "pass", "Grow-Exports können als Import-Dry-Run analysiert werden, ohne Daten zu schreiben."),
+            new("system_audit_events", "pass", "Kritische Backend-Operationen werden in einem System-Audit-Log protokolliert."),
             new("restore_api", "todo", "Ein destruktiver Restore-Flow ist noch nicht implementiert; Restore-Planung ist nur Read-only."),
             new("migration_engine", "partial", "Schema-Migrationen werden protokolliert; destructive Rollbacks und echte Restore-/Rollback-Automation fehlen noch."),
             new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
             new("import_merge", "todo", "Import und Merge von Grow-Exports sind noch nicht implementiert.")
         };
 
-        return Ok(new BackendReleaseReadinessDto(
-            Status: "backend.v0.12-ready-not-v1.0",
-            BackendSchema: "backend-core.v0.12-candidate",
+        var dto = new BackendReleaseReadinessDto(
+            Status: "backend.v0.13-ready-not-v1.0",
+            BackendSchema: "backend-core.v0.13-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
             CompletedFoundations: new[]
@@ -123,7 +129,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "schema-migration-status",
                 "upgrade-preflight-backup",
                 "backup-restore-plan",
-                "grow-import-plan"
+                "grow-import-plan",
+                "system-audit-events"
             },
             RemainingBeforeV1: new[]
             {
@@ -135,7 +142,10 @@ public sealed class SystemApiController : ApiControllerBase
                 "user-auth-session-management",
                 "uniform-error-format-across-all-controllers",
                 "release-upgrade-test-with-existing-app-data"
-            }));
+            });
+
+        LogSystemAudit("system", "release-readiness-read", "Release-Readiness abgefragt.", true);
+        return Ok(dto);
     }
 
     [HttpGet("api-manifest")]
@@ -155,6 +165,7 @@ public sealed class SystemApiController : ApiControllerBase
             "Upgrade-Preflight erstellt vor riskanten Updates ein validierbares Backup.",
             "Restore-Planung ist ein Dry-Run und überschreibt keine Dateien.",
             "Schema-Migrationen werden in AppliedSchemaMigrations protokolliert.",
+            "Kritische Backend-Operationen werden im SystemAuditEvents-Log protokolliert.",
             "Runtime-Daten aus App_Data werden nicht als Source-Artefakte behandelt."
         };
 
@@ -240,6 +251,7 @@ public sealed class SystemApiController : ApiControllerBase
                     Endpoint("GET", "/api/system/database-status", "Datenbankstatus und Pflichtschema prüfen.", true),
                     Endpoint("GET", "/api/system/api-manifest", "Maschinenlesbares API-Manifest laden.", true),
                     Endpoint("GET", "/api/system/security-status", "Security-Status und Remote-Admin-Guardrails laden.", true),
+                    Endpoint("GET", "/api/system/audit-events", "System-Audit-Events fuer kritische Backend-Operationen laden.", true),
                     Endpoint("GET", "/api/system/migration-status", "Schema-Migrationen und offene Migrationen prüfen.", true),
                     Endpoint("POST", "/api/system/upgrade-preflight", "Update-Vorprüfung mit Datenbankstatus, Migrationstatus und validiertem Backup ausführen.", true),
                     Endpoint("POST", "/api/system/backup", "Lokales Backup ohne Secrets erstellen.", true),
@@ -249,12 +261,15 @@ public sealed class SystemApiController : ApiControllerBase
                 })
         };
 
-        return Ok(new ApiManifestDto(
+        var dto = new ApiManifestDto(
             SchemaVersion: "grow-os.api-manifest.v1",
-            BackendSchema: "backend-core.v0.12-candidate",
+            BackendSchema: "backend-core.v0.13-candidate",
             GeneratedAtUtc: DateTime.UtcNow,
             GlobalRules: globalRules,
-            Areas: areas));
+            Areas: areas);
+
+        LogSystemAudit("system", "api-manifest-read", "API-Manifest abgefragt.", true);
+        return Ok(dto);
     }
 
     [HttpGet("security-status")]
@@ -281,7 +296,7 @@ public sealed class SystemApiController : ApiControllerBase
                 ? "remote-admin-key"
                 : "local-only";
 
-        return Ok(new BackendSecurityStatusDto(
+        var dto = new BackendSecurityStatusDto(
             SecuritySchema: "grow-os.security.v1",
             CheckedAtUtc: DateTime.UtcNow,
             AdminAccessMode: mode,
@@ -306,7 +321,23 @@ public sealed class SystemApiController : ApiControllerBase
                 "Backups schliessen ha-config.json, DataProtectionKeys, Uploads und Logs aus.",
                 "Grow-Exports pruefen potenzielle Secrets und tragen IntegrityHash.",
                 "Admin-Key wird nur aus Environment gelesen und nicht in API-Responses ausgegeben."
-            }));
+            });
+
+        LogSystemAudit("security", "security-status-read", "Security-Status abgefragt.", true);
+        return Ok(dto);
+    }
+
+    [HttpGet("audit-events")]
+    [ProducesResponseType(typeof(IReadOnlyList<SystemAuditEventDto>), StatusCodes.Status200OK)]
+    public ActionResult<IReadOnlyList<SystemAuditEventDto>> AuditEvents([FromQuery] int limit = 100, [FromQuery] string? eventType = null)
+    {
+        var events = _auditRepository.GetRecent(limit, eventType).Select(entry => entry.ToDto()).ToList();
+        LogSystemAudit(
+            eventType: "system",
+            action: "audit-events-read",
+            summary: $"System-Audit-Events abgefragt ({events.Count} Eintrag/Eintraege).",
+            success: true);
+        return Ok(events);
     }
 
     [HttpGet("database-status")]
@@ -316,7 +347,7 @@ public sealed class SystemApiController : ApiControllerBase
         var requiredTables = new[]
         {
             "AppSettings", "Tents", "GrowSystems", "Grows", "Measurements", "HardwareItems",
-            "AddbackLogs", "ChangeoutEntries", "JournalEntries", "GrowTasks", "HarvestEntries", "AppliedSchemaMigrations"
+            "AddbackLogs", "ChangeoutEntries", "JournalEntries", "GrowTasks", "HarvestEntries", "AppliedSchemaMigrations", "SystemAuditEvents"
         };
         var requiredColumns = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
@@ -326,7 +357,8 @@ public sealed class SystemApiController : ApiControllerBase
             ["HardwareItems"] = new[] { "Id", "TentId", "HydroSetupId", "Name", "Category", "Status" },
             ["AddbackLogs"] = new[] { "Id", "GrowId", "HydroSetupId", "Kind", "PerformedAtUtc", "ReservoirLiters", "EcBefore", "EcTarget", "LitersAdded", "CreatedAtUtc" },
             ["ChangeoutEntries"] = new[] { "Id", "GrowId", "HydroSetupId", "Kind", "PerformedAtUtc", "VolumeChangedLiters", "Notes", "CreatedAtUtc" },
-            ["AppliedSchemaMigrations"] = new[] { "Id", "Name", "RequiredForSchemaVersion", "AppliedAtUtc" }
+            ["AppliedSchemaMigrations"] = new[] { "Id", "Name", "RequiredForSchemaVersion", "AppliedAtUtc" },
+            ["SystemAuditEvents"] = new[] { "Id", "EventType", "Action", "Summary", "Severity", "Source", "Success", "CreatedAtUtc" }
         };
 
         var presentTables = new List<string>();
@@ -406,7 +438,9 @@ public sealed class SystemApiController : ApiControllerBase
     [ProducesResponseType(typeof(SchemaMigrationStatusDto), StatusCodes.Status200OK)]
     public ActionResult<SchemaMigrationStatusDto> MigrationStatus()
     {
-        return Ok(BuildMigrationStatus());
+        var dto = BuildMigrationStatus();
+        LogSystemAudit("system", "migration-status-read", "Migration-Status abgefragt.", dto.IsCurrent, severity: dto.IsCurrent ? "info" : "warning");
+        return Ok(dto);
     }
 
     [HttpPost("upgrade-preflight")]
@@ -464,6 +498,7 @@ public sealed class SystemApiController : ApiControllerBase
         }
 
         var isSafe = blockers.Count == 0 && backupManifest is not null && backupValidation?.IsValid == true;
+        LogSystemAudit("system", "upgrade-preflight-run", isSafe ? "Upgrade-Preflight erfolgreich ausgefuehrt." : "Upgrade-Preflight mit Blockern ausgefuehrt.", isSafe, relatedFileName: backupManifest?.FileName, severity: isSafe ? "info" : "warning");
         return Ok(new UpgradePreflightDto(
             PreflightSchema: "grow-os.upgrade-preflight.v1",
             CheckedAtUtc: DateTime.UtcNow,
@@ -526,7 +561,7 @@ public sealed class SystemApiController : ApiControllerBase
             warnings.Add("Backup enthält Upload-Dateien.");
         }
 
-        return Ok(new BackupValidationDto(
+        var dto = new BackupValidationDto(
             BackupSchema: "grow-os.backup.v1",
             FileName: fileName,
             CheckedAtUtc: DateTime.UtcNow,
@@ -538,7 +573,10 @@ public sealed class SystemApiController : ApiControllerBase
             ContainsDataProtectionKeys: containsKeys,
             ContainsUploads: containsUploads,
             EntryCount: entries.Count,
-            Warnings: warnings));
+            Warnings: warnings);
+
+        LogSystemAudit("backup", "backup-validated", dto.IsValid ? "Backup erfolgreich validiert." : "Backup-Validierung mit Warnungen/Blockern abgeschlossen.", dto.IsValid, relatedFileName: fileName, severity: dto.IsValid ? "info" : "warning");
+        return Ok(dto);
     }
 
 
@@ -652,7 +690,7 @@ public sealed class SystemApiController : ApiControllerBase
             blockers.Add("Backup-Schema ist nicht mit der aktuellen Backend-Version kompatibel.");
         }
 
-        return Ok(new BackupRestorePlanDto(
+        var dto = new BackupRestorePlanDto(
             RestorePlanSchema: "grow-os.restore-plan.v1",
             FileName: fileName,
             CheckedAtUtc: DateTime.UtcNow,
@@ -669,7 +707,10 @@ public sealed class SystemApiController : ApiControllerBase
             CurrentSchemaVersion: DatabaseInitializer.CurrentSchemaVersion,
             Files: files,
             Blockers: blockers,
-            Warnings: warnings));
+            Warnings: warnings);
+
+        LogSystemAudit("backup", "restore-plan-created", blockers.Count == 0 ? "Restore-Plan erfolgreich erstellt." : "Restore-Plan mit Blockern erstellt.", blockers.Count == 0, relatedFileName: fileName, severity: blockers.Count == 0 ? "info" : "warning");
+        return Ok(dto);
     }
 
     [HttpPost("backup")]
@@ -705,7 +746,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         var info = new FileInfo(backupPath);
         var downloadUrl = $"/api/system/backup/{Uri.EscapeDataString(fileName)}";
-        return Created(downloadUrl, new BackupManifestDto(
+        var manifest = new BackupManifestDto(
             BackupSchema: "grow-os.backup.v1",
             CreatedAtUtc: DateTime.UtcNow,
             FileName: fileName,
@@ -718,7 +759,10 @@ public sealed class SystemApiController : ApiControllerBase
             ExcludesDataProtectionKeys: true,
             ExcludesUploads: true,
             RestoreSupported: false,
-            DownloadUrl: downloadUrl));
+            DownloadUrl: downloadUrl);
+
+        LogSystemAudit("backup", "backup-created", $"Backup {fileName} erstellt.", true, relatedFileName: fileName);
+        return Created(downloadUrl, manifest);
     }
 
     [HttpGet("backup/{fileName}")]
@@ -738,10 +782,33 @@ public sealed class SystemApiController : ApiControllerBase
             return NotFoundError("backup_not_found", "Backup wurde nicht gefunden.");
         }
 
+        LogSystemAudit("backup", "backup-downloaded", $"Backup {fileName} heruntergeladen.", true, relatedFileName: fileName);
         return PhysicalFile(fullPath, "application/zip", fileName);
     }
 
 
+
+    private void LogSystemAudit(string eventType, string action, string summary, bool success, string severity = "info", int? relatedGrowId = null, string? relatedFileName = null)
+    {
+        try
+        {
+            _auditRepository.Add(new SystemAuditEvent
+            {
+                EventType = eventType,
+                Action = action,
+                Summary = summary,
+                Severity = severity,
+                Source = "system-api",
+                RelatedGrowId = relatedGrowId,
+                RelatedFileName = relatedFileName,
+                Success = success
+            });
+        }
+        catch
+        {
+            // Audit logging must never break core system endpoints.
+        }
+    }
 
     private SchemaMigrationStatusDto BuildMigrationStatus()
     {

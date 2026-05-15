@@ -19,6 +19,7 @@ public static class AdminAccessPolicy
         "/api/system/database-status",
         "/api/system/api-manifest",
         "/api/system/security-status",
+        "/api/system/audit-events",
         "/api/system/migration-status",
         "/api/system/upgrade-preflight",
         "/api/exports"

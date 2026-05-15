@@ -24,7 +24,8 @@ public sealed class GrowExportsApiControllerTests : IDisposable
             _repository,
             new JournalRepository(_paths),
             new TaskRepository(_paths),
-            new HarvestRepository(_paths));
+            new HarvestRepository(_paths),
+            new SystemAuditRepository(_paths));
     }
 
     public void Dispose()
@@ -162,6 +163,21 @@ public sealed class GrowExportsApiControllerTests : IDisposable
         Assert.Contains(dto.Blockers, blocker => blocker.Contains("SectionCounts", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.Blockers, blocker => blocker.Contains("IntegrityHash", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(beforeCount, _repository.GetAllGrows().Count);
+    }
+
+    [Fact]
+    public void ExportAndImportPlan_WriteSystemAuditEvents()
+    {
+        var growId = CreateGrowWithOperations();
+        var export = Export(growId);
+        _controller.ValidateExport(export);
+        _controller.CreateImportPlan(export);
+
+        var audit = new SystemAuditRepository(_paths).GetRecent(limit: 20, eventType: "export");
+
+        Assert.Contains(audit, entry => entry.Action == "grow-export-created" && entry.RelatedGrowId == growId && entry.Success);
+        Assert.Contains(audit, entry => entry.Action == "grow-export-validated" && entry.RelatedGrowId == growId && entry.Success);
+        Assert.Contains(audit, entry => entry.Action == "grow-import-plan-created" && entry.RelatedGrowId == growId && entry.Success);
     }
 
     private GrowExportDto Export(int growId)

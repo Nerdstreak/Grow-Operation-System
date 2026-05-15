@@ -4,6 +4,7 @@ using System.Text.Json;
 using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Api.Mapping;
 using GrowDiary.Web.Infrastructure;
+using GrowDiary.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GrowDiary.Web.Api.Controllers;
@@ -24,17 +25,20 @@ public sealed class GrowExportsApiController : ApiControllerBase
     private readonly JournalRepository _journalRepository;
     private readonly TaskRepository _taskRepository;
     private readonly HarvestRepository _harvestRepository;
+    private readonly SystemAuditRepository _auditRepository;
 
     public GrowExportsApiController(
         GrowRepository repository,
         JournalRepository journalRepository,
         TaskRepository taskRepository,
-        HarvestRepository harvestRepository)
+        HarvestRepository harvestRepository,
+        SystemAuditRepository auditRepository)
     {
         _repository = repository;
         _journalRepository = journalRepository;
         _taskRepository = taskRepository;
         _harvestRepository = harvestRepository;
+        _auditRepository = auditRepository;
     }
 
     [HttpPost("validate")]
@@ -47,7 +51,15 @@ public sealed class GrowExportsApiController : ApiControllerBase
             return BadRequest(new ApiError("invalid_export", "Export konnte nicht gelesen werden."));
         }
 
-        return Ok(BuildValidation(export));
+        var validation = BuildValidation(export);
+        LogExportAudit(
+            action: "grow-export-validated",
+            summary: validation.IsValid ? "Grow-Export erfolgreich validiert." : "Grow-Export-Validierung fehlgeschlagen.",
+            success: validation.IsValid,
+            relatedGrowId: export.Grow?.Id,
+            relatedFileName: export.ExportId,
+            severity: validation.IsValid ? "info" : "warning");
+        return Ok(validation);
     }
 
     [HttpPost("import-plan")]
@@ -121,7 +133,7 @@ public sealed class GrowExportsApiController : ApiControllerBase
             plannedItems.Add(new GrowImportPlanItemDto("photos", "metadata-only", export.Photos?.Count ?? 0, "JSON-Export enthaelt nur Foto-Metadaten, keine Bilddateien."));
         }
 
-        return Ok(new GrowImportPlanDto(
+        var plan = new GrowImportPlanDto(
             ImportPlanSchema: "grow-os.grow-import-plan.v1",
             CheckedAtUtc: DateTime.UtcNow,
             ExportValid: validation.IsValid,
@@ -136,7 +148,16 @@ public sealed class GrowExportsApiController : ApiControllerBase
             PlannedItems: plannedItems,
             Conflicts: conflicts,
             Blockers: blockers,
-            Warnings: warnings));
+            Warnings: warnings);
+
+        LogExportAudit(
+            action: "grow-import-plan-created",
+            summary: blockers.Count == 0 ? "Grow-Import-Plan erfolgreich erstellt." : "Grow-Import-Plan mit Blockern erstellt.",
+            success: blockers.Count == 0,
+            relatedGrowId: export.Grow?.Id,
+            relatedFileName: export.ExportId,
+            severity: blockers.Count == 0 ? "info" : "warning");
+        return Ok(plan);
     }
 
     [HttpGet("{id:int}")]
@@ -147,6 +168,7 @@ public sealed class GrowExportsApiController : ApiControllerBase
         var grow = _repository.GetGrow(id);
         if (grow is null)
         {
+            LogExportAudit("grow-export-requested", $"Grow-Export fuer fehlenden Grow #{id} angefordert.", false, relatedGrowId: id, severity: "warning");
             return NotFoundError("grow_not_found", $"Grow mit Id {id} existiert nicht.");
         }
 
@@ -268,7 +290,36 @@ public sealed class GrowExportsApiController : ApiControllerBase
             Photos: photos,
             Warnings: warnings);
 
-        return Ok(export with { IntegrityHash = ComputeIntegrityHash(export) });
+        var finalExport = export with { IntegrityHash = ComputeIntegrityHash(export) };
+        LogExportAudit(
+            action: "grow-export-created",
+            summary: anonymize ? "Anonymisierter Grow-Export erstellt." : "Grow-Export erstellt.",
+            success: true,
+            relatedGrowId: id,
+            relatedFileName: finalExport.ExportId);
+        return Ok(finalExport);
+    }
+
+    private void LogExportAudit(string action, string summary, bool success, int? relatedGrowId = null, string? relatedFileName = null, string severity = "info")
+    {
+        try
+        {
+            _auditRepository.Add(new SystemAuditEvent
+            {
+                EventType = "export",
+                Action = action,
+                Summary = summary,
+                Severity = severity,
+                Source = "grow-export-api",
+                RelatedGrowId = relatedGrowId,
+                RelatedFileName = relatedFileName,
+                Success = success
+            });
+        }
+        catch
+        {
+            // Audit logging must never break export/import-plan endpoints.
+        }
     }
 
     private static GrowExportValidationDto BuildValidation(GrowExportDto export)
