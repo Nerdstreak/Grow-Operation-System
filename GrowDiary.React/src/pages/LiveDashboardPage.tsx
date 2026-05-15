@@ -155,13 +155,15 @@ function LiveDashboardPage() {
             </V1Section>
           )}
 
-          <V1Section title="Zelt">
-            <div className="v1-metric-grid">{mapMetrics(live?.metrics ?? [], tentMetricDefs).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div>
-          </V1Section>
+          <div className="v1-live-metrics-pair">
+            <V1Section title="Zelt">
+              <div className="v1-metric-grid compact">{mapMetrics(live?.metrics ?? [], tentMetricDefs).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div>
+            </V1Section>
 
-          <V1Section title="RDWC/DWC">
-            <div className="v1-metric-grid">{mapMetrics(live?.metrics ?? [], hydroMetricDefs).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div>
-          </V1Section>
+            <V1Section title="RDWC/DWC">
+              <div className="v1-metric-grid compact">{mapMetrics(live?.metrics ?? [], hydroMetricDefs).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div>
+            </V1Section>
+          </div>
 
           <V1Section title="Grows" action={<V1LinkButton to="/grows/new">Starten</V1LinkButton>}>
             {activeGrows.length === 0 ? <V1Empty title="Keine aktiven Grows" /> : (
