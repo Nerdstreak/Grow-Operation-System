@@ -14,6 +14,7 @@ public sealed class SystemApiControllerTests : IDisposable
     private readonly AppPaths _paths;
     private readonly GrowRepository _repository;
     private readonly SystemApiController _controller;
+    private readonly SystemAuditRepository _auditRepository;
 
     public SystemApiControllerTests()
     {
@@ -24,7 +25,8 @@ public sealed class SystemApiControllerTests : IDisposable
         _paths = new AppPaths(_tempRoot);
         TestDatabase.Initialize(_paths);
         _repository = new GrowRepository(_paths);
-        _controller = new SystemApiController(_paths, _repository);
+        _auditRepository = new SystemAuditRepository(_paths);
+        _controller = new SystemApiController(_paths, _repository, _auditRepository);
     }
 
     public void Dispose()
@@ -34,13 +36,13 @@ public sealed class SystemApiControllerTests : IDisposable
     }
 
     [Fact]
-    public void ReleaseReadiness_ReturnsBackendV11CandidateAndRemainingV1Items()
+    public void ReleaseReadiness_ReturnsBackendV13CandidateAndRemainingV1Items()
     {
         var result = _controller.ReleaseReadiness();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<BackendReleaseReadinessDto>(ok.Value);
-        Assert.Equal("backend.v0.12-ready-not-v1.0", dto.Status);
+        Assert.Equal("backend.v0.13-ready-not-v1.0", dto.Status);
         Assert.Contains(dto.CompletedFoundations, value => value == "zero-tent-startup");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-v1");
         Assert.Contains(dto.CompletedFoundations, value => value == "api-contract-manifest");
@@ -52,10 +54,12 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.CompletedFoundations, value => value == "upgrade-preflight-backup");
         Assert.Contains(dto.CompletedFoundations, value => value == "backup-restore-plan");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-import-plan");
+        Assert.Contains(dto.CompletedFoundations, value => value == "system-audit-events");
         Assert.Contains(dto.RemainingBeforeV1, value => value == "destructive-migration-rollback");
         Assert.Contains(dto.Checks, check => check.Key == "security_guardrails" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "restore_plan" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "grow_import_plan" && check.Status == "pass");
+        Assert.Contains(dto.Checks, check => check.Key == "system_audit_events" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "restore_api" && check.Status == "todo");
     }
 
@@ -78,8 +82,31 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.Capabilities, capability => capability == "upgrade-preflight-backup");
         Assert.Contains(dto.Capabilities, capability => capability == "backup-restore-plan");
         Assert.Contains(dto.Capabilities, capability => capability == "grow-import-plan");
+        Assert.Contains(dto.Capabilities, capability => capability == "system-audit-events");
     }
 
+
+    [Fact]
+    public void AuditEvents_ReturnsCriticalSystemEvents()
+    {
+        _auditRepository.Add(new GrowDiary.Web.Models.SystemAuditEvent
+        {
+            EventType = "backup",
+            Action = "backup-created",
+            Summary = "Testbackup erstellt.",
+            Severity = "info",
+            Source = "test",
+            RelatedFileName = "grow-os-backup-test.zip",
+            Success = true
+        });
+
+        var result = _controller.AuditEvents(limit: 10, eventType: "backup");
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var events = Assert.IsAssignableFrom<IReadOnlyList<SystemAuditEventDto>>(ok.Value);
+        Assert.Contains(events, entry => entry.EventType == "backup" && entry.Action == "backup-created");
+        Assert.DoesNotContain(events, entry => entry.Action == "audit-events-read");
+    }
 
     [Fact]
     public void ApiManifest_ListsCoreAreasEndpointsAndRules()
@@ -89,7 +116,7 @@ public sealed class SystemApiControllerTests : IDisposable
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<ApiManifestDto>(ok.Value);
         Assert.Equal("grow-os.api-manifest.v1", dto.SchemaVersion);
-        Assert.Equal("backend-core.v0.12-candidate", dto.BackendSchema);
+        Assert.Equal("backend-core.v0.13-candidate", dto.BackendSchema);
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("HydroSetup", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("Remote-Adminzugriff", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.Areas, area => area.Key == "tents");
@@ -106,6 +133,7 @@ public sealed class SystemApiControllerTests : IDisposable
         var systemArea = Assert.Single(dto.Areas, area => area.Key == "export-backup-system");
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/api-manifest" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/security-status" && endpoint.LocalAdminOnly);
+        Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/audit-events" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/migration-status" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/upgrade-preflight" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/backup/{fileName}/restore-plan" && endpoint.LocalAdminOnly);
@@ -129,6 +157,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0011-upgrade-preflight");
         Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0012-restore-plan");
         Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0013-grow-import-plan");
+        Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0014-system-audit-events");
     }
 
     [Fact]
