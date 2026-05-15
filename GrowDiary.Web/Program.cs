@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Services;
 using GrowDiary.Web.Services.Knowledge;
@@ -84,11 +85,26 @@ if (!app.Environment.IsDevelopment())
 
 app.Use(async (context, next) =>
 {
+    context.Response.Headers.TryAdd("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.TryAdd("X-Frame-Options", "SAMEORIGIN");
+    context.Response.Headers.TryAdd("Referrer-Policy", "no-referrer");
+
+    await next();
+});
+
+app.Use(async (context, next) =>
+{
     if (AdminAccessPolicy.IsProtectedPath(context.Request.Path)
         && !AdminAccessPolicy.CanAccess(context))
     {
         context.Response.StatusCode = StatusCodes.Status403Forbidden;
-        await context.Response.WriteAsync("Admin-Bereich nur lokal erreichbar.");
+        context.Response.ContentType = "application/json; charset=utf-8";
+        await JsonSerializer.SerializeAsync(
+            context.Response.Body,
+            new ApiError(
+                "admin_access_required",
+                "Dieser administrative Bereich ist standardmaessig nur lokal erreichbar. Fuer Remote-Adminzugriff ist ein Admin-Key oder eine bewusst gesetzte Remote-Freigabe erforderlich."),
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
         return;
     }
 

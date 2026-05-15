@@ -34,19 +34,22 @@ public sealed class SystemApiControllerTests : IDisposable
     }
 
     [Fact]
-    public void ReleaseReadiness_ReturnsBackendV08CandidateAndRemainingV1Items()
+    public void ReleaseReadiness_ReturnsBackendV09CandidateAndRemainingV1Items()
     {
         var result = _controller.ReleaseReadiness();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<BackendReleaseReadinessDto>(ok.Value);
-        Assert.Equal("backend.v0.8-ready-not-v1.0", dto.Status);
+        Assert.Equal("backend.v0.9-ready-not-v1.0", dto.Status);
         Assert.Contains(dto.CompletedFoundations, value => value == "zero-tent-startup");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-v1");
         Assert.Contains(dto.CompletedFoundations, value => value == "api-contract-manifest");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-integrity");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-validation");
+        Assert.Contains(dto.CompletedFoundations, value => value == "security-status");
+        Assert.Contains(dto.CompletedFoundations, value => value == "admin-key-remote-guard");
         Assert.Contains(dto.RemainingBeforeV1, value => value == "versioned-database-migrations");
+        Assert.Contains(dto.Checks, check => check.Key == "security_guardrails" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "restore_api" && check.Status == "todo");
     }
 
@@ -63,6 +66,8 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.Capabilities, capability => capability == "api-contract-manifest");
         Assert.Contains(dto.Capabilities, capability => capability == "grow-export-integrity");
         Assert.Contains(dto.Capabilities, capability => capability == "grow-export-validation");
+        Assert.Contains(dto.Capabilities, capability => capability == "security-status");
+        Assert.Contains(dto.Capabilities, capability => capability == "local-only-admin-default");
     }
 
 
@@ -74,8 +79,9 @@ public sealed class SystemApiControllerTests : IDisposable
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<ApiManifestDto>(ok.Value);
         Assert.Equal("grow-os.api-manifest.v1", dto.SchemaVersion);
-        Assert.Equal("backend-core.v0.8-candidate", dto.BackendSchema);
+        Assert.Equal("backend-core.v0.9-candidate", dto.BackendSchema);
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("HydroSetup", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(dto.GlobalRules, rule => rule.Contains("Remote-Adminzugriff", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.Areas, area => area.Key == "tents");
         Assert.Contains(dto.Areas, area => area.Key == "hydro-setups");
         Assert.Contains(dto.Areas, area => area.Key == "grows");
@@ -89,7 +95,33 @@ public sealed class SystemApiControllerTests : IDisposable
 
         var systemArea = Assert.Single(dto.Areas, area => area.Key == "export-backup-system");
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/api-manifest" && endpoint.LocalAdminOnly);
-        Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/exports/grows/validate" && !endpoint.LocalAdminOnly);
+        Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/security-status" && endpoint.LocalAdminOnly);
+        Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/exports/grows/validate" && endpoint.LocalAdminOnly);
+    }
+
+
+    [Fact]
+    public void SecurityStatus_ReturnsLocalOnlyGuardrailStateWithoutSecrets()
+    {
+        Environment.SetEnvironmentVariable(AdminAccessPolicy.AdminKeyEnvironmentVariable, null);
+        Environment.SetEnvironmentVariable(AdminAccessPolicy.AllowRemoteAdminEnvironmentVariable, null);
+
+        var result = _controller.SecurityStatus();
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<BackendSecurityStatusDto>(ok.Value);
+        Assert.Equal("grow-os.security.v1", dto.SecuritySchema);
+        Assert.Equal("local-only", dto.AdminAccessMode);
+        Assert.True(dto.LocalOnlyAdminDefault);
+        Assert.False(dto.RemoteAdminExplicitlyAllowed);
+        Assert.False(dto.AdminKeyConfigured);
+        Assert.True(dto.AdminKeyRequiredForRemoteAdmin);
+        Assert.Equal(AdminAccessPolicy.AdminKeyHeaderName, dto.AdminKeyHeaderName);
+        Assert.Contains(dto.ProtectedRoutePrefixes, prefix => prefix == "/api/exports");
+        Assert.Contains(dto.RemoteAccessWarnings, warning => warning.Contains("Kein Admin-Key", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(dto.RecommendedRemoteAccessModes, mode => mode.Contains("Tailscale", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(dto.SecretHandling, item => item.Contains("Home-Assistant-Token", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(dto.SecretHandling, item => item.Contains("GROWDIARY_ADMIN_KEY=", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
