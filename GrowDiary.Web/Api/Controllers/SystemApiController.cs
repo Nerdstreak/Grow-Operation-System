@@ -63,6 +63,7 @@ public sealed class SystemApiController : ApiControllerBase
                 "schema-migration-status",
                 "upgrade-preflight-backup",
                 "backup-restore-plan",
+                "backup-restore-execute",
                 "grow-import-plan",
                 "system-audit-events",
                 "uniform-api-error-format",
@@ -104,7 +105,7 @@ public sealed class SystemApiController : ApiControllerBase
             new("api_error_format", "pass", "API-Fehler verwenden ein einheitliches ApiError-Format mit Code, Message, FieldErrors, Status, TraceId und SchemaVersion."),
             new("legacy_mvc_containment", "pass", "Alte MVC-Backup-/Export-/Kamera-/Mutationsrouten umgehen die neuen Backup-, Export- und Security-Regeln nicht mehr."),
             new("remote_product_api_guard", "pass", "Produkt-APIs sind bei Remote-Zugriff ebenfalls lokal/admin-geschuetzt; Mobile/PWA muss fuer echten Remote-Betrieb einen sicheren Zugriffskanal nutzen."),
-            new("restore_api", "todo", "Ein destruktiver Restore-Flow ist noch nicht implementiert; Restore-Planung ist nur Read-only."),
+            new("restore_api", "pass", "Backups koennen nach Preflight, Safety-Backup und Integritaetscheck kontrolliert wiederhergestellt werden."),
             new("migration_engine_foundation", "pass", "Migrationen besitzen einen maschinenlesbaren Plan, Backup-Pflicht und Destructive-Guardrails als Fundament."),
             new("grow_snapshots", "pass", "Neue Grows speichern unveränderliche Zelt- und HydroSetup-Snapshots für stabile Vergleiche und Exporte."),
             new("migration_engine", "partial", "Schema-Migrationen werden protokolliert; destructive Rollbacks und echte Restore-/Rollback-Automation fehlen noch."),
@@ -113,7 +114,7 @@ public sealed class SystemApiController : ApiControllerBase
         };
 
         var dto = new BackendReleaseReadinessDto(
-            Status: "backend.v0.18-ready-not-v1.0",
+            Status: "backend.v0.19-ready-not-v1.0",
             BackendSchema: "backend-core.v0.18-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
@@ -140,6 +141,7 @@ public sealed class SystemApiController : ApiControllerBase
                 "schema-migration-status",
                 "upgrade-preflight-backup",
                 "backup-restore-plan",
+                "backup-restore-execute",
                 "grow-import-plan",
                 "system-audit-events",
                 "uniform-api-error-format",
@@ -151,9 +153,7 @@ public sealed class SystemApiController : ApiControllerBase
             },
             RemainingBeforeV1: new[]
             {
-                "destructive-restore-flow",
                 "destructive-migration-rollback",
-                "restore-flow",
                 "destructive-grow-import-execute",
                 "grow-export-import-merge",
                 "user-auth-session-management",
@@ -180,7 +180,7 @@ public sealed class SystemApiController : ApiControllerBase
             "Produkt-APIs sind fuer Remote-Zugriff ebenfalls lokal/admin-geschützt.",
             "Remote-Adminzugriff ist standardmaessig blockiert und erfordert Admin-Key oder bewusste Override-Variable.",
             "Upgrade-Preflight erstellt vor riskanten Updates ein validierbares Backup.",
-            "Restore-Planung ist ein Dry-Run und überschreibt keine Dateien.",
+            "Restore erfordert einen gueltigen Restore-Plan, Schema-Kompatibilitaet, Safety-Backup und Integritaetscheck.",
             "Schema-Migrationen werden in AppliedSchemaMigrations protokolliert.",
             "Migrationen liefern einen Dry-Run-Plan mit Backup-Pflicht und Destructive-Guardrails, bevor riskante Updates umgesetzt werden.",
             "Kritische Backend-Operationen werden im SystemAuditEvents-Log protokolliert.",
@@ -284,7 +284,8 @@ public sealed class SystemApiController : ApiControllerBase
                     Endpoint("POST", "/api/system/backup", "Lokales Backup ohne Secrets erstellen.", true),
                     Endpoint("GET", "/api/system/backup/{fileName}", "Backup herunterladen.", true),
                     Endpoint("GET", "/api/system/backup/{fileName}/validate", "Backup vor Restore validieren.", true),
-                    Endpoint("POST", "/api/system/backup/{fileName}/restore-plan", "Restore-Dry-Run erzeugen, ohne Dateien zu überschreiben.", true, "Prüft Backupvalidität, Schema-Kompatibilität und betroffene Zielpfade.")
+                    Endpoint("POST", "/api/system/backup/{fileName}/restore-plan", "Restore-Dry-Run erzeugen, ohne Dateien zu überschreiben.", true, "Prüft Backupvalidität, Schema-Kompatibilität und betroffene Zielpfade."),
+                    Endpoint("POST", "/api/system/backup/{fileName}/restore", "Backup kontrolliert wiederherstellen.", true, "Erstellt vor dem Restore automatisch ein Safety-Backup.", "Restored nur schema-kompatible, validierte Backups.", "Fuehrt SQLite-Integritaetscheck vor dem Swap aus.")
                 })
         };
 
@@ -675,7 +676,7 @@ public sealed class SystemApiController : ApiControllerBase
         var warnings = new List<string>
         {
             "Restore-Plan ist ein Dry-Run. Es wurden keine Dateien geaendert.",
-            "Automatischer Restore ist noch nicht unterstuetzt; vor einem echten Restore muss die App gestoppt und ein aktuelles Backup erstellt werden."
+            "Echter Restore ist nur ueber den Restore-Endpunkt mit Safety-Backup, Schema-Pruefung und Integritaetscheck erlaubt."
         };
 
         string? backupSchemaVersion = null;
@@ -772,8 +773,8 @@ public sealed class SystemApiController : ApiControllerBase
             ShmIncluded: containsShm,
             KnowledgeIncluded: containsKnowledge,
             SchemaCompatible: schemaCompatible,
-            RestoreSupported: false,
-            RequiresManualStop: true,
+            RestoreSupported: blockers.Count == 0 && backupValid && schemaCompatible,
+            RequiresManualStop: false,
             WouldOverwriteExistingDatabase: System.IO.File.Exists(_paths.DatabasePath),
             BackupSchemaVersion: backupSchemaVersion,
             CurrentSchemaVersion: DatabaseInitializer.CurrentSchemaVersion,
@@ -792,7 +793,7 @@ public sealed class SystemApiController : ApiControllerBase
         var backupRoot = Path.Combine(_paths.ContentRootPath, "App_Data", "backups");
         Directory.CreateDirectory(backupRoot);
 
-        var fileName = $"grow-os-backup-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip";
+        var fileName = CreateUniqueBackupFileName(backupRoot);
         var backupPath = Path.Combine(backupRoot, fileName);
         if (System.IO.File.Exists(backupPath))
         {
@@ -830,12 +831,154 @@ public sealed class SystemApiController : ApiControllerBase
             ExcludesHomeAssistantConfig: true,
             ExcludesDataProtectionKeys: true,
             ExcludesUploads: true,
-            RestoreSupported: false,
+            RestoreSupported: true,
             DownloadUrl: downloadUrl);
 
         LogSystemAudit("backup", "backup-created", $"Backup {fileName} erstellt.", true, relatedFileName: fileName);
         return Created(downloadUrl, manifest);
     }
+
+
+    [HttpPost("backup/{fileName}/restore")]
+    [ProducesResponseType(typeof(BackupRestoreResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status500InternalServerError)]
+    public ActionResult<BackupRestoreResultDto> RestoreBackup(string fileName)
+    {
+        if (!IsSafeBackupFileName(fileName))
+        {
+            return BadRequestError("invalid_backup_file", "Backup-Dateiname ist ungueltig.");
+        }
+
+        var backupPath = ResolveBackupPath(fileName);
+        if (backupPath is null || !System.IO.File.Exists(backupPath))
+        {
+            return NotFoundError("backup_not_found", "Backup wurde nicht gefunden.");
+        }
+
+        BackupRestorePlanDto plan;
+        var planResult = RestorePlan(fileName);
+        if (planResult.Result is OkObjectResult ok && ok.Value is BackupRestorePlanDto dto)
+        {
+            plan = dto;
+        }
+        else
+        {
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                ApiErrorFactory.ServerError("restore_plan_failed", "Restore-Plan konnte vor dem Restore nicht erstellt werden.", HttpContext?.TraceIdentifier));
+        }
+
+        if (plan.Blockers.Count > 0 || !plan.BackupValid || !plan.SchemaCompatible || !plan.RestoreSupported)
+        {
+            LogSystemAudit("backup", "restore-blocked", "Restore wurde durch Preflight-Blocker verhindert.", false, relatedFileName: fileName, severity: "warning");
+            return BadRequestError("restore_blocked", "Restore wurde blockiert: " + string.Join(" ", plan.Blockers.DefaultIfEmpty("Backup ist nicht restore-ready.")));
+        }
+
+        BackupManifestDto safetyBackup;
+        var safetyBackupResult = CreateBackup();
+        if (safetyBackupResult.Result is CreatedResult created && created.Value is BackupManifestDto manifest)
+        {
+            safetyBackup = manifest;
+        }
+        else
+        {
+            LogSystemAudit("backup", "restore-safety-backup-failed", "Restore wurde abgebrochen, weil kein Safety-Backup erstellt werden konnte.", false, relatedFileName: fileName, severity: "error");
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                ApiErrorFactory.ServerError("restore_safety_backup_failed", "Safety-Backup konnte vor dem Restore nicht erstellt werden.", HttpContext?.TraceIdentifier));
+        }
+
+        var restoreId = Guid.NewGuid().ToString("N");
+        var tempRoot = Path.Combine(Path.GetTempPath(), "GrowOSRestore_" + restoreId);
+        var rollbackRoot = Path.Combine(_paths.ContentRootPath, "App_Data", "restore-rollback-" + restoreId);
+        var restoredKnowledgeFiles = new List<string>();
+        var warnings = new List<string>(plan.Warnings);
+
+        try
+        {
+            Directory.CreateDirectory(tempRoot);
+            Directory.CreateDirectory(rollbackRoot);
+            ZipFile.ExtractToDirectory(backupPath, tempRoot);
+
+            var extractedDb = Path.Combine(tempRoot, "App_Data", "grow-diary.db");
+            var extractedWal = extractedDb + "-wal";
+            var extractedShm = extractedDb + "-shm";
+
+            if (!System.IO.File.Exists(extractedDb))
+            {
+                throw new InvalidOperationException("Backup enthaelt keine extrahierbare Hauptdatenbank.");
+            }
+
+            var integrityResult = RunSqliteQuickCheck(extractedDb);
+            if (!string.Equals(integrityResult, "ok", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Backup-Datenbank hat den SQLite-Integritaetscheck nicht bestanden: " + integrityResult);
+            }
+
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+
+            Directory.CreateDirectory(Path.GetDirectoryName(_paths.DatabasePath)!);
+            RestoreFileWithRollback(extractedDb, _paths.DatabasePath, rollbackRoot, "grow-diary.db");
+            RestoreOptionalFileWithRollback(extractedWal, _paths.DatabasePath + "-wal", rollbackRoot, "grow-diary.db-wal");
+            RestoreOptionalFileWithRollback(extractedShm, _paths.DatabasePath + "-shm", rollbackRoot, "grow-diary.db-shm");
+
+            var extractedKnowledgeRoot = Path.Combine(tempRoot, "App_Data", "knowledge");
+            if (Directory.Exists(extractedKnowledgeRoot))
+            {
+                var targetKnowledgeRoot = Path.Combine(_paths.ContentRootPath, "App_Data", "knowledge");
+                RestoreDirectoryWithRollback(extractedKnowledgeRoot, targetKnowledgeRoot, rollbackRoot, "knowledge");
+                restoredKnowledgeFiles.AddRange(
+                    Directory.EnumerateFiles(extractedKnowledgeRoot, "*", SearchOption.AllDirectories)
+                        .Select(file => "App_Data/knowledge/" + Path.GetRelativePath(extractedKnowledgeRoot, file).Replace(Path.DirectorySeparatorChar, '/'))
+                        .OrderBy(value => value, StringComparer.OrdinalIgnoreCase));
+            }
+
+            DeleteDirectoryBestEffort(rollbackRoot);
+
+            var result = new BackupRestoreResultDto(
+                RestoreSchema: "grow-os.backup-restore.v1",
+                FileName: fileName,
+                RestoredAtUtc: DateTime.UtcNow,
+                Success: true,
+                SafetyBackupFileName: safetyBackup.FileName,
+                SafetyBackupDownloadUrl: safetyBackup.DownloadUrl,
+                DatabaseTargetPath: "App_Data/grow-diary.db",
+                DatabaseRestored: true,
+                WalRestored: System.IO.File.Exists(extractedWal),
+                ShmRestored: System.IO.File.Exists(extractedShm),
+                KnowledgeFileCount: restoredKnowledgeFiles.Count,
+                RestoredKnowledgeFiles: restoredKnowledgeFiles,
+                Warnings: warnings.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
+
+            LogSystemAudit("backup", "backup-restored", $"Backup {fileName} wiederhergestellt. Safety-Backup: {safetyBackup.FileName}.", true, relatedFileName: fileName, severity: "warning");
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                RestoreRollbackFiles(rollbackRoot);
+            }
+            catch
+            {
+                // Best-effort rollback only. Safety backup still exists.
+            }
+
+            LogSystemAudit("backup", "restore-failed", "Restore fehlgeschlagen: " + ex.Message, false, relatedFileName: fileName, severity: "error");
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                ApiErrorFactory.ServerError("restore_failed", "Restore ist fehlgeschlagen. Safety-Backup wurde erstellt: " + safetyBackup.FileName + ". Fehler: " + ex.Message, HttpContext?.TraceIdentifier));
+        }
+        finally
+        {
+            DeleteDirectoryBestEffort(tempRoot);
+            DeleteDirectoryBestEffort(rollbackRoot);
+        }
+    }
+
 
     [HttpGet("backup/{fileName}")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
@@ -1183,6 +1326,156 @@ public sealed class SystemApiController : ApiControllerBase
             }
         }
     }
+
+
+    private static string CreateUniqueBackupFileName(string backupRoot)
+    {
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            var suffix = attempt == 0 ? string.Empty : "-" + attempt.ToString("00", System.Globalization.CultureInfo.InvariantCulture);
+            var fileName = $"grow-os-backup-{DateTime.UtcNow:yyyyMMdd-HHmmss-fffffff}{suffix}.zip";
+            if (!System.IO.File.Exists(Path.Combine(backupRoot, fileName)))
+            {
+                return fileName;
+            }
+        }
+
+        return "grow-os-backup-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fffffff", System.Globalization.CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N")[..8] + ".zip";
+    }
+
+    private static string RunSqliteQuickCheck(string databasePath)
+    {
+        var builder = new SqliteConnectionStringBuilder
+        {
+            DataSource = databasePath,
+            Mode = SqliteOpenMode.ReadOnly
+        };
+
+        using var connection = new SqliteConnection(builder.ToString());
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA quick_check;";
+        return command.ExecuteScalar()?.ToString() ?? "quick_check returned no result";
+    }
+
+    private static void RestoreFileWithRollback(string sourcePath, string targetPath, string rollbackRoot, string rollbackName)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+        var rollbackPath = Path.Combine(rollbackRoot, rollbackName);
+        if (System.IO.File.Exists(targetPath))
+        {
+            System.IO.File.Move(targetPath, rollbackPath, overwrite: true);
+        }
+
+        System.IO.File.Copy(sourcePath, targetPath, overwrite: true);
+    }
+
+    private static void RestoreOptionalFileWithRollback(string sourcePath, string targetPath, string rollbackRoot, string rollbackName)
+    {
+        var rollbackPath = Path.Combine(rollbackRoot, rollbackName);
+        if (System.IO.File.Exists(targetPath))
+        {
+            System.IO.File.Move(targetPath, rollbackPath, overwrite: true);
+        }
+
+        if (System.IO.File.Exists(sourcePath))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+            System.IO.File.Copy(sourcePath, targetPath, overwrite: true);
+        }
+    }
+
+    private static void RestoreDirectoryWithRollback(string sourceDirectory, string targetDirectory, string rollbackRoot, string rollbackName)
+    {
+        var rollbackDirectory = Path.Combine(rollbackRoot, rollbackName);
+        if (Directory.Exists(targetDirectory))
+        {
+            Directory.Move(targetDirectory, rollbackDirectory);
+        }
+
+        CopyDirectory(sourceDirectory, targetDirectory);
+    }
+
+    private static void RestoreRollbackFiles(string rollbackRoot)
+    {
+        if (!Directory.Exists(rollbackRoot))
+        {
+            return;
+        }
+
+        var appDataRoot = Directory.GetParent(rollbackRoot)?.FullName;
+        if (string.IsNullOrWhiteSpace(appDataRoot))
+        {
+            return;
+        }
+
+        var databasePath = Path.Combine(appDataRoot, "grow-diary.db");
+        var rollbackDb = Path.Combine(rollbackRoot, "grow-diary.db");
+        var rollbackWal = Path.Combine(rollbackRoot, "grow-diary.db-wal");
+        var rollbackShm = Path.Combine(rollbackRoot, "grow-diary.db-shm");
+        var rollbackKnowledge = Path.Combine(rollbackRoot, "knowledge");
+        var knowledgePath = Path.Combine(appDataRoot, "knowledge");
+
+        RestoreRollbackFile(rollbackDb, databasePath);
+        RestoreRollbackFile(rollbackWal, databasePath + "-wal");
+        RestoreRollbackFile(rollbackShm, databasePath + "-shm");
+
+        if (Directory.Exists(rollbackKnowledge))
+        {
+            DeleteDirectoryBestEffort(knowledgePath);
+            Directory.Move(rollbackKnowledge, knowledgePath);
+        }
+    }
+
+    private static void RestoreRollbackFile(string rollbackPath, string targetPath)
+    {
+        if (!System.IO.File.Exists(rollbackPath))
+        {
+            return;
+        }
+
+        if (System.IO.File.Exists(targetPath))
+        {
+            System.IO.File.Delete(targetPath);
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+        System.IO.File.Move(rollbackPath, targetPath);
+    }
+
+    private static void CopyDirectory(string sourceDirectory, string targetDirectory)
+    {
+        Directory.CreateDirectory(targetDirectory);
+        foreach (var directory in Directory.EnumerateDirectories(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(sourceDirectory, directory);
+            Directory.CreateDirectory(Path.Combine(targetDirectory, relative));
+        }
+
+        foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(sourceDirectory, file);
+            var target = Path.Combine(targetDirectory, relative);
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            System.IO.File.Copy(file, target, overwrite: true);
+        }
+    }
+
+    private static void DeleteDirectoryBestEffort(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, recursive: true);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup only.
+        }
+    }
+
 
     private static void AddIfExists(ZipArchive archive, string sourcePath, string entryName)
     {

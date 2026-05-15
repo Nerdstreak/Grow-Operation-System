@@ -36,13 +36,13 @@ public sealed class SystemApiControllerTests : IDisposable
     }
 
     [Fact]
-    public void ReleaseReadiness_ReturnsBackendV18CandidateAndRemainingV1Items()
+    public void ReleaseReadiness_ReturnsBackendV19CandidateAndRemainingV1Items()
     {
         var result = _controller.ReleaseReadiness();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<BackendReleaseReadinessDto>(ok.Value);
-        Assert.Equal("backend.v0.18-ready-not-v1.0", dto.Status);
+        Assert.Equal("backend.v0.19-ready-not-v1.0", dto.Status);
         Assert.Contains(dto.CompletedFoundations, value => value == "zero-tent-startup");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-v1");
         Assert.Contains(dto.CompletedFoundations, value => value == "api-contract-manifest");
@@ -68,7 +68,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.Checks, check => check.Key == "api_error_format" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "remote_product_api_guard" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "migration_engine_foundation" && check.Status == "pass");
-        Assert.Contains(dto.Checks, check => check.Key == "restore_api" && check.Status == "todo");
+        Assert.Contains(dto.Checks, check => check.Key == "restore_api" && check.Status == "pass");
     }
 
     [Fact]
@@ -89,6 +89,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.Capabilities, capability => capability == "schema-migration-status");
         Assert.Contains(dto.Capabilities, capability => capability == "upgrade-preflight-backup");
         Assert.Contains(dto.Capabilities, capability => capability == "backup-restore-plan");
+        Assert.Contains(dto.Capabilities, capability => capability == "backup-restore-execute");
         Assert.Contains(dto.Capabilities, capability => capability == "grow-import-plan");
         Assert.Contains(dto.Capabilities, capability => capability == "system-audit-events");
         Assert.Contains(dto.Capabilities, capability => capability == "uniform-api-error-format");
@@ -152,6 +153,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/migration-plan" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/upgrade-preflight" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/backup/{fileName}/restore-plan" && endpoint.LocalAdminOnly);
+        Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/backup/{fileName}/restore" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/exports/grows/validate" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/exports/grows/import-plan" && endpoint.LocalAdminOnly);
     }
@@ -280,7 +282,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.True(manifest.ExcludesHomeAssistantConfig);
         Assert.True(manifest.ExcludesDataProtectionKeys);
         Assert.True(manifest.ExcludesUploads);
-        Assert.False(manifest.RestoreSupported);
+        Assert.True(manifest.RestoreSupported);
         Assert.StartsWith("/api/system/backup/", manifest.DownloadUrl);
 
         var backupPath = Path.Combine(_tempRoot, "App_Data", "backups", manifest.FileName);
@@ -372,8 +374,8 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.True(dto.BackupValid);
         Assert.True(dto.DatabaseIncluded);
         Assert.True(dto.SchemaCompatible);
-        Assert.False(dto.RestoreSupported);
-        Assert.True(dto.RequiresManualStop);
+        Assert.True(dto.RestoreSupported);
+        Assert.False(dto.RequiresManualStop);
         Assert.True(dto.WouldOverwriteExistingDatabase);
         Assert.Equal(DatabaseInitializer.CurrentSchemaVersion, dto.BackupSchemaVersion);
         Assert.Equal(DatabaseInitializer.CurrentSchemaVersion, dto.CurrentSchemaVersion);
@@ -407,6 +409,57 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Equal("backend-core.v0.0-old", dto.BackupSchemaVersion);
         Assert.Contains(dto.Blockers, blocker => blocker.Contains("Schema", StringComparison.OrdinalIgnoreCase));
     }
+
+
+    [Fact]
+    public void RestoreBackup_RestoresDatabaseAndCreatesSafetyBackup()
+    {
+        var created = Assert.IsType<BackupManifestDto>(Assert.IsType<CreatedResult>(_controller.CreateBackup().Result).Value);
+        _repository.CreateTent("Tent after backup");
+        Assert.NotEmpty(_repository.GetTents(includeArchived: true));
+
+        var result = _controller.RestoreBackup(created.FileName);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<BackupRestoreResultDto>(ok.Value);
+        Assert.Equal("grow-os.backup-restore.v1", dto.RestoreSchema);
+        Assert.True(dto.Success);
+        Assert.Equal(created.FileName, dto.FileName);
+        Assert.NotEqual(created.FileName, dto.SafetyBackupFileName);
+        Assert.True(dto.DatabaseRestored);
+        Assert.True(File.Exists(Path.Combine(_tempRoot, "App_Data", "backups", dto.SafetyBackupFileName)));
+        Assert.Empty(_repository.GetTents(includeArchived: true));
+
+        var events = _auditRepository.GetRecent(limit: 20, eventType: "backup");
+        Assert.Contains(events, entry => entry.Action == "backup-restored" && entry.Success);
+    }
+
+    [Fact]
+    public void RestoreBackup_BlocksSchemaMismatchAndDoesNotChangeDatabase()
+    {
+        var created = Assert.IsType<BackupManifestDto>(Assert.IsType<CreatedResult>(_controller.CreateBackup().Result).Value);
+        var backupPath = Path.Combine(_tempRoot, "App_Data", "backups", created.FileName);
+        RewriteBackupSchemaVersion(backupPath, "backend-core.v0.0-old");
+        _repository.CreateTent("Tent that must survive blocked restore");
+
+        var result = _controller.RestoreBackup(created.FileName);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var error = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Equal("restore_blocked", error.Code);
+        Assert.Contains(_repository.GetTents(includeArchived: true), tent => tent.Name == "Tent that must survive blocked restore");
+    }
+
+    [Fact]
+    public void RestoreBackup_RejectsUnsafeFileNames()
+    {
+        var result = _controller.RestoreBackup("../grow-os-backup-20260101-120000.zip");
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var error = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Equal("invalid_backup_file", error.Code);
+    }
+
 
     private static void RewriteBackupSchemaVersion(string backupPath, string schemaVersion)
     {

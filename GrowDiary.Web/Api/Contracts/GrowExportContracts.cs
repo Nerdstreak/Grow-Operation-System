@@ -170,6 +170,21 @@ public sealed record BackupRestorePlanFileDto(
     long SizeBytes,
     bool WouldOverwrite);
 
+public sealed record BackupRestoreResultDto(
+    string RestoreSchema,
+    string FileName,
+    DateTime RestoredAtUtc,
+    bool Success,
+    string SafetyBackupFileName,
+    string SafetyBackupDownloadUrl,
+    string DatabaseTargetPath,
+    bool DatabaseRestored,
+    bool WalRestored,
+    bool ShmRestored,
+    int KnowledgeFileCount,
+    IReadOnlyList<string> RestoredKnowledgeFiles,
+    IReadOnlyList<string> Warnings);
+
 public sealed record SchemaMigrationStatusDto(
     string MigrationSchema,
     string CurrentSchemaVersion,
