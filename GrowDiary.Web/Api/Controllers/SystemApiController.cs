@@ -65,6 +65,7 @@ public sealed class SystemApiController : ApiControllerBase
                 "backup-restore-plan",
                 "backup-restore-execute",
                 "grow-import-plan",
+                "grow-import-execute",
                 "system-audit-events",
                 "uniform-api-error-format",
                 "legacy-mvc-endpoint-containment",
@@ -110,11 +111,11 @@ public sealed class SystemApiController : ApiControllerBase
             new("grow_snapshots", "pass", "Neue Grows speichern unveränderliche Zelt- und HydroSetup-Snapshots für stabile Vergleiche und Exporte."),
             new("migration_engine", "partial", "Schema-Migrationen werden protokolliert; destructive Rollbacks und echte Restore-/Rollback-Automation fehlen noch."),
             new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
-            new("import_merge", "todo", "Import und Merge von Grow-Exports sind noch nicht implementiert.")
+            new("grow_import_execute", "pass", "Grow-Exports koennen kontrolliert als neue lokale Vergleichs-Grows importiert werden, ohne bestehende Grows, Zelte oder HydroSetups zu ueberschreiben.")
         };
 
         var dto = new BackendReleaseReadinessDto(
-            Status: "backend.v0.19-ready-not-v1.0",
+            Status: "backend.v0.20-ready-not-v1.0",
             BackendSchema: "backend-core.v0.18-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
@@ -143,6 +144,7 @@ public sealed class SystemApiController : ApiControllerBase
                 "backup-restore-plan",
                 "backup-restore-execute",
                 "grow-import-plan",
+                "grow-import-execute",
                 "system-audit-events",
                 "uniform-api-error-format",
                 "legacy-mvc-endpoint-containment",
@@ -154,8 +156,6 @@ public sealed class SystemApiController : ApiControllerBase
             RemainingBeforeV1: new[]
             {
                 "destructive-migration-rollback",
-                "destructive-grow-import-execute",
-                "grow-export-import-merge",
                 "user-auth-session-management",
                 "release-upgrade-test-with-existing-app-data"
             });
@@ -176,6 +176,7 @@ public sealed class SystemApiController : ApiControllerBase
             "Secrets wie Home-Assistant-Tokens dürfen nicht in API-Responses, Exports oder Backups erscheinen.",
             "Grow-Exports müssen SectionCounts und IntegrityHash tragen, bevor sie importiert werden dürfen.",
             "Import-Planung ist ein Dry-Run und schreibt keine Daten in die Datenbank.",
+            "Echter Grow-Import legt neue lokale Vergleichs-Grows an und ueberschreibt keine bestehenden Grows, Zelte oder HydroSetups.",
             "Administrative System-, Settings- und Export-Endpunkte sind lokal/admin-geschützt.",
             "Produkt-APIs sind fuer Remote-Zugriff ebenfalls lokal/admin-geschützt.",
             "Remote-Adminzugriff ist standardmaessig blockiert und erfordert Admin-Key oder bewusste Override-Variable.",
@@ -266,6 +267,7 @@ public sealed class SystemApiController : ApiControllerBase
                     Endpoint("GET", "/api/exports/grows/{id}", "Grow exportieren.", true, "anonymize=true entfernt/neutralisiert nutzerbezogene Angaben.", "Export enthält ExportId, SectionCounts und IntegrityHash."),
                     Endpoint("POST", "/api/exports/grows/validate", "Grow-Export validieren, ohne Daten zu importieren.", true, "Prüft SchemaVersion, SectionCounts, IntegrityHash und potenzielle Secrets."),
                     Endpoint("POST", "/api/exports/grows/import-plan", "Grow-Export als Import-Dry-Run analysieren, ohne Daten zu schreiben.", true, "Plant neue lokale IDs, Snapshot-Behandlung und Konflikte."),
+                    Endpoint("POST", "/api/exports/grows/import", "Grow-Export kontrolliert als neuen lokalen Vergleichs-Grow importieren.", true, "Erstellt vor dem Import automatisch ein Safety-Backup.", "Importiert als neue lokale Grow-Id und ueberschreibt keine bestehenden Grows."),
                     Endpoint("GET", "/grows/{id}/export", "Legacy-Export-Route; leitet auf /api/exports/grows/{id} um und liefert keine alten Rohdaten mehr.", false),
                     Endpoint("GET", "/settings/backup", "Legacy-Backup-Route; direkter SQLite-Download ist deaktiviert.", true),
                     Endpoint("GET", "/tents/{id}/camera.jpg", "Legacy-Kamera-Snapshot; lokal/admin-geschützt.", true),

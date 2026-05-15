@@ -8,6 +8,7 @@ namespace GrowDiary.Web.Tests.Api;
 
 public sealed class GrowExportsApiControllerTests : IDisposable
 {
+    private readonly string _tempRoot;
     private readonly string _dbPath;
     private readonly AppPaths _paths;
     private readonly GrowRepository _repository;
@@ -15,12 +16,15 @@ public sealed class GrowExportsApiControllerTests : IDisposable
 
     public GrowExportsApiControllerTests()
     {
-        _dbPath = Path.Combine(Path.GetTempPath(), $"grow-export-test-{Guid.NewGuid():N}.db");
+        _tempRoot = Path.Combine(Path.GetTempPath(), "GrowExportApiTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_tempRoot);
+        _dbPath = Path.Combine(_tempRoot, "App_Data", "grow-diary.db");
         Environment.SetEnvironmentVariable("GROWDIARY_DB_PATH", _dbPath);
-        _paths = new AppPaths(AppContext.BaseDirectory);
+        _paths = new AppPaths(_tempRoot);
         TestDatabase.InitializeWithDefaultTent(_paths);
         _repository = new GrowRepository(_paths);
         _controller = new GrowExportsApiController(
+            _paths,
             _repository,
             new JournalRepository(_paths),
             new TaskRepository(_paths),
@@ -34,6 +38,7 @@ public sealed class GrowExportsApiControllerTests : IDisposable
         try { File.Delete(_dbPath); } catch { }
         try { File.Delete(_dbPath + "-shm"); } catch { }
         try { File.Delete(_dbPath + "-wal"); } catch { }
+        try { if (Directory.Exists(_tempRoot)) Directory.Delete(_tempRoot, recursive: true); } catch { }
     }
 
     [Fact]
@@ -149,7 +154,7 @@ public sealed class GrowExportsApiControllerTests : IDisposable
         var dto = Assert.IsType<GrowImportPlanDto>(ok.Value);
         Assert.Equal("grow-os.grow-import-plan.v1", dto.ImportPlanSchema);
         Assert.True(dto.ExportValid);
-        Assert.False(dto.ImportSupported);
+        Assert.True(dto.ImportSupported);
         Assert.False(dto.WouldModifyDatabase);
         Assert.Equal(export.ExportId, dto.ExportId);
         Assert.Equal(export.SectionCounts, dto.SectionCounts);
@@ -182,6 +187,58 @@ public sealed class GrowExportsApiControllerTests : IDisposable
         Assert.Empty(dto.PlannedItems);
         Assert.Contains(dto.Blockers, blocker => blocker.Contains("SectionCounts", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.Blockers, blocker => blocker.Contains("IntegrityHash", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(beforeCount, _repository.GetAllGrows().Count);
+    }
+
+    [Fact]
+    public void ImportGrow_ForValidExportCreatesNewLocalGrowWithMappedDataAndSafetyBackup()
+    {
+        var growId = CreateGrowWithOperations();
+        var export = Export(growId);
+        var beforeCount = _repository.GetAllGrows().Count;
+
+        var result = _controller.ImportGrow(export);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<GrowImportResultDto>(ok.Value);
+        Assert.True(dto.Success);
+        Assert.Equal(export.ExportId, dto.ExportId);
+        Assert.True(dto.ImportedGrowId > 0);
+        Assert.NotEqual(growId, dto.ImportedGrowId);
+        Assert.Equal(1, dto.ImportedMeasurements);
+        Assert.Equal(1, dto.ImportedAddbackLogs);
+        Assert.Equal(1, dto.ImportedChangeouts);
+        Assert.False(string.IsNullOrWhiteSpace(dto.SafetyBackupFileName));
+        Assert.True(File.Exists(Path.Combine(_tempRoot, "App_Data", "backups", dto.SafetyBackupFileName)));
+        Assert.Equal(beforeCount + 1, _repository.GetAllGrows().Count);
+
+        var imported = _repository.GetGrow(dto.ImportedGrowId)!;
+        Assert.EndsWith("(Import)", imported.Name);
+        Assert.Null(imported.TentId);
+        Assert.Null(imported.SystemId);
+        Assert.False(string.IsNullOrWhiteSpace(imported.TentSnapshotJson));
+        Assert.False(string.IsNullOrWhiteSpace(imported.HydroSetupSnapshotJson));
+        Assert.Single(_repository.GetMeasurementsForGrow(dto.ImportedGrowId));
+        Assert.Single(_repository.GetAddbackLogsForGrow(dto.ImportedGrowId));
+        Assert.Single(_repository.GetChangeoutsForGrow(dto.ImportedGrowId));
+    }
+
+    [Fact]
+    public void ImportGrow_ForInvalidExportIsBlockedAndDoesNotWriteData()
+    {
+        var growId = CreateGrowWithOperations();
+        var export = Export(growId);
+        var tampered = export with
+        {
+            SectionCounts = export.SectionCounts with { Measurements = export.SectionCounts.Measurements + 1 }
+        };
+
+        var beforeCount = _repository.GetAllGrows().Count;
+        var result = _controller.ImportGrow(tampered);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var error = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Equal("import_blocked", error.Code);
         Assert.Equal(beforeCount, _repository.GetAllGrows().Count);
     }
 

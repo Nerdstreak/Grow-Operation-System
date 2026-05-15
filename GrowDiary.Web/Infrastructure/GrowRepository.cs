@@ -3631,9 +3631,10 @@ public sealed class GrowRepository
     private void CaptureGrowSnapshots(GrowRun grow)
     {
         var capturedAtUtc = DateTime.UtcNow;
-        var capturedAny = false;
+        var capturedAny = !string.IsNullOrWhiteSpace(grow.TentSnapshotJson)
+                          || !string.IsNullOrWhiteSpace(grow.HydroSetupSnapshotJson);
 
-        if (grow.TentId.HasValue)
+        if (grow.TentId.HasValue && string.IsNullOrWhiteSpace(grow.TentSnapshotJson))
         {
             var tent = GetTent(grow.TentId.Value);
             if (tent is not null)
@@ -3643,7 +3644,7 @@ public sealed class GrowRepository
             }
         }
 
-        if (grow.SystemId.HasValue)
+        if (grow.SystemId.HasValue && string.IsNullOrWhiteSpace(grow.HydroSetupSnapshotJson))
         {
             var hydroSetup = GetHydroSetup(grow.SystemId.Value);
             if (hydroSetup is not null)
@@ -3653,7 +3654,9 @@ public sealed class GrowRepository
             }
         }
 
-        grow.SnapshotsCapturedAtUtc = capturedAny ? capturedAtUtc : null;
+        grow.SnapshotsCapturedAtUtc = capturedAny
+            ? grow.SnapshotsCapturedAtUtc ?? capturedAtUtc
+            : null;
     }
 
     private static GrowTentSnapshot ToGrowTentSnapshot(Tent tent)

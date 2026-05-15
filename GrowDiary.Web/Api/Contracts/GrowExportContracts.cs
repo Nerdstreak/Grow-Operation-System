@@ -79,6 +79,25 @@ public sealed record GrowImportPlanConflictDto(
     string Severity,
     string Message);
 
+public sealed record GrowImportResultDto(
+    string ImportSchema,
+    DateTime ImportedAtUtc,
+    bool Success,
+    string ExportId,
+    int ImportedGrowId,
+    string ImportedGrowName,
+    string SafetyBackupFileName,
+    string SafetyBackupDownloadUrl,
+    int ImportedMeasurements,
+    int ImportedJournalEntries,
+    int ImportedTasks,
+    int ImportedAddbackLogs,
+    int ImportedChangeouts,
+    int ImportedHarvestEntries,
+    int SkippedHardwareItems,
+    int SkippedPhotos,
+    IReadOnlyList<string> Warnings);
+
 public sealed record BackendHealthDto(
     string AppName,
     string BackendSchema,
