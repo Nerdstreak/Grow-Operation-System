@@ -1,71 +1,58 @@
-import type { FormEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { AddbackDefaultsDto, AddbackResultDto } from '../types'
+import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Stat, V1Wizard, draftNumber, toNullableFloat } from '../components/v1'
 import { formatNumber } from '../utils'
 
-interface AddbackFormState {
-  reservoirLiters: string
-  ecIst: string
-  ecZiel: string
-  ecStock: string
-}
+type AddbackForm = { reservoirLiters: string; ecIst: string; ecZiel: string; ecStock: string; phBefore: string; ecAfter: string; phAfter: string; notes: string }
+type AddbackLogDto = { id: number }
+
+const steps = ['Istwerte', 'Ziel', 'Dosierung', 'Nachmessung']
 
 function AddbackPage() {
   const { growId } = useParams()
   const [defaults, setDefaults] = useState<AddbackDefaultsDto | null>(null)
-  const [form, setForm] = useState<AddbackFormState>({ reservoirLiters: '', ecIst: '', ecZiel: '', ecStock: '3' })
+  const [form, setForm] = useState<AddbackForm>({ reservoirLiters: '', ecIst: '', ecZiel: '', ecStock: '3', phBefore: '', ecAfter: '', phAfter: '', notes: '' })
   const [result, setResult] = useState<AddbackResultDto | null>(null)
+  const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!growId) return
     const controller = new AbortController()
-
     async function load() {
       setLoading(true)
+      setError(null)
       try {
-        const nextDefaults = await apiFetch<AddbackDefaultsDto>(`/api/grows/${growId}/addback`, { signal: controller.signal })
-        setDefaults(nextDefaults)
-        setForm({
-          reservoirLiters: formatDraftNumber(nextDefaults.reservoirLiters),
-          ecIst: formatDraftNumber(nextDefaults.ecIst),
-          ecZiel: formatDraftNumber(nextDefaults.ecZiel),
-          ecStock: formatDraftNumber(nextDefaults.ecStock),
-        })
-        setError(null)
+        const data = await apiFetch<AddbackDefaultsDto>(`/api/grows/${growId}/addback`, { signal: controller.signal })
+        setDefaults(data)
+        setForm((current) => ({ ...current, reservoirLiters: draftNumber(data.reservoirLiters), ecIst: draftNumber(data.ecIst), ecZiel: draftNumber(data.ecZiel), ecStock: draftNumber(data.ecStock || 3) }))
       } catch (caught) {
-        if (controller.signal.aborted) return
-        setError(caught instanceof ApiRequestError ? caught.message : 'Addback-Daten konnten nicht geladen werden.')
+        if (!controller.signal.aborted) setError(caught instanceof ApiRequestError ? caught.message : 'Addback-Daten konnten nicht geladen werden.')
       } finally {
         if (!controller.signal.aborted) setLoading(false)
       }
     }
-
     void load()
     return () => controller.abort()
   }, [growId])
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!growId) return
+  const liters = result?.litersToAdd ?? null
+  const reservoir = toNullableFloat(form.reservoirLiters)
 
+  async function calculate() {
+    if (!growId) return
     setSaving(true)
+    setError(null)
+    setMessage(null)
     try {
-      const nextResult = await apiFetch<AddbackResultDto>(`/api/grows/${growId}/addback/calculate`, {
-        method: 'POST',
-        body: JSON.stringify({
-          reservoirLiters: parseNullableNumber(form.reservoirLiters),
-          ecIst: parseNullableNumber(form.ecIst),
-          ecZiel: parseNullableNumber(form.ecZiel),
-          ecStock: parseNullableNumber(form.ecStock),
-        }),
-      })
-      setResult(nextResult)
-      setError(null)
+      const data = await apiFetch<AddbackResultDto>(`/api/grows/${growId}/addback/calculate`, { method: 'POST', body: JSON.stringify({ reservoirLiters: reservoir, ecIst: toNullableFloat(form.ecIst), ecZiel: toNullableFloat(form.ecZiel), ecStock: toNullableFloat(form.ecStock) }) })
+      setResult(data)
+      setStep(3)
     } catch (caught) {
       setError(caught instanceof ApiRequestError ? caught.message : 'Addback konnte nicht berechnet werden.')
     } finally {
@@ -73,105 +60,43 @@ function AddbackPage() {
     }
   }
 
+  async function saveLog() {
+    if (!growId || !result) return
+    setSaving(true)
+    setError(null)
+    setMessage(null)
+    try {
+      await apiFetch<AddbackLogDto>(`/api/grows/${growId}/addback/logs`, { method: 'POST', body: JSON.stringify({ reservoirLiters: reservoir, ecBefore: toNullableFloat(form.ecIst), ecTarget: toNullableFloat(form.ecZiel), ecStock: toNullableFloat(form.ecStock), ecAfter: toNullableFloat(form.ecAfter), phBefore: toNullableFloat(form.phBefore), phAfter: toNullableFloat(form.phAfter), litersAdded: result.litersToAdd, newReservoirVolumeLiters: result.newReservoirVolume, notes: form.notes || null }) })
+      setMessage('Addback gespeichert.')
+    } catch (caught) {
+      setError(caught instanceof ApiRequestError ? caught.message : 'Addback konnte nicht gespeichert werden.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const canCalculate = useMemo(() => Boolean(form.ecIst && form.ecZiel && form.ecStock), [form.ecIst, form.ecStock, form.ecZiel])
+
   return (
-    <>
-      <div className="topbar">
-        <div className="topbar-left">
-          <Link className="btn" to={growId ? `/grows/${growId}` : '/'}>← Zurück</Link>
-          <span className="topbar-title">{defaults?.growName ?? 'Addback'}</span>
-        </div>
-      </div>
-
-      <div className="page-scroll">
-        {error && (
-          <div className="alert-bar" style={{ marginBottom: 14, borderRadius: 'var(--radius)' }}>
-            <div className="alert-dot" />
-            <strong>Fehler</strong>
-            <span>{error}</span>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="empty-hint">Lade Addback-Rechner...</div>
-        ) : (
-          <>
-            <div className="card" style={{ marginBottom: 18 }}>
-              <div className="card-header">
-                <span className="card-title">Addback-Rechner</span>
-              </div>
-              <form onSubmit={handleSubmit} style={{ padding: '18px 20px', display: 'grid', gap: 16 }}>
-                <div className="meas-fields">
-                  <NumericField label="Reservoir" unit="L" value={form.reservoirLiters} onChange={(value) => setForm((current) => ({ ...current, reservoirLiters: value }))} hint={defaults?.suggestedReservoirLiters == null ? null : `Vorschlag: ${formatNumber(defaults.suggestedReservoirLiters, 1)} L`} />
-                  <NumericField label="EC aktuell" unit="mS/cm" value={form.ecIst} onChange={(value) => setForm((current) => ({ ...current, ecIst: value }))} hint={defaults?.suggestedEcIst == null ? null : `Letzte Messung: ${formatNumber(defaults.suggestedEcIst, 2)}`} />
-                  <NumericField label="Ziel-EC" unit="mS/cm" value={form.ecZiel} onChange={(value) => setForm((current) => ({ ...current, ecZiel: value }))} hint={defaults?.suggestedEcZiel == null ? null : `Sollwert: ${formatNumber(defaults.suggestedEcZiel, 2)}`} />
-                  <NumericField label="Addback-EC" unit="mS/cm" value={form.ecStock} onChange={(value) => setForm((current) => ({ ...current, ecStock: value }))} hint="Vorgemischte Stammlösung" />
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button className="btn btn-primary" disabled={saving}>{saving ? 'Berechnet…' : 'Berechnen'}</button>
-                  <button type="button" className="btn" onClick={() => setResult(null)}>Ergebnis löschen</button>
-                </div>
-              </form>
-            </div>
-
-            {result && (
-              <div className="card">
-                <div className="card-header">
-                  <span className="card-title">Ergebnis</span>
-                </div>
-                <div style={{ padding: '20px 22px', display: 'grid', gap: 10 }}>
-                  {result.errorMessage ? (
-                    <div style={{ color: 'var(--red)', fontWeight: 600 }}>{result.errorMessage}</div>
-                  ) : !result.needsAddback ? (
-                    <>
-                      <div style={{ fontSize: 18, fontWeight: 600 }}>Kein Addback nötig</div>
-                      <div className="text-muted">EC liegt bereits im Zielbereich oder darüber.</div>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ fontSize: 34, fontFamily: 'var(--mono)', letterSpacing: '-0.04em' }}>{formatNumber(result.litersToAdd, 2)} L</div>
-                      <div style={{ fontWeight: 600 }}>Addback hinzufügen</div>
-                      <div className="text-muted">Reservoir danach: {formatNumber(result.newReservoirVolume, 1)} L</div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </>
+    <V1Page eyebrow="Addback" title={defaults?.growName ?? 'Addback'} action={<Link to="/addback" className="v1-button is-ghost">Zurück</Link>}>
+      {error && <V1Alert message={error} tone="warn" />}
+      {message && <V1Alert message={message} tone="ok" />}
+      {loading ? <V1Empty title="Lade Rechner..." /> : (
+        <>
+          <V1Wizard steps={steps} currentStep={step} onStep={setStep} />
+          <section className="v1-addback-grid">
+            <V1Section title={steps[step - 1]}>
+              {(step === 1 || step === 2) && <div className="v1-form-grid"><V1Field label="Reservoir"><input inputMode="decimal" value={form.reservoirLiters} onChange={(event) => setForm((current) => ({ ...current, reservoirLiters: event.target.value }))} /></V1Field><V1Field label="EC aktuell"><input inputMode="decimal" value={form.ecIst} onChange={(event) => setForm((current) => ({ ...current, ecIst: event.target.value }))} /></V1Field><V1Field label="Ziel-EC"><input inputMode="decimal" value={form.ecZiel} onChange={(event) => setForm((current) => ({ ...current, ecZiel: event.target.value }))} /></V1Field><V1Field label="Stammlösung EC"><input inputMode="decimal" value={form.ecStock} onChange={(event) => setForm((current) => ({ ...current, ecStock: event.target.value }))} /></V1Field><V1Field label="pH vorher"><input inputMode="decimal" value={form.phBefore} onChange={(event) => setForm((current) => ({ ...current, phBefore: event.target.value }))} /></V1Field></div>}
+              {step === 3 && <V1Card className="v1-addback-result"><span className="v1-card-kicker">Dosierung</span>{result?.errorMessage ? <strong>{result.errorMessage}</strong> : !result?.needsAddback ? <strong>Kein Addback nötig</strong> : <><h2>{formatNumber(liters, 2)} L</h2><p>Reservoir danach: {formatNumber(result?.newReservoirVolume, 1)} L</p></>}<V1Button variant="primary" disabled={!canCalculate || saving} onClick={() => void calculate()}>{saving ? 'Berechnet...' : 'Neu berechnen'}</V1Button></V1Card>}
+              {step === 4 && <div className="v1-form-grid"><V1Field label="EC nachher"><input inputMode="decimal" value={form.ecAfter} onChange={(event) => setForm((current) => ({ ...current, ecAfter: event.target.value }))} /></V1Field><V1Field label="pH nachher"><input inputMode="decimal" value={form.phAfter} onChange={(event) => setForm((current) => ({ ...current, phAfter: event.target.value }))} /></V1Field><V1Field label="Notizen" wide><textarea rows={4} value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} /></V1Field></div>}
+              <div className="v1-form-actions">{step > 1 && <V1Button variant="ghost" onClick={() => setStep((current) => Math.max(1, current - 1))}>Zurück</V1Button>}{step < 3 && <V1Button variant="primary" disabled={!canCalculate || saving} onClick={() => void calculate()}>{saving ? 'Berechnet...' : 'Berechnen'}</V1Button>}{step === 3 && <V1Button variant="primary" onClick={() => setStep(4)}>Nachmessen</V1Button>}{step === 4 && <V1Button variant="primary" disabled={saving || !result} onClick={() => void saveLog()}>{saving ? 'Speichert...' : 'Speichern'}</V1Button>}</div>
+            </V1Section>
+            <V1Section title="Kontext"><div className="v1-kpi-grid one-col"><V1Stat label="Reservoir" value={form.reservoirLiters || '–'} unit="L" /><V1Stat label="EC ist" value={form.ecIst || '–'} unit="mS/cm" /><V1Stat label="EC Ziel" value={form.ecZiel || '–'} unit="mS/cm" /><V1Stat label="Addback" value={formatNumber(liters, 2)} unit="L" /></div></V1Section>
+          </section>
+        </>
+      )}
+    </V1Page>
   )
-}
-
-function NumericField(props: {
-  label: string
-  unit: string
-  value: string
-  hint: string | null
-  onChange: (value: string) => void
-}) {
-  return (
-    <label className="meas-field">
-      <span>{props.label}</span>
-      <div className="meas-field-inner">
-        <input className="meas-input" value={props.value} onChange={(event) => props.onChange(event.target.value)} />
-        <span className="meas-unit">{props.unit}</span>
-      </div>
-      {props.hint && <span className="hint-text">{props.hint}</span>}
-    </label>
-  )
-}
-
-function formatDraftNumber(value: number | null | undefined) {
-  if (value == null || Number.isNaN(value)) return ''
-  return String(value)
-}
-
-function parseNullableNumber(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  const parsed = Number(trimmed.replace(',', '.'))
-  return Number.isNaN(parsed) ? null : parsed
 }
 
 export default AddbackPage
