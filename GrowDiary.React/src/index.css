@@ -2590,3 +2590,215 @@ input, select, textarea { min-width: 0; }
   .v1-action-row { gap: 8px; }
   .v1-action-row .v1-button { flex: 1 1 120px; }
 }
+
+/* === V1 RC2: final candidate density, hydro facts and addback command view === */
+.v1-live-metrics-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.v1-metric-grid.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 1180px) {
+  .v1-live-page .v1-live-hero-grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(360px, .8fr);
+  }
+  .v1-live-page .v1-metric-grid.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.v1-hydro-detail.rc2 {
+  grid-template-columns: minmax(0, .95fr) minmax(360px, 1.05fr);
+  align-items: start;
+}
+.v1-hydro-summary.rc2 {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+.v1-hydro-title-line.rc2 {
+  align-items: start;
+}
+.v1-hydro-title-line.rc2 > div {
+  min-width: 0;
+}
+.v1-hydro-title-line.rc2 strong {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: clamp(26px, 3vw, 36px);
+  line-height: .95;
+}
+.v1-hydro-title-line.rc2 .v1-stat {
+  min-width: 124px;
+  min-height: 82px;
+}
+.v1-hydro-title-line.rc2 .v1-stat strong {
+  font-size: 30px;
+  white-space: nowrap;
+}
+.v1-hydro-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.v1-fact {
+  min-width: 0;
+  border: 1px solid var(--v1-line);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.025);
+  padding: 11px 12px;
+}
+.v1-fact span {
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--v1-muted);
+}
+.v1-fact strong {
+  display: block;
+  margin-top: 5px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--v1-text);
+  font-size: 15px;
+}
+.v1-rdwc-map {
+  border-radius: 22px;
+}
+.v1-rdwc-map > span {
+  display: block;
+  margin-top: 14px;
+  color: var(--v1-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.v1-addback-command {
+  display: grid;
+  grid-template-columns: minmax(0, .95fr) minmax(340px, 1.05fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.v1-addback-command-main {
+  display: grid;
+  gap: 14px;
+}
+.v1-addback-command-main h2 {
+  font-size: clamp(34px, 4vw, 56px);
+  line-height: .9;
+  letter-spacing: -.06em;
+}
+.v1-addback-command-main p {
+  margin: 0;
+  color: var(--v1-muted);
+}
+.v1-addback-current-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.v1-addback-flow-strip.rc2 {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.v1-addback-flow-strip.rc2 > div {
+  min-height: 58px;
+  grid-template-columns: 34px 1fr;
+  align-items: center;
+}
+.v1-card-grid-compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.v1-grow-card-compact h2 {
+  font-size: 24px;
+}
+.v1-grow-card-compact .v1-button.full {
+  margin-top: 14px;
+}
+
+@media (max-width: 860px) {
+  .v1-live-metrics-pair {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .v1-metric-grid.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .v1-hydro-detail.rc2 {
+    grid-template-columns: 1fr;
+  }
+  .v1-hydro-summary.rc2 {
+    padding: 13px;
+    gap: 12px;
+  }
+  .v1-hydro-title-line.rc2 {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+  .v1-hydro-title-line.rc2 strong {
+    font-size: 25px;
+  }
+  .v1-hydro-title-line.rc2 .v1-stat {
+    min-width: 96px;
+    min-height: 70px;
+    padding: 10px;
+  }
+  .v1-hydro-title-line.rc2 .v1-stat strong {
+    font-size: 24px;
+  }
+  .v1-hydro-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .v1-fact {
+    padding: 9px 10px;
+    border-radius: 12px;
+  }
+  .v1-fact strong {
+    font-size: 14px;
+  }
+  .v1-addback-command {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .v1-addback-command-main h2 {
+    font-size: 32px;
+  }
+  .v1-addback-current-values {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .v1-addback-flow-strip.rc2 {
+    grid-template-columns: repeat(5, minmax(92px, 1fr));
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .v1-addback-flow-strip.rc2::-webkit-scrollbar { display: none; }
+  .v1-addback-flow-strip.rc2 > div {
+    min-width: 92px;
+    min-height: 74px;
+    grid-template-columns: 1fr;
+  }
+  .v1-card-grid-compact {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .v1-hydro-facts {
+    grid-template-columns: 1fr;
+  }
+  .v1-metric-grid.compact {
+    grid-template-columns: 1fr;
+  }
+  .v1-addback-current-values {
+    grid-template-columns: 1fr;
+  }
+}

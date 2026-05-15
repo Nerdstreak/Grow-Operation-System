@@ -196,24 +196,45 @@ function StepReview({ draft, tents, totalVolume }: { draft: HydroDraft; tents: T
 }
 
 function HydroDetail({ setup, saving, onEdit, onArchive }: { setup: HydroSetupDto; saving: boolean; onEdit: (setup: HydroSetupDto) => void; onArchive: (setup: HydroSetupDto) => void }) {
+  const facts = [
+    ['Zelt', setup.tentName ?? '–'],
+    ['Sites', String(setup.potCount ?? '–')],
+    ['Topf', formatLiters(setup.potSizeLiters)],
+    ['Tank', formatLiters(setup.reservoirLiters)],
+    ['Gesamt', formatLiters(setup.totalVolumeLiters)],
+    ['Layout', formatLayout(setup.layoutType)],
+    ['Tankposition', formatReservoirPosition(setup.reservoirPosition)],
+    ['Luftsteine', String(setup.airStoneCount ?? '–')],
+  ]
+
   return (
-    <V1Section title={setup.name} action={<V1Badge tone={setup.status === 'Active' ? 'ok' : 'neutral'}>{setup.status === 'Active' ? 'aktiv' : 'Archiv'}</V1Badge>}>
-      <div className="v1-hydro-detail">
-        <V1Card className="v1-hydro-summary">
-          <div className="v1-hydro-title-line">
-            <span className="v1-card-kicker">{setup.hydroStyle}</span>
-            <strong>{formatLiters(setup.totalVolumeLiters)}</strong>
+    <V1Section title={setup.name} action={<V1Badge tone={setup.status === 'Active' ? 'ok' : 'neutral'}>{setup.status === 'Active' ? 'aktiv' : 'Archiv'}</V1Badge>} className="v1-hydro-detail-section">
+      <div className="v1-hydro-detail rc2">
+        <V1Card className="v1-hydro-summary rc2">
+          <div className="v1-hydro-title-line rc2">
+            <div>
+              <span className="v1-card-kicker">{setup.hydroStyle}</span>
+              <strong>{setup.name}</strong>
+            </div>
+            <V1Stat label="Volumen" value={formatNumber(setup.totalVolumeLiters, 0)} unit="L" />
           </div>
-          <div className="v1-info-grid compact">
-            <Info label="Zelt" value={setup.tentName ?? '–'} />
-            <Info label="Sites" value={String(setup.potCount ?? '–')} />
-            <Info label="Topf" value={formatLiters(setup.potSizeLiters)} />
-            <Info label="Tank" value={formatLiters(setup.reservoirLiters)} />
-            <Info label="Layout" value={formatLayout(setup.layoutType)} />
-            <Info label="Position" value={formatReservoirPosition(setup.reservoirPosition)} />
+
+          <div className="v1-hydro-facts">
+            {facts.map(([label, value]) => <Fact key={label} label={label} value={value} />)}
           </div>
-          <div className="v1-chip-row">{setup.hasCirculationPump && <span>Pumpe</span>}{setup.hasAirPump && <span>Luft</span>}{setup.hasChiller && <span>Chiller</span>}{setup.hasUvSterilizer && <span>UV-C</span>}</div>
-          <div className="v1-action-row"><V1Button onClick={() => onEdit(setup)}>Bearbeiten</V1Button>{setup.status === 'Active' && <V1Button variant="ghost" disabled={saving} onClick={() => void onArchive(setup)}>{saving ? 'Archiviert...' : 'Archivieren'}</V1Button>}</div>
+
+          <div className="v1-chip-row">
+            {setup.hasCirculationPump && <span>Umwälzpumpe</span>}
+            {setup.hasAirPump && <span>Luftpumpe</span>}
+            {setup.hasChiller && <span>Chiller</span>}
+            {setup.hasUvSterilizer && <span>UV-C</span>}
+            {!setup.hasCirculationPump && !setup.hasAirPump && !setup.hasChiller && !setup.hasUvSterilizer && <span>Technik offen</span>}
+          </div>
+
+          <div className="v1-action-row">
+            <V1Button onClick={() => onEdit(setup)}>Bearbeiten</V1Button>
+            {setup.status === 'Active' && <V1Button variant="ghost" disabled={saving} onClick={() => void onArchive(setup)}>{saving ? 'Archiviert...' : 'Archivieren'}</V1Button>}
+          </div>
         </V1Card>
         <RdwcLayoutPreview setup={setup} />
       </div>
@@ -232,6 +253,7 @@ function RdwcLayoutPreview({ draft, setup }: { draft?: HydroDraft; setup?: Hydro
 }
 
 function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
+function Fact({ label, value }: { label: string; value: string }) { return <div className="v1-fact"><span>{label}</span><strong>{value}</strong></div> }
 function sortSetups(items: HydroSetupDto[]) { return [...items].sort((a, b) => a.status.localeCompare(b.status) || a.displayOrder - b.displayOrder || a.name.localeCompare(b.name)) }
 function createDraft(displayOrder = 1, tentId: number | null = null): HydroDraft { return { name: '', tentId: tentId ? String(tentId) : '', hydroStyle: 'RDWC', potCount: '4', potSizeLiters: '19', reservoirLiters: '60', layoutType: 'Grid2x2', reservoirPosition: 'Left', hasCirculationPump: true, circulationPumpNotes: '', hasAirPump: true, airPumpNotes: '', airStoneCount: '4', hasChiller: false, hasUvSterilizer: false, notes: '', displayOrder: String(displayOrder) } }
 function createDraftFromSetup(setup: HydroSetupDto): HydroDraft { return { name: setup.name, tentId: setup.tentId ? String(setup.tentId) : '', hydroStyle: setup.hydroStyle === 'DWC' ? 'DWC' : 'RDWC', potCount: draftNumber(setup.potCount), potSizeLiters: draftNumber(setup.potSizeLiters), reservoirLiters: draftNumber(setup.reservoirLiters), layoutType: setup.layoutType, reservoirPosition: setup.reservoirPosition, hasCirculationPump: setup.hasCirculationPump, circulationPumpNotes: setup.circulationPumpNotes ?? '', hasAirPump: setup.hasAirPump, airPumpNotes: setup.airPumpNotes ?? '', airStoneCount: draftNumber(setup.airStoneCount), hasChiller: setup.hasChiller, hasUvSterilizer: setup.hasUvSterilizer, notes: setup.notes ?? '', displayOrder: String(setup.displayOrder) } }
