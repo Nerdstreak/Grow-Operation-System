@@ -1,4 +1,3 @@
-using System.Text.Json;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
@@ -10,9 +9,7 @@ namespace GrowDiary.Web.Controllers;
 public sealed class GrowsController : Controller
 {
     private readonly GrowRepository _repository;
-    private readonly TaskRepository _taskRepository;
     private readonly JournalRepository _journalRepository;
-    private readonly AuditRepository _auditRepository;
 
     public GrowsController(
         GrowRepository repository,
@@ -21,9 +18,7 @@ public sealed class GrowsController : Controller
         AuditRepository auditRepository)
     {
         _repository = repository;
-        _taskRepository = taskRepository;
         _journalRepository = journalRepository;
-        _auditRepository = auditRepository;
     }
 
     // Redirect-Shims fuer alte Bookmarks
@@ -47,103 +42,28 @@ public sealed class GrowsController : Controller
     public IActionResult Harvest(int id) => Redirect($"/grows/{id}/harvest");
 
     [HttpGet("{id:int}/export")]
-    public IActionResult Export(int id)
-    {
-        var grow = _repository.GetGrow(id);
-        if (grow is null)
-        {
-            return NotFound();
-        }
-
-        var payload = new
-        {
-            grow,
-            tent = _repository.GetTentForGrow(id),
-            measurements = _repository.GetMeasurementsForGrow(id),
-            photos = _repository.GetPhotosForGrow(id),
-            tasks = _taskRepository.GetForGrow(id),
-            journal = _journalRepository.GetForGrow(id),
-            audit = _auditRepository.GetRecentForGrow(id, 50)
-        };
-
-        var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
-        return File(System.Text.Encoding.UTF8.GetBytes(json), "application/json", $"grow-{id}-{DateTime.Now:yyyyMMdd-HHmm}.json");
-    }
+    public IActionResult Export(int id) => Redirect($"/api/exports/grows/{id}");
 
     [HttpPost("{id:int}/confirm-germination")]
     [ValidateAntiForgeryToken]
-    public IActionResult ConfirmGermination(int id)
-    {
-        var grow = _repository.GetGrow(id);
-        if (grow is null) return NotFound();
-        if (grow.StartMaterial != StartMaterial.Seed)
-            return BadRequest("Keimungsbestaetigung ist nur fuer Samen-Grows moeglich.");
-        if (grow.GerminatedAt.HasValue)
-            return Redirect($"/grows/{id}");
-
-        grow.GerminatedAt = DateTime.Now;
-        if (grow.Status == GrowStatus.Planning) grow.Status = GrowStatus.Running;
-        _repository.UpdateGrow(grow);
-        _journalRepository.Create(new JournalEntry
-        {
-            GrowId = id,
-            EntryType = JournalEntryType.GerminationConfirmed,
-            Body = "Keimung bestaetigt.",
-            OccurredAtUtc = DateTime.UtcNow
-        });
-        TempData["Flash"] = "Keimung bestaetigt.";
-        return Redirect($"/grows/{id}");
-    }
+    public IActionResult ConfirmGermination(int id) => LegacyMutationDisabled();
 
     [HttpPost("{id:int}/confirm-rooting")]
     [ValidateAntiForgeryToken]
-    public IActionResult ConfirmRooting(int id)
-    {
-        var grow = _repository.GetGrow(id);
-        if (grow is null) return NotFound();
-        if (grow.StartMaterial != StartMaterial.Clone)
-            return BadRequest("Bewurzelungsbestaetigung ist nur fuer Stecklinge moeglich.");
-        if (grow.RootedAt.HasValue)
-            return Redirect($"/grows/{id}");
-
-        grow.RootedAt = DateTime.Now;
-        grow.CloneIsRooted = true;
-        if (grow.Status == GrowStatus.Planning) grow.Status = GrowStatus.Running;
-        _repository.UpdateGrow(grow);
-        _journalRepository.Create(new JournalEntry
-        {
-            GrowId = id,
-            EntryType = JournalEntryType.CloneRooted,
-            Body = "Bewurzelung bestaetigt.",
-            OccurredAtUtc = DateTime.UtcNow
-        });
-        TempData["Flash"] = "Bewurzelung bestaetigt.";
-        return Redirect($"/grows/{id}");
-    }
+    public IActionResult ConfirmRooting(int id) => LegacyMutationDisabled();
 
     [HttpPost("{id:int}/flip-to-flower")]
     [ValidateAntiForgeryToken]
-    public IActionResult FlipToFlower(int id)
-    {
-        var grow = _repository.GetGrow(id);
-        if (grow is null) return NotFound();
-        if (grow.SeedType == SeedType.Autoflower)
-            return BadRequest("Autoflower braucht keinen Flip.");
-        if (grow.FlipDate.HasValue)
-            return Redirect($"/grows/{id}");
+    public IActionResult FlipToFlower(int id) => LegacyMutationDisabled();
 
-        grow.FlipDate = DateTime.Today;
-        _repository.UpdateGrow(grow);
-        _journalRepository.Create(new JournalEntry
-        {
-            GrowId = id,
-            EntryType = JournalEntryType.FlipToFlower,
-            Body = "Auf 12/12 geflippt.",
-            OccurredAtUtc = DateTime.UtcNow
-        });
-        TempData["Flash"] = "Flip zu 12/12 eingetragen.";
-        return Redirect($"/grows/{id}");
-    }
+    private IActionResult LegacyMutationDisabled()
+        => StatusCode(
+            StatusCodes.Status410Gone,
+            GrowDiary.Web.Api.Contracts.ApiErrorFactory.Create(
+                "legacy_mvc_mutation_disabled",
+                "Diese alte MVC-POST-Route wurde deaktiviert. Nutze die versionierten API-Endpunkte oder die aktuelle React/PWA-Oberfläche.",
+                StatusCodes.Status410Gone,
+                traceId: HttpContext?.TraceIdentifier));
 
     public static GrowStage DetermineStageFromWeekInfo(GrowWeekInfo weekInfo) =>
         weekInfo.State switch

@@ -34,7 +34,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new BackendHealthDto(
             AppName: "Grow OS",
-            BackendSchema: "backend-core.v0.14-candidate",
+            BackendSchema: "backend-core.v0.15-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             TentCount: tents.Count,
             HydroSetupCount: hydroSetups.Count,
@@ -65,7 +65,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "backup-restore-plan",
                 "grow-import-plan",
                 "system-audit-events",
-                "uniform-api-error-format"
+                "uniform-api-error-format",
+                "legacy-mvc-endpoint-containment"
             }));
     }
 
@@ -97,6 +98,7 @@ public sealed class SystemApiController : ApiControllerBase
             new("grow_import_plan", "pass", "Grow-Exports können als Import-Dry-Run analysiert werden, ohne Daten zu schreiben."),
             new("system_audit_events", "pass", "Kritische Backend-Operationen werden in einem System-Audit-Log protokolliert."),
             new("api_error_format", "pass", "API-Fehler verwenden ein einheitliches ApiError-Format mit Code, Message, FieldErrors, Status, TraceId und SchemaVersion."),
+            new("legacy_mvc_containment", "pass", "Alte MVC-Backup-/Export-/Kamera-/Mutationsrouten umgehen die neuen Backup-, Export- und Security-Regeln nicht mehr."),
             new("restore_api", "todo", "Ein destruktiver Restore-Flow ist noch nicht implementiert; Restore-Planung ist nur Read-only."),
             new("migration_engine", "partial", "Schema-Migrationen werden protokolliert; destructive Rollbacks und echte Restore-/Rollback-Automation fehlen noch."),
             new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
@@ -104,8 +106,8 @@ public sealed class SystemApiController : ApiControllerBase
         };
 
         var dto = new BackendReleaseReadinessDto(
-            Status: "backend.v0.14-ready-not-v1.0",
-            BackendSchema: "backend-core.v0.14-candidate",
+            Status: "backend.v0.15-ready-not-v1.0",
+            BackendSchema: "backend-core.v0.15-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
             CompletedFoundations: new[]
@@ -133,7 +135,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "backup-restore-plan",
                 "grow-import-plan",
                 "system-audit-events",
-                "uniform-api-error-format"
+                "uniform-api-error-format",
+                "legacy-mvc-endpoint-containment"
             },
             RemainingBeforeV1: new[]
             {
@@ -169,7 +172,8 @@ public sealed class SystemApiController : ApiControllerBase
             "Schema-Migrationen werden in AppliedSchemaMigrations protokolliert.",
             "Kritische Backend-Operationen werden im SystemAuditEvents-Log protokolliert.",
             "API-Fehler folgen dem einheitlichen grow-os.api-error.v1 Format.",
-            "Runtime-Daten aus App_Data werden nicht als Source-Artefakte behandelt."
+            "Runtime-Daten aus App_Data werden nicht als Source-Artefakte behandelt.",
+            "Legacy-MVC-Endpunkte duerfen Backup, Export, Security oder Produktregeln nicht umgehen."
         };
 
         var areas = new[]
@@ -249,6 +253,11 @@ public sealed class SystemApiController : ApiControllerBase
                     Endpoint("GET", "/api/exports/grows/{id}", "Grow exportieren.", true, "anonymize=true entfernt/neutralisiert nutzerbezogene Angaben.", "Export enthält ExportId, SectionCounts und IntegrityHash."),
                     Endpoint("POST", "/api/exports/grows/validate", "Grow-Export validieren, ohne Daten zu importieren.", true, "Prüft SchemaVersion, SectionCounts, IntegrityHash und potenzielle Secrets."),
                     Endpoint("POST", "/api/exports/grows/import-plan", "Grow-Export als Import-Dry-Run analysieren, ohne Daten zu schreiben.", true, "Plant neue lokale IDs, Snapshot-Behandlung und Konflikte."),
+                    Endpoint("GET", "/grows/{id}/export", "Legacy-Export-Route; leitet auf /api/exports/grows/{id} um und liefert keine alten Rohdaten mehr.", false),
+                    Endpoint("GET", "/settings/backup", "Legacy-Backup-Route; direkter SQLite-Download ist deaktiviert.", true),
+                    Endpoint("GET", "/tents/{id}/camera.jpg", "Legacy-Kamera-Snapshot; lokal/admin-geschützt.", true),
+                    Endpoint("GET", "/tents/{id}/camera-stream", "Legacy-Kamera-Stream; lokal/admin-geschützt.", true),
+                    Endpoint("GET", "/tents/{id}/latest-snapshot", "Legacy-Snapshot; lokal/admin-geschützt.", true),
                     Endpoint("GET", "/api/system/backend-health", "Backend-Zustand und Capabilities laden.", false),
                     Endpoint("GET", "/api/system/release-readiness", "Release-Readiness prüfen.", true),
                     Endpoint("GET", "/api/system/database-status", "Datenbankstatus und Pflichtschema prüfen.", true),
@@ -267,7 +276,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         var dto = new ApiManifestDto(
             SchemaVersion: "grow-os.api-manifest.v1",
-            BackendSchema: "backend-core.v0.14-candidate",
+            BackendSchema: "backend-core.v0.15-candidate",
             GeneratedAtUtc: DateTime.UtcNow,
             GlobalRules: globalRules,
             Areas: areas);

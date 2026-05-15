@@ -1,3 +1,4 @@
+using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -43,11 +44,11 @@ public sealed class SettingsController : Controller
 
     [HttpGet("backup")]
     public IActionResult BackupDatabase()
-    {
-        if (!System.IO.File.Exists(_paths.DatabasePath))
-        {
-            return NotFound();
-        }
-        return PhysicalFile(_paths.DatabasePath, "application/octet-stream", $"grow-diary-backup-{DateTime.Now:yyyyMMdd-HHmm}.db");
-    }
+        => StatusCode(
+            StatusCodes.Status410Gone,
+            ApiErrorFactory.Create(
+                "legacy_backup_disabled",
+                "Der direkte SQLite-Download wurde deaktiviert. Nutze POST /api/system/backup, damit Backups ohne Secrets, DataProtectionKeys, Uploads und Logs erzeugt werden.",
+                StatusCodes.Status410Gone,
+                traceId: HttpContext?.TraceIdentifier));
 }
