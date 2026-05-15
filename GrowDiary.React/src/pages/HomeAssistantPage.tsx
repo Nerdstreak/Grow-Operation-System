@@ -2,36 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type {
-  HomeAssistantSettingsDto,
-  SensorMetricType,
-  SettingsOverviewDto,
-  TentDto,
-  UpdateTentRequest,
-  UpdateTentSensorRequest,
-} from '../types'
+import type { HomeAssistantSettingsDto, SensorMetricType, SettingsOverviewDto, TentDto, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
 import { classNames } from '../utils'
 
 type SavingState = 'ha' | `tent-${number}` | null
-
-type SensorDraft = {
-  metricType: SensorMetricType
-  haEntityId: string
-  displayLabel: string
-  isActive: boolean
-}
-
-type TentMappingDraft = {
-  cameraEntityId: string
-  sensors: SensorDraft[]
-}
-
-type EntityDefinition = {
-  metricType: SensorMetricType
-  label: string
-  group: 'tent' | 'reservoir' | 'hardware'
-  placeholder: string
-}
+type SensorDraft = { metricType: SensorMetricType; haEntityId: string; displayLabel: string; isActive: boolean }
+type TentMappingDraft = { cameraEntityId: string; sensors: SensorDraft[] }
+type EntityDefinition = { metricType: SensorMetricType; label: string; group: 'tent' | 'reservoir' | 'hardware'; placeholder: string }
 
 const entityDefinitions: EntityDefinition[] = [
   { metricType: 'AirTemperature', label: 'Lufttemperatur', group: 'tent', placeholder: 'sensor.zelt_temperatur' },
@@ -43,13 +20,13 @@ const entityDefinitions: EntityDefinition[] = [
   { metricType: 'ReservoirPh', label: 'pH', group: 'reservoir', placeholder: 'sensor.rdwc_ph' },
   { metricType: 'ReservoirEc', label: 'EC', group: 'reservoir', placeholder: 'sensor.rdwc_ec' },
   { metricType: 'ReservoirOrp', label: 'ORP', group: 'reservoir', placeholder: 'sensor.rdwc_orp' },
-  { metricType: 'ReservoirDissolvedOxygen', label: 'Sauerstoff', group: 'reservoir', placeholder: 'sensor.rdwc_do' },
-  { metricType: 'ReservoirWaterTemp', label: 'Wasser °C', group: 'reservoir', placeholder: 'sensor.rdwc_wassertemperatur' },
+  { metricType: 'ReservoirDissolvedOxygen', label: 'DO', group: 'reservoir', placeholder: 'sensor.rdwc_do' },
+  { metricType: 'ReservoirWaterTemp', label: 'Wassertemp.', group: 'reservoir', placeholder: 'sensor.rdwc_wassertemperatur' },
   { metricType: 'ReservoirLevel', label: 'Wasserstand', group: 'reservoir', placeholder: 'sensor.rdwc_wasserstand' },
   { metricType: 'PumpCirculation', label: 'Umwälzpumpe', group: 'hardware', placeholder: 'switch.rdwc_pumpe' },
   { metricType: 'PumpAir', label: 'Luftpumpe', group: 'hardware', placeholder: 'switch.luftpumpe' },
   { metricType: 'Chiller', label: 'Chiller', group: 'hardware', placeholder: 'climate.chiller' },
-  { metricType: 'UpsStatus', label: 'USV Status', group: 'hardware', placeholder: 'sensor.usv_status' },
+  { metricType: 'UpsStatus', label: 'USV', group: 'hardware', placeholder: 'sensor.usv_status' },
 ]
 
 function HomeAssistantPage() {
@@ -64,7 +41,6 @@ function HomeAssistantPage() {
 
   useEffect(() => {
     const controller = new AbortController()
-
     async function load() {
       setLoading(true)
       setError(null)
@@ -79,7 +55,6 @@ function HomeAssistantPage() {
         if (!controller.signal.aborted) setLoading(false)
       }
     }
-
     void load()
     return () => controller.abort()
   }, [])
@@ -94,14 +69,10 @@ function HomeAssistantPage() {
     try {
       const saved = await apiFetch<HomeAssistantSettingsDto>('/api/settings/home-assistant', {
         method: 'PUT',
-        body: JSON.stringify({
-          baseUrl: toNullableString(ha.baseUrl),
-          accessToken: toNullableString(ha.accessToken),
-          enabled: ha.enabled,
-        }),
+        body: JSON.stringify({ baseUrl: toNullableString(ha.baseUrl), accessToken: toNullableString(ha.accessToken), enabled: ha.enabled }),
       })
       setHa(saved)
-      setMessage('Home Assistant gespeichert.')
+      setMessage('Gespeichert.')
     } catch (caught) {
       setError(formatApiError(caught, 'Home Assistant konnte nicht gespeichert werden.'))
     } finally {
@@ -112,16 +83,11 @@ function HomeAssistantPage() {
   async function saveTentMapping(tent: TentDto) {
     const draft = drafts[tent.id]
     if (!draft) return
-
     setSaving(`tent-${tent.id}`)
     setError(null)
     setMessage(null)
-
     try {
-      const saved = await apiFetch<TentDto>(`/api/settings/tents/${tent.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(toUpdateTentRequest(tent, draft)),
-      })
+      const saved = await apiFetch<TentDto>(`/api/settings/tents/${tent.id}`, { method: 'PUT', body: JSON.stringify(toUpdateTentRequest(tent, draft)) })
       setTents((current) => current.map((item) => (item.id === saved.id ? saved : item)))
       setDrafts((current) => ({ ...current, [saved.id]: createTentDraft(saved) }))
       setMessage(`${saved.name} gespeichert.`)
@@ -136,13 +102,7 @@ function HomeAssistantPage() {
     setDrafts((current) => {
       const draft = current[tentId]
       if (!draft) return current
-      return {
-        ...current,
-        [tentId]: {
-          ...draft,
-          sensors: draft.sensors.map((sensor) => (sensor.metricType === metricType ? { ...sensor, ...patch } : sensor)),
-        },
-      }
+      return { ...current, [tentId]: { ...draft, sensors: draft.sensors.map((sensor) => (sensor.metricType === metricType ? { ...sensor, ...patch } : sensor)) } }
     })
   }
 
@@ -155,103 +115,89 @@ function HomeAssistantPage() {
   }
 
   return (
-    <div className="page-scroll">
-      <div className="ha-page">
-        <header className="ha-shell-card ha-top-card">
-          <div>
-            <div className="live-kicker">Home Assistant</div>
-            <h1>Entitäten</h1>
-          </div>
-          <div className="ha-top-stats">
-            <span className={classNames('badge', ha.enabled ? 'badge-ok' : 'badge-neutral')}>{ha.enabled ? 'aktiv' : 'aus'}</span>
-            <span className="ha-stat-number">{mappedCount}</span>
-          </div>
-        </header>
+    <main className="page-scroll app-page ha-rebuild-page">
+      <section className="control-header">
+        <div>
+          <span className="control-kicker">Home Assistant</span>
+          <h1>Entitäten</h1>
+        </div>
+        <div className="ha-count"><strong>{mappedCount}</strong><span>aktiv</span></div>
+      </section>
 
-        {error && <div className="alert-bar"><div className="alert-dot" /><strong>Fehler</strong><span>{error}</span></div>}
-        {message && <div className="ha-message">{message}</div>}
+      {error && <div className="inline-error"><strong>Fehler</strong><span>{error}</span></div>}
+      {message && <div className="inline-ok">{message}</div>}
 
-        {loading ? (
-          <div className="empty-hint">Lade Home Assistant...</div>
-        ) : (
-          <>
-            <section className="ha-shell-card">
-              <form className="ha-connection-form" onSubmit={(event) => void saveHomeAssistant(event)}>
-                <label className="field">
-                  <span>URL</span>
-                  <input value={ha.baseUrl ?? ''} onChange={(event) => setHa((current) => ({ ...current, baseUrl: event.target.value }))} placeholder="http://homeassistant.local:8123" />
-                </label>
-                <label className="field">
-                  <span>Token</span>
-                  <div className="settings-token-row">
-                    <input type={showToken ? 'text' : 'password'} value={ha.accessToken ?? ''} onChange={(event) => setHa((current) => ({ ...current, accessToken: event.target.value }))} autoComplete="off" />
-                    <button type="button" className="btn" onClick={() => setShowToken((current) => !current)}>{showToken ? 'Verbergen' : 'Anzeigen'}</button>
-                  </div>
-                </label>
-                <label className="switch-row ha-enable-row">
-                  <input type="checkbox" checked={ha.enabled} onChange={(event) => setHa((current) => ({ ...current, enabled: event.target.checked }))} />
-                  <span>aktiv</span>
-                </label>
-                <button type="submit" className="btn btn-primary" disabled={saving === 'ha'}>{saving === 'ha' ? 'Speichert...' : 'Speichern'}</button>
-              </form>
+      {loading ? (
+        <div className="empty-hint tight">Lädt...</div>
+      ) : (
+        <>
+          <section className="ha-connect-panel ops-card">
+            <form onSubmit={(event) => void saveHomeAssistant(event)}>
+              <label className="field compact-field">
+                <span>URL</span>
+                <input value={ha.baseUrl ?? ''} onChange={(event) => setHa((current) => ({ ...current, baseUrl: event.target.value }))} placeholder="http://homeassistant.local:8123" />
+              </label>
+              <label className="field compact-field">
+                <span>Token</span>
+                <div className="inline-input-button">
+                  <input type={showToken ? 'text' : 'password'} value={ha.accessToken ?? ''} onChange={(event) => setHa((current) => ({ ...current, accessToken: event.target.value }))} autoComplete="off" />
+                  <button type="button" className="btn" onClick={() => setShowToken((current) => !current)}>{showToken ? 'Verbergen' : 'Anzeigen'}</button>
+                </div>
+              </label>
+              <label className="compact-check">
+                <input type="checkbox" checked={ha.enabled} onChange={(event) => setHa((current) => ({ ...current, enabled: event.target.checked }))} />
+                <span>aktiv</span>
+              </label>
+              <button type="submit" className="btn btn-primary" disabled={saving === 'ha'}>{saving === 'ha' ? 'Speichert...' : 'Speichern'}</button>
+            </form>
+          </section>
+
+          {tents.length === 0 ? (
+            <div className="empty-hint tight"><Link to="/zelte" className="btn btn-primary">Zelt anlegen</Link></div>
+          ) : (
+            <section className="ha-mapping-stack">
+              {tents.map((tent) => {
+                const draft = drafts[tent.id]
+                if (!draft) return null
+                return (
+                  <article key={tent.id} className="ops-card ha-map-card">
+                    <header className="ops-card-header">
+                      <div><h2>{tent.name}</h2><span>{formatTentSize(tent)}</span></div>
+                      <button type="button" className="btn btn-primary" disabled={saving === `tent-${tent.id}`} onClick={() => void saveTentMapping(tent)}>{saving === `tent-${tent.id}` ? 'Speichert...' : 'Speichern'}</button>
+                    </header>
+
+                    <label className="entity-row camera-entity-row">
+                      <span>Kamera</span>
+                      <input value={draft.cameraEntityId} onChange={(event) => updateCamera(tent.id, event.target.value)} placeholder="camera.zelt" />
+                    </label>
+
+                    <EntityGroup title="Zelt" definitions={entityDefinitions.filter((definition) => definition.group === 'tent')} draft={draft} onChange={(metricType, patch) => updateSensor(tent.id, metricType, patch)} />
+                    <EntityGroup title="RDWC/DWC" definitions={entityDefinitions.filter((definition) => definition.group === 'reservoir')} draft={draft} onChange={(metricType, patch) => updateSensor(tent.id, metricType, patch)} />
+                    <EntityGroup title="Technik" definitions={entityDefinitions.filter((definition) => definition.group === 'hardware')} draft={draft} onChange={(metricType, patch) => updateSensor(tent.id, metricType, patch)} />
+                  </article>
+                )
+              })}
             </section>
-
-            {tents.length === 0 ? (
-              <div className="empty-hint">
-                <Link to="/zelte" className="btn btn-primary">Zelt anlegen</Link>
-              </div>
-            ) : (
-              <div className="ha-tent-stack">
-                {tents.map((tent) => {
-                  const draft = drafts[tent.id]
-                  if (!draft) return null
-                  return (
-                    <article key={tent.id} className="ha-shell-card ha-tent-card">
-                      <div className="ha-tent-head">
-                        <div>
-                          <h2>{tent.name}</h2>
-                          <div className="live-card-meta">{formatTentSize(tent)}</div>
-                        </div>
-                        <button type="button" className="btn btn-primary" disabled={saving === `tent-${tent.id}`} onClick={() => void saveTentMapping(tent)}>
-                          {saving === `tent-${tent.id}` ? 'Speichert...' : 'Speichern'}
-                        </button>
-                      </div>
-
-                      <label className="field ha-camera-field">
-                        <span>Kamera</span>
-                        <input className="mono" value={draft.cameraEntityId} onChange={(event) => updateCamera(tent.id, event.target.value)} placeholder="camera.zelt" />
-                      </label>
-
-                      <EntityGroup title="Zelt" definitions={entityDefinitions.filter((definition) => definition.group === 'tent')} draft={draft} onChange={(metricType, patch) => updateSensor(tent.id, metricType, patch)} />
-                      <EntityGroup title="RDWC/DWC" definitions={entityDefinitions.filter((definition) => definition.group === 'reservoir')} draft={draft} onChange={(metricType, patch) => updateSensor(tent.id, metricType, patch)} />
-                      <EntityGroup title="Technik" definitions={entityDefinitions.filter((definition) => definition.group === 'hardware')} draft={draft} onChange={(metricType, patch) => updateSensor(tent.id, metricType, patch)} />
-                    </article>
-                  )
-                })}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+          )}
+        </>
+      )}
+    </main>
   )
 }
 
 function EntityGroup({ title, definitions, draft, onChange }: { title: string; definitions: EntityDefinition[]; draft: TentMappingDraft; onChange: (metricType: SensorMetricType, patch: Partial<SensorDraft>) => void }) {
   return (
-    <section className="ha-entity-group">
-      <div className="ha-entity-title">{title}</div>
-      <div className="ha-entity-grid">
+    <section className="entity-group">
+      <h3>{title}</h3>
+      <div className="entity-list">
         {definitions.map((definition) => {
           const sensor = draft.sensors.find((item) => item.metricType === definition.metricType) ?? createSensorDraft(definition)
           return (
-            <div key={definition.metricType} className={classNames('ha-entity-row', sensor.isActive && 'is-active')}>
-              <label className="ha-entity-active">
-                <input type="checkbox" checked={sensor.isActive} onChange={(event) => onChange(definition.metricType, { isActive: event.target.checked })} />
-                <span>{definition.label}</span>
-              </label>
-              <input className="mono" value={sensor.haEntityId} onChange={(event) => onChange(definition.metricType, { haEntityId: event.target.value })} placeholder={definition.placeholder} />
-            </div>
+            <label key={definition.metricType} className={classNames('entity-row', sensor.isActive && 'is-active')}>
+              <input type="checkbox" checked={sensor.isActive} onChange={(event) => onChange(definition.metricType, { isActive: event.target.checked })} />
+              <span>{definition.label}</span>
+              <input value={sensor.haEntityId} onChange={(event) => onChange(definition.metricType, { haEntityId: event.target.value })} placeholder={definition.placeholder} />
+            </label>
           )
         })}
       </div>
@@ -264,23 +210,13 @@ function createTentDraft(tent: TentDto): TentMappingDraft {
     cameraEntityId: tent.cameraEntityId ?? '',
     sensors: entityDefinitions.map((definition) => {
       const existing = tent.sensors.find((sensor) => sensor.metricType === definition.metricType)
-      return {
-        metricType: definition.metricType,
-        haEntityId: existing?.haEntityId ?? '',
-        displayLabel: existing?.displayLabel ?? definition.label,
-        isActive: existing?.isActive ?? false,
-      }
+      return { metricType: definition.metricType, haEntityId: existing?.haEntityId ?? '', displayLabel: existing?.displayLabel ?? definition.label, isActive: existing?.isActive ?? false }
     }),
   }
 }
 
 function createSensorDraft(definition: EntityDefinition): SensorDraft {
-  return {
-    metricType: definition.metricType,
-    haEntityId: '',
-    displayLabel: definition.label,
-    isActive: false,
-  }
+  return { metricType: definition.metricType, haEntityId: '', displayLabel: definition.label, isActive: false }
 }
 
 function toUpdateTentRequest(tent: TentDto, draft: TentMappingDraft): UpdateTentRequest {
