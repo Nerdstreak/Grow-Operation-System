@@ -46,6 +46,20 @@ public sealed class GrowRun
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Immutable JSON snapshot of the tent at grow creation time.
+    /// Used for export/comparison stability when the live tent changes later.
+    /// </summary>
+    public string? TentSnapshotJson { get; set; }
+
+    /// <summary>
+    /// Immutable JSON snapshot of the DWC/RDWC HydroSetup at grow creation time.
+    /// Used for export/comparison stability when the live HydroSetup changes later.
+    /// </summary>
+    public string? HydroSetupSnapshotJson { get; set; }
+
+    public DateTime? SnapshotsCapturedAtUtc { get; set; }
+
     public int MeasurementCount { get; set; }
     public string? LatestPhotoPath { get; set; }
     public Measurement? LatestMeasurement { get; set; }

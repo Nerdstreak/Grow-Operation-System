@@ -189,7 +189,19 @@ public sealed class GrowExportsApiController : ApiControllerBase
             warnings.Add("Export wurde anonymisiert: Name, Sorte, Breeder, Clone-Quelle, Nährstoffnotizen und freie Grow-Notizen wurden entfernt.");
         }
 
-        var tentDto = grow.TentId.HasValue ? _repository.GetTent(grow.TentId.Value)?.ToDto() : null;
+        var tentDto = TryReadTentSnapshotDto(grow.TentSnapshotJson);
+        if (tentDto is null && grow.TentId.HasValue)
+        {
+            tentDto = _repository.GetTent(grow.TentId.Value)?.ToDto();
+            if (!string.IsNullOrWhiteSpace(grow.TentSnapshotJson))
+            {
+                warnings.Add("Gespeicherter Zelt-Snapshot konnte nicht gelesen werden; Export nutzt aktuelle Zeltdaten als Fallback.");
+            }
+            else if (tentDto is not null)
+            {
+                warnings.Add("Legacy-Grow ohne gespeicherten Zelt-Snapshot; Export nutzt aktuelle Zeltdaten.");
+            }
+        }
         if (anonymize && tentDto is not null)
         {
             tentDto = tentDto with
@@ -207,7 +219,19 @@ public sealed class GrowExportsApiController : ApiControllerBase
             };
         }
 
-        var hydroSetupDto = grow.SystemId.HasValue ? _repository.GetHydroSetup(grow.SystemId.Value)?.ToDto() : null;
+        var hydroSetupDto = TryReadHydroSetupSnapshotDto(grow.HydroSetupSnapshotJson);
+        if (hydroSetupDto is null && grow.SystemId.HasValue)
+        {
+            hydroSetupDto = _repository.GetHydroSetup(grow.SystemId.Value)?.ToDto();
+            if (!string.IsNullOrWhiteSpace(grow.HydroSetupSnapshotJson))
+            {
+                warnings.Add("Gespeicherter HydroSetup-Snapshot konnte nicht gelesen werden; Export nutzt aktuelle HydroSetup-Daten als Fallback.");
+            }
+            else if (hydroSetupDto is not null)
+            {
+                warnings.Add("Legacy-Grow ohne gespeicherten HydroSetup-Snapshot; Export nutzt aktuelle HydroSetup-Daten.");
+            }
+        }
         if (anonymize && hydroSetupDto is not null)
         {
             hydroSetupDto = hydroSetupDto with
@@ -298,6 +322,101 @@ public sealed class GrowExportsApiController : ApiControllerBase
             relatedGrowId: id,
             relatedFileName: finalExport.ExportId);
         return Ok(finalExport);
+    }
+
+    private static TentDto? TryReadTentSnapshotDto(string? snapshotJson)
+    {
+        var snapshot = TryDeserializeSnapshot<GrowTentSnapshot>(snapshotJson);
+        if (snapshot is null)
+        {
+            return null;
+        }
+
+        return new TentDto(
+            Id: snapshot.Id,
+            Name: snapshot.Name,
+            Kind: snapshot.Kind,
+            TentType: snapshot.TentType.ToString(),
+            Status: snapshot.Status.ToString(),
+            Notes: snapshot.Notes,
+            DisplayOrder: snapshot.DisplayOrder,
+            AccentColor: snapshot.AccentColor,
+            WidthCm: snapshot.WidthCm,
+            DepthCm: snapshot.DepthCm,
+            TentHeightCm: snapshot.TentHeightCm,
+            LightType: snapshot.LightType,
+            LightWatt: snapshot.LightWatt,
+            LightController: snapshot.LightController?.ToString(),
+            LightControllerEntityId: snapshot.LightControllerEntityId,
+            ExhaustFanCount: snapshot.ExhaustFanCount,
+            ExhaustM3h: snapshot.ExhaustM3h,
+            CirculationFanCount: snapshot.CirculationFanCount,
+            HvacController: snapshot.HvacController?.ToString(),
+            HvacControllerEntityId: snapshot.HvacControllerEntityId,
+            Co2Available: snapshot.Co2Available,
+            CameraEntityId: snapshot.CameraEntityId,
+            ActiveGrowCount: 0,
+            ArchivedGrowCount: 0,
+            ActiveSetupCount: 0,
+            ArchivedSetupCount: 0,
+            Sensors: (snapshot.Sensors ?? Array.Empty<GrowTentSensorSnapshot>()).Select(sensor => new TentSensorDto(
+                Id: sensor.Id,
+                TentId: snapshot.Id,
+                MetricType: sensor.MetricType.ToString(),
+                HaEntityId: sensor.HaEntityId,
+                DisplayLabel: sensor.DisplayLabel,
+                IsActive: sensor.IsActive)).ToList());
+    }
+
+    private static HydroSetupDto? TryReadHydroSetupSnapshotDto(string? snapshotJson)
+    {
+        var snapshot = TryDeserializeSnapshot<GrowHydroSetupSnapshot>(snapshotJson);
+        if (snapshot is null)
+        {
+            return null;
+        }
+
+        return new HydroSetupDto(
+            Id: snapshot.Id,
+            Name: snapshot.Name,
+            TentId: snapshot.TentId,
+            TentName: snapshot.TentName,
+            HydroStyle: Enum.TryParse<HydroStyle>(snapshot.HydroStyle, out var hydroStyle) ? hydroStyle : HydroStyle.None,
+            PotCount: snapshot.PotCount,
+            PotSizeLiters: snapshot.PotSizeLiters,
+            ReservoirLiters: snapshot.ReservoirLiters,
+            TotalVolumeLiters: snapshot.TotalVolumeLiters,
+            LayoutType: snapshot.LayoutType,
+            ReservoirPosition: snapshot.ReservoirPosition,
+            Status: snapshot.Status,
+            HasCirculationPump: snapshot.HasCirculationPump,
+            CirculationPumpNotes: snapshot.CirculationPumpNotes,
+            HasAirPump: snapshot.HasAirPump,
+            AirPumpNotes: snapshot.AirPumpNotes,
+            AirStoneCount: snapshot.AirStoneCount,
+            HasChiller: snapshot.HasChiller,
+            HasUvSterilizer: snapshot.HasUvSterilizer,
+            Notes: snapshot.Notes,
+            DisplayOrder: snapshot.DisplayOrder,
+            CreatedAtUtc: snapshot.CreatedAtUtc,
+            UpdatedAtUtc: snapshot.UpdatedAtUtc);
+    }
+
+    private static T? TryDeserializeSnapshot<T>(string? snapshotJson)
+    {
+        if (string.IsNullOrWhiteSpace(snapshotJson))
+        {
+            return default;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<T>(snapshotJson, ExportJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
     }
 
     private void LogExportAudit(string action, string summary, bool success, int? relatedGrowId = null, string? relatedFileName = null, string severity = "info")

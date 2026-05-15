@@ -76,6 +76,26 @@ public sealed class GrowExportsApiControllerTests : IDisposable
     }
 
     [Fact]
+    public void ExportGrow_UsesStoredHydroSetupSnapshotAfterLiveHydroSetupChanges()
+    {
+        var growId = CreateGrowWithOperations();
+        var initialExport = Export(growId);
+        Assert.NotNull(initialExport.HydroSetupSnapshot);
+
+        var liveHydroSetup = _repository.GetHydroSetup(initialExport.HydroSetupSnapshot!.Id)!;
+        liveHydroSetup.Name = "Changed Live RDWC";
+        liveHydroSetup.ReservoirLiters = 80;
+        _repository.UpdateHydroSetup(liveHydroSetup);
+
+        var export = Export(growId);
+
+        Assert.NotNull(export.HydroSetupSnapshot);
+        Assert.Equal("RDWC Export System", export.HydroSetupSnapshot!.Name);
+        Assert.Equal(60d, export.HydroSetupSnapshot.ReservoirLiters.GetValueOrDefault());
+        Assert.Equal(136d, export.HydroSetupSnapshot.TotalVolumeLiters.GetValueOrDefault());
+    }
+
+    [Fact]
     public void ValidateExport_RejectsTamperedSectionCountsAndHash()
     {
         var growId = CreateGrowWithOperations();
