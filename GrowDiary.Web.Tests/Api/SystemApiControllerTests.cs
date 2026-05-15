@@ -36,13 +36,13 @@ public sealed class SystemApiControllerTests : IDisposable
     }
 
     [Fact]
-    public void ReleaseReadiness_ReturnsBackendV13CandidateAndRemainingV1Items()
+    public void ReleaseReadiness_ReturnsBackendV14CandidateAndRemainingV1Items()
     {
         var result = _controller.ReleaseReadiness();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<BackendReleaseReadinessDto>(ok.Value);
-        Assert.Equal("backend.v0.13-ready-not-v1.0", dto.Status);
+        Assert.Equal("backend.v0.14-ready-not-v1.0", dto.Status);
         Assert.Contains(dto.CompletedFoundations, value => value == "zero-tent-startup");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-v1");
         Assert.Contains(dto.CompletedFoundations, value => value == "api-contract-manifest");
@@ -55,11 +55,13 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.CompletedFoundations, value => value == "backup-restore-plan");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-import-plan");
         Assert.Contains(dto.CompletedFoundations, value => value == "system-audit-events");
+        Assert.Contains(dto.CompletedFoundations, value => value == "uniform-api-error-format");
         Assert.Contains(dto.RemainingBeforeV1, value => value == "destructive-migration-rollback");
         Assert.Contains(dto.Checks, check => check.Key == "security_guardrails" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "restore_plan" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "grow_import_plan" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "system_audit_events" && check.Status == "pass");
+        Assert.Contains(dto.Checks, check => check.Key == "api_error_format" && check.Status == "pass");
         Assert.Contains(dto.Checks, check => check.Key == "restore_api" && check.Status == "todo");
     }
 
@@ -83,6 +85,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.Capabilities, capability => capability == "backup-restore-plan");
         Assert.Contains(dto.Capabilities, capability => capability == "grow-import-plan");
         Assert.Contains(dto.Capabilities, capability => capability == "system-audit-events");
+        Assert.Contains(dto.Capabilities, capability => capability == "uniform-api-error-format");
     }
 
 
@@ -116,7 +119,7 @@ public sealed class SystemApiControllerTests : IDisposable
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<ApiManifestDto>(ok.Value);
         Assert.Equal("grow-os.api-manifest.v1", dto.SchemaVersion);
-        Assert.Equal("backend-core.v0.13-candidate", dto.BackendSchema);
+        Assert.Equal("backend-core.v0.14-candidate", dto.BackendSchema);
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("HydroSetup", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("Remote-Adminzugriff", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.Areas, area => area.Key == "tents");
@@ -134,11 +137,28 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/api-manifest" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/security-status" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/audit-events" && endpoint.LocalAdminOnly);
+        Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/error-contract" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/migration-status" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/upgrade-preflight" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/system/backup/{fileName}/restore-plan" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/exports/grows/validate" && endpoint.LocalAdminOnly);
         Assert.Contains(systemArea.Endpoints, endpoint => endpoint.Path == "/api/exports/grows/import-plan" && endpoint.LocalAdminOnly);
+    }
+
+    [Fact]
+    public void ErrorContract_ReturnsUniformApiErrorContract()
+    {
+        var result = _controller.ErrorContract();
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<ApiErrorContractDto>(ok.Value);
+        Assert.Equal(ApiErrorFactory.SchemaVersion, dto.SchemaVersion);
+        Assert.Contains("code", dto.RequiredFields);
+        Assert.Contains("message", dto.RequiredFields);
+        Assert.Contains("schemaVersion", dto.RequiredFields);
+        Assert.Contains("fieldErrors", dto.OptionalFields);
+        Assert.Contains("validation_failed", dto.StandardCodes);
+        Assert.Contains("admin_access_required", dto.StandardCodes);
     }
 
     [Fact]
@@ -158,6 +178,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0012-restore-plan");
         Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0013-grow-import-plan");
         Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0014-system-audit-events");
+        Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0015-api-error-format");
     }
 
     [Fact]

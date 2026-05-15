@@ -110,9 +110,10 @@ app.Use(async (context, next) =>
             context.Response.ContentType = "application/json; charset=utf-8";
             await JsonSerializer.SerializeAsync(
                 context.Response.Body,
-                new ApiError(
+                ApiErrorFactory.Forbidden(
                     "admin_access_required",
-                    "Dieser administrative Bereich ist standardmaessig nur lokal erreichbar. Fuer Remote-Adminzugriff ist ein Admin-Key oder eine bewusst gesetzte Remote-Freigabe erforderlich."),
+                    "Dieser administrative Bereich ist standardmaessig nur lokal erreichbar. Fuer Remote-Adminzugriff ist ein Admin-Key oder eine bewusst gesetzte Remote-Freigabe erforderlich.",
+                    context.TraceIdentifier),
                 new JsonSerializerOptions(JsonSerializerDefaults.Web));
             return;
         }

@@ -88,7 +88,8 @@ public sealed class KnowledgeApiControllerTests : IDisposable
     {
         var result = _controller.GetTreatment("does-not-exist-xyz");
 
-        Assert.IsType<NotFoundResult>(result.Result);
+        var notFound = Assert.IsType<NotFoundObjectResult>(result.Result);
+        Assert.IsType<GrowDiary.Web.Api.Contracts.ApiError>(notFound.Value);
     }
 
     [Fact]

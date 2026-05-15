@@ -183,7 +183,7 @@ public sealed class RiskEventsApiController : ApiControllerBase
 
         if (!riskEvent.GrowId.HasValue)
         {
-            return BadRequest(new ApiError("risk_event_has_no_grow", "RiskEvent hat keinen Grow-Bezug. SOP-Start benoetigt GrowId."));
+            return BadRequestError("risk_event_has_no_grow", "RiskEvent hat keinen Grow-Bezug. SOP-Start benoetigt GrowId.");
         }
 
         var sop = _knowledgeBase.Sops.FirstOrDefault(item => string.Equals(item.Id, request.SopId, StringComparison.OrdinalIgnoreCase));
@@ -224,7 +224,7 @@ public sealed class RiskEventsApiController : ApiControllerBase
         }
         catch (InvalidOperationException)
         {
-            return Conflict(new ApiError("active_sop_exists", "Fuer diesen Grow ist diese SOP bereits aktiv."));
+            return ConflictError("active_sop_exists", "Fuer diesen Grow ist diese SOP bereits aktiv.");
         }
     }
 
