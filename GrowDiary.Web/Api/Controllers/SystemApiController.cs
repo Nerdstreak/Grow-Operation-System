@@ -30,7 +30,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new BackendHealthDto(
             AppName: "Grow OS",
-            BackendSchema: "backend-core.v0.11-candidate",
+            BackendSchema: "backend-core.v0.12-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             TentCount: tents.Count,
             HydroSetupCount: hydroSetups.Count,
@@ -58,7 +58,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "admin-key-remote-guard",
                 "schema-migration-status",
                 "upgrade-preflight-backup",
-                "backup-restore-plan"
+                "backup-restore-plan",
+                "grow-import-plan"
             }));
     }
 
@@ -87,6 +88,7 @@ public sealed class SystemApiController : ApiControllerBase
             new("migration_status", "pass", "Das Backend protokolliert angewendete Schema-Migrationen und zeigt offene Migrationen an."),
             new("upgrade_preflight", "pass", "Vor einem Update kann ein Preflight mit Datenbankstatus, Migrationstatus und validiertem Backup ausgeführt werden."),
             new("restore_plan", "pass", "Backups können als Restore-Dry-Run analysiert werden, ohne Dateien zu überschreiben."),
+            new("grow_import_plan", "pass", "Grow-Exports können als Import-Dry-Run analysiert werden, ohne Daten zu schreiben."),
             new("restore_api", "todo", "Ein destruktiver Restore-Flow ist noch nicht implementiert; Restore-Planung ist nur Read-only."),
             new("migration_engine", "partial", "Schema-Migrationen werden protokolliert; destructive Rollbacks und echte Restore-/Rollback-Automation fehlen noch."),
             new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
@@ -94,8 +96,8 @@ public sealed class SystemApiController : ApiControllerBase
         };
 
         return Ok(new BackendReleaseReadinessDto(
-            Status: "backend.v0.11-ready-not-v1.0",
-            BackendSchema: "backend-core.v0.11-candidate",
+            Status: "backend.v0.12-ready-not-v1.0",
+            BackendSchema: "backend-core.v0.12-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
             CompletedFoundations: new[]
@@ -120,13 +122,15 @@ public sealed class SystemApiController : ApiControllerBase
                 "admin-key-remote-guard",
                 "schema-migration-status",
                 "upgrade-preflight-backup",
-                "backup-restore-plan"
+                "backup-restore-plan",
+                "grow-import-plan"
             },
             RemainingBeforeV1: new[]
             {
                 "destructive-restore-flow",
                 "destructive-migration-rollback",
                 "restore-flow",
+                "destructive-grow-import-execute",
                 "grow-export-import-merge",
                 "user-auth-session-management",
                 "uniform-error-format-across-all-controllers",
@@ -145,6 +149,7 @@ public sealed class SystemApiController : ApiControllerBase
             "HydroSetups sind im MVP DWC/RDWC-only.",
             "Secrets wie Home-Assistant-Tokens dürfen nicht in API-Responses, Exports oder Backups erscheinen.",
             "Grow-Exports müssen SectionCounts und IntegrityHash tragen, bevor sie importiert werden dürfen.",
+            "Import-Planung ist ein Dry-Run und schreibt keine Daten in die Datenbank.",
             "Administrative System-, Settings- und Export-Endpunkte sind lokal/admin-geschützt.",
             "Remote-Adminzugriff ist standardmaessig blockiert und erfordert Admin-Key oder bewusste Override-Variable.",
             "Upgrade-Preflight erstellt vor riskanten Updates ein validierbares Backup.",
@@ -229,6 +234,7 @@ public sealed class SystemApiController : ApiControllerBase
                 {
                     Endpoint("GET", "/api/exports/grows/{id}", "Grow exportieren.", true, "anonymize=true entfernt/neutralisiert nutzerbezogene Angaben.", "Export enthält ExportId, SectionCounts und IntegrityHash."),
                     Endpoint("POST", "/api/exports/grows/validate", "Grow-Export validieren, ohne Daten zu importieren.", true, "Prüft SchemaVersion, SectionCounts, IntegrityHash und potenzielle Secrets."),
+                    Endpoint("POST", "/api/exports/grows/import-plan", "Grow-Export als Import-Dry-Run analysieren, ohne Daten zu schreiben.", true, "Plant neue lokale IDs, Snapshot-Behandlung und Konflikte."),
                     Endpoint("GET", "/api/system/backend-health", "Backend-Zustand und Capabilities laden.", false),
                     Endpoint("GET", "/api/system/release-readiness", "Release-Readiness prüfen.", true),
                     Endpoint("GET", "/api/system/database-status", "Datenbankstatus und Pflichtschema prüfen.", true),
@@ -245,7 +251,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new ApiManifestDto(
             SchemaVersion: "grow-os.api-manifest.v1",
-            BackendSchema: "backend-core.v0.11-candidate",
+            BackendSchema: "backend-core.v0.12-candidate",
             GeneratedAtUtc: DateTime.UtcNow,
             GlobalRules: globalRules,
             Areas: areas));

@@ -114,6 +114,56 @@ public sealed class GrowExportsApiControllerTests : IDisposable
         Assert.Contains(dto.Errors, error => error.Contains("Secrets", StringComparison.OrdinalIgnoreCase));
     }
 
+
+    [Fact]
+    public void ImportPlan_ForValidExportPlansImportWithoutWritingData()
+    {
+        var growId = CreateGrowWithOperations();
+        var export = Export(growId);
+
+        var beforeCount = _repository.GetAllGrows().Count;
+        var result = _controller.CreateImportPlan(export);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<GrowImportPlanDto>(ok.Value);
+        Assert.Equal("grow-os.grow-import-plan.v1", dto.ImportPlanSchema);
+        Assert.True(dto.ExportValid);
+        Assert.False(dto.ImportSupported);
+        Assert.False(dto.WouldModifyDatabase);
+        Assert.Equal(export.ExportId, dto.ExportId);
+        Assert.Equal(export.SectionCounts, dto.SectionCounts);
+        Assert.Contains(dto.PlannedItems, item => item.Kind == "grow" && item.Action == "create-new-local-grow" && item.Count == 1);
+        Assert.Contains(dto.PlannedItems, item => item.Kind == "measurements" && item.Count == 1);
+        Assert.Contains(dto.PlannedItems, item => item.Kind == "addback-logs" && item.Count == 1);
+        Assert.Contains(dto.PlannedItems, item => item.Kind == "changeouts" && item.Count == 1);
+        Assert.Contains(dto.Conflicts, conflict => conflict.Kind == "possible-duplicate-grow");
+        Assert.Equal(beforeCount, _repository.GetAllGrows().Count);
+    }
+
+    [Fact]
+    public void ImportPlan_ForInvalidExportReturnsBlockersAndDoesNotPlanWrites()
+    {
+        var growId = CreateGrowWithOperations();
+        var export = Export(growId);
+        var tampered = export with
+        {
+            SectionCounts = export.SectionCounts with { AddbackLogs = export.SectionCounts.AddbackLogs + 1 }
+        };
+
+        var beforeCount = _repository.GetAllGrows().Count;
+        var result = _controller.CreateImportPlan(tampered);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<GrowImportPlanDto>(ok.Value);
+        Assert.False(dto.ExportValid);
+        Assert.False(dto.ImportSupported);
+        Assert.False(dto.WouldModifyDatabase);
+        Assert.Empty(dto.PlannedItems);
+        Assert.Contains(dto.Blockers, blocker => blocker.Contains("SectionCounts", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(dto.Blockers, blocker => blocker.Contains("IntegrityHash", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(beforeCount, _repository.GetAllGrows().Count);
+    }
+
     private GrowExportDto Export(int growId)
     {
         var result = _controller.ExportGrow(growId);
