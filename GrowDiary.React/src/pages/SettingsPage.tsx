@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CreateStrainRequest, HomeAssistantSettingsDto, StrainDominance, StrainDto } from '../types'
+import type { CreateStrainRequest, StrainDominance, StrainDto } from '../types'
 
 type StrainDraft = {
   name: string
@@ -19,10 +19,8 @@ type StrainDraft = {
 const strainDominanceOptions: StrainDominance[] = ['Unknown', 'Indica', 'Sativa', 'Hybrid']
 
 function SettingsPage() {
-  const [homeAssistant, setHomeAssistant] = useState<HomeAssistantSettingsDto>({ baseUrl: '', accessToken: '', enabled: false })
   const [strains, setStrains] = useState<StrainDto[]>([])
   const [strainDraft, setStrainDraft] = useState<StrainDraft>(createStrainDraft())
-  const [showToken, setShowToken] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -35,11 +33,7 @@ function SettingsPage() {
       setLoading(true)
       setError(null)
       try {
-        const [ha, strainItems] = await Promise.all([
-          apiFetch<HomeAssistantSettingsDto>('/api/settings/home-assistant', { signal: controller.signal }),
-          apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal }),
-        ])
-        setHomeAssistant(ha)
+        const strainItems = await apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal })
         setStrains(strainItems)
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatApiError(caught, 'Einstellungen konnten nicht geladen werden.'))
@@ -51,27 +45,6 @@ function SettingsPage() {
     void load()
     return () => controller.abort()
   }, [])
-
-  async function handleHomeAssistantSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setSaving('ha')
-    setError(null)
-    try {
-      const saved = await apiFetch<HomeAssistantSettingsDto>('/api/settings/home-assistant', {
-        method: 'PUT',
-        body: JSON.stringify({
-          baseUrl: toNullableString(homeAssistant.baseUrl ?? ''),
-          accessToken: toNullableString(homeAssistant.accessToken ?? ''),
-          enabled: homeAssistant.enabled,
-        }),
-      })
-      setHomeAssistant(saved)
-    } catch (caught) {
-      setError(formatApiError(caught, 'Home Assistant konnte nicht gespeichert werden.'))
-    } finally {
-      setSaving(null)
-    }
-  }
 
   async function handleCreateStrain(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -109,120 +82,102 @@ function SettingsPage() {
   }
 
   return (
-    <div className="page-scroll">
-      <div className="settings-page settings-page-clean">
-        <header className="systems-header">
-          <div>
-            <div className="live-kicker">Konfiguration</div>
-            <h1>Einstellungen</h1>
-          </div>
-        </header>
+    <main className="page-scroll app-page settings-page settings-page-clean">
+      <header className="control-header">
+        <div>
+          <span className="control-kicker">App</span>
+          <h1>Einstellungen</h1>
+        </div>
+      </header>
 
-        {error && (
-          <div className="alert-bar">
-            <div className="alert-dot" />
-            <strong>Fehler</strong>
-            <span>{error}</span>
-          </div>
-        )}
+      {error && (
+        <div className="alert-bar">
+          <div className="alert-dot" />
+          <strong>Fehler</strong>
+          <span>{error}</span>
+        </div>
+      )}
 
-        {loading ? (
-          <div className="empty-hint">Lade Einstellungen...</div>
-        ) : (
-          <>
-            <section className="admin-section">
-              <div className="section-label">Home Assistant</div>
-              <form className="admin-card" onSubmit={(event) => void handleHomeAssistantSubmit(event)}>
-                <label className="field">
-                  <span>Base URL</span>
-                  <input value={homeAssistant.baseUrl ?? ''} onChange={(event) => setHomeAssistant((current) => ({ ...current, baseUrl: event.target.value }))} placeholder="http://homeassistant.local:8123" />
-                </label>
-                <label className="field">
-                  <span>Access Token</span>
-                  <div className="settings-token-row">
-                    <input type={showToken ? 'text' : 'password'} value={homeAssistant.accessToken ?? ''} onChange={(event) => setHomeAssistant((current) => ({ ...current, accessToken: event.target.value }))} autoComplete="off" />
-                    <button type="button" className="btn" onClick={() => setShowToken((current) => !current)}>{showToken ? 'Verbergen' : 'Anzeigen'}</button>
-                  </div>
-                </label>
-                <label className="switch-row">
-                  <input type="checkbox" checked={homeAssistant.enabled} onChange={(event) => setHomeAssistant((current) => ({ ...current, enabled: event.target.checked }))} />
-                  <span>Home Assistant aktivieren</span>
-                </label>
-                <div className="systems-form-actions">
-                  <button type="submit" className="btn btn-primary" disabled={saving === 'ha'}>{saving === 'ha' ? 'Speichert...' : 'Speichern'}</button>
-                </div>
-              </form>
-            </section>
+      {loading ? (
+        <div className="empty-hint">Lade Einstellungen...</div>
+      ) : (
+        <>
+          <section className="admin-section">
+            <div className="section-label">Verwaltung</div>
+            <div className="settings-link-grid">
+              <Link className="admin-card settings-link-card" to="/home-assistant">
+                <strong>Home Assistant</strong>
+                <span>Verbindung, Kamera und Entitäten zentral verwalten.</span>
+              </Link>
+              <Link className="admin-card settings-link-card" to="/zelte">
+                <strong>Zelte</strong>
+                <span>Physische Räume, Größe, Licht und Klima.</span>
+              </Link>
+              <Link className="admin-card settings-link-card" to="/hydro">
+                <strong>Hydro</strong>
+                <span>DWC/RDWC-Systeme, Tank, Sites und Layout.</span>
+              </Link>
+              <Link className="admin-card settings-link-card" to="/hardware">
+                <strong>Hardware</strong>
+                <span>Sensoren, Pumpen, Wartung und Kalibrierung.</span>
+              </Link>
+              <Link className="admin-card settings-link-card" to="/wissen">
+                <strong>Wissen</strong>
+                <span>SOPs, Treatments, Symptome und Setpoints.</span>
+              </Link>
+            </div>
+          </section>
 
-            <section className="admin-section">
-              <div className="section-label">Strains</div>
-              <form className="admin-card settings-strain-form" onSubmit={(event) => void handleCreateStrain(event)}>
-                <label className="field">
-                  <span>Name</span>
-                  <input value={strainDraft.name} onChange={(event) => setStrainDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Blue Dream" />
-                </label>
-                <label className="field">
-                  <span>Breeder</span>
-                  <input value={strainDraft.breeder} onChange={(event) => setStrainDraft((current) => ({ ...current, breeder: event.target.value }))} />
-                </label>
-                <label className="field">
-                  <span>Dominanz</span>
-                  <select value={strainDraft.dominance} onChange={(event) => setStrainDraft((current) => ({ ...current, dominance: event.target.value as StrainDominance }))}>
-                    {strainDominanceOptions.map((value) => <option key={value} value={value}>{formatDominance(value)}</option>)}
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Blüte min.</span>
-                  <input type="number" value={strainDraft.flowerWeeksMin} onChange={(event) => setStrainDraft((current) => ({ ...current, flowerWeeksMin: event.target.value }))} />
-                </label>
-                <label className="field">
-                  <span>Blüte max.</span>
-                  <input type="number" value={strainDraft.flowerWeeksMax} onChange={(event) => setStrainDraft((current) => ({ ...current, flowerWeeksMax: event.target.value }))} />
-                </label>
-                <label className="field settings-form-wide">
-                  <span>Notizen</span>
-                  <textarea rows={3} value={strainDraft.notes} onChange={(event) => setStrainDraft((current) => ({ ...current, notes: event.target.value }))} />
-                </label>
-                {strainError && <div className="systems-form-error settings-form-wide">{strainError}</div>}
-                <div className="systems-form-actions settings-form-wide">
-                  <button className="btn btn-primary" disabled={saving === 'strain'}>{saving === 'strain' ? 'Speichert...' : 'Strain anlegen'}</button>
-                </div>
-              </form>
-
-              <div className="settings-strain-list">
-                {strains.length === 0 ? (
-                  <div className="empty-hint">Keine Strains angelegt.</div>
-                ) : strains.map((strain) => (
-                  <article key={strain.id} className="admin-card settings-strain-card">
-                    <strong>{strain.name}</strong>
-                    <span>{strain.breeder ?? 'Ohne Breeder'} · {formatDominance(strain.dominance)}</span>
-                    {(strain.flowerWeeksMin || strain.flowerWeeksMax) && <span>Blüte {strain.flowerWeeksMin ?? '?'}–{strain.flowerWeeksMax ?? '?'} Wochen</span>}
-                  </article>
-                ))}
+          <section className="admin-section">
+            <div className="section-label">Strains</div>
+            <form className="admin-card settings-strain-form" onSubmit={(event) => void handleCreateStrain(event)}>
+              <label className="field">
+                <span>Name</span>
+                <input value={strainDraft.name} onChange={(event) => setStrainDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Blue Dream" />
+              </label>
+              <label className="field">
+                <span>Breeder</span>
+                <input value={strainDraft.breeder} onChange={(event) => setStrainDraft((current) => ({ ...current, breeder: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>Dominanz</span>
+                <select value={strainDraft.dominance} onChange={(event) => setStrainDraft((current) => ({ ...current, dominance: event.target.value as StrainDominance }))}>
+                  {strainDominanceOptions.map((value) => <option key={value} value={value}>{formatDominance(value)}</option>)}
+                </select>
+              </label>
+              <label className="field">
+                <span>Blüte min.</span>
+                <input type="number" value={strainDraft.flowerWeeksMin} onChange={(event) => setStrainDraft((current) => ({ ...current, flowerWeeksMin: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>Blüte max.</span>
+                <input type="number" value={strainDraft.flowerWeeksMax} onChange={(event) => setStrainDraft((current) => ({ ...current, flowerWeeksMax: event.target.value }))} />
+              </label>
+              <label className="field settings-form-wide">
+                <span>Notizen</span>
+                <textarea rows={3} value={strainDraft.notes} onChange={(event) => setStrainDraft((current) => ({ ...current, notes: event.target.value }))} />
+              </label>
+              {strainError && <div className="systems-form-error settings-form-wide">{strainError}</div>}
+              <div className="systems-form-actions settings-form-wide">
+                <button className="btn btn-primary" disabled={saving === 'strain'}>{saving === 'strain' ? 'Speichert...' : 'Strain anlegen'}</button>
               </div>
-            </section>
+            </form>
 
-            <section className="admin-section">
-              <div className="section-label">Verwaltung</div>
-              <div className="settings-link-grid">
-                <Link className="admin-card settings-link-card" to="/zelte">
-                  <strong>Zelte & Systeme</strong>
-                  <span>Grow-Zelte und DWC/RDWC-Hydro-Setups verwalten.</span>
-                </Link>
-                <Link className="admin-card settings-link-card" to="/hardware">
-                  <strong>Hardware</strong>
-                  <span>Sensoren, Pumpen, Wartung, Kalibrierung und Risiken.</span>
-                </Link>
-                <Link className="admin-card settings-link-card" to="/wissen">
-                  <strong>Wissen</strong>
-                  <span>SOPs, Treatments, Symptome, Setpoints und Wear-Hinweise.</span>
-                </Link>
-              </div>
-            </section>
-          </>
-        )}
-      </div>
-    </div>
+            <div className="settings-strain-list">
+              {strains.length === 0 ? (
+                <div className="empty-hint">Keine Strains angelegt.</div>
+              ) : strains.map((strain) => (
+                <article key={strain.id} className="admin-card settings-strain-card">
+                  <strong>{strain.name}</strong>
+                  <span>{strain.breeder ?? 'Ohne Breeder'} · {formatDominance(strain.dominance)}</span>
+                  {(strain.flowerWeeksMin || strain.flowerWeeksMax) && <span>Blüte {strain.flowerWeeksMin ?? '?'}–{strain.flowerWeeksMax ?? '?'} Wochen</span>}
+                </article>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
+    </main>
   )
 }
 

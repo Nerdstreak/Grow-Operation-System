@@ -22,7 +22,7 @@ const tentMetrics: MetricDefinition[] = [
   { key: 'temperature', label: 'Luft', unit: '°C', priority: true },
   { key: 'humidity', label: 'RLF', unit: '%', priority: true },
   { key: 'vpd', label: 'VPD', unit: 'kPa', priority: true },
-  { key: 'ppfd', label: 'PPFD', unit: 'µmol', priority: true },
+  { key: 'ppfd', label: 'PPFD', unit: 'µmol/m²/s', priority: true },
   { key: 'co2', label: 'CO₂', unit: 'ppm' },
   { key: 'light-cycle', label: 'Licht', unit: null },
 ]
@@ -31,7 +31,7 @@ const reservoirMetrics: MetricDefinition[] = [
   { key: 'reservoir-ph', label: 'pH', unit: null, priority: true },
   { key: 'reservoir-ec', label: 'EC', unit: 'mS/cm', priority: true },
   { key: 'reservoir-temp', label: 'Wasser', unit: '°C', priority: true },
-  { key: 'reservoir-level', label: 'Level', unit: null, priority: true },
+  { key: 'reservoir-level', label: 'Level', unit: 'L/cm', priority: true },
   { key: 'orp', label: 'ORP', unit: 'mV' },
   { key: 'dissolved-oxygen', label: 'DO', unit: 'mg/L' },
 ]
@@ -194,21 +194,26 @@ function MetricGroup({ title, metrics }: { title: string; metrics: MetricPayload
 }
 
 function MetricTile({ metric }: { metric: MetricPayload }) {
+  const showUnit = Boolean(metric.unit && metric.value !== '–')
   return (
     <div className={classNames('ops-metric', metric.tone === 'danger' && 'is-critical', metric.tone === 'warning' && 'is-warning', metric.tone === 'success' && 'is-ok')}>
       <span>{metric.label}</span>
-      <strong>{metric.value}</strong>
-      <small>{metric.hint ?? metric.unit ?? ' '}</small>
+      <div className="ops-metric-value">
+        <strong>{metric.value}</strong>
+        {showUnit && <em>{metric.unit}</em>}
+      </div>
+      <small>{metric.hint ?? ' '}</small>
     </div>
   )
 }
 
 function CameraPanel({ camera }: { camera: { tent: TentDto; live: TentLivePayload } }) {
   if (!camera.live.cameraUrl) return null
+  const cameraUrl = resolveCameraUrl(camera.live.cameraUrl)
   return (
     <section className="camera-panel">
       <div className="camera-frame">
-        <img src={camera.live.cameraUrl} alt={camera.tent.name} />
+        <img src={cameraUrl} alt={camera.tent.name} />
         <span className="camera-badge">Live</span>
       </div>
       <div className="camera-side">
@@ -257,6 +262,14 @@ function mapMetrics(metrics: MetricPayload[], definitions: MetricDefinition[]): 
     if (!mapped) return { key: definition.key, label: definition.label, value: '–', unit: definition.unit, tone: 'neutral', hint: null }
     return { ...mapped, label: definition.label, unit: mapped.unit ?? definition.unit }
   })
+}
+
+function resolveCameraUrl(url: string): string {
+  if (/^https?:\/\//i.test(url)) return url
+  if (import.meta.env.DEV && window.location.port === '5173') {
+    return `http://${window.location.hostname}:5076${url}`
+  }
+  return url
 }
 
 function findPrimaryCamera(tents: TentDto[], liveByTentId: Record<number, TentLivePayload>): { tent: TentDto; live: TentLivePayload } | null {
