@@ -1,3 +1,4 @@
+using System.Text.Json;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 using Microsoft.Data.Sqlite;
@@ -234,6 +235,73 @@ public sealed class GrowRepositoryTests : IDisposable
         var loaded = repo.GetGrow(growId)!;
         Assert.Equal(system.Id, loaded.SystemId);
         Assert.Equal("Edited Grow", loaded.Name);
+    }
+
+    [Fact]
+    public void CreateGrow_WithTentAndHydroSetup_CapturesImmutableSnapshots()
+    {
+        var repo = new GrowRepository(_paths);
+        var tent = repo.GetTents().Single();
+        repo.AddTentSensor(new TentSensor
+        {
+            TentId = tent.Id,
+            MetricType = SensorMetricType.ReservoirPh,
+            HaEntityId = "sensor.reservoir_ph",
+            DisplayLabel = "pH",
+            IsActive = true
+        });
+
+        var hydroSetup = repo.CreateHydroSetup(new GrowSystem
+        {
+            TentId = tent.Id,
+            Name = "RDWC Snapshot System",
+            HydroStyle = HydroStyle.RDWC.ToString(),
+            PotCount = 4,
+            PotSizeLiters = 19,
+            ReservoirLiters = 60,
+            LayoutType = HydroSetupLayoutType.Grid2x2,
+            ReservoirPosition = ReservoirPosition.Left,
+            HasAirPump = true,
+            Status = HydroSetupStatus.Active
+        });
+
+        var growId = repo.CreateGrow(new GrowRun
+        {
+            TentId = tent.Id,
+            SystemId = hydroSetup.Id,
+            Name = "Snapshot Grow",
+            StartDate = new DateTime(2026, 1, 1),
+            Status = GrowStatus.Planning,
+            MediumType = MediumType.Hydro,
+            HydroStyle = HydroStyle.RDWC
+        });
+
+        var loaded = repo.GetGrow(growId)!;
+        Assert.NotNull(loaded.SnapshotsCapturedAtUtc);
+        Assert.False(string.IsNullOrWhiteSpace(loaded.TentSnapshotJson));
+        Assert.False(string.IsNullOrWhiteSpace(loaded.HydroSetupSnapshotJson));
+
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var tentSnapshot = JsonSerializer.Deserialize<GrowTentSnapshot>(loaded.TentSnapshotJson!, jsonOptions);
+        var hydroSnapshot = JsonSerializer.Deserialize<GrowHydroSetupSnapshot>(loaded.HydroSetupSnapshotJson!, jsonOptions);
+
+        Assert.NotNull(tentSnapshot);
+        Assert.Equal(tent.Id, tentSnapshot!.Id);
+        Assert.Contains(tentSnapshot.Sensors, sensor => sensor.MetricType == SensorMetricType.ReservoirPh && sensor.HaEntityId == "sensor.reservoir_ph");
+
+        Assert.NotNull(hydroSnapshot);
+        Assert.Equal(hydroSetup.Id, hydroSnapshot!.Id);
+        Assert.Equal(4, hydroSnapshot.PotCount);
+        Assert.Equal(60d, hydroSnapshot.ReservoirLiters.GetValueOrDefault());
+        Assert.Equal(136d, hydroSnapshot.TotalVolumeLiters.GetValueOrDefault());
+
+        hydroSetup.ReservoirLiters = 80;
+        repo.UpdateHydroSetup(hydroSetup);
+
+        var reloaded = repo.GetGrow(growId)!;
+        var unchangedHydroSnapshot = JsonSerializer.Deserialize<GrowHydroSetupSnapshot>(reloaded.HydroSetupSnapshotJson!, jsonOptions);
+        Assert.Equal(60d, unchangedHydroSnapshot!.ReservoirLiters.GetValueOrDefault());
+        Assert.Equal(136d, unchangedHydroSnapshot.TotalVolumeLiters.GetValueOrDefault());
     }
 
     private SqliteConnection OpenConnection()

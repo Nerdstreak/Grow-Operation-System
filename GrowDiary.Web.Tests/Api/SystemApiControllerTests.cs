@@ -36,13 +36,13 @@ public sealed class SystemApiControllerTests : IDisposable
     }
 
     [Fact]
-    public void ReleaseReadiness_ReturnsBackendV17CandidateAndRemainingV1Items()
+    public void ReleaseReadiness_ReturnsBackendV18CandidateAndRemainingV1Items()
     {
         var result = _controller.ReleaseReadiness();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<BackendReleaseReadinessDto>(ok.Value);
-        Assert.Equal("backend.v0.17-ready-not-v1.0", dto.Status);
+        Assert.Equal("backend.v0.18-ready-not-v1.0", dto.Status);
         Assert.Contains(dto.CompletedFoundations, value => value == "zero-tent-startup");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-v1");
         Assert.Contains(dto.CompletedFoundations, value => value == "api-contract-manifest");
@@ -129,7 +129,7 @@ public sealed class SystemApiControllerTests : IDisposable
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<ApiManifestDto>(ok.Value);
         Assert.Equal("grow-os.api-manifest.v1", dto.SchemaVersion);
-        Assert.Equal("backend-core.v0.17-candidate", dto.BackendSchema);
+        Assert.Equal("backend-core.v0.18-candidate", dto.BackendSchema);
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("HydroSetup", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("Remote-Adminzugriff", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.Areas, area => area.Key == "tents");
@@ -193,6 +193,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0016-legacy-mvc-containment");
         Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0017-product-api-remote-guard");
         Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0018-migration-engine-foundation");
+        Assert.Contains(dto.AppliedMigrations, migration => migration.Id == "0019-grow-run-snapshots");
     }
 
     [Fact]
@@ -207,6 +208,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.False(dto.ApplySupported);
         Assert.False(dto.WouldModifyDatabase);
         Assert.Contains(dto.Items, item => item.Id == "0018-migration-engine-foundation" && item.RequiresBackup);
+        Assert.Contains(dto.Items, item => item.Id == "0019-grow-run-snapshots" && !item.RequiresBackup);
         Assert.Contains(dto.Warnings, warning => warning.Contains("Dry-Run", StringComparison.OrdinalIgnoreCase));
     }
 
@@ -308,6 +310,9 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains("Tents", dto.RequiredTablesPresent);
         Assert.Contains("GrowSystems", dto.RequiredTablesPresent);
         Assert.Contains("Grows.SystemId", dto.RequiredColumnsPresent);
+        Assert.Contains("Grows.TentSnapshotJson", dto.RequiredColumnsPresent);
+        Assert.Contains("Grows.HydroSetupSnapshotJson", dto.RequiredColumnsPresent);
+        Assert.Contains("Grows.SnapshotsCapturedAtUtc", dto.RequiredColumnsPresent);
         Assert.Contains("HardwareItems.HydroSetupId", dto.RequiredColumnsPresent);
         Assert.Empty(dto.MissingRequiredTables);
         Assert.Empty(dto.MissingRequiredColumns);

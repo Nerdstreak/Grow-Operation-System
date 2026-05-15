@@ -34,7 +34,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new BackendHealthDto(
             AppName: "Grow OS",
-            BackendSchema: "backend-core.v0.17-candidate",
+            BackendSchema: "backend-core.v0.18-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             TentCount: tents.Count,
             HydroSetupCount: hydroSetups.Count,
@@ -69,7 +69,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "legacy-mvc-endpoint-containment",
                 "remote-product-api-guard",
                 "schema-migration-plan",
-                "safe-migration-engine-foundation"
+                "safe-migration-engine-foundation",
+                "grow-run-snapshots"
             }));
     }
 
@@ -105,14 +106,15 @@ public sealed class SystemApiController : ApiControllerBase
             new("remote_product_api_guard", "pass", "Produkt-APIs sind bei Remote-Zugriff ebenfalls lokal/admin-geschuetzt; Mobile/PWA muss fuer echten Remote-Betrieb einen sicheren Zugriffskanal nutzen."),
             new("restore_api", "todo", "Ein destruktiver Restore-Flow ist noch nicht implementiert; Restore-Planung ist nur Read-only."),
             new("migration_engine_foundation", "pass", "Migrationen besitzen einen maschinenlesbaren Plan, Backup-Pflicht und Destructive-Guardrails als Fundament."),
+            new("grow_snapshots", "pass", "Neue Grows speichern unveränderliche Zelt- und HydroSetup-Snapshots für stabile Vergleiche und Exporte."),
             new("migration_engine", "partial", "Schema-Migrationen werden protokolliert; destructive Rollbacks und echte Restore-/Rollback-Automation fehlen noch."),
             new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
             new("import_merge", "todo", "Import und Merge von Grow-Exports sind noch nicht implementiert.")
         };
 
         var dto = new BackendReleaseReadinessDto(
-            Status: "backend.v0.17-ready-not-v1.0",
-            BackendSchema: "backend-core.v0.17-candidate",
+            Status: "backend.v0.18-ready-not-v1.0",
+            BackendSchema: "backend-core.v0.18-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
             CompletedFoundations: new[]
@@ -144,7 +146,8 @@ public sealed class SystemApiController : ApiControllerBase
                 "legacy-mvc-endpoint-containment",
                 "remote-product-api-guard",
                 "schema-migration-plan",
-                "safe-migration-engine-foundation"
+                "safe-migration-engine-foundation",
+                "grow-run-snapshots"
             },
             RemainingBeforeV1: new[]
             {
@@ -287,7 +290,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         var dto = new ApiManifestDto(
             SchemaVersion: "grow-os.api-manifest.v1",
-            BackendSchema: "backend-core.v0.17-candidate",
+            BackendSchema: "backend-core.v0.18-candidate",
             GeneratedAtUtc: DateTime.UtcNow,
             GlobalRules: globalRules,
             Areas: areas);
@@ -413,7 +416,7 @@ public sealed class SystemApiController : ApiControllerBase
         {
             ["Tents"] = new[] { "Id", "Name", "TentType", "Status", "UpdatedAtUtc" },
             ["GrowSystems"] = new[] { "Id", "TentId", "HydroStyle", "PotCount", "PotSizeLiters", "ReservoirLiters", "Status", "LayoutType", "ReservoirPosition" },
-            ["Grows"] = new[] { "Id", "TentId", "SystemId", "HydroStyle", "ReservoirSize", "ContainerSize" },
+            ["Grows"] = new[] { "Id", "TentId", "SystemId", "HydroStyle", "ReservoirSize", "ContainerSize", "TentSnapshotJson", "HydroSetupSnapshotJson", "SnapshotsCapturedAtUtc" },
             ["HardwareItems"] = new[] { "Id", "TentId", "HydroSetupId", "Name", "Category", "Status" },
             ["AddbackLogs"] = new[] { "Id", "GrowId", "HydroSetupId", "Kind", "PerformedAtUtc", "ReservoirLiters", "EcBefore", "EcTarget", "LitersAdded", "CreatedAtUtc" },
             ["ChangeoutEntries"] = new[] { "Id", "GrowId", "HydroSetupId", "Kind", "PerformedAtUtc", "VolumeChangedLiters", "Notes", "CreatedAtUtc" },

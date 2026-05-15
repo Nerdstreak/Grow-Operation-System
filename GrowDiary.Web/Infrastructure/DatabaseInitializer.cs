@@ -6,7 +6,7 @@ namespace GrowDiary.Web.Infrastructure;
 
 public sealed class DatabaseInitializer
 {
-    public const string CurrentSchemaVersion = "backend-core.v0.17-candidate";
+    public const string CurrentSchemaVersion = "backend-core.v0.18-candidate";
     public const string CurrentSchemaAppSettingKey = "backend:schemaVersion";
     public const string LastMigrationUtcAppSettingKey = "backend:lastMigrationUtc";
 
@@ -29,7 +29,8 @@ public sealed class DatabaseInitializer
         new SchemaMigrationDescriptor("0015-api-error-format", "Uniform API error contract for backend endpoints", CurrentSchemaVersion),
         new SchemaMigrationDescriptor("0016-legacy-mvc-containment", "Legacy MVC endpoint containment for backup/export/camera routes", CurrentSchemaVersion),
         new SchemaMigrationDescriptor("0017-product-api-remote-guard", "Product API remote access guardrails", CurrentSchemaVersion),
-        new SchemaMigrationDescriptor("0018-migration-engine-foundation", "Idempotent migration engine foundation and destructive migration guardrails", CurrentSchemaVersion, RequiresBackup: true)
+        new SchemaMigrationDescriptor("0018-migration-engine-foundation", "Idempotent migration engine foundation and destructive migration guardrails", CurrentSchemaVersion, RequiresBackup: true),
+        new SchemaMigrationDescriptor("0019-grow-run-snapshots", "Immutable grow tent and HydroSetup snapshots for comparison-safe exports", CurrentSchemaVersion)
     };
 
     private readonly AppPaths _paths;
@@ -134,7 +135,10 @@ public sealed class DatabaseInitializer
                 StartDate TEXT NOT NULL,
                 EndDate TEXT NULL,
                 CreatedAtUtc TEXT NOT NULL,
-                UpdatedAtUtc TEXT NOT NULL
+                UpdatedAtUtc TEXT NOT NULL,
+                TentSnapshotJson TEXT NULL,
+                HydroSetupSnapshotJson TEXT NULL,
+                SnapshotsCapturedAtUtc TEXT NULL
             );
 
             CREATE TABLE IF NOT EXISTS Measurements (
@@ -778,6 +782,9 @@ public sealed class DatabaseInitializer
         // Sprint 10
         EnsureColumn(connection, "Grows", "GerminatedAt", "TEXT NULL");
         EnsureColumn(connection, "Grows", "RootedAt",     "TEXT NULL");
+        EnsureColumn(connection, "Grows", "TentSnapshotJson", "TEXT NULL");
+        EnsureColumn(connection, "Grows", "HydroSetupSnapshotJson", "TEXT NULL");
+        EnsureColumn(connection, "Grows", "SnapshotsCapturedAtUtc", "TEXT NULL");
         // Group D — GrowSystems table first, then Grows FK column
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS GrowSystems (

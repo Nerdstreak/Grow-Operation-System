@@ -6,15 +6,23 @@ public sealed record GrowTentSnapshot(
     string Kind,
     TentType TentType,
     TentStatus Status,
+    string? Notes,
+    int DisplayOrder,
+    string AccentColor,
     int? WidthCm,
     int? DepthCm,
     int? TentHeightCm,
     string? LightType,
     int? LightWatt,
+    LightControllerType? LightController,
+    string? LightControllerEntityId,
     int? ExhaustFanCount,
     int? ExhaustM3h,
     int? CirculationFanCount,
+    HvacControllerType? HvacController,
+    string? HvacControllerEntityId,
     bool Co2Available,
+    string? CameraEntityId,
     IReadOnlyList<GrowTentSensorSnapshot> Sensors);
 
 public sealed record GrowTentSensorSnapshot(
@@ -44,4 +52,7 @@ public sealed record GrowHydroSetupSnapshot(
     int? AirStoneCount,
     bool HasChiller,
     bool HasUvSterilizer,
-    string? Notes);
+    string? Notes,
+    int DisplayOrder,
+    DateTime CreatedAtUtc,
+    DateTime UpdatedAtUtc);

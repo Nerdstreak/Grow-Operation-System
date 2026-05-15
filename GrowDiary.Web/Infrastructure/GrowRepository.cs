@@ -9,6 +9,8 @@ namespace GrowDiary.Web.Infrastructure;
 
 public sealed class GrowRepository
 {
+    private static readonly JsonSerializerOptions SnapshotJsonOptions = new(JsonSerializerDefaults.Web);
+
     private readonly AppPaths _paths;
 
     public GrowRepository(AppPaths paths)
@@ -2384,6 +2386,7 @@ public sealed class GrowRepository
     {
         grow.CreatedAtUtc = DateTime.UtcNow;
         grow.UpdatedAtUtc = DateTime.UtcNow;
+        CaptureGrowSnapshots(grow);
 
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
@@ -2396,7 +2399,8 @@ public sealed class GrowRepository
                 BreederFlowerWeeksMin, BreederFlowerWeeksMax, PlantCount, PhenoNumber,
                 PropagationMedium, HasChiller, EntryPoint, DaysAlreadyInPhase,
                 AutoflowerDaysSinceGermination, FlipDate, GerminatedAt, RootedAt,
-                Nutrients, Notes, StartDate, EndDate, CreatedAtUtc, UpdatedAtUtc
+                Nutrients, Notes, StartDate, EndDate, CreatedAtUtc, UpdatedAtUtc,
+                TentSnapshotJson, HydroSetupSnapshotJson, SnapshotsCapturedAtUtc
             )
             VALUES
             (
@@ -2406,11 +2410,13 @@ public sealed class GrowRepository
                 $breederFlowerWeeksMin, $breederFlowerWeeksMax, $plantCount, $phenoNumber,
                 $propagationMedium, $hasChiller, $entryPoint, $daysAlreadyInPhase,
                 $autoflowerDaysSinceGermination, $flipDate, $germinatedAt, $rootedAt,
-                $nutrients, $notes, $startDate, $endDate, $createdAtUtc, $updatedAtUtc
+                $nutrients, $notes, $startDate, $endDate, $createdAtUtc, $updatedAtUtc,
+                $tentSnapshotJson, $hydroSetupSnapshotJson, $snapshotsCapturedAtUtc
             );
             SELECT last_insert_rowid();
         """;
         AddGrowParameters(command, grow);
+        AddGrowSnapshotParameters(command, grow);
         return Convert.ToInt32((long)command.ExecuteScalar()!);
     }
 
@@ -3622,6 +3628,97 @@ public sealed class GrowRepository
         return normalizedExisting is null ? normalizedAddition : $"{normalizedExisting}\n{normalizedAddition}";
     }
 
+    private void CaptureGrowSnapshots(GrowRun grow)
+    {
+        var capturedAtUtc = DateTime.UtcNow;
+        var capturedAny = false;
+
+        if (grow.TentId.HasValue)
+        {
+            var tent = GetTent(grow.TentId.Value);
+            if (tent is not null)
+            {
+                grow.TentSnapshotJson = JsonSerializer.Serialize(ToGrowTentSnapshot(tent), SnapshotJsonOptions);
+                capturedAny = true;
+            }
+        }
+
+        if (grow.SystemId.HasValue)
+        {
+            var hydroSetup = GetHydroSetup(grow.SystemId.Value);
+            if (hydroSetup is not null)
+            {
+                grow.HydroSetupSnapshotJson = JsonSerializer.Serialize(ToGrowHydroSetupSnapshot(hydroSetup), SnapshotJsonOptions);
+                capturedAny = true;
+            }
+        }
+
+        grow.SnapshotsCapturedAtUtc = capturedAny ? capturedAtUtc : null;
+    }
+
+    private static GrowTentSnapshot ToGrowTentSnapshot(Tent tent)
+        => new(
+            Id: tent.Id,
+            Name: tent.Name,
+            Kind: tent.Kind,
+            TentType: tent.TentType,
+            Status: tent.Status,
+            Notes: tent.Notes,
+            DisplayOrder: tent.DisplayOrder,
+            AccentColor: tent.AccentColor,
+            WidthCm: tent.WidthCm,
+            DepthCm: tent.DepthCm,
+            TentHeightCm: tent.TentHeightCm,
+            LightType: tent.LightType,
+            LightWatt: tent.LightWatt,
+            LightController: tent.LightController,
+            LightControllerEntityId: tent.LightControllerEntityId,
+            ExhaustFanCount: tent.ExhaustFanCount,
+            ExhaustM3h: tent.ExhaustM3h,
+            CirculationFanCount: tent.CirculationFanCount,
+            HvacController: tent.HvacController,
+            HvacControllerEntityId: tent.HvacControllerEntityId,
+            Co2Available: tent.Co2Available,
+            CameraEntityId: tent.CameraEntityId,
+            Sensors: tent.Sensors.Select(sensor => new GrowTentSensorSnapshot(
+                Id: sensor.Id,
+                MetricType: sensor.MetricType,
+                HaEntityId: sensor.HaEntityId,
+                DisplayLabel: sensor.DisplayLabel,
+                IsActive: sensor.IsActive)).ToList());
+
+    private static GrowHydroSetupSnapshot ToGrowHydroSetupSnapshot(GrowSystem hydroSetup)
+        => new(
+            Id: hydroSetup.Id,
+            TentId: hydroSetup.TentId,
+            TentName: hydroSetup.TentName,
+            Name: hydroSetup.Name,
+            HydroStyle: hydroSetup.HydroStyle,
+            PotCount: hydroSetup.PotCount,
+            PotSizeLiters: hydroSetup.PotSizeLiters,
+            ReservoirLiters: hydroSetup.ReservoirLiters,
+            TotalVolumeLiters: CalculateHydroSetupTotalVolumeLiters(hydroSetup.PotCount, hydroSetup.PotSizeLiters, hydroSetup.ReservoirLiters),
+            Status: hydroSetup.Status,
+            LayoutType: hydroSetup.LayoutType,
+            ReservoirPosition: hydroSetup.ReservoirPosition,
+            HasCirculationPump: hydroSetup.HasCirculationPump,
+            CirculationPumpNotes: hydroSetup.CirculationPumpNotes,
+            HasAirPump: hydroSetup.HasAirPump,
+            AirPumpNotes: hydroSetup.AirPumpNotes,
+            AirStoneCount: hydroSetup.AirStoneCount,
+            HasChiller: hydroSetup.HasChiller,
+            HasUvSterilizer: hydroSetup.HasUvSterilizer,
+            Notes: hydroSetup.Notes,
+            DisplayOrder: hydroSetup.DisplayOrder,
+            CreatedAtUtc: hydroSetup.CreatedAtUtc,
+            UpdatedAtUtc: hydroSetup.UpdatedAtUtc);
+
+    private static double? CalculateHydroSetupTotalVolumeLiters(int? potCount, double? potSizeLiters, double? reservoirLiters)
+    {
+        var total = (potCount ?? 0) * (potSizeLiters ?? 0) + (reservoirLiters ?? 0);
+        return total > 0 ? Math.Round(total, 2) : null;
+    }
+
     private SqliteConnection OpenConnection()
     {
         var builder = new SqliteConnectionStringBuilder { DataSource = _paths.DatabasePath };
@@ -3680,6 +3777,9 @@ public sealed class GrowRepository
             EndDate = ParseStoredDate(reader["EndDate"]?.ToString()),
             CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            TentSnapshotJson = HasColumn(reader, "TentSnapshotJson") ? NullString(reader["TentSnapshotJson"]) : null,
+            HydroSetupSnapshotJson = HasColumn(reader, "HydroSetupSnapshotJson") ? NullString(reader["HydroSetupSnapshotJson"]) : null,
+            SnapshotsCapturedAtUtc = ParseStoredDateTimeIfColumn(reader, "SnapshotsCapturedAtUtc"),
             MeasurementCount = reader["MeasurementCount"] is DBNull ? 0 : Convert.ToInt32(reader["MeasurementCount"], CultureInfo.InvariantCulture),
             LatestPhotoPath = NullString(reader["LatestPhotoPath"])
         };
@@ -4275,6 +4375,13 @@ public sealed class GrowRepository
         command.Parameters.AddWithValue("$endDate", grow.EndDate.HasValue ? ToStorage(grow.EndDate.Value.Date) : DBNull.Value);
         command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(grow.CreatedAtUtc));
         command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(grow.UpdatedAtUtc));
+    }
+
+    private static void AddGrowSnapshotParameters(SqliteCommand command, GrowRun grow)
+    {
+        command.Parameters.AddWithValue("$tentSnapshotJson", (object?)grow.TentSnapshotJson ?? DBNull.Value);
+        command.Parameters.AddWithValue("$hydroSetupSnapshotJson", (object?)grow.HydroSetupSnapshotJson ?? DBNull.Value);
+        command.Parameters.AddWithValue("$snapshotsCapturedAtUtc", grow.SnapshotsCapturedAtUtc.HasValue ? ToStorageUtc(grow.SnapshotsCapturedAtUtc.Value) : DBNull.Value);
     }
 
     private static void AddSetupParameters(SqliteCommand command, Setup setup)
