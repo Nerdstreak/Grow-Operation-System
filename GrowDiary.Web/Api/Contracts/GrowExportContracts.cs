@@ -107,6 +107,33 @@ public sealed record BackupValidationDto(
     int EntryCount,
     IReadOnlyList<string> Warnings);
 
+
+public sealed record BackupRestorePlanDto(
+    string RestorePlanSchema,
+    string FileName,
+    DateTime CheckedAtUtc,
+    bool BackupValid,
+    bool DatabaseIncluded,
+    bool WalIncluded,
+    bool ShmIncluded,
+    bool KnowledgeIncluded,
+    bool SchemaCompatible,
+    bool RestoreSupported,
+    bool RequiresManualStop,
+    bool WouldOverwriteExistingDatabase,
+    string? BackupSchemaVersion,
+    string CurrentSchemaVersion,
+    IReadOnlyList<BackupRestorePlanFileDto> Files,
+    IReadOnlyList<string> Blockers,
+    IReadOnlyList<string> Warnings);
+
+public sealed record BackupRestorePlanFileDto(
+    string EntryName,
+    string RelativeTargetPath,
+    string Kind,
+    long SizeBytes,
+    bool WouldOverwrite);
+
 public sealed record SchemaMigrationStatusDto(
     string MigrationSchema,
     string CurrentSchemaVersion,
