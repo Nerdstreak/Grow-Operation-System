@@ -405,6 +405,46 @@ export interface AddbackResultDto {
   errorMessage: string | null
 }
 
+
+export type AddbackLogKind = 'Addback' | 'TopOff' | 'Correction'
+
+export interface AddbackLogDto {
+  id: number
+  growId: number
+  hydroSetupId: number | null
+  kind: AddbackLogKind
+  performedAtUtc: string
+  reservoirLiters: number | null
+  ecBefore: number | null
+  ecTarget: number | null
+  ecStock: number | null
+  ecAfter: number | null
+  phBefore: number | null
+  phAfter: number | null
+  litersAdded: number | null
+  newReservoirVolumeLiters: number | null
+  usedHydroSetupVolume: boolean
+  notes: string | null
+  createdAtUtc: string
+}
+
+export interface CreateAddbackLogRequest {
+  kind: AddbackLogKind
+  performedAtUtc: string | null
+  reservoirLiters: number | null
+  ecBefore: number | null
+  ecTarget: number | null
+  ecStock: number | null
+  ecAfter: number | null
+  phBefore: number | null
+  phAfter: number | null
+  litersAdded: number | null
+  newReservoirVolumeLiters: number | null
+  usedHydroSetupVolume: boolean | null
+  notes: string | null
+}
+
+
 export interface HarvestDto {
   growId: number
   growName: string
