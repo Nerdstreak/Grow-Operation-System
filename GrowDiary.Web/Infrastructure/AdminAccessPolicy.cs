@@ -5,27 +5,57 @@ namespace GrowDiary.Web.Infrastructure;
 
 public static class AdminAccessPolicy
 {
-    private const string AllowRemoteAdminEnvironmentVariable = "GROWDIARY_ALLOW_REMOTE_ADMIN";
+    public const string AllowRemoteAdminEnvironmentVariable = "GROWDIARY_ALLOW_REMOTE_ADMIN";
+    public const string AdminKeyEnvironmentVariable = "GROWDIARY_ADMIN_KEY";
+    public const string AdminKeyHeaderName = "X-GrowOS-Admin-Key";
+
+    private static readonly string[] ProtectedPrefixes =
+    {
+        "/settings",
+        "/einstellungen",
+        "/api/settings",
+        "/api/system/backup",
+        "/api/system/release-readiness",
+        "/api/system/database-status",
+        "/api/system/api-manifest",
+        "/api/system/security-status",
+        "/api/exports"
+    };
+
+    public static IReadOnlyList<string> ProtectedRoutePrefixes => ProtectedPrefixes;
 
     public static bool IsProtectedPath(PathString path)
-        => path.StartsWithSegments("/settings", StringComparison.OrdinalIgnoreCase)
-           || path.StartsWithSegments("/einstellungen", StringComparison.OrdinalIgnoreCase)
-           || path.StartsWithSegments("/api/settings", StringComparison.OrdinalIgnoreCase)
-           || path.StartsWithSegments("/api/system/backup", StringComparison.OrdinalIgnoreCase)
-           || path.StartsWithSegments("/api/system/release-readiness", StringComparison.OrdinalIgnoreCase)
-           || path.StartsWithSegments("/api/system/database-status", StringComparison.OrdinalIgnoreCase)
-           || path.StartsWithSegments("/api/system/api-manifest", StringComparison.OrdinalIgnoreCase);
+        => ProtectedPrefixes.Any(prefix => path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase));
 
     public static bool CanAccess(HttpContext context)
     {
-        if (string.Equals(
-                Environment.GetEnvironmentVariable(AllowRemoteAdminEnvironmentVariable),
-                "true",
-                StringComparison.OrdinalIgnoreCase))
+        if (IsLocalRequest(context))
         {
             return true;
         }
 
+        if (IsAdminKeyConfigured() && HasValidAdminKey(context))
+        {
+            return true;
+        }
+
+        return IsRemoteAdminExplicitlyAllowed();
+    }
+
+    public static bool IsRemoteAdminExplicitlyAllowed()
+        => string.Equals(
+            Environment.GetEnvironmentVariable(AllowRemoteAdminEnvironmentVariable),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsAdminKeyConfigured()
+        => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AdminKeyEnvironmentVariable));
+
+    public static bool IsInsecureRemoteAdminOverrideActive()
+        => IsRemoteAdminExplicitlyAllowed() && !IsAdminKeyConfigured();
+
+    public static bool IsLocalRequest(HttpContext context)
+    {
         var remoteIp = context.Connection.RemoteIpAddress;
         var localIp = context.Connection.LocalIpAddress;
         if (remoteIp is null)
@@ -35,5 +65,23 @@ public static class AdminAccessPolicy
 
         return IPAddress.IsLoopback(remoteIp)
                || (localIp is not null && remoteIp.Equals(localIp));
+    }
+
+    private static bool HasValidAdminKey(HttpContext context)
+    {
+        var expected = Environment.GetEnvironmentVariable(AdminKeyEnvironmentVariable);
+        if (string.IsNullOrWhiteSpace(expected))
+        {
+            return false;
+        }
+
+        if (!context.Request.Headers.TryGetValue(AdminKeyHeaderName, out var providedValues))
+        {
+            return false;
+        }
+
+        var provided = providedValues.FirstOrDefault();
+        return !string.IsNullOrWhiteSpace(provided)
+               && string.Equals(provided, expected, StringComparison.Ordinal);
     }
 }

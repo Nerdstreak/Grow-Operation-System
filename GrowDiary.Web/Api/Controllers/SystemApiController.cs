@@ -30,7 +30,7 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new BackendHealthDto(
             AppName: "Grow OS",
-            BackendSchema: "backend-core.v0.8-candidate",
+            BackendSchema: "backend-core.v0.9-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             TentCount: tents.Count,
             HydroSetupCount: hydroSetups.Count,
@@ -52,7 +52,10 @@ public sealed class SystemApiController : ApiControllerBase
                 "backup-validation",
                 "api-contract-manifest",
                 "grow-export-integrity",
-                "grow-export-validation"
+                "grow-export-validation",
+                "security-status",
+                "local-only-admin-default",
+                "admin-key-remote-guard"
             }));
     }
 
@@ -76,6 +79,8 @@ public sealed class SystemApiController : ApiControllerBase
             new("api_contract_manifest", "pass", "Das Backend liefert ein maschinenlesbares API-Manifest für Kernbereiche, Endpunkte und Produktregeln."),
             new("export_integrity", "pass", "Grow-Exports enthalten ExportId, SectionCounts und IntegrityHash."),
             new("import_validate", "pass", "Grow-Export-Dateien können serverseitig validiert werden, ohne Daten zu importieren."),
+            new("security_guardrails", "pass", "Administrative System-, Settings- und Export-Endpunkte sind standardmaessig local-only; Remote-Adminzugriff ist nur mit Admin-Key oder bewusster Override-Variable moeglich."),
+            new("security_status", "pass", "Das Backend stellt einen Security-Status fuer Remote-/Admin-Guardrails bereit."),
             new("restore_api", "todo", "Ein validierter Restore-Flow ist noch nicht implementiert."),
             new("migration_engine", "todo", "Explizite versionierte Migrationen fehlen noch; aktuell arbeitet das Backend mit additiven Schema-Checks."),
             new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
@@ -83,8 +88,8 @@ public sealed class SystemApiController : ApiControllerBase
         };
 
         return Ok(new BackendReleaseReadinessDto(
-            Status: "backend.v0.8-ready-not-v1.0",
-            BackendSchema: "backend-core.v0.8-candidate",
+            Status: "backend.v0.9-ready-not-v1.0",
+            BackendSchema: "backend-core.v0.9-candidate",
             CheckedAtUtc: DateTime.UtcNow,
             Checks: checks,
             CompletedFoundations: new[]
@@ -103,7 +108,10 @@ public sealed class SystemApiController : ApiControllerBase
                 "backup-validation",
                 "api-contract-manifest",
                 "grow-export-integrity",
-                "grow-export-validation"
+                "grow-export-validation",
+                "security-status",
+                "local-only-admin-default",
+                "admin-key-remote-guard"
             },
             RemainingBeforeV1: new[]
             {
@@ -111,7 +119,7 @@ public sealed class SystemApiController : ApiControllerBase
                 "versioned-database-migrations",
                 "restore-flow",
                 "grow-export-import-merge",
-                "remote-auth-setup-key",
+                "user-auth-session-management",
                 "uniform-error-format-across-all-controllers",
                 "release-upgrade-test-with-existing-app-data"
             }));
@@ -128,7 +136,8 @@ public sealed class SystemApiController : ApiControllerBase
             "HydroSetups sind im MVP DWC/RDWC-only.",
             "Secrets wie Home-Assistant-Tokens dürfen nicht in API-Responses, Exports oder Backups erscheinen.",
             "Grow-Exports müssen SectionCounts und IntegrityHash tragen, bevor sie importiert werden dürfen.",
-            "Administrative System-Endpunkte sind lokal/admin-geschützt.",
+            "Administrative System-, Settings- und Export-Endpunkte sind lokal/admin-geschützt.",
+            "Remote-Adminzugriff ist standardmaessig blockiert und erfordert Admin-Key oder bewusste Override-Variable.",
             "Runtime-Daten aus App_Data werden nicht als Source-Artefakte behandelt."
         };
 
@@ -206,12 +215,13 @@ public sealed class SystemApiController : ApiControllerBase
                 Description: "Produktnahe Systemendpunkte für Export, Backup, Schema und Release-Readiness.",
                 Endpoints: new[]
                 {
-                    Endpoint("GET", "/api/exports/grows/{id}", "Grow exportieren.", false, "anonymize=true entfernt/neutralisiert nutzerbezogene Angaben.", "Export enthält ExportId, SectionCounts und IntegrityHash."),
-                    Endpoint("POST", "/api/exports/grows/validate", "Grow-Export validieren, ohne Daten zu importieren.", false, "Prüft SchemaVersion, SectionCounts, IntegrityHash und potenzielle Secrets."),
+                    Endpoint("GET", "/api/exports/grows/{id}", "Grow exportieren.", true, "anonymize=true entfernt/neutralisiert nutzerbezogene Angaben.", "Export enthält ExportId, SectionCounts und IntegrityHash."),
+                    Endpoint("POST", "/api/exports/grows/validate", "Grow-Export validieren, ohne Daten zu importieren.", true, "Prüft SchemaVersion, SectionCounts, IntegrityHash und potenzielle Secrets."),
                     Endpoint("GET", "/api/system/backend-health", "Backend-Zustand und Capabilities laden.", false),
                     Endpoint("GET", "/api/system/release-readiness", "Release-Readiness prüfen.", true),
                     Endpoint("GET", "/api/system/database-status", "Datenbankstatus und Pflichtschema prüfen.", true),
                     Endpoint("GET", "/api/system/api-manifest", "Maschinenlesbares API-Manifest laden.", true),
+                    Endpoint("GET", "/api/system/security-status", "Security-Status und Remote-Admin-Guardrails laden.", true),
                     Endpoint("POST", "/api/system/backup", "Lokales Backup ohne Secrets erstellen.", true),
                     Endpoint("GET", "/api/system/backup/{fileName}", "Backup herunterladen.", true),
                     Endpoint("GET", "/api/system/backup/{fileName}/validate", "Backup vor Restore validieren.", true)
@@ -220,10 +230,62 @@ public sealed class SystemApiController : ApiControllerBase
 
         return Ok(new ApiManifestDto(
             SchemaVersion: "grow-os.api-manifest.v1",
-            BackendSchema: "backend-core.v0.8-candidate",
+            BackendSchema: "backend-core.v0.9-candidate",
             GeneratedAtUtc: DateTime.UtcNow,
             GlobalRules: globalRules,
             Areas: areas));
+    }
+
+    [HttpGet("security-status")]
+    [ProducesResponseType(typeof(BackendSecurityStatusDto), StatusCodes.Status200OK)]
+    public ActionResult<BackendSecurityStatusDto> SecurityStatus()
+    {
+        var warnings = new List<string>();
+        if (AdminAccessPolicy.IsInsecureRemoteAdminOverrideActive())
+        {
+            warnings.Add("GROWDIARY_ALLOW_REMOTE_ADMIN=true ist ohne Admin-Key aktiv. Das ist nur fuer bewusst abgeschottete Testnetze gedacht.");
+        }
+        if (!AdminAccessPolicy.IsAdminKeyConfigured())
+        {
+            warnings.Add("Kein Admin-Key konfiguriert. Remote-Adminzugriff bleibt standardmaessig blockiert; nutze VPN/Tailscale/Cloudflare Access oder setze GROWDIARY_ADMIN_KEY.");
+        }
+        if (AdminAccessPolicy.IsAdminKeyConfigured())
+        {
+            warnings.Add("Admin-Key ist konfiguriert. Fuer Internet-Freigaben trotzdem HTTPS und einen externen Zugriffsschutz verwenden.");
+        }
+
+        var mode = AdminAccessPolicy.IsRemoteAdminExplicitlyAllowed()
+            ? "remote-admin-override"
+            : AdminAccessPolicy.IsAdminKeyConfigured()
+                ? "remote-admin-key"
+                : "local-only";
+
+        return Ok(new BackendSecurityStatusDto(
+            SecuritySchema: "grow-os.security.v1",
+            CheckedAtUtc: DateTime.UtcNow,
+            AdminAccessMode: mode,
+            LocalOnlyAdminDefault: true,
+            RemoteAdminExplicitlyAllowed: AdminAccessPolicy.IsRemoteAdminExplicitlyAllowed(),
+            AdminKeyConfigured: AdminAccessPolicy.IsAdminKeyConfigured(),
+            AdminKeyRequiredForRemoteAdmin: !AdminAccessPolicy.IsRemoteAdminExplicitlyAllowed(),
+            InsecureRemoteAdminOverrideActive: AdminAccessPolicy.IsInsecureRemoteAdminOverrideActive(),
+            AdminKeyHeaderName: AdminAccessPolicy.AdminKeyHeaderName,
+            ProtectedRoutePrefixes: AdminAccessPolicy.ProtectedRoutePrefixes,
+            RemoteAccessWarnings: warnings,
+            RecommendedRemoteAccessModes: new[]
+            {
+                "Lokaler Zugriff im Heimnetz",
+                "Tailscale oder VPN",
+                "Cloudflare Tunnel mit Access/Zero-Trust-Regel",
+                "Reverse Proxy mit HTTPS und externer Authentifizierung"
+            },
+            SecretHandling: new[]
+            {
+                "Home-Assistant-Token werden in API-Responses maskiert.",
+                "Backups schliessen ha-config.json, DataProtectionKeys, Uploads und Logs aus.",
+                "Grow-Exports pruefen potenzielle Secrets und tragen IntegrityHash.",
+                "Admin-Key wird nur aus Environment gelesen und nicht in API-Responses ausgegeben."
+            }));
     }
 
     [HttpGet("database-status")]
