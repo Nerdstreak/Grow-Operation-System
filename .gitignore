@@ -25,3 +25,20 @@ release/
 docker-data/
 GrowDiary.Web/wwwroot/index.html
 GrowDiary.Web/wwwroot/assets/
+# Grow OS runtime / local data
+GrowDiary.Web/App_Data_backup/
+GrowDiary.Web/App_Data*/
+# ASP.NET local crypto/session keys
+**/DataProtectionKeys/
+**/key-*.xml
+# Build/runtime artifacts
+GrowDiary.Web/bin/
+GrowDiary.Web/obj/
+GrowDiary.React/node_modules/
+GrowDiary.React/dist/
+GrowDiary.React/test-results/
+GrowDiary.React/coverage/
+GrowDiary.Web/wwwroot/uploads/
+# Local audit/export packages
+_audit_packages/
+*.zip
