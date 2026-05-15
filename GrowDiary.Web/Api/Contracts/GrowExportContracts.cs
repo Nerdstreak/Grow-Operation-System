@@ -106,3 +106,40 @@ public sealed record BackupValidationDto(
     bool ContainsUploads,
     int EntryCount,
     IReadOnlyList<string> Warnings);
+
+public sealed record SchemaMigrationStatusDto(
+    string MigrationSchema,
+    string CurrentSchemaVersion,
+    string? StoredSchemaVersion,
+    DateTime CheckedAtUtc,
+    bool MigrationTableExists,
+    bool IsCurrent,
+    IReadOnlyList<AppliedSchemaMigrationDto> AppliedMigrations,
+    IReadOnlyList<PendingSchemaMigrationDto> PendingMigrations,
+    IReadOnlyList<string> Warnings);
+
+public sealed record AppliedSchemaMigrationDto(
+    string Id,
+    string Name,
+    string RequiredForSchemaVersion,
+    DateTime? AppliedAtUtc);
+
+public sealed record PendingSchemaMigrationDto(
+    string Id,
+    string Name,
+    string RequiredForSchemaVersion);
+
+public sealed record UpgradePreflightDto(
+    string PreflightSchema,
+    DateTime CheckedAtUtc,
+    bool IsSafeToUpgrade,
+    bool DatabaseCurrent,
+    bool BackupCreated,
+    bool BackupValid,
+    string? BackupFileName,
+    string? BackupDownloadUrl,
+    IReadOnlyList<string> Blockers,
+    IReadOnlyList<string> Warnings,
+    DatabaseStatusDto DatabaseStatus,
+    SchemaMigrationStatusDto MigrationStatus,
+    BackupValidationDto? BackupValidation);

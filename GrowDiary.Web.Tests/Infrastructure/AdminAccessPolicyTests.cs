@@ -21,6 +21,8 @@ public sealed class AdminAccessPolicyTests : IDisposable
     [InlineData("/api/system/database-status")]
     [InlineData("/api/system/api-manifest")]
     [InlineData("/api/system/security-status")]
+    [InlineData("/api/system/migration-status")]
+    [InlineData("/api/system/upgrade-preflight")]
     [InlineData("/api/system/backup/grow-os-backup-20260101-120000.zip/validate")]
     [InlineData("/api/exports/grows/1")]
     [InlineData("/api/exports/grows/validate")]

@@ -6,9 +6,24 @@ namespace GrowDiary.Web.Infrastructure;
 
 public sealed class DatabaseInitializer
 {
-    public const string CurrentSchemaVersion = "backend-core.v0.6-candidate";
+    public const string CurrentSchemaVersion = "backend-core.v0.10-candidate";
     public const string CurrentSchemaAppSettingKey = "backend:schemaVersion";
     public const string LastMigrationUtcAppSettingKey = "backend:lastMigrationUtc";
+
+    public static readonly IReadOnlyList<SchemaMigrationDescriptor> RequiredMigrations = new[]
+    {
+        new SchemaMigrationDescriptor("0001-core-schema", "Core schema baseline", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0002-zero-tent-startup", "Zero-tent startup and explicit test data", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0003-tent-aggregate", "Tent aggregate details and archive/delete rules", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0004-hydro-setup-aggregate", "DWC/RDWC HydroSetup aggregate", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0005-grow-hydro-setup-link", "New grows require HydroSetup", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0006-hardware-hydro-setup-link", "Hardware linked to HydroSetups", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0007-addback-volume-logs", "HydroSetup volume, Addback and Changeout logs", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0008-export-backup-hardening", "Grow export, backup validation and release readiness", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0009-security-guardrails", "Local-only admin and remote guardrails", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0010-import-readiness", "Export integrity and import validation preflight", CurrentSchemaVersion),
+        new SchemaMigrationDescriptor("0011-upgrade-preflight", "Migration status and upgrade preflight", CurrentSchemaVersion)
+    };
 
     private readonly AppPaths _paths;
     private readonly ILogger<DatabaseInitializer> _logger;
@@ -234,6 +249,13 @@ public sealed class DatabaseInitializer
             CREATE TABLE IF NOT EXISTS AppSettings (
                 Key TEXT PRIMARY KEY,
                 Value TEXT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS AppliedSchemaMigrations (
+                Id TEXT PRIMARY KEY,
+                Name TEXT NOT NULL,
+                RequiredForSchemaVersion TEXT NOT NULL,
+                AppliedAtUtc TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS TentSensorSnapshots (
@@ -781,6 +803,32 @@ public sealed class DatabaseInitializer
     {
         UpsertAppSetting(connection, CurrentSchemaAppSettingKey, CurrentSchemaVersion);
         UpsertAppSetting(connection, LastMigrationUtcAppSettingKey, DateTime.UtcNow.ToString("O"));
+        RecordAppliedSchemaMigrations(connection);
+    }
+
+    private static void RecordAppliedSchemaMigrations(SqliteConnection connection)
+    {
+        if (!TableExists(connection, "AppliedSchemaMigrations"))
+        {
+            return;
+        }
+
+        foreach (var migration in RequiredMigrations)
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO AppliedSchemaMigrations (Id, Name, RequiredForSchemaVersion, AppliedAtUtc)
+                VALUES ($id, $name, $requiredForSchemaVersion, $appliedAtUtc)
+                ON CONFLICT(Id) DO UPDATE SET
+                    Name = excluded.Name,
+                    RequiredForSchemaVersion = excluded.RequiredForSchemaVersion;
+            """;
+            command.Parameters.AddWithValue("$id", migration.Id);
+            command.Parameters.AddWithValue("$name", migration.Name);
+            command.Parameters.AddWithValue("$requiredForSchemaVersion", migration.RequiredForSchemaVersion);
+            command.Parameters.AddWithValue("$appliedAtUtc", DateTime.UtcNow.ToString("O"));
+            command.ExecuteNonQuery();
+        }
     }
 
     private static void UpsertAppSetting(SqliteConnection connection, string key, string value)
@@ -894,3 +942,5 @@ public sealed class DatabaseInitializer
         return connection;
     }
 }
+
+public sealed record SchemaMigrationDescriptor(string Id, string Name, string RequiredForSchemaVersion);
