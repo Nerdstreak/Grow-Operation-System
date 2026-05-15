@@ -8,6 +8,7 @@ import GrowDetailPage from './pages/GrowDetailPage'
 import GrowSetupPage from './pages/GrowSetupPage'
 import HardwarePage from './pages/HardwarePage'
 import HomeAssistantPage from './pages/HomeAssistantPage'
+import HydroPage from './pages/HydroPage'
 import HarvestPage from './pages/HarvestPage'
 import KnowledgePage from './pages/KnowledgePage'
 import LiveDashboardPage from './pages/LiveDashboardPage'
@@ -20,12 +21,13 @@ import TentsPage from './pages/TentsPage'
 const primaryNav = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/addback', label: 'Addback', end: true },
-  { to: '/action', label: 'Aktion', end: true },
   { to: '/zelte', label: 'Zelte', end: false },
+  { to: '/hydro', label: 'Hydro', end: true },
   { to: '/home-assistant', label: 'Home Assistant', end: true },
 ]
 
 const secondaryNav = [
+  { to: '/action', label: 'Aktion', end: true },
   { to: '/hardware', label: 'Hardware', end: true },
   { to: '/grows/new', label: 'Grow starten', end: true },
   { to: '/wissen', label: 'Wissen', end: true },
@@ -37,11 +39,12 @@ const secondaryNav = [
 const bottomNav = [
   { to: '/', label: 'Live', end: true },
   { to: '/addback', label: 'Addback', end: true },
-  { to: '/action', label: 'Aktion', end: true },
   { to: '/zelte', label: 'Zelte', end: false },
+  { to: '/hydro', label: 'Hydro', end: true },
 ]
 
 const mobileMoreItems = [
+  { to: '/action', label: 'Aktion', end: true },
   { to: '/home-assistant', label: 'Home Assistant', end: true },
   { to: '/hardware', label: 'Hardware', end: true },
   { to: '/grows/new', label: 'Grow starten', end: true },
@@ -135,6 +138,7 @@ function App() {
           <Route path="/grows/:growId/setup" element={<GrowSetupPage />} />
           <Route path="/zelte" element={<TentsPage />} />
           <Route path="/zelte/:tentId" element={<TentDetailPage />} />
+          <Route path="/hydro" element={<HydroPage />} />
           <Route path="/home-assistant" element={<HomeAssistantPage />} />
           <Route path="/hardware" element={<HardwarePage />} />
           <Route path="/archiv" element={<ArchivePage />} />
@@ -161,6 +165,7 @@ function getCurrentTitle(pathname: string): string {
   if (pathname.startsWith('/addback') || pathname.includes('/addback')) return 'Addback'
   if (pathname.startsWith('/action')) return 'Aktion'
   if (pathname.startsWith('/zelte')) return 'Zelte'
+  if (pathname.startsWith('/hydro')) return 'Hydro'
   if (pathname.startsWith('/home-assistant')) return 'Home Assistant'
   if (pathname.startsWith('/hardware')) return 'Hardware'
   if (pathname.startsWith('/grows/new')) return 'Grow starten'

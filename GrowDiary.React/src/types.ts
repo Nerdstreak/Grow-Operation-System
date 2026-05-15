@@ -998,9 +998,25 @@ export interface CreateTentRequest {
   name: string
   kind: string
   tentType: TentType
+  status?: TentStatus
   notes: string | null
   displayOrder: number
   accentColor: string
+  widthCm: number | null
+  depthCm: number | null
+  tentHeightCm: number | null
+  lightType: string | null
+  lightWatt: number | null
+  lightController: LightControllerType | null
+  lightControllerEntityId: string | null
+  exhaustFanCount: number | null
+  exhaustM3h: number | null
+  circulationFanCount: number | null
+  hvacController: HvacControllerType | null
+  hvacControllerEntityId: string | null
+  co2Available: boolean
+  cameraEntityId: string | null
+  sensors: UpdateTentSensorRequest[]
 }
 
 export interface HydroSetupDto {
