@@ -22,6 +22,7 @@ public static class AdminAccessPolicy
         "/api/system/audit-events",
         "/api/system/error-contract",
         "/api/system/migration-status",
+        "/api/system/migration-plan",
         "/api/system/upgrade-preflight",
         "/api/exports"
     };
