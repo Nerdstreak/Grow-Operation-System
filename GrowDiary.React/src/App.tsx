@@ -29,7 +29,7 @@ const moreNav = [
   { to: '/action', label: 'Aktion', end: true },
   { to: '/grows/new', label: 'Grow starten', end: true },
   { to: '/home-assistant', label: 'Home Assistant', end: true },
-  { to: '/hardware', label: 'Hardware', end: true },
+  { to: '/hardware', label: 'Sensoren', end: true },
   { to: '/wissen', label: 'Wissen', end: true },
   { to: '/analyse', label: 'Analyse', end: true },
   { to: '/archiv', label: 'Archiv', end: true },
@@ -137,7 +137,7 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/home-assistant')) return 'Home Assistant'
   if (pathname.startsWith('/grows/new')) return 'Grow starten'
   if (pathname.startsWith('/grows')) return 'Grow'
-  if (pathname.startsWith('/hardware')) return 'Hardware'
+  if (pathname.startsWith('/hardware')) return 'Sensoren'
   if (pathname.startsWith('/wissen')) return 'Wissen'
   if (pathname.startsWith('/analyse')) return 'Analyse'
   if (pathname.startsWith('/archiv')) return 'Archiv'
