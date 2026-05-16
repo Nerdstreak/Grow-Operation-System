@@ -53,7 +53,7 @@ function MobileActionPage() {
       <section className="v1-quick-actions">
         {primaryGrow ? <V1LinkButton to={`/grows/${primaryGrow.id}/addback`} variant="primary">Addback</V1LinkButton> : <V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>}
         {primaryGrow && <V1LinkButton to={`/grows/${primaryGrow.id}`}>Messung</V1LinkButton>}
-        <V1LinkButton to="/hardware">Hardware</V1LinkButton>
+        <V1LinkButton to="/hardware">Sensoren</V1LinkButton>
         <V1LinkButton to="/home-assistant">HA</V1LinkButton>
       </section>
       <V1Section title="Jetzt">

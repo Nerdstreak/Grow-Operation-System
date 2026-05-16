@@ -8,7 +8,7 @@ function SettingsPage() {
         <div className="v1-card-grid">
           <SettingsLink to="/home-assistant" title="Home Assistant" text="Verbindung und Entitäten" />
           <SettingsLink to="/wissen" title="Wissen" text="SOPs, Programme und Setpoints" />
-          <SettingsLink to="/hardware" title="Hardware" text="Inventar, Wartung, Kalibrierung" />
+          <SettingsLink to="/hardware" title="Sensoren" text="Kalibrierung, Wartung, Sensorvertrauen" />
           <SettingsLink to="/analyse" title="Analyse" text="Trends und Auswertung" />
         </div>
       </V1Section>

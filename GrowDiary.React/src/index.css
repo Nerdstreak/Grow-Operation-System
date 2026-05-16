@@ -3472,3 +3472,34 @@ input, select, textarea { min-width: 0; }
     grid-template-columns: 1fr;
   }
 }
+
+/* === OPS-1: calibration, maintenance and sensor trust === */
+.ops-kpi-grid .v1-stat { min-height: 100px; }
+.ops-two-column { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr); gap: 16px; align-items: start; }
+.ops-form .is-wide { grid-column: 1 / -1; }
+.ops-issue-list, .ops-event-list, .ops-inventory-list { display: grid; gap: 10px; }
+.ops-issue-row, .ops-event-row, .ops-inventory-row { border: 1px solid var(--v1-line); border-radius: 16px; background: rgba(255,255,255,0.02); padding: 13px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.ops-event-row, .ops-inventory-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+.ops-issue-row strong, .ops-event-row strong, .ops-inventory-row strong { display: block; color: var(--v1-text); }
+.ops-issue-row span, .ops-event-row span, .ops-inventory-row span { display: block; margin-top: 4px; color: var(--v1-muted); font-size: 13px; }
+.ops-issue-row.warn { border-color: rgba(245,200,75,0.35); }
+.ops-issue-row.critical { border-color: rgba(255,92,92,0.42); }
+.ops-sensor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.ops-sensor-card { display: grid; gap: 14px; }
+.ops-fact-list { display: grid; gap: 8px; }
+.ops-fact-list > div { border: 1px solid var(--v1-line); border-radius: 13px; background: rgba(255,255,255,0.02); padding: 10px 11px; display: grid; gap: 4px; }
+.ops-fact-list span { color: var(--v1-muted); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
+.ops-fact-list strong { font-size: 14px; overflow-wrap: anywhere; }
+.v1-action-row.is-wide { grid-column: 1 / -1; }
+
+@media (max-width: 980px) {
+  .ops-two-column { grid-template-columns: 1fr; }
+  .ops-sensor-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 860px) {
+  .ops-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ops-issue-row, .ops-event-row, .ops-inventory-row { grid-template-columns: 1fr; }
+  .ops-event-row .v1-button, .ops-inventory-row .v1-button { width: 100%; }
+  .ops-form { gap: 10px; }
+}

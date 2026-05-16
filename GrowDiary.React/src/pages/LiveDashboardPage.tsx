@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowSummary, MetricPayload, RiskEventDto, TentDto, TentLivePayload } from '../types'
+import type { CalibrationEventDto, GrowSummary, HardwareItemDto, MaintenanceEventDto, MetricPayload, RiskEventDto, TentDto, TentLivePayload } from '../types'
 import { classNames, formatDateTime } from '../utils'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat, V1Tabs } from '../components/v1'
 
@@ -10,6 +10,9 @@ type LiveState = {
   liveByTentId: Record<number, TentLivePayload>
   grows: GrowSummary[]
   risks: RiskEventDto[]
+  hardware: HardwareItemDto[]
+  calibration: CalibrationEventDto[]
+  maintenance: MaintenanceEventDto[]
   issues: string[]
 }
 
@@ -17,7 +20,7 @@ type MetricDefinition = { key: string; label: string; unit: string | null }
 
 type CameraState = 'hidden' | 'loading' | 'ready' | 'failed'
 
-const initialState: LiveState = { tents: [], liveByTentId: {}, grows: [], risks: [], issues: [] }
+const initialState: LiveState = { tents: [], liveByTentId: {}, grows: [], risks: [], hardware: [], calibration: [], maintenance: [], issues: [] }
 const riskRank: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 }
 
 const tentMetricDefs: MetricDefinition[] = [
@@ -64,10 +67,14 @@ function LiveDashboardPage() {
         }
       }
 
-      const [tents, grows, risks] = await Promise.all([
+      const dueBeforeUtc = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      const [tents, grows, risks, hardware, calibration, maintenance] = await Promise.all([
         fetchOptional<TentDto[]>('Zelte', '/api/settings/tents', []),
         fetchOptional<GrowSummary[]>('Grows', '/api/grows?archived=false', []),
         fetchOptional<RiskEventDto[]>('Risiken', '/api/risk-events?status=Open', []),
+        fetchOptional<HardwareItemDto[]>('Hardware', '/api/hardware-items', []),
+        fetchOptional<CalibrationEventDto[]>('Kalibrierung', `/api/calibration-events?dueBeforeUtc=${encodeURIComponent(dueBeforeUtc)}`, []),
+        fetchOptional<MaintenanceEventDto[]>('Wartung', `/api/maintenance-events?dueBeforeUtc=${encodeURIComponent(dueBeforeUtc)}`, []),
       ])
 
       const sortedTents = [...tents].sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name))
@@ -83,7 +90,7 @@ function LiveDashboardPage() {
 
       if (controller.signal.aborted) return
       const liveByTentId = Object.fromEntries(liveEntries.filter((entry): entry is readonly [number, TentLivePayload] => entry[1] !== null))
-      setState({ tents: sortedTents, grows, risks: risks.filter((risk) => risk.status === 'Open'), liveByTentId, issues })
+      setState({ tents: sortedTents, grows, risks: risks.filter((risk) => risk.status === 'Open'), hardware, calibration, maintenance, liveByTentId, issues })
       setSelectedTentId((current) => current ?? chooseInitialTent(sortedTents, grows) ?? null)
       setLoading(false)
     }
@@ -100,6 +107,7 @@ function LiveDashboardPage() {
   const sortedRisks = useMemo(() => [...state.risks].sort((a, b) => (riskRank[a.severity] ?? 9) - (riskRank[b.severity] ?? 9) || b.startedAtUtc.localeCompare(a.startedAtUtc)), [state.risks])
   const status = getStatusLabel(sortedRisks, live, loading)
   const statusTone = status === 'Kritisch' ? 'critical' : status === 'Beobachten' ? 'warn' : status === 'Lädt' ? 'neutral' : 'ok'
+  const sensorTrust = useMemo(() => buildLiveSensorTrust(state.hardware, state.calibration, state.maintenance, sortedRisks), [state.hardware, state.calibration, state.maintenance, sortedRisks])
 
   return (
     <V1Page
@@ -139,9 +147,11 @@ function LiveDashboardPage() {
                 <Row label="Grow" value={primaryGrow?.strain ?? 'offen'} />
                 <Row label="Phase" value={primaryGrow?.latestStage ?? 'offen'} />
                 <Row label="Letzte Messung" value={formatDateTime(primaryGrow?.latestMeasurementAt)} />
+                <Row label="Sensoren" value={sensorTrust.label} />
               </div>
               <div className="v1-action-row">
                 {primaryGrow ? <V1LinkButton to={`/grows/${primaryGrow.id}/addback`} variant="primary">Addback</V1LinkButton> : <V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>}
+                <V1LinkButton to="/hardware">Sensoren</V1LinkButton>
                 <V1LinkButton to="/home-assistant">HA</V1LinkButton>
               </div>
             </V1Card>
@@ -235,6 +245,21 @@ function getStatusLabel(risks: RiskEventDto[], live: TentLivePayload | undefined
   if (risks.some((risk) => risk.severity === 'Warning') || live?.stateTone === 'attention') return 'Beobachten'
   if (live?.stateTone === 'critical') return 'Kritisch'
   return 'Stabil'
+}
+
+
+function buildLiveSensorTrust(hardware: HardwareItemDto[], calibration: CalibrationEventDto[], maintenance: MaintenanceEventDto[], risks: RiskEventDto[]) {
+  const sensorHardware = hardware.filter((item) => {
+    const haystack = `${item.name} ${item.category} ${item.wearTemplateId ?? ''}`.toLowerCase()
+    return ['sensor', 'sonde', 'probe', 'ph', 'ec', 'orp', 'do', 'temperatur', 'level', 'wasserstand'].some((term) => haystack.includes(term))
+  })
+  const offline = sensorHardware.filter((item) => item.status === 'Offline' || item.status === 'Retired').length
+  const plannedCalibration = calibration.filter((event) => event.status === 'Planned').length
+  const plannedMaintenance = maintenance.filter((event) => event.status === 'Planned').length
+  const criticalRisks = risks.filter((risk) => risk.severity === 'Critical' && (risk.hardwareItemId != null || risk.eventType === 'SensorUnavailable')).length
+  const score = Math.max(0, 100 - offline * 25 - plannedCalibration * 15 - plannedMaintenance * 10 - criticalRisks * 20)
+  const label = score < 55 ? 'kritisch' : score < 82 ? 'prüfen' : 'stabil'
+  return { score, label }
 }
 
 function resolveCameraUrl(value: string) {
