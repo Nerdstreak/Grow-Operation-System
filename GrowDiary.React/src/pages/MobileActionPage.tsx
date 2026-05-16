@@ -20,7 +20,7 @@ function MobileActionPage() {
       const issues: string[] = []
       const dueBeforeUtc = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
       const safe = async <T,>(label: string, path: string, fallback: T): Promise<T> => {
-        try { return await apiFetch<T>(path, { signal: controller.signal }) } catch (caught) { if (!controller.signal.aborted) issues.push(label); return fallback }
+        try { return await apiFetch<T>(path, { signal: controller.signal }) } catch { if (!controller.signal.aborted) issues.push(label); return fallback }
       }
       const [grows, risks, maintenance, calibration, hardware] = await Promise.all([
         safe<GrowSummary[]>('Grows', '/api/grows?archived=false', []),
@@ -42,9 +42,9 @@ function MobileActionPage() {
 
   const activeGrows = useMemo(() => state.grows.filter((grow) => grow.status === 'Running' || grow.status === 'Planning'), [state.grows])
   const risks = useMemo(() => [...state.risks].sort((a, b) => (riskRank[a.severity] ?? 9) - (riskRank[b.severity] ?? 9)), [state.risks])
-  const status = loading ? 'Lädt' : risks.some((risk) => risk.severity === 'Critical') ? 'Kritisch' : risks.length || state.maintenance.length || state.calibration.length ? 'Offen' : 'Stabil'
-  const primaryGrow = activeGrows[0]
   const rows = buildRows(state, risks)
+  const status = loading ? 'Lädt' : risks.some((risk) => risk.severity === 'Critical') ? 'Kritisch' : rows.length > 0 ? 'Offen' : 'Bereit'
+  const primaryGrow = activeGrows[0]
 
   return (
     <V1Page eyebrow="Aktion" title={status}>
@@ -57,7 +57,7 @@ function MobileActionPage() {
         <V1LinkButton to="/home-assistant">HA</V1LinkButton>
       </section>
       <V1Section title="Jetzt">
-        {loading ? <V1Empty title="Lade Aktionen..." /> : rows.length === 0 ? <V1Empty title="Keine offenen Aktionen" /> : <div className="v1-list">{rows.map((row) => <Link key={row.id} to={row.to} className={classNames('v1-list-row', row.tone)}><strong>{row.title}</strong><span>{row.meta}</span></Link>)}</div>}
+        {loading ? <V1Empty title="Lade Aktionen..." /> : rows.length === 0 ? <V1Empty title="Keine offenen Aktionen" text="Es gibt aktuell keine kritischen Risiken, fälligen Wartungen oder aktiven SOP-Schritte." /> : <div className="v1-list">{rows.map((row) => <Link key={row.id} to={row.to} className={classNames('v1-list-row', row.tone)}><strong>{row.title}</strong><span>{row.meta}</span></Link>)}</div>}
       </V1Section>
     </V1Page>
   )
