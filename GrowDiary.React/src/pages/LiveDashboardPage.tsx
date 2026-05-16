@@ -19,6 +19,10 @@ type LiveState = {
 type MetricDefinition = { key: string; label: string; unit: string | null }
 
 type CameraState = 'hidden' | 'loading' | 'ready' | 'failed'
+type SystemScoreTone = 'neutral' | 'ok' | 'warn' | 'critical'
+type ScoreFactor = { key: string; label: string; value: string; tone: SystemScoreTone; message: string }
+type ScoreAction = { label: string; to: string; tone: SystemScoreTone }
+type SystemScore = { score: number; label: string; tone: SystemScoreTone; confidence: string; summary: string; factors: ScoreFactor[]; actions: ScoreAction[] }
 
 const initialState: LiveState = { tents: [], liveByTentId: {}, grows: [], risks: [], hardware: [], calibration: [], maintenance: [], issues: [] }
 const riskRank: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 }
@@ -105,9 +109,10 @@ function LiveDashboardPage() {
   const growsForTent = selectedTent ? activeGrows.filter((grow) => grow.tentId === selectedTent.id) : []
   const primaryGrow = growsForTent[0] ?? activeGrows[0] ?? null
   const sortedRisks = useMemo(() => [...state.risks].sort((a, b) => (riskRank[a.severity] ?? 9) - (riskRank[b.severity] ?? 9) || b.startedAtUtc.localeCompare(a.startedAtUtc)), [state.risks])
-  const status = getStatusLabel(sortedRisks, live, loading)
-  const statusTone = status === 'Kritisch' ? 'critical' : status === 'Beobachten' ? 'warn' : status === 'Lädt' ? 'neutral' : 'ok'
   const sensorTrust = useMemo(() => buildLiveSensorTrust(state.hardware, state.calibration, state.maintenance, sortedRisks), [state.hardware, state.calibration, state.maintenance, sortedRisks])
+  const systemScore = useMemo(() => buildSystemScore(live?.metrics ?? [], sortedRisks, sensorTrust, state.calibration, state.maintenance, loading), [live?.metrics, sortedRisks, sensorTrust, state.calibration, state.maintenance, loading])
+  const status = systemScore.label
+  const statusTone = systemScore.tone
 
   return (
     <V1Page
@@ -117,6 +122,8 @@ function LiveDashboardPage() {
       action={<V1Button variant="primary" onClick={() => setRefreshToken((current) => current + 1)}>Aktualisieren</V1Button>}
     >
       {state.issues.length > 0 && <V1Alert title="Teilweise offline" message={state.issues.slice(0, 3).join(' · ')} tone="warn" />}
+
+      {selectedTent && <SystemScoreCard score={systemScore} />}
 
       {state.tents.length > 1 && (
         <V1Tabs
@@ -147,6 +154,7 @@ function LiveDashboardPage() {
                 <Row label="Grow" value={primaryGrow?.strain ?? 'offen'} />
                 <Row label="Phase" value={primaryGrow?.latestStage ?? 'offen'} />
                 <Row label="Letzte Messung" value={formatDateTime(primaryGrow?.latestMeasurementAt)} />
+                <Row label="Score" value={`${systemScore.score} %`} />
                 <Row label="Sensoren" value={sensorTrust.label} />
               </div>
               <div className="v1-action-row">
@@ -185,6 +193,43 @@ function LiveDashboardPage() {
         </>
       )}
     </V1Page>
+  )
+}
+
+
+function SystemScoreCard({ score }: { score: SystemScore }) {
+  const primaryAction = score.actions[0]
+  return (
+    <V1Card className="v1-system-score-card" tone={score.tone}>
+      <div className="v1-system-score-main">
+        <div className="v1-score-number">
+          <span>{score.score}</span>
+          <em>%</em>
+        </div>
+        <div>
+          <span className="v1-card-kicker">Systembewertung</span>
+          <h2>{score.label}</h2>
+          <p>{score.summary}</p>
+          <small>{score.confidence}</small>
+        </div>
+      </div>
+      <div className="v1-score-bar" aria-hidden="true"><div className="v1-score-fill" style={{ width: `${score.score}%` }} /></div>
+      <div className="v1-score-factor-grid">
+        {score.factors.slice(0, 4).map((factor) => (
+          <div key={factor.key} className={classNames('v1-score-factor', `tone-${factor.tone}`)}>
+            <span>{factor.label}</span>
+            <strong>{factor.value}</strong>
+            <small>{factor.message}</small>
+          </div>
+        ))}
+      </div>
+      {primaryAction && (
+        <div className="v1-score-next-action">
+          <span>Nächste Aktion</span>
+          <V1LinkButton to={primaryAction.to} variant={primaryAction.tone === 'critical' ? 'danger' : primaryAction.tone === 'warn' ? 'primary' : 'secondary'}>{primaryAction.label}</V1LinkButton>
+        </div>
+      )}
+    </V1Card>
   )
 }
 
@@ -239,14 +284,104 @@ function chooseInitialTent(tents: TentDto[], grows: GrowSummary[]) {
   return running?.tentId ?? tents[0]?.id ?? null
 }
 
-function getStatusLabel(risks: RiskEventDto[], live: TentLivePayload | undefined, loading: boolean) {
-  if (loading) return 'Lädt'
-  if (risks.some((risk) => risk.severity === 'Critical')) return 'Kritisch'
-  if (risks.some((risk) => risk.severity === 'Warning') || live?.stateTone === 'attention') return 'Beobachten'
-  if (live?.stateTone === 'critical') return 'Kritisch'
-  return 'Stabil'
+
+function buildSystemScore(metrics: MetricPayload[], risks: RiskEventDto[], sensorTrust: { score: number; label: string }, calibration: CalibrationEventDto[], maintenance: MaintenanceEventDto[], loading: boolean): SystemScore {
+  if (loading) {
+    return { score: 0, label: 'Lädt', tone: 'neutral', confidence: 'Daten werden geladen', summary: 'Live-Daten und Sensorstatus werden aktualisiert.', factors: [], actions: [] }
+  }
+
+  const factors: ScoreFactor[] = []
+  const actions: ScoreAction[] = []
+  let penalty = 0
+
+  const addFactor = (factor: ScoreFactor, impact: number, action?: ScoreAction) => {
+    factors.push(factor)
+    penalty += impact
+    if (action) actions.push(action)
+  }
+
+  evaluateRange(metrics, 'reservoir-ph', 'pH', null, { min: 5.5, max: 6.2 }, { min: 5.3, max: 6.5 }, (factor, impact) => addFactor(factor, impact, impact >= 28 ? { label: 'pH prüfen', to: '/action', tone: 'critical' } : impact > 0 ? { label: 'pH beobachten', to: '/action', tone: 'warn' } : undefined))
+  evaluateRange(metrics, 'reservoir-ec', 'EC', 'mS/cm', { min: 0.8, max: 2.2 }, { min: 0.4, max: 3.0 }, (factor, impact) => addFactor(factor, impact, impact >= 28 ? { label: 'EC prüfen', to: '/addback', tone: 'critical' } : impact > 0 ? { label: 'Addback planen', to: '/addback', tone: 'warn' } : undefined))
+  evaluateRange(metrics, 'reservoir-temp', 'Wasser', '°C', { min: 18, max: 21 }, { min: 16, max: 23 }, (factor, impact) => addFactor(factor, impact, impact > 0 ? { label: 'Wasser °C prüfen', to: '/hardware', tone: impact >= 28 ? 'critical' : 'warn' } : undefined))
+  evaluateRange(metrics, 'vpd', 'VPD', 'kPa', { min: 0.8, max: 1.4 }, { min: 0.5, max: 1.7 }, (factor, impact) => addFactor(factor, impact, impact > 0 ? { label: 'Klima prüfen', to: '/home-assistant', tone: impact >= 28 ? 'critical' : 'warn' } : undefined))
+  evaluateMinimum(metrics, 'dissolved-oxygen', 'DO', 'mg/L', 6, 4, (factor, impact) => addFactor(factor, impact, impact > 0 ? { label: 'Sauerstoff prüfen', to: '/hardware', tone: impact >= 28 ? 'critical' : 'warn' } : undefined))
+  evaluateRange(metrics, 'orp', 'ORP', 'mV', { min: 250, max: 450 }, { min: 180, max: 500 }, (factor, impact) => addFactor(factor, impact, impact > 0 ? { label: 'Hygiene prüfen', to: '/wissen', tone: impact >= 28 ? 'critical' : 'warn' } : undefined))
+
+  const criticalRisks = risks.filter((risk) => risk.severity === 'Critical').length
+  const warningRisks = risks.filter((risk) => risk.severity === 'Warning').length
+  if (criticalRisks > 0) addFactor({ key: 'risk-critical', label: 'Risiken', value: String(criticalRisks), tone: 'critical', message: 'kritisch offen' }, criticalRisks * 22, { label: 'Risiken öffnen', to: '/action', tone: 'critical' })
+  else if (warningRisks > 0) addFactor({ key: 'risk-warning', label: 'Risiken', value: String(warningRisks), tone: 'warn', message: 'Warnungen offen' }, warningRisks * 10, { label: 'Warnungen prüfen', to: '/action', tone: 'warn' })
+  else factors.push({ key: 'risks-ok', label: 'Risiken', value: '0', tone: 'ok', message: 'keine offenen Risiken' })
+
+  if (sensorTrust.score < 82) addFactor({ key: 'sensor-trust', label: 'Sensoren', value: `${sensorTrust.score} %`, tone: sensorTrust.score < 55 ? 'critical' : 'warn', message: sensorTrust.label }, sensorTrust.score < 55 ? 24 : 12, { label: 'Sensoren prüfen', to: '/hardware', tone: sensorTrust.score < 55 ? 'critical' : 'warn' })
+  else factors.push({ key: 'sensor-trust', label: 'Sensoren', value: `${sensorTrust.score} %`, tone: 'ok', message: sensorTrust.label })
+
+  const dueCalibration = calibration.filter((event) => event.status === 'Planned').length
+  const dueMaintenance = maintenance.filter((event) => event.status === 'Planned').length
+  if (dueCalibration > 0) addFactor({ key: 'calibration', label: 'Kalibrierung', value: String(dueCalibration), tone: 'warn', message: 'fällig/geplant' }, dueCalibration * 8, { label: 'Kalibrierung', to: '/hardware', tone: 'warn' })
+  if (dueMaintenance > 0) addFactor({ key: 'maintenance', label: 'Wartung', value: String(dueMaintenance), tone: 'warn', message: 'fällig/geplant' }, dueMaintenance * 6, { label: 'Wartung', to: '/hardware', tone: 'warn' })
+
+  const score = Math.max(0, Math.min(100, Math.round(100 - penalty)))
+  const tone: SystemScoreTone = score < 55 ? 'critical' : score < 82 ? 'warn' : 'ok'
+  const label = tone === 'critical' ? 'Kritisch' : tone === 'warn' ? 'Beobachten' : 'Stabil'
+  const summary = tone === 'critical'
+    ? 'Sofort prüfen: mindestens ein Kernwert, Risiko oder Sensorstatus ist kritisch.'
+    : tone === 'warn'
+      ? 'System läuft, aber einzelne Werte oder Sensoren sollten geprüft werden.'
+      : 'Kernwerte, Risiken und Sensorstatus wirken aktuell stabil.'
+  const confidence = metrics.length === 0 ? 'Bewertung ohne Live-Metriken' : `${metrics.length} Live-Metriken berücksichtigt`
+
+  const normalizedActions = dedupeActions(actions)
+  if (normalizedActions.length === 0) normalizedActions.push({ label: 'Addback öffnen', to: '/addback', tone: 'ok' })
+
+  return { score, label, tone, confidence, summary, factors, actions: normalizedActions }
 }
 
+function evaluateRange(metrics: MetricPayload[], key: string, label: string, unit: string | null, ideal: { min: number; max: number }, warning: { min: number; max: number }, add: (factor: ScoreFactor, impact: number) => void) {
+  const value = getMetricNumber(metrics, key)
+  if (value == null) return
+  const formatted = formatScoreValue(value, unit)
+  if (value >= ideal.min && value <= ideal.max) {
+    add({ key, label, value: formatted, tone: 'ok', message: 'im Zielbereich' }, 0)
+  } else if (value >= warning.min && value <= warning.max) {
+    add({ key, label, value: formatted, tone: 'warn', message: `außerhalb Ideal ${ideal.min}–${ideal.max}${unit ? ` ${unit}` : ''}` }, 12)
+  } else {
+    add({ key, label, value: formatted, tone: 'critical', message: `außerhalb Toleranz ${warning.min}–${warning.max}${unit ? ` ${unit}` : ''}` }, 28)
+  }
+}
+
+function evaluateMinimum(metrics: MetricPayload[], key: string, label: string, unit: string | null, idealMin: number, criticalMin: number, add: (factor: ScoreFactor, impact: number) => void) {
+  const value = getMetricNumber(metrics, key)
+  if (value == null) return
+  const formatted = formatScoreValue(value, unit)
+  if (value >= idealMin) add({ key, label, value: formatted, tone: 'ok', message: 'im Zielbereich' }, 0)
+  else if (value >= criticalMin) add({ key, label, value: formatted, tone: 'warn', message: `unter ${idealMin}${unit ? ` ${unit}` : ''}` }, 12)
+  else add({ key, label, value: formatted, tone: 'critical', message: `kritisch unter ${criticalMin}${unit ? ` ${unit}` : ''}` }, 28)
+}
+
+function getMetricNumber(metrics: MetricPayload[], key: string) {
+  const metric = metrics.find((item) => item.key === key)
+  if (!metric || metric.value === '–') return null
+  const normalized = metric.value.replace(',', '.').replace(/[^0-9.+-]/g, '')
+  const parsed = Number.parseFloat(normalized)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function formatScoreValue(value: number, unit: string | null) {
+  const digits = Math.abs(value) >= 10 ? 1 : 2
+  const formatted = value.toLocaleString('de-DE', { maximumFractionDigits: digits })
+  return unit ? `${formatted} ${unit}` : formatted
+}
+
+function dedupeActions(actions: ScoreAction[]) {
+  const seen = new Set<string>()
+  return actions.filter((action) => {
+    const key = `${action.label}-${action.to}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  }).slice(0, 4)
+}
 
 function buildLiveSensorTrust(hardware: HardwareItemDto[], calibration: CalibrationEventDto[], maintenance: MaintenanceEventDto[], risks: RiskEventDto[]) {
   const sensorHardware = hardware.filter((item) => {
