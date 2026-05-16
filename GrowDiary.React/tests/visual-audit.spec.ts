@@ -1,174 +1,200 @@
-import { test, type Page } from '@playwright/test'
-import fs from 'node:fs/promises'
+import { test } from '@playwright/test'
+import fs from 'node:fs'
 import path from 'node:path'
 
-type RouteTarget = {
-  path: string
-  name: string
-}
-
-type ViewportTarget = {
-  name: string
+type ViewportCase = {
+  name: 'desktop' | 'mobile'
   width: number
   height: number
 }
 
-type RouteResult = {
+type RouteCase = {
+  slug: string
+  path: string
+  title: string
+}
+
+type ReportRow = {
   viewport: string
   route: string
-  path: string
+  url: string
+  status: number | null
   screenshot: string
-  httpStatus: number | null
-  title: string
-  heading: string
-  innerWidth: number
   bodyScrollWidth: number
   documentScrollWidth: number
-  hasHorizontalOverflow: boolean
-  capturedAtUtc: string
-  note?: string
+  innerWidth: number
+  horizontalOverflow: boolean
+  heading: string | null
+  note: string | null
+  pageError: string | null
 }
 
-type AuditMessage = {
-  type: string
-  target: string
-  text: string
-  url?: string
+const viewports: ViewportCase[] = [
+  { name: 'desktop', width: 1440, height: 1000 },
+  { name: 'mobile', width: 390, height: 844 },
+]
+
+const routes: RouteCase[] = [
+  { slug: 'dashboard', path: '/', title: 'Dashboard / Live' },
+  { slug: 'addback', path: '/addback', title: 'Addback Hub' },
+  { slug: 'action', path: '/action', title: 'Aktion' },
+  { slug: 'zelte', path: '/zelte', title: 'Zelte' },
+  { slug: 'hydro', path: '/hydro', title: 'Hydro' },
+  { slug: 'home-assistant', path: '/home-assistant', title: 'Home Assistant' },
+  { slug: 'grow-starten', path: '/grows/new', title: 'Grow starten' },
+  { slug: 'settings', path: '/settings', title: 'Einstellungen' },
+  { slug: 'wissen', path: '/wissen', title: 'Wissen' },
+  { slug: 'hardware', path: '/hardware', title: 'Hardware' },
+]
+
+const repoRoot = path.resolve(process.cwd(), '..')
+const outputDir = path.join(repoRoot, 'artifacts', 'visual-audit-current')
+const reportRows: ReportRow[] = []
+const messages: { type: string; target: string; text: string; url?: string }[] = []
+
+function ensureCleanOutput() {
+  fs.rmSync(outputDir, { recursive: true, force: true })
+  fs.mkdirSync(outputDir, { recursive: true })
 }
 
-const routes: RouteTarget[] = [
-  { path: '/', name: 'dashboard' },
-  { path: '/addback', name: 'addback' },
-  { path: '/action', name: 'action' },
-  { path: '/zelte', name: 'zelte' },
-  { path: '/hydro', name: 'hydro' },
-  { path: '/home-assistant', name: 'home-assistant' },
-  { path: '/grows/new', name: 'grow-starten' },
-  { path: '/settings', name: 'settings' },
-  { path: '/wissen', name: 'wissen' },
-  { path: '/hardware', name: 'hardware' },
-]
+async function collectPageMetrics(page: import('@playwright/test').Page) {
+  return await page.evaluate(() => {
+    const firstHeading =
+      document.querySelector('h1')?.textContent?.trim() ??
+      document.querySelector('[data-audit-title]')?.textContent?.trim() ??
+      null
 
-const viewports: ViewportTarget[] = [
-  { name: 'desktop-1440x1000', width: 1440, height: 1000 },
-  { name: 'mobile-390x844', width: 390, height: 844 },
-]
-
-const auditName = process.env.GROW_OS_AUDIT_NAME ?? 'visual-audit-current'
-const auditRoot = path.resolve(process.cwd(), '..', 'artifacts', auditName)
-
-test.describe.configure({ mode: 'serial' })
-
-test('capture Grow OS visual audit screenshots', async ({ page }) => {
-  await fs.rm(auditRoot, { recursive: true, force: true })
-  await fs.mkdir(auditRoot, { recursive: true })
-
-  const results: RouteResult[] = []
-  const messages: AuditMessage[] = []
-  let activeTarget = 'bootstrap'
-
-  page.on('console', (message) => {
-    if (message.type() === 'error' || message.type() === 'warning') {
-      messages.push({
-        type: `console:${message.type()}`,
-        target: activeTarget,
-        text: trimMessage(message.text()),
-      })
+    return {
+      bodyScrollWidth: document.body.scrollWidth,
+      documentScrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+      heading: firstHeading,
     }
   })
+}
 
-  page.on('pageerror', (error) => {
-    messages.push({
-      type: 'pageerror',
-      target: activeTarget,
-      text: trimMessage(error.message),
-    })
+async function waitForAppIdle(page: import('@playwright/test').Page) {
+  await page.waitForLoadState('domcontentloaded')
+  await page.waitForTimeout(850)
+
+  try {
+    await page.waitForLoadState('networkidle', { timeout: 2500 })
+  } catch {
+    // Live-/HA-Requests dürfen noch laufen. Für Screenshots reicht der gerenderte Zustand.
+  }
+}
+
+async function auditRoute(
+  page: import('@playwright/test').Page,
+  viewport: ViewportCase,
+  route: RouteCase,
+  pageError: string | null,
+) {
+  const response = await page.goto(route.path, { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+
+  const metrics = await collectPageMetrics(page)
+  const fileName = `${viewport.name}-${viewport.width}x${viewport.height}-${route.slug}.png`
+  const screenshotPath = path.join(outputDir, fileName)
+
+  await page.screenshot({ path: screenshotPath, fullPage: true })
+
+  reportRows.push({
+    viewport: `${viewport.name}-${viewport.width}x${viewport.height}`,
+    route: route.path,
+    url: page.url(),
+    status: response?.status() ?? null,
+    screenshot: fileName,
+    bodyScrollWidth: metrics.bodyScrollWidth,
+    documentScrollWidth: metrics.documentScrollWidth,
+    innerWidth: metrics.innerWidth,
+    horizontalOverflow:
+      metrics.bodyScrollWidth > metrics.innerWidth ||
+      metrics.documentScrollWidth > metrics.innerWidth,
+    heading: metrics.heading,
+    note: null,
+    pageError,
   })
+}
 
-  page.on('requestfailed', (request) => {
-    const failure = request.failure()
-    messages.push({
-      type: 'requestfailed',
-      target: activeTarget,
-      text: trimMessage(failure?.errorText ?? 'request failed'),
-      url: request.url(),
-    })
-  })
+async function tryClickFirstAddbackStart(page: import('@playwright/test').Page) {
+  const candidates = [
+    page.locator('a[href*="/grows/"][href*="/addback"]').first(),
+    page.getByRole('link', { name: /addback starten/i }).first(),
+    page.getByRole('link', { name: /starten/i }).first(),
+    page.getByRole('button', { name: /addback starten/i }).first(),
+    page.getByRole('button', { name: /starten/i }).first(),
+    page.locator('a').filter({ hasText: /addback/i }).first(),
+  ]
 
-  for (const viewport of viewports) {
-    await page.setViewportSize({ width: viewport.width, height: viewport.height })
-
-    for (const route of routes) {
-      activeTarget = `${viewport.name}:${route.path}`
-      const screenshotFileName = `${viewport.name}-${route.name}.png`
-      const screenshotPath = path.join(auditRoot, screenshotFileName)
-      let httpStatus: number | null = null
-      let note: string | undefined
-
-      try {
-        const response = await page.goto(route.path, { waitUntil: 'domcontentloaded', timeout: 30_000 })
-        httpStatus = response?.status() ?? null
-        await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined)
-        await page.waitForTimeout(500)
-      } catch (error) {
-        note = error instanceof Error ? error.message : String(error)
+  for (const candidate of candidates) {
+    try {
+      if ((await candidate.count()) === 0) {
+        continue
       }
 
-      const layout = await readLayout(page).catch((error) => ({
-        title: 'n/a',
-        heading: 'n/a',
-        innerWidth: viewport.width,
-        bodyScrollWidth: viewport.width,
-        documentScrollWidth: viewport.width,
-        hasHorizontalOverflow: false,
-        note: error instanceof Error ? error.message : String(error),
-      }))
+      await candidate.scrollIntoViewIfNeeded()
+      await Promise.all([
+        page.waitForURL(/\/grows\/[^/]+\/addback/i, { timeout: 4500 }).catch(() => null),
+        candidate.click({ timeout: 3000 }),
+      ])
 
-      await page.screenshot({ path: screenshotPath, fullPage: true, animations: 'disabled' }).catch((error) => {
-        note = error instanceof Error ? error.message : String(error)
-      })
-
-      results.push({
-        viewport: viewport.name,
-        route: route.name,
-        path: route.path,
-        screenshot: screenshotFileName,
-        httpStatus,
-        title: layout.title,
-        heading: layout.heading,
-        innerWidth: layout.innerWidth,
-        bodyScrollWidth: layout.bodyScrollWidth,
-        documentScrollWidth: layout.documentScrollWidth,
-        hasHorizontalOverflow: layout.hasHorizontalOverflow,
-        capturedAtUtc: new Date().toISOString(),
-        note: note ?? layout.note,
-      })
+      if (/\/grows\/[^/]+\/addback/i.test(page.url())) {
+        return { opened: true, note: null }
+      }
+    } catch (error) {
+      // nächster Kandidat
     }
   }
 
-  await fs.writeFile(path.join(auditRoot, 'visual-audit-report.json'), `${JSON.stringify({ results, messages }, null, 2)}\n`, 'utf-8')
-  await fs.writeFile(path.join(auditRoot, 'visual-audit-report.md'), buildMarkdownReport(results, messages), 'utf-8')
-})
+  return {
+    opened: false,
+    note:
+      'Addback-Flow wurde nicht automatisch geöffnet. Wahrscheinlich kein aktiver Grow, kein eindeutiger Start-Link oder anderer Linktext.',
+  }
+}
 
-async function readLayout(page: Page) {
-  return page.evaluate(() => {
-    const heading = document.querySelector('h1')?.textContent?.trim() || document.querySelector('h2')?.textContent?.trim() || ''
-    const bodyScrollWidth = document.body?.scrollWidth ?? 0
-    const documentScrollWidth = document.documentElement?.scrollWidth ?? 0
-    const innerWidth = window.innerWidth
+async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewport: ViewportCase, pageError: string | null) {
+  const response = await page.goto('/addback', { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
 
-    return {
-      title: document.title,
-      heading,
-      innerWidth,
-      bodyScrollWidth,
-      documentScrollWidth,
-      hasHorizontalOverflow: Math.max(bodyScrollWidth, documentScrollWidth) > innerWidth + 1,
-    }
+  const result = await tryClickFirstAddbackStart(page)
+  await waitForAppIdle(page)
+
+  const slug = result.opened ? 'addback-flow' : 'addback-flow-not-opened'
+  const metrics = await collectPageMetrics(page)
+  const fileName = `${viewport.name}-${viewport.width}x${viewport.height}-${slug}.png`
+  const screenshotPath = path.join(outputDir, fileName)
+  await page.screenshot({ path: screenshotPath, fullPage: true })
+
+  reportRows.push({
+    viewport: `${viewport.name}-${viewport.width}x${viewport.height}`,
+    route: result.opened ? '/grows/:growId/addback' : '/addback → Flow nicht geöffnet',
+    url: page.url(),
+    status: response?.status() ?? null,
+    screenshot: fileName,
+    bodyScrollWidth: metrics.bodyScrollWidth,
+    documentScrollWidth: metrics.documentScrollWidth,
+    innerWidth: metrics.innerWidth,
+    horizontalOverflow:
+      metrics.bodyScrollWidth > metrics.innerWidth ||
+      metrics.documentScrollWidth > metrics.innerWidth,
+    heading: metrics.heading,
+    note: result.note,
+    pageError,
   })
 }
 
-function buildMarkdownReport(results: RouteResult[], messages: AuditMessage[]): string {
+function writeReports() {
+  fs.mkdirSync(outputDir, { recursive: true })
+
+  const payload = {
+    results: reportRows,
+    messages,
+  }
+
+  fs.writeFileSync(path.join(outputDir, 'visual-audit-report.json'), JSON.stringify(payload, null, 2), 'utf8')
+
   const lines = [
     '# Grow OS Visual Audit',
     '',
@@ -176,43 +202,74 @@ function buildMarkdownReport(results: RouteResult[], messages: AuditMessage[]): 
     '',
     '## Screenshots',
     '',
-    '| Viewport | Route | HTTP | Overflow | Heading | Screenshot | Note |',
-    '|---|---|---:|---|---|---|---|',
+    '| Viewport | Route | Status | Overflow | Heading | Screenshot | Note | PageError |',
+    '|---|---|---:|---|---|---|---|---|',
+    ...reportRows.map((row) => {
+      const note = row.note ? row.note.replace(/\|/g, '\\|').slice(0, 220) : ''
+      const error = row.pageError ? row.pageError.replace(/\|/g, '\\|').slice(0, 160) : ''
+      return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
+    }),
+    '',
+    '## Addback Deep Flow',
+    '',
+    'Der Audit versucht zusätzlich `/addback` zu öffnen und den ersten sichtbaren Addback-Start-Link zu klicken.',
+    '',
+    'Wenn `addback-flow-not-opened` erzeugt wird, ist das ab jetzt eine Warnung und kein Testabbruch. So bleiben die restlichen Screenshots erhalten.',
+    '',
+    '## Console / Network Hinweise',
+    '',
+    '| Typ | Ziel | Meldung | URL |',
+    '|---|---|---|---|',
+    ...messages.map((message) => `| ${message.type} | ${message.target} | ${message.text.replace(/\|/g, '\\|')} | ${message.url ?? ''} |`),
   ]
 
-  for (const result of results) {
-    lines.push(
-      `| ${escapeCell(result.viewport)} | ${escapeCell(result.path)} | ${result.httpStatus ?? ''} | ${result.hasHorizontalOverflow ? 'YES' : 'no'} | ${escapeCell(result.heading)} | ${escapeCell(result.screenshot)} | ${escapeCell(result.note ?? '')} |`,
-    )
-  }
-
-  lines.push('', '## Console / Network Hinweise', '')
-
-  if (messages.length === 0) {
-    lines.push('Keine Console-Warnungen, Console-Errors oder fehlgeschlagenen Requests protokolliert.')
-  } else {
-    lines.push('| Typ | Ziel | Meldung | URL |', '|---|---|---|---|')
-    for (const message of messages.slice(0, 200)) {
-      lines.push(`| ${escapeCell(message.type)} | ${escapeCell(message.target)} | ${escapeCell(message.text)} | ${escapeCell(message.url ?? '')} |`)
-    }
-
-    if (messages.length > 200) {
-      lines.push('', `Weitere Meldungen gekürzt: ${messages.length - 200}`)
-    }
-  }
-
-  lines.push('', '## Hinweise', '')
-  lines.push('- Die Screenshots sind bewusst ein Audit-Artefakt, kein Approval-Test.')
-  lines.push('- Ein Overflow-Eintrag bedeutet: `scrollWidth` war größer als `innerWidth`.')
-  lines.push('- Fehlende Daten oder leere Zustände werden so sichtbar, wie die App sie lokal rendert.')
-
-  return `${lines.join('\n')}\n`
+  fs.writeFileSync(path.join(outputDir, 'visual-audit-report.md'), lines.join('\n'), 'utf8')
 }
 
-function escapeCell(value: string): string {
-  return value.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').trim()
+test.describe.configure({ mode: 'serial' })
+
+test.beforeAll(() => {
+  ensureCleanOutput()
+})
+
+for (const viewport of viewports) {
+  test.describe(`visual audit ${viewport.name}`, () => {
+    test.beforeEach(async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height })
+
+      page.on('requestfailed', (request) => {
+        messages.push({
+          type: 'requestfailed',
+          target: `${viewport.name}-${viewport.width}x${viewport.height}:${page.url()}`,
+          text: request.failure()?.errorText ?? 'request failed',
+          url: request.url(),
+        })
+      })
+    })
+
+    test(`capture main routes ${viewport.name}`, async ({ page }) => {
+      let pageError: string | null = null
+      page.on('pageerror', (error) => {
+        pageError = error.message
+      })
+
+      for (const route of routes) {
+        await auditRoute(page, viewport, route, pageError)
+        pageError = null
+      }
+    })
+
+    test(`capture addback deep flow ${viewport.name}`, async ({ page }) => {
+      let pageError: string | null = null
+      page.on('pageerror', (error) => {
+        pageError = error.message
+      })
+
+      await auditAddbackDeepFlow(page, viewport, pageError)
+    })
+  })
 }
 
-function trimMessage(value: string): string {
-  return value.replace(/\s+/g, ' ').trim().slice(0, 500)
-}
+test.afterAll(() => {
+  writeReports()
+})
