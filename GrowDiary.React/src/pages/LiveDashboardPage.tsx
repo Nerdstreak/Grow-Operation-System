@@ -290,6 +290,27 @@ function buildSystemScore(metrics: MetricPayload[], risks: RiskEventDto[], senso
     return { score: 0, label: 'Lädt', tone: 'neutral', confidence: 'Daten werden geladen', summary: 'Live-Daten und Sensorstatus werden aktualisiert.', factors: [], actions: [] }
   }
 
+  const evaluableKeys = ['temperature', 'humidity', 'vpd', 'reservoir-ph', 'reservoir-ec', 'reservoir-temp', 'dissolved-oxygen', 'orp']
+  const usableMetricCount = evaluableKeys.filter((key) => getMetricNumber(metrics, key) != null).length
+
+  if (usableMetricCount === 0) {
+    return {
+      score: 0,
+      label: 'Einrichten',
+      tone: 'neutral',
+      confidence: 'Keine verwertbaren Live-Werte',
+      summary: 'Für eine echte Bewertung fehlen gemappte Sensorwerte oder aktuelle Messdaten.',
+      factors: [
+        { key: 'live-data-missing', label: 'Live-Daten', value: '0', tone: 'neutral', message: 'keine Werte' },
+        { key: 'sensor-trust', label: 'Sensoren', value: `${sensorTrust.score} %`, tone: sensorTrust.score < 82 ? 'warn' : 'neutral', message: sensorTrust.label },
+      ],
+      actions: [
+        { label: 'HA einrichten', to: '/home-assistant', tone: 'warn' },
+        { label: 'Sensoren prüfen', to: '/hardware', tone: 'warn' },
+      ],
+    }
+  }
+
   const factors: ScoreFactor[] = []
   const actions: ScoreAction[] = []
   let penalty = 0
@@ -298,6 +319,19 @@ function buildSystemScore(metrics: MetricPayload[], risks: RiskEventDto[], senso
     factors.push(factor)
     penalty += impact
     if (action) actions.push(action)
+  }
+
+  const coverageRatio = usableMetricCount / evaluableKeys.length
+  if (coverageRatio < 0.35) {
+    addFactor(
+      { key: 'data-coverage-low', label: 'Datenbasis', value: `${usableMetricCount}/${evaluableKeys.length}`, tone: 'warn', message: 'wenige Live-Werte' },
+      18,
+      { label: 'HA prüfen', to: '/home-assistant', tone: 'warn' },
+    )
+  } else if (coverageRatio < 0.65) {
+    addFactor({ key: 'data-coverage-mid', label: 'Datenbasis', value: `${usableMetricCount}/${evaluableKeys.length}`, tone: 'warn', message: 'teilweise gemappt' }, 8)
+  } else {
+    factors.push({ key: 'data-coverage-ok', label: 'Datenbasis', value: `${usableMetricCount}/${evaluableKeys.length}`, tone: 'ok', message: 'genügend Werte' })
   }
 
   evaluateRange(metrics, 'reservoir-ph', 'pH', null, { min: 5.5, max: 6.2 }, { min: 5.3, max: 6.5 }, (factor, impact) => addFactor(factor, impact, impact >= 28 ? { label: 'pH prüfen', to: '/action', tone: 'critical' } : impact > 0 ? { label: 'pH beobachten', to: '/action', tone: 'warn' } : undefined))
@@ -329,7 +363,7 @@ function buildSystemScore(metrics: MetricPayload[], risks: RiskEventDto[], senso
     : tone === 'warn'
       ? 'System läuft, aber einzelne Werte oder Sensoren sollten geprüft werden.'
       : 'Kernwerte, Risiken und Sensorstatus wirken aktuell stabil.'
-  const confidence = metrics.length === 0 ? 'Bewertung ohne Live-Metriken' : `${metrics.length} Live-Metriken berücksichtigt`
+  const confidence = `${usableMetricCount} von ${evaluableKeys.length} Kernwerten bewertet`
 
   const normalizedActions = dedupeActions(actions)
   if (normalizedActions.length === 0) normalizedActions.push({ label: 'Addback öffnen', to: '/addback', tone: 'ok' })
