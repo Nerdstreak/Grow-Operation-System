@@ -80,6 +80,14 @@ type SensorTrust = {
   criticalRisks: RiskEventDto[]
 }
 
+type SensorIssue = {
+  id: string
+  title: string
+  meta: string
+  badge: 'Einrichten' | 'Risiko' | 'Kalibrierung' | 'Wartung' | 'Offline'
+  tone: 'warn' | 'critical'
+}
+
 const emptyState: OpsState = { hardware: [], calibration: [], maintenance: [], risks: [], tents: [] }
 const calibrationTypes: CalibrationEventType[] = ['Ph', 'Ec', 'Orp', 'Do', 'Other']
 const calibrationResults: CalibrationResult[] = ['Passed', 'AdjustmentNeeded', 'Failed', 'Unknown']
@@ -137,6 +145,8 @@ function HardwarePage() {
   const openCalibration = useMemo(() => state.calibration.filter((event) => event.status === 'Planned').sort(sortDue), [state.calibration])
   const openMaintenance = useMemo(() => state.maintenance.filter((event) => event.status === 'Planned').sort(sortDue), [state.maintenance])
   const sensorIssues = useMemo(() => buildSensorIssueRows(state, trust), [state, trust])
+  const nextTitle = loading ? 'Lädt' : sensorIssues.length > 0 ? (sensorIssues[0].badge === 'Einrichten' ? 'Einrichten' : 'Prüfen') : 'Bereit'
+  const nextText = sensorIssues.length > 0 ? 'Die nächsten Schritte sind unten aufgeführt.' : 'Keine akuten Sensor-, Kalibrierungs- oder Wartungsthemen.'
 
   async function reload() {
     setRefresh((current) => current + 1)
@@ -358,17 +368,17 @@ function HardwarePage() {
           <div className="v1-card-title-row">
             <div>
               <span className="v1-card-kicker">Jetzt wichtig</span>
-              <h2>{sensorIssues.length > 0 ? 'Prüfen' : 'Stabil'}</h2>
+              <h2>{nextTitle}</h2>
             </div>
             <V1Badge tone={sensorIssues.length > 0 ? 'warn' : 'ok'}>{sensorIssues.length}</V1Badge>
           </div>
 
           {sensorIssues.length === 0 ? (
-            <p className="ops1b-soft-text">Keine akuten Sensor-, Kalibrierungs- oder Wartungsthemen.</p>
+            <p className="ops1b-soft-text">{nextText}</p>
           ) : (
             <div className="ops1b-mini-list">
               {sensorIssues.slice(0, 3).map((item) => (
-                <button key={item.id} type="button" className={classNames('ops1b-mini-row', item.tone)} onClick={() => setTab(item.badge === 'Kalibrierung' ? 'calibration' : item.badge === 'Wartung' ? 'maintenance' : 'overview')}>
+                <button key={item.id} type="button" className={classNames('ops1b-mini-row', item.tone)} onClick={() => setTab(tabForIssue(item.badge))}>
                   <strong>{item.title}</strong>
                   <span>{item.meta}</span>
                 </button>
@@ -400,11 +410,11 @@ function HardwarePage() {
         <div className="ops1b-stack">
           <V1Section title="Status">
             {sensorIssues.length === 0 ? (
-              <V1Empty title="Keine akuten Sensor-Themen" text="Kalibrierung und Wartung wirken aktuell stabil." />
+              <V1Empty title="Keine akuten Sensor-Themen" text="Kalibrierung und Wartung wirken aktuell bereit." />
             ) : (
               <div className="ops1b-issue-grid">
                 {sensorIssues.map((item) => (
-                  <button key={item.id} type="button" className={classNames('ops1b-issue-card', item.tone)} onClick={() => setTab(item.badge === 'Kalibrierung' ? 'calibration' : item.badge === 'Wartung' ? 'maintenance' : 'overview')}>
+                  <button key={item.id} type="button" className={classNames('ops1b-issue-card', item.tone)} onClick={() => setTab(tabForIssue(item.badge))}>
                     <span>{item.badge}</span>
                     <strong>{item.title}</strong>
                     <small>{item.meta}</small>
@@ -511,7 +521,7 @@ function HardwarePage() {
           </V1Section>
 
           <V1Section title="Anlegen">
-            <details className="ops1b-details">
+            <details className="ops1b-details" open={state.hardware.length === 0}>
               <summary>Sensor oder Hardware anlegen</summary>
               <form className="ops1b-form" onSubmit={saveHardware}>
                 <div className="ops1b-form-grid">
@@ -577,26 +587,42 @@ function Row({ label, value }: { label: string; value: string }) {
   return <div><span>{label}</span><strong>{value}</strong></div>
 }
 
-function buildSensorIssueRows(state: OpsState, trust: SensorTrust) {
+function buildSensorIssueRows(state: OpsState, trust: SensorTrust): SensorIssue[] {
+  const setupIssues: SensorIssue[] = trust.sensors.length === 0
+    ? [{ id: 'setup-sensors', title: 'Sensor-Hardware anlegen', meta: 'pH, EC, ORP oder DO-Sonde im Inventar erfassen.', badge: 'Einrichten', tone: 'warn' }]
+    : []
+
   return [
-    ...trust.criticalRisks.map((risk) => ({ id: `risk-${risk.id}`, title: risk.title, meta: risk.description ?? risk.eventType, badge: 'Risiko', tone: 'critical' as const })),
-    ...trust.dueCalibration.map((event) => ({ id: `cal-${event.id}`, title: event.title, meta: `${hardwareName(state.hardware, event.hardwareItemId)} · ${formatDateTime(event.dueAtUtc)}`, badge: 'Kalibrierung', tone: 'warn' as const })),
-    ...trust.dueMaintenance.map((event) => ({ id: `maint-${event.id}`, title: event.title, meta: `${hardwareName(state.hardware, event.hardwareItemId)} · ${formatDateTime(event.dueAtUtc)}`, badge: 'Wartung', tone: 'warn' as const })),
-    ...state.hardware.filter((item) => item.status === 'Offline' || item.status === 'Retired').map((item) => ({ id: `hardware-${item.id}`, title: item.name, meta: `${item.category} · ${labelHardwareStatus(item.status)}`, badge: 'Offline', tone: 'critical' as const })),
+    ...setupIssues,
+    ...trust.criticalRisks.map((risk) => ({ id: `risk-${risk.id}`, title: risk.title, meta: risk.description ?? risk.eventType, badge: 'Risiko' as const, tone: 'critical' as const })),
+    ...trust.dueCalibration.map((event) => ({ id: `cal-${event.id}`, title: event.title, meta: `${hardwareName(state.hardware, event.hardwareItemId)} · ${formatDateTime(event.dueAtUtc)}`, badge: 'Kalibrierung' as const, tone: 'warn' as const })),
+    ...trust.dueMaintenance.map((event) => ({ id: `maint-${event.id}`, title: event.title, meta: `${hardwareName(state.hardware, event.hardwareItemId)} · ${formatDateTime(event.dueAtUtc)}`, badge: 'Wartung' as const, tone: 'warn' as const })),
+    ...state.hardware.filter((item) => item.status === 'Offline' || item.status === 'Retired').map((item) => ({ id: `hardware-${item.id}`, title: item.name, meta: `${item.category} · ${labelHardwareStatus(item.status)}`, badge: 'Offline' as const, tone: 'critical' as const })),
   ].slice(0, 12)
 }
 
 function buildSensorTrust(state: OpsState): SensorTrust {
   const sensors = state.hardware.filter(isSensorLike)
-  const hardwareBase = sensors.length > 0 ? sensors : state.hardware
-  const offline = hardwareBase.filter((item) => item.status === 'Offline' || item.status === 'Retired').length
   const dueCalibration = state.calibration.filter((event) => event.status === 'Planned' && isDue(event.dueAtUtc))
   const dueMaintenance = state.maintenance.filter((event) => event.status === 'Planned' && isDue(event.dueAtUtc))
   const criticalRisks = state.risks.filter((risk) => risk.severity === 'Critical')
+
+  if (sensors.length === 0) {
+    return { score: 0, label: 'einrichten', tone: 'neutral', sensors, offline: 0, dueCalibration, dueMaintenance, criticalRisks }
+  }
+
+  const offline = sensors.filter((item) => item.status === 'Offline' || item.status === 'Retired').length
   const score = Math.max(0, Math.min(100, 100 - offline * 25 - dueCalibration.length * 15 - dueMaintenance.length * 10 - criticalRisks.length * 18))
   const tone = score < 55 ? 'critical' : score < 82 ? 'warn' : 'ok'
   const label = score < 55 ? 'kritisch' : score < 82 ? 'prüfen' : 'vertrauenswürdig'
   return { score, label, tone, sensors, offline, dueCalibration, dueMaintenance, criticalRisks }
+}
+
+function tabForIssue(badge: SensorIssue['badge']): OpsTab {
+  if (badge === 'Einrichten') return 'inventory'
+  if (badge === 'Kalibrierung') return 'calibration'
+  if (badge === 'Wartung') return 'maintenance'
+  return 'overview'
 }
 
 function isSensorLike(item: HardwareItemDto) {
