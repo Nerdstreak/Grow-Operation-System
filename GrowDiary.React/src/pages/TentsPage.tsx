@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { CreateTentRequest, HvacControllerType, LightControllerType, TentDto, TentType, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Stat, V1Switch, toNullableInt, toNullableString } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Stat, V1Switch, toNullableInt, toNullableString } from '../components/v1'
 
 const tentTypes: TentType[] = ['Production', 'Mother', 'Propagation', 'Quarantine', 'MultiPurpose']
 const controllers: Array<LightControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
@@ -31,10 +32,14 @@ type TentDraft = {
 }
 
 function TentsPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const routeCreateMode = location.pathname.endsWith('/new')
+
   const [tents, setTents] = useState<TentDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [formOpen, setFormOpen] = useState(false)
+  const [formOpen, setFormOpen] = useState(routeCreateMode)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [draft, setDraft] = useState<TentDraft>(() => createDraft())
   const [saving, setSaving] = useState<string | null>(null)
@@ -47,6 +52,7 @@ function TentsPage() {
     try {
       const result = await apiFetch<TentDto[]>('/api/settings/tents?includeArchived=true')
       setTents(sortTents(result))
+      if (routeCreateMode) setDraft(createDraft(result.length + 1))
     } catch (caught) {
       setError(formatApiError(caught, 'Zelte konnten nicht geladen werden.'))
     } finally {
@@ -55,13 +61,18 @@ function TentsPage() {
   }
 
   const activeTents = useMemo(() => tents.filter((tent) => tent.status === 'Active'), [tents])
-  const cameraCount = useMemo(() => activeTents.filter((tent) => Boolean(tent.cameraEntityId)).length, [activeTents])
-  const sensorCount = useMemo(() => activeTents.reduce((sum, tent) => sum + tent.sensors.filter((sensor) => sensor.isActive).length, 0), [activeTents])
+  const physicalVolumeKnown = useMemo(() => activeTents.filter((tent) => tent.widthCm && tent.depthCm && tent.tentHeightCm).length, [activeTents])
 
   function openCreate() {
     setEditingId(null)
     setDraft(createDraft(tents.length + 1))
     setFormOpen(true)
+  }
+
+  function closeForm() {
+    setFormOpen(false)
+    setEditingId(null)
+    if (routeCreateMode) navigate('/zelte')
   }
 
   function openEdit(tent: TentDto) {
@@ -96,8 +107,7 @@ function TentsPage() {
         })
         setTents((current) => sortTents([...current, created]))
       }
-      setFormOpen(false)
-      setEditingId(null)
+      closeForm()
     } catch (caught) {
       setError(formatApiError(caught, 'Zelt konnte nicht gespeichert werden.'))
     } finally {
@@ -121,21 +131,18 @@ function TentsPage() {
     }
   }
 
-  return (
-    <V1Page eyebrow="Physische Räume" title="Zelte" action={<V1Button variant="primary" onClick={openCreate}>Zelt anlegen</V1Button>}>
-      {error && <V1Alert message={error} tone="warn" />}
-
-      <section className="v1-kpi-grid">
-        <V1Stat label="Zelte" value={activeTents.length} />
-        <V1Stat label="Kameras" value={cameraCount} />
-        <V1Stat label="Sensoren" value={sensorCount} />
-        <V1Stat label="Aktive Grows" value={activeTents.reduce((sum, tent) => sum + tent.activeGrowCount, 0)} />
-      </section>
-
-      {formOpen && (
-        <V1Section title={editingId ? 'Zelt bearbeiten' : 'Zelt anlegen'} action={<V1Button onClick={() => setFormOpen(false)}>Schließen</V1Button>}>
+  if (formOpen) {
+    return (
+      <V1Page
+        eyebrow="Physischer Raum"
+        title={editingId ? 'Zelt bearbeiten' : 'Zelt anlegen'}
+        subtitle="Nur der physische Raum. Home-Assistant-Entities werden separat unter Home Assistant gemappt."
+        action={<V1Button onClick={closeForm}>Schließen</V1Button>}
+      >
+        {error && <V1Alert message={error} tone="warn" />}
+        <V1Section title="Zelt">
           <form className="v1-form-grid" onSubmit={(event) => void saveTent(event)}>
-            <V1Field label="Name"><input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Hauptzelt" /></V1Field>
+            <V1Field label="Name" wide><input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Hauptzelt" /></V1Field>
             <V1Field label="Zweck"><select value={draft.tentType} onChange={(event) => setDraft((current) => ({ ...current, tentType: event.target.value as TentType }))}>{tentTypes.map((type) => <option key={type} value={type}>{formatTentType(type)}</option>)}</select></V1Field>
             <V1Field label="Typ"><input value={draft.kind} onChange={(event) => setDraft((current) => ({ ...current, kind: event.target.value }))} placeholder="Grow Tent" /></V1Field>
             <V1Field label="Reihenfolge"><input type="number" value={draft.displayOrder} onChange={(event) => setDraft((current) => ({ ...current, displayOrder: event.target.value }))} /></V1Field>
@@ -149,19 +156,38 @@ function TentsPage() {
             <V1Field label="Lichttyp"><input value={draft.lightType} onChange={(event) => setDraft((current) => ({ ...current, lightType: event.target.value }))} placeholder="LED" /></V1Field>
             <V1Field label="Watt"><input type="number" value={draft.lightWatt} onChange={(event) => setDraft((current) => ({ ...current, lightWatt: event.target.value }))} /></V1Field>
             <V1Field label="Lichtcontroller"><select value={draft.lightController} onChange={(event) => setDraft((current) => ({ ...current, lightController: event.target.value as LightControllerType | '' }))}>{controllers.map((value) => <option key={value || 'none'} value={value}>{value || 'keiner'}</option>)}</select></V1Field>
-            <V1Field label="Licht Entity"><input value={draft.lightControllerEntityId} onChange={(event) => setDraft((current) => ({ ...current, lightControllerEntityId: event.target.value }))} placeholder="light.main" /></V1Field>
             <V1Field label="Abluft Anzahl"><input type="number" value={draft.exhaustFanCount} onChange={(event) => setDraft((current) => ({ ...current, exhaustFanCount: event.target.value }))} /></V1Field>
             <V1Field label="Abluft m³/h"><input type="number" value={draft.exhaustM3h} onChange={(event) => setDraft((current) => ({ ...current, exhaustM3h: event.target.value }))} /></V1Field>
             <V1Field label="Umluft Anzahl"><input type="number" value={draft.circulationFanCount} onChange={(event) => setDraft((current) => ({ ...current, circulationFanCount: event.target.value }))} /></V1Field>
             <V1Field label="Klima Controller"><select value={draft.hvacController} onChange={(event) => setDraft((current) => ({ ...current, hvacController: event.target.value as HvacControllerType | '' }))}>{hvacControllers.map((value) => <option key={value || 'none'} value={value}>{value || 'keiner'}</option>)}</select></V1Field>
-            <V1Field label="Klima Entity"><input value={draft.hvacControllerEntityId} onChange={(event) => setDraft((current) => ({ ...current, hvacControllerEntityId: event.target.value }))} placeholder="fan.exhaust" /></V1Field>
             <V1Switch label="CO₂ vorhanden" checked={draft.co2Available} onChange={(checked) => setDraft((current) => ({ ...current, co2Available: checked }))} />
-            <V1Field label="Kamera Entity"><input value={draft.cameraEntityId} onChange={(event) => setDraft((current) => ({ ...current, cameraEntityId: event.target.value }))} placeholder="camera.hauptzelt" /></V1Field>
             <V1Field label="Notizen" wide><textarea rows={3} value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></V1Field>
-            <div className="v1-form-actions"><V1Button variant="ghost" onClick={() => setFormOpen(false)}>Abbrechen</V1Button><V1Button type="submit" variant="primary" disabled={saving === 'tent'}>{saving === 'tent' ? 'Speichert...' : 'Speichern'}</V1Button></div>
+            <div className="v1-form-actions"><V1Button variant="ghost" onClick={closeForm}>Abbrechen</V1Button><V1Button type="submit" variant="primary" disabled={saving === 'tent'}>{saving === 'tent' ? 'Speichert...' : 'Speichern'}</V1Button></div>
           </form>
         </V1Section>
-      )}
+
+        <V1Section title="Home Assistant bleibt getrennt">
+          <V1Card>
+            <span className="v1-card-kicker">Mapping</span>
+            <h2>Sensoren, Kamera und Entities später zuordnen</h2>
+            <p>Zelt anlegen beschreibt nur den Raum. Kamera, Sensoren, Licht- und Klima-Entities gehören in den Home-Assistant-Bereich.</p>
+            <V1LinkButton to="/home-assistant">HA-Mapping öffnen</V1LinkButton>
+          </V1Card>
+        </V1Section>
+      </V1Page>
+    )
+  }
+
+  return (
+    <V1Page eyebrow="Physische Räume" title="Zelte" action={<V1Button variant="primary" onClick={openCreate}>Zelt anlegen</V1Button>}>
+      {error && <V1Alert message={error} tone="warn" />}
+
+      <section className="v1-kpi-grid">
+        <V1Stat label="Aktive Zelte" value={activeTents.length} />
+        <V1Stat label="Größe gepflegt" value={physicalVolumeKnown} />
+        <V1Stat label="Aktive Grows" value={activeTents.reduce((sum, tent) => sum + tent.activeGrowCount, 0)} />
+        <V1Stat label="Hydro-Setups" value={activeTents.reduce((sum, tent) => sum + tent.activeSetupCount, 0)} />
+      </section>
 
       {loading ? <V1Empty title="Lade Zelte..." /> : activeTents.length === 0 ? <V1Empty title="Noch kein Zelt" action={<V1Button variant="primary" onClick={openCreate}>Erstes Zelt anlegen</V1Button>} /> : (
         <section className="v1-card-grid">
@@ -182,8 +208,8 @@ function TentCard({ tent, saving, onEdit, onArchive }: { tent: TentDto; saving: 
         <Info label="Licht" value={tent.lightWatt ? `${tent.lightWatt} W` : tent.lightType ?? 'offen'} />
         <Info label="Klima" value={`${tent.exhaustFanCount ?? 0} Abluft · ${tent.circulationFanCount ?? 0} Umluft`} />
         <Info label="CO₂" value={tent.co2Available ? 'ja' : 'nein'} />
-        <Info label="Kamera" value={tent.cameraEntityId ? 'gemappt' : 'offen'} />
-        <Info label="Sensoren" value={String(tent.sensors.filter((sensor) => sensor.isActive).length)} />
+        <Info label="Grows" value={String(tent.activeGrowCount)} />
+        <Info label="Hydro" value={String(tent.activeSetupCount)} />
       </div>
       <div className="v1-action-row"><V1Button onClick={() => onEdit(tent)}>Bearbeiten</V1Button><V1Button variant="ghost" disabled={saving} onClick={() => void onArchive(tent)}>{archived ? 'Aktivieren' : 'Archivieren'}</V1Button></div>
     </V1Card>
