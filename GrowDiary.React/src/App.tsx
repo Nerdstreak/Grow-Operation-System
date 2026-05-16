@@ -4,6 +4,7 @@ import AddbackHubPage from './pages/AddbackHubPage'
 import AddbackPage from './pages/AddbackPage'
 import AnalysisPage from './pages/AnalysisPage'
 import ArchivePage from './pages/ArchivePage'
+import DeviceConnectPage from './pages/DeviceConnectPage'
 import GrowDetailPage from './pages/GrowDetailPage'
 import GrowSetupPage from './pages/GrowSetupPage'
 import HardwarePage from './pages/HardwarePage'
@@ -29,6 +30,7 @@ const moreNav = [
   { to: '/action', label: 'Aktion', end: true },
   { to: '/grows/new', label: 'Grow starten', end: true },
   { to: '/home-assistant', label: 'Home Assistant', end: true },
+  { to: '/connect', label: 'Gerät verbinden', end: true },
   { to: '/hardware', label: 'Sensoren', end: true },
   { to: '/wissen', label: 'Wissen', end: true },
   { to: '/analyse', label: 'Analyse', end: true },
@@ -104,6 +106,7 @@ function App() {
           <Route path="/zelte/:tentId" element={<TentDetailPage />} />
           <Route path="/hydro" element={<HydroPage />} />
           <Route path="/home-assistant" element={<HomeAssistantPage />} />
+          <Route path="/connect" element={<DeviceConnectPage />} />
           <Route path="/hardware" element={<HardwarePage />} />
           <Route path="/wissen" element={<KnowledgePage />} />
           <Route path="/analyse" element={<AnalysisPage />} />
@@ -135,6 +138,7 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/hydro')) return 'Hydro'
   if (pathname.startsWith('/action')) return 'Aktion'
   if (pathname.startsWith('/home-assistant')) return 'Home Assistant'
+  if (pathname.startsWith('/connect')) return 'Gerät verbinden'
   if (pathname.startsWith('/grows/new')) return 'Grow starten'
   if (pathname.startsWith('/grows')) return 'Grow'
   if (pathname.startsWith('/hardware')) return 'Sensoren'
