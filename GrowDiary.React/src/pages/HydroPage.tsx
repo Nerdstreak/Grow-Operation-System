@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { CreateHydroSetupRequest, HydroSetupDto, HydroSetupLayoutType, ReservoirPosition, SelectableHydroStyle, TentDto, UpdateHydroSetupRequest } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Stat, V1Switch, V1Wizard, draftNumber, formatLiters, toNullableFloat, toNullableInt, toNullableString } from '../components/v1'
@@ -29,11 +30,15 @@ const layoutOptions: HydroSetupLayoutType[] = ['SingleBucket', 'Row', 'Grid2x2',
 const reservoirPositions: ReservoirPosition[] = ['None', 'Left', 'Right', 'Top', 'Bottom', 'External']
 
 function HydroPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const routeCreateMode = location.pathname.endsWith('/new')
+
   const [tents, setTents] = useState<TentDto[]>([])
   const [setups, setSetups] = useState<HydroSetupDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [formOpen, setFormOpen] = useState(false)
+  const [formOpen, setFormOpen] = useState(routeCreateMode)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [draft, setDraft] = useState<HydroDraft>(() => createDraft())
   const [step, setStep] = useState(1)
@@ -51,6 +56,7 @@ function HydroPage() {
       const sorted = sortSetups(setupData)
       setSetups(sorted)
       setSelectedSetupId((current) => current ?? sorted.find((setup) => setup.status === 'Active')?.id ?? sorted[0]?.id ?? null)
+      if (routeCreateMode) setDraft(createDraft(sorted.length + 1, tentData[0]?.id ?? null))
     } catch (caught) {
       setError(formatApiError(caught, 'Hydro-Daten konnten nicht geladen werden.'))
     } finally {
@@ -67,6 +73,12 @@ function HydroPage() {
     setDraft(createDraft(setups.length + 1, tents[0]?.id ?? null))
     setStep(1)
     setFormOpen(true)
+  }
+
+  function closeForm() {
+    setFormOpen(false)
+    setEditingId(null)
+    if (routeCreateMode) navigate('/hydro')
   }
 
   function openEdit(setup: HydroSetupDto) {
@@ -111,8 +123,7 @@ function HydroPage() {
         setSetups((current) => sortSetups([...current, created]))
         setSelectedSetupId(created.id)
       }
-      setFormOpen(false)
-      setEditingId(null)
+      closeForm()
     } catch (caught) {
       setError(formatApiError(caught, 'Hydro-Setup konnte nicht gespeichert werden.'))
     } finally {
@@ -133,18 +144,11 @@ function HydroPage() {
     }
   }
 
-  return (
-    <V1Page eyebrow="DWC/RDWC-Systeme" title="Hydro" action={<V1Button variant="primary" onClick={openCreate}>Hydro-Setup anlegen</V1Button>}>
-      {error && <V1Alert message={error} tone="warn" />}
-      <section className="v1-kpi-grid">
-        <V1Stat label="Setups" value={setups.length} />
-        <V1Stat label="Aktiv" value={activeSetups.length} />
-        <V1Stat label="Gesamtvolumen" value={formatNumber(activeSetups.reduce((sum, setup) => sum + (setup.totalVolumeLiters ?? 0), 0), 0)} unit="L" />
-        <V1Stat label="Zelte" value={tents.length} />
-      </section>
-
-      {formOpen && (
-        <V1Section title={editingId ? 'Hydro-Setup bearbeiten' : 'Hydro-Setup anlegen'} action={<V1Button onClick={() => setFormOpen(false)}>Schließen</V1Button>}>
+  if (formOpen) {
+    return (
+      <V1Page eyebrow="DWC/RDWC-System" title={editingId ? 'Hydro-Setup bearbeiten' : 'Hydro-Setup anlegen'} subtitle="Fokussierter Assistent. Bestehende Setups bleiben während des Anlegens ausgeblendet." action={<V1Button onClick={closeForm}>Schließen</V1Button>}>
+        {error && <V1Alert message={error} tone="warn" />}
+        <V1Section title={editingId ? 'Setup bearbeiten' : 'Setup anlegen'}>
           <V1Wizard steps={wizardSteps} currentStep={step} />
           <div className="v1-wizard-body">
             {step === 1 && <StepSystem draft={draft} tents={tents} onStyle={setHydroStyle} onDraft={setDraft} />}
@@ -154,11 +158,23 @@ function HydroPage() {
             {step === 5 && <StepReview draft={draft} tents={tents} totalVolume={totalVolume} />}
           </div>
           <div className="v1-form-actions">
-            <V1Button variant="ghost" onClick={() => step === 1 ? setFormOpen(false) : setStep((current) => Math.max(1, current - 1))}>{step === 1 ? 'Abbrechen' : 'Zurück'}</V1Button>
+            <V1Button variant="ghost" onClick={() => step === 1 ? closeForm() : setStep((current) => Math.max(1, current - 1))}>{step === 1 ? 'Abbrechen' : 'Zurück'}</V1Button>
             {step < wizardSteps.length ? <V1Button variant="primary" onClick={next}>Weiter</V1Button> : <V1Button variant="primary" disabled={saving === 'setup'} onClick={() => void saveSetup()}>{saving === 'setup' ? 'Speichert...' : 'Speichern'}</V1Button>}
           </div>
         </V1Section>
-      )}
+      </V1Page>
+    )
+  }
+
+  return (
+    <V1Page eyebrow="DWC/RDWC-Systeme" title="Hydro" action={<V1Button variant="primary" onClick={openCreate}>Hydro-Setup anlegen</V1Button>}>
+      {error && <V1Alert message={error} tone="warn" />}
+      <section className="v1-kpi-grid">
+        <V1Stat label="Aktive Setups" value={activeSetups.length} />
+        <V1Stat label="Sites" value={activeSetups.reduce((sum, setup) => sum + (setup.potCount ?? 0), 0)} />
+        <V1Stat label="Gesamtvolumen" value={formatNumber(activeSetups.reduce((sum, setup) => sum + (setup.totalVolumeLiters ?? 0), 0), 0)} unit="L" />
+        <V1Stat label="Ohne Zelt" value={activeSetups.filter((setup) => setup.tentId == null).length} />
+      </section>
 
       {loading ? <V1Empty title="Lade Hydro-Setups..." /> : setups.length === 0 ? <V1Empty title="Noch kein Hydro-Setup" action={<V1Button variant="primary" onClick={openCreate}>Erstes Setup anlegen</V1Button>} /> : (
         <section className="v1-hydro-layout">

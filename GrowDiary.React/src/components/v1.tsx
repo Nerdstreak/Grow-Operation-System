@@ -79,11 +79,54 @@ export function V1Alert({ title, message, tone = 'warn' }: { title?: string; mes
 
 export function V1Tabs<T extends string | number>({ items, active, onChange, label }: { items: Array<{ value: T; label: string; meta?: string | null }>; active: T; onChange: (value: T) => void; label?: string }) {
   return (
-    <div className="v1-tabs" role="tablist" aria-label={label}>
+    <div
+      className="v1-tabs"
+      role="tablist"
+      aria-label={label}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(118px, 1fr))',
+        gap: 8,
+        width: '100%',
+        maxWidth: '100%',
+        overflow: 'visible',
+      }}
+    >
       {items.map((item) => (
-        <button key={String(item.value)} type="button" className={classNames('v1-tab', item.value === active && 'active')} onClick={() => onChange(item.value)}>
-          <strong>{item.label}</strong>
-          {item.meta && <span>{item.meta}</span>}
+        <button
+          key={String(item.value)}
+          type="button"
+          className={classNames('v1-tab', item.value === active && 'active')}
+          onClick={() => onChange(item.value)}
+          style={{
+            minWidth: 0,
+            width: '100%',
+            maxWidth: '100%',
+            overflow: 'hidden',
+          }}
+        >
+          <strong
+            style={{
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {item.label}
+          </strong>
+          {item.meta && (
+            <span
+              style={{
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {item.meta}
+            </span>
+          )}
         </button>
       ))}
     </div>
@@ -114,13 +157,45 @@ export function V1Switch({ label, checked, onChange, hint }: { label: string; ch
 
 export function V1Wizard({ steps, currentStep, onStep }: { steps: string[]; currentStep: number; onStep?: (step: number) => void }) {
   return (
-    <div className="v1-wizard-steps">
+    <div
+      className="v1-wizard-steps"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(92px, 1fr))',
+        gap: 8,
+        width: '100%',
+        maxWidth: '100%',
+        overflow: 'visible',
+      }}
+    >
       {steps.map((step, index) => {
         const number = index + 1
         return (
-          <button key={step} type="button" className={classNames('v1-wizard-step', currentStep === number && 'active', currentStep > number && 'done')} onClick={() => onStep?.(number)} disabled={!onStep}>
+          <button
+            key={step}
+            type="button"
+            className={classNames('v1-wizard-step', currentStep === number && 'active', currentStep > number && 'done')}
+            onClick={() => onStep?.(number)}
+            disabled={!onStep}
+            style={{
+              minWidth: 0,
+              width: '100%',
+              maxWidth: '100%',
+              justifyContent: 'flex-start',
+              overflow: 'hidden',
+            }}
+          >
             <span>{number}</span>
-            <strong>{step}</strong>
+            <strong
+              style={{
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {step}
+            </strong>
           </button>
         )
       })}

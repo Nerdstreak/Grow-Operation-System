@@ -28,14 +28,14 @@ const coreNav = [
 ]
 
 const moreNav = [
-  { to: '/action', label: 'Aktion', end: true },
+  { to: '/action', label: 'Aufgaben', end: true },
   { to: '/grows/new', label: 'Grow starten', end: true },
   { to: '/home-assistant', label: 'Home Assistant', end: true },
   { to: '/connect', label: 'Gerät verbinden', end: true },
   { to: '/hardware', label: 'Sensoren', end: true },
   { to: '/wissen', label: 'Wissen', end: true },
   { to: '/release', label: 'Release', end: true },
-  { to: '/analyse', label: 'Analyse', end: true },
+  { to: '/analyse', label: 'Vergleich', end: true },
   { to: '/archiv', label: 'Archiv', end: true },
   { to: '/settings', label: 'Einstellungen', end: true },
 ]
@@ -97,6 +97,7 @@ function App() {
           <Route path="/live" element={<Navigate to="/" replace />} />
           <Route path="/addback" element={<AddbackHubPage />} />
           <Route path="/action" element={<MobileActionPage />} />
+          <Route path="/aufgaben" element={<Navigate to="/action" replace />} />
           <Route path="/grows" element={<Navigate to="/" replace />} />
           <Route path="/grows/new" element={<GrowSetupPage />} />
           <Route path="/grows/:growId" element={<GrowDetailPage />} />
@@ -105,8 +106,10 @@ function App() {
           <Route path="/grows/:growId/harvest" element={<HarvestPage />} />
           <Route path="/grows/measurements/:measurementId/edit" element={<MeasurementEditPage />} />
           <Route path="/zelte" element={<TentsPage />} />
+          <Route path="/zelte/new" element={<TentsPage />} />
           <Route path="/zelte/:tentId" element={<TentDetailPage />} />
           <Route path="/hydro" element={<HydroPage />} />
+          <Route path="/hydro/new" element={<HydroPage />} />
           <Route path="/home-assistant" element={<HomeAssistantPage />} />
           <Route path="/connect" element={<DeviceConnectPage />} />
           <Route path="/hardware" element={<HardwarePage />} />
@@ -139,7 +142,7 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/addback') || pathname.includes('/addback')) return 'Addback'
   if (pathname.startsWith('/zelte')) return 'Zelte'
   if (pathname.startsWith('/hydro')) return 'Hydro'
-  if (pathname.startsWith('/action')) return 'Aktion'
+  if (pathname.startsWith('/action') || pathname.startsWith('/aufgaben')) return 'Aufgaben'
   if (pathname.startsWith('/home-assistant')) return 'Home Assistant'
   if (pathname.startsWith('/connect')) return 'Gerät verbinden'
   if (pathname.startsWith('/grows/new')) return 'Grow starten'
@@ -147,7 +150,7 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/hardware')) return 'Sensoren'
   if (pathname.startsWith('/wissen')) return 'Wissen'
   if (pathname.startsWith('/release')) return 'Release'
-  if (pathname.startsWith('/analyse')) return 'Analyse'
+  if (pathname.startsWith('/analyse')) return 'Vergleich'
   if (pathname.startsWith('/archiv')) return 'Archiv'
   if (pathname.startsWith('/settings') || pathname.startsWith('/einstellungen')) return 'Einstellungen'
   return 'Grow OS'
