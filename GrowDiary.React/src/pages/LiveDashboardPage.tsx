@@ -124,6 +124,13 @@ function LiveDashboardPage() {
       {state.issues.length > 0 && <V1Alert title="Teilweise offline" message={state.issues.slice(0, 3).join(' · ')} tone="warn" />}
 
       {selectedTent && <SystemScoreCard score={systemScore} />}
+      {selectedTent && systemScore.confidence === 'Keine verwertbaren Live-Werte' && (
+        <V1Alert
+          title="Live-Bewertung noch nicht möglich"
+          message="Die App zeigt erst Stabil/Beobachten/Kritisch, wenn HA-Sensoren oder aktuelle Messwerte verwertbar sind."
+          tone="warn"
+        />
+      )}
 
       {state.tents.length > 1 && (
         <V1Tabs
@@ -146,7 +153,7 @@ function LiveDashboardPage() {
                   <span className="v1-card-kicker">{selectedTent.name}</span>
                   <h2>{primaryGrow?.name ?? 'Kein aktiver Grow'}</h2>
                 </div>
-                <V1Badge tone={statusTone}>{live?.stateLabel ?? status}</V1Badge>
+                <V1Badge tone={statusTone}>{status}</V1Badge>
               </div>
               <div className="v1-now-list">
                 <Row label="Zelt" value={formatTentType(selectedTent.tentType)} />
@@ -155,7 +162,7 @@ function LiveDashboardPage() {
                 <Row label="Phase" value={primaryGrow?.latestStage ?? 'offen'} />
                 <Row label="Letzte Messung" value={formatDateTime(primaryGrow?.latestMeasurementAt)} />
                 <Row label="Score" value={`${systemScore.score} %`} />
-                <Row label="Sensoren" value={sensorTrust.label} />
+                <Row label="Sensoren" value={systemScore.confidence === 'Keine verwertbaren Live-Werte' ? 'einrichten' : sensorTrust.label} />
               </div>
               <div className="v1-action-row">
                 {primaryGrow ? <V1LinkButton to={`/grows/${primaryGrow.id}/addback`} variant="primary">Addback</V1LinkButton> : <V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>}
