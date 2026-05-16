@@ -20,7 +20,7 @@ import type {
   UpdateHardwareItemRequest,
   UpdateMaintenanceEventRequest,
 } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Stat, V1Tabs } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Tabs } from '../components/v1'
 import { classNames, formatDate, formatDateTime, toLocalInputValue } from '../utils'
 
 type OpsState = {
@@ -332,21 +332,60 @@ function HardwarePage() {
     <V1Page
       eyebrow="Ops"
       title="Sensoren"
-      subtitle="Kalibrierung, Wartung und Sensorvertrauen."
+      subtitle="Sensorvertrauen, Kalibrierung und Wartung."
       action={<V1Button onClick={() => setRefresh((current) => current + 1)}>Aktualisieren</V1Button>}
+      className="ops1b-page"
     >
       {error && <V1Alert title="Fehler" message={error} tone="critical" />}
       {message && <V1Alert title="Gespeichert" message={message} tone="ok" />}
 
-      <section className="v1-kpi-grid ops-kpi-grid">
-        <V1Stat label="Sensorvertrauen" value={loading ? '...' : trust.score} unit={loading ? null : '%'} hint={trust.label} tone={trust.tone} />
-        <V1Stat label="Sensoren" value={trust.sensors.length} hint={`${trust.offline} offline`} tone={trust.offline > 0 ? 'warn' : 'ok'} />
-        <V1Stat label="Kalibrierung" value={trust.dueCalibration.length} hint="fällig / geplant" tone={trust.dueCalibration.length > 0 ? 'warn' : 'ok'} />
-        <V1Stat label="Wartung" value={trust.dueMaintenance.length} hint="fällig / geplant" tone={trust.dueMaintenance.length > 0 ? 'warn' : 'ok'} />
+      <section className="ops1b-hero-grid">
+        <V1Card className="ops1b-score-card" tone={trust.tone}>
+          <div>
+            <span className="ops1b-kicker">Sensorvertrauen</span>
+            <strong>{loading ? '...' : trust.score}<em>{loading ? '' : '%'}</em></strong>
+            <p>{trust.label}</p>
+          </div>
+          <div className="ops1b-score-meta">
+            <span>{trust.sensors.length} Sensoren</span>
+            <span>{trust.offline} offline</span>
+            <span>{trust.dueCalibration.length} Kalibrierung</span>
+            <span>{trust.dueMaintenance.length} Wartung</span>
+          </div>
+        </V1Card>
+
+        <V1Card className="ops1b-next-card" tone={sensorIssues.length > 0 ? 'warn' : 'ok'}>
+          <div className="v1-card-title-row">
+            <div>
+              <span className="v1-card-kicker">Jetzt wichtig</span>
+              <h2>{sensorIssues.length > 0 ? 'Prüfen' : 'Stabil'}</h2>
+            </div>
+            <V1Badge tone={sensorIssues.length > 0 ? 'warn' : 'ok'}>{sensorIssues.length}</V1Badge>
+          </div>
+
+          {sensorIssues.length === 0 ? (
+            <p className="ops1b-soft-text">Keine akuten Sensor-, Kalibrierungs- oder Wartungsthemen.</p>
+          ) : (
+            <div className="ops1b-mini-list">
+              {sensorIssues.slice(0, 3).map((item) => (
+                <button key={item.id} type="button" className={classNames('ops1b-mini-row', item.tone)} onClick={() => setTab(item.badge === 'Kalibrierung' ? 'calibration' : item.badge === 'Wartung' ? 'maintenance' : 'overview')}>
+                  <strong>{item.title}</strong>
+                  <span>{item.meta}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="ops1b-action-grid">
+            <V1Button onClick={() => setTab('calibration')}>Kalibrieren</V1Button>
+            <V1Button onClick={() => setTab('maintenance')}>Wartung</V1Button>
+            <V1Button onClick={() => setTab('inventory')}>Inventar</V1Button>
+          </div>
+        </V1Card>
       </section>
 
       <V1Tabs<OpsTab>
-        label="Ops Bereich"
+        label="Sensoren Bereich"
         active={tab}
         onChange={setTab}
         items={[
@@ -358,57 +397,59 @@ function HardwarePage() {
       />
 
       {tab === 'overview' && (
-        <>
-          <V1Section title="Sensorvertrauen">
+        <div className="ops1b-stack">
+          <V1Section title="Status">
             {sensorIssues.length === 0 ? (
               <V1Empty title="Keine akuten Sensor-Themen" text="Kalibrierung und Wartung wirken aktuell stabil." />
             ) : (
-              <div className="ops-issue-list">
+              <div className="ops1b-issue-grid">
                 {sensorIssues.map((item) => (
-                  <div key={item.id} className={classNames('ops-issue-row', item.tone)}>
-                    <div>
-                      <strong>{item.title}</strong>
-                      <span>{item.meta}</span>
-                    </div>
-                    <V1Badge tone={item.tone}>{item.badge}</V1Badge>
-                  </div>
+                  <button key={item.id} type="button" className={classNames('ops1b-issue-card', item.tone)} onClick={() => setTab(item.badge === 'Kalibrierung' ? 'calibration' : item.badge === 'Wartung' ? 'maintenance' : 'overview')}>
+                    <span>{item.badge}</span>
+                    <strong>{item.title}</strong>
+                    <small>{item.meta}</small>
+                  </button>
                 ))}
               </div>
             )}
           </V1Section>
 
           <V1Section title="Sensoren">
-            {sensors.length === 0 ? <V1Empty title="Noch keine Sensor-Hardware" text="Lege pH-, EC-, ORP- oder DO-Sonden im Inventar an." /> : (
-              <div className="ops-sensor-grid">
+            {sensors.length === 0 ? (
+              <V1Empty title="Noch keine Sensor-Hardware" text="Lege pH-, EC-, ORP- oder DO-Sonden im Inventar an." action={<V1Button onClick={() => setTab('inventory')} variant="primary">Sensor anlegen</V1Button>} />
+            ) : (
+              <div className="ops1b-sensor-grid">
                 {sensors.map((item) => <SensorCard key={item.id} item={item} state={state} onStatus={updateHardwareStatus} saving={saving === `hardware-${item.id}`} />)}
               </div>
             )}
           </V1Section>
-        </>
+        </div>
       )}
 
       {tab === 'calibration' && (
-        <div className="ops-two-column">
+        <div className="ops1b-workflow-grid">
           <V1Section title="Kalibrier-Assistent">
-            <form className="v1-form-grid ops-form" onSubmit={saveCalibration}>
-              <V1Field label="Sensor" wide>
-                <select value={calibrationDraft.hardwareItemId} onChange={(event) => setCalibrationDraft((current) => ({ ...current, hardwareItemId: event.target.value }))}>
-                  <option value="">Sensor auswählen</option>
-                  {sortedHardware.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.category}</option>)}
-                </select>
-              </V1Field>
-              <V1Field label="Typ"><select value={calibrationDraft.calibrationType} onChange={(event) => setCalibrationDraft((current) => ({ ...current, calibrationType: event.target.value as CalibrationEventType }))}>{calibrationTypes.map((type) => <option key={type} value={type}>{labelCalibrationType(type)}</option>)}</select></V1Field>
-              <V1Field label="Ergebnis"><select value={calibrationDraft.result} onChange={(event) => setCalibrationDraft((current) => ({ ...current, result: event.target.value as CalibrationResult }))}>{calibrationResults.map((result) => <option key={result} value={result}>{labelCalibrationResult(result)}</option>)}</select></V1Field>
-              <V1Field label="Referenzlösung"><input value={calibrationDraft.referenceSolution} onChange={(event) => setCalibrationDraft((current) => ({ ...current, referenceSolution: event.target.value }))} placeholder="pH 7.00 / 1413 µS" /></V1Field>
-              <V1Field label="Referenzwert"><input inputMode="decimal" value={calibrationDraft.referenceValue} onChange={(event) => setCalibrationDraft((current) => ({ ...current, referenceValue: event.target.value }))} /></V1Field>
-              <V1Field label="Vorher"><input inputMode="decimal" value={calibrationDraft.beforeValue} onChange={(event) => setCalibrationDraft((current) => ({ ...current, beforeValue: event.target.value }))} /></V1Field>
-              <V1Field label="Nachher"><input inputMode="decimal" value={calibrationDraft.afterValue} onChange={(event) => setCalibrationDraft((current) => ({ ...current, afterValue: event.target.value }))} /></V1Field>
-              <V1Field label="Temperatur °C"><input inputMode="decimal" value={calibrationDraft.temperatureC} onChange={(event) => setCalibrationDraft((current) => ({ ...current, temperatureC: event.target.value }))} /></V1Field>
-              <V1Field label="Durchgeführt"><input type="datetime-local" value={calibrationDraft.performedAtLocal} onChange={(event) => setCalibrationDraft((current) => ({ ...current, performedAtLocal: event.target.value }))} /></V1Field>
-              <V1Field label="Nächste Fälligkeit"><input type="datetime-local" value={calibrationDraft.nextDueAtLocal} onChange={(event) => setCalibrationDraft((current) => ({ ...current, nextDueAtLocal: event.target.value }))} /></V1Field>
-              <V1Field label="Titel" wide><input value={calibrationDraft.title} onChange={(event) => setCalibrationDraft((current) => ({ ...current, title: event.target.value }))} placeholder="z. B. pH Sonde 2-Punkt-Kalibrierung" /></V1Field>
-              <V1Field label="Notizen" wide><textarea value={calibrationDraft.notes} onChange={(event) => setCalibrationDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} /></V1Field>
-              <div className="v1-action-row is-wide"><V1Button type="submit" variant="primary" disabled={saving === 'calibration'}>{saving === 'calibration' ? 'Speichert...' : 'Kalibrierung speichern'}</V1Button></div>
+            <form className="ops1b-form" onSubmit={saveCalibration}>
+              <div className="ops1b-form-grid">
+                <V1Field label="Sensor" wide>
+                  <select value={calibrationDraft.hardwareItemId} onChange={(event) => setCalibrationDraft((current) => ({ ...current, hardwareItemId: event.target.value }))}>
+                    <option value="">Sensor auswählen</option>
+                    {sortedHardware.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.category}</option>)}
+                  </select>
+                </V1Field>
+                <V1Field label="Typ"><select value={calibrationDraft.calibrationType} onChange={(event) => setCalibrationDraft((current) => ({ ...current, calibrationType: event.target.value as CalibrationEventType }))}>{calibrationTypes.map((type) => <option key={type} value={type}>{labelCalibrationType(type)}</option>)}</select></V1Field>
+                <V1Field label="Ergebnis"><select value={calibrationDraft.result} onChange={(event) => setCalibrationDraft((current) => ({ ...current, result: event.target.value as CalibrationResult }))}>{calibrationResults.map((result) => <option key={result} value={result}>{labelCalibrationResult(result)}</option>)}</select></V1Field>
+                <V1Field label="Referenzlösung"><input value={calibrationDraft.referenceSolution} onChange={(event) => setCalibrationDraft((current) => ({ ...current, referenceSolution: event.target.value }))} placeholder="pH 7.00 / 1413 µS" /></V1Field>
+                <V1Field label="Referenzwert"><input inputMode="decimal" value={calibrationDraft.referenceValue} onChange={(event) => setCalibrationDraft((current) => ({ ...current, referenceValue: event.target.value }))} /></V1Field>
+                <V1Field label="Vorher"><input inputMode="decimal" value={calibrationDraft.beforeValue} onChange={(event) => setCalibrationDraft((current) => ({ ...current, beforeValue: event.target.value }))} /></V1Field>
+                <V1Field label="Nachher"><input inputMode="decimal" value={calibrationDraft.afterValue} onChange={(event) => setCalibrationDraft((current) => ({ ...current, afterValue: event.target.value }))} /></V1Field>
+                <V1Field label="Temperatur °C"><input inputMode="decimal" value={calibrationDraft.temperatureC} onChange={(event) => setCalibrationDraft((current) => ({ ...current, temperatureC: event.target.value }))} /></V1Field>
+                <V1Field label="Durchgeführt"><input type="datetime-local" value={calibrationDraft.performedAtLocal} onChange={(event) => setCalibrationDraft((current) => ({ ...current, performedAtLocal: event.target.value }))} /></V1Field>
+                <V1Field label="Nächste Fälligkeit"><input type="datetime-local" value={calibrationDraft.nextDueAtLocal} onChange={(event) => setCalibrationDraft((current) => ({ ...current, nextDueAtLocal: event.target.value }))} /></V1Field>
+                <V1Field label="Titel" wide><input value={calibrationDraft.title} onChange={(event) => setCalibrationDraft((current) => ({ ...current, title: event.target.value }))} placeholder="z. B. pH Sonde 2-Punkt-Kalibrierung" /></V1Field>
+                <V1Field label="Notizen" wide><textarea value={calibrationDraft.notes} onChange={(event) => setCalibrationDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} /></V1Field>
+              </div>
+              <div className="ops1b-sticky-actions"><V1Button type="submit" variant="primary" disabled={saving === 'calibration'}>{saving === 'calibration' ? 'Speichert...' : 'Kalibrierung speichern'}</V1Button></div>
             </form>
           </V1Section>
 
@@ -427,17 +468,19 @@ function HardwarePage() {
       )}
 
       {tab === 'maintenance' && (
-        <div className="ops-two-column">
+        <div className="ops1b-workflow-grid">
           <V1Section title="Wartung dokumentieren">
-            <form className="v1-form-grid ops-form" onSubmit={saveMaintenance}>
-              <V1Field label="Hardware" wide><select value={maintenanceDraft.hardwareItemId} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, hardwareItemId: event.target.value }))}><option value="">Hardware auswählen</option>{sortedHardware.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.category}</option>)}</select></V1Field>
-              <V1Field label="Typ"><select value={maintenanceDraft.eventType} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, eventType: event.target.value as MaintenanceEventType }))}>{maintenanceTypes.map((type) => <option key={type} value={type}>{labelMaintenanceType(type)}</option>)}</select></V1Field>
-              <V1Field label="Ergebnis"><select value={maintenanceDraft.result} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, result: event.target.value as MaintenanceResult }))}>{maintenanceResults.map((result) => <option key={result} value={result}>{labelMaintenanceResult(result)}</option>)}</select></V1Field>
-              <V1Field label="Durchgeführt"><input type="datetime-local" value={maintenanceDraft.performedAtLocal} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, performedAtLocal: event.target.value }))} /></V1Field>
-              <V1Field label="Nächste Fälligkeit"><input type="datetime-local" value={maintenanceDraft.nextDueAtLocal} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, nextDueAtLocal: event.target.value }))} /></V1Field>
-              <V1Field label="Titel" wide><input value={maintenanceDraft.title} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, title: event.target.value }))} placeholder="z. B. Luftsteine gereinigt" /></V1Field>
-              <V1Field label="Notizen" wide><textarea value={maintenanceDraft.notes} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} /></V1Field>
-              <div className="v1-action-row is-wide"><V1Button type="submit" variant="primary" disabled={saving === 'maintenance'}>{saving === 'maintenance' ? 'Speichert...' : 'Wartung speichern'}</V1Button></div>
+            <form className="ops1b-form" onSubmit={saveMaintenance}>
+              <div className="ops1b-form-grid">
+                <V1Field label="Hardware" wide><select value={maintenanceDraft.hardwareItemId} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, hardwareItemId: event.target.value }))}><option value="">Hardware auswählen</option>{sortedHardware.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.category}</option>)}</select></V1Field>
+                <V1Field label="Typ"><select value={maintenanceDraft.eventType} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, eventType: event.target.value as MaintenanceEventType }))}>{maintenanceTypes.map((type) => <option key={type} value={type}>{labelMaintenanceType(type)}</option>)}</select></V1Field>
+                <V1Field label="Ergebnis"><select value={maintenanceDraft.result} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, result: event.target.value as MaintenanceResult }))}>{maintenanceResults.map((result) => <option key={result} value={result}>{labelMaintenanceResult(result)}</option>)}</select></V1Field>
+                <V1Field label="Durchgeführt"><input type="datetime-local" value={maintenanceDraft.performedAtLocal} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, performedAtLocal: event.target.value }))} /></V1Field>
+                <V1Field label="Nächste Fälligkeit"><input type="datetime-local" value={maintenanceDraft.nextDueAtLocal} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, nextDueAtLocal: event.target.value }))} /></V1Field>
+                <V1Field label="Titel" wide><input value={maintenanceDraft.title} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, title: event.target.value }))} placeholder="z. B. Luftsteine gereinigt" /></V1Field>
+                <V1Field label="Notizen" wide><textarea value={maintenanceDraft.notes} onChange={(event) => setMaintenanceDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} /></V1Field>
+              </div>
+              <div className="ops1b-sticky-actions"><V1Button type="submit" variant="primary" disabled={saving === 'maintenance'}>{saving === 'maintenance' ? 'Speichert...' : 'Wartung speichern'}</V1Button></div>
             </form>
           </V1Section>
 
@@ -456,23 +499,34 @@ function HardwarePage() {
       )}
 
       {tab === 'inventory' && (
-        <div className="ops-two-column">
-          <V1Section title="Hardware anlegen">
-            <form className="v1-form-grid ops-form" onSubmit={saveHardware}>
-              <V1Field label="Name"><input value={hardwareDraft.name} onChange={(event) => setHardwareDraft((current) => ({ ...current, name: event.target.value }))} placeholder="pH Sonde Hauptzelt" /></V1Field>
-              <V1Field label="Kategorie"><input value={hardwareDraft.category} onChange={(event) => setHardwareDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Sensor / Pumpe / Chiller" /></V1Field>
-              <V1Field label="Kritikalität"><select value={hardwareDraft.criticality} onChange={(event) => setHardwareDraft((current) => ({ ...current, criticality: event.target.value as HardwareItemCriticality }))}>{criticalityOptions.map((item) => <option key={item} value={item}>{labelCriticality(item)}</option>)}</select></V1Field>
-              <V1Field label="Zelt"><select value={hardwareDraft.tentId} onChange={(event) => setHardwareDraft((current) => ({ ...current, tentId: event.target.value }))}><option value="">Kein Zelt</option>{state.tents.map((tent) => <option key={tent.id} value={tent.id}>{tent.name}</option>)}</select></V1Field>
-              <V1Field label="HA Entity"><input value={hardwareDraft.haEntityId} onChange={(event) => setHardwareDraft((current) => ({ ...current, haEntityId: event.target.value }))} placeholder="sensor.ph_hauptzelt" /></V1Field>
-              <V1Field label="Hersteller"><input value={hardwareDraft.manufacturer} onChange={(event) => setHardwareDraft((current) => ({ ...current, manufacturer: event.target.value }))} /></V1Field>
-              <V1Field label="Modell"><input value={hardwareDraft.model} onChange={(event) => setHardwareDraft((current) => ({ ...current, model: event.target.value }))} /></V1Field>
-              <V1Field label="Notizen" wide><textarea value={hardwareDraft.notes} onChange={(event) => setHardwareDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} /></V1Field>
-              <div className="v1-action-row is-wide"><V1Button type="submit" variant="primary" disabled={saving === 'hardware'}>{saving === 'hardware' ? 'Speichert...' : 'Hardware anlegen'}</V1Button></div>
-            </form>
+        <div className="ops1b-workflow-grid">
+          <V1Section title="Inventar">
+            {sortedHardware.length === 0 ? (
+              <V1Empty title="Keine Hardware angelegt" />
+            ) : (
+              <div className="ops1b-inventory-grid">
+                {sortedHardware.map((item) => <InventoryRow key={item.id} item={item} onStatus={updateHardwareStatus} saving={saving === `hardware-${item.id}`} />)}
+              </div>
+            )}
           </V1Section>
 
-          <V1Section title="Inventar">
-            {sortedHardware.length === 0 ? <V1Empty title="Keine Hardware angelegt" /> : <div className="ops-inventory-list">{sortedHardware.map((item) => <InventoryRow key={item.id} item={item} onStatus={updateHardwareStatus} saving={saving === `hardware-${item.id}`} />)}</div>}
+          <V1Section title="Anlegen">
+            <details className="ops1b-details">
+              <summary>Sensor oder Hardware anlegen</summary>
+              <form className="ops1b-form" onSubmit={saveHardware}>
+                <div className="ops1b-form-grid">
+                  <V1Field label="Name" wide><input value={hardwareDraft.name} onChange={(event) => setHardwareDraft((current) => ({ ...current, name: event.target.value }))} placeholder="pH Sonde Hauptzelt" /></V1Field>
+                  <V1Field label="Kategorie"><input value={hardwareDraft.category} onChange={(event) => setHardwareDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Sensor / Pumpe / Chiller" /></V1Field>
+                  <V1Field label="Kritikalität"><select value={hardwareDraft.criticality} onChange={(event) => setHardwareDraft((current) => ({ ...current, criticality: event.target.value as HardwareItemCriticality }))}>{criticalityOptions.map((item) => <option key={item} value={item}>{labelCriticality(item)}</option>)}</select></V1Field>
+                  <V1Field label="Zelt"><select value={hardwareDraft.tentId} onChange={(event) => setHardwareDraft((current) => ({ ...current, tentId: event.target.value }))}><option value="">Kein Zelt</option>{state.tents.map((tent) => <option key={tent.id} value={tent.id}>{tent.name}</option>)}</select></V1Field>
+                  <V1Field label="HA Entity"><input value={hardwareDraft.haEntityId} onChange={(event) => setHardwareDraft((current) => ({ ...current, haEntityId: event.target.value }))} placeholder="sensor.ph_hauptzelt" /></V1Field>
+                  <V1Field label="Hersteller"><input value={hardwareDraft.manufacturer} onChange={(event) => setHardwareDraft((current) => ({ ...current, manufacturer: event.target.value }))} /></V1Field>
+                  <V1Field label="Modell"><input value={hardwareDraft.model} onChange={(event) => setHardwareDraft((current) => ({ ...current, model: event.target.value }))} /></V1Field>
+                  <V1Field label="Notizen" wide><textarea value={hardwareDraft.notes} onChange={(event) => setHardwareDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} /></V1Field>
+                </div>
+                <div className="ops1b-sticky-actions"><V1Button type="submit" variant="primary" disabled={saving === 'hardware'}>{saving === 'hardware' ? 'Speichert...' : 'Hardware anlegen'}</V1Button></div>
+              </form>
+            </details>
           </V1Section>
         </div>
       )}

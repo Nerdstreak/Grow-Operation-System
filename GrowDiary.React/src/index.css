@@ -3503,3 +3503,286 @@ input, select, textarea { min-width: 0; }
   .ops-event-row .v1-button, .ops-inventory-row .v1-button { width: 100%; }
   .ops-form { gap: 10px; }
 }
+
+
+/* === OPS-1B: Sensoren mobile-first polish === */
+.ops1b-page { gap: 14px; }
+.ops1b-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.ops1b-score-card {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+}
+.ops1b-kicker {
+  display: block;
+  color: var(--v1-muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  margin-bottom: 8px;
+}
+.ops1b-score-card strong {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  color: var(--v1-text);
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 0.9;
+  font-weight: 950;
+  letter-spacing: -0.06em;
+}
+.ops1b-score-card strong em {
+  color: var(--v1-muted);
+  font-size: 18px;
+  font-style: normal;
+  letter-spacing: 0;
+  padding-bottom: 6px;
+}
+.ops1b-score-card p {
+  margin-top: 10px;
+  color: var(--v1-muted);
+  font-size: 15px;
+  font-weight: 800;
+}
+.ops1b-score-meta {
+  display: grid;
+  gap: 8px;
+  min-width: 150px;
+}
+.ops1b-score-meta span {
+  border: 1px solid var(--v1-line);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.025);
+  color: var(--v1-muted);
+  font-size: 12px;
+  font-weight: 850;
+  padding: 8px 10px;
+  text-align: center;
+  white-space: nowrap;
+}
+.ops1b-next-card {
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+.ops1b-soft-text {
+  color: var(--v1-muted);
+  font-size: 14px;
+}
+.ops1b-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.ops1b-mini-list {
+  display: grid;
+  gap: 8px;
+}
+.ops1b-mini-row {
+  width: 100%;
+  border: 1px solid var(--v1-line);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.025);
+  color: var(--v1-text);
+  text-align: left;
+  padding: 11px 12px;
+  display: grid;
+  gap: 3px;
+}
+.ops1b-mini-row strong {
+  font-size: 14px;
+}
+.ops1b-mini-row span {
+  color: var(--v1-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.ops1b-mini-row.warn { border-color: rgba(245,200,75,0.35); }
+.ops1b-mini-row.critical { border-color: rgba(255,92,92,0.42); }
+
+.ops1b-stack {
+  display: grid;
+  gap: 14px;
+}
+.ops1b-issue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.ops1b-issue-card {
+  min-width: 0;
+  border: 1px solid var(--v1-line);
+  border-radius: 17px;
+  background: rgba(255,255,255,0.025);
+  color: var(--v1-text);
+  padding: 14px;
+  text-align: left;
+  display: grid;
+  gap: 7px;
+}
+.ops1b-issue-card > span {
+  color: var(--v1-muted);
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.ops1b-issue-card strong {
+  font-size: 17px;
+  line-height: 1.18;
+}
+.ops1b-issue-card small {
+  color: var(--v1-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.ops1b-issue-card.warn { border-color: rgba(245,200,75,0.35); }
+.ops1b-issue-card.critical { border-color: rgba(255,92,92,0.42); }
+
+.ops1b-sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 13px;
+}
+.ops1b-workflow-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  gap: 14px;
+  align-items: start;
+}
+.ops1b-form {
+  display: grid;
+  gap: 14px;
+}
+.ops1b-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.ops1b-form-grid .is-wide {
+  grid-column: 1 / -1;
+}
+.ops1b-sticky-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.ops1b-sticky-actions .v1-button {
+  min-width: 220px;
+}
+.ops1b-inventory-grid {
+  display: grid;
+  gap: 10px;
+}
+.ops1b-details {
+  border: 1px solid var(--v1-line);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.025);
+  overflow: hidden;
+}
+.ops1b-details > summary {
+  list-style: none;
+  cursor: pointer;
+  min-height: 58px;
+  padding: 16px 18px;
+  color: var(--v1-text);
+  font-weight: 950;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ops1b-details > summary::-webkit-details-marker {
+  display: none;
+}
+.ops1b-details > summary::after {
+  content: '+';
+  color: var(--v1-green);
+  font-size: 24px;
+  line-height: 1;
+}
+.ops1b-details[open] > summary {
+  border-bottom: 1px solid var(--v1-line);
+}
+.ops1b-details[open] > summary::after {
+  content: '–';
+}
+.ops1b-details .ops1b-form {
+  padding: 16px;
+}
+
+@media (max-width: 980px) {
+  .ops1b-hero-grid,
+  .ops1b-workflow-grid {
+    grid-template-columns: 1fr;
+  }
+  .ops1b-score-card {
+    grid-template-columns: 1fr;
+  }
+  .ops1b-score-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .ops1b-page .v1-hero {
+    padding: 14px;
+  }
+  .ops1b-page .v1-hero h1 {
+    font-size: 34px;
+  }
+  .ops1b-hero-grid {
+    gap: 10px;
+  }
+  .ops1b-score-card,
+  .ops1b-next-card {
+    padding: 14px;
+    border-radius: 18px;
+  }
+  .ops1b-score-card strong {
+    font-size: 52px;
+  }
+  .ops1b-score-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ops1b-score-meta span {
+    white-space: normal;
+    min-height: 38px;
+    display: grid;
+    place-items: center;
+  }
+  .ops1b-action-grid {
+    grid-template-columns: 1fr;
+  }
+  .ops1b-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .ops1b-sticky-actions {
+    position: sticky;
+    bottom: calc(var(--bottom-nav-height, 72px) + 10px);
+    z-index: 8;
+    padding: 10px 0 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0), var(--v1-bg) 42%);
+  }
+  .ops1b-sticky-actions .v1-button {
+    width: 100%;
+    min-width: 0;
+  }
+  .ops1b-details .ops1b-form {
+    padding: 12px;
+  }
+  .ops1b-sensor-grid {
+    grid-template-columns: 1fr;
+  }
+  .ops-fact-list > div {
+    padding: 9px 10px;
+  }
+}
