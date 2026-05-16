@@ -203,7 +203,6 @@ function LiveDashboardPage() {
   )
 }
 
-
 function SystemScoreCard({ score }: { score: SystemScore }) {
   const primaryAction = score.actions[0]
   return (
@@ -291,7 +290,6 @@ function chooseInitialTent(tents: TentDto[], grows: GrowSummary[]) {
   return running?.tentId ?? tents[0]?.id ?? null
 }
 
-
 function buildSystemScore(metrics: MetricPayload[], risks: RiskEventDto[], sensorTrust: { score: number; label: string }, calibration: CalibrationEventDto[], maintenance: MaintenanceEventDto[], loading: boolean): SystemScore {
   if (loading) {
     return { score: 0, label: 'Lädt', tone: 'neutral', confidence: 'Daten werden geladen', summary: 'Live-Daten und Sensorstatus werden aktualisiert.', factors: [], actions: [] }
@@ -309,7 +307,7 @@ function buildSystemScore(metrics: MetricPayload[], risks: RiskEventDto[], senso
       summary: 'Für eine echte Bewertung fehlen gemappte Sensorwerte oder aktuelle Messdaten.',
       factors: [
         { key: 'live-data-missing', label: 'Live-Daten', value: '0', tone: 'neutral', message: 'keine Werte' },
-        { key: 'sensor-trust', label: 'Sensoren', value: `${sensorTrust.score} %`, tone: sensorTrust.score < 82 ? 'warn' : 'neutral', message: sensorTrust.label },
+        { key: 'sensor-trust', label: 'Sensoren', value: 'offen', tone: 'neutral', message: 'noch nicht bewertbar' },
       ],
       actions: [
         { label: 'HA einrichten', to: '/home-assistant', tone: 'warn' },
@@ -429,6 +427,11 @@ function buildLiveSensorTrust(hardware: HardwareItemDto[], calibration: Calibrat
     const haystack = `${item.name} ${item.category} ${item.wearTemplateId ?? ''}`.toLowerCase()
     return ['sensor', 'sonde', 'probe', 'ph', 'ec', 'orp', 'do', 'temperatur', 'level', 'wasserstand'].some((term) => haystack.includes(term))
   })
+
+  if (sensorHardware.length === 0) {
+    return { score: 0, label: 'offen' }
+  }
+
   const offline = sensorHardware.filter((item) => item.status === 'Offline' || item.status === 'Retired').length
   const plannedCalibration = calibration.filter((event) => event.status === 'Planned').length
   const plannedMaintenance = maintenance.filter((event) => event.status === 'Planned').length
