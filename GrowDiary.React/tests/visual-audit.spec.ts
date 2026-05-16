@@ -2,8 +2,18 @@ import { test } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
 
-type ViewportCase = { name: 'desktop' | 'mobile'; width: number; height: number }
-type RouteCase = { slug: string; path: string; title: string }
+type ViewportCase = {
+  name: 'desktop' | 'mobile'
+  width: number
+  height: number
+}
+
+type RouteCase = {
+  slug: string
+  path: string
+  title: string
+}
+
 type ReportRow = {
   viewport: string
   route: string
@@ -35,6 +45,7 @@ const routes: RouteCase[] = [
   { slug: 'grow-starten', path: '/grows/new', title: 'Grow starten' },
   { slug: 'settings', path: '/settings', title: 'Einstellungen' },
   { slug: 'wissen', path: '/wissen', title: 'Wissen' },
+  { slug: 'release', path: '/release', title: 'Release' },
   { slug: 'hardware', path: '/hardware', title: 'Hardware' },
 ]
 
@@ -70,7 +81,7 @@ async function waitForAppIdle(page: import('@playwright/test').Page) {
   try {
     await page.waitForLoadState('networkidle', { timeout: 2500 })
   } catch {
-    // Live-/HA-Requests dürfen noch laufen.
+    // Live-/HA-Requests dürfen noch laufen. Für Screenshots reicht der gerenderte Zustand.
   }
 }
 
@@ -101,10 +112,8 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
 async function tryClickFirstAddbackStart(page: import('@playwright/test').Page) {
   const candidates = [
     page.locator('a[href*="/grows/"][href*="/addback"]').first(),
-    page.getByRole('link', { name: /addback starten/i }).first(),
-    page.getByRole('link', { name: /starten/i }).first(),
-    page.getByRole('button', { name: /addback starten/i }).first(),
-    page.getByRole('button', { name: /starten/i }).first(),
+    page.getByRole('link', { name: /addback starten|addback/i }).first(),
+    page.getByRole('button', { name: /addback starten|starten/i }).first(),
     page.locator('a').filter({ hasText: /addback/i }).first(),
   ]
 
@@ -122,7 +131,7 @@ async function tryClickFirstAddbackStart(page: import('@playwright/test').Page) 
     }
   }
 
-  return { opened: false, note: 'Addback-Flow wurde nicht automatisch geöffnet.' }
+  return { opened: false, note: 'Addback-Flow wurde nicht automatisch geöffnet. Wahrscheinlich kein aktiver Grow oder kein eindeutiger Start-Link.' }
 }
 
 async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewport: ViewportCase, pageError: string | null) {
@@ -172,6 +181,10 @@ function writeReports() {
       return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
     }),
     '',
+    '## Addback Deep Flow',
+    '',
+    'Der Audit öffnet zusätzlich `/addback` und versucht den ersten sichtbaren Addback-Start-Link zu klicken.',
+    '',
     '## Console / Network Hinweise',
     '',
     '| Typ | Ziel | Meldung | URL |',
@@ -194,7 +207,7 @@ for (const viewport of viewports) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height })
       page.on('requestfailed', (request) => {
         const failure = request.failure()?.errorText ?? 'request failed'
-        if (failure === 'net::ERR_ABORTED') return
+        if (failure.includes('net::ERR_ABORTED')) return
         messages.push({ type: 'requestfailed', target: `${viewport.name}-${viewport.width}x${viewport.height}:${page.url()}`, text: failure, url: request.url() })
       })
     })

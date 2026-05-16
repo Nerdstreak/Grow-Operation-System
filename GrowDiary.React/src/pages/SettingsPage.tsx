@@ -3,18 +3,23 @@ import { V1Page, V1Section } from '../components/v1'
 
 function SettingsPage() {
   return (
-    <V1Page eyebrow="System" title="Einstellungen">
-      <V1Section title="Verwaltung">
+    <V1Page eyebrow="System" title="Einstellungen" subtitle="Zentrale Übersicht für Verbindung, Wissen, Release und Systempflege. Operative Workflows bleiben bewusst in eigenen Seiten.">
+      <V1Section title="V1 Systembereiche">
         <div className="v1-card-grid">
           <SettingsLink to="/connect" title="Gerät verbinden" text="Handy, PWA, lokale Adresse, Remote-Adresse und QR-Code" />
-          <SettingsLink to="/home-assistant" title="Home Assistant" text="Verbindung und Entitäten" />
-          <SettingsLink to="/wissen" title="Wissen" text="SOPs, Programme und Setpoints" />
+          <SettingsLink to="/home-assistant" title="Home Assistant" text="Geführtes Setup für Verbindung, Kamera und Sensor-Entitäten" />
+          <SettingsLink to="/wissen" title="Wissen & SOPs" text="Programme, SOPs, Symptome, Setpoints und Empfehlungen" />
+          <SettingsLink to="/release" title="Release & Daten" text="Grow-Export, Import-Plan, Import und Backup-Hinweise" />
           <SettingsLink to="/hardware" title="Sensoren" text="Kalibrierung, Wartung, Sensorvertrauen" />
           <SettingsLink to="/analyse" title="Analyse" text="Trends und Auswertung" />
         </div>
       </V1Section>
-      <V1Section title="Release">
-        <div className="v1-settings-note">Backup, Restore, Import, Export, Addback, Grow-Wizard, Sensoren und Visual Audit sind V1-seitig angebunden. Operative Workflows bleiben getrennt von dieser Systemübersicht.</div>
+      <V1Section title="V1-Abnahme">
+        <div className="v1-card-grid">
+          <div className="v1-settings-link"><strong>Local-first</strong><span>Die App bleibt selfhosted. Remote-Zugriff ist optional und muss geschützt werden.</span></div>
+          <div className="v1-settings-link"><strong>RDWC/DWC getrennt</strong><span>Zelte, Hydro-Systeme, Grows, Addback und Sensoren sind getrennte Workflows.</span></div>
+          <div className="v1-settings-link"><strong>Auditfähig</strong><span>Visual Audit prüft Live, Addback Deep Flow, Connect, Release und die Kernseiten.</span></div>
+        </div>
       </V1Section>
     </V1Page>
   )

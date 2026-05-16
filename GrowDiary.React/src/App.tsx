@@ -15,6 +15,7 @@ import KnowledgePage from './pages/KnowledgePage'
 import LiveDashboardPage from './pages/LiveDashboardPage'
 import MeasurementEditPage from './pages/MeasurementEditPage'
 import MobileActionPage from './pages/MobileActionPage'
+import ReleasePage from './pages/ReleasePage'
 import SettingsPage from './pages/SettingsPage'
 import TentDetailPage from './pages/TentDetailPage'
 import TentsPage from './pages/TentsPage'
@@ -33,9 +34,10 @@ const moreNav = [
   { to: '/connect', label: 'Gerät verbinden', end: true },
   { to: '/hardware', label: 'Sensoren', end: true },
   { to: '/wissen', label: 'Wissen', end: true },
+  { to: '/release', label: 'Release', end: true },
   { to: '/analyse', label: 'Analyse', end: true },
   { to: '/archiv', label: 'Archiv', end: true },
-  { to: '/settings', label: 'Settings', end: true },
+  { to: '/settings', label: 'Einstellungen', end: true },
 ]
 
 function App() {
@@ -109,6 +111,7 @@ function App() {
           <Route path="/connect" element={<DeviceConnectPage />} />
           <Route path="/hardware" element={<HardwarePage />} />
           <Route path="/wissen" element={<KnowledgePage />} />
+          <Route path="/release" element={<ReleasePage />} />
           <Route path="/analyse" element={<AnalysisPage />} />
           <Route path="/archiv" element={<ArchivePage />} />
           <Route path="/settings" element={<SettingsPage />} />
@@ -143,9 +146,10 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/grows')) return 'Grow'
   if (pathname.startsWith('/hardware')) return 'Sensoren'
   if (pathname.startsWith('/wissen')) return 'Wissen'
+  if (pathname.startsWith('/release')) return 'Release'
   if (pathname.startsWith('/analyse')) return 'Analyse'
   if (pathname.startsWith('/archiv')) return 'Archiv'
-  if (pathname.startsWith('/settings') || pathname.startsWith('/einstellungen')) return 'Settings'
+  if (pathname.startsWith('/settings') || pathname.startsWith('/einstellungen')) return 'Einstellungen'
   return 'Grow OS'
 }
 
