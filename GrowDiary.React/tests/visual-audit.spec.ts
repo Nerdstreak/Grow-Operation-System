@@ -37,9 +37,12 @@ const viewports: ViewportCase[] = [
 const routes: RouteCase[] = [
   { slug: 'dashboard', path: '/', title: 'Dashboard / Live' },
   { slug: 'addback', path: '/addback', title: 'Addback Hub' },
-  { slug: 'action', path: '/action', title: 'Aktion' },
+  { slug: 'action', path: '/action', title: 'Aufgaben Legacy Route' },
+  { slug: 'aufgaben', path: '/aufgaben', title: 'Aufgaben Redirect Route' },
   { slug: 'zelte', path: '/zelte', title: 'Zelte' },
+  { slug: 'zelte-new', path: '/zelte/new', title: 'Zelt anlegen' },
   { slug: 'hydro', path: '/hydro', title: 'Hydro' },
+  { slug: 'hydro-new', path: '/hydro/new', title: 'Hydro anlegen' },
   { slug: 'home-assistant', path: '/home-assistant', title: 'Home Assistant' },
   { slug: 'connect', path: '/connect', title: 'Gerät verbinden' },
   { slug: 'grow-starten', path: '/grows/new', title: 'Grow starten' },
