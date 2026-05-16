@@ -18,9 +18,38 @@ type LayoutFinding = {
   clientWidth: number
 }
 
+type WorkflowStepReport = {
+  name: string
+  path: string
+  url: string
+  heading: string | null
+  bodyOverflow: boolean
+  documentOverflow: boolean
+  hardOffenders: LayoutFinding[]
+  clipWarnings: LayoutFinding[]
+}
+
+const workflowReports: WorkflowStepReport[] = []
+
 test.beforeAll(() => {
   fs.rmSync(outputDir, { recursive: true, force: true })
   fs.mkdirSync(outputDir, { recursive: true })
+})
+
+test.afterAll(() => {
+  const reportPath = path.join(outputDir, 'workflow-audit-report.json')
+  fs.writeFileSync(reportPath, JSON.stringify({ generatedAtUtc: new Date().toISOString(), results: workflowReports }, null, 2), 'utf8')
+
+  const lines = [
+    '# Grow OS Workflow Audit',
+    '',
+    `Generated: ${new Date().toISOString()}`,
+    '',
+    '| Step | Path | Heading | Body Overflow | Document Overflow | Hard Offenders | Clip Warnings |',
+    '|---|---|---|---|---|---:|---:|',
+    ...workflowReports.map((row) => `| ${row.name} | ${row.path} | ${row.heading ?? ''} | ${row.bodyOverflow ? 'YES' : 'no'} | ${row.documentOverflow ? 'YES' : 'no'} | ${row.hardOffenders.length} | ${row.clipWarnings.length} |`),
+  ]
+  fs.writeFileSync(path.join(outputDir, 'workflow-audit-report.md'), lines.join('\n'), 'utf8')
 })
 
 test.describe.configure({ mode: 'serial' })
@@ -38,15 +67,27 @@ test.describe('workflow audit mobile', () => {
     await auditRoute(page, '/hydro/new', 'mobile-hydro-new')
     await fillIfVisible(page, 'input[placeholder="RDWC 4-Site"]', `E2E RDWC ${Date.now()}`)
     await selectFirstNonEmptyOption(page, 'select')
-    await clickButtonIfPossible(page, /Weiter/i)
-    await screenshotAndLayout(page, 'mobile-hydro-after-next-1')
-    await clickButtonIfPossible(page, /Weiter/i)
-    await screenshotAndLayout(page, 'mobile-hydro-after-next-2')
+    await goWizardStep(page, 2, /Weiter/i)
+    await screenshotAndLayout(page, 'mobile-hydro-step-2')
+    await goWizardStep(page, 3, /Weiter/i)
+    await screenshotAndLayout(page, 'mobile-hydro-step-3')
+    await goWizardStep(page, 4, /Weiter/i)
+    await screenshotAndLayout(page, 'mobile-hydro-step-4')
+    await goWizardStep(page, 5, /Weiter/i)
+    await screenshotAndLayout(page, 'mobile-hydro-step-5')
 
     await auditRoute(page, '/grows/new', 'mobile-grow-new')
     await fillIfVisible(page, 'input[placeholder="Purple Lemonade RDWC"]', `E2E Grow ${Date.now()}`)
-    await clickButtonIfPossible(page, /Weiter/i)
-    await screenshotAndLayout(page, 'mobile-grow-after-next-1')
+    await goWizardStep(page, 2, /Weiter/i)
+    await screenshotAndLayout(page, 'mobile-grow-step-2')
+    await goWizardStep(page, 3, /Weiter/i)
+    await screenshotAndLayout(page, 'mobile-grow-step-3')
+    await goWizardStep(page, 4, /Weiter/i)
+    await screenshotAndLayout(page, 'mobile-grow-step-4')
+    await goWizardStep(page, 5, /Weiter/i)
+    await screenshotAndLayout(page, 'mobile-grow-step-5')
+    await goWizardStep(page, 6, /Weiter/i)
+    await screenshotAndLayout(page, 'mobile-grow-step-6')
   })
 })
 
@@ -56,10 +97,12 @@ test.describe('workflow audit desktop', () => {
   })
 
   test('walk admin and mapping workflows', async ({ page }) => {
+    await auditRoute(page, '/aufgaben', 'desktop-aufgaben')
     await auditRoute(page, '/home-assistant', 'desktop-ha-setup')
     await auditRoute(page, '/wissen', 'desktop-knowledge')
     await auditRoute(page, '/release', 'desktop-release')
     await auditRoute(page, '/settings', 'desktop-settings')
+    await auditRoute(page, '/connect', 'desktop-connect')
   })
 })
 
@@ -103,6 +146,21 @@ async function selectFirstNonEmptyOption(page: import('@playwright/test').Page, 
   } catch {
     // Keine auswählbaren Daten vorhanden.
   }
+}
+
+async function goWizardStep(page: import('@playwright/test').Page, stepNumber: number, fallbackButton: RegExp) {
+  const directStep = page.locator('.v1-wizard-step').nth(stepNumber - 1)
+  try {
+    if ((await directStep.count()) > 0 && await directStep.isVisible({ timeout: 600 }) && await directStep.isEnabled({ timeout: 600 })) {
+      await directStep.click({ timeout: 1200 })
+      await waitForAppIdle(page)
+      return
+    }
+  } catch {
+    // Fallback auf Weiter.
+  }
+
+  await clickButtonIfPossible(page, fallbackButton)
 }
 
 async function clickButtonIfPossible(page: import('@playwright/test').Page, name: RegExp) {
@@ -162,9 +220,17 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
     const clipWarnings = candidates
       .filter((item) => item.horizontalClip)
       .filter((item) => !String(item.className).includes('v1-tabs'))
+      .filter((item) => item.tag !== 'INPUT' && item.tag !== 'TEXTAREA')
+
+    const heading =
+      document.querySelector('h1')?.textContent?.trim() ??
+      document.querySelector('[data-audit-title]')?.textContent?.trim() ??
+      null
 
     return {
-      url: window.location.pathname,
+      path: window.location.pathname,
+      url: window.location.href,
+      heading,
       bodyScrollWidth: document.body.scrollWidth,
       documentScrollWidth: document.documentElement.scrollWidth,
       innerWidth: window.innerWidth,
@@ -175,11 +241,22 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
     }
   })
 
+  workflowReports.push({
+    name,
+    path: result.path,
+    url: result.url,
+    heading: result.heading,
+    bodyOverflow: result.bodyOverflow,
+    documentOverflow: result.documentOverflow,
+    hardOffenders: result.hardOffenders,
+    clipWarnings: result.clipWarnings,
+  })
+
   fs.writeFileSync(path.join(outputDir, `${name}.json`), JSON.stringify(result, null, 2), 'utf8')
   await page.screenshot({ path: path.join(outputDir, `${name}.png`), fullPage: true })
 
   if (result.bodyOverflow || result.documentOverflow) {
-    throw new Error(`${name}: horizontal overflow on ${result.url} body=${result.bodyScrollWidth} document=${result.documentScrollWidth} viewport=${result.innerWidth}`)
+    throw new Error(`${name}: horizontal overflow on ${result.path} body=${result.bodyScrollWidth} document=${result.documentScrollWidth} viewport=${result.innerWidth}`)
   }
 
   const hardOffenders = result.hardOffenders as LayoutFinding[]
