@@ -131,14 +131,24 @@ function HydroPage() {
     }
   }
 
-  async function archiveSetup(setup: HydroSetupDto) {
-    setSaving(`archive-${setup.id}`)
+  async function deleteSetup(setup: HydroSetupDto) {
+    const confirmed = window.confirm(`${setup.name} löschen? Wenn aktive Grows daran hängen, wird das Setup vom Backend archiviert.`)
+    if (!confirmed) return
+    setSaving(`delete-${setup.id}`)
     setError(null)
     try {
-      const saved = await apiFetch<HydroSetupDto>(`/api/hydro-setups/${setup.id}/archive`, { method: 'POST' })
+      const response = await fetch(`/api/hydro-setups/${setup.id}`, { method: 'DELETE' })
+      if (response.status === 204) {
+        setSetups((current) => current.filter((item) => item.id !== setup.id))
+        setSelectedSetupId((current) => current === setup.id ? null : current)
+        return
+      }
+      if (!response.ok) throw new Error(`Hydro-Setup konnte nicht gelöscht werden (${response.status})`)
+      const saved = await response.json() as HydroSetupDto
       setSetups((current) => sortSetups(current.map((item) => item.id === saved.id ? saved : item)))
+      setSelectedSetupId(saved.id)
     } catch (caught) {
-      setError(formatApiError(caught, 'Hydro-Setup konnte nicht archiviert werden.'))
+      setError(caught instanceof Error ? caught.message : 'Hydro-Setup konnte nicht gelöscht werden.')
     } finally {
       setSaving(null)
     }
@@ -183,7 +193,7 @@ function HydroPage() {
               {setups.map((setup) => <button key={setup.id} type="button" className={classNames('v1-hydro-list-item', selectedSetup?.id === setup.id && 'active')} onClick={() => setSelectedSetupId(setup.id)}><strong>{setup.name}</strong><span>{setup.hydroStyle} · {setup.tentName ?? 'ohne Zelt'} · {formatLiters(setup.totalVolumeLiters)}</span></button>)}
             </div>
           </V1Section>
-          {selectedSetup && <HydroDetail setup={selectedSetup} saving={saving === `archive-${selectedSetup.id}`} onEdit={openEdit} onArchive={archiveSetup} />}
+          {selectedSetup && <HydroDetail setup={selectedSetup} saving={saving === `delete-${selectedSetup.id}`} onEdit={openEdit} onDelete={deleteSetup} />}
         </section>
       )}
     </V1Page>
@@ -211,7 +221,7 @@ function StepReview({ draft, tents, totalVolume }: { draft: HydroDraft; tents: T
   return <div className="v1-review-layout"><V1Card><div className="v1-info-grid"><Info label="Name" value={draft.name || '–'} /><Info label="Zelt" value={tent?.name ?? '–'} /><Info label="Typ" value={draft.hydroStyle} /><Info label="Sites" value={draft.potCount || '–'} /><Info label="Topf" value={`${draft.potSizeLiters || '–'} L`} /><Info label="Tank" value={`${draft.reservoirLiters || '–'} L`} /><Info label="Gesamt" value={`${formatNumber(totalVolume, 1)} L`} /><Info label="Layout" value={formatLayout(draft.layoutType)} /></div></V1Card><RdwcLayoutPreview draft={draft} /></div>
 }
 
-function HydroDetail({ setup, saving, onEdit, onArchive }: { setup: HydroSetupDto; saving: boolean; onEdit: (setup: HydroSetupDto) => void; onArchive: (setup: HydroSetupDto) => void }) {
+function HydroDetail({ setup, saving, onEdit, onDelete }: { setup: HydroSetupDto; saving: boolean; onEdit: (setup: HydroSetupDto) => void; onDelete: (setup: HydroSetupDto) => void }) {
   const facts = [
     ['Zelt', setup.tentName ?? '–'],
     ['Sites', String(setup.potCount ?? '–')],
@@ -249,7 +259,7 @@ function HydroDetail({ setup, saving, onEdit, onArchive }: { setup: HydroSetupDt
 
           <div className="v1-action-row">
             <V1Button onClick={() => onEdit(setup)}>Bearbeiten</V1Button>
-            {setup.status === 'Active' && <V1Button variant="ghost" disabled={saving} onClick={() => void onArchive(setup)}>{saving ? 'Archiviert...' : 'Archivieren'}</V1Button>}
+            <V1Button variant="danger" disabled={saving} onClick={() => void onDelete(setup)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button>
           </div>
         </V1Card>
         <RdwcLayoutPreview setup={setup} />
