@@ -108,6 +108,36 @@ public sealed class HydroSetupsApiController : ApiControllerBase
         return Ok(_repository.GetHydroSetup(id)!.ToDto());
     }
 
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(HydroSetupDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public IActionResult Delete(int id)
+    {
+        var existing = _repository.GetHydroSetup(id);
+        if (existing is null)
+        {
+            return NotFoundError("hydro_setup_not_found", $"HydroSetup mit Id {id} existiert nicht.");
+        }
+
+        if (existing.ActiveGrowCount > 0)
+        {
+            _repository.ArchiveHydroSetup(id);
+            return Ok(_repository.GetHydroSetup(id)!.ToDto());
+        }
+
+        try
+        {
+            _repository.DeleteSystem(id);
+            return NoContent();
+        }
+        catch
+        {
+            _repository.ArchiveHydroSetup(id);
+            return Ok(_repository.GetHydroSetup(id)!.ToDto());
+        }
+    }
+
     private void Validate(CreateHydroSetupRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
