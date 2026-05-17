@@ -2,12 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CreateTentRequest, HvacControllerType, LightControllerType, TentDto, TentType, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
+import type { CreateTentRequest, TentDto, TentType, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Stat, V1Switch, toNullableInt, toNullableString } from '../components/v1'
 
 const tentTypes: TentType[] = ['Production', 'Mother', 'Propagation', 'Quarantine', 'MultiPurpose']
-const controllers: Array<LightControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
-const hvacControllers: Array<HvacControllerType | ''> = ['', 'AcInfinityPro69', 'AcInfinityCloudline', 'GenericRelay', 'Manual', 'Other']
 
 type TentDraft = {
   name: string
@@ -19,15 +17,10 @@ type TentDraft = {
   tentHeightCm: string
   lightType: string
   lightWatt: string
-  lightController: LightControllerType | ''
-  lightControllerEntityId: string
   exhaustFanCount: string
   exhaustM3h: string
   circulationFanCount: string
-  hvacController: HvacControllerType | ''
-  hvacControllerEntityId: string
   co2Available: boolean
-  cameraEntityId: string
   notes: string
 }
 
@@ -136,44 +129,45 @@ function TentsPage() {
       <V1Page
         eyebrow="Physischer Raum"
         title={editingId ? 'Zelt bearbeiten' : 'Zelt anlegen'}
-        subtitle="Nur der physische Raum. Home-Assistant-Entities werden separat unter Home Assistant gemappt."
+        subtitle="Nur Raum, Größe und verbaute Technik. Home-Assistant-Entities werden separat gemappt."
         action={<V1Button onClick={closeForm}>Schließen</V1Button>}
+        className="rc2-focused-form"
       >
         {error && <V1Alert message={error} tone="warn" />}
-        <V1Section title="Zelt">
-          <form className="v1-form-grid" onSubmit={(event) => void saveTent(event)}>
-            <V1Field label="Name" wide><input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Hauptzelt" /></V1Field>
-            <V1Field label="Zweck"><select value={draft.tentType} onChange={(event) => setDraft((current) => ({ ...current, tentType: event.target.value as TentType }))}>{tentTypes.map((type) => <option key={type} value={type}>{formatTentType(type)}</option>)}</select></V1Field>
-            <V1Field label="Typ"><input value={draft.kind} onChange={(event) => setDraft((current) => ({ ...current, kind: event.target.value }))} placeholder="Grow Tent" /></V1Field>
-            <V1Field label="Reihenfolge"><input type="number" value={draft.displayOrder} onChange={(event) => setDraft((current) => ({ ...current, displayOrder: event.target.value }))} /></V1Field>
+        <div className="rc2-focused-layout">
+          <V1Section title="Basis">
+            <form className="v1-form-grid rc2-tent-form" onSubmit={(event) => void saveTent(event)}>
+              <V1Field label="Name" wide><input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Hauptzelt" /></V1Field>
+              <V1Field label="Zweck"><select value={draft.tentType} onChange={(event) => setDraft((current) => ({ ...current, tentType: event.target.value as TentType }))}>{tentTypes.map((type) => <option key={type} value={type}>{formatTentType(type)}</option>)}</select></V1Field>
+              <V1Field label="Typ"><input value={draft.kind} onChange={(event) => setDraft((current) => ({ ...current, kind: event.target.value }))} placeholder="Grow Tent" /></V1Field>
+              <V1Field label="Reihenfolge"><input type="number" value={draft.displayOrder} onChange={(event) => setDraft((current) => ({ ...current, displayOrder: event.target.value }))} /></V1Field>
 
-            <div className="v1-form-divider">Größe</div>
-            <V1Field label="Breite cm"><input type="number" value={draft.widthCm} onChange={(event) => setDraft((current) => ({ ...current, widthCm: event.target.value }))} /></V1Field>
-            <V1Field label="Tiefe cm"><input type="number" value={draft.depthCm} onChange={(event) => setDraft((current) => ({ ...current, depthCm: event.target.value }))} /></V1Field>
-            <V1Field label="Höhe cm"><input type="number" value={draft.tentHeightCm} onChange={(event) => setDraft((current) => ({ ...current, tentHeightCm: event.target.value }))} /></V1Field>
+              <div className="v1-form-divider">Größe</div>
+              <V1Field label="Breite cm"><input type="number" value={draft.widthCm} onChange={(event) => setDraft((current) => ({ ...current, widthCm: event.target.value }))} /></V1Field>
+              <V1Field label="Tiefe cm"><input type="number" value={draft.depthCm} onChange={(event) => setDraft((current) => ({ ...current, depthCm: event.target.value }))} /></V1Field>
+              <V1Field label="Höhe cm"><input type="number" value={draft.tentHeightCm} onChange={(event) => setDraft((current) => ({ ...current, tentHeightCm: event.target.value }))} /></V1Field>
 
-            <div className="v1-form-divider">Licht & Klima</div>
-            <V1Field label="Lichttyp"><input value={draft.lightType} onChange={(event) => setDraft((current) => ({ ...current, lightType: event.target.value }))} placeholder="LED" /></V1Field>
-            <V1Field label="Watt"><input type="number" value={draft.lightWatt} onChange={(event) => setDraft((current) => ({ ...current, lightWatt: event.target.value }))} /></V1Field>
-            <V1Field label="Lichtcontroller"><select value={draft.lightController} onChange={(event) => setDraft((current) => ({ ...current, lightController: event.target.value as LightControllerType | '' }))}>{controllers.map((value) => <option key={value || 'none'} value={value}>{value || 'keiner'}</option>)}</select></V1Field>
-            <V1Field label="Abluft Anzahl"><input type="number" value={draft.exhaustFanCount} onChange={(event) => setDraft((current) => ({ ...current, exhaustFanCount: event.target.value }))} /></V1Field>
-            <V1Field label="Abluft m³/h"><input type="number" value={draft.exhaustM3h} onChange={(event) => setDraft((current) => ({ ...current, exhaustM3h: event.target.value }))} /></V1Field>
-            <V1Field label="Umluft Anzahl"><input type="number" value={draft.circulationFanCount} onChange={(event) => setDraft((current) => ({ ...current, circulationFanCount: event.target.value }))} /></V1Field>
-            <V1Field label="Klima Controller"><select value={draft.hvacController} onChange={(event) => setDraft((current) => ({ ...current, hvacController: event.target.value as HvacControllerType | '' }))}>{hvacControllers.map((value) => <option key={value || 'none'} value={value}>{value || 'keiner'}</option>)}</select></V1Field>
-            <V1Switch label="CO₂ vorhanden" checked={draft.co2Available} onChange={(checked) => setDraft((current) => ({ ...current, co2Available: checked }))} />
-            <V1Field label="Notizen" wide><textarea rows={3} value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></V1Field>
-            <div className="v1-form-actions"><V1Button variant="ghost" onClick={closeForm}>Abbrechen</V1Button><V1Button type="submit" variant="primary" disabled={saving === 'tent'}>{saving === 'tent' ? 'Speichert...' : 'Speichern'}</V1Button></div>
-          </form>
-        </V1Section>
+              <div className="v1-form-divider">Technik im Raum</div>
+              <V1Field label="Lichttyp"><input value={draft.lightType} onChange={(event) => setDraft((current) => ({ ...current, lightType: event.target.value }))} placeholder="LED" /></V1Field>
+              <V1Field label="Watt"><input type="number" value={draft.lightWatt} onChange={(event) => setDraft((current) => ({ ...current, lightWatt: event.target.value }))} /></V1Field>
+              <V1Field label="Abluft Anzahl"><input type="number" value={draft.exhaustFanCount} onChange={(event) => setDraft((current) => ({ ...current, exhaustFanCount: event.target.value }))} /></V1Field>
+              <V1Field label="Abluft m³/h"><input type="number" value={draft.exhaustM3h} onChange={(event) => setDraft((current) => ({ ...current, exhaustM3h: event.target.value }))} /></V1Field>
+              <V1Field label="Umluft Anzahl"><input type="number" value={draft.circulationFanCount} onChange={(event) => setDraft((current) => ({ ...current, circulationFanCount: event.target.value }))} /></V1Field>
+              <V1Switch label="CO₂ vorhanden" checked={draft.co2Available} onChange={(checked) => setDraft((current) => ({ ...current, co2Available: checked }))} />
+              <V1Field label="Notizen" wide><textarea rows={3} value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} /></V1Field>
+              <div className="v1-form-actions"><V1Button variant="ghost" onClick={closeForm}>Abbrechen</V1Button><V1Button type="submit" variant="primary" disabled={saving === 'tent'}>{saving === 'tent' ? 'Speichert...' : 'Speichern'}</V1Button></div>
+            </form>
+          </V1Section>
 
-        <V1Section title="Home Assistant bleibt getrennt">
-          <V1Card>
-            <span className="v1-card-kicker">Mapping</span>
-            <h2>Sensoren, Kamera und Entities später zuordnen</h2>
-            <p>Zelt anlegen beschreibt nur den Raum. Kamera, Sensoren, Licht- und Klima-Entities gehören in den Home-Assistant-Bereich.</p>
-            <V1LinkButton to="/home-assistant">HA-Mapping öffnen</V1LinkButton>
-          </V1Card>
-        </V1Section>
+          <V1Section title="Nicht hier">
+            <V1Card className="rc2-info-card">
+              <span className="v1-card-kicker">Home Assistant getrennt</span>
+              <h2>Keine Entity-IDs beim Zelt anlegen</h2>
+              <p>Kamera, pH, EC, VPD, Licht- und Klima-Entities gehören in das HA-Mapping. Das Zelt bleibt ein physischer Raum.</p>
+              <V1LinkButton to="/home-assistant">HA-Mapping öffnen</V1LinkButton>
+            </V1Card>
+          </V1Section>
+        </div>
       </V1Page>
     )
   }
@@ -219,9 +213,9 @@ function TentCard({ tent, saving, onEdit, onArchive }: { tent: TentDto; saving: 
 function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
 function sortTents(items: TentDto[]) { return [...items].sort((a, b) => a.status.localeCompare(b.status) || a.displayOrder - b.displayOrder || a.name.localeCompare(b.name)) }
 function mapSensors(tent: TentDto): UpdateTentSensorRequest[] { return tent.sensors.map((sensor) => ({ id: sensor.id, metricType: sensor.metricType, haEntityId: sensor.haEntityId, displayLabel: sensor.displayLabel, isActive: sensor.isActive })) }
-function createDraft(displayOrder = 1): TentDraft { return { name: '', kind: 'Grow Tent', tentType: 'Production', notes: '', displayOrder: String(displayOrder), widthCm: '', depthCm: '', tentHeightCm: '', lightType: '', lightWatt: '', lightController: '', lightControllerEntityId: '', exhaustFanCount: '', exhaustM3h: '', circulationFanCount: '', hvacController: '', hvacControllerEntityId: '', co2Available: false, cameraEntityId: '' } }
-function createDraftFromTent(tent: TentDto): TentDraft { return { name: tent.name, kind: tent.kind, tentType: tent.tentType, notes: tent.notes ?? '', displayOrder: String(tent.displayOrder), widthCm: String(tent.widthCm ?? ''), depthCm: String(tent.depthCm ?? ''), tentHeightCm: String(tent.tentHeightCm ?? ''), lightType: tent.lightType ?? '', lightWatt: String(tent.lightWatt ?? ''), lightController: tent.lightController ?? '', lightControllerEntityId: tent.lightControllerEntityId ?? '', exhaustFanCount: String(tent.exhaustFanCount ?? ''), exhaustM3h: String(tent.exhaustM3h ?? ''), circulationFanCount: String(tent.circulationFanCount ?? ''), hvacController: tent.hvacController ?? '', hvacControllerEntityId: tent.hvacControllerEntityId ?? '', co2Available: tent.co2Available, cameraEntityId: tent.cameraEntityId ?? '' } }
-function draftToRequest(draft: TentDraft) { return { name: draft.name.trim(), kind: draft.kind.trim() || 'Grow Tent', tentType: draft.tentType, notes: toNullableString(draft.notes), displayOrder: toNullableInt(draft.displayOrder) ?? 0, accentColor: '#22c55e', widthCm: toNullableInt(draft.widthCm), depthCm: toNullableInt(draft.depthCm), tentHeightCm: toNullableInt(draft.tentHeightCm), lightType: toNullableString(draft.lightType), lightWatt: toNullableInt(draft.lightWatt), lightController: draft.lightController || null, lightControllerEntityId: toNullableString(draft.lightControllerEntityId), exhaustFanCount: toNullableInt(draft.exhaustFanCount), exhaustM3h: toNullableInt(draft.exhaustM3h), circulationFanCount: toNullableInt(draft.circulationFanCount), hvacController: draft.hvacController || null, hvacControllerEntityId: toNullableString(draft.hvacControllerEntityId), co2Available: draft.co2Available, cameraEntityId: toNullableString(draft.cameraEntityId) } }
+function createDraft(displayOrder = 1): TentDraft { return { name: '', kind: 'Grow Tent', tentType: 'Production', notes: '', displayOrder: String(displayOrder), widthCm: '', depthCm: '', tentHeightCm: '', lightType: '', lightWatt: '', exhaustFanCount: '', exhaustM3h: '', circulationFanCount: '', co2Available: false } }
+function createDraftFromTent(tent: TentDto): TentDraft { return { name: tent.name, kind: tent.kind, tentType: tent.tentType, notes: tent.notes ?? '', displayOrder: String(tent.displayOrder), widthCm: String(tent.widthCm ?? ''), depthCm: String(tent.depthCm ?? ''), tentHeightCm: String(tent.tentHeightCm ?? ''), lightType: tent.lightType ?? '', lightWatt: String(tent.lightWatt ?? ''), exhaustFanCount: String(tent.exhaustFanCount ?? ''), exhaustM3h: String(tent.exhaustM3h ?? ''), circulationFanCount: String(tent.circulationFanCount ?? ''), co2Available: tent.co2Available } }
+function draftToRequest(draft: TentDraft) { return { name: draft.name.trim(), kind: draft.kind.trim() || 'Grow Tent', tentType: draft.tentType, notes: toNullableString(draft.notes), displayOrder: toNullableInt(draft.displayOrder) ?? 0, accentColor: '#22c55e', widthCm: toNullableInt(draft.widthCm), depthCm: toNullableInt(draft.depthCm), tentHeightCm: toNullableInt(draft.tentHeightCm), lightType: toNullableString(draft.lightType), lightWatt: toNullableInt(draft.lightWatt), lightController: null, lightControllerEntityId: null, exhaustFanCount: toNullableInt(draft.exhaustFanCount), exhaustM3h: toNullableInt(draft.exhaustM3h), circulationFanCount: toNullableInt(draft.circulationFanCount), hvacController: null, hvacControllerEntityId: null, co2Available: draft.co2Available, cameraEntityId: null } }
 function tentToRequest(tent: TentDto) { return { name: tent.name, kind: tent.kind, tentType: tent.tentType, notes: tent.notes, displayOrder: tent.displayOrder, accentColor: tent.accentColor, widthCm: tent.widthCm, depthCm: tent.depthCm, tentHeightCm: tent.tentHeightCm, lightType: tent.lightType, lightWatt: tent.lightWatt, lightController: tent.lightController, lightControllerEntityId: tent.lightControllerEntityId, exhaustFanCount: tent.exhaustFanCount, exhaustM3h: tent.exhaustM3h, circulationFanCount: tent.circulationFanCount, hvacController: tent.hvacController, hvacControllerEntityId: tent.hvacControllerEntityId, co2Available: tent.co2Available, cameraEntityId: tent.cameraEntityId } }
 function formatTentType(value: TentType) { return value === 'Production' ? 'Blüte / Run' : value === 'Mother' ? 'Mutter' : value === 'Propagation' ? 'Anzucht' : value === 'Quarantine' ? 'Quarantäne' : 'Mehrzweck' }
 function formatSize(tent: TentDto) { return !tent.widthCm && !tent.depthCm && !tent.tentHeightCm ? 'offen' : `${tent.widthCm ?? '–'}×${tent.depthCm ?? '–'}×${tent.tentHeightCm ?? '–'} cm` }

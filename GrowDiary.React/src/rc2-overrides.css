@@ -1,0 +1,237 @@
+/* V1 RC2 real UI fixes: not just audit/test changes */
+
+/* make all V1 cards and flow cards handle real text safely */
+.v1-card,
+.v1-section,
+.v1-stat,
+.v1-empty,
+.grow-select-card,
+.program-card,
+.v1-settings-link,
+.rc2-topic-card,
+.rc2-admin-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.v1-card h2,
+.v1-section h2,
+.grow-select-card strong,
+.program-card strong,
+.rc2-topic-card strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.18;
+}
+
+.v1-card p,
+.v1-section p,
+.program-summary,
+.grow-card-meta,
+.grow-card-facts,
+.rc2-topic-card small {
+  overflow-wrap: anywhere;
+}
+
+/* Settings/Admin */
+.rc2-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.rc2-admin-grid.two {
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+}
+
+.rc2-admin-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.rc2-admin-card .v1-button {
+  width: fit-content;
+}
+
+.rc2-admin-kpis .v1-card h2 {
+  font-size: clamp(1.5rem, 6vw, 2.3rem);
+}
+
+/* Knowledge as wiki */
+.rc2-knowledge-toolbar {
+  max-width: 520px;
+  margin-bottom: 14px;
+}
+
+.rc2-topic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.rc2-topic-card {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+}
+
+.rc2-topic-card:hover,
+.rc2-topic-card.active {
+  border-color: var(--green);
+  background: color-mix(in oklch, var(--surface2), var(--green-bg) 22%);
+}
+
+.rc2-topic-card span {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 700;
+}
+
+.rc2-topic-card small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.rc2-knowledge-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: 16px;
+}
+
+.rc2-topic-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.rc2-topic-sections {
+  display: grid;
+  gap: 12px;
+}
+
+.rc2-topic-sections article {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+}
+
+.rc2-topic-sections h3 {
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.rc2-related-list {
+  display: grid;
+  gap: 10px;
+}
+
+.rc2-related-card {
+  display: grid;
+  gap: 8px;
+}
+
+/* Focused creation flows */
+.rc2-focused-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr);
+  gap: 16px;
+}
+
+.rc2-tent-form .v1-form-actions {
+  grid-column: 1 / -1;
+}
+
+/* HA first section was too cramped */
+.v1-ha-connect-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: end;
+}
+
+.v1-ha-connect-form .v1-switch,
+.v1-ha-connect-form > .v1-button {
+  align-self: stretch;
+}
+
+.v1-inline-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.v1-entity-row,
+.v1-entity-row label {
+  min-width: 0;
+}
+
+.v1-entity-row input {
+  min-width: 0;
+}
+
+/* Grow wizard readability */
+.grow-wizard-shell,
+.grow-wizard-main,
+.grow-wizard-context {
+  min-width: 0;
+}
+
+.grow-select-grid,
+.program-grid {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.grow-card-facts,
+.program-targets,
+.v1-chip-row,
+.v1-action-row {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.grow-summary-list span,
+.grow-program-mini span {
+  min-width: 0;
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+  .rc2-admin-grid,
+  .rc2-admin-grid.two,
+  .rc2-knowledge-layout,
+  .rc2-focused-layout,
+  .v1-ha-connect-form {
+    grid-template-columns: 1fr;
+  }
+
+  .rc2-admin-card .v1-button,
+  .v1-ha-connect-form > .v1-button {
+    width: 100%;
+  }
+
+  .v1-inline-input {
+    grid-template-columns: 1fr;
+  }
+
+  .rc2-topic-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grow-select-grid,
+  .program-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .v1-page {
+    padding-bottom: max(96px, env(safe-area-inset-bottom));
+  }
+}
