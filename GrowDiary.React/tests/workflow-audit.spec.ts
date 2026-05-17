@@ -11,9 +11,12 @@ type LayoutFinding = {
   text: string
   horizontalClip: boolean
   outOfViewport: boolean
+  coveredByBottomNav: boolean
   width: number
   left: number
   right: number
+  top: number
+  bottom: number
   scrollWidth: number
   clientWidth: number
 }
@@ -23,6 +26,7 @@ type WorkflowStepReport = {
   path: string
   url: string
   heading: string | null
+  activeWizardStep: number | null
   bodyOverflow: boolean
   documentOverflow: boolean
   hardOffenders: LayoutFinding[]
@@ -37,17 +41,17 @@ test.beforeAll(() => {
 })
 
 test.afterAll(() => {
-  const reportPath = path.join(outputDir, 'workflow-audit-report.json')
-  fs.writeFileSync(reportPath, JSON.stringify({ generatedAtUtc: new Date().toISOString(), results: workflowReports }, null, 2), 'utf8')
+  fs.mkdirSync(outputDir, { recursive: true })
+  fs.writeFileSync(path.join(outputDir, 'workflow-audit-report.json'), JSON.stringify({ generatedAtUtc: new Date().toISOString(), results: workflowReports }, null, 2), 'utf8')
 
   const lines = [
     '# Grow OS Workflow Audit',
     '',
     `Generated: ${new Date().toISOString()}`,
     '',
-    '| Step | Path | Heading | Body Overflow | Document Overflow | Hard Offenders | Clip Warnings |',
-    '|---|---|---|---|---|---:|---:|',
-    ...workflowReports.map((row) => `| ${row.name} | ${row.path} | ${row.heading ?? ''} | ${row.bodyOverflow ? 'YES' : 'no'} | ${row.documentOverflow ? 'YES' : 'no'} | ${row.hardOffenders.length} | ${row.clipWarnings.length} |`),
+    '| Step | Path | Heading | Wizard | Body Overflow | Document Overflow | Hard Offenders | Clip Warnings |',
+    '|---|---|---|---:|---|---|---:|---:|',
+    ...workflowReports.map((row) => `| ${row.name} | ${row.path} | ${row.heading ?? ''} | ${row.activeWizardStep ?? ''} | ${row.bodyOverflow ? 'YES' : 'no'} | ${row.documentOverflow ? 'YES' : 'no'} | ${row.hardOffenders.length} | ${row.clipWarnings.length} |`),
   ]
   fs.writeFileSync(path.join(outputDir, 'workflow-audit-report.md'), lines.join('\n'), 'utf8')
 })
@@ -64,29 +68,39 @@ test.describe('workflow audit mobile', () => {
     await fillIfVisible(page, 'input[placeholder="Hauptzelt"]', `E2E Zelt ${Date.now()}`)
     await screenshotAndLayout(page, 'mobile-zelt-new-filled')
 
-    await auditRoute(page, '/hydro/new', 'mobile-hydro-new')
+    await auditRoute(page, '/hydro/new', 'mobile-hydro-step-1')
     await fillIfVisible(page, 'input[placeholder="RDWC 4-Site"]', `E2E RDWC ${Date.now()}`)
     await selectFirstNonEmptyOption(page, 'select')
-    await goWizardStep(page, 2, /Weiter/i)
+    await expectWizardStep(page, 1, 'hydro initial')
+    await clickNextAndExpectStep(page, 2, 'hydro step 2')
     await screenshotAndLayout(page, 'mobile-hydro-step-2')
-    await goWizardStep(page, 3, /Weiter/i)
+    await clickNextAndExpectStep(page, 3, 'hydro step 3')
     await screenshotAndLayout(page, 'mobile-hydro-step-3')
-    await goWizardStep(page, 4, /Weiter/i)
+    await clickNextAndExpectStep(page, 4, 'hydro step 4')
     await screenshotAndLayout(page, 'mobile-hydro-step-4')
-    await goWizardStep(page, 5, /Weiter/i)
+    await clickNextAndExpectStep(page, 5, 'hydro step 5')
     await screenshotAndLayout(page, 'mobile-hydro-step-5')
 
-    await auditRoute(page, '/grows/new', 'mobile-grow-new')
+    await auditRoute(page, '/grows/new', 'mobile-grow-step-1')
     await fillIfVisible(page, 'input[placeholder="Purple Lemonade RDWC"]', `E2E Grow ${Date.now()}`)
-    await goWizardStep(page, 2, /Weiter/i)
+    await expectWizardStep(page, 1, 'grow initial')
+
+    await clickNextAndExpectStep(page, 2, 'grow step 2')
+    await selectGrowTent(page)
     await screenshotAndLayout(page, 'mobile-grow-step-2')
-    await goWizardStep(page, 3, /Weiter/i)
+
+    await clickNextAndExpectStep(page, 3, 'grow step 3')
+    await selectGrowHydro(page)
     await screenshotAndLayout(page, 'mobile-grow-step-3')
-    await goWizardStep(page, 4, /Weiter/i)
+
+    await clickNextAndExpectStep(page, 4, 'grow step 4')
     await screenshotAndLayout(page, 'mobile-grow-step-4')
-    await goWizardStep(page, 5, /Weiter/i)
+
+    await clickNextAndExpectStep(page, 5, 'grow step 5')
+    await selectProgramIfPresent(page)
     await screenshotAndLayout(page, 'mobile-grow-step-5')
-    await goWizardStep(page, 6, /Weiter/i)
+
+    await clickNextAndExpectStep(page, 6, 'grow step 6')
     await screenshotAndLayout(page, 'mobile-grow-step-6')
   })
 })
@@ -138,42 +152,89 @@ async function selectFirstNonEmptyOption(page: import('@playwright/test').Page, 
   const locator = page.locator(selector).first()
   if ((await locator.count()) === 0) return
 
-  try {
-    const values = await locator.locator('option').evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value).filter(Boolean))
-    if (values.length > 0) {
-      await locator.selectOption(values[0], { timeout: 1200 })
-    }
-  } catch {
-    // Keine auswählbaren Daten vorhanden.
+  const values = await locator.locator('option').evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value).filter(Boolean))
+  if (values.length === 0) {
+    throw new Error(`Keine auswählbare Option für ${selector}. Für diesen Workflow fehlen Testdaten.`)
+  }
+
+  await locator.selectOption(values[0], { timeout: 1200 })
+}
+
+async function clickNextAndExpectStep(page: import('@playwright/test').Page, expectedStep: number, label: string) {
+  const next = page.getByRole('button', { name: /^Weiter$/i }).first()
+  if ((await next.count()) === 0) {
+    throw new Error(`${label}: Weiter-Button nicht gefunden.`)
+  }
+
+  if (!(await next.isVisible({ timeout: 1500 })) || !(await next.isEnabled({ timeout: 1500 }))) {
+    throw new Error(`${label}: Weiter-Button ist nicht sichtbar oder nicht aktiv.`)
+  }
+
+  await next.click({ timeout: 2000 })
+  await waitForAppIdle(page)
+  await expectWizardStep(page, expectedStep, label)
+}
+
+async function expectWizardStep(page: import('@playwright/test').Page, expectedStep: number, label: string) {
+  const activeStep = await getActiveWizardStep(page)
+  if (activeStep !== expectedStep) {
+    const alertText = await page.locator('.v1-alert, [role="alert"]').first().textContent({ timeout: 500 }).catch(() => null)
+    throw new Error(`${label}: Wizard ist nicht auf Schritt ${expectedStep}, sondern auf Schritt ${activeStep ?? 'unbekannt'}.${alertText ? ` Hinweis: ${alertText.trim()}` : ''}`)
   }
 }
 
-async function goWizardStep(page: import('@playwright/test').Page, stepNumber: number, fallbackButton: RegExp) {
-  const directStep = page.locator('.v1-wizard-step').nth(stepNumber - 1)
-  try {
-    if ((await directStep.count()) > 0 && await directStep.isVisible({ timeout: 600 }) && await directStep.isEnabled({ timeout: 600 })) {
-      await directStep.click({ timeout: 1200 })
+async function getActiveWizardStep(page: import('@playwright/test').Page) {
+  return await page.evaluate(() => {
+    const steps = Array.from(document.querySelectorAll('.v1-wizard-step'))
+    const activeIndex = steps.findIndex((element) => element.classList.contains('active'))
+    return activeIndex >= 0 ? activeIndex + 1 : null
+  })
+}
+
+async function selectGrowTent(page: import('@playwright/test').Page) {
+  const cards = page.locator('.grow-select-card')
+  const count = await cards.count()
+  if (count === 0) {
+    throw new Error('Grow Schritt Zelt: keine Zelt-Karte gefunden. Für den Workflow braucht die DB mindestens ein Zelt.')
+  }
+
+  for (let i = 0; i < count; i += 1) {
+    const card = cards.nth(i)
+    const text = (await card.textContent()) ?? ''
+    if (!/0\s*Hydro/i.test(text)) {
+      await card.click({ timeout: 1500 })
       await waitForAppIdle(page)
       return
     }
-  } catch {
-    // Fallback auf Weiter.
   }
 
-  await clickButtonIfPossible(page, fallbackButton)
+  await cards.first().click({ timeout: 1500 })
+  await waitForAppIdle(page)
 }
 
-async function clickButtonIfPossible(page: import('@playwright/test').Page, name: RegExp) {
-  const locator = page.getByRole('button', { name }).first()
-  if ((await locator.count()) === 0) return
+async function selectGrowHydro(page: import('@playwright/test').Page) {
+  const cards = page.locator('.grow-select-card')
+  const count = await cards.count()
+  if (count === 0) {
+    throw new Error('Grow Schritt Hydro: kein Hydro-Setup gefunden. Wähle im Testdatenstand ein Zelt mit aktivem Hydro-Setup oder lege vorher ein Setup an.')
+  }
 
-  try {
-    if (await locator.isVisible({ timeout: 1000 }) && await locator.isEnabled({ timeout: 1000 })) {
-      await locator.click({ timeout: 1500 })
-      await waitForAppIdle(page)
-    }
-  } catch {
-    // Validierung kann den Wizard bewusst auf dem aktuellen Schritt halten.
+  await cards.first().click({ timeout: 1500 })
+  await waitForAppIdle(page)
+}
+
+async function selectProgramIfPresent(page: import('@playwright/test').Page) {
+  const cards = page.locator('.program-card')
+  const count = await cards.count()
+  if (count > 0) {
+    await cards.first().click({ timeout: 1500 })
+    await waitForAppIdle(page)
+    return
+  }
+
+  const customInput = page.locator('input[placeholder*="eigene"], input[placeholder*="Mischung"]').first()
+  if ((await customInput.count()) > 0 && await customInput.isVisible({ timeout: 800 })) {
+    await customInput.fill('E2E Programm', { timeout: 1200 })
   }
 }
 
@@ -185,14 +246,37 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
       return `${element.tagName.toLowerCase()}${className ? `.${className}` : ''}`
     }
 
+    function isBottomNavCriticalElement(element: HTMLElement) {
+      const style = window.getComputedStyle(element)
+      return (
+        style.position === 'fixed' ||
+        style.position === 'sticky' ||
+        Boolean(element.closest('.sticky-actions'))
+      )
+    }
+
+    const bottomNav = document.querySelector('.v1-bottom-nav') as HTMLElement | null
+    const bottomNavRect = bottomNav?.getBoundingClientRect() ?? null
+
     const candidates = Array.from(document.querySelectorAll('button, a, input, select, textarea, .v1-tab, .v1-wizard-step, .v1-card, .v1-section'))
       .map((element) => {
         const html = element as HTMLElement
         const rect = html.getBoundingClientRect()
         const style = window.getComputedStyle(html)
-        const visible = style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1 && rect.bottom > 0 && rect.top < window.innerHeight + 1400
+        const visible = style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1 && rect.bottom > 0 && rect.top < window.innerHeight
         const horizontalClip = html.scrollWidth > html.clientWidth + 8
         const outOfViewport = rect.left < -4 || rect.right > window.innerWidth + 4
+        const insideBottomNav = Boolean(html.closest('.v1-bottom-nav'))
+        const insideMobileMore = Boolean(html.closest('.v1-mobile-more-panel'))
+        const criticalForBottomNav = isBottomNavCriticalElement(html)
+        const coveredByBottomNav = Boolean(
+          bottomNavRect &&
+          criticalForBottomNav &&
+          !insideBottomNav &&
+          !insideMobileMore &&
+          rect.bottom > bottomNavRect.top + 4 &&
+          rect.top < bottomNavRect.bottom - 4,
+        )
 
         return {
           tag: html.tagName,
@@ -201,9 +285,13 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
           visible,
           horizontalClip,
           outOfViewport,
+          coveredByBottomNav,
+          criticalForBottomNav,
           width: Math.round(rect.width),
           left: Math.round(rect.left),
           right: Math.round(rect.right),
+          top: Math.round(rect.top),
+          bottom: Math.round(rect.bottom),
           scrollWidth: html.scrollWidth,
           clientWidth: html.clientWidth,
           role: html.getAttribute('role'),
@@ -213,9 +301,10 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
       .filter((item) => item.visible)
 
     const hardOffenders = candidates
-      .filter((item) => item.outOfViewport)
+      .filter((item) => item.outOfViewport || item.coveredByBottomNav)
       .filter((item) => !String(item.className).includes('v1-bottom-nav'))
       .filter((item) => !String(item.className).includes('v1-mobile-more-panel'))
+      .filter((item) => item.tag !== 'SECTION' && !String(item.className).includes('v1-section'))
 
     const clipWarnings = candidates
       .filter((item) => item.horizontalClip)
@@ -227,10 +316,14 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
       document.querySelector('[data-audit-title]')?.textContent?.trim() ??
       null
 
+    const steps = Array.from(document.querySelectorAll('.v1-wizard-step'))
+    const activeIndex = steps.findIndex((element) => element.classList.contains('active'))
+
     return {
       path: window.location.pathname,
       url: window.location.href,
       heading,
+      activeWizardStep: activeIndex >= 0 ? activeIndex + 1 : null,
       bodyScrollWidth: document.body.scrollWidth,
       documentScrollWidth: document.documentElement.scrollWidth,
       innerWidth: window.innerWidth,
@@ -246,6 +339,7 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
     path: result.path,
     url: result.url,
     heading: result.heading,
+    activeWizardStep: result.activeWizardStep,
     bodyOverflow: result.bodyOverflow,
     documentOverflow: result.documentOverflow,
     hardOffenders: result.hardOffenders,
@@ -261,7 +355,10 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
 
   const hardOffenders = result.hardOffenders as LayoutFinding[]
   if (hardOffenders.length > 0) {
-    const details = hardOffenders.slice(0, 5).map((item) => `${item.selector} "${item.text}" left=${item.left} right=${item.right}`).join(' | ')
-    throw new Error(`${name}: visible elements outside viewport: ${details}`)
+    const details = hardOffenders.slice(0, 5).map((item) => {
+      const problem = item.coveredByBottomNav ? 'coveredByBottomNav' : 'outsideViewport'
+      return `${item.selector} "${item.text}" ${problem} left=${item.left} right=${item.right} top=${item.top} bottom=${item.bottom}`
+    }).join(' | ')
+    throw new Error(`${name}: visible elements blocked or outside viewport: ${details}`)
   }
 }
