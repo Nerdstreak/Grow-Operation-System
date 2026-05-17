@@ -19,6 +19,7 @@ import ReleasePage from './pages/ReleasePage'
 import SettingsPage from './pages/SettingsPage'
 import TentDetailPage from './pages/TentDetailPage'
 import TentsPage from './pages/TentsPage'
+import './rc2-overrides.css'
 
 const coreNav = [
   { to: '/', label: 'Live', end: true },
@@ -34,7 +35,6 @@ const moreNav = [
   { to: '/connect', label: 'Gerät verbinden', end: true },
   { to: '/hardware', label: 'Sensoren', end: true },
   { to: '/wissen', label: 'Wissen', end: true },
-  { to: '/release', label: 'Release', end: true },
   { to: '/analyse', label: 'Vergleich', end: true },
   { to: '/archiv', label: 'Archiv', end: true },
   { to: '/settings', label: 'Einstellungen', end: true },
@@ -46,7 +46,7 @@ function App() {
   const title = getCurrentTitle(location.pathname)
 
   return (
-    <div className="v1-app-shell">
+    <div className="v1-app-shell rc2-shell">
       <aside className="v1-desktop-nav" aria-label="Desktop Navigation">
         <div className="v1-brand">
           <div className="v1-brand-mark">●</div>

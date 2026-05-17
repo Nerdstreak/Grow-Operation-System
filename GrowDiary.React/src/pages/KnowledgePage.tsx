@@ -1,58 +1,145 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
-import { apiFetch, ApiRequestError } from '../api'
+import { Link } from 'react-router-dom'
+import { apiFetch } from '../api'
 import type { KnowledgeOverviewDto, NutrientProgramDto, WearTemplateDto } from '../types'
-import { V1Alert, V1Badge, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Tabs } from '../components/v1'
+import { V1Badge, V1Card, V1Empty, V1Field, V1Page, V1Section } from '../components/v1'
 
-type KnowledgeCategory = 'guide' | 'programs' | 'sops' | 'treatments' | 'symptoms' | 'setpoints' | 'pathogens' | 'wear'
-type DataCategory = Exclude<KnowledgeCategory, 'guide'>
+type TopicId = 'rdwc' | 'addback' | 'rootrot' | 'ph-ec' | 'athena' | 'canna' | 'sensors' | 'troubleshooting'
 type KnowledgeRecord = Record<string, unknown>
-type KnowledgeItem = KnowledgeRecord | WearTemplateDto | NutrientProgramDto
 
-interface CategoryDefinition {
-  key: DataCategory
-  label: string
-  endpoint: string
-  purpose: string
-}
-
-interface KnowledgeCatalogs {
-  treatments: KnowledgeRecord[]
-  sops: KnowledgeRecord[]
-  symptoms: KnowledgeRecord[]
-  wear: WearTemplateDto[]
+type Catalogs = {
   programs: NutrientProgramDto[]
+  sops: KnowledgeRecord[]
+  treatments: KnowledgeRecord[]
+  symptoms: KnowledgeRecord[]
   setpoints: KnowledgeRecord[]
   pathogens: KnowledgeRecord[]
+  wear: WearTemplateDto[]
 }
 
-const categories: CategoryDefinition[] = [
-  { key: 'programs', label: 'Programme', endpoint: '/api/knowledge', purpose: 'Athena, Canna Aqua und weitere Nährstofflinien' },
-  { key: 'sops', label: 'SOPs', endpoint: '/api/knowledge/sops', purpose: 'Geführte Abläufe für Kalibrierung, Hygiene und Behandlung' },
-  { key: 'treatments', label: 'Treatments', endpoint: '/api/knowledge/treatments', purpose: 'Maßnahmen gegen Symptome und Risiken' },
-  { key: 'symptoms', label: 'Symptome', endpoint: '/api/knowledge/symptoms', purpose: 'Symptom → Ursache → Check → Behandlung' },
-  { key: 'setpoints', label: 'Setpoints', endpoint: '/api/knowledge/setpoints', purpose: 'Zielbereiche nach System, Phase und Programm' },
-  { key: 'pathogens', label: 'Pathogene', endpoint: '/api/knowledge/pathogens', purpose: 'Risiken, Root Rot, Prävention und Behandlung' },
-  { key: 'wear', label: 'Verschleiß', endpoint: '/api/knowledge/wear', purpose: 'Sensoren, Hardware, Wartung und Austausch' },
+type Topic = {
+  id: TopicId
+  title: string
+  kicker: string
+  intro: string
+  keywords: string[]
+  sections: Array<{ title: string; text: string }>
+  action?: { label: string; to: string }
+}
+
+const emptyCatalogs: Catalogs = { programs: [], sops: [], treatments: [], symptoms: [], setpoints: [], pathogens: [], wear: [] }
+
+const topics: Topic[] = [
+  {
+    id: 'rdwc',
+    title: 'RDWC Grundlagen',
+    kicker: 'System verstehen',
+    intro: 'Reservoir, Umlauf, Sauerstoff, Temperatur und Hygiene hängen in RDWC enger zusammen als bei Erde oder Coco.',
+    keywords: ['rdwc', 'dwc', 'reservoir', 'wasser', 'umlauf', 'sauerstoff'],
+    sections: [
+      { title: 'Worum geht es?', text: 'RDWC ist ein rezirkulierendes Wassersystem. Ein Fehler im Reservoir betrifft deshalb sehr schnell alle Pflanzen.' },
+      { title: 'Worauf achten?', text: 'pH, EC, Wassertemperatur, Sauerstoff, Wasserstand und saubere Hardware sind die Kernwerte.' },
+      { title: 'In der App', text: 'Hydro-Setup, Addback, Sensoren und Live-Dashboard sind deshalb getrennte Workflows.' },
+    ],
+    action: { label: 'Hydro öffnen', to: '/hydro' },
+  },
+  {
+    id: 'addback',
+    title: 'Addback',
+    kicker: 'Nährlösung logisch ergänzen',
+    intro: 'Addback ist kein blindes Nachkippen. Ziel ist, Wasserstand und Ziel-EC kontrolliert wieder in den Bereich zu bringen.',
+    keywords: ['addback', 'topoff', 'ec', 'reservoir', 'nachfüllen'],
+    sections: [
+      { title: 'Prinzip', text: 'Erst Ist-Zustand messen, dann Zielwert bestimmen, dann Wasser/Nährlösung ergänzen und nachmessen.' },
+      { title: 'Fehler vermeiden', text: 'Nicht nur EC korrigieren. Wasserstand, pH, Temperatur und Pflanzenphase gehören dazu.' },
+      { title: 'In der App', text: 'Der Addback-Assistent nutzt Grow, Hydro-System, Reservoirvolumen und Programm als Kontext.' },
+    ],
+    action: { label: 'Addback öffnen', to: '/addback' },
+  },
+  {
+    id: 'rootrot',
+    title: 'Root Rot',
+    kicker: 'Risiko & Sofortmaßnahmen',
+    intro: 'Wurzelfäule ist in Hydro kritisch, weil sich Probleme über Wasser, Biofilm und Sauerstoffmangel schnell ausbreiten können.',
+    keywords: ['root', 'rot', 'wurzel', 'fäule', 'pathogen', 'hygiene'],
+    sections: [
+      { title: 'Symptome', text: 'Braune/slimige Wurzeln, muffiger Geruch, fallender Sauerstoff, instabile Werte und schlapper Wuchs.' },
+      { title: 'Sofortmaßnahmen', text: 'Temperatur, Sauerstoff, Biofilm, tote Wurzelmasse und Hygiene prüfen. Keine hektischen Mehrfachkorrekturen.' },
+      { title: 'In der App', text: 'Wissen, SOPs, Sensorvertrauen und Risiken sollen hier zusammenlaufen.' },
+    ],
+    action: { label: 'SOPs prüfen', to: '/wissen' },
+  },
+  {
+    id: 'ph-ec',
+    title: 'pH & EC Stabilisierung',
+    kicker: 'Werte richtig deuten',
+    intro: 'pH und EC müssen zusammen mit Wasserstand und Pflanzenphase gelesen werden. Einzelwerte alleine führen schnell zu falschen Maßnahmen.',
+    keywords: ['ph', 'ec', 'stabilisierung', 'nährstoff', 'naehrstoff'],
+    sections: [
+      { title: 'pH', text: 'pH-Drift kann normal sein, aber starke Sprünge deuten auf Puffer-, Hygiene- oder Dosierprobleme hin.' },
+      { title: 'EC', text: 'Steigender EC bei fallendem Wasserstand kann auf stärkere Wasseraufnahme als Nährstoffaufnahme hinweisen.' },
+      { title: 'In der App', text: 'Addback und Live-Score bewerten Werte konservativ und sollen keine Stabilität behaupten, wenn Daten fehlen.' },
+    ],
+    action: { label: 'Live öffnen', to: '/' },
+  },
+  {
+    id: 'athena',
+    title: 'Athena Blended',
+    kicker: 'Programm',
+    intro: 'Athena wird als auswählbares Nährstoffprogramm im Grow gespeichert, damit Empfehlungen später den richtigen Kontext haben.',
+    keywords: ['athena', 'blended', 'grow', 'bloom'],
+    sections: [
+      { title: 'Ziel', text: 'Programmkontext für Grow, Addback, Zielwerte und spätere Empfehlungen.' },
+      { title: 'Wichtig', text: 'Nicht nur Herstellername speichern, sondern auch Phase, Wasserquelle und Systemart berücksichtigen.' },
+      { title: 'In der App', text: 'Beim Grow-Start wird das Programm gewählt und in Addback/Knowledge weiterverwendet.' },
+    ],
+    action: { label: 'Grow starten', to: '/grows/new' },
+  },
+  {
+    id: 'canna',
+    title: 'Canna Aqua',
+    kicker: 'Programm',
+    intro: 'Canna Aqua ist für rezirkulierende Systeme relevant und soll als Programmkontext auswählbar bleiben.',
+    keywords: ['canna', 'aqua', 'vega', 'flores'],
+    sections: [
+      { title: 'Ziel', text: 'Nährstofflogik passend zu rezirkulierendem Hydro-System dokumentieren.' },
+      { title: 'Wichtig', text: 'Programmauswahl ist kein Ersatz für Messwerte. Sie liefert Kontext für die Interpretation.' },
+      { title: 'In der App', text: 'Programmwahl wird im Grow gespeichert und später für Empfehlungen genutzt.' },
+    ],
+    action: { label: 'Grow starten', to: '/grows/new' },
+  },
+  {
+    id: 'sensors',
+    title: 'Sensoren & Kalibrierung',
+    kicker: 'Vertrauen in Messwerte',
+    intro: 'Automatisierung ist nur so gut wie die Sensoren. pH/EC/ORP/DO brauchen Kalibrierung, Wartung und Plausibilitätsprüfung.',
+    keywords: ['sensor', 'kalibrierung', 'wartung', 'ph', 'ec', 'orp', 'do'],
+    sections: [
+      { title: 'Sensorvertrauen', text: 'Keine Sensoren bedeutet nicht 100 % stabil. Dann ist die Bewertung offen und muss eingerichtet werden.' },
+      { title: 'Kalibrierung', text: 'pH und EC sollten dokumentiert kalibriert werden, sonst sind Empfehlungen nicht belastbar.' },
+      { title: 'In der App', text: 'Sensoren-Seite, HA-Mapping und Live-Dashboard greifen hier zusammen.' },
+    ],
+    action: { label: 'Sensoren öffnen', to: '/hardware' },
+  },
+  {
+    id: 'troubleshooting',
+    title: 'Fehlersuche',
+    kicker: 'Symptom → Ursache → Handlung',
+    intro: 'Probleme sollen nicht als lose Datensätze erscheinen, sondern als geführte Diagnose.',
+    keywords: ['symptom', 'diagnose', 'fehler', 'treatment', 'risiko'],
+    sections: [
+      { title: 'Vorgehen', text: 'Symptom beschreiben, Kontext prüfen, wahrscheinlichste Ursache wählen, eine Maßnahme durchführen und nachmessen.' },
+      { title: 'Vermeiden', text: 'Mehrere starke Korrekturen gleichzeitig machen spätere Auswertung unmöglich.' },
+      { title: 'In der App', text: 'Aufgaben, Wissen, Addback und Messungen sollen diese Diagnose nachvollziehbar machen.' },
+    ],
+    action: { label: 'Aufgaben öffnen', to: '/aufgaben' },
+  },
 ]
 
-const emptyCatalogs: KnowledgeCatalogs = {
-  treatments: [],
-  sops: [],
-  symptoms: [],
-  wear: [],
-  programs: [],
-  setpoints: [],
-  pathogens: [],
-}
-
-const emptyOverview: KnowledgeOverviewDto = { programs: [], playbooks: [] }
-
 function KnowledgePage() {
-  const [activeCategory, setActiveCategory] = useState<KnowledgeCategory>('guide')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [catalogs, setCatalogs] = useState<KnowledgeCatalogs>(emptyCatalogs)
-  const [catalogErrors, setCatalogErrors] = useState<Partial<Record<DataCategory, string>>>({})
+  const [catalogs, setCatalogs] = useState<Catalogs>(emptyCatalogs)
+  const [selectedTopicId, setSelectedTopicId] = useState<TopicId>('rdwc')
+  const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -60,383 +147,144 @@ function KnowledgePage() {
 
     async function load() {
       setLoading(true)
-      const nextErrors: Partial<Record<DataCategory, string>> = {}
-
-      async function fetchCatalog<T>(category: DataCategory, endpoint: string, fallback: T): Promise<T> {
-        try {
-          return await apiFetch<T>(endpoint, { signal: controller.signal })
-        } catch (caught) {
-          if (controller.signal.aborted) throw caught
-          nextErrors[category] = caught instanceof ApiRequestError ? caught.message : 'Catalog konnte nicht geladen werden.'
-          return fallback
-        }
+      const safe = async <T,>(path: string, fallback: T): Promise<T> => {
+        try { return await apiFetch<T>(path, { signal: controller.signal }) } catch { return fallback }
       }
 
-      try {
-        const [overview, treatments, sops, symptoms, wear, setpoints, pathogens] = await Promise.all([
-          fetchCatalog<KnowledgeOverviewDto>('programs', '/api/knowledge', emptyOverview),
-          fetchCatalog<KnowledgeRecord[]>('treatments', '/api/knowledge/treatments', []),
-          fetchCatalog<KnowledgeRecord[]>('sops', '/api/knowledge/sops', []),
-          fetchCatalog<KnowledgeRecord[]>('symptoms', '/api/knowledge/symptoms', []),
-          fetchCatalog<WearTemplateDto[]>('wear', '/api/knowledge/wear', []),
-          fetchCatalog<KnowledgeRecord[]>('setpoints', '/api/knowledge/setpoints', []),
-          fetchCatalog<KnowledgeRecord[]>('pathogens', '/api/knowledge/pathogens', []),
-        ])
+      const [overview, sops, treatments, symptoms, setpoints, pathogens, wear] = await Promise.all([
+        safe<KnowledgeOverviewDto>('/api/knowledge', { programs: [], playbooks: [] }),
+        safe<KnowledgeRecord[]>('/api/knowledge/sops', []),
+        safe<KnowledgeRecord[]>('/api/knowledge/treatments', []),
+        safe<KnowledgeRecord[]>('/api/knowledge/symptoms', []),
+        safe<KnowledgeRecord[]>('/api/knowledge/setpoints', []),
+        safe<KnowledgeRecord[]>('/api/knowledge/pathogens', []),
+        safe<WearTemplateDto[]>('/api/knowledge/wear', []),
+      ])
 
-        if (controller.signal.aborted) return
-        setCatalogs({ programs: overview.programs, treatments, sops, symptoms, wear, setpoints, pathogens })
-        setCatalogErrors(nextErrors)
-      } finally {
-        if (!controller.signal.aborted) setLoading(false)
-      }
+      if (controller.signal.aborted) return
+      setCatalogs({ programs: overview.programs ?? [], sops, treatments, symptoms, setpoints, pathogens, wear })
+      setLoading(false)
     }
 
     void load()
     return () => controller.abort()
   }, [])
 
-  const counts = useMemo(() => ({
-    programs: catalogs.programs.length,
-    sops: catalogs.sops.length,
-    treatments: catalogs.treatments.length,
-    symptoms: catalogs.symptoms.length,
-    setpoints: catalogs.setpoints.length,
-    pathogens: catalogs.pathogens.length,
-    wear: catalogs.wear.length,
-  }), [catalogs])
+  const filteredTopics = useMemo(() => {
+    const normalized = query.trim().toLowerCase()
+    if (!normalized) return topics
+    return topics.filter((topic) => [topic.title, topic.kicker, topic.intro, ...topic.keywords].join(' ').toLowerCase().includes(normalized))
+  }, [query])
 
-  const activeItems = activeCategory === 'guide' ? [] : catalogs[activeCategory] as KnowledgeItem[]
-  const filteredItems = useMemo(() => activeItems.filter((item) => matchesSearch(item, searchQuery)), [activeItems, searchQuery])
-  const activeDefinition = activeCategory === 'guide' ? null : categories.find((category) => category.key === activeCategory)
+  const selectedTopic = topics.find((topic) => topic.id === selectedTopicId) ?? topics[0]
+  const related = useMemo(() => findRelated(selectedTopic, catalogs), [selectedTopic, catalogs])
 
   return (
-    <V1Page eyebrow="Wissen" title="Wissen & SOPs" subtitle="Nicht als Datenbank-Browser gedacht: Die Seite zeigt dir zuerst, wofür die Wissensbasis im Grow-Alltag genutzt wird.">
-      <section className="v1-kpi-grid">
-        <V1Card><span className="v1-card-kicker">Programme</span><h2>{counts.programs}</h2><p>Athena, Canna Aqua und Nährstofflinien</p></V1Card>
-        <V1Card><span className="v1-card-kicker">SOPs</span><h2>{counts.sops}</h2><p>Arbeitsabläufe für Behandlung und Wartung</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Symptome</span><h2>{counts.symptoms}</h2><p>Diagnosebasis für Empfehlungen</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Setpoints</span><h2>{counts.setpoints}</h2><p>Zielbereiche für Score und Addback</p></V1Card>
+    <V1Page eyebrow="Wissen" title="Wissen" subtitle="Wiki-artiger Knowledge-Hub. Erst Oberthema wählen, dann konkrete SOPs, Programme und Hinweise ansehen.">
+      <section className="v1-kpi-grid rc2-knowledge-kpis">
+        <V1Card><span className="v1-card-kicker">Programme</span><h2>{catalogs.programs.length}</h2><p>Athena, Canna und eigene Linien</p></V1Card>
+        <V1Card><span className="v1-card-kicker">SOPs</span><h2>{catalogs.sops.length}</h2><p>Arbeitsabläufe und Checks</p></V1Card>
+        <V1Card><span className="v1-card-kicker">Symptome</span><h2>{catalogs.symptoms.length}</h2><p>Diagnosebasis</p></V1Card>
+        <V1Card><span className="v1-card-kicker">Setpoints</span><h2>{catalogs.setpoints.length}</h2><p>Zielbereiche</p></V1Card>
       </section>
 
-      <V1Tabs
-        label="Wissensbereich"
-        active={activeCategory}
-        onChange={(value) => setActiveCategory(value)}
-        items={[
-          { value: 'guide', label: 'Empfehlungen', meta: 'Workflow' },
-          ...categories.map((category) => ({ value: category.key, label: category.label, meta: String(counts[category.key]) })),
-        ]}
-      />
+      <V1Section title="Oberthemen">
+        <div className="rc2-knowledge-toolbar">
+          <V1Field label="Suche">
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Root Rot, Addback, Athena..." />
+          </V1Field>
+        </div>
+        <div className="rc2-topic-grid">
+          {filteredTopics.map((topic) => (
+            <button key={topic.id} type="button" className={topic.id === selectedTopic.id ? 'rc2-topic-card active' : 'rc2-topic-card'} onClick={() => setSelectedTopicId(topic.id)}>
+              <span>{topic.kicker}</span>
+              <strong>{topic.title}</strong>
+              <small>{topic.intro}</small>
+            </button>
+          ))}
+        </div>
+      </V1Section>
 
-      {activeCategory === 'guide' ? (
-        <KnowledgeGuide catalogs={catalogs} />
-      ) : (
-        <>
-          <V1Section title={activeDefinition?.label ?? 'Catalog'}>
-            <div className="v1-card-grid">
-              <V1Card>
-                <span className="v1-card-kicker">Zweck</span>
-                <h2>{activeDefinition?.label}</h2>
-                <p>{activeDefinition?.purpose}</p>
-                <small>{activeDefinition?.endpoint}</small>
-              </V1Card>
-              <V1Card>
-                <span className="v1-card-kicker">Filter</span>
-                <V1Field label="Suche" hint="ID, Name, Kategorie oder Hersteller">
-                  <input type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="z. B. Athena, Root Rot, pH..." />
-                </V1Field>
-              </V1Card>
+      <section className="rc2-knowledge-layout">
+        <V1Section title={selectedTopic.title}>
+          <V1Card className="rc2-topic-detail">
+            <span className="v1-card-kicker">{selectedTopic.kicker}</span>
+            <h2>{selectedTopic.title}</h2>
+            <p>{selectedTopic.intro}</p>
+            <div className="rc2-topic-sections">
+              {selectedTopic.sections.map((section) => (
+                <article key={section.title}>
+                  <h3>{section.title}</h3>
+                  <p>{section.text}</p>
+                </article>
+              ))}
             </div>
-            {catalogErrors[activeCategory] && <V1Alert title="Fehler" message={catalogErrors[activeCategory] ?? ''} tone="warn" />}
-          </V1Section>
+            {selectedTopic.action && <Link to={selectedTopic.action.to} className="v1-button is-primary">{selectedTopic.action.label}</Link>}
+          </V1Card>
+        </V1Section>
 
-          {loading ? (
-            <V1Empty title="Lade Wissensbasis..." />
-          ) : filteredItems.length === 0 ? (
-            <V1Empty title="Keine Einträge gefunden" text="Filter zurücksetzen oder andere Kategorie wählen." />
-          ) : (
-            <div className="v1-card-grid">
-              {filteredItems.map((item, index) => (
-                <KnowledgeCard key={`${activeCategory}-${getItemKey(item, index)}`} category={activeCategory} item={item} />
+        <V1Section title="Verknüpfte Daten">
+          {loading ? <V1Empty title="Lade Wissensbasis..." /> : (
+            <div className="rc2-related-list">
+              {related.length === 0 ? <V1Empty title="Keine Treffer" text="Zu diesem Thema wurden noch keine passenden Datensätze gefunden." /> : related.map((item) => (
+                <V1Card key={item.key} className="rc2-related-card">
+                  <span className="v1-card-kicker">{item.type}</span>
+                  <h2>{item.title}</h2>
+                  <p>{item.description}</p>
+                  <V1Badge>{item.source}</V1Badge>
+                </V1Card>
               ))}
             </div>
           )}
-        </>
-      )}
+        </V1Section>
+      </section>
     </V1Page>
   )
 }
 
-function KnowledgeGuide({ catalogs }: { catalogs: KnowledgeCatalogs }) {
-  const rootRotSop = findFirst(catalogs.sops, ['root', 'rot', 'wurzel'])
-  const phSop = findFirst(catalogs.sops, ['ph', 'nährstoff', 'naehrstoff'])
-  const addbackTreatment = findFirst(catalogs.treatments, ['addback', 'ec', 'reservoir'])
-  const athena = catalogs.programs.find((program) => /athena/i.test(`${program.name} ${program.manufacturer}`))
-  const canna = catalogs.programs.find((program) => /canna/i.test(`${program.name} ${program.manufacturer}`))
+function findRelated(topic: Topic, catalogs: Catalogs) {
+  const terms = topic.keywords.map((keyword) => keyword.toLowerCase())
+  const items: Array<{ key: string; type: string; title: string; description: string; source: string }> = []
 
-  return (
-    <>
-      <V1Section title="Geführte Nutzung">
-        <div className="v1-card-grid">
-          <GuideCard title="Grow starten" kicker="Programm wählen" text="Beim Grow-Start wird das Nährstoffprogramm gespeichert. Darauf bauen Addback, Setpoints und spätere Empfehlungen auf." to="/grows/new" action="Grow starten" />
-          <GuideCard title="Addback" kicker="RDWC/DWC Alltag" text="Der Addback-Assistent nutzt Grow, Hydro-System, Reservoirvolumen und Programm als Grundlage." to="/addback" action="Addback öffnen" />
-          <GuideCard title="Sensorvertrauen" kicker="Kalibrierung" text="SOPs und Wear-Templates erklären, wann pH/EC/ORP/DO-Sonden geprüft oder kalibriert werden müssen." to="/hardware" action="Sensoren öffnen" />
-          <GuideCard title="Live Score" kicker="Setpoints" text="Die Live-Bewertung bleibt konservativ: Ohne Sensorwerte kein falsches Stabil. Mit Setpoints wird der Score später phasenfeiner." to="/" action="Live öffnen" />
-        </div>
-      </V1Section>
+  const collect = (type: string, source: string, values: unknown[]) => {
+    for (const value of values) {
+      const text = JSON.stringify(value).toLowerCase()
+      if (!terms.some((term) => text.includes(term))) continue
+      const record = isRecord(value) ? value : {}
+      items.push({
+        key: `${type}-${items.length}`,
+        type,
+        source,
+        title: getTitle(record, value),
+        description: getDescription(record),
+      })
+      if (items.length >= 8) return
+    }
+  }
 
-      <V1Section title="Schnelle Empfehlungen">
-        <div className="v1-card-grid">
-          <RecommendationCard title="pH/EC schwankt" item={phSop} fallback="SOP für pH- und Nährstoff-Stabilisierung prüfen." />
-          <RecommendationCard title="Root Rot Risiko" item={rootRotSop} fallback="Root-Rot-Behandlung/SOP prüfen und Hygiene kontrollieren." />
-          <RecommendationCard title="Addback unklar" item={addbackTreatment} fallback="Addback-Prinzip, Ziel-EC und Nachmessung prüfen." />
-          <V1Card>
-            <span className="v1-card-kicker">Programme</span>
-            <h2>{[athena?.name, canna?.name].filter(Boolean).join(' / ') || 'Nährstoffprogramm wählen'}</h2>
-            <p>Programme sind nicht nur Text. Sie werden im Grow gespeichert und dienen als Kontext für spätere Handlungsempfehlungen.</p>
-            <div className="v1-action-row">
-              <V1ButtonLike onClick={() => null}>Athena</V1ButtonLike>
-              <V1ButtonLike onClick={() => null}>Canna Aqua</V1ButtonLike>
-            </div>
-          </V1Card>
-        </div>
-      </V1Section>
+  collect('Programm', 'Nährstoffprogramm', catalogs.programs)
+  collect('SOP', 'Arbeitsablauf', catalogs.sops)
+  collect('Treatment', 'Maßnahme', catalogs.treatments)
+  collect('Symptom', 'Diagnose', catalogs.symptoms)
+  collect('Setpoint', 'Zielwert', catalogs.setpoints)
+  collect('Pathogen', 'Risiko', catalogs.pathogens)
+  collect('Verschleiß', 'Hardware', catalogs.wear)
 
-      <V1Section title="Datenquellen">
-        <div className="v1-card-grid">
-          <SourceSummary label="Programme" count={catalogs.programs.length} />
-          <SourceSummary label="SOPs" count={catalogs.sops.length} />
-          <SourceSummary label="Treatments" count={catalogs.treatments.length} />
-          <SourceSummary label="Symptome" count={catalogs.symptoms.length} />
-          <SourceSummary label="Setpoints" count={catalogs.setpoints.length} />
-          <SourceSummary label="Pathogene" count={catalogs.pathogens.length} />
-          <SourceSummary label="Verschleiß" count={catalogs.wear.length} />
-        </div>
-      </V1Section>
-    </>
-  )
+  return items.slice(0, 8)
 }
 
-function GuideCard({ title, kicker, text, to, action }: { title: string; kicker: string; text: string; to: string; action: string }) {
-  return (
-    <V1Card>
-      <span className="v1-card-kicker">{kicker}</span>
-      <h2>{title}</h2>
-      <p>{text}</p>
-      <V1LinkButton to={to} variant="primary">{action}</V1LinkButton>
-    </V1Card>
-  )
+function getTitle(record: Record<string, unknown>, fallback: unknown) {
+  const value = record.name ?? record.title ?? record.id ?? record.key
+  return typeof value === 'string' ? value : String(value ?? fallback ?? 'Eintrag')
 }
 
-function RecommendationCard({ title, item, fallback }: { title: string; item: KnowledgeRecord | null; fallback: string }) {
-  return (
-    <V1Card>
-      <span className="v1-card-kicker">Empfehlung</span>
-      <h2>{title}</h2>
-      <p>{item ? getTitle(item) : fallback}</p>
-      {item && <small>{getString(item, 'id', 'key') ?? 'Knowledge'}</small>}
-    </V1Card>
-  )
-}
-
-function SourceSummary({ label, count }: { label: string; count: number }) {
-  return <V1Card><span className="v1-card-kicker">{label}</span><h2>{count}</h2><p>{count === 0 ? 'Noch keine Daten geladen.' : 'Einträge verfügbar.'}</p></V1Card>
-}
-
-function V1ButtonLike({ children }: { children: ReactNode; onClick: () => void }) {
-  return <span className="v1-badge tone-neutral">{children}</span>
-}
-
-function KnowledgeCard({ category, item }: { category: DataCategory; item: KnowledgeItem }) {
-  if (category === 'programs') return <ProgramCard item={item as NutrientProgramDto} />
-  if (category === 'wear') return <WearCard item={item as WearTemplateDto} />
-  if (category === 'treatments') return <TreatmentCard item={item as KnowledgeRecord} />
-  if (category === 'sops') return <SopCard item={item as KnowledgeRecord} />
-  if (category === 'symptoms') return <SymptomCard item={item as KnowledgeRecord} />
-  if (category === 'setpoints') return <SetpointCard item={item as KnowledgeRecord} />
-  return <PathogenCard item={item as KnowledgeRecord} />
-}
-
-function TreatmentCard({ item }: { item: KnowledgeRecord }) {
-  return (
-    <BaseCard item={item} subtitle={getString(item, 'type')}>
-      <FieldList label="Zielsymptome" values={getStringArray(item, 'targetSymptoms')} />
-      <FieldList label="Hardware" values={getStringArray(item, 'hardwareRequirements')} />
-      <RecordList label="Konflikte" values={getRecordArray(item, 'conflicts')} keys={['treatmentId', 'reason']} />
-      <SourceList item={item} />
-    </BaseCard>
-  )
-}
-
-function SopCard({ item }: { item: KnowledgeRecord }) {
-  const steps = getRecordArray(item, 'steps')
-  return (
-    <BaseCard item={item} subtitle={getString(item, 'type')}>
-      <MetaRow entries={[formatNumberLabel(getNumber(item, 'estimatedDurationMinutes'), 'min'), formatNumberLabel(getNumber(item, 'durationDays'), 'Tage Dauer'), formatNumberLabel(getNumber(item, 'intervalDays'), 'Tage Intervall'), `${steps.length} Schritte`]} />
-      <RecordList label="Trigger" values={getRecordArray(item, 'triggers')} keys={['type', 'intervalDays', 'warningAfterDays', 'criticalAfterDays']} />
-      <FieldList label="Material" values={getStringArray(item, 'requiredMaterials')} />
-      <SourceList item={item} />
-    </BaseCard>
-  )
-}
-
-function SymptomCard({ item }: { item: KnowledgeRecord }) {
-  return (
-    <BaseCard item={item} subtitle={getString(item, 'category')}>
-      <FieldList label="Treatments" values={getStringArray(item, 'suggestedTreatmentIds')} />
-      <FieldList label="SOPs" values={getStringArray(item, 'suggestedSopIds')} />
-      <FieldList label="Mögliche Ursachen" values={getStringArray(item, 'possibleCauses')} />
-      <FieldList label="Checks" values={getStringArray(item, 'diagnosticChecks')} />
-    </BaseCard>
-  )
-}
-
-function WearCard({ item }: { item: WearTemplateDto }) {
-  return (
-    <BaseCard item={item as unknown as KnowledgeRecord} subtitle={item.category}>
-      <MetaRow entries={[formatNumberLabel(item.expectedLifespanDays, 'Tage Lebensdauer'), formatNumberLabel(item.inspectionIntervalDays, 'Tage Inspektion')]} />
-      <FieldList label="Austausch-Trigger" values={item.replacementTriggers} />
-    </BaseCard>
-  )
-}
-
-function ProgramCard({ item }: { item: NutrientProgramDto }) {
-  return (
-    <BaseCard item={{ id: item.key, name: item.name }} subtitle={`${item.manufacturer} · ${item.category}`}>
-      {item.summary && <p>{item.summary}</p>}
-      <MetaRow entries={[`${item.stages.length} Phasen`, item.bestFor || null]} />
-      <FieldList label="Guidance" values={[item.phGuidance, item.ecGuidance, item.waterGuidance].filter(Boolean)} />
-      <FieldList label="Tipps" values={item.tips.slice(0, 4)} />
-    </BaseCard>
-  )
-}
-
-function SetpointCard({ item }: { item: KnowledgeRecord }) {
-  const stages = getRecord(item, 'stages')
-  const stageEntries = stages ? Object.entries(stages) : []
-  return (
-    <BaseCard item={item} subtitle={getString(item, 'systemType')}>
-      <MetaRow entries={[getString(item, 'programKey'), `${stageEntries.length} Phasen`]} />
-      {stageEntries.slice(0, 4).map(([stageName, values]) => <p key={stageName}><strong>{stageName}:</strong> {formatCompact(values)}</p>)}
-    </BaseCard>
-  )
-}
-
-function PathogenCard({ item }: { item: KnowledgeRecord }) {
-  return (
-    <BaseCard item={item} subtitle={[getString(item, 'category'), getString(item, 'riskLevel')].filter(Boolean).join(' · ')}>
-      {getString(item, 'scientificName') && <p>{getString(item, 'scientificName')}</p>}
-      <FieldList label="Symptome" values={getStringArray(item, 'symptoms')} />
-      <FieldList label="SOPs" values={compactStrings([getString(item, 'treatmentSopId'), getString(item, 'preventiveSopId')])} />
-      {getString(item, 'notes') && <p>{getString(item, 'notes')}</p>}
-      <SourceList item={item} />
-    </BaseCard>
-  )
-}
-
-function BaseCard({ item, subtitle, children }: { item: KnowledgeRecord; subtitle: string | null; children: ReactNode }) {
-  return (
-    <V1Card>
-      <span className="v1-card-kicker">{getString(item, 'id', 'key') ?? 'Knowledge'}</span>
-      <h2>{getTitle(item)}</h2>
-      {subtitle && <V1Badge>{subtitle}</V1Badge>}
-      <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>{children}</div>
-    </V1Card>
-  )
-}
-
-function MetaRow({ entries }: { entries: Array<string | null> }) {
-  const values = entries.filter((entry): entry is string => Boolean(entry))
-  if (values.length === 0) return null
-  return <div className="v1-action-row">{values.map((entry) => <V1Badge key={entry}>{entry}</V1Badge>)}</div>
-}
-
-function FieldList({ label, values }: { label: string; values: string[] }) {
-  const visible = values.filter(Boolean).slice(0, 8)
-  if (visible.length === 0) return null
-  return <div><strong>{label}</strong><div className="v1-action-row" style={{ marginTop: 6 }}>{visible.map((value) => <V1Badge key={value}>{value}</V1Badge>)}</div></div>
-}
-
-function RecordList({ label, values, keys }: { label: string; values: KnowledgeRecord[]; keys: string[] }) {
-  if (values.length === 0) return null
-  return <div><strong>{label}</strong>{values.slice(0, 4).map((value, index) => <p key={`${label}-${index}`}>{keys.map((key) => getString(value, key)).filter(Boolean).join(' · ') || formatCompact(value)}</p>)}</div>
-}
-
-function SourceList({ item }: { item: KnowledgeRecord }) {
-  const sources = getRecordArray(item, 'sources')
-  if (sources.length === 0) return null
-  return <RecordList label="Quellen" values={sources} keys={['title', 'reference', 'url', 'credibility']} />
-}
-
-function matchesSearch(item: KnowledgeItem, query: string) {
-  const normalized = query.trim().toLowerCase()
-  if (!normalized) return true
-  const haystack = [getString(item, 'id', 'key'), getString(item, 'name', 'title'), getString(item, 'category', 'type', 'manufacturer', 'systemType', 'riskLevel')].filter(Boolean).join(' ').toLowerCase()
-  return haystack.includes(normalized)
-}
-
-function getItemKey(item: KnowledgeItem, index: number) {
-  return getString(item, 'id', 'key') ?? index.toString()
-}
-
-function getTitle(item: KnowledgeRecord) {
-  return getString(item, 'name', 'title') ?? getString(item, 'id', 'key') ?? 'Unbenannt'
-}
-
-function findFirst(items: KnowledgeRecord[], terms: string[]) {
-  return items.find((item) => terms.some((term) => JSON.stringify(item).toLowerCase().includes(term))) ?? null
-}
-
-function getField(item: unknown, ...keys: string[]) {
-  if (!isRecord(item)) return null
-  for (const key of keys) if (item[key] !== undefined && item[key] !== null) return item[key]
-  return null
-}
-
-function getString(item: unknown, ...keys: string[]) {
-  const value = getField(item, ...keys)
+function getDescription(record: Record<string, unknown>) {
+  const value = record.summary ?? record.description ?? record.notes ?? record.category ?? record.type
   if (typeof value === 'string') return value
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
-  return null
+  return 'Passender Knowledge-Eintrag aus der Datenbasis.'
 }
 
-function getNumber(item: unknown, ...keys: string[]) {
-  const value = getField(item, ...keys)
-  return typeof value === 'number' ? value : null
-}
-
-function getStringArray(item: unknown, ...keys: string[]) {
-  const value = getField(item, ...keys)
-  if (Array.isArray(value)) return value.map((entry) => String(entry)).filter(Boolean)
-  if (typeof value === 'string' && value) return [value]
-  return []
-}
-
-function getRecord(item: unknown, ...keys: string[]) {
-  const value = getField(item, ...keys)
-  return isRecord(value) ? value : null
-}
-
-function getRecordArray(item: unknown, ...keys: string[]) {
-  const value = getField(item, ...keys)
-  return Array.isArray(value) ? value.filter(isRecord) : []
-}
-
-function compactStrings(values: Array<string | null>) {
-  return values.filter((value): value is string => Boolean(value))
-}
-
-function formatCompact(value: unknown) {
-  if (value === null || value === undefined) return '–'
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value)
-  try { return JSON.stringify(value) } catch { return String(value) }
-}
-
-function formatNumberLabel(value: number | null | undefined, label: string) {
-  return value == null ? null : `${value} ${label}`
-}
-
-function isRecord(value: unknown): value is KnowledgeRecord {
+function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
