@@ -1,89 +1,69 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CreateCloneFromMotherRequest, DecideQuarantinePlantRequest, GrowSummary, PlantInstanceDto, QuarantineDecision, SetupDto, TentDto, TentLivePayload } from '../types'
+import type { GrowSummary, HydroSetupDto, MetricPayload, PlantInstanceDto, SetupDto, TentDto, TentLivePayload } from '../types'
+import { V1Alert, V1Badge, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 
-type CloneDraft = {
-  label: string
-  phenoLabel: string
-  notes: string
-  targetSetupId: string
-}
+const tentMetricDefinitions = [
+  ['temperature', 'Temp', '°C'],
+  ['humidity', 'RLF', '%'],
+  ['vpd', 'VPD', 'kPa'],
+  ['light-cycle', 'Licht', null],
+  ['ppfd', 'PPFD', 'µmol/m²/s'],
+  ['co2', 'CO₂', 'ppm'],
+] as const
 
-const emptyCloneDraft: CloneDraft = {
-  label: '',
-  phenoLabel: '',
-  notes: '',
-  targetSetupId: '',
-}
-
-type QuarantineDecisionDraft = {
-  targetSetupId: string
-  targetGrowId: string
-  notes: string
-}
-
-const emptyDecisionDraft: QuarantineDecisionDraft = {
-  targetSetupId: '',
-  targetGrowId: '',
-  notes: '',
-}
+const hydroMetricDefinitions = [
+  ['reservoir-ph', 'pH', null],
+  ['reservoir-ec', 'EC', 'mS/cm'],
+  ['reservoir-temp', 'Wasser', '°C'],
+  ['reservoir-level', 'Level', 'L/cm'],
+  ['orp', 'ORP', 'mV'],
+  ['dissolved-oxygen', 'DO', 'mg/L'],
+] as const
 
 function TentDetailPage() {
   const { tentId } = useParams()
   const [tent, setTent] = useState<TentDto | null>(null)
   const [live, setLive] = useState<TentLivePayload | null>(null)
   const [grows, setGrows] = useState<GrowSummary[]>([])
-  const [allActiveGrows, setAllActiveGrows] = useState<GrowSummary[]>([])
   const [setups, setSetups] = useState<SetupDto[]>([])
-  const [allSetups, setAllSetups] = useState<SetupDto[]>([])
+  const [hydroSetups, setHydroSetups] = useState<HydroSetupDto[]>([])
   const [plantsBySetupId, setPlantsBySetupId] = useState<Record<number, PlantInstanceDto[]>>({})
-  const [cloneDrafts, setCloneDrafts] = useState<Record<number, CloneDraft>>({})
-  const [cloneErrors, setCloneErrors] = useState<Record<number, string>>({})
-  const [savingClonePlantId, setSavingClonePlantId] = useState<number | null>(null)
-  const [decisionDrafts, setDecisionDrafts] = useState<Record<number, QuarantineDecisionDraft>>({})
-  const [decisionErrors, setDecisionErrors] = useState<Record<number, string>>({})
-  const [savingDecisionPlantId, setSavingDecisionPlantId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const quarantineSetups = useMemo(
-    () => allSetups.filter((setup) => setup.setupType === 'Quarantine' && isActiveSetup(setup)),
-    [allSetups],
-  )
-  const productionSetups = useMemo(
-    () => allSetups.filter((setup) => setup.setupType === 'Production' && isActiveSetup(setup)),
-    [allSetups],
-  )
 
   useEffect(() => {
     const controller = new AbortController()
 
     async function load() {
       if (!tentId) return
-
       setLoading(true)
       setError(null)
 
       try {
-        const [tents, livePayload, activeGrows, setupList] = await Promise.all([
+        const tentIdNumber = Number(tentId)
+        const [tents, livePayload, activeGrows, setupList, hydroSetupList] = await Promise.all([
           apiFetch<TentDto[]>('/api/settings/tents', { signal: controller.signal }),
           apiFetch<TentLivePayload>(`/api/live/tents/${tentId}`, { signal: controller.signal }),
           apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }),
           apiFetch<SetupDto[]>('/api/setups', { signal: controller.signal }),
+          apiFetch<HydroSetupDto[]>(`/api/hydro-setups?tentId=${tentIdNumber}&includeArchived=true`, { signal: controller.signal }).catch(() => []),
         ])
 
-        const tentIdNumber = Number(tentId)
-        const selectedTent = tents.find((item) => item.id === Number(tentId)) ?? null
+        if (controller.signal.aborted) return
+
+        const selectedTent = tents.find((item) => item.id === tentIdNumber) ?? null
         const activeSetups = setupList.filter((setup) => setup.tentId === tentIdNumber && isActiveSetup(setup))
         const plantEntries = await fetchPlantsForSetups(activeSetups, controller.signal)
+
+        if (controller.signal.aborted) return
 
         setTent(selectedTent)
         setLive(livePayload)
         setGrows(activeGrows.filter((grow) => grow.tentId === tentIdNumber))
-        setAllActiveGrows(activeGrows)
-        setAllSetups(setupList)
         setSetups(activeSetups)
+        setHydroSetups(hydroSetupList)
         setPlantsBySetupId(Object.fromEntries(plantEntries))
       } catch (caught) {
         if (controller.signal.aborted) return
@@ -97,400 +77,90 @@ function TentDetailPage() {
     return () => controller.abort()
   }, [tentId])
 
-  const hasCritical = useMemo(() => live?.stateTone === 'critical', [live])
-  const hasActiveContent = grows.length > 0 || setups.length > 0
+  const activeHydroSetups = useMemo(() => hydroSetups.filter((setup) => setup.status === 'Active'), [hydroSetups])
+  const score = buildScore(live?.metrics ?? [], tent)
 
-  function updateCloneDraft(plantId: number, patch: Partial<CloneDraft>) {
-    setCloneDrafts((current) => ({
-      ...current,
-      [plantId]: { ...emptyCloneDraft, ...current[plantId], ...patch },
-    }))
-  }
-
-  function updateDecisionDraft(plantId: number, patch: Partial<QuarantineDecisionDraft>) {
-    setDecisionDrafts((current) => ({
-      ...current,
-      [plantId]: { ...emptyDecisionDraft, ...current[plantId], ...patch },
-    }))
-  }
-
-  async function refreshSetupsAndPlants() {
-    if (!tentId) return
-
-    const setupList = await apiFetch<SetupDto[]>('/api/setups')
-    const tentIdNumber = Number(tentId)
-    const activeSetups = setupList.filter((setup) => setup.tentId === tentIdNumber && isActiveSetup(setup))
-    const plantEntries = await fetchPlantsForSetups(activeSetups)
-    setAllSetups(setupList)
-    setSetups(activeSetups)
-    setPlantsBySetupId(Object.fromEntries(plantEntries))
-  }
-
-  async function handleCreateClone(mother: PlantInstanceDto) {
-    const draft = { ...emptyCloneDraft, ...cloneDrafts[mother.id] }
-    if (!draft.label.trim()) {
-      setCloneErrors((current) => ({ ...current, [mother.id]: 'Label ist erforderlich.' }))
-      return
-    }
-
-    const request: CreateCloneFromMotherRequest = {
-      motherPlantId: mother.id,
-      targetSetupId: draft.targetSetupId ? Number(draft.targetSetupId) : null,
-      label: draft.label.trim(),
-      phenoLabel: normalizeDraftText(draft.phenoLabel),
-      notes: normalizeDraftText(draft.notes),
-      strainId: null,
-      cutAt: null,
-    }
-
-    setSavingClonePlantId(mother.id)
-    setCloneErrors((current) => ({ ...current, [mother.id]: '' }))
-
-    try {
-      await apiFetch<PlantInstanceDto>('/api/plants/clone-from-mother', {
-        method: 'POST',
-        body: JSON.stringify(request),
-      })
-      setCloneDrafts((current) => {
-        const next = { ...current }
-        delete next[mother.id]
-        return next
-      })
-      await refreshSetupsAndPlants()
-    } catch (caught) {
-      setCloneErrors((current) => ({
-        ...current,
-        [mother.id]: caught instanceof ApiRequestError ? caught.message : 'Clone konnte nicht erstellt werden.',
-      }))
-    } finally {
-      setSavingClonePlantId(null)
-    }
-  }
-
-  async function handleDecideQuarantine(plant: PlantInstanceDto, decision: QuarantineDecision) {
-    const draft = { ...emptyDecisionDraft, ...decisionDrafts[plant.id] }
-    const request: DecideQuarantinePlantRequest = {
-      plantId: plant.id,
-      decision,
-      targetSetupId: decision === 'Cleared' && draft.targetSetupId ? Number(draft.targetSetupId) : null,
-      targetGrowId: decision === 'Cleared' && draft.targetGrowId ? Number(draft.targetGrowId) : null,
-      decidedAt: null,
-      notes: normalizeDraftText(draft.notes),
-    }
-
-    setSavingDecisionPlantId(plant.id)
-    setDecisionErrors((current) => ({ ...current, [plant.id]: '' }))
-
-    try {
-      await apiFetch<PlantInstanceDto>('/api/plants/decide-quarantine', {
-        method: 'POST',
-        body: JSON.stringify(request),
-      })
-      setDecisionDrafts((current) => {
-        const next = { ...current }
-        delete next[plant.id]
-        return next
-      })
-      await refreshSetupsAndPlants()
-    } catch (caught) {
-      setDecisionErrors((current) => ({
-        ...current,
-        [plant.id]: caught instanceof ApiRequestError ? caught.message : 'Quarantäne-Entscheidung konnte nicht gespeichert werden.',
-      }))
-    } finally {
-      setSavingDecisionPlantId(null)
-    }
-  }
-
-  function renderQuarantineDecisionForm(plant: PlantInstanceDto) {
-    const draft = { ...emptyDecisionDraft, ...decisionDrafts[plant.id] }
-    const selectedSetupId = draft.targetSetupId ? Number(draft.targetSetupId) : null
-    const growOptions = getCompatibleGrowOptions(allActiveGrows, productionSetups, selectedSetupId)
-
-    return (
-      <form
-        className="setup-action-form"
-        onSubmit={(event) => event.preventDefault()}
-        style={{ display: 'grid', gap: 6, maxWidth: 560 }}
-      >
-        <div className="setup-action-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) minmax(150px, 1fr)', gap: 6 }}>
-          <select
-            value={draft.targetSetupId}
-            onChange={(event) => updateDecisionDraft(plant.id, { targetSetupId: event.target.value, targetGrowId: '' })}
-          >
-            <option value="">Ohne Production-Setup</option>
-            {productionSetups.map((target) => (
-              <option key={target.id} value={target.id}>{target.name}</option>
-            ))}
-          </select>
-          <select
-            value={draft.targetGrowId}
-            onChange={(event) => updateDecisionDraft(plant.id, { targetGrowId: event.target.value })}
-          >
-            <option value="">Ohne Grow</option>
-            {growOptions.map((grow) => (
-              <option key={grow.id} value={grow.id}>{grow.name}</option>
-            ))}
-          </select>
-        </div>
-        <textarea
-          rows={2}
-          value={draft.notes}
-          onChange={(event) => updateDecisionDraft(plant.id, { notes: event.target.value })}
-          placeholder="Entscheidungsnotiz optional"
-        />
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <button
-            className="btn btn-primary"
-            type="button"
-            disabled={savingDecisionPlantId === plant.id}
-            onClick={() => void handleDecideQuarantine(plant, 'Cleared')}
-          >
-            Freigeben
-          </button>
-          <button
-            className="btn"
-            type="button"
-            disabled={savingDecisionPlantId === plant.id}
-            onClick={() => void handleDecideQuarantine(plant, 'Rejected')}
-          >
-            Verwerfen
-          </button>
-        </div>
-        {productionSetups.length === 0 && <div className="row-muted">Kein aktives Production-Setup vorhanden.</div>}
-        {decisionErrors[plant.id] && <div className="row-muted" style={{ color: '#b42318' }}>{decisionErrors[plant.id]}</div>}
-      </form>
-    )
-  }
+  if (loading) return <V1Page eyebrow="Zelt" title="Lade Zelt..."><V1Empty title="Live-Daten werden geladen..." /></V1Page>
+  if (!tent) return <V1Page eyebrow="Zelt" title="Nicht gefunden" action={<V1LinkButton to="/zelte">Zurück</V1LinkButton>}><V1Empty title="Zelt nicht gefunden." /></V1Page>
 
   return (
-    <>
-      <div className="topbar">
-        <div className="topbar-left">
-          <Link className="btn" to="/zelte">← Zelte</Link>
-          <span className="topbar-title">{tent?.name ?? 'Zelt-Detail'}</span>
-        </div>
-        <div className="topbar-right">
-          <Link className="btn btn-primary" to="/settings">Konfiguration</Link>
-        </div>
-      </div>
+    <V1Page
+      eyebrow={formatTentType(tent.tentType)}
+      title={tent.name}
+      className="tent-detail-v2"
+      action={<div className="v1-action-row"><V1LinkButton to="/zelte" variant="ghost">Zelte</V1LinkButton><V1LinkButton to="/home-assistant">HA</V1LinkButton><V1LinkButton to="/hydro">Hydro</V1LinkButton></div>}
+    >
+      {error && <V1Alert title="Fehler" message={error} tone="warn" />}
 
-      <div className="page-scroll">
-        {error && (
-          <div className="alert-bar" style={{ marginBottom: 14 }}>
-            <div className="alert-dot" />
-            <strong>Fehler</strong>
-            <span>{error}</span>
+      <section className="v1-live-hero-grid">
+        <V1Card tone={score.tone} className="v1-live-now-card">
+          <div className="v1-card-title-row"><div><span className="v1-card-kicker">Live</span><h2>{score.label}</h2></div><V1Badge tone={score.tone}>{score.value}%</V1Badge></div>
+          <div className="v1-info-grid compact">
+            {mapMetrics(live?.metrics ?? [], tentMetricDefinitions.slice(0, 5)).map((metric) => <Info key={metric.key} label={metric.label} value={formatMetricValue(metric)} />)}
           </div>
-        )}
+          <div className="v1-action-row">{grows[0] ? <V1LinkButton to={`/grows/${grows[0].id}/addback`} variant="primary">Addback</V1LinkButton> : <V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>}<V1LinkButton to="/messung">Messung</V1LinkButton></div>
+        </V1Card>
 
-        {loading ? (
-          <div className="empty-hint">Lade Zelt-Daten...</div>
-        ) : !tent ? (
-          <div className="empty-hint">Zelt nicht gefunden.</div>
+        <V1Card className="v1-live-now-card">
+          <div className="v1-card-title-row"><div><span className="v1-card-kicker">Raum</span><h2>{formatSize(tent)}</h2></div><V1Badge tone={tent.status === 'Active' ? 'ok' : 'neutral'}>{tent.status === 'Active' ? 'aktiv' : 'Archiv'}</V1Badge></div>
+          <div className="v1-info-grid compact">
+            <Info label="Grows" value={String(grows.length)} />
+            <Info label="Hydro" value={String(activeHydroSetups.length)} />
+            <Info label="Setups" value={String(setups.length)} />
+            <Info label="Sensoren" value={String(tent.sensors.filter((sensor) => sensor.isActive).length)} />
+            <Info label="Licht" value={tent.lightWatt ? `${tent.lightWatt} W` : tent.lightType ?? 'offen'} />
+            <Info label="Klima" value={`${tent.exhaustFanCount ?? 0} Abluft · ${tent.circulationFanCount ?? 0} Umluft`} />
+          </div>
+        </V1Card>
+
+        {live?.cameraUrl ? (
+          <div className="v1-camera-card rc2-camera-card"><img src={live.cameraUrl} alt={`Livebild ${tent.name}`} className="ready" /><div className="v1-camera-label"><strong>{tent.name}</strong><span>Kamera</span></div></div>
         ) : (
-          <div className="detail-layout">
-            <div>
-              <div className="metric-row">
-                {(live?.metrics ?? []).map((metric) => (
-                  <div key={metric.key} className="metric-block">
-                    <div className="metric-block-label">{metric.label}</div>
-                    <div className={`metric-block-val ${metric.tone === 'danger' ? 'crit' : metric.tone === 'warning' ? 'warn' : metric.tone === 'success' ? 'ok' : 'neutral'}`}>{metric.value}</div>
-                    <div className="metric-block-unit">{metric.unit ?? ' '}</div>
-                  </div>
-                ))}
-              </div>
-
-              {setups.length > 0 && (
-                <>
-                  <div className="section-label">Aktive Setups</div>
-                  <div className="data-table">
-                    {setups.map((setup) => (
-                      <div key={setup.id} className="data-row" style={{ gridTemplateColumns: '2fr 1fr 1fr', textDecoration: 'none' }}>
-                        <div>
-                          <div className="row-name">{setup.name}</div>
-                          <div className="row-sub">{formatSetupDetails(setup).join(' | ') || setup.notes || 'Keine Basisdaten'}</div>
-                          {(plantsBySetupId[setup.id] ?? []).length > 0 && (
-                            <div style={{ display: 'grid', gap: 3, marginTop: 6 }}>
-                              {(plantsBySetupId[setup.id] ?? []).map((plant) => (
-                                <div key={plant.id} style={{ display: 'grid', gap: 6 }}>
-                                  <div className="row-sub">{formatPlantLine(plant)}</div>
-                                  {setup.setupType === 'Mother' && plant.plantRole === 'Mother' && (
-                                    <form
-                                      className="setup-action-form"
-                                      onSubmit={(event) => {
-                                        event.preventDefault()
-                                        void handleCreateClone(plant)
-                                      }}
-                                      style={{ display: 'grid', gap: 6, maxWidth: 520 }}
-                                    >
-                                      <div className="setup-action-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) minmax(120px, 1fr)', gap: 6 }}>
-                                        <input
-                                          value={(cloneDrafts[plant.id] ?? emptyCloneDraft).label}
-                                          onChange={(event) => updateCloneDraft(plant.id, { label: event.target.value })}
-                                          placeholder="Clone-Label"
-                                        />
-                                        <input
-                                          value={(cloneDrafts[plant.id] ?? emptyCloneDraft).phenoLabel}
-                                          onChange={(event) => updateCloneDraft(plant.id, { phenoLabel: event.target.value })}
-                                          placeholder="Pheno optional"
-                                        />
-                                      </div>
-                                      <div className="setup-action-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 1fr) auto', gap: 6 }}>
-                                        <select
-                                          value={(cloneDrafts[plant.id] ?? emptyCloneDraft).targetSetupId}
-                                          onChange={(event) => updateCloneDraft(plant.id, { targetSetupId: event.target.value })}
-                                        >
-                                          <option value="">Ohne Quarantäne-Ziel</option>
-                                          {quarantineSetups.map((target) => (
-                                            <option key={target.id} value={target.id}>{target.name}</option>
-                                          ))}
-                                        </select>
-                                        <button className="btn btn-primary" type="submit" disabled={savingClonePlantId === plant.id}>
-                                          {savingClonePlantId === plant.id ? 'Erstelle...' : 'Clone erstellen'}
-                                        </button>
-                                      </div>
-                                      <textarea
-                                        rows={2}
-                                        value={(cloneDrafts[plant.id] ?? emptyCloneDraft).notes}
-                                        onChange={(event) => updateCloneDraft(plant.id, { notes: event.target.value })}
-                                        placeholder="Notiz optional"
-                                      />
-                                      {quarantineSetups.length === 0 && <div className="row-muted">Kein aktives Quarantäne-Setup vorhanden.</div>}
-                                      {cloneErrors[plant.id] && <div className="row-muted" style={{ color: '#b42318' }}>{cloneErrors[plant.id]}</div>}
-                                    </form>
-                                  )}
-                                  {setup.setupType === 'Quarantine' && isDecidablePlant(plant) && renderQuarantineDecisionForm(plant)}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <div><span className="badge badge-neutral">{setup.setupType}</span></div>
-                        <div><span className={`badge ${setup.status === 'Active' ? 'badge-ok' : 'badge-neutral'}`}>{setup.status}</span></div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {grows.length > 0 && (
-                <>
-                <div className="section-label">Aktive Grows</div>
-                <div className="data-table">
-                  {grows.map((grow) => (
-                    <Link key={grow.id} to={`/grows/${grow.id}`} className="data-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 60px', textDecoration: 'none' }}>
-                      <div>
-                        <div className="row-name">{grow.name}</div>
-                        <div className="row-sub">{grow.strain ?? '–'}{grow.breeder ? ` · ${grow.breeder}` : ''}</div>
-                      </div>
-                      <div><span className="badge badge-neutral">{grow.latestStage ?? '–'}</span></div>
-                      <div><span className={`badge ${hasCritical ? 'badge-crit' : 'badge-ok'}`}>{live?.stateLabel ?? 'stabil'}</span></div>
-                      <div className="row-muted">→</div>
-                    </Link>
-                  ))}
-                </div>
-                </>
-              )}
-
-              {!hasActiveContent && <div className="empty-hint" style={{ padding: '30px 0' }}>Keine aktiven Grows oder Setups in diesem Zelt.</div>}
-            </div>
-
-            <div className="side-panel">
-              <div className="panel-card">
-                <div className="panel-card-header">
-                  <span className="panel-card-title">Info</span>
-                </div>
-                <div style={{ padding: '12px 14px', display: 'grid', gap: 8, fontSize: 13 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Typ</span><span>{tent.kind}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Tent-Typ</span><span>{tent.tentType}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Aktive Runs</span><span>{tent.activeGrowCount}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Archivierte Runs</span><span>{tent.archivedGrowCount}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Aktive Setups</span><span>{tent.activeSetupCount}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Archivierte Setups</span><span>{tent.archivedSetupCount}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="row-muted">Sensoren</span><span>{tent.sensors.filter((sensor) => sensor.isActive).length}</span></div>
-                </div>
-              </div>
-
-              {live?.cameraUrl && (
-                <div className="panel-card">
-                  <div className="panel-card-header">
-                    <span className="panel-card-title">Kamera</span>
-                  </div>
-                  <div style={{ padding: 12 }}>
-                    <img src={live.cameraUrl} alt={`Livebild ${tent.name}`} style={{ width: '100%', borderRadius: 8, display: 'block' }} />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <V1Card className="v1-camera-empty is-compact"><span className="v1-card-kicker">Kamera</span><h2>Nicht eingerichtet</h2><p>{tent.cameraEntityId ?? 'Kamera-Entity fehlt im HA-Mapping.'}</p><V1LinkButton to="/home-assistant">HA-Mapping</V1LinkButton></V1Card>
         )}
+      </section>
+
+      <div className="v1-live-metrics-pair">
+        <V1Section title="Zeltwerte"><div className="v1-metric-grid compact">{mapMetrics(live?.metrics ?? [], tentMetricDefinitions).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div></V1Section>
+        <V1Section title="Reservoir"><div className="v1-metric-grid compact">{mapMetrics(live?.metrics ?? [], hydroMetricDefinitions).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div></V1Section>
       </div>
-    </>
+
+      <V1Section title="Hydro-Systeme" action={<V1LinkButton to="/hydro/new">Hydro anlegen</V1LinkButton>}>
+        {activeHydroSetups.length === 0 ? <V1Empty title="Kein aktives Hydro-Setup" text="DWC/RDWC-Systeme werden separat angelegt und dann dem Zelt zugeordnet." /> : <div className="v1-card-grid v1-card-grid-compact">{activeHydroSetups.map((setup) => <HydroSetupCard key={setup.id} setup={setup} />)}</div>}
+      </V1Section>
+
+      <V1Section title="Aktive Grows" action={<V1LinkButton to="/grows/new">Grow starten</V1LinkButton>}>
+        {grows.length === 0 ? <V1Empty title="Kein Grow in diesem Zelt" /> : <div className="v1-list">{grows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>{grow.strain ?? 'Sorte offen'}{grow.breeder ? ` · ${grow.breeder}` : ''}</span><em>{grow.latestStage ?? grow.status}</em></Link>)}</div>}
+      </V1Section>
+
+      <V1Section title="Setups & Pflanzen">
+        {setups.length === 0 ? <V1Empty title="Keine aktiven Plant-Setups" /> : <div className="v1-card-grid">{setups.map((setup) => <SetupCard key={setup.id} setup={setup} plants={plantsBySetupId[setup.id] ?? []} />)}</div>}
+      </V1Section>
+    </V1Page>
   )
 }
 
-function formatSetupDetails(setup: SetupDto): string[] {
-  if (setup.setupType === 'Mother') {
-    return [
-      setup.cloneCounterTotal !== null ? `${setup.cloneCounterTotal} Clone gesamt` : null,
-      setup.lastCloneCutAt ? `Letzter Schnitt ${formatDate(setup.lastCloneCutAt)}` : null,
-      setup.motherHealthStatus ? `Health ${setup.motherHealthStatus}` : null,
-    ].filter((value): value is string => Boolean(value))
-  }
-
-  if (setup.setupType === 'Quarantine') {
-    return [
-      setup.quarantineStartedAt ? `Start ${formatDate(setup.quarantineStartedAt)}` : null,
-      setup.quarantinePlannedEndAt ? `Ende ${formatDate(setup.quarantinePlannedEndAt)}` : null,
-      setup.quarantineResult ? `Ergebnis ${setup.quarantineResult}` : null,
-    ].filter((value): value is string => Boolean(value))
-  }
-
-  return setup.notes ? [setup.notes] : []
+function HydroSetupCard({ setup }: { setup: HydroSetupDto }) {
+  return <V1Card><div className="v1-card-title-row"><div><span className="v1-card-kicker">{setup.hydroStyle}</span><h2>{setup.name}</h2></div><V1Badge tone="accent">{setup.layoutType}</V1Badge></div><div className="v1-info-grid compact"><Info label="Sites" value={String(setup.potCount ?? '–')} /><Info label="Topf" value={formatLiters(setup.potSizeLiters)} /><Info label="Tank" value={formatLiters(setup.reservoirLiters)} /><Info label="Gesamt" value={formatLiters(setup.totalVolumeLiters)} /><Info label="Chiller" value={setup.hasChiller ? 'ja' : 'nein'} /><Info label="Luft" value={setup.hasAirPump ? `${setup.airStoneCount ?? '–'} Steine` : 'offen'} /></div></V1Card>
 }
 
-function formatDate(value: string): string {
-  return value.slice(0, 10)
+function SetupCard({ setup, plants }: { setup: SetupDto; plants: PlantInstanceDto[] }) {
+  return <V1Card><div className="v1-card-title-row"><div><span className="v1-card-kicker">{setup.setupType}</span><h2>{setup.name}</h2></div><V1Badge tone={setup.status === 'Active' ? 'ok' : 'neutral'}>{setup.status}</V1Badge></div><div className="v1-info-grid compact">{formatSetupDetails(setup).map((detail) => <Info key={detail.label} label={detail.label} value={detail.value} />)}</div>{plants.length === 0 ? <V1Empty title="Keine Pflanzen in diesem Setup" /> : <div className="v1-list">{plants.map((plant) => <div key={plant.id} className="v1-list-row"><strong>{plant.label}</strong><span>{formatPlantLine(plant)}</span><em>{plant.plantStatus}</em></div>)}</div>}</V1Card>
 }
 
-function formatPlantLine(plant: PlantInstanceDto): string {
-  const strain = plant.strainName ?? (plant.strainId ? `Strain #${plant.strainId}` : 'Ohne Strain')
-  const pheno = plant.phenoLabel ? ` | ${plant.phenoLabel}` : ''
-  return `${plant.label} | ${plant.plantRole} | ${plant.plantStatus} | ${strain}${pheno}`
-}
-
-function isActiveSetup(setup: SetupDto): boolean {
-  return setup.status === 'Planning' || setup.status === 'Active'
-}
-
-function isDecidablePlant(plant: PlantInstanceDto): boolean {
-  return plant.plantStatus === 'Planned' || plant.plantStatus === 'Active'
-}
-
-function getCompatibleGrowOptions(grows: GrowSummary[], productionSetups: SetupDto[], selectedSetupId: number | null): GrowSummary[] {
-  if (!selectedSetupId) return grows
-
-  const selectedSetup = productionSetups.find((setup) => setup.id === selectedSetupId)
-  return grows.filter((grow) => {
-    if (grow.setupId !== null && grow.setupId !== selectedSetupId) return false
-    if (selectedSetup && grow.tentId !== null && grow.tentId !== selectedSetup.tentId) return false
-    return true
-  })
-}
-
-async function fetchPlantsForSetups(setups: SetupDto[], signal?: AbortSignal): Promise<Array<readonly [number, PlantInstanceDto[]]>> {
-  return Promise.all(
-    setups.map(async (setup) => {
-      const plants = await apiFetch<PlantInstanceDto[]>(`/api/plants?setupId=${setup.id}`, { signal })
-      return [setup.id, plants] as const
-    }),
-  )
-}
-
-function normalizeDraftText(value: string): string | null {
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : null
-}
+function MetricCard({ metric }: { metric: MetricPayload }) { return <V1Stat label={metric.label} value={metric.value} unit={metric.unit} hint={metric.hint ?? undefined} tone={metricTone(metric)} /> }
+function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
+function mapMetrics(items: MetricPayload[], definitions: readonly (readonly [string, string, string | null])[]): MetricPayload[] { return definitions.map(([key, label, unit]) => { const found = items.find((item) => item.key === key); return found ? { ...found, label, unit: found.unit ?? unit } : { key, label, value: '–', unit, tone: 'muted', hint: null } }) }
+function formatMetricValue(metric: MetricPayload) { return metric.unit && metric.value !== '–' ? `${metric.value} ${metric.unit}` : metric.value }
+function buildScore(metrics: MetricPayload[], tent: TentDto | null) { const usable = metrics.filter((metric) => metric.value && metric.value !== '–').length; if (!tent || usable === 0) return { value: 0, label: 'Einrichten', tone: 'neutral' as const }; const warnings = metrics.filter((metric) => metric.tone === 'warning' || metric.tone === 'danger').length; const value = Math.max(0, Math.min(100, 100 - warnings * 18 - Math.max(0, 6 - usable) * 8)); return value < 55 ? { value, label: 'Kritisch', tone: 'critical' as const } : value < 82 ? { value, label: 'Beobachten', tone: 'warn' as const } : { value, label: 'Stabil', tone: 'ok' as const } }
+function metricTone(metric: MetricPayload) { return metric.tone === 'danger' ? 'critical' : metric.tone === 'warning' ? 'warn' : metric.tone === 'success' ? 'ok' : 'neutral' }
+function formatSetupDetails(setup: SetupDto): Array<{ label: string; value: string }> { const base = [{ label: 'Status', value: setup.status }]; if (setup.setupType === 'Mother') return [...base, { label: 'Clones', value: setup.cloneCounterTotal !== null ? String(setup.cloneCounterTotal) : '–' }, { label: 'Schnitt', value: setup.lastCloneCutAt ? formatDate(setup.lastCloneCutAt) : '–' }, { label: 'Health', value: setup.motherHealthStatus ?? '–' }]; if (setup.setupType === 'Quarantine') return [...base, { label: 'Start', value: setup.quarantineStartedAt ? formatDate(setup.quarantineStartedAt) : '–' }, { label: 'Ende', value: setup.quarantinePlannedEndAt ? formatDate(setup.quarantinePlannedEndAt) : '–' }, { label: 'Ergebnis', value: setup.quarantineResult ?? '–' }]; return [...base, { label: 'Notiz', value: setup.notes ?? '–' }] }
+function formatDate(value: string): string { return value.slice(0, 10) }
+function formatPlantLine(plant: PlantInstanceDto): string { const strain = plant.strainName ?? (plant.strainId ? `Strain #${plant.strainId}` : 'Ohne Strain'); const pheno = plant.phenoLabel ? ` · ${plant.phenoLabel}` : ''; return `${plant.plantRole} · ${strain}${pheno}` }
+function isActiveSetup(setup: SetupDto): boolean { return setup.status === 'Planning' || setup.status === 'Active' }
+async function fetchPlantsForSetups(setups: SetupDto[], signal?: AbortSignal): Promise<Array<readonly [number, PlantInstanceDto[]]>> { return Promise.all(setups.map(async (setup) => { const plants = await apiFetch<PlantInstanceDto[]>(`/api/plants?setupId=${setup.id}`, { signal }); return [setup.id, plants] as const })) }
+function formatTentType(value: string) { return value === 'Production' ? 'Blüte / Run' : value === 'Mother' ? 'Mutter' : value === 'Propagation' ? 'Anzucht' : value === 'Quarantine' ? 'Quarantäne' : value === 'MultiPurpose' ? 'Mehrzweck' : value }
+function formatSize(tent: TentDto) { return !tent.widthCm && !tent.depthCm && !tent.tentHeightCm ? 'Größe offen' : `${tent.widthCm ?? '–'}×${tent.depthCm ?? '–'}×${tent.tentHeightCm ?? '–'} cm` }
+function formatLiters(value: number | null | undefined) { return value == null ? '–' : `${value.toLocaleString('de-DE', { maximumFractionDigits: 1 })} L` }
 
 export default TentDetailPage
