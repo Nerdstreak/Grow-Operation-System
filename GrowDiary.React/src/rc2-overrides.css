@@ -326,3 +326,103 @@
     box-shadow: 0 -18px 40px rgba(0,0,0,.28);
   }
 }
+
+
+/* Audit 2 concrete fixes */
+.rc2-score-line {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 10px 0 14px;
+}
+
+.rc2-score-line strong {
+  font-size: clamp(2.2rem, 8vw, 4rem);
+  line-height: .9;
+}
+
+.rc2-score-line span {
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  font-weight: 800;
+  opacity: .78;
+}
+
+.rc2-camera-card img {
+  min-height: 260px;
+  object-fit: cover;
+}
+
+.rc2-camera-preview {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.rc2-compact-action {
+  width: fit-content !important;
+  min-width: 180px;
+  justify-self: start;
+}
+
+.rc2-ha-connect-form {
+  align-items: end;
+}
+
+.rc2-admin-grid .v1-card,
+.rc2-topic-grid .v1-card,
+.rc2-live-page .v1-card {
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --rc2-bottom-nav-height: 82px;
+    --rc2-bottom-safe: max(128px, calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 34px));
+  }
+
+  .v1-page,
+  .v1-route-frame {
+    padding-bottom: var(--rc2-bottom-safe) !important;
+  }
+
+  .v1-form-actions {
+    margin-bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 22px) !important;
+  }
+
+  .sticky-actions,
+  .ops1b-sticky-actions {
+    position: sticky;
+    bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 10px);
+    z-index: 8;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: color-mix(in oklch, var(--surface), black 7%);
+    box-shadow: 0 -18px 40px rgba(0,0,0,.32);
+  }
+
+  .sticky-actions .v1-button,
+  .ops1b-sticky-actions .v1-button,
+  .rc2-compact-action {
+    width: 100% !important;
+  }
+
+  .v1-ha-connect-form,
+  .rc2-ha-connect-form,
+  .rc2-admin-grid,
+  .rc2-admin-grid.two,
+  .v1-live-hero-grid,
+  .v1-live-metrics-pair,
+  .ops1b-workflow-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .v1-card-grid,
+  .grow-select-grid,
+  .program-grid,
+  .v1-metric-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
