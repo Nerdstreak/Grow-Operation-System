@@ -1,27 +1,28 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowDetail, GrowSummary } from '../types'
+import type { AddbackLogDto, GrowDetail, GrowSummary, HydroSetupDto } from '../types'
 import { V1Alert, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { formatDateTime, formatNumber } from '../utils'
 
 const addbackSteps = ['Grow', 'Istwerte', 'Ziel', 'Dosierung', 'Nachmessung']
 
-type ProtocolRow = {
-  growId: number
-  growName: string
+type GrowWithLogs = {
+  detail: GrowDetail
+  logs: AddbackLogDto[]
+}
+
+type ProtocolGroup = {
+  hydroSetupId: number | null
+  name: string
   tentName: string | null
-  takenAt: string | null
-  ph: number | null
-  ec: number | null
-  topOffLiters: number | null
-  addbackEc: number | null
-  solutionChange: boolean
+  growNames: string[]
+  logs: AddbackLogDto[]
 }
 
 function AddbackHubPage() {
   const [grows, setGrows] = useState<GrowSummary[]>([])
-  const [protocol, setProtocol] = useState<ProtocolRow[]>([])
+  const [protocolGroups, setProtocolGroups] = useState<ProtocolGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,25 +32,31 @@ function AddbackHubPage() {
       setLoading(true)
       setError(null)
       try {
-        const data = await apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal })
+        const [data, hydroSetups] = await Promise.all([
+          apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }),
+          apiFetch<HydroSetupDto[]>('/api/hydro-setups?includeArchived=true', { signal: controller.signal }).catch(() => []),
+        ])
         if (controller.signal.aborted) return
+
         setGrows(data)
-        const hydro = data.filter((grow) => grow.status === 'Running' || grow.status === 'Planning').filter((grow) => grow.hydroStyle === 'DWC' || grow.hydroStyle === 'RDWC')
-        const details = await Promise.all(hydro.slice(0, 8).map(async (grow) => {
-          try { return await apiFetch<GrowDetail>(`/api/grows/${grow.id}`, { signal: controller.signal }) } catch { return null }
+        const hydroGrows = data
+          .filter((grow) => grow.status === 'Running' || grow.status === 'Planning')
+          .filter((grow) => grow.hydroStyle === 'DWC' || grow.hydroStyle === 'RDWC')
+
+        const detailsAndLogs = await Promise.all(hydroGrows.map(async (grow) => {
+          try {
+            const [detail, logs] = await Promise.all([
+              apiFetch<GrowDetail>(`/api/grows/${grow.id}`, { signal: controller.signal }),
+              apiFetch<AddbackLogDto[]>(`/api/grows/${grow.id}/addback/logs`, { signal: controller.signal }).catch(() => []),
+            ])
+            return { detail, logs } satisfies GrowWithLogs
+          } catch {
+            return null
+          }
         }))
+
         if (controller.signal.aborted) return
-        setProtocol(details.filter((item): item is GrowDetail => item !== null).map((detail) => ({
-          growId: detail.id,
-          growName: detail.name,
-          tentName: detail.tentName,
-          takenAt: detail.latestMeasurement?.takenAt ?? null,
-          ph: detail.latestMeasurement?.reservoirPh ?? null,
-          ec: detail.latestMeasurement?.reservoirEc ?? null,
-          topOffLiters: detail.latestMeasurement?.topOffLiters ?? null,
-          addbackEc: detail.latestMeasurement?.addbackEc ?? null,
-          solutionChange: detail.latestMeasurement?.solutionChange ?? false,
-        })).filter((row) => row.takenAt || row.topOffLiters || row.addbackEc || row.solutionChange))
+        setProtocolGroups(buildProtocolGroups(detailsAndLogs.filter((item): item is GrowWithLogs => item !== null), hydroSetups))
       } catch (caught) {
         if (!controller.signal.aborted) setError(caught instanceof ApiRequestError ? caught.message : 'Grows konnten nicht geladen werden.')
       } finally {
@@ -63,6 +70,7 @@ function AddbackHubPage() {
   const activeGrows = useMemo(() => grows.filter((grow) => grow.status === 'Running' || grow.status === 'Planning'), [grows])
   const hydroGrows = useMemo(() => activeGrows.filter((grow) => grow.hydroStyle === 'DWC' || grow.hydroStyle === 'RDWC'), [activeGrows])
   const primaryGrow = hydroGrows[0] ?? null
+  const totalLogs = useMemo(() => protocolGroups.reduce((sum, group) => sum + group.logs.length, 0), [protocolGroups])
 
   return (
     <V1Page eyebrow="Reservoir" title="Addback" action={<V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>}>
@@ -86,12 +94,12 @@ function AddbackHubPage() {
         </div>
       </section>
 
-      <section className="v1-kpi-grid v1-kpi-grid-compact"><V1Stat label="Aktive Grows" value={activeGrows.length} /><V1Stat label="Hydro" value={hydroGrows.length} /><V1Stat label="Protokolle" value={protocol.length} /></section>
+      <section className="v1-kpi-grid v1-kpi-grid-compact"><V1Stat label="Aktive Grows" value={activeGrows.length} /><V1Stat label="Hydro" value={hydroGrows.length} /><V1Stat label="Hydro-Verläufe" value={protocolGroups.length} /><V1Stat label="Logs" value={totalLogs} /></section>
 
-      <V1Section title="Addback-Protokoll">
-        {loading ? <V1Empty title="Lade Protokoll..." /> : protocol.length === 0 ? <V1Empty title="Noch kein Addback-Verlauf" text="Nach dem ersten Addback erscheint hier die letzte dokumentierte Reservoir-/Addback-Messung je Grow." /> : (
-          <div className="v1-list">
-            {protocol.map((row) => <Link key={row.growId} className="v1-list-row" to={`/grows/${row.growId}`}><strong>{row.growName}</strong><span>{row.tentName ?? 'ohne Zelt'} · {formatDateTime(row.takenAt)}</span><em>pH {formatNumber(row.ph, 2)} · EC {formatNumber(row.ec, 2)} · TopOff {formatNumber(row.topOffLiters, 1)} L · Addback {formatNumber(row.addbackEc, 2)}</em></Link>)}
+      <V1Section title="Addback-Verlauf nach Hydro-Setup">
+        {loading ? <V1Empty title="Lade Addback-Verlauf..." /> : protocolGroups.length === 0 ? <V1Empty title="Noch kein Addback-Verlauf" text="Der Verlauf entsteht aus echten Addback-Logs und wird nach Hydro-Setup gruppiert, nicht aus der letzten Grow-Messung." /> : (
+          <div className="v1-card-grid v1-card-grid-compact">
+            {protocolGroups.map((group) => <ProtocolGroupCard key={group.hydroSetupId ?? `legacy-${group.name}`} group={group} />)}
           </div>
         )}
       </V1Section>
@@ -119,6 +127,64 @@ function AddbackHubPage() {
       </V1Section>
     </V1Page>
   )
+}
+
+function ProtocolGroupCard({ group }: { group: ProtocolGroup }) {
+  const latest = group.logs[0] ?? null
+  return (
+    <V1Card>
+      <span className="v1-card-kicker">Hydro-Setup</span>
+      <h2>{group.name}</h2>
+      <p>{group.tentName ?? 'ohne Zelt'} · {group.growNames.join(', ')}</p>
+      <div className="v1-info-grid compact">
+        <Info label="Logs" value={String(group.logs.length)} />
+        <Info label="Letzter" value={formatDateTime(latest?.performedAtUtc)} />
+        <Info label="EC" value={latest ? `${formatNumber(latest.ecBefore, 2)} → ${formatNumber(latest.ecAfter ?? latest.ecTarget, 2)}` : '–'} />
+        <Info label="Menge" value={latest ? `${formatNumber(latest.litersAdded, 2)} L` : '–'} />
+      </div>
+      <div className="v1-list">
+        {group.logs.slice(0, 5).map((log) => (
+          <Link key={log.id} className="v1-list-row" to={`/grows/${log.growId}/addback`}>
+            <strong>{formatDateTime(log.performedAtUtc)}</strong>
+            <span>EC {formatNumber(log.ecBefore, 2)} → {formatNumber(log.ecAfter ?? log.ecTarget, 2)} · pH {formatNumber(log.phBefore, 2)} → {formatNumber(log.phAfter, 2)}</span>
+            <em>{formatNumber(log.litersAdded, 2)} L</em>
+          </Link>
+        ))}
+      </div>
+    </V1Card>
+  )
+}
+
+function buildProtocolGroups(items: GrowWithLogs[], hydroSetups: HydroSetupDto[]): ProtocolGroup[] {
+  const setupNames = new Map(hydroSetups.map((setup) => [setup.id, setup.name]))
+  const setupTentNames = new Map(hydroSetups.map((setup) => [setup.id, setup.tentName ?? null]))
+  const groups = new Map<string, ProtocolGroup>()
+
+  for (const item of items) {
+    for (const log of item.logs) {
+      const hydroSetupId = log.hydroSetupId ?? item.detail.systemId ?? null
+      const key = hydroSetupId == null ? `legacy-${item.detail.id}` : String(hydroSetupId)
+      const existing = groups.get(key)
+      if (existing) {
+        existing.logs.push(log)
+        if (!existing.growNames.includes(item.detail.name)) existing.growNames.push(item.detail.name)
+        if (!existing.tentName) existing.tentName = item.detail.tentName
+        continue
+      }
+
+      groups.set(key, {
+        hydroSetupId,
+        name: hydroSetupId == null ? 'Legacy / ohne HydroSetup' : setupNames.get(hydroSetupId) ?? `HydroSetup #${hydroSetupId}`,
+        tentName: hydroSetupId == null ? item.detail.tentName : setupTentNames.get(hydroSetupId) ?? item.detail.tentName,
+        growNames: [item.detail.name],
+        logs: [log],
+      })
+    }
+  }
+
+  return Array.from(groups.values())
+    .map((group) => ({ ...group, logs: [...group.logs].sort((a, b) => b.performedAtUtc.localeCompare(a.performedAtUtc)) }))
+    .sort((a, b) => (b.logs[0]?.performedAtUtc ?? '').localeCompare(a.logs[0]?.performedAtUtc ?? ''))
 }
 
 function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
