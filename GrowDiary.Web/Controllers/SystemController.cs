@@ -1,6 +1,8 @@
+using System.IO.Compression;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using GrowDiary.Web.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GrowDiary.Web.Controllers;
@@ -9,6 +11,13 @@ namespace GrowDiary.Web.Controllers;
 [Route("api/system")]
 public sealed class SystemController : ControllerBase
 {
+    private readonly AppPaths _paths;
+
+    public SystemController(AppPaths paths)
+    {
+        _paths = paths;
+    }
+
     [HttpGet("network")]
     public ActionResult<NetworkOverviewDto> GetNetwork([FromQuery] string? frontendOrigin = null)
     {
@@ -21,13 +30,7 @@ public sealed class SystemController : ControllerBase
             .Select((address, index) =>
             {
                 var url = BuildBaseUrl(preferredScheme, address.ToString(), preferredPort);
-                return new NetworkAddressDto(
-                    Label: index == 0 ? "Empfohlen" : $"LAN {index + 1}",
-                    Host: address.ToString(),
-                    Url: url,
-                    IsLoopback: IPAddress.IsLoopback(address),
-                    IsPrivate: IsPrivateIpv4(address),
-                    IsCurrent: requestUri is not null && string.Equals(requestUri.Host, address.ToString(), StringComparison.OrdinalIgnoreCase));
+                return new NetworkAddressDto(index == 0 ? "Empfohlen" : $"LAN {index + 1}", address.ToString(), url, IPAddress.IsLoopback(address), IsPrivateIpv4(address), requestUri is not null && string.Equals(requestUri.Host, address.ToString(), StringComparison.OrdinalIgnoreCase));
             })
             .ToList();
 
@@ -52,12 +55,63 @@ public sealed class SystemController : ControllerBase
             recommended = requestOrigin;
         }
 
-        return Ok(new NetworkOverviewDto(
-            RequestOrigin: requestOrigin,
-            RecommendedBaseUrl: recommended,
-            ApiBaseUrl: $"{Request.Scheme}://{Request.Host.Value}".TrimEnd('/'),
-            LocalAddresses: addresses,
-            Warnings: warnings));
+        return Ok(new NetworkOverviewDto(requestOrigin, recommended, $"{Request.Scheme}://{Request.Host.Value}".TrimEnd('/'), addresses, warnings));
+    }
+
+    [HttpPost("backup")]
+    public IActionResult CreateBackup()
+    {
+        var fileName = $"grow-os-backup-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.zip";
+        var stream = new MemoryStream();
+
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            AddFileIfExists(archive, _paths.DatabasePath, "App_Data/grow-diary.db");
+            AddDirectoryIfExists(archive, _paths.UploadRootPath, "wwwroot/uploads");
+            AddDirectoryIfExists(archive, _paths.KnowledgeDataPath, "App_Data/knowledge");
+
+            var manifest = $$"""
+            {
+              "schema": "grow-os.full-backup.v1",
+              "createdAtUtc": "{{DateTimeOffset.UtcNow:O}}",
+              "contains": ["database", "uploads", "knowledge"],
+              "restoreNote": "Restore wird bewusst nicht automatisch ausgeführt. Vor einem Restore App stoppen und Daten prüfen."
+            }
+            """;
+            var entry = archive.CreateEntry("manifest.json", CompressionLevel.Fastest);
+            using var writer = new StreamWriter(entry.Open());
+            writer.Write(manifest);
+        }
+
+        stream.Position = 0;
+        return File(stream, "application/zip", fileName);
+    }
+
+    private static void AddFileIfExists(ZipArchive archive, string sourcePath, string entryName)
+    {
+        if (!System.IO.File.Exists(sourcePath))
+        {
+            return;
+        }
+
+        var entry = archive.CreateEntry(entryName, CompressionLevel.Fastest);
+        using var input = System.IO.File.Open(sourcePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var output = entry.Open();
+        input.CopyTo(output);
+    }
+
+    private static void AddDirectoryIfExists(ZipArchive archive, string sourceDirectory, string entryRoot)
+    {
+        if (!Directory.Exists(sourceDirectory))
+        {
+            return;
+        }
+
+        foreach (var file in Directory.EnumerateFiles(sourceDirectory, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(sourceDirectory, file).Replace('\\', '/');
+            AddFileIfExists(archive, file, $"{entryRoot.TrimEnd('/')}/{relative}");
+        }
     }
 
     private static string ResolveRequestOrigin(string? frontendOrigin, HttpRequest request)
@@ -102,12 +156,7 @@ public sealed class SystemController : ControllerBase
             foreach (var unicast in properties.UnicastAddresses)
             {
                 var address = unicast.Address;
-                if (address.AddressFamily != AddressFamily.InterNetwork)
-                {
-                    continue;
-                }
-
-                if (IPAddress.IsLoopback(address))
+                if (address.AddressFamily != AddressFamily.InterNetwork || IPAddress.IsLoopback(address))
                 {
                     continue;
                 }
@@ -125,10 +174,7 @@ public sealed class SystemController : ControllerBase
             }
         }
 
-        return addresses
-            .OrderByDescending(IsPrivateIpv4)
-            .ThenBy(address => address.ToString(), StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        return addresses.OrderByDescending(IsPrivateIpv4).ThenBy(address => address.ToString(), StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     private static bool IsLoopbackHost(string host)
@@ -144,35 +190,15 @@ public sealed class SystemController : ControllerBase
         }
 
         var bytes = address.GetAddressBytes();
-        return bytes[0] == 10
-               || (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
-               || (bytes[0] == 192 && bytes[1] == 168);
+        return bytes[0] == 10 || (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) || (bytes[0] == 192 && bytes[1] == 168);
     }
 
     private static string BuildBaseUrl(string scheme, string host, int port)
     {
-        var builder = new UriBuilder
-        {
-            Scheme = scheme,
-            Host = host,
-            Port = port
-        };
-
+        var builder = new UriBuilder { Scheme = scheme, Host = host, Port = port };
         return builder.Uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
     }
 }
 
-public sealed record NetworkOverviewDto(
-    string RequestOrigin,
-    string RecommendedBaseUrl,
-    string ApiBaseUrl,
-    IReadOnlyList<NetworkAddressDto> LocalAddresses,
-    IReadOnlyList<string> Warnings);
-
-public sealed record NetworkAddressDto(
-    string Label,
-    string Host,
-    string Url,
-    bool IsLoopback,
-    bool IsPrivate,
-    bool IsCurrent);
+public sealed record NetworkOverviewDto(string RequestOrigin, string RecommendedBaseUrl, string ApiBaseUrl, IReadOnlyList<NetworkAddressDto> LocalAddresses, IReadOnlyList<string> Warnings);
+public sealed record NetworkAddressDto(string Label, string Host, string Url, bool IsLoopback, bool IsPrivate, bool IsCurrent);

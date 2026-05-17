@@ -1,14 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowSummary } from '../types'
+import type { GrowDetail, GrowSummary } from '../types'
 import { V1Alert, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { formatDateTime, formatNumber } from '../utils'
 
 const addbackSteps = ['Grow', 'Istwerte', 'Ziel', 'Dosierung', 'Nachmessung']
 
+type ProtocolRow = {
+  growId: number
+  growName: string
+  tentName: string | null
+  takenAt: string | null
+  ph: number | null
+  ec: number | null
+  topOffLiters: number | null
+  addbackEc: number | null
+  solutionChange: boolean
+}
+
 function AddbackHubPage() {
   const [grows, setGrows] = useState<GrowSummary[]>([])
+  const [protocol, setProtocol] = useState<ProtocolRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -19,7 +32,24 @@ function AddbackHubPage() {
       setError(null)
       try {
         const data = await apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal })
+        if (controller.signal.aborted) return
         setGrows(data)
+        const hydro = data.filter((grow) => grow.status === 'Running' || grow.status === 'Planning').filter((grow) => grow.hydroStyle === 'DWC' || grow.hydroStyle === 'RDWC')
+        const details = await Promise.all(hydro.slice(0, 8).map(async (grow) => {
+          try { return await apiFetch<GrowDetail>(`/api/grows/${grow.id}`, { signal: controller.signal }) } catch { return null }
+        }))
+        if (controller.signal.aborted) return
+        setProtocol(details.filter((item): item is GrowDetail => item !== null).map((detail) => ({
+          growId: detail.id,
+          growName: detail.name,
+          tentName: detail.tentName,
+          takenAt: detail.latestMeasurement?.takenAt ?? null,
+          ph: detail.latestMeasurement?.reservoirPh ?? null,
+          ec: detail.latestMeasurement?.reservoirEc ?? null,
+          topOffLiters: detail.latestMeasurement?.topOffLiters ?? null,
+          addbackEc: detail.latestMeasurement?.addbackEc ?? null,
+          solutionChange: detail.latestMeasurement?.solutionChange ?? false,
+        })).filter((row) => row.takenAt || row.topOffLiters || row.addbackEc || row.solutionChange))
       } catch (caught) {
         if (!controller.signal.aborted) setError(caught instanceof ApiRequestError ? caught.message : 'Grows konnten nicht geladen werden.')
       } finally {
@@ -56,7 +86,15 @@ function AddbackHubPage() {
         </div>
       </section>
 
-      <section className="v1-kpi-grid v1-kpi-grid-compact"><V1Stat label="Aktive Grows" value={activeGrows.length} /><V1Stat label="Hydro" value={hydroGrows.length} /><V1Stat label="Bereit" value={hydroGrows.length} /></section>
+      <section className="v1-kpi-grid v1-kpi-grid-compact"><V1Stat label="Aktive Grows" value={activeGrows.length} /><V1Stat label="Hydro" value={hydroGrows.length} /><V1Stat label="Protokolle" value={protocol.length} /></section>
+
+      <V1Section title="Addback-Protokoll">
+        {loading ? <V1Empty title="Lade Protokoll..." /> : protocol.length === 0 ? <V1Empty title="Noch kein Addback-Verlauf" text="Nach dem ersten Addback erscheint hier die letzte dokumentierte Reservoir-/Addback-Messung je Grow." /> : (
+          <div className="v1-list">
+            {protocol.map((row) => <Link key={row.growId} className="v1-list-row" to={`/grows/${row.growId}`}><strong>{row.growName}</strong><span>{row.tentName ?? 'ohne Zelt'} · {formatDateTime(row.takenAt)}</span><em>pH {formatNumber(row.ph, 2)} · EC {formatNumber(row.ec, 2)} · TopOff {formatNumber(row.topOffLiters, 1)} L · Addback {formatNumber(row.addbackEc, 2)}</em></Link>)}
+          </div>
+        )}
+      </V1Section>
 
       <V1Section title="Grow wählen">
         {loading ? <V1Empty title="Lade Grows..." /> : hydroGrows.length === 0 ? <V1Empty title="Kein DWC/RDWC-Grow" text="Addback braucht einen aktiven Grow mit Hydro-Setup." action={<V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>} /> : (
