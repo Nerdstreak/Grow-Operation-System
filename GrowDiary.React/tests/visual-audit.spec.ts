@@ -39,6 +39,7 @@ const routes: RouteCase[] = [
   { slug: 'addback', path: '/addback', title: 'Addback Hub' },
   { slug: 'action', path: '/action', title: 'Aufgaben Legacy Route' },
   { slug: 'aufgaben', path: '/aufgaben', title: 'Aufgaben Redirect Route' },
+  { slug: 'messung', path: '/messung', title: 'Messung erfassen' },
   { slug: 'zelte', path: '/zelte', title: 'Zelte' },
   { slug: 'zelte-new', path: '/zelte/new', title: 'Zelt anlegen' },
   { slug: 'hydro', path: '/hydro', title: 'Hydro' },
@@ -84,7 +85,7 @@ async function waitForAppIdle(page: import('@playwright/test').Page) {
   try {
     await page.waitForLoadState('networkidle', { timeout: 2500 })
   } catch {
-    // Live-/HA-Requests dürfen noch laufen. Für Screenshots reicht der gerenderte Zustand.
+    // Live-/HA-Requests dürfen noch laufen.
   }
 }
 

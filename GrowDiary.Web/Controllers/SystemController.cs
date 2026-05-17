@@ -12,83 +12,122 @@ public sealed class SystemController : ControllerBase
     [HttpGet("network")]
     public ActionResult<NetworkOverviewDto> GetNetwork([FromQuery] string? frontendOrigin = null)
     {
-        var requestOrigin = ResolveRequestOrigin(frontendOrigin);
-        var uri = Uri.TryCreate(requestOrigin, UriKind.Absolute, out var parsed)
-            ? parsed
-            : new Uri($"{Request.Scheme}://{Request.Host}");
+        var requestOrigin = ResolveRequestOrigin(frontendOrigin, Request);
+        var requestUri = TryCreateUri(requestOrigin);
+        var preferredPort = requestUri?.Port is > 0 ? requestUri.Port : Request.Host.Port ?? 80;
+        var preferredScheme = requestUri?.Scheme ?? Request.Scheme;
 
-        var scheme = uri.Scheme;
-        var portPart = uri.IsDefaultPort ? string.Empty : $":{uri.Port}";
-        var addresses = GetLocalIPv4Addresses()
-            .Select(address => new NetworkAddressDto(
-                Label: Classify(address),
-                Host: address.ToString(),
-                Url: $"{scheme}://{address}{portPart}",
-                IsLoopback: IPAddress.IsLoopback(address),
-                IsPrivate: IsPrivate(address),
-                IsCurrent: string.Equals(uri.Host, address.ToString(), StringComparison.OrdinalIgnoreCase)))
+        var addresses = GetLanAddresses()
+            .Select((address, index) =>
+            {
+                var url = BuildBaseUrl(preferredScheme, address.ToString(), preferredPort);
+                return new NetworkAddressDto(
+                    Label: index == 0 ? "Empfohlen" : $"LAN {index + 1}",
+                    Host: address.ToString(),
+                    Url: url,
+                    IsLoopback: IPAddress.IsLoopback(address),
+                    IsPrivate: IsPrivateIpv4(address),
+                    IsCurrent: requestUri is not null && string.Equals(requestUri.Host, address.ToString(), StringComparison.OrdinalIgnoreCase));
+            })
             .ToList();
 
+        var browserIsLoopback = requestUri is null || IsLoopbackHost(requestUri.Host);
+        var recommended = addresses.FirstOrDefault(address => address.IsPrivate)?.Url
+            ?? addresses.FirstOrDefault(address => !address.IsLoopback)?.Url
+            ?? requestOrigin;
+
         var warnings = new List<string>();
-        if (IsLoopbackHost(uri.Host))
+        if (browserIsLoopback && addresses.Count > 0)
         {
-            warnings.Add("Die aktuell erkannte Adresse ist localhost/Loopback. Für Handy/PWA im gleichen WLAN wird eine LAN-IP benötigt.");
+            warnings.Add("Du bist über localhost/127.0.0.1 verbunden. Für Handy/PWA wird automatisch die LAN-Adresse empfohlen.");
         }
 
         if (addresses.Count == 0)
         {
-            warnings.Add("Es wurde keine aktive IPv4-LAN-Adresse gefunden. Prüfe Netzwerkadapter, WLAN/LAN und Firewall.");
+            warnings.Add("Es wurde keine private LAN-IPv4 gefunden. Prüfe WLAN/LAN, Firewall und ob der Vite-Server mit --host 0.0.0.0 läuft.");
         }
 
-        var recommended = addresses.FirstOrDefault(address => address.IsPrivate && !address.IsLoopback)?.Url
-            ?? addresses.FirstOrDefault(address => !address.IsLoopback)?.Url
-            ?? requestOrigin;
+        if (!browserIsLoopback && requestUri is not null && requestUri.HostNameType != UriHostNameType.Dns)
+        {
+            recommended = requestOrigin;
+        }
 
-        var apiOrigin = $"{Request.Scheme}://{Request.Host}";
         return Ok(new NetworkOverviewDto(
             RequestOrigin: requestOrigin,
             RecommendedBaseUrl: recommended,
-            ApiBaseUrl: apiOrigin,
+            ApiBaseUrl: $"{Request.Scheme}://{Request.Host.Value}".TrimEnd('/'),
             LocalAddresses: addresses,
             Warnings: warnings));
     }
 
-    private string ResolveRequestOrigin(string? frontendOrigin)
+    private static string ResolveRequestOrigin(string? frontendOrigin, HttpRequest request)
     {
-        if (!string.IsNullOrWhiteSpace(frontendOrigin) &&
-            Uri.TryCreate(frontendOrigin.Trim(), UriKind.Absolute, out var frontendUri) &&
-            (frontendUri.Scheme == Uri.UriSchemeHttp || frontendUri.Scheme == Uri.UriSchemeHttps))
+        if (!string.IsNullOrWhiteSpace(frontendOrigin) && Uri.TryCreate(frontendOrigin.Trim(), UriKind.Absolute, out var parsed))
         {
-            return frontendUri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
+            return parsed.GetLeftPart(UriPartial.Authority).TrimEnd('/');
         }
 
-        var forwardedProto = Request.Headers["X-Forwarded-Proto"].FirstOrDefault();
-        var forwardedHost = Request.Headers["X-Forwarded-Host"].FirstOrDefault();
-        if (!string.IsNullOrWhiteSpace(forwardedHost))
-        {
-            var scheme = string.IsNullOrWhiteSpace(forwardedProto) ? Request.Scheme : forwardedProto;
-            return $"{scheme}://{forwardedHost}".TrimEnd('/');
-        }
-
-        return $"{Request.Scheme}://{Request.Host}".TrimEnd('/');
+        return $"{request.Scheme}://{request.Host.Value}".TrimEnd('/');
     }
 
-    private static IReadOnlyList<IPAddress> GetLocalIPv4Addresses()
+    private static Uri? TryCreateUri(string value)
+        => Uri.TryCreate(value, UriKind.Absolute, out var uri) ? uri : null;
+
+    private static List<IPAddress> GetLanAddresses()
     {
-        return NetworkInterface.GetAllNetworkInterfaces()
-            .Where(adapter =>
-                adapter.OperationalStatus == OperationalStatus.Up &&
-                adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
-                adapter.NetworkInterfaceType != NetworkInterfaceType.Tunnel)
-            .SelectMany(adapter => adapter.GetIPProperties().UnicastAddresses)
-            .Where(address =>
-                address.Address.AddressFamily == AddressFamily.InterNetwork &&
-                !IPAddress.IsLoopback(address.Address) &&
-                !address.Address.ToString().StartsWith("169.254.", StringComparison.Ordinal))
-            .Select(address => address.Address)
-            .Distinct()
-            .OrderByDescending(IsPrivate)
-            .ThenBy(address => address.ToString())
+        var addresses = new List<IPAddress>();
+
+        foreach (var networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (networkInterface.OperationalStatus != OperationalStatus.Up)
+            {
+                continue;
+            }
+
+            if (networkInterface.NetworkInterfaceType is NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel)
+            {
+                continue;
+            }
+
+            IPInterfaceProperties properties;
+            try
+            {
+                properties = networkInterface.GetIPProperties();
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (var unicast in properties.UnicastAddresses)
+            {
+                var address = unicast.Address;
+                if (address.AddressFamily != AddressFamily.InterNetwork)
+                {
+                    continue;
+                }
+
+                if (IPAddress.IsLoopback(address))
+                {
+                    continue;
+                }
+
+                var bytes = address.GetAddressBytes();
+                if (bytes[0] == 169 && bytes[1] == 254)
+                {
+                    continue;
+                }
+
+                if (addresses.All(existing => !existing.Equals(address)))
+                {
+                    addresses.Add(address);
+                }
+            }
+        }
+
+        return addresses
+            .OrderByDescending(IsPrivateIpv4)
+            .ThenBy(address => address.ToString(), StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 
@@ -97,16 +136,30 @@ public sealed class SystemController : ControllerBase
            || string.Equals(host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
            || string.Equals(host, "::1", StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsPrivate(IPAddress address)
+    private static bool IsPrivateIpv4(IPAddress address)
     {
+        if (address.AddressFamily != AddressFamily.InterNetwork)
+        {
+            return false;
+        }
+
         var bytes = address.GetAddressBytes();
         return bytes[0] == 10
-               || bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31
-               || bytes[0] == 192 && bytes[1] == 168;
+               || (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
+               || (bytes[0] == 192 && bytes[1] == 168);
     }
 
-    private static string Classify(IPAddress address)
-        => IsPrivate(address) ? "LAN" : "IPv4";
+    private static string BuildBaseUrl(string scheme, string host, int port)
+    {
+        var builder = new UriBuilder
+        {
+            Scheme = scheme,
+            Host = host,
+            Port = port
+        };
+
+        return builder.Uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
+    }
 }
 
 public sealed record NetworkOverviewDto(

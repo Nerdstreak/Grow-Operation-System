@@ -203,40 +203,6 @@
   min-width: 0;
 }
 
-/* Mobile */
-@media (max-width: 760px) {
-  .rc2-admin-grid,
-  .rc2-admin-grid.two,
-  .rc2-knowledge-layout,
-  .rc2-focused-layout,
-  .v1-ha-connect-form {
-    grid-template-columns: 1fr;
-  }
-
-  .rc2-admin-card .v1-button,
-  .v1-ha-connect-form > .v1-button {
-    width: 100%;
-  }
-
-  .v1-inline-input {
-    grid-template-columns: 1fr;
-  }
-
-  .rc2-topic-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .grow-select-grid,
-  .program-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .v1-page {
-    padding-bottom: max(96px, env(safe-area-inset-bottom));
-  }
-}
-
-
 /* Manual measurement workflow */
 .rc2-measurement-layout {
   display: grid;
@@ -282,13 +248,81 @@
   margin-top: 4px;
 }
 
+/* RC2 bottom-nav and form action fix */
+:root {
+  --rc2-bottom-nav-height: 78px;
+  --rc2-bottom-safe: max(112px, calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 28px));
+}
+
+.v1-page {
+  min-width: 0;
+}
+
+.v1-form-actions,
+.sticky-actions {
+  scroll-margin-bottom: var(--rc2-bottom-safe);
+}
+
+.v1-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.v1-form-actions .v1-button,
+.sticky-actions .v1-button {
+  min-width: fit-content;
+}
+
 @media (max-width: 760px) {
+  .rc2-admin-grid,
+  .rc2-admin-grid.two,
+  .rc2-knowledge-layout,
+  .rc2-focused-layout,
+  .v1-ha-connect-form,
   .rc2-measurement-layout,
   .rc2-measurement-extra {
     grid-template-columns: 1fr;
   }
 
+  .rc2-admin-card .v1-button,
+  .v1-ha-connect-form > .v1-button,
+  .v1-form-actions .v1-button,
+  .sticky-actions .v1-button {
+    width: 100%;
+  }
+
+  .v1-inline-input {
+    grid-template-columns: 1fr;
+  }
+
+  .rc2-topic-grid,
+  .grow-select-grid,
+  .program-grid {
+    grid-template-columns: 1fr;
+  }
+
   .rc2-sticky-card {
     position: static;
+  }
+
+  .v1-route-frame,
+  .v1-page {
+    padding-bottom: var(--rc2-bottom-safe);
+  }
+
+  .v1-form-actions {
+    margin-bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 18px);
+  }
+
+  .sticky-actions {
+    position: sticky;
+    bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 10px);
+    z-index: 5;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: color-mix(in oklch, var(--surface), black 7%);
+    box-shadow: 0 -18px 40px rgba(0,0,0,.28);
   }
 }
