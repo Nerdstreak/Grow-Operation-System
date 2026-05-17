@@ -127,27 +127,59 @@ function LiveDashboardPage() {
 function CameraTile({ tent, refresh }: { tent: TentDto; refresh: number }) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle')
   const [version, setVersion] = useState(0)
+  const [lastGoodSrc, setLastGoodSrc] = useState<string | null>(null)
+  const [lastGoodAt, setLastGoodAt] = useState<Date | null>(null)
   const src = tent.cameraEntityId ? `/api/live/tents/${tent.id}/camera?t=${refresh}-${version}` : null
 
   useEffect(() => {
-    if (!src) setStatus('idle')
-    else setStatus('loading')
-  }, [src])
+    if (!src) {
+      setStatus('idle')
+      setLastGoodSrc(null)
+      setLastGoodAt(null)
+      return
+    }
+    setStatus('loading')
+  }, [src, tent.id])
 
-  if (!src || status === 'failed') {
+  useEffect(() => {
+    if (!tent.cameraEntityId) return
+    const interval = window.setInterval(() => setVersion((current) => current + 1), 30000)
+    return () => window.clearInterval(interval)
+  }, [tent.cameraEntityId, tent.id])
+
+  if (!src && !lastGoodSrc) {
     return (
-      <V1Card className="v1-camera-empty is-compact" tone={tent.cameraEntityId ? 'warn' : 'neutral'}>
-        <div><span className="v1-card-kicker">Kamera</span><h2>{tent.cameraEntityId ? 'Snapshot nicht erreichbar' : 'Nicht eingerichtet'}</h2><p>{tent.cameraEntityId ?? tent.name}</p></div>
+      <V1Card className="v1-camera-empty is-compact" tone="neutral">
+        <div><span className="v1-card-kicker">Kamera</span><h2>Nicht eingerichtet</h2><p>{tent.name}</p></div>
+        <div className="v1-action-row"><V1LinkButton to="/home-assistant">HA öffnen</V1LinkButton></div>
+      </V1Card>
+    )
+  }
+
+  if (status === 'failed' && !lastGoodSrc) {
+    return (
+      <V1Card className="v1-camera-empty is-compact" tone="warn">
+        <div><span className="v1-card-kicker">Kamera-Snapshot</span><h2>Snapshot nicht erreichbar</h2><p>{tent.cameraEntityId ?? tent.name}</p></div>
         <div className="v1-action-row"><V1Button onClick={() => { setVersion((current) => current + 1); setStatus('loading') }}>Neu laden</V1Button><V1LinkButton to="/home-assistant">HA öffnen</V1LinkButton></div>
       </V1Card>
     )
   }
 
+  const imageSrc = src ?? lastGoodSrc
   return (
     <div className="v1-camera-card rc2-camera-card">
-      {status === 'loading' && <div className="v1-camera-loader">Snapshot lädt...</div>}
-      <img src={src} alt={`${tent.name} Kamera`} onLoad={() => setStatus('ready')} onError={() => setStatus('failed')} className={status === 'ready' ? 'ready' : ''} />
-      <div className="v1-camera-label"><strong>{tent.name}</strong><span>Backend-Proxy</span></div>
+      {status === 'loading' && !lastGoodSrc && <div className="v1-camera-loader">Snapshot lädt...</div>}
+      {status === 'failed' && lastGoodSrc && <div className="v1-camera-loader">Letzter Snapshot · neuer Snapshot fehlgeschlagen</div>}
+      {imageSrc && (
+        <img
+          src={imageSrc}
+          alt={`${tent.name} Kamera-Snapshot`}
+          onLoad={() => { setStatus('ready'); setLastGoodSrc(src); setLastGoodAt(new Date()) }}
+          onError={() => setStatus('failed')}
+          className={lastGoodSrc || status === 'ready' ? 'ready' : ''}
+        />
+      )}
+      <div className="v1-camera-label"><strong>{tent.name}</strong><span>{lastGoodAt ? `Snapshot ${lastGoodAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}` : 'Snapshot'}</span></div>
     </div>
   )
 }
