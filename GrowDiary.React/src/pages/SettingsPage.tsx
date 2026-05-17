@@ -4,6 +4,7 @@ import type { GrowSummary, SettingsOverviewDto } from '../types'
 import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section } from '../components/v1'
 
 type ImportPreview = { ok: boolean; title: string; details: string[] }
+type BackupManifest = { fileName: string; downloadUrl: string }
 
 function SettingsPage() {
   const [settings, setSettings] = useState<SettingsOverviewDto | null>(null)
@@ -42,13 +43,15 @@ function SettingsPage() {
     setError(null)
     setMessage(null)
     try {
-      const response = await fetch('/api/system/backup', { method: 'POST' })
-      if (!response.ok) throw new Error(`Backup fehlgeschlagen (${response.status})`)
+      const manifest = await apiFetch<BackupManifest>('/api/system/backup', { method: 'POST' })
+      if (!manifest.downloadUrl) throw new Error('Backup wurde erstellt, aber es fehlt die Download-URL.')
+
+      const response = await fetch(manifest.downloadUrl)
+      if (!response.ok) throw new Error(`Backup-Download fehlgeschlagen (${response.status})`)
+
       const blob = await response.blob()
-      const disposition = response.headers.get('content-disposition') ?? ''
-      const match = /filename="?([^"]+)"?/i.exec(disposition)
-      downloadBlob(match?.[1] ?? `grow-os-backup-${new Date().toISOString().slice(0, 10)}.zip`, blob)
-      setMessage('Vollbackup wurde erstellt.')
+      downloadBlob(manifest.fileName || `grow-os-backup-${new Date().toISOString().slice(0, 10)}.zip`, blob)
+      setMessage('Vollbackup wurde erstellt und heruntergeladen.')
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Vollbackup konnte nicht erstellt werden.')
     }
@@ -130,7 +133,7 @@ function SettingsPage() {
             <V1Card><span className="v1-card-kicker">Zelte</span><h2>{settings?.tents.length ?? 0}</h2><p>Systemräume</p></V1Card>
             <V1Card><span className="v1-card-kicker">Grows</span><h2>{grows.length}</h2><p>aktiv/geplant</p></V1Card>
             <V1Card tone={settings?.homeAssistant.enabled ? 'ok' : 'warn'}><span className="v1-card-kicker">HA</span><h2>{settings?.homeAssistant.enabled ? 'aktiv' : 'aus'}</h2><p>{settings?.homeAssistant.baseUrl || 'keine URL'}</p></V1Card>
-            <V1Card><span className="v1-card-kicker">Backup</span><h2>ZIP</h2><p>DB + Uploads + Knowledge</p></V1Card>
+            <V1Card><span className="v1-card-kicker">Backup</span><h2>ZIP</h2><p>DB + Knowledge</p></V1Card>
           </section>
 
           <V1Section title="Backup & Export">
@@ -138,7 +141,7 @@ function SettingsPage() {
               <V1Card className="rc2-admin-card tone-ok">
                 <span className="v1-card-kicker">Vollbackup</span>
                 <h2>Backup erstellen</h2>
-                <p>Erstellt ein ZIP mit SQLite-Datenbank, Uploads und Knowledge-Daten. Das ist die richtige Sicherung für Restore/Umzug.</p>
+                <p>Erstellt zuerst serverseitig ein Backup und lädt anschließend die ZIP-Datei über die vom Backend gemeldete Download-URL herunter.</p>
                 <V1Button variant="primary" onClick={() => void createFullBackup()}>Vollbackup herunterladen</V1Button>
               </V1Card>
 
