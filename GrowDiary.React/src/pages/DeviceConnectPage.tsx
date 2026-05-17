@@ -1,12 +1,31 @@
-import { useMemo, useState } from 'react'
-import { V1Button, V1Card, V1Field, V1LinkButton, V1Page, V1Section } from '../components/v1'
+import { useEffect, useMemo, useState } from 'react'
+import { apiFetch } from '../api'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Field, V1LinkButton, V1Page, V1Section } from '../components/v1'
 
 const remoteStorageKey = 'grow-os.remote-base-url'
 
 type UrlSet = {
   live: string
   addback: string
+  manualMeasurement: string
   homeAssistant: string
+}
+
+type NetworkAddressDto = {
+  label: string
+  host: string
+  url: string
+  isLoopback: boolean
+  isPrivate: boolean
+  isCurrent: boolean
+}
+
+type NetworkOverviewDto = {
+  requestOrigin: string
+  recommendedBaseUrl: string
+  apiBaseUrl: string
+  localAddresses: NetworkAddressDto[]
+  warnings: string[]
 }
 
 type QrVersion = {
@@ -26,15 +45,35 @@ const qrVersions: QrVersion[] = [
 ]
 
 function DeviceConnectPage() {
-  const detectedBaseUrl = useMemo(() => window.location.origin.replace(/\/$/, ''), [])
+  const browserOrigin = useMemo(() => window.location.origin.replace(/\/$/, ''), [])
+  const [network, setNetwork] = useState<NetworkOverviewDto | null>(null)
+  const [networkError, setNetworkError] = useState<string | null>(null)
   const [remoteBaseUrl, setRemoteBaseUrl] = useState(() => window.localStorage.getItem(remoteStorageKey) ?? '')
   const [copied, setCopied] = useState<string | null>(null)
-  const [selectedQr, setSelectedQr] = useState<'live' | 'addback' | 'homeAssistant'>('live')
+  const [selectedQr, setSelectedQr] = useState<keyof UrlSet>('live')
 
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadNetwork() {
+      try {
+        const overview = await apiFetch<NetworkOverviewDto>(`/api/system/network?frontendOrigin=${encodeURIComponent(browserOrigin)}`, { signal: controller.signal })
+        if (!controller.signal.aborted) setNetwork(overview)
+      } catch (caught) {
+        if (!controller.signal.aborted) setNetworkError(caught instanceof Error ? caught.message : 'Netzwerkdaten konnten nicht geladen werden.')
+      }
+    }
+
+    void loadNetwork()
+    return () => controller.abort()
+  }, [browserOrigin])
+
+  const detectedBaseUrl = network?.recommendedBaseUrl ?? browserOrigin
   const localUrls = buildUrls(detectedBaseUrl)
+  const browserUrls = buildUrls(browserOrigin)
   const remoteUrls = remoteBaseUrl.trim() ? buildUrls(normalizeBaseUrl(remoteBaseUrl)) : null
   const qrValue = localUrls[selectedQr]
-  const isLoopback = isLoopbackHost(detectedBaseUrl)
+  const isLoopback = isLoopbackHost(browserOrigin)
 
   const saveRemoteUrl = () => {
     const normalized = normalizeBaseUrl(remoteBaseUrl)
@@ -50,16 +89,20 @@ function DeviceConnectPage() {
   }
 
   return (
-    <V1Page eyebrow="Selfhost" title="Gerät verbinden" subtitle="Lokale Nutzung zuerst. Remote nur über VPN, Tailscale, Cloudflare Access oder Reverse Proxy mit Schutz.">
+    <V1Page eyebrow="Selfhost" title="Gerät verbinden" subtitle="QR-Code nutzt jetzt die serverseitig erkannte LAN-IP. localhost wird nicht mehr als Handy-Adresse empfohlen.">
+      {networkError && <V1Alert title="Netzwerk-Erkennung" message={networkError} tone="warn" />}
+      {network?.warnings.map((warning) => <V1Alert key={warning} title="Hinweis" message={warning} tone="warn" />)}
+
       <V1Section title="QR-Code">
         <div className="v1-card-grid">
-          <V1Card>
+          <V1Card tone={isLoopback ? 'warn' : 'neutral'}>
             <span className="v1-card-kicker">Schnell verbinden</span>
-            <h2>{selectedQr === 'live' ? 'Live öffnen' : selectedQr === 'addback' ? 'Addback öffnen' : 'HA-Mapping öffnen'}</h2>
-            <p>Scanne den QR-Code mit dem Handy im gleichen Netzwerk.</p>
+            <h2>{selectedQr === 'live' ? 'Live öffnen' : selectedQr === 'addback' ? 'Addback öffnen' : selectedQr === 'manualMeasurement' ? 'Messung erfassen' : 'HA-Mapping öffnen'}</h2>
+            <p>Scanne den QR-Code mit dem Handy im gleichen Netzwerk. Die Adresse wird vom Backend aus den aktiven Netzwerkadaptern berechnet.</p>
             <div className="v1-action-row">
               <V1Button variant={selectedQr === 'live' ? 'primary' : 'secondary'} onClick={() => setSelectedQr('live')}>Live</V1Button>
               <V1Button variant={selectedQr === 'addback' ? 'primary' : 'secondary'} onClick={() => setSelectedQr('addback')}>Addback</V1Button>
+              <V1Button variant={selectedQr === 'manualMeasurement' ? 'primary' : 'secondary'} onClick={() => setSelectedQr('manualMeasurement')}>Messung</V1Button>
               <V1Button variant={selectedQr === 'homeAssistant' ? 'primary' : 'secondary'} onClick={() => setSelectedQr('homeAssistant')}>HA</V1Button>
             </div>
             <div style={{ display: 'grid', placeItems: 'center', padding: 16 }}>
@@ -69,28 +112,49 @@ function DeviceConnectPage() {
             <V1Button variant="primary" onClick={() => copy('QR-Link', qrValue)}>Link kopieren</V1Button>
           </V1Card>
 
-          <V1Card tone={isLoopback ? 'warn' : 'neutral'}>
-            <span className="v1-card-kicker">Adresse erkannt</span>
+          <V1Card tone={isLoopback ? 'warn' : 'ok'}>
+            <span className="v1-card-kicker">Empfohlene lokale Adresse</span>
             <h2>{shortenUrl(detectedBaseUrl)}</h2>
-            {isLoopback ? (
-              <p>Du bist über localhost/127.0.0.1 verbunden. Für dein Handy brauchst du die LAN-IP deines Servers, z. B. http://192.168.x.x:5173.</p>
-            ) : (
-              <p>Diese Adresse sollte auf anderen Geräten im gleichen Netzwerk funktionieren, wenn Firewall und Vite/Backend freigegeben sind.</p>
-            )}
+            <p>{detectedBaseUrl}</p>
+            {browserOrigin !== detectedBaseUrl && <small>Browser aktuell: {browserOrigin}</small>}
             <div className="v1-action-row">
-              <V1Button onClick={() => copy('Live lokal', localUrls.live)}>Live kopieren</V1Button>
-              <V1Button onClick={() => copy('Addback lokal', localUrls.addback)}>Addback kopieren</V1Button>
+              <V1Badge tone={network ? 'ok' : 'warn'}>{network ? 'Backend erkannt' : 'Fallback'}</V1Badge>
+              <V1Button onClick={() => copy('Empfohlene Adresse', detectedBaseUrl)}>Kopieren</V1Button>
             </div>
           </V1Card>
         </div>
         {copied && <div className="v1-settings-note">{copied} kopiert.</div>}
       </V1Section>
 
-      <V1Section title="Lokale Adresse">
+      <V1Section title="Gefundene LAN-Adressen">
+        {network && network.localAddresses.length > 0 ? (
+          <div className="v1-card-grid">
+            {network.localAddresses.map((address) => (
+              <ConnectCard key={address.url} label={`${address.label} · ${address.host}`} url={address.url} onCopy={() => copy(address.host, address.url)} />
+            ))}
+          </div>
+        ) : (
+          <V1Card tone="warn">
+            <span className="v1-card-kicker">Keine LAN-IP</span>
+            <h2>Fallback aktiv</h2>
+            <p>Die App nutzt aktuell {browserOrigin}. Prüfe Netzwerk, Firewall oder starte Frontend mit --host 0.0.0.0.</p>
+          </V1Card>
+        )}
+      </V1Section>
+
+      <V1Section title="Direkte Links">
         <div className="v1-card-grid">
           <ConnectCard label="Live" url={localUrls.live} onCopy={() => copy('Live lokal', localUrls.live)} />
           <ConnectCard label="Addback" url={localUrls.addback} onCopy={() => copy('Addback lokal', localUrls.addback)} />
+          <ConnectCard label="Messung" url={localUrls.manualMeasurement} onCopy={() => copy('Messung lokal', localUrls.manualMeasurement)} />
           <ConnectCard label="Home Assistant" url={localUrls.homeAssistant} onCopy={() => copy('HA lokal', localUrls.homeAssistant)} />
+        </div>
+      </V1Section>
+
+      <V1Section title="Browser-Adresse">
+        <div className="v1-card-grid">
+          <ConnectCard label="Browser Live" url={browserUrls.live} onCopy={() => copy('Browser Live', browserUrls.live)} />
+          <ConnectCard label="Browser Addback" url={browserUrls.addback} onCopy={() => copy('Browser Addback', browserUrls.addback)} />
         </div>
       </V1Section>
 
@@ -116,7 +180,7 @@ function DeviceConnectPage() {
           <V1Card>
             <span className="v1-card-kicker">iPhone / Safari</span>
             <h2>Teilen → Zum Home-Bildschirm</h2>
-            <p>Öffne die lokale oder Remote-Adresse in Safari, tippe auf Teilen und füge Grow OS zum Home-Bildschirm hinzu.</p>
+            <p>Öffne die empfohlene lokale oder Remote-Adresse in Safari, tippe auf Teilen und füge Grow OS zum Home-Bildschirm hinzu.</p>
           </V1Card>
           <V1Card>
             <span className="v1-card-kicker">Android / Chrome</span>
@@ -135,6 +199,7 @@ function DeviceConnectPage() {
         <div className="v1-action-row">
           <V1LinkButton to="/" variant="primary">Live öffnen</V1LinkButton>
           <V1LinkButton to="/addback">Addback</V1LinkButton>
+          <V1LinkButton to="/messung">Messung</V1LinkButton>
           <V1LinkButton to="/home-assistant">HA einrichten</V1LinkButton>
         </div>
       </V1Section>
@@ -384,6 +449,7 @@ function buildUrls(baseUrl: string): UrlSet {
   return {
     live: `${base}/`,
     addback: `${base}/addback`,
+    manualMeasurement: `${base}/messung`,
     homeAssistant: `${base}/home-assistant`,
   }
 }

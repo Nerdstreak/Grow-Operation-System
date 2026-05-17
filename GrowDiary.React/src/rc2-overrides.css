@@ -235,3 +235,60 @@
     padding-bottom: max(96px, env(safe-area-inset-bottom));
   }
 }
+
+
+/* Manual measurement workflow */
+.rc2-measurement-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, .32fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.rc2-measurement-side,
+.rc2-measurement-main {
+  min-width: 0;
+}
+
+.rc2-sticky-card {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.rc2-measurement-main {
+  display: grid;
+  gap: 16px;
+}
+
+.rc2-measurement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.rc2-measurement-extra {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rc2-measurement-extra .is-wide {
+  grid-column: 1 / -1;
+}
+
+.rc2-measurement-page .sticky-actions {
+  margin-top: 4px;
+}
+
+@media (max-width: 760px) {
+  .rc2-measurement-layout,
+  .rc2-measurement-extra {
+    grid-template-columns: 1fr;
+  }
+
+  .rc2-sticky-card {
+    position: static;
+  }
+}
