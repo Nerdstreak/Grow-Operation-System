@@ -5,48 +5,85 @@ using Microsoft.AspNetCore.Mvc;
 namespace GrowDiary.Web.Controllers;
 
 [ApiController]
-[Route("api/camera")]
+[Route("api")]
 public sealed class CameraProxyController : ControllerBase
 {
     private readonly GrowRepository _repository;
-    private readonly HomeAssistantService _homeAssistant;
+    private readonly HomeAssistantService _homeAssistantService;
 
-    public CameraProxyController(GrowRepository repository, HomeAssistantService homeAssistant)
+    public CameraProxyController(GrowRepository repository, HomeAssistantService homeAssistantService)
     {
         _repository = repository;
-        _homeAssistant = homeAssistant;
+        _homeAssistantService = homeAssistantService;
     }
 
-    [HttpGet("tents/{tentId:int}")]
-    [HttpGet("/api/live/tents/{tentId:int}/camera")]
+    [HttpGet("live/tents/{tentId:int}/camera")]
+    [HttpGet("camera/tents/{tentId:int}")]
     public async Task<IActionResult> GetTentCamera(int tentId, CancellationToken cancellationToken)
     {
         var tent = _repository.GetTent(tentId);
         if (tent is null)
         {
-            return NotFound(new { code = "tent_not_found", message = "Zelt wurde nicht gefunden." });
+            return NotFound(new CameraProxyStatusDto(false, "tent_not_found", "Zelt wurde nicht gefunden.", null, null));
         }
 
         if (string.IsNullOrWhiteSpace(tent.CameraEntityId))
         {
-            return NotFound(new { code = "camera_not_configured", message = "Für dieses Zelt ist keine Kamera-Entity hinterlegt." });
+            return NotFound(new CameraProxyStatusDto(false, "camera_missing", "Für dieses Zelt ist keine Kamera-Entity hinterlegt.", null, null));
         }
 
         var settings = _repository.GetHomeAssistantSettings();
         if (!settings.IsConfigured)
         {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { code = "home_assistant_not_configured", message = "Home Assistant ist nicht vollständig konfiguriert." });
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new CameraProxyStatusDto(false, "ha_not_configured", "Home Assistant ist nicht vollständig konfiguriert.", tent.CameraEntityId, null));
         }
 
-        var snapshot = await _homeAssistant.GetCameraSnapshotAsync(settings, tent.CameraEntityId, cancellationToken);
-        if (snapshot is null)
+        var snapshot = await _homeAssistantService.GetCameraSnapshotAsync(settings, tent.CameraEntityId, cancellationToken);
+        if (snapshot is null || snapshot.Value.Bytes.Length == 0)
         {
-            return StatusCode(StatusCodes.Status502BadGateway, new { code = "camera_snapshot_unavailable", message = "Kamera-Snapshot konnte nicht von Home Assistant geladen werden." });
+            return StatusCode(StatusCodes.Status502BadGateway, new CameraProxyStatusDto(false, "ha_camera_unavailable", "Home Assistant liefert für diese Kamera kein Bild.", tent.CameraEntityId, null));
         }
 
-        Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+        Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
         Response.Headers.Pragma = "no-cache";
         Response.Headers.Expires = "0";
+
         return File(snapshot.Value.Bytes, snapshot.Value.ContentType);
     }
+
+    [HttpGet("camera/tents/{tentId:int}/status")]
+    public async Task<ActionResult<CameraProxyStatusDto>> GetTentCameraStatus(int tentId, CancellationToken cancellationToken)
+    {
+        var tent = _repository.GetTent(tentId);
+        if (tent is null)
+        {
+            return NotFound(new CameraProxyStatusDto(false, "tent_not_found", "Zelt wurde nicht gefunden.", null, null));
+        }
+
+        if (string.IsNullOrWhiteSpace(tent.CameraEntityId))
+        {
+            return Ok(new CameraProxyStatusDto(false, "camera_missing", "Für dieses Zelt ist keine Kamera-Entity hinterlegt.", null, null));
+        }
+
+        var settings = _repository.GetHomeAssistantSettings();
+        if (!settings.IsConfigured)
+        {
+            return Ok(new CameraProxyStatusDto(false, "ha_not_configured", "Home Assistant ist nicht vollständig konfiguriert.", tent.CameraEntityId, null));
+        }
+
+        var snapshot = await _homeAssistantService.GetCameraSnapshotAsync(settings, tent.CameraEntityId, cancellationToken);
+        if (snapshot is null || snapshot.Value.Bytes.Length == 0)
+        {
+            return Ok(new CameraProxyStatusDto(false, "ha_camera_unavailable", "Home Assistant liefert für diese Kamera kein Bild.", tent.CameraEntityId, null));
+        }
+
+        return Ok(new CameraProxyStatusDto(true, "ok", "Kamera-Snapshot wurde erfolgreich geladen.", tent.CameraEntityId, $"/api/live/tents/{tentId}/camera?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"));
+    }
 }
+
+public sealed record CameraProxyStatusDto(
+    bool Ok,
+    string Status,
+    string Message,
+    string? CameraEntityId,
+    string? PreviewUrl);
