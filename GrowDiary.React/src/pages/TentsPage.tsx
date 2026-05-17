@@ -124,17 +124,22 @@ function TentsPage() {
     }
   }
 
-  async function toggleArchive(tent: TentDto) {
-    setSaving(`archive-${tent.id}`)
+  async function deleteTent(tent: TentDto) {
+    const confirmed = window.confirm(`${tent.name} löschen? Wenn Abhängigkeiten existieren, wird das Zelt vom Backend archiviert.`)
+    if (!confirmed) return
+    setSaving(`delete-${tent.id}`)
     setError(null)
     try {
-      const saved = await apiFetch<TentDto>(`/api/settings/tents/${tent.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ ...tentToRequest(tent), status: tent.status === 'Active' ? 'Archived' : 'Active', sensors: mapSensors(tent) } satisfies UpdateTentRequest),
-      })
-      setTents((current) => sortTents(current.map((item) => (item.id === saved.id ? saved : item))))
+      const response = await fetch(`/api/settings/tents/${tent.id}`, { method: 'DELETE' })
+      if (response.status === 204) {
+        setTents((current) => current.filter((item) => item.id !== tent.id))
+        return
+      }
+      if (!response.ok) throw new Error(`Zelt konnte nicht gelöscht werden (${response.status})`)
+      const saved = await response.json() as TentDto
+      setTents((current) => sortTents(current.map((item) => item.id === saved.id ? saved : item)))
     } catch (caught) {
-      setError(formatApiError(caught, 'Zeltstatus konnte nicht geändert werden.'))
+      setError(caught instanceof Error ? caught.message : 'Zelt konnte nicht gelöscht werden.')
     } finally {
       setSaving(null)
     }
@@ -201,14 +206,14 @@ function TentsPage() {
 
       {loading ? <V1Empty title="Lade Zelte..." /> : tents.length === 0 ? <V1Empty title="Noch kein Zelt" action={<V1Button variant="primary" onClick={openCreate}>Erstes Zelt anlegen</V1Button>} /> : (
         <section className="v1-card-grid">
-          {tents.map((tent) => <TentCard key={tent.id} tent={tent} live={liveByTentId[tent.id] ?? null} hydroCount={countHydroForTent(hydroSetups, tent.id)} saving={saving === `archive-${tent.id}`} onEdit={openEdit} onArchive={toggleArchive} />)}
+          {tents.map((tent) => <TentCard key={tent.id} tent={tent} live={liveByTentId[tent.id] ?? null} hydroCount={countHydroForTent(hydroSetups, tent.id)} saving={saving === `delete-${tent.id}`} onEdit={openEdit} onDelete={deleteTent} />)}
         </section>
       )}
     </V1Page>
   )
 }
 
-function TentCard({ tent, live, hydroCount, saving, onEdit, onArchive }: { tent: TentDto; live: TentLivePayload | null; hydroCount: number; saving: boolean; onEdit: (tent: TentDto) => void; onArchive: (tent: TentDto) => void }) {
+function TentCard({ tent, live, hydroCount, saving, onEdit, onDelete }: { tent: TentDto; live: TentLivePayload | null; hydroCount: number; saving: boolean; onEdit: (tent: TentDto) => void; onDelete: (tent: TentDto) => void }) {
   const archived = tent.status === 'Archived'
   return (
     <V1Card className="v1-tent-card" tone={archived ? 'neutral' : liveTone(live)}>
@@ -227,7 +232,7 @@ function TentCard({ tent, live, hydroCount, saving, onEdit, onArchive }: { tent:
         <Info label="Licht" value={tent.lightWatt ? `${tent.lightWatt} W` : tent.lightType ?? 'offen'} />
         <Info label="Klima" value={`${tent.exhaustFanCount ?? 0} Abluft · ${tent.circulationFanCount ?? 0} Umluft`} />
       </div>
-      <div className="v1-action-row"><V1LinkButton to={`/zelte/${tent.id}`} variant="primary">Öffnen</V1LinkButton><V1Button onClick={() => onEdit(tent)}>Bearbeiten</V1Button><V1Button variant="ghost" disabled={saving} onClick={() => void onArchive(tent)}>{archived ? 'Aktivieren' : 'Archivieren'}</V1Button></div>
+      <div className="v1-action-row"><V1LinkButton to={`/zelte/${tent.id}`} variant="primary">Öffnen</V1LinkButton><V1Button onClick={() => onEdit(tent)}>Bearbeiten</V1Button><V1Button variant="danger" disabled={saving} onClick={() => void onDelete(tent)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button></div>
     </V1Card>
   )
 }
@@ -239,7 +244,6 @@ function mapSensors(tent: TentDto): UpdateTentSensorRequest[] { return tent.sens
 function createDraft(displayOrder = 1): TentDraft { return { name: '', kind: 'Grow Tent', tentType: 'Production', notes: '', displayOrder: String(displayOrder), widthCm: '', depthCm: '', tentHeightCm: '', lightType: '', lightWatt: '', exhaustFanCount: '', exhaustM3h: '', circulationFanCount: '', co2Available: false } }
 function createDraftFromTent(tent: TentDto): TentDraft { return { name: tent.name, kind: tent.kind, tentType: tent.tentType, notes: tent.notes ?? '', displayOrder: String(tent.displayOrder), widthCm: String(tent.widthCm ?? ''), depthCm: String(tent.depthCm ?? ''), tentHeightCm: String(tent.tentHeightCm ?? ''), lightType: tent.lightType ?? '', lightWatt: String(tent.lightWatt ?? ''), exhaustFanCount: String(tent.exhaustFanCount ?? ''), exhaustM3h: String(tent.exhaustM3h ?? ''), circulationFanCount: String(tent.circulationFanCount ?? ''), co2Available: tent.co2Available } }
 function draftToRequest(draft: TentDraft) { return { name: draft.name.trim(), kind: draft.kind.trim() || 'Grow Tent', tentType: draft.tentType, notes: toNullableString(draft.notes), displayOrder: toNullableInt(draft.displayOrder) ?? 0, accentColor: '#22c55e', widthCm: toNullableInt(draft.widthCm), depthCm: toNullableInt(draft.depthCm), tentHeightCm: toNullableInt(draft.tentHeightCm), lightType: toNullableString(draft.lightType), lightWatt: toNullableInt(draft.lightWatt), lightController: null, lightControllerEntityId: null, exhaustFanCount: toNullableInt(draft.exhaustFanCount), exhaustM3h: toNullableInt(draft.exhaustM3h), circulationFanCount: toNullableInt(draft.circulationFanCount), hvacController: null, hvacControllerEntityId: null, co2Available: draft.co2Available, cameraEntityId: null } }
-function tentToRequest(tent: TentDto) { return { name: tent.name, kind: tent.kind, tentType: tent.tentType, notes: tent.notes, displayOrder: tent.displayOrder, accentColor: tent.accentColor, widthCm: tent.widthCm, depthCm: tent.depthCm, tentHeightCm: tent.tentHeightCm, lightType: tent.lightType, lightWatt: tent.lightWatt, lightController: tent.lightController, lightControllerEntityId: tent.lightControllerEntityId, exhaustFanCount: tent.exhaustFanCount, exhaustM3h: tent.exhaustM3h, circulationFanCount: tent.circulationFanCount, hvacController: tent.hvacController, hvacControllerEntityId: tent.hvacControllerEntityId, co2Available: tent.co2Available, cameraEntityId: tent.cameraEntityId } }
 function formatTentType(value: TentType) { return value === 'Production' ? 'Blüte / Run' : value === 'Mother' ? 'Mutter' : value === 'Propagation' ? 'Anzucht' : value === 'Quarantine' ? 'Quarantäne' : 'Mehrzweck' }
 function formatSize(tent: TentDto) { return !tent.widthCm && !tent.depthCm && !tent.tentHeightCm ? 'offen' : `${tent.widthCm ?? '–'}×${tent.depthCm ?? '–'}×${tent.tentHeightCm ?? '–'} cm` }
 function liveValue(live: TentLivePayload | null, key: LiveMetricKey) { const metric = live?.metrics.find((item) => item.key === key); return metric ? `${metric.value}${metric.unit && metric.value !== '–' ? ` ${metric.unit}` : ''}` : '–' }
