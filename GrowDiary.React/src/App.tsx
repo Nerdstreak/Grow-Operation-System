@@ -13,6 +13,7 @@ import HomeAssistantPage from './pages/HomeAssistantPage'
 import HydroPage from './pages/HydroPage'
 import KnowledgePage from './pages/KnowledgePage'
 import LiveDashboardPage from './pages/LiveDashboardPage'
+import ManualMeasurementPage from './pages/ManualMeasurementPage'
 import MeasurementEditPage from './pages/MeasurementEditPage'
 import MobileActionPage from './pages/MobileActionPage'
 import ReleasePage from './pages/ReleasePage'
@@ -31,6 +32,7 @@ const coreNav = [
 const moreNav = [
   { to: '/action', label: 'Aufgaben', end: true },
   { to: '/grows/new', label: 'Grow starten', end: true },
+  { to: '/messung', label: 'Messung', end: true },
   { to: '/home-assistant', label: 'Home Assistant', end: true },
   { to: '/connect', label: 'Gerät verbinden', end: true },
   { to: '/hardware', label: 'Sensoren', end: true },
@@ -100,6 +102,8 @@ function App() {
           <Route path="/aufgaben" element={<Navigate to="/action" replace />} />
           <Route path="/grows" element={<Navigate to="/" replace />} />
           <Route path="/grows/new" element={<GrowSetupPage />} />
+          <Route path="/messung" element={<ManualMeasurementPage />} />
+          <Route path="/messungen/new" element={<Navigate to="/messung" replace />} />
           <Route path="/grows/:growId" element={<GrowDetailPage />} />
           <Route path="/grows/:growId/setup" element={<GrowSetupPage />} />
           <Route path="/grows/:growId/addback" element={<AddbackPage />} />
@@ -146,6 +150,7 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/home-assistant')) return 'Home Assistant'
   if (pathname.startsWith('/connect')) return 'Gerät verbinden'
   if (pathname.startsWith('/grows/new')) return 'Grow starten'
+  if (pathname.startsWith('/messung') || pathname.startsWith('/messungen')) return 'Messung'
   if (pathname.startsWith('/grows')) return 'Grow'
   if (pathname.startsWith('/hardware')) return 'Sensoren'
   if (pathname.startsWith('/wissen')) return 'Wissen'
