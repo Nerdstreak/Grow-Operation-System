@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CreateTentRequest, HydroSetupDto, TentDto, TentType, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
+import type { CreateTentRequest, HydroSetupDto, TentDto, TentLivePayload, TentType, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Stat, V1Switch, toNullableInt, toNullableString } from '../components/v1'
 
 const tentTypes: TentType[] = ['Production', 'Mother', 'Propagation', 'Quarantine', 'MultiPurpose']
+const liveMetricKeys = ['temperature', 'humidity', 'vpd', 'light-cycle', 'ppfd'] as const
+
+type LiveMetricKey = typeof liveMetricKeys[number]
 
 type TentDraft = {
   name: string
@@ -31,6 +34,7 @@ function TentsPage() {
 
   const [tents, setTents] = useState<TentDto[]>([])
   const [hydroSetups, setHydroSetups] = useState<HydroSetupDto[]>([])
+  const [liveByTentId, setLiveByTentId] = useState<Record<number, TentLivePayload>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(routeCreateMode)
@@ -48,8 +52,14 @@ function TentsPage() {
         apiFetch<TentDto[]>('/api/settings/tents?includeArchived=true'),
         apiFetch<HydroSetupDto[]>('/api/hydro-setups?includeArchived=true'),
       ])
-      setTents(sortTents(tentData))
+      const sortedTents = sortTents(tentData)
+      const livePairs = await Promise.all(sortedTents.filter((tent) => tent.status === 'Active').map(async (tent) => {
+        try { return [tent.id, await apiFetch<TentLivePayload>(`/api/live/tents/${tent.id}`)] as const }
+        catch { return [tent.id, null] as const }
+      }))
+      setTents(sortedTents)
       setHydroSetups(setupData)
+      setLiveByTentId(Object.fromEntries(livePairs.filter((pair): pair is readonly [number, TentLivePayload] => pair[1] !== null)))
       if (routeCreateMode) setDraft(createDraft(tentData.length + 1))
     } catch (caught) {
       setError(formatApiError(caught, 'Zelte konnten nicht geladen werden.'))
@@ -135,7 +145,7 @@ function TentsPage() {
       <V1Page
         eyebrow="Physischer Raum"
         title={editingId ? 'Zelt bearbeiten' : 'Zelt anlegen'}
-        subtitle="Nur Raum, Größe und verbaute Technik. Home-Assistant-Entities werden separat gemappt."
+        subtitle="Raum, Größe und verbaute Technik. Home-Assistant-Entities werden separat gemappt."
         action={<V1Button onClick={closeForm}>Schließen</V1Button>}
         className="rc2-focused-form"
       >
@@ -165,10 +175,10 @@ function TentsPage() {
             </form>
           </V1Section>
 
-          <V1Section title="Nicht hier">
+          <V1Section title="Home Assistant">
             <V1Card className="rc2-info-card">
-              <span className="v1-card-kicker">Home Assistant getrennt</span>
-              <h2>Keine Entity-IDs beim Zelt anlegen</h2>
+              <span className="v1-card-kicker">Mapping getrennt</span>
+              <h2>Sensoren nach dem Zelt anlegen mappen</h2>
               <p>Kamera, pH, EC, VPD, Licht- und Klima-Entities gehören in das HA-Mapping. Das Zelt bleibt ein physischer Raum.</p>
               <V1LinkButton to="/home-assistant">HA-Mapping öffnen</V1LinkButton>
             </V1Card>
@@ -179,7 +189,7 @@ function TentsPage() {
   }
 
   return (
-    <V1Page eyebrow="Physische Räume" title="Zelte" action={<V1Button variant="primary" onClick={openCreate}>Zelt anlegen</V1Button>}>
+    <V1Page eyebrow="Räume" title="Zelte" action={<V1Button variant="primary" onClick={openCreate}>Zelt anlegen</V1Button>}>
       {error && <V1Alert message={error} tone="warn" />}
 
       <section className="v1-kpi-grid">
@@ -189,29 +199,35 @@ function TentsPage() {
         <V1Stat label="Hydro-Setups" value={activeHydroCount} />
       </section>
 
-      {loading ? <V1Empty title="Lade Zelte..." /> : activeTents.length === 0 ? <V1Empty title="Noch kein Zelt" action={<V1Button variant="primary" onClick={openCreate}>Erstes Zelt anlegen</V1Button>} /> : (
+      {loading ? <V1Empty title="Lade Zelte..." /> : tents.length === 0 ? <V1Empty title="Noch kein Zelt" action={<V1Button variant="primary" onClick={openCreate}>Erstes Zelt anlegen</V1Button>} /> : (
         <section className="v1-card-grid">
-          {tents.map((tent) => <TentCard key={tent.id} tent={tent} hydroCount={countHydroForTent(hydroSetups, tent.id)} saving={saving === `archive-${tent.id}`} onEdit={openEdit} onArchive={toggleArchive} />)}
+          {tents.map((tent) => <TentCard key={tent.id} tent={tent} live={liveByTentId[tent.id] ?? null} hydroCount={countHydroForTent(hydroSetups, tent.id)} saving={saving === `archive-${tent.id}`} onEdit={openEdit} onArchive={toggleArchive} />)}
         </section>
       )}
     </V1Page>
   )
 }
 
-function TentCard({ tent, hydroCount, saving, onEdit, onArchive }: { tent: TentDto; hydroCount: number; saving: boolean; onEdit: (tent: TentDto) => void; onArchive: (tent: TentDto) => void }) {
+function TentCard({ tent, live, hydroCount, saving, onEdit, onArchive }: { tent: TentDto; live: TentLivePayload | null; hydroCount: number; saving: boolean; onEdit: (tent: TentDto) => void; onArchive: (tent: TentDto) => void }) {
   const archived = tent.status === 'Archived'
   return (
-    <V1Card className="v1-tent-card" tone={archived ? 'neutral' : 'ok'}>
-      <div className="v1-card-title-row"><div><span className="v1-card-kicker">{formatTentType(tent.tentType)}</span><h2>{tent.name}</h2></div><V1Badge tone={archived ? 'neutral' : 'ok'}>{archived ? 'Archiv' : 'aktiv'}</V1Badge></div>
-      <div className="v1-info-grid">
-        <Info label="Größe" value={formatSize(tent)} />
-        <Info label="Licht" value={tent.lightWatt ? `${tent.lightWatt} W` : tent.lightType ?? 'offen'} />
-        <Info label="Klima" value={`${tent.exhaustFanCount ?? 0} Abluft · ${tent.circulationFanCount ?? 0} Umluft`} />
-        <Info label="CO₂" value={tent.co2Available ? 'ja' : 'nein'} />
-        <Info label="Grows" value={String(tent.activeGrowCount)} />
+    <V1Card className="v1-tent-card" tone={archived ? 'neutral' : liveTone(live)}>
+      <div className="v1-card-title-row"><div><span className="v1-card-kicker">{formatTentType(tent.tentType)}</span><h2>{tent.name}</h2></div><V1Badge tone={archived ? 'neutral' : liveTone(live)}>{archived ? 'Archiv' : live?.stateLabel ?? 'aktiv'}</V1Badge></div>
+      <div className="v1-info-grid compact">
+        <Info label="Temp" value={liveValue(live, 'temperature')} />
+        <Info label="RLF" value={liveValue(live, 'humidity')} />
+        <Info label="VPD" value={liveValue(live, 'vpd')} />
+        <Info label="Licht" value={liveValue(live, 'light-cycle')} />
+        <Info label="PPFD" value={liveValue(live, 'ppfd')} />
         <Info label="Hydro" value={String(hydroCount)} />
       </div>
-      <div className="v1-action-row"><V1Button onClick={() => onEdit(tent)}>Bearbeiten</V1Button><V1Button variant="ghost" disabled={saving} onClick={() => void onArchive(tent)}>{archived ? 'Aktivieren' : 'Archivieren'}</V1Button></div>
+      <div className="v1-info-grid compact">
+        <Info label="Größe" value={formatSize(tent)} />
+        <Info label="Grows" value={String(tent.activeGrowCount)} />
+        <Info label="Licht" value={tent.lightWatt ? `${tent.lightWatt} W` : tent.lightType ?? 'offen'} />
+        <Info label="Klima" value={`${tent.exhaustFanCount ?? 0} Abluft · ${tent.circulationFanCount ?? 0} Umluft`} />
+      </div>
+      <div className="v1-action-row"><V1LinkButton to={`/zelte/${tent.id}`} variant="primary">Öffnen</V1LinkButton><V1Button onClick={() => onEdit(tent)}>Bearbeiten</V1Button><V1Button variant="ghost" disabled={saving} onClick={() => void onArchive(tent)}>{archived ? 'Aktivieren' : 'Archivieren'}</V1Button></div>
     </V1Card>
   )
 }
@@ -226,6 +242,8 @@ function draftToRequest(draft: TentDraft) { return { name: draft.name.trim(), ki
 function tentToRequest(tent: TentDto) { return { name: tent.name, kind: tent.kind, tentType: tent.tentType, notes: tent.notes, displayOrder: tent.displayOrder, accentColor: tent.accentColor, widthCm: tent.widthCm, depthCm: tent.depthCm, tentHeightCm: tent.tentHeightCm, lightType: tent.lightType, lightWatt: tent.lightWatt, lightController: tent.lightController, lightControllerEntityId: tent.lightControllerEntityId, exhaustFanCount: tent.exhaustFanCount, exhaustM3h: tent.exhaustM3h, circulationFanCount: tent.circulationFanCount, hvacController: tent.hvacController, hvacControllerEntityId: tent.hvacControllerEntityId, co2Available: tent.co2Available, cameraEntityId: tent.cameraEntityId } }
 function formatTentType(value: TentType) { return value === 'Production' ? 'Blüte / Run' : value === 'Mother' ? 'Mutter' : value === 'Propagation' ? 'Anzucht' : value === 'Quarantine' ? 'Quarantäne' : 'Mehrzweck' }
 function formatSize(tent: TentDto) { return !tent.widthCm && !tent.depthCm && !tent.tentHeightCm ? 'offen' : `${tent.widthCm ?? '–'}×${tent.depthCm ?? '–'}×${tent.tentHeightCm ?? '–'} cm` }
+function liveValue(live: TentLivePayload | null, key: LiveMetricKey) { const metric = live?.metrics.find((item) => item.key === key); return metric ? `${metric.value}${metric.unit && metric.value !== '–' ? ` ${metric.unit}` : ''}` : '–' }
+function liveTone(live: TentLivePayload | null) { return live?.stateTone === 'critical' ? 'critical' : live?.stateTone === 'warn' || live?.stateTone === 'warning' ? 'warn' : live ? 'ok' : 'neutral' }
 function formatApiError(caught: unknown, fallback: string) { return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback }
 
 export default TentsPage
