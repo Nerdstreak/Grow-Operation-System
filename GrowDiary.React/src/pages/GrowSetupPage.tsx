@@ -64,12 +64,12 @@ function GrowSetupPage() {
   const selectedTent = tents.find((tent) => tent.id === form.tentId) ?? null
   const exactHydro = useMemo(() => hydroSetups.filter((setup) => form.tentId ? setup.tentId === form.tentId : true), [form.tentId, hydroSetups])
   const availableHydro = exactHydro.length > 0 ? exactHydro : hydroSetups
-  const selectedHydro = hydroSetups.find((setup) => setup.id === form.systemId || setup.id === form.setupId) ?? null
+  const selectedHydro = hydroSetups.find((setup) => setup.id === form.systemId) ?? null
   const selectedProgram = programs.find((program) => program.name === form.nutrients || program.key === form.nutrients) ?? null
 
   function patch(value: Partial<GrowUpsertPayload>) { setForm((current) => ({ ...current, ...value })) }
   function selectTent(id: number) { setForm((current) => ({ ...current, tentId: id, systemId: hydroSetups.some((setup) => setup.id === current.systemId && setup.tentId === id) ? current.systemId : null, setupId: null })) }
-  function selectHydro(setup: HydroSetupDto) { patch({ systemId: setup.id, setupId: setup.id, hydroStyle: setup.hydroStyle, reservoirSize: formatLiters(setup.totalVolumeLiters ?? setup.reservoirLiters), containerSize: formatLiters(setup.potSizeLiters), hasChiller: setup.hasChiller }) }
+  function selectHydro(setup: HydroSetupDto) { patch({ systemId: setup.id, setupId: null, hydroStyle: setup.hydroStyle, reservoirSize: formatLiters(setup.totalVolumeLiters ?? setup.reservoirLiters), containerSize: formatLiters(setup.potSizeLiters), hasChiller: setup.hasChiller }) }
 
   function goTo(next: number) {
     if (next > step) {
@@ -89,7 +89,7 @@ function GrowSetupPage() {
     setSaving(true)
     setError(null)
     try {
-      const payload = { ...form, nutrients: form.nutrients || customProgram || null, setupId: form.setupId ?? form.systemId }
+      const payload = { ...form, nutrients: form.nutrients || customProgram || null, setupId: form.setupId ?? null }
       const saved = await apiFetch<GrowDetail>(isEditing && growId ? `/api/grows/${growId}` : '/api/grows', { method: isEditing ? 'PUT' : 'POST', body: JSON.stringify(payload) })
       navigate(`/grows/${saved.id}`)
     } catch (caught) {
@@ -111,7 +111,7 @@ function GrowSetupPage() {
         <div className="grow-wizard-main">
           {step === 1 && <RunStep form={form} patch={patch} />}
           {step === 2 && <TentStep tents={tents} selectedId={form.tentId} onSelect={selectTent} />}
-          {step === 3 && <HydroStep setups={availableHydro} exactCount={exactHydro.length} selectedId={form.systemId ?? form.setupId ?? null} onSelect={selectHydro} tent={selectedTent} />}
+          {step === 3 && <HydroStep setups={availableHydro} exactCount={exactHydro.length} selectedId={form.systemId ?? null} onSelect={selectHydro} tent={selectedTent} />}
           {step === 4 && <TimeStep form={form} patch={patch} />}
           {step === 5 && <ProgramStep programs={programs} selected={form.nutrients ?? ''} custom={customProgram} setCustom={setCustomProgram} patch={patch} />}
           {step === 6 && <ReviewStep form={form} tent={selectedTent} hydro={selectedHydro} program={selectedProgram} custom={customProgram} />}
@@ -132,7 +132,7 @@ function RunStep({ form, patch }: { form: GrowUpsertPayload; patch: (value: Part
 
 function TentStep({ tents, selectedId, onSelect }: { tents: TentDto[]; selectedId: number | null; onSelect: (id: number) => void }) {
   if (tents.length === 0) return <V1Empty title="Kein Zelt angelegt" action={<V1LinkButton to="/zelte/new" variant="primary">Zelt anlegen</V1LinkButton>} />
-  return <V1Section title="Zelt"><div className="grow-select-grid">{tents.map((tent) => <button type="button" key={tent.id} className={classNames('grow-select-card', selectedId === tent.id && 'active')} onClick={() => onSelect(tent.id)}><span className="grow-card-topline"><strong>{tent.name}</strong><V1Badge tone={tent.status === 'Active' ? 'ok' : 'neutral'}>{tent.status}</V1Badge></span><span className="grow-card-meta">{tent.tentType} · {formatTentSize(tent)}</span><span className="grow-card-facts"><b>{tent.activeGrowCount} Grows</b><b>{tent.activeSetupCount} Hydro</b></span></button>)}</div></V1Section>
+  return <V1Section title="Zelt"><div className="grow-select-grid">{tents.map((tent) => <button type="button" key={tent.id} className={classNames('grow-select-card', selectedId === tent.id && 'active')} onClick={() => onSelect(tent.id)}><span className="grow-card-topline"><strong>{tent.name}</strong><V1Badge tone={tent.status === 'Active' ? 'ok' : 'neutral'}>{tent.status}</V1Badge></span><span className="grow-card-meta">{tent.tentType} · {formatTentSize(tent)}</span><span className="grow-card-facts"><b>{tent.activeGrowCount} Grows</b><b>{tent.activeSetupCount} Setups</b></span></button>)}</div></V1Section>
 }
 
 function HydroStep({ setups, exactCount, selectedId, onSelect, tent }: { setups: HydroSetupDto[]; exactCount: number; selectedId: number | null; onSelect: (setup: HydroSetupDto) => void; tent: TentDto | null }) {
