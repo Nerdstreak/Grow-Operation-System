@@ -1,4 +1,4 @@
-import { test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -291,6 +291,7 @@ for (const viewport of viewports) {
       page.on('pageerror', (error) => { pageError = error.message })
       for (const route of routes) {
         await auditRoute(page, viewport, route, pageError)
+        await assertRouteContract(page, route.slug)
         pageError = null
       }
     })
@@ -306,3 +307,24 @@ for (const viewport of viewports) {
 test.afterAll(() => {
   writeReports()
 })
+
+async function assertRouteContract(page: import('@playwright/test').Page, slug: string) {
+  if (slug === 'settings') {
+    await expect(page.getByRole('button', { name: /Vollbackup herunterladen/i })).toBeVisible()
+    await expect(page.locator('.rc-file-input').first()).toBeVisible()
+  }
+  if (slug === 'release' || slug === 'messung') {
+    await expect(page.locator('.rc-file-input').first()).toBeVisible()
+  }
+  if (slug === 'connect') {
+    await expect(page.getByRole('button', { name: /^(Addback|Messung|HA)$/i })).toHaveCount(0)
+    await expect(page.getByText(/\/addback|\/messung|\/home-assistant/i)).toHaveCount(0)
+  }
+  if (slug === 'action' || slug === 'aufgaben') {
+    await expect(page.locator('.rc-action-guide-card')).toHaveCount(4)
+  }
+  if (slug === 'wissen') {
+    await expect(page.locator('.rc2-topic-card').first()).toBeVisible()
+    await expect(page.locator('.rc2-topic-detail').first()).toBeVisible()
+  }
+}

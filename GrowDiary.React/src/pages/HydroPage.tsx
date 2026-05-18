@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CreateHydroSetupRequest, HydroSetupDto, HydroSetupLayoutType, ReservoirPosition, SelectableHydroStyle, TentDto, UpdateHydroSetupRequest } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Stat, V1Switch, V1Wizard } from '../components/v1'
+import type { CreateHydroSetupRequest, GrowSummary, HydroSetupDto, HydroSetupLayoutType, ReservoirPosition, SelectableHydroStyle, TentDto, UpdateHydroSetupRequest } from '../types'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Stat, V1Switch, V1Wizard } from '../components/v1'
 import { draftNumber, formatLiters, toNullableFloat, toNullableInt, toNullableString } from '../components/v1-utils'
 import { classNames, formatNumber } from '../utils'
 
@@ -37,6 +37,7 @@ function HydroPage() {
 
   const [tents, setTents] = useState<TentDto[]>([])
   const [setups, setSetups] = useState<HydroSetupDto[]>([])
+  const [grows, setGrows] = useState<GrowSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(routeCreateMode)
@@ -51,7 +52,9 @@ function HydroPage() {
     setError(null)
     try {
       const [tentData, setupData] = await Promise.all([apiFetch<TentDto[]>('/api/settings/tents'), apiFetch<HydroSetupDto[]>('/api/hydro-setups?includeArchived=true')])
+      const growData = await apiFetch<GrowSummary[]>('/api/grows?archived=false').catch(() => [])
       setTents(tentData)
+      setGrows(growData)
       const sorted = sortSetups(setupData)
       setSetups(sorted)
       setSelectedSetupId((current) => current ?? sorted.find((setup) => setup.status === 'Active')?.id ?? sorted[0]?.id ?? null)
@@ -139,7 +142,12 @@ function HydroPage() {
   }
 
   async function deleteSetup(setup: HydroSetupDto) {
-    const confirmed = window.confirm(`${setup.name} löschen? Wenn aktive Grows daran hängen, wird das Setup vom Backend archiviert.`)
+    const linkedGrows = getGrowsForSetup(grows, setup.id)
+    if (linkedGrows.length > 0) {
+      setError(`${setup.name} ist mit aktiven Grows verknüpft. Öffne die betroffenen Grows oder archiviere das Setup: ${linkedGrows.map((grow) => grow.name).join(', ')}`)
+      return
+    }
+    const confirmed = window.confirm(`${setup.name} endgültig löschen?`)
     if (!confirmed) return
     setSaving(`delete-${setup.id}`)
     setError(null)
@@ -156,6 +164,22 @@ function HydroPage() {
       setSelectedSetupId(saved.id)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Hydro-Setup konnte nicht gelöscht werden.')
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function archiveSetup(setup: HydroSetupDto) {
+    const confirmed = window.confirm(`${setup.name} archivieren?`)
+    if (!confirmed) return
+    setSaving(`archive-${setup.id}`)
+    setError(null)
+    try {
+      const saved = await apiFetch<HydroSetupDto>(`/api/hydro-setups/${setup.id}/archive`, { method: 'POST' })
+      setSetups((current) => sortSetups(current.map((item) => item.id === saved.id ? saved : item)))
+      setSelectedSetupId(saved.id)
+    } catch (caught) {
+      setError(formatApiError(caught, 'Hydro-Setup konnte nicht archiviert werden.'))
     } finally {
       setSaving(null)
     }
@@ -200,7 +224,7 @@ function HydroPage() {
               {setups.map((setup) => <button key={setup.id} type="button" className={classNames('v1-hydro-list-item', selectedSetup?.id === setup.id && 'active')} onClick={() => setSelectedSetupId(setup.id)}><strong>{setup.name}</strong><span>{setup.hydroStyle} · {setup.tentName ?? 'ohne Zelt'} · {formatLiters(setup.totalVolumeLiters)}</span></button>)}
             </div>
           </V1Section>
-          {selectedSetup && <HydroDetail setup={selectedSetup} saving={saving === `delete-${selectedSetup.id}`} onEdit={openEdit} onDelete={deleteSetup} />}
+          {selectedSetup && <HydroDetail setup={selectedSetup} linkedGrows={getGrowsForSetup(grows, selectedSetup.id)} saving={saving === `delete-${selectedSetup.id}` || saving === `archive-${selectedSetup.id}`} onEdit={openEdit} onDelete={deleteSetup} onArchive={archiveSetup} />}
         </section>
       )}
     </V1Page>
@@ -228,7 +252,7 @@ function StepReview({ draft, tents, totalVolume }: { draft: HydroDraft; tents: T
   return <div className="v1-review-layout"><V1Card><div className="v1-info-grid"><Info label="Name" value={draft.name || '–'} /><Info label="Zelt" value={tent?.name ?? '–'} /><Info label="Typ" value={draft.hydroStyle} /><Info label="Sites" value={draft.potCount || '–'} /><Info label="Topf" value={`${draft.potSizeLiters || '–'} L`} /><Info label="Tank" value={`${draft.reservoirLiters || '–'} L`} /><Info label="Gesamt" value={`${formatNumber(totalVolume, 1)} L`} /><Info label="Layout" value={formatLayout(draft.layoutType)} /></div></V1Card><RdwcLayoutPreview draft={draft} /></div>
 }
 
-function HydroDetail({ setup, saving, onEdit, onDelete }: { setup: HydroSetupDto; saving: boolean; onEdit: (setup: HydroSetupDto) => void; onDelete: (setup: HydroSetupDto) => void }) {
+function HydroDetail({ setup, linkedGrows, saving, onEdit, onArchive, onDelete }: { setup: HydroSetupDto; linkedGrows: GrowSummary[]; saving: boolean; onEdit: (setup: HydroSetupDto) => void; onArchive: (setup: HydroSetupDto) => void; onDelete: (setup: HydroSetupDto) => void }) {
   const facts = [
     ['Zelt', setup.tentName ?? '–'],
     ['Sites', String(setup.potCount ?? '–')],
@@ -265,9 +289,12 @@ function HydroDetail({ setup, saving, onEdit, onDelete }: { setup: HydroSetupDto
           </div>
 
           <div className="v1-action-row">
+            <V1LinkButton to={`/hydro/${setup.id}`} variant="primary">Öffnen</V1LinkButton>
             <V1Button onClick={() => onEdit(setup)}>Bearbeiten</V1Button>
+            <V1Button disabled={saving} onClick={() => void onArchive(setup)}>Archivieren</V1Button>
             <V1Button variant="danger" disabled={saving} onClick={() => void onDelete(setup)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button>
           </div>
+          {linkedGrows.length > 0 && <div className="v1-list">{linkedGrows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>Verknüpfter aktiver Grow</span></Link>)}</div>}
         </V1Card>
         <RdwcLayoutPreview setup={setup} />
       </div>
@@ -296,6 +323,7 @@ function validateAll(draft: HydroDraft) { for (let i = 1; i <= 4; i += 1) { cons
 function draftToRequest(draft: HydroDraft): CreateHydroSetupRequest { return { tentId: toNullableInt(draft.tentId), name: draft.name.trim(), hydroStyle: draft.hydroStyle, potCount: toNullableInt(draft.potCount), potSizeLiters: toNullableFloat(draft.potSizeLiters), reservoirLiters: toNullableFloat(draft.reservoirLiters), layoutType: draft.hydroStyle === 'DWC' ? 'SingleBucket' : draft.layoutType, reservoirPosition: draft.hydroStyle === 'DWC' ? 'None' : draft.reservoirPosition, hasCirculationPump: draft.hasCirculationPump, circulationPumpNotes: toNullableString(draft.circulationPumpNotes), hasAirPump: draft.hasAirPump, airPumpNotes: toNullableString(draft.airPumpNotes), airStoneCount: toNullableInt(draft.airStoneCount), hasChiller: draft.hasChiller, hasUvSterilizer: draft.hasUvSterilizer, notes: toNullableString(draft.notes), displayOrder: toNullableInt(draft.displayOrder) ?? 0 } }
 function layoutColumns(layout: HydroSetupLayoutType, count: number) { if (layout === 'Grid2x2' || layout === 'Grid2x3' || layout === 'Grid2x4') return 2; if (layout === 'Row') return count; return Math.min(4, Math.max(1, Math.ceil(Math.sqrt(count)))) }
 function formatLayout(value: HydroSetupLayoutType) { return value === 'SingleBucket' ? 'Einzeleimer' : value === 'Row' ? 'Reihe' : value === 'Grid2x2' ? '2×2' : value === 'Grid2x3' ? '2×3' : value === 'Grid2x4' ? '2×4' : 'Custom' }
+function getGrowsForSetup(grows: GrowSummary[], setupId: number) { return grows.filter((grow) => grow.setupId === setupId && (grow.status === 'Running' || grow.status === 'Planning')) }
 function formatReservoirPosition(value: ReservoirPosition) { return value === 'None' ? 'keiner' : value === 'Left' ? 'links' : value === 'Right' ? 'rechts' : value === 'Top' ? 'oben' : value === 'Bottom' ? 'unten' : 'extern' }
 function formatApiError(caught: unknown, fallback: string) { return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback }
 

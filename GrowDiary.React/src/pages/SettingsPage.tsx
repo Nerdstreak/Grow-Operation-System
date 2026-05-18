@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary, SettingsOverviewDto } from '../types'
+import FileInput from '../components/FileInput'
 import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section } from '../components/v1'
 
 type ImportPreview = { ok: boolean; title: string; details: string[] }
-type BackupManifest = { fileName: string; downloadUrl: string }
+type BackupManifest = { fileName?: string; downloadUrl?: string }
 
 function SettingsPage() {
   const [settings, setSettings] = useState<SettingsOverviewDto | null>(null)
@@ -43,14 +44,25 @@ function SettingsPage() {
     setError(null)
     setMessage(null)
     try {
-      const manifest = await apiFetch<BackupManifest>('/api/system/backup', { method: 'POST' })
+      const initialResponse = await fetch('/api/system/backup', { method: 'POST' })
+      if (!initialResponse.ok) throw new Error(`Backup konnte nicht erstellt werden (${initialResponse.status})`)
+
+      const initialContentType = initialResponse.headers.get('content-type') ?? ''
+      if (!initialContentType.includes('application/json')) {
+        const blob = await initialResponse.blob()
+        downloadBlob(getFileNameFromDisposition(initialResponse.headers.get('content-disposition')) ?? defaultBackupFileName(), blob)
+        setMessage('Vollbackup wurde erstellt und heruntergeladen.')
+        return
+      }
+
+      const manifest = await initialResponse.json() as BackupManifest
       if (!manifest.downloadUrl) throw new Error('Backup wurde erstellt, aber es fehlt die Download-URL.')
 
       const response = await fetch(manifest.downloadUrl)
       if (!response.ok) throw new Error(`Backup-Download fehlgeschlagen (${response.status})`)
 
       const blob = await response.blob()
-      downloadBlob(manifest.fileName || `grow-os-backup-${new Date().toISOString().slice(0, 10)}.zip`, blob)
+      downloadBlob(getFileNameFromDisposition(response.headers.get('content-disposition')) ?? manifest.fileName ?? defaultBackupFileName(), blob)
       setMessage('Vollbackup wurde erstellt und heruntergeladen.')
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Vollbackup konnte nicht erstellt werden.')
@@ -164,7 +176,7 @@ function SettingsPage() {
                 <span className="v1-card-kicker">Datei auswählen</span>
                 <h2>Import-Datei prüfen</h2>
                 <V1Field label="JSON-Datei">
-                  <input type="file" accept="application/json,.json" onChange={(event) => void handleFile(event.target.files?.[0] ?? null)} />
+                  <FileInput accept="application/json,.json" fileNames={importFileName ? [importFileName] : []} onFiles={(files) => void handleFile(files[0] ?? null)} />
                 </V1Field>
                 <p>Kein manuelles JSON-Feld. Erst Datei auswählen, dann Syntax und Schema prüfen.</p>
               </V1Card>
@@ -196,6 +208,18 @@ function downloadBlob(fileName: string, blob: Blob) {
   link.click()
   link.remove()
   URL.revokeObjectURL(url)
+}
+
+function defaultBackupFileName() {
+  return `grow-os-backup-${new Date().toISOString().slice(0, 10)}.zip`
+}
+
+function getFileNameFromDisposition(value: string | null) {
+  if (!value) return null
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(value)
+  if (encoded) return decodeURIComponent(encoded[1].replace(/"/g, ''))
+  const plain = /filename="?([^";]+)"?/i.exec(value)
+  return plain?.[1] ?? null
 }
 
 function formatApiError(caught: unknown, fallback: string) {

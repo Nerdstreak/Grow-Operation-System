@@ -10,6 +10,7 @@ import GrowSetupPage from './pages/GrowSetupPage'
 import HardwarePage from './pages/HardwarePage'
 import HarvestPage from './pages/HarvestPage'
 import HomeAssistantPage from './pages/HomeAssistantPage'
+import HydroDetailPage from './pages/HydroDetailPage'
 import HydroPage from './pages/HydroPage'
 import KnowledgePage from './pages/KnowledgePage'
 import LiveDashboardPage from './pages/LiveDashboardPage'
@@ -114,6 +115,7 @@ function App() {
           <Route path="/zelte/:tentId" element={<TentDetailPage />} />
           <Route path="/hydro" element={<HydroPage />} />
           <Route path="/hydro/new" element={<HydroPage />} />
+          <Route path="/hydro/:setupId" element={<HydroDetailPage />} />
           <Route path="/home-assistant" element={<HomeAssistantPage />} />
           <Route path="/connect" element={<DeviceConnectPage />} />
           <Route path="/hardware" element={<HardwarePage />} />

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary } from '../types'
+import FileInput from '../components/FileInput'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch } from '../components/v1'
 
 type ImportPlan = {
@@ -29,6 +30,7 @@ function ReleasePage() {
   const [selectedGrowId, setSelectedGrowId] = useState<number | null>(null)
   const [anonymize, setAnonymize] = useState(false)
   const [includePhotoMetadata, setIncludePhotoMetadata] = useState(true)
+  const [importFileName, setImportFileName] = useState('')
   const [importText, setImportText] = useState('')
   const [plan, setPlan] = useState<ImportPlan | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
@@ -65,6 +67,7 @@ function ReleasePage() {
     setPlan(null)
     setResult(null)
     const text = await file.text()
+    setImportFileName(file.name)
     setImportText(text)
     setMessage(`${file.name} geladen.`)
   }
@@ -155,7 +158,7 @@ function ReleasePage() {
             <span className="v1-card-kicker">1. Datei wählen</span>
             <h2>Export JSON</h2>
             <V1Field label="Datei">
-              <input type="file" accept="application/json,.json" onChange={(event) => void handleFile(event.target.files?.[0] ?? null)} />
+              <FileInput accept="application/json,.json" fileNames={importFileName ? [importFileName] : []} onFiles={(files) => void handleFile(files[0] ?? null)} />
             </V1Field>
             <V1Field label="Oder JSON einfügen">
               <textarea value={importText} onChange={(event) => setImportText(event.target.value)} rows={8} placeholder="{ ... grow-os.grow-export.v1 ... }" />
