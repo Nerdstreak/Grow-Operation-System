@@ -38,6 +38,7 @@ builder.Services.AddSingleton<DatabaseInitializer>();
 builder.Services.AddSingleton<TentRepository>();
 builder.Services.AddSingleton<HydroSetupRepository>();
 builder.Services.AddSingleton<AddbackRepository>();
+builder.Services.AddSingleton<HardwareRepository>();
 builder.Services.AddSingleton<GrowRepository>();
 builder.Services.AddSingleton<TaskRepository>();
 builder.Services.AddSingleton<JournalRepository>();
