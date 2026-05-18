@@ -41,6 +41,7 @@ builder.Services.AddSingleton<AddbackRepository>();
 builder.Services.AddSingleton<HardwareRepository>();
 builder.Services.AddSingleton<SetupRepository>();
 builder.Services.AddSingleton<AutoMeasurementRepository>();
+builder.Services.AddSingleton<LightRepository>();
 builder.Services.AddSingleton<GrowRepository>();
 builder.Services.AddSingleton<TaskRepository>();
 builder.Services.AddSingleton<JournalRepository>();
