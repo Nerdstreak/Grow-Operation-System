@@ -1,9 +1,12 @@
-import { test } from '@playwright/test'
+import { test, type APIRequestContext } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
 
 const repoRoot = path.resolve(process.cwd(), '..')
 const outputDir = path.join(repoRoot, 'artifacts', 'workflow-audit-current')
+const backendUrl = (process.env.GROW_OS_BACKEND_URL ?? 'http://127.0.0.1:5076').replace(/\/$/, '')
+const workflowTentName = 'E2E Workflow Audit Zelt'
+const workflowHydroName = 'E2E Workflow Audit RDWC'
 
 type LayoutFinding = {
   tag: string
@@ -31,6 +34,19 @@ type WorkflowStepReport = {
   documentOverflow: boolean
   hardOffenders: LayoutFinding[]
   clipWarnings: LayoutFinding[]
+}
+
+type WorkflowTent = {
+  id: number
+  name: string
+  status?: string | null
+}
+
+type WorkflowHydroSetup = {
+  id: number
+  tentId: number | null
+  name: string
+  status?: string | null
 }
 
 const workflowReports: WorkflowStepReport[] = []
@@ -81,6 +97,7 @@ test.describe('workflow audit mobile', () => {
     await clickNextAndExpectStep(page, 5, 'hydro step 5')
     await screenshotAndLayout(page, 'mobile-hydro-step-5')
 
+    await ensureHydroSetupForWorkflowAudit(page.request)
     await auditRoute(page, '/grows/new', 'mobile-grow-step-1')
     await fillIfVisible(page, 'input[placeholder="Purple Lemonade RDWC"]', `E2E Grow ${Date.now()}`)
     await expectWizardStep(page, 1, 'grow initial')
@@ -119,6 +136,84 @@ test.describe('workflow audit desktop', () => {
     await auditRoute(page, '/connect', 'desktop-connect')
   })
 })
+
+async function ensureHydroSetupForWorkflowAudit(request: APIRequestContext) {
+  const [tents, hydroSetups] = await Promise.all([
+    apiJson<WorkflowTent[]>(request, 'GET', '/api/settings/tents?includeArchived=true'),
+    apiJson<WorkflowHydroSetup[]>(request, 'GET', '/api/hydro-setups?includeArchived=true'),
+  ])
+
+  const activeTents = tents.filter((tent) => tent.status !== 'Archived')
+  const activeTentIds = new Set(activeTents.map((tent) => tent.id))
+  const reusableHydro = hydroSetups.find((setup) => setup.status !== 'Archived' && setup.tentId != null && activeTentIds.has(setup.tentId))
+  if (reusableHydro) return
+
+  let tent = activeTents.find((item) => item.name === workflowTentName)
+  if (!tent) {
+    tent = await apiJson<WorkflowTent>(request, 'POST', '/api/settings/tents', {
+      name: workflowTentName,
+      kind: 'Grow Tent',
+      tentType: 'Production',
+      status: 'Active',
+      notes: 'Automatisch angelegte Testdaten fuer Playwright Workflow Audit',
+      displayOrder: 9001,
+      accentColor: '#22c55e',
+      widthCm: 120,
+      depthCm: 120,
+      tentHeightCm: 200,
+      lightType: 'LED',
+      lightWatt: 400,
+      lightController: null,
+      lightControllerEntityId: null,
+      exhaustFanCount: 1,
+      exhaustM3h: 400,
+      circulationFanCount: 2,
+      hvacController: null,
+      hvacControllerEntityId: null,
+      co2Available: false,
+      cameraEntityId: null,
+      sensors: [],
+    })
+  }
+
+  const hasHydroForTent = hydroSetups.some((setup) => setup.status !== 'Archived' && setup.tentId === tent.id)
+  if (hasHydroForTent) return
+
+  await apiJson<WorkflowHydroSetup>(request, 'POST', '/api/hydro-setups', {
+    tentId: tent.id,
+    name: workflowHydroName,
+    hydroStyle: 'RDWC',
+    potCount: 4,
+    potSizeLiters: 19,
+    reservoirLiters: 60,
+    layoutType: 'Grid2x2',
+    reservoirPosition: 'Left',
+    hasCirculationPump: true,
+    circulationPumpNotes: null,
+    hasAirPump: true,
+    airPumpNotes: null,
+    airStoneCount: 4,
+    hasChiller: false,
+    hasUvSterilizer: false,
+    notes: 'Automatisch angelegte Testdaten fuer Playwright Workflow Audit',
+    displayOrder: 9001,
+  })
+}
+
+async function apiJson<T>(request: APIRequestContext, method: 'GET' | 'POST', pathName: string, data?: unknown): Promise<T> {
+  const response = await request.fetch(`${backendUrl}${pathName}`, {
+    method,
+    data,
+    headers: data == null ? undefined : { 'Content-Type': 'application/json' },
+  })
+
+  if (!response.ok()) {
+    const body = await response.text().catch(() => '')
+    throw new Error(`Workflow-Audit Testdaten API fehlgeschlagen: ${method} ${pathName} -> ${response.status()} ${body}`)
+  }
+
+  return await response.json() as T
+}
 
 async function auditRoute(page: import('@playwright/test').Page, url: string, name: string) {
   await page.goto(url, { waitUntil: 'domcontentloaded' })
