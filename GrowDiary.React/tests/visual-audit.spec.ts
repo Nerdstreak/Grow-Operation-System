@@ -27,6 +27,17 @@ type ReportRow = {
   heading: string | null
   note: string | null
   pageError: string | null
+  bottomNavFindings: LayoutFinding[]
+}
+
+type LayoutFinding = {
+  selector: string
+  text: string
+  problem: string
+  top: number
+  bottom: number
+  bottomNavTop: number | null
+  bottomNavGap: number | null
 }
 
 const viewports: ViewportCase[] = [
@@ -70,11 +81,58 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       document.querySelector('[data-audit-title]')?.textContent?.trim() ??
       null
 
+    function selectorFor(element: Element) {
+      if (element.id) return `#${element.id}`
+      const className = Array.from(element.classList).slice(0, 3).join('.')
+      return `${element.tagName.toLowerCase()}${className ? `.${className}` : ''}`
+    }
+
+    function isBottomNavCandidate(element: HTMLElement) {
+      const style = window.getComputedStyle(element)
+      return (
+        style.position === 'fixed' ||
+        style.position === 'sticky' ||
+        Boolean(element.closest('.sticky-actions, .ops1b-sticky-actions')) ||
+        Boolean(element.matches('button, a, input, select, textarea, .v1-card, .v1-section, .v1-wizard-step, .v1-form-actions, .v1-action-row, .grow-select-card'))
+      )
+    }
+
+    const bottomNav = document.querySelector('.v1-bottom-nav') as HTMLElement | null
+    const bottomNavRect = bottomNav?.getBoundingClientRect() ?? null
+    const bottomNavFindings = bottomNavRect
+      ? Array.from(document.querySelectorAll('button, a, input, select, textarea, .v1-card, .v1-section, .v1-wizard-step, .v1-form-actions, .v1-action-row, .grow-select-card'))
+        .map((element) => {
+          const html = element as HTMLElement
+          const rect = html.getBoundingClientRect()
+          const style = window.getComputedStyle(html)
+          const sampleX = Math.min(Math.max(rect.left + Math.min(rect.width / 2, 24), 0), window.innerWidth - 1)
+          const sampleY = Math.min(Math.max(rect.bottom - 2, 0), window.innerHeight - 1)
+          const elementAtPoint = document.elementFromPoint(sampleX, sampleY)
+          const pointVisible = Boolean(elementAtPoint && (html === elementAtPoint || html.contains(elementAtPoint)))
+          const visible = style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1 && rect.bottom > 0 && rect.top < window.innerHeight && pointVisible
+          const ignored = Boolean(html.closest('.v1-bottom-nav, .v1-mobile-more-panel')) || html.hasAttribute('hidden') || html.getAttribute('aria-hidden') === 'true'
+          const candidate = visible && !ignored && isBottomNavCandidate(html)
+          const covered = candidate && rect.bottom > bottomNavRect.top + 4 && rect.top < bottomNavRect.bottom - 4
+          const tooClose = candidate && rect.bottom > bottomNavRect.top - 12 && rect.top < bottomNavRect.top
+          return {
+            selector: selectorFor(html),
+            text: (html.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 100),
+            problem: covered ? 'coveredByBottomNav' : tooClose ? 'tooCloseToBottomNav' : '',
+            top: Math.round(rect.top),
+            bottom: Math.round(rect.bottom),
+            bottomNavTop: Math.round(bottomNavRect.top),
+            bottomNavGap: Math.round(bottomNavRect.top - rect.bottom),
+          }
+        })
+        .filter((item) => item.problem)
+      : []
+
     return {
       bodyScrollWidth: document.body.scrollWidth,
       documentScrollWidth: document.documentElement.scrollWidth,
       innerWidth: window.innerWidth,
       heading: firstHeading,
+      bottomNavFindings,
     }
   })
 }
@@ -110,7 +168,13 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
     heading: metrics.heading,
     note: null,
     pageError,
+    bottomNavFindings: metrics.bottomNavFindings,
   })
+
+  if (viewport.name === 'mobile' && metrics.bottomNavFindings.length > 0) {
+    const details = metrics.bottomNavFindings.slice(0, 5).map((item) => `${item.selector} "${item.text}" ${item.problem} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`).join(' | ')
+    throw new Error(`${fileName}: mobile bottom nav spacing issue: ${details}`)
+  }
 }
 
 async function tryClickFirstAddbackStart(page: import('@playwright/test').Page) {
@@ -163,7 +227,13 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
     heading: metrics.heading,
     note: result.note,
     pageError,
+    bottomNavFindings: metrics.bottomNavFindings,
   })
+
+  if (viewport.name === 'mobile' && metrics.bottomNavFindings.length > 0) {
+    const details = metrics.bottomNavFindings.slice(0, 5).map((item) => `${item.selector} "${item.text}" ${item.problem} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`).join(' | ')
+    throw new Error(`${fileName}: mobile bottom nav spacing issue: ${details}`)
+  }
 }
 
 function writeReports() {
@@ -177,12 +247,12 @@ function writeReports() {
     '',
     '## Screenshots',
     '',
-    '| Viewport | Route | Status | Overflow | Heading | Screenshot | Note | PageError |',
-    '|---|---|---:|---|---|---|---|---|',
+    '| Viewport | Route | Status | Overflow | Bottom Nav Findings | Heading | Screenshot | Note | PageError |',
+    '|---|---|---:|---|---:|---|---|---|---|',
     ...reportRows.map((row) => {
       const note = row.note ? row.note.replace(/\|/g, '\\|').slice(0, 220) : ''
       const error = row.pageError ? row.pageError.replace(/\|/g, '\\|').slice(0, 160) : ''
-      return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
+      return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.bottomNavFindings.length} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
     }),
     '',
     '## Addback Deep Flow',

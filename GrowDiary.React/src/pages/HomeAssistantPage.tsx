@@ -3,7 +3,8 @@ import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { HomeAssistantSettingsDto, SensorMetricType, SettingsOverviewDto, TentDto, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch, V1Tabs, toNullableString } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch, V1Tabs } from '../components/v1'
+import { toNullableString } from '../components/v1-utils'
 
 type GroupKey = 'tent' | 'reservoir' | 'hardware'
 type SensorDraft = { metricType: SensorMetricType; haEntityId: string; displayLabel: string; isActive: boolean }

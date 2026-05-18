@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import { classNames, formatDate, formatNumber } from '../utils'
+import { classNames } from '../utils'
 
 export type Tone = 'neutral' | 'ok' | 'warn' | 'critical' | 'accent'
 
@@ -205,44 +205,4 @@ export function V1Wizard({ steps, currentStep, onStep }: { steps: string[]; curr
 
 export function V1Skeleton({ label = 'Lädt...' }: { label?: string }) {
   return <div className="v1-skeleton">{label}</div>
-}
-
-export function numberInput(value: string, onChange: (value: string) => void, props?: Record<string, unknown>) {
-  return <input inputMode="decimal" value={value} onChange={(event) => onChange(event.target.value)} {...props} />
-}
-
-export function textOrDash(value: string | number | null | undefined) {
-  if (value === null || value === undefined || value === '') return '–'
-  return String(value)
-}
-
-export function formatLiters(value: number | null | undefined) {
-  return value == null ? '–' : `${formatNumber(value, 1)} L`
-}
-
-export function formatDateShort(value: string | null | undefined) {
-  return formatDate(value)
-}
-
-export function toNullableString(value: string | null | undefined): string | null {
-  const trimmed = (value ?? '').trim()
-  return trimmed.length === 0 ? null : trimmed
-}
-
-export function toNullableInt(value: string): number | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  const parsed = Number.parseInt(trimmed, 10)
-  return Number.isFinite(parsed) ? parsed : null
-}
-
-export function toNullableFloat(value: string): number | null {
-  const trimmed = value.trim().replace(',', '.')
-  if (!trimmed) return null
-  const parsed = Number.parseFloat(trimmed)
-  return Number.isFinite(parsed) ? parsed : null
-}
-
-export function draftNumber(value: number | null | undefined) {
-  return value == null || Number.isNaN(value) ? '' : String(value)
 }
