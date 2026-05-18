@@ -49,14 +49,14 @@
       "type": "GrowPlan",
       "title": "RDWC Growplan by SKX - Athena Blended Rev.01",
       "reference": "RH-Tabelle: Spätblüte-Zielwerte",
-      "url": "/docs/athena-blended-rev01-de.pdf",
+      "url": null,
       "credibility": "High"
     },
     {
       "type": "Document",
       "title": "Workshop Lehrmaterial VPD & RDWC",
       "reference": "VPD-Tabelle und RH-Management in der Blüte",
-      "url": "/docs/workshop-vpd-rdwc.pdf",
+      "url": null,
       "credibility": "High"
     }
   ],

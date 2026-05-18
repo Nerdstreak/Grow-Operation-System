@@ -39,14 +39,14 @@
       "type": "GrowPlan",
       "title": "RDWC Growplan by SKX - Athena Blended Rev.01",
       "reference": "Punkt 7: Partial-Changeout bei Salzakkumulation",
-      "url": "/docs/athena-blended-rev01-de.pdf",
+      "url": null,
       "credibility": "High"
     },
     {
       "type": "GrowPlan",
       "title": "RDWC Procedure (Metric) — Athena",
       "reference": "Weekly changeout protocol",
-      "url": "/docs/rdwc-procedure-metric.pdf",
+      "url": null,
       "credibility": "High"
     }
   ],
