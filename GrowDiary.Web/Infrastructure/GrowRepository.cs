@@ -1,17 +1,10 @@
-using System.Globalization;
-using System.Text.Json;
 using GrowDiary.Web.Models;
-using GrowDiary.Web.Services;
 using GrowDiary.Web.Services.Knowledge.Schema;
-using Microsoft.Data.Sqlite;
 
 namespace GrowDiary.Web.Infrastructure;
 
 public sealed class GrowRepository
 {
-    private static readonly JsonSerializerOptions SnapshotJsonOptions = new(JsonSerializerDefaults.Web);
-
-    private readonly AppPaths _paths;
     private readonly TentRepository _tentRepository;
     private readonly HydroSetupRepository _hydroSetupRepository;
     private readonly AddbackRepository _addbackRepository;
@@ -72,7 +65,6 @@ public sealed class GrowRepository
 
     public GrowRepository(AppPaths paths, TentRepository tentRepository, HydroSetupRepository hydroSetupRepository, AddbackRepository addbackRepository, HardwareRepository hardwareRepository, SetupRepository setupRepository, AutoMeasurementRepository autoMeasurementRepository, LightRepository lightRepository, SopRepository sopRepository, PhotoRepository photoRepository, HomeAssistantSettingsRepository homeAssistantSettingsRepository, GrowCoreRepository growCoreRepository, MeasurementRepository measurementRepository)
     {
-        _paths = paths;
         _tentRepository = tentRepository;
         _hydroSetupRepository = hydroSetupRepository;
         _addbackRepository = addbackRepository;
