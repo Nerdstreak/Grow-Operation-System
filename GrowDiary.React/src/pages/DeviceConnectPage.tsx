@@ -71,7 +71,6 @@ function DeviceConnectPage() {
   const activeBaseUrl = normalizeBaseUrl(remoteBaseUrl) || browserOrigin
   const urls = buildUrls(activeBaseUrl)
   const qrValue = urls[selectedQr]
-  const isLoopback = isLoopbackHost(activeBaseUrl)
 
   const saveRemoteUrl = () => {
     const normalized = normalizeBaseUrl(remoteBaseUrl)
@@ -87,13 +86,13 @@ function DeviceConnectPage() {
   }
 
   return (
-    <V1Page eyebrow="PWA" title="Gerät verbinden" subtitle="Eine Adresse wählen, QR scannen, als PWA installieren.">
+    <V1Page eyebrow="PWA" title="Gerät verbinden" subtitle="Adresse wählen, QR scannen, verbinden." className="device-connect-page">
       {networkError && <V1Alert title="Netzwerk-Erkennung" message={networkError} tone="warn" />}
-      {network?.warnings.map((warning) => <V1Alert key={warning} title="Hinweis" message={warning} tone="warn" />)}
+      {network?.warnings.map((warning) => <div key={warning} className="device-connect-note"><strong>Hinweis</strong><span>{warning}</span></div>)}
 
       <V1Section title="Adresse">
         <div className="v1-card-grid">
-          <V1Card tone={remoteBaseUrl.trim() ? 'ok' : isLoopback ? 'warn' : 'neutral'}>
+          <V1Card tone={remoteBaseUrl.trim() ? 'ok' : 'neutral'}>
             <span className="v1-card-kicker">Aktive Adresse</span>
             <h2>{shortenUrl(activeBaseUrl)}</h2>
             <p>{activeBaseUrl}</p>
@@ -116,7 +115,7 @@ function DeviceConnectPage() {
 
       <V1Section title="QR-Code">
         <div className="v1-card-grid">
-          <V1Card tone={isLoopback ? 'warn' : 'neutral'}>
+          <V1Card tone="neutral">
             <span className="v1-card-kicker">Öffnen</span>
             <h2>{selectedQr === 'live' ? 'Live' : selectedQr === 'addback' ? 'Addback' : selectedQr === 'manualMeasurement' ? 'Messung' : 'Home Assistant'}</h2>
             <div className="v1-action-row">
@@ -206,6 +205,4 @@ function gfMultiply(left: number, right: number) { if (left === 0 || right === 0
 function buildUrls(baseUrl: string): UrlSet { const base = normalizeBaseUrl(baseUrl); return { live: `${base}/`, addback: `${base}/addback`, manualMeasurement: `${base}/messung`, homeAssistant: `${base}/home-assistant` } }
 function normalizeBaseUrl(value: string) { return value.trim().replace(/\/$/, '') }
 function shortenUrl(value: string) { try { return new URL(value).host } catch { return value } }
-function isLoopbackHost(value: string) { try { const host = new URL(value).hostname; return host === 'localhost' || host === '127.0.0.1' || host === '::1' } catch { return false } }
-
 export default DeviceConnectPage

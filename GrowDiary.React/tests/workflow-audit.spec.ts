@@ -15,11 +15,14 @@ type LayoutFinding = {
   horizontalClip: boolean
   outOfViewport: boolean
   coveredByBottomNav: boolean
+  tooCloseToBottomNav: boolean
   width: number
   left: number
   right: number
   top: number
   bottom: number
+  bottomNavTop?: number | null
+  bottomNavGap?: number | null
   scrollWidth: number
   clientWidth: number
 }
@@ -144,10 +147,6 @@ async function ensureHydroSetupForWorkflowAudit(request: APIRequestContext) {
   ])
 
   const activeTents = tents.filter((tent) => tent.status !== 'Archived')
-  const activeTentIds = new Set(activeTents.map((tent) => tent.id))
-  const reusableHydro = hydroSetups.find((setup) => setup.status !== 'Archived' && setup.tentId != null && activeTentIds.has(setup.tentId))
-  if (reusableHydro) return
-
   let tent = activeTents.find((item) => item.name === workflowTentName)
   if (!tent) {
     tent = await apiJson<WorkflowTent>(request, 'POST', '/api/settings/tents', {
@@ -176,8 +175,8 @@ async function ensureHydroSetupForWorkflowAudit(request: APIRequestContext) {
     })
   }
 
-  const hasHydroForTent = hydroSetups.some((setup) => setup.status !== 'Archived' && setup.tentId === tent.id)
-  if (hasHydroForTent) return
+  const hasWorkflowHydroForTent = hydroSetups.some((setup) => setup.status !== 'Archived' && setup.name === workflowHydroName && setup.tentId === tent.id)
+  if (hasWorkflowHydroForTent) return
 
   await apiJson<WorkflowHydroSetup>(request, 'POST', '/api/hydro-setups', {
     tentId: tent.id,
@@ -293,18 +292,16 @@ async function selectGrowTent(page: import('@playwright/test').Page) {
     throw new Error('Grow Schritt Zelt: keine Zelt-Karte gefunden. Für den Workflow braucht die DB mindestens ein Zelt.')
   }
 
-  for (let i = 0; i < count; i += 1) {
-    const card = cards.nth(i)
-    const text = (await card.textContent()) ?? ''
-    if (!/0\s*Hydro/i.test(text)) {
-      await card.click({ timeout: 1500 })
-      await waitForAppIdle(page)
-      return
-    }
+  const target = cards.filter({ hasText: workflowTentName }).first()
+  if ((await target.count()) > 0) {
+    await target.scrollIntoViewIfNeeded()
+    await target.click({ timeout: 1500 })
+    await waitForAppIdle(page)
+    return
   }
 
-  await cards.first().click({ timeout: 1500 })
-  await waitForAppIdle(page)
+  const visibleCards = await cards.evaluateAll((elements) => elements.map((element) => (element.textContent ?? '').trim().replace(/\s+/g, ' ')).filter(Boolean))
+  throw new Error(`Grow Schritt Zelt: Karte "${workflowTentName}" nicht gefunden. Sichtbare Karten: ${visibleCards.join(' | ') || 'keine'}`)
 }
 
 async function selectGrowHydro(page: import('@playwright/test').Page) {
@@ -314,8 +311,16 @@ async function selectGrowHydro(page: import('@playwright/test').Page) {
     throw new Error('Grow Schritt Hydro: kein Hydro-Setup gefunden. Wähle im Testdatenstand ein Zelt mit aktivem Hydro-Setup oder lege vorher ein Setup an.')
   }
 
-  await cards.first().click({ timeout: 1500 })
-  await waitForAppIdle(page)
+  const target = cards.filter({ hasText: workflowHydroName }).first()
+  if ((await target.count()) > 0) {
+    await target.scrollIntoViewIfNeeded()
+    await target.click({ timeout: 1500 })
+    await waitForAppIdle(page)
+    return
+  }
+
+  const visibleCards = await cards.evaluateAll((elements) => elements.map((element) => (element.textContent ?? '').trim().replace(/\s+/g, ' ')).filter(Boolean))
+  throw new Error(`Grow Schritt Hydro: Karte "${workflowHydroName}" nicht gefunden. Sichtbare Karten: ${visibleCards.join(' | ') || 'keine'}`)
 }
 
 async function selectProgramIfPresent(page: import('@playwright/test').Page) {
@@ -346,7 +351,8 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
       return (
         style.position === 'fixed' ||
         style.position === 'sticky' ||
-        Boolean(element.closest('.sticky-actions'))
+        Boolean(element.closest('.sticky-actions, .ops1b-sticky-actions')) ||
+        Boolean(element.matches('button, a, input, select, textarea, .v1-card, .v1-section, .v1-wizard-step, .v1-form-actions, .v1-action-row, .grow-select-card'))
       )
     }
 
@@ -358,19 +364,35 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
         const html = element as HTMLElement
         const rect = html.getBoundingClientRect()
         const style = window.getComputedStyle(html)
-        const visible = style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1 && rect.bottom > 0 && rect.top < window.innerHeight
+        const sampleX = Math.min(Math.max(rect.left + Math.min(rect.width / 2, 24), 0), window.innerWidth - 1)
+        const sampleY = Math.min(Math.max(rect.bottom - 2, 0), window.innerHeight - 1)
+        const elementAtPoint = document.elementFromPoint(sampleX, sampleY)
+        const pointVisible = Boolean(elementAtPoint && (html === elementAtPoint || html.contains(elementAtPoint)))
+        const visible = style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1 && rect.bottom > 0 && rect.top < window.innerHeight && pointVisible
         const horizontalClip = html.scrollWidth > html.clientWidth + 8
         const outOfViewport = rect.left < -4 || rect.right > window.innerWidth + 4
         const insideBottomNav = Boolean(html.closest('.v1-bottom-nav'))
         const insideMobileMore = Boolean(html.closest('.v1-mobile-more-panel'))
+        const intentionallyHidden = html.hasAttribute('hidden') || html.getAttribute('aria-hidden') === 'true'
         const criticalForBottomNav = isBottomNavCriticalElement(html)
+        const bottomNavGap = bottomNavRect ? bottomNavRect.top - rect.bottom : null
         const coveredByBottomNav = Boolean(
           bottomNavRect &&
           criticalForBottomNav &&
           !insideBottomNav &&
           !insideMobileMore &&
+          !intentionallyHidden &&
           rect.bottom > bottomNavRect.top + 4 &&
           rect.top < bottomNavRect.bottom - 4,
+        )
+        const tooCloseToBottomNav = Boolean(
+          bottomNavRect &&
+          criticalForBottomNav &&
+          !insideBottomNav &&
+          !insideMobileMore &&
+          !intentionallyHidden &&
+          rect.bottom > bottomNavRect.top - 12 &&
+          rect.top < bottomNavRect.top,
         )
 
         return {
@@ -381,12 +403,15 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
           horizontalClip,
           outOfViewport,
           coveredByBottomNav,
+          tooCloseToBottomNav,
           criticalForBottomNav,
           width: Math.round(rect.width),
           left: Math.round(rect.left),
           right: Math.round(rect.right),
           top: Math.round(rect.top),
           bottom: Math.round(rect.bottom),
+          bottomNavTop: bottomNavRect ? Math.round(bottomNavRect.top) : null,
+          bottomNavGap: bottomNavGap == null ? null : Math.round(bottomNavGap),
           scrollWidth: html.scrollWidth,
           clientWidth: html.clientWidth,
           role: html.getAttribute('role'),
@@ -396,10 +421,10 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
       .filter((item) => item.visible)
 
     const hardOffenders = candidates
-      .filter((item) => item.outOfViewport || item.coveredByBottomNav)
+      .filter((item) => item.outOfViewport || item.coveredByBottomNav || item.tooCloseToBottomNav)
       .filter((item) => !String(item.className).includes('v1-bottom-nav'))
       .filter((item) => !String(item.className).includes('v1-mobile-more-panel'))
-      .filter((item) => item.tag !== 'SECTION' && !String(item.className).includes('v1-section'))
+      .filter((item) => item.tag !== 'SECTION')
 
     const clipWarnings = candidates
       .filter((item) => item.horizontalClip)
@@ -451,8 +476,8 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
   const hardOffenders = result.hardOffenders as LayoutFinding[]
   if (hardOffenders.length > 0) {
     const details = hardOffenders.slice(0, 5).map((item) => {
-      const problem = item.coveredByBottomNav ? 'coveredByBottomNav' : 'outsideViewport'
-      return `${item.selector} "${item.text}" ${problem} left=${item.left} right=${item.right} top=${item.top} bottom=${item.bottom}`
+      const problem = item.coveredByBottomNav ? 'coveredByBottomNav' : item.tooCloseToBottomNav ? 'tooCloseToBottomNav' : 'outsideViewport'
+      return `${item.selector} "${item.text}" ${problem} left=${item.left} right=${item.right} top=${item.top} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`
     }).join(' | ')
     throw new Error(`${name}: visible elements blocked or outside viewport: ${details}`)
   }
