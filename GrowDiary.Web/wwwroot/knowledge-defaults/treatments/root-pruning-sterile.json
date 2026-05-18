@@ -39,14 +39,14 @@
       "type": "SOP",
       "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
       "reference": "Schritt 1: Mechanische Entfernung befallener Wurzeln",
-      "url": "/docs/sop-root-rot-treatment-de.pdf",
+      "url": null,
       "credibility": "High"
     },
     {
       "type": "SOP",
       "title": "SOP-RDWC-CAN-S1: Root-Rot Treatment (EN)",
       "reference": "Step 1: Mechanical root pruning",
-      "url": "/docs/sop-root-rot-treatment-en.pdf",
+      "url": null,
       "credibility": "High"
     }
   ],

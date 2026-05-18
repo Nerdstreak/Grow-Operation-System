@@ -40,14 +40,14 @@
       "type": "SOP",
       "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
       "reference": "Vollständiger Wasserwechsel bei akuter Kontamination",
-      "url": "/docs/sop-root-rot-treatment-de.pdf",
+      "url": null,
       "credibility": "High"
     },
     {
       "type": "SOP",
       "title": "SOP-RDWC-CAN-S1: Root-Rot Treatment (EN)",
       "reference": "Complete water change during active root rot",
-      "url": "/docs/sop-root-rot-treatment-en.pdf",
+      "url": null,
       "credibility": "High"
     }
   ],
