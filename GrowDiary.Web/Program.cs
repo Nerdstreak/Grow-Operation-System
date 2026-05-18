@@ -45,6 +45,8 @@ builder.Services.AddSingleton<LightRepository>();
 builder.Services.AddSingleton<SopRepository>();
 builder.Services.AddSingleton<PhotoRepository>();
 builder.Services.AddSingleton<HomeAssistantSettingsRepository>();
+builder.Services.AddSingleton<GrowCoreRepository>();
+builder.Services.AddSingleton<MeasurementRepository>();
 builder.Services.AddSingleton<GrowRepository>();
 builder.Services.AddSingleton<TaskRepository>();
 builder.Services.AddSingleton<JournalRepository>();
