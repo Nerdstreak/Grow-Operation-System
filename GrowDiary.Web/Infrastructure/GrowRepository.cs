@@ -12,10 +12,24 @@ public sealed class GrowRepository
     private static readonly JsonSerializerOptions SnapshotJsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly AppPaths _paths;
+    private readonly TentRepository _tentRepository;
+    private readonly HydroSetupRepository _hydroSetupRepository;
 
     public GrowRepository(AppPaths paths)
+        : this(paths, new TentRepository(paths))
+    {
+    }
+
+    private GrowRepository(AppPaths paths, TentRepository tentRepository)
+        : this(paths, tentRepository, new HydroSetupRepository(paths, tentRepository))
+    {
+    }
+
+    public GrowRepository(AppPaths paths, TentRepository tentRepository, HydroSetupRepository hydroSetupRepository)
     {
         _paths = paths;
+        _tentRepository = tentRepository;
+        _hydroSetupRepository = hydroSetupRepository;
     }
 
     public DashboardStats GetDashboardStats()
@@ -46,332 +60,46 @@ public sealed class GrowRepository
     }
 
     public List<Tent> GetTents(bool includeArchived = false)
-    {
-        using var connection = OpenConnection();
-        using var tentCommand = connection.CreateCommand();
-        tentCommand.CommandText = """
-            SELECT t.*,
-                   (SELECT COUNT(*) FROM Grows g WHERE g.TentId = t.Id AND g.Status IN ('Planning','Running')) AS ActiveGrowCount,
-                   (SELECT COUNT(*) FROM Grows g WHERE g.TentId = t.Id AND g.Status IN ('Completed','Aborted')) AS ArchivedGrowCount,
-                   (SELECT COUNT(*) FROM Setups s WHERE s.TentId = t.Id AND s.Status IN ('Planning','Active')) AS ActiveSetupCount,
-                   (SELECT COUNT(*) FROM Setups s WHERE s.TentId = t.Id AND s.Status = 'Archived') AS ArchivedSetupCount
-            FROM Tents t
-            WHERE ($includeArchived = 1 OR t.Status != 'Archived')
-            ORDER BY t.DisplayOrder, t.Name;
-        """;
-        tentCommand.Parameters.AddWithValue("$includeArchived", includeArchived ? 1 : 0);
-
-        var tents = new List<Tent>();
-        using (var reader = tentCommand.ExecuteReader())
-        {
-            while (reader.Read())
-            {
-                tents.Add(MapTent(reader));
-            }
-        }
-
-        if (tents.Count == 0) return tents;
-
-        var tentPlaceholders = string.Join(", ", tents.Select((_, i) => $"$t{i}"));
-        using var growCommand = connection.CreateCommand();
-        growCommand.CommandText = $"""
-            SELECT g.*, t.Name AS TentName,
-                   (SELECT COUNT(*) FROM Measurements m WHERE m.GrowId = g.Id) AS MeasurementCount,
-                   (SELECT RelativePath FROM Photos p WHERE p.GrowId = g.Id ORDER BY p.TakenAtUtc DESC LIMIT 1) AS LatestPhotoPath
-            FROM Grows g
-            LEFT JOIN Tents t ON t.Id = g.TentId
-            WHERE g.TentId IN ({tentPlaceholders}) AND g.Status IN ('Planning','Running')
-            ORDER BY g.StartDate DESC, g.Id DESC;
-        """;
-        for (var i = 0; i < tents.Count; i++)
-        {
-            growCommand.Parameters.AddWithValue($"$t{i}", tents[i].Id);
-        }
-
-        var allGrows = new List<GrowRun>();
-        using (var growReader = growCommand.ExecuteReader())
-        {
-            while (growReader.Read())
-            {
-                allGrows.Add(MapGrow(growReader));
-            }
-        }
-
-        if (allGrows.Count > 0)
-        {
-            var latestMeasurements = GetLatestMeasurementsBatch(connection, allGrows.Select(g => g.Id));
-            foreach (var grow in allGrows)
-            {
-                grow.LatestMeasurement = latestMeasurements.GetValueOrDefault(grow.Id);
-            }
-        }
-
-        var growsByTentId = allGrows
-            .Where(g => g.TentId.HasValue)
-            .GroupBy(g => g.TentId!.Value)
-            .ToDictionary(g => g.Key, g => g.ToList());
-        foreach (var tent in tents)
-        {
-            tent.ActiveGrows = growsByTentId.TryGetValue(tent.Id, out var grows) ? grows : [];
-        }
-
-        // Sensors laden
-        if (tents.Count > 0)
-        {
-            var tentIds = tents.Select(t => t.Id).ToList();
-            var sensorsByTentId = LoadSensorsByTentIds(connection, tentIds);
-            foreach (var tent in tents)
-            {
-                tent.Sensors = sensorsByTentId.TryGetValue(tent.Id, out var sensors) ? sensors : new();
-            }
-        }
-
-        return tents;
-    }
+        => _tentRepository.GetTents(includeArchived);
 
     public Tent? GetTent(int id)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT t.*,
-                   (SELECT COUNT(*) FROM Grows g WHERE g.TentId = t.Id AND g.Status IN ('Planning','Running')) AS ActiveGrowCount,
-                   (SELECT COUNT(*) FROM Grows g WHERE g.TentId = t.Id AND g.Status IN ('Completed','Aborted')) AS ArchivedGrowCount,
-                   (SELECT COUNT(*) FROM Setups s WHERE s.TentId = t.Id AND s.Status IN ('Planning','Active')) AS ActiveSetupCount,
-                   (SELECT COUNT(*) FROM Setups s WHERE s.TentId = t.Id AND s.Status = 'Archived') AS ArchivedSetupCount
-            FROM Tents t
-            WHERE t.Id = $id
-            LIMIT 1;
-        """;
-        command.Parameters.AddWithValue("$id", id);
-        using var reader = command.ExecuteReader();
-        if (!reader.Read())
-        {
-            return null;
-        }
-
-        var tent = MapTent(reader);
-        tent.ActiveGrows = GetActiveGrowsForTent(tent.Id);
-        tent.Sensors = GetTentSensors(id);
-        return tent;
-    }
+        => _tentRepository.GetTent(id);
 
     public void UpdateTent(Tent tent)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            UPDATE Tents SET
-                Name = $name,
-                Kind = $kind,
-                TentType = $tentType,
-                Status = $status,
-                Notes = $notes,
-                DisplayOrder = $displayOrder,
-                AccentColor = $accentColor,
-                WidthCm = $widthCm,
-                DepthCm = $depthCm,
-                TentHeightCm = $tentHeightCm,
-                LightType = $lightType,
-                LightWatt = $lightWatt,
-                LightController = $lightController,
-                LightControllerEntityId = $lightControllerEntityId,
-                ExhaustFanCount = $exhaustFanCount,
-                ExhaustM3h = $exhaustM3h,
-                CirculationFanCount = $circulationFanCount,
-                HvacController = $hvacController,
-                HvacControllerEntityId = $hvacControllerEntityId,
-                Co2Available = $co2Available,
-                CameraEntityId = $cameraEntityId,
-                UpdatedAtUtc = datetime('now')
-            WHERE Id = $id;
-        """;
-        AddTentParameters(command, tent);
-        command.Parameters.AddWithValue("$id", tent.Id);
-        command.ExecuteNonQuery();
-    }
+        => _tentRepository.UpdateTent(tent);
 
     public void DeleteTent(int id)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM Tents WHERE Id = $id;";
-        command.Parameters.AddWithValue("$id", id);
-        command.ExecuteNonQuery();
-    }
+        => _tentRepository.DeleteTent(id);
 
     public bool HasTentDependencies(int id)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT
-                (SELECT COUNT(*) FROM Grows WHERE TentId = $id) +
-                (SELECT COUNT(*) FROM Setups WHERE TentId = $id) +
-                (SELECT COUNT(*) FROM GrowSystems WHERE TentId = $id) +
-                (SELECT COUNT(*) FROM TentSensors WHERE TentId = $id) +
-                (SELECT COUNT(*) FROM LightSchedules WHERE TentId = $id) +
-                (SELECT COUNT(*) FROM LightTransitionEvents WHERE TentId = $id) +
-                (SELECT COUNT(*) FROM AutoMeasurementConfigs WHERE TentId = $id) +
-                (SELECT COUNT(*) FROM TentSensorReadings WHERE TentId = $id) +
-                (SELECT COUNT(*) FROM TentSensorSnapshots WHERE TentId = $id) +
-                (SELECT COUNT(*) FROM TentSensorDailyStats WHERE TentId = $id);
-            """;
-        command.Parameters.AddWithValue("$id", id);
-        return Convert.ToInt64(command.ExecuteScalar() ?? 0L) > 0;
-    }
+        => _tentRepository.HasTentDependencies(id);
 
     public void ArchiveTent(int id)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "UPDATE Tents SET Status = 'Archived', UpdatedAtUtc = datetime('now') WHERE Id = $id;";
-        command.Parameters.AddWithValue("$id", id);
-        command.ExecuteNonQuery();
-    }
+        => _tentRepository.ArchiveTent(id);
 
     public Tent CreateTent(string name)
-        => CreateTent(new Tent { Name = name });
+        => _tentRepository.CreateTent(name);
 
     public Tent CreateTent(Tent tent)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            INSERT INTO Tents (
-                Name, Kind, TentType, Status, Notes, DisplayOrder, AccentColor,
-                WidthCm, DepthCm, TentHeightCm, LightType, LightWatt,
-                LightController, LightControllerEntityId, ExhaustFanCount, ExhaustM3h,
-                CirculationFanCount, HvacController, HvacControllerEntityId,
-                Co2Available, CameraEntityId, CreatedAtUtc, UpdatedAtUtc
-            )
-            VALUES (
-                $name, $kind, $tentType, $status, $notes, $displayOrder, $accentColor,
-                $widthCm, $depthCm, $tentHeightCm, $lightType, $lightWatt,
-                $lightController, $lightControllerEntityId, $exhaustFanCount, $exhaustM3h,
-                $circulationFanCount, $hvacController, $hvacControllerEntityId,
-                $co2Available, $cameraEntityId, datetime('now'), datetime('now')
-            );
-            SELECT last_insert_rowid();
-        """;
-        if (string.IsNullOrWhiteSpace(tent.Name))
-        {
-            throw new InvalidOperationException("Tent name must not be empty.");
-        }
-
-        tent.Name = tent.Name.Trim();
-        tent.Kind = string.IsNullOrWhiteSpace(tent.Kind) ? "Grow Tent" : tent.Kind.Trim();
-        tent.AccentColor = string.IsNullOrWhiteSpace(tent.AccentColor) ? "#69b578" : tent.AccentColor.Trim();
-        AddTentParameters(command, tent);
-        var id = Convert.ToInt32((long)(command.ExecuteScalar() ?? 0L));
-        return GetTent(id) ?? new Tent { Id = id, Name = tent.Name, Kind = tent.Kind, TentType = tent.TentType };
-    }
+        => _tentRepository.CreateTent(tent);
 
     public List<TentSensor> GetTentSensors(int tentId)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM TentSensors WHERE TentId = $tentId ORDER BY Id;";
-        command.Parameters.AddWithValue("$tentId", tentId);
-        var list = new List<TentSensor>();
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
-            list.Add(MapTentSensor(reader));
-        return list;
-    }
+        => _tentRepository.GetTentSensors(tentId);
 
     public TentSensor AddTentSensor(TentSensor sensor)
-    {
-        sensor.CreatedAtUtc = DateTime.UtcNow;
-        sensor.UpdatedAtUtc = DateTime.UtcNow;
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            INSERT INTO TentSensors (TentId, MetricType, HaEntityId, DisplayLabel, IsActive, CreatedAtUtc, UpdatedAtUtc)
-            VALUES ($tentId, $metricType, $haEntityId, $displayLabel, $isActive, $createdAtUtc, $updatedAtUtc);
-            SELECT last_insert_rowid();
-            """;
-        AddTentSensorParameters(command, sensor);
-        sensor.Id = Convert.ToInt32((long)command.ExecuteScalar()!);
-        return sensor;
-    }
+        => _tentRepository.AddTentSensor(sensor);
 
     public void UpdateTentSensor(TentSensor sensor)
-    {
-        sensor.UpdatedAtUtc = DateTime.UtcNow;
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            UPDATE TentSensors SET
-                MetricType = $metricType,
-                HaEntityId = $haEntityId,
-                DisplayLabel = $displayLabel,
-                IsActive = $isActive,
-                UpdatedAtUtc = $updatedAtUtc
-            WHERE Id = $id;
-            """;
-        AddTentSensorParameters(command, sensor);
-        command.Parameters.AddWithValue("$id", sensor.Id);
-        command.ExecuteNonQuery();
-    }
+        => _tentRepository.UpdateTentSensor(sensor);
 
     public void ReplaceTentSensors(int tentId, IReadOnlyCollection<TentSensor> sensors)
-    {
-        using var connection = OpenConnection();
-        using var transaction = connection.BeginTransaction();
-
-        using (var deleteCommand = connection.CreateCommand())
-        {
-            deleteCommand.Transaction = transaction;
-            deleteCommand.CommandText = "DELETE FROM TentSensors WHERE TentId = $tentId;";
-            deleteCommand.Parameters.AddWithValue("$tentId", tentId);
-            deleteCommand.ExecuteNonQuery();
-        }
-
-        foreach (var sensor in sensors)
-        {
-            var stored = new TentSensor
-            {
-                TentId = tentId,
-                MetricType = sensor.MetricType,
-                HaEntityId = sensor.HaEntityId,
-                DisplayLabel = sensor.DisplayLabel,
-                IsActive = sensor.IsActive,
-                CreatedAtUtc = DateTime.UtcNow,
-                UpdatedAtUtc = DateTime.UtcNow
-            };
-
-            using var insertCommand = connection.CreateCommand();
-            insertCommand.Transaction = transaction;
-            insertCommand.CommandText = """
-                INSERT INTO TentSensors (TentId, MetricType, HaEntityId, DisplayLabel, IsActive, CreatedAtUtc, UpdatedAtUtc)
-                VALUES ($tentId, $metricType, $haEntityId, $displayLabel, $isActive, $createdAtUtc, $updatedAtUtc);
-                """;
-            AddTentSensorParameters(insertCommand, stored);
-            insertCommand.ExecuteNonQuery();
-        }
-
-        transaction.Commit();
-    }
+        => _tentRepository.ReplaceTentSensors(tentId, sensors);
 
     public void DeleteTentSensor(int sensorId)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM TentSensors WHERE Id = $id;";
-        command.Parameters.AddWithValue("$id", sensorId);
-        command.ExecuteNonQuery();
-    }
+        => _tentRepository.DeleteTentSensor(sensorId);
 
     public TentSensor? GetTentSensor(int id)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM TentSensors WHERE Id = $id LIMIT 1;";
-        command.Parameters.AddWithValue("$id", id);
-        using var reader = command.ExecuteReader();
-        return reader.Read() ? MapTentSensor(reader) : null;
-    }
+        => _tentRepository.GetTentSensor(id);
 
     public HardwareItem CreateHardwareItem(HardwareItem item)
     {
@@ -2150,176 +1878,40 @@ public sealed class GrowRepository
     }
 
     public TentSensor? GetTentSensorByMetric(int tentId, SensorMetricType metricType)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT * FROM TentSensors
-            WHERE TentId = $tentId AND MetricType = $metricType
-            ORDER BY Id LIMIT 1;
-            """;
-        command.Parameters.AddWithValue("$tentId", tentId);
-        command.Parameters.AddWithValue("$metricType", metricType.ToString());
-        using var reader = command.ExecuteReader();
-        return reader.Read() ? MapTentSensor(reader) : null;
-    }
+        => _tentRepository.GetTentSensorByMetric(tentId, metricType);
 
     public List<GrowSystem> GetSystems(bool includeArchived = true)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT s.*, t.Name AS TentName,
-                   (SELECT COUNT(*) FROM Grows g WHERE g.SystemId = s.Id AND g.Status IN ('Planning','Running')) AS ActiveGrowCount
-            FROM GrowSystems s
-            LEFT JOIN Tents t ON t.Id = s.TentId
-            WHERE ($includeArchived = 1 OR s.Status <> 'Archived')
-            ORDER BY s.DisplayOrder, s.Name;
-        """;
-        command.Parameters.AddWithValue("$includeArchived", includeArchived ? 1 : 0);
-        var list = new List<GrowSystem>();
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
-            list.Add(MapGrowSystem(reader));
-        return list;
-    }
+        => _hydroSetupRepository.GetSystems(includeArchived);
 
     public GrowSystem? GetSystem(int id)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT s.*, t.Name AS TentName,
-                   (SELECT COUNT(*) FROM Grows g WHERE g.SystemId = s.Id AND g.Status IN ('Planning','Running')) AS ActiveGrowCount
-            FROM GrowSystems s
-            LEFT JOIN Tents t ON t.Id = s.TentId
-            WHERE s.Id = $id LIMIT 1;
-        """;
-        command.Parameters.AddWithValue("$id", id);
-        using var reader = command.ExecuteReader();
-        return reader.Read() ? MapGrowSystem(reader) : null;
-    }
+        => _hydroSetupRepository.GetSystem(id);
 
     public List<GrowSystem> GetHydroSetups(bool includeArchived = false)
-        => GetSystems(includeArchived);
+        => _hydroSetupRepository.GetHydroSetups(includeArchived);
 
     public GrowSystem? GetHydroSetup(int id)
-        => GetSystem(id);
+        => _hydroSetupRepository.GetHydroSetup(id);
 
     public List<GrowSystem> GetHydroSetupsByTent(int tentId, bool includeArchived = false)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT s.*, t.Name AS TentName,
-                   (SELECT COUNT(*) FROM Grows g WHERE g.SystemId = s.Id AND g.Status IN ('Planning','Running')) AS ActiveGrowCount
-            FROM GrowSystems s
-            LEFT JOIN Tents t ON t.Id = s.TentId
-            WHERE s.TentId = $tentId AND ($includeArchived = 1 OR s.Status <> 'Archived')
-            ORDER BY s.DisplayOrder, s.Name;
-        """;
-        command.Parameters.AddWithValue("$tentId", tentId);
-        command.Parameters.AddWithValue("$includeArchived", includeArchived ? 1 : 0);
-        var list = new List<GrowSystem>();
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
-            list.Add(MapGrowSystem(reader));
-        return list;
-    }
+        => _hydroSetupRepository.GetHydroSetupsByTent(tentId, includeArchived);
 
     public GrowSystem CreateSystem(GrowSystem system)
-    {
-        system.CreatedAtUtc = DateTime.UtcNow;
-        system.UpdatedAtUtc = system.CreatedAtUtc;
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            INSERT INTO GrowSystems (
-                TentId, Name, HydroStyle, PotCount, PotSizeLiters, ReservoirLiters,
-                Status, LayoutType, ReservoirPosition,
-                HasCirculationPump, CirculationPumpNotes, HasAirPump, AirPumpNotes, AirStoneCount,
-                HasChiller, HasUvSterilizer, Notes, DisplayOrder, CreatedAtUtc, UpdatedAtUtc
-            )
-            VALUES (
-                $tentId, $name, $hydroStyle, $potCount, $potSizeLiters, $reservoirLiters,
-                $status, $layoutType, $reservoirPosition,
-                $hasCirculationPump, $circulationPumpNotes, $hasAirPump, $airPumpNotes, $airStoneCount,
-                $hasChiller, $hasUvSterilizer, $notes, $displayOrder, $createdAtUtc, $updatedAtUtc
-            );
-            SELECT last_insert_rowid();
-        """;
-        AddGrowSystemParameters(command, system);
-        system.Id = Convert.ToInt32((long)command.ExecuteScalar()!);
-        return GetSystem(system.Id) ?? system;
-    }
+        => _hydroSetupRepository.CreateSystem(system);
 
     public GrowSystem CreateHydroSetup(GrowSystem system)
-    {
-        NormalizeHydroSetup(system);
-        ValidateHydroSetup(system, requireTent: true);
-        return CreateSystem(system);
-    }
+        => _hydroSetupRepository.CreateHydroSetup(system);
 
     public void UpdateSystem(GrowSystem system)
-    {
-        system.UpdatedAtUtc = DateTime.UtcNow;
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            UPDATE GrowSystems SET
-                TentId          = $tentId,
-                Name            = $name,
-                HydroStyle      = $hydroStyle,
-                PotCount        = $potCount,
-                PotSizeLiters   = $potSizeLiters,
-                ReservoirLiters = $reservoirLiters,
-                Status          = $status,
-                LayoutType      = $layoutType,
-                ReservoirPosition = $reservoirPosition,
-                HasCirculationPump = $hasCirculationPump,
-                CirculationPumpNotes = $circulationPumpNotes,
-                HasAirPump      = $hasAirPump,
-                AirPumpNotes    = $airPumpNotes,
-                AirStoneCount   = $airStoneCount,
-                HasChiller      = $hasChiller,
-                HasUvSterilizer = $hasUvSterilizer,
-                Notes           = $notes,
-                DisplayOrder    = $displayOrder,
-                UpdatedAtUtc    = $updatedAtUtc
-            WHERE Id = $id;
-        """;
-        AddGrowSystemParameters(command, system);
-        command.Parameters.AddWithValue("$id", system.Id);
-        command.ExecuteNonQuery();
-    }
+        => _hydroSetupRepository.UpdateSystem(system);
 
     public void UpdateHydroSetup(GrowSystem system)
-    {
-        NormalizeHydroSetup(system);
-        ValidateHydroSetup(system, requireTent: true);
-        UpdateSystem(system);
-    }
+        => _hydroSetupRepository.UpdateHydroSetup(system);
 
     public void ArchiveHydroSetup(int id)
-    {
-        var system = GetSystem(id);
-        if (system is null)
-        {
-            throw new InvalidOperationException($"HydroSetup with id {id} does not exist.");
-        }
-
-        system.Status = HydroSetupStatus.Archived;
-        UpdateSystem(system);
-    }
+        => _hydroSetupRepository.ArchiveHydroSetup(id);
 
     public void DeleteSystem(int id)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM GrowSystems WHERE Id = $id;";
-        command.Parameters.AddWithValue("$id", id);
-        command.ExecuteNonQuery();
-    }
+        => _hydroSetupRepository.DeleteSystem(id);
 
     public List<GrowRun> GetActiveGrows(string? search = null)
         => GetGrows("WHERE g.Status IN ('Planning','Running')" + SearchClause(search), search);
@@ -2806,71 +2398,10 @@ public sealed class GrowRepository
     }
 
     public void AddTentSensorSnapshot(TentSensorSnapshot snapshot, TimeSpan? dedupeWindow = null)
-    {
-        var window = dedupeWindow ?? TimeSpan.FromMinutes(4);
-        using var connection = OpenConnection();
-        using var dedupe = connection.CreateCommand();
-        dedupe.CommandText = """
-            SELECT COUNT(*) FROM TentSensorSnapshots
-            WHERE TentId = $tentId AND MetricKey = $metricKey AND CapturedAtUtc >= $threshold;
-        """;
-        dedupe.Parameters.AddWithValue("$tentId", snapshot.TentId);
-        dedupe.Parameters.AddWithValue("$metricKey", snapshot.MetricKey);
-        dedupe.Parameters.AddWithValue("$threshold", ToStorageUtc(snapshot.CapturedAtUtc.Subtract(window)));
-        var recentCount = Convert.ToInt32(dedupe.ExecuteScalar() ?? 0);
-        if (recentCount > 0)
-        {
-            return;
-        }
-
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            INSERT INTO TentSensorSnapshots (TentId, MetricKey, Value, Unit, CapturedAtUtc)
-            VALUES ($tentId, $metricKey, $value, $unit, $capturedAtUtc);
-        """;
-        command.Parameters.AddWithValue("$tentId", snapshot.TentId);
-        command.Parameters.AddWithValue("$metricKey", snapshot.MetricKey);
-        command.Parameters.AddWithValue("$value", snapshot.Value);
-        command.Parameters.AddWithValue("$unit", (object?)snapshot.Unit ?? DBNull.Value);
-        command.Parameters.AddWithValue("$capturedAtUtc", ToStorageUtc(snapshot.CapturedAtUtc));
-        command.ExecuteNonQuery();
-    }
+        => _tentRepository.AddTentSensorSnapshot(snapshot, dedupeWindow);
 
     public List<TentSensorSnapshot> GetTentSensorSnapshots(int tentId, IEnumerable<string>? metricKeys = null, int limitPerMetric = 48)
-    {
-        var keys = metricKeys?.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
-                   ?? ["temperature", "humidity", "vpd", "reservoir-ph", "reservoir-ec", "reservoir-level", "reservoir-temp"];
-        if (keys.Count == 0)
-        {
-            return [];
-        }
-
-        using var connection = OpenConnection();
-        var placeholders = string.Join(", ", keys.Select((_, i) => $"$k{i}"));
-        using var command = connection.CreateCommand();
-        command.CommandText = $"""
-            WITH ranked AS (
-                SELECT *, ROW_NUMBER() OVER (PARTITION BY MetricKey ORDER BY CapturedAtUtc DESC) AS rn
-                FROM TentSensorSnapshots
-                WHERE TentId = $tentId AND MetricKey IN ({placeholders})
-            )
-            SELECT * FROM ranked WHERE rn <= $limit;
-        """;
-        command.Parameters.AddWithValue("$tentId", tentId);
-        command.Parameters.AddWithValue("$limit", limitPerMetric);
-        for (var i = 0; i < keys.Count; i++)
-        {
-            command.Parameters.AddWithValue($"$k{i}", keys[i]);
-        }
-
-        var items = new List<TentSensorSnapshot>();
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
-        {
-            items.Add(MapTentSensorSnapshot(reader));
-        }
-        return items;
-    }
+        => _tentRepository.GetTentSensorSnapshots(tentId, metricKeys, limitPerMetric);
 
     private List<GrowRun> GetGrows(string whereClause, string? search, int? tentId = null)
     {
@@ -4081,53 +3612,6 @@ public sealed class GrowRepository
         };
     }
 
-    private static TentSensorSnapshot MapTentSensorSnapshot(SqliteDataReader reader)
-    {
-        return new TentSensorSnapshot
-        {
-            Id = Convert.ToInt32((long)reader["Id"]),
-            TentId = Convert.ToInt32((long)reader["TentId"]),
-            MetricKey = reader["MetricKey"]?.ToString() ?? string.Empty,
-            Value = Convert.ToDouble(reader["Value"], CultureInfo.InvariantCulture),
-            Unit = NullString(reader["Unit"]),
-            CapturedAtUtc = ParseStoredDateTime(reader["CapturedAtUtc"]?.ToString()) ?? DateTime.UtcNow
-        };
-    }
-
-    private static Dictionary<int, List<TentSensor>> LoadSensorsByTentIds(SqliteConnection connection, List<int> tentIds)
-    {
-        var placeholders = string.Join(", ", tentIds.Select((_, i) => $"$s{i}"));
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = $"SELECT * FROM TentSensors WHERE TentId IN ({placeholders}) ORDER BY TentId, Id;";
-        for (var i = 0; i < tentIds.Count; i++)
-            cmd.Parameters.AddWithValue($"$s{i}", tentIds[i]);
-        var result = new Dictionary<int, List<TentSensor>>();
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
-        {
-            var sensor = MapTentSensor(reader);
-            if (!result.ContainsKey(sensor.TentId))
-                result[sensor.TentId] = new();
-            result[sensor.TentId].Add(sensor);
-        }
-        return result;
-    }
-
-    private static TentSensor MapTentSensor(SqliteDataReader reader)
-    {
-        return new TentSensor
-        {
-            Id           = Convert.ToInt32((long)reader["Id"]),
-            TentId       = Convert.ToInt32((long)reader["TentId"]),
-            MetricType   = ParseEnum(reader["MetricType"]?.ToString(), SensorMetricType.AirTemperature),
-            HaEntityId   = reader["HaEntityId"]?.ToString() ?? string.Empty,
-            DisplayLabel = NullString(reader["DisplayLabel"]),
-            IsActive     = reader["IsActive"] is not DBNull and not null && Convert.ToInt32(reader["IsActive"], CultureInfo.InvariantCulture) == 1,
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
-        };
-    }
-
     private static HardwareItem MapHardwareItem(SqliteDataReader reader)
     {
         return new HardwareItem
@@ -4232,17 +3716,6 @@ public sealed class GrowRepository
             CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
-    }
-
-    private static void AddTentSensorParameters(SqliteCommand command, TentSensor sensor)
-    {
-        command.Parameters.AddWithValue("$tentId", sensor.TentId);
-        command.Parameters.AddWithValue("$metricType", sensor.MetricType.ToString());
-        command.Parameters.AddWithValue("$haEntityId", sensor.HaEntityId);
-        command.Parameters.AddWithValue("$displayLabel", (object?)sensor.DisplayLabel ?? DBNull.Value);
-        command.Parameters.AddWithValue("$isActive", sensor.IsActive ? 1 : 0);
-        command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(sensor.CreatedAtUtc));
-        command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(sensor.UpdatedAtUtc));
     }
 
     private static void AddHardwareItemParameters(SqliteCommand command, HardwareItem item)
@@ -4544,191 +4017,6 @@ public sealed class GrowRepository
         command.Parameters.AddWithValue("$photoAssetId", (object?)step.PhotoAssetId ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(step.CreatedAtUtc));
         command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(step.UpdatedAtUtc));
-    }
-
-    private static void AddTentParameters(SqliteCommand command, Tent tent)
-    {
-        command.Parameters.AddWithValue("$name", tent.Name);
-        command.Parameters.AddWithValue("$kind", tent.Kind);
-        command.Parameters.AddWithValue("$tentType", tent.TentType.ToString());
-        command.Parameters.AddWithValue("$status", tent.Status.ToString());
-        command.Parameters.AddWithValue("$notes", (object?)tent.Notes ?? DBNull.Value);
-        command.Parameters.AddWithValue("$displayOrder", tent.DisplayOrder);
-        command.Parameters.AddWithValue("$accentColor", tent.AccentColor);
-        command.Parameters.AddWithValue("$widthCm", (object?)tent.WidthCm ?? DBNull.Value);
-        command.Parameters.AddWithValue("$depthCm", (object?)tent.DepthCm ?? DBNull.Value);
-        command.Parameters.AddWithValue("$tentHeightCm", (object?)tent.TentHeightCm ?? DBNull.Value);
-        command.Parameters.AddWithValue("$lightType", (object?)tent.LightType ?? DBNull.Value);
-        command.Parameters.AddWithValue("$lightWatt", (object?)tent.LightWatt ?? DBNull.Value);
-        command.Parameters.AddWithValue("$lightController", (object?)tent.LightController?.ToString() ?? DBNull.Value);
-        command.Parameters.AddWithValue("$lightControllerEntityId", (object?)tent.LightControllerEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$exhaustFanCount", (object?)tent.ExhaustFanCount ?? DBNull.Value);
-        command.Parameters.AddWithValue("$exhaustM3h", (object?)tent.ExhaustM3h ?? DBNull.Value);
-        command.Parameters.AddWithValue("$circulationFanCount", (object?)tent.CirculationFanCount ?? DBNull.Value);
-        command.Parameters.AddWithValue("$hvacController", (object?)tent.HvacController?.ToString() ?? DBNull.Value);
-        command.Parameters.AddWithValue("$hvacControllerEntityId", (object?)tent.HvacControllerEntityId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$co2Available", tent.Co2Available ? 1 : 0);
-        command.Parameters.AddWithValue("$cameraEntityId", (object?)tent.CameraEntityId ?? DBNull.Value);
-    }
-
-    private static GrowSystem MapGrowSystem(SqliteDataReader reader)
-    {
-        return new GrowSystem
-        {
-            Id              = Convert.ToInt32((long)reader["Id"]),
-            TentId          = reader["TentId"] is DBNull or null ? null : Convert.ToInt32(reader["TentId"], CultureInfo.InvariantCulture),
-            TentName        = HasColumn(reader, "TentName") ? NullString(reader["TentName"]) : null,
-            Name            = reader["Name"]?.ToString() ?? string.Empty,
-            HydroStyle      = reader["HydroStyle"]?.ToString() ?? string.Empty,
-            PotCount        = reader["PotCount"] is DBNull or null ? null : Convert.ToInt32(reader["PotCount"], CultureInfo.InvariantCulture),
-            PotSizeLiters   = reader["PotSizeLiters"] is DBNull or null ? null : Convert.ToDouble(reader["PotSizeLiters"], CultureInfo.InvariantCulture),
-            ReservoirLiters = reader["ReservoirLiters"] is DBNull or null ? null : Convert.ToDouble(reader["ReservoirLiters"], CultureInfo.InvariantCulture),
-            Status          = ParseEnum(NullString(reader["Status"]), HydroSetupStatus.Active),
-            LayoutType      = ParseEnum(NullString(reader["LayoutType"]), HydroSetupLayoutType.SingleBucket),
-            ReservoirPosition = ParseEnum(NullString(reader["ReservoirPosition"]), ReservoirPosition.None),
-            HasCirculationPump = Convert.ToInt32(reader["HasCirculationPump"], CultureInfo.InvariantCulture) != 0,
-            CirculationPumpNotes = NullString(reader["CirculationPumpNotes"]),
-            HasAirPump      = Convert.ToInt32(reader["HasAirPump"], CultureInfo.InvariantCulture) != 0,
-            AirPumpNotes    = NullString(reader["AirPumpNotes"]),
-            AirStoneCount   = reader["AirStoneCount"] is DBNull or null ? null : Convert.ToInt32(reader["AirStoneCount"], CultureInfo.InvariantCulture),
-            HasChiller      = Convert.ToInt32(reader["HasChiller"], CultureInfo.InvariantCulture) != 0,
-            HasUvSterilizer = Convert.ToInt32(reader["HasUvSterilizer"], CultureInfo.InvariantCulture) != 0,
-            Notes           = NullString(reader["Notes"]),
-            DisplayOrder    = Convert.ToInt32(reader["DisplayOrder"], CultureInfo.InvariantCulture),
-            CreatedAtUtc    = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc    = ParseStoredDateTime(NullString(reader["UpdatedAtUtc"])) ?? ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            ActiveGrowCount = reader["ActiveGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ActiveGrowCount"], CultureInfo.InvariantCulture)
-        };
-    }
-
-    private static void AddGrowSystemParameters(SqliteCommand command, GrowSystem system)
-    {
-        command.Parameters.AddWithValue("$tentId", (object?)system.TentId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$name", system.Name);
-        command.Parameters.AddWithValue("$hydroStyle", system.HydroStyle);
-        command.Parameters.AddWithValue("$potCount", (object?)system.PotCount ?? DBNull.Value);
-        command.Parameters.AddWithValue("$potSizeLiters", (object?)system.PotSizeLiters ?? DBNull.Value);
-        command.Parameters.AddWithValue("$reservoirLiters", (object?)system.ReservoirLiters ?? DBNull.Value);
-        command.Parameters.AddWithValue("$status", system.Status.ToString());
-        command.Parameters.AddWithValue("$layoutType", system.LayoutType.ToString());
-        command.Parameters.AddWithValue("$reservoirPosition", system.ReservoirPosition.ToString());
-        command.Parameters.AddWithValue("$hasCirculationPump", system.HasCirculationPump ? 1 : 0);
-        command.Parameters.AddWithValue("$circulationPumpNotes", (object?)system.CirculationPumpNotes ?? DBNull.Value);
-        command.Parameters.AddWithValue("$hasAirPump", system.HasAirPump ? 1 : 0);
-        command.Parameters.AddWithValue("$airPumpNotes", (object?)system.AirPumpNotes ?? DBNull.Value);
-        command.Parameters.AddWithValue("$airStoneCount", (object?)system.AirStoneCount ?? DBNull.Value);
-        command.Parameters.AddWithValue("$hasChiller", system.HasChiller ? 1 : 0);
-        command.Parameters.AddWithValue("$hasUvSterilizer", system.HasUvSterilizer ? 1 : 0);
-        command.Parameters.AddWithValue("$notes", (object?)system.Notes ?? DBNull.Value);
-        command.Parameters.AddWithValue("$displayOrder", system.DisplayOrder);
-        command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(system.CreatedAtUtc));
-        command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(system.UpdatedAtUtc));
-    }
-
-    private void NormalizeHydroSetup(GrowSystem system)
-    {
-        system.Name = system.Name.Trim();
-        system.Notes = NormalizeOptional(system.Notes);
-        system.CirculationPumpNotes = NormalizeOptional(system.CirculationPumpNotes);
-        system.AirPumpNotes = NormalizeOptional(system.AirPumpNotes);
-
-        if (Enum.TryParse<HydroStyle>(system.HydroStyle, out var hydroStyle) && hydroStyle == HydroStyle.DWC)
-        {
-            system.PotCount ??= 1;
-            system.LayoutType = HydroSetupLayoutType.SingleBucket;
-            system.ReservoirPosition = ReservoirPosition.None;
-        }
-    }
-
-    private void ValidateHydroSetup(GrowSystem system, bool requireTent)
-    {
-        if (string.IsNullOrWhiteSpace(system.Name))
-        {
-            throw new InvalidOperationException("HydroSetup name must not be empty.");
-        }
-
-        if (!Enum.TryParse<HydroStyle>(system.HydroStyle, out var hydroStyle) || hydroStyle is not (HydroStyle.DWC or HydroStyle.RDWC))
-        {
-            throw new InvalidOperationException("HydroSetup supports only DWC or RDWC.");
-        }
-
-        if (requireTent && !system.TentId.HasValue)
-        {
-            throw new InvalidOperationException("HydroSetup tent is required.");
-        }
-
-        if (system.TentId.HasValue && GetTent(system.TentId.Value) is null)
-        {
-            throw new InvalidOperationException($"Tent with id {system.TentId.Value} does not exist.");
-        }
-
-        if (system.PotCount.HasValue && system.PotCount.Value < 1)
-        {
-            throw new InvalidOperationException("HydroSetup pot count must be positive.");
-        }
-
-        if (system.PotSizeLiters.HasValue && system.PotSizeLiters.Value < 0)
-        {
-            throw new InvalidOperationException("HydroSetup pot size must not be negative.");
-        }
-
-        if (system.ReservoirLiters.HasValue && system.ReservoirLiters.Value < 0)
-        {
-            throw new InvalidOperationException("HydroSetup reservoir volume must not be negative.");
-        }
-
-        if (system.AirStoneCount.HasValue && system.AirStoneCount.Value < 0)
-        {
-            throw new InvalidOperationException("HydroSetup air stone count must not be negative.");
-        }
-
-        if (hydroStyle == HydroStyle.DWC && system.PotSizeLiters is not > 0 && system.ReservoirLiters is not > 0)
-        {
-            throw new InvalidOperationException("DWC HydroSetup needs pot or reservoir volume.");
-        }
-
-        if (!Enum.IsDefined(system.LayoutType))
-        {
-            throw new InvalidOperationException("HydroSetup layout type is invalid.");
-        }
-
-        if (!Enum.IsDefined(system.ReservoirPosition))
-        {
-            throw new InvalidOperationException("HydroSetup reservoir position is invalid.");
-        }
-
-        if (!Enum.IsDefined(system.Status))
-        {
-            throw new InvalidOperationException("HydroSetup status is invalid.");
-        }
-
-        if (system.DisplayOrder < 0)
-        {
-            throw new InvalidOperationException("HydroSetup display order must not be negative.");
-        }
-
-        if (hydroStyle == HydroStyle.RDWC)
-        {
-            if (system.PotCount is null or < 2)
-            {
-                throw new InvalidOperationException("RDWC HydroSetup needs at least two sites.");
-            }
-
-            if (system.PotSizeLiters is not > 0)
-            {
-                throw new InvalidOperationException("RDWC HydroSetup needs pot volume.");
-            }
-
-            if (system.LayoutType == HydroSetupLayoutType.SingleBucket)
-            {
-                throw new InvalidOperationException("RDWC HydroSetup needs an RDWC layout.");
-            }
-
-            if (system.ReservoirPosition == ReservoirPosition.None)
-            {
-                throw new InvalidOperationException("RDWC HydroSetup needs a reservoir position.");
-            }
-        }
     }
 
     private static AddbackLogEntry MapAddbackLog(SqliteDataReader reader)
