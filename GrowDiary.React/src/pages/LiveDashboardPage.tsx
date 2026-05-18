@@ -132,14 +132,19 @@ function CameraTile({ tent, refresh }: { tent: TentDto; refresh: number }) {
   const src = tent.cameraEntityId ? `/api/live/tents/${tent.id}/camera?t=${refresh}-${version}` : null
 
   useEffect(() => {
-    if (!src) {
-      setStatus('idle')
-      setLastGoodSrc(null)
-      setLastGoodAt(null)
-      return
-    }
-    setStatus('loading')
-  }, [src, tent.id])
+    let active = true
+    queueMicrotask(() => {
+      if (!active) return
+      if (!src) {
+        setStatus('idle')
+        setLastGoodSrc(null)
+        setLastGoodAt(null)
+        return
+      }
+      setStatus('loading')
+    })
+    return () => { active = false }
+  }, [src])
 
   useEffect(() => {
     if (!tent.cameraEntityId) return

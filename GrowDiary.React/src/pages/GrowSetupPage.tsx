@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowDetail, GrowEntryPoint, GrowStatus, GrowUpsertPayload, HydroSetupDto, KnowledgeOverviewDto, NutrientProgramDto, SeedType, StartMaterial, TentDto } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Wizard, formatDateShort, formatLiters, toNullableInt } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Wizard } from '../components/v1'
+import { formatDateShort, formatLiters, toNullableInt } from '../components/v1-utils'
 import { classNames } from '../utils'
 
 const steps = ['Run', 'Zelt', 'Hydro', 'Zeit', 'Programm', 'Prüfen']

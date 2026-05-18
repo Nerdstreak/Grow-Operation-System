@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { CreateHydroSetupRequest, HydroSetupDto, HydroSetupLayoutType, ReservoirPosition, SelectableHydroStyle, TentDto, UpdateHydroSetupRequest } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Stat, V1Switch, V1Wizard, draftNumber, formatLiters, toNullableFloat, toNullableInt, toNullableString } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Stat, V1Switch, V1Wizard } from '../components/v1'
+import { draftNumber, formatLiters, toNullableFloat, toNullableInt, toNullableString } from '../components/v1-utils'
 import { classNames, formatNumber } from '../utils'
 
 type HydroDraft = {
@@ -45,9 +46,7 @@ function HydroPage() {
   const [saving, setSaving] = useState<string | null>(null)
   const [selectedSetupId, setSelectedSetupId] = useState<number | null>(null)
 
-  useEffect(() => { void load() }, [])
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -62,7 +61,15 @@ function HydroPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [routeCreateMode])
+
+  useEffect(() => {
+    let active = true
+    queueMicrotask(() => {
+      if (active) void load()
+    })
+    return () => { active = false }
+  }, [load])
 
   const activeSetups = useMemo(() => setups.filter((setup) => setup.status === 'Active'), [setups])
   const selectedSetup = useMemo(() => setups.find((setup) => setup.id === selectedSetupId) ?? activeSetups[0] ?? setups[0] ?? null, [activeSetups, selectedSetupId, setups])
