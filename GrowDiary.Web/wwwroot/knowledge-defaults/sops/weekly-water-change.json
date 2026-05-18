@@ -103,14 +103,14 @@
       "type": "UserDocument",
       "title": "RDWC Growplan Athena Blended Rev.01",
       "reference": "Punkt 7: Wöchentliche Wasserwechsel",
-      "url": "/docs/athena-blended-rev01-de.pdf",
+      "url": null,
       "credibility": "High"
     },
     {
       "type": "UserDocument",
       "title": "SOP-RDWC-CAN-N1: pH- und Nährstoff-Stabilisierung",
       "reference": "Wasserwechsel-Routine",
-      "url": "/docs/sop-ph-nutrient-stabilization.pdf",
+      "url": null,
       "credibility": "High"
     }
   ]

@@ -49,14 +49,14 @@
       "type": "SOP",
       "title": "SOP-RDWC-CAN-N1: pH- & Nährstoff-Stabilisierung",
       "reference": "Schritt 1.8: ORP-Kontrolle und HOCl-Dosierung",
-      "url": "/docs/sop-ph-nutrient-stabilization.pdf",
+      "url": null,
       "credibility": "High"
     },
     {
       "type": "GrowPlan",
       "title": "RDWC Procedure (Metric) — Athena",
       "reference": "Cleanse / HOCl Dosierung nach ORP-Zielwert",
-      "url": "/docs/rdwc-procedure-metric.pdf",
+      "url": null,
       "credibility": "High"
     }
   ],

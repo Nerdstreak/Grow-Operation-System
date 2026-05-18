@@ -84,14 +84,14 @@
       "type": "UserDocument",
       "title": "Workshop Lehrmaterial — VPD und Phasen-Übergänge",
       "reference": "Phasenwechsel Veg → Stretch",
-      "url": "/docs/workshop-vpd-rdwc.pdf",
+      "url": null,
       "credibility": "High"
     },
     {
       "type": "UserDocument",
       "title": "RDWC Growplan Athena Blended Rev.01",
       "reference": "Phasenwechsel Veg → Stretch",
-      "url": "/docs/athena-blended-rev01-de.pdf",
+      "url": null,
       "credibility": "High"
     }
   ]
