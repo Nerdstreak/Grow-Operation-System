@@ -4,13 +4,6 @@ import { V1Alert, V1Badge, V1Button, V1Card, V1Field, V1Page, V1Section } from '
 
 const remoteStorageKey = 'grow-os.remote-base-url'
 
-type UrlSet = {
-  live: string
-  addback: string
-  manualMeasurement: string
-  homeAssistant: string
-}
-
 type NetworkAddressDto = {
   label: string
   host: string
@@ -50,7 +43,6 @@ function DeviceConnectPage() {
   const [networkError, setNetworkError] = useState<string | null>(null)
   const [remoteBaseUrl, setRemoteBaseUrl] = useState(() => window.localStorage.getItem(remoteStorageKey) ?? '')
   const [copied, setCopied] = useState<string | null>(null)
-  const [selectedQr, setSelectedQr] = useState<keyof UrlSet>('live')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -68,9 +60,11 @@ function DeviceConnectPage() {
     return () => controller.abort()
   }, [browserOrigin])
 
-  const activeBaseUrl = normalizeBaseUrl(remoteBaseUrl) || browserOrigin
-  const urls = buildUrls(activeBaseUrl)
-  const qrValue = urls[selectedQr]
+  const remoteUrl = normalizeBaseUrl(remoteBaseUrl)
+  const recommendedUrl = normalizeBaseUrl(network?.recommendedBaseUrl ?? '')
+  const activeBaseUrl = remoteUrl || recommendedUrl || browserOrigin
+  const activeSource = remoteUrl ? 'Remote/VPN' : recommendedUrl ? 'LAN' : 'aktueller Browser'
+  const qrValue = `${activeBaseUrl}/`
 
   const saveRemoteUrl = () => {
     const normalized = normalizeBaseUrl(remoteBaseUrl)
@@ -92,12 +86,12 @@ function DeviceConnectPage() {
 
       <V1Section title="Adresse">
         <div className="v1-card-grid">
-          <V1Card tone={remoteBaseUrl.trim() ? 'ok' : 'neutral'}>
+          <V1Card tone={activeSource === 'aktueller Browser' ? 'neutral' : 'ok'}>
             <span className="v1-card-kicker">Aktive Adresse</span>
             <h2>{shortenUrl(activeBaseUrl)}</h2>
             <p>{activeBaseUrl}</p>
             <div className="v1-action-row">
-              <V1Badge tone={remoteBaseUrl.trim() ? 'ok' : 'neutral'}>{remoteBaseUrl.trim() ? 'Remote/VPN' : 'aktueller Browser'}</V1Badge>
+              <V1Badge tone={activeSource === 'aktueller Browser' ? 'neutral' : 'ok'}>{activeSource}</V1Badge>
               <V1Button onClick={() => copy('Adresse', activeBaseUrl)}>Kopieren</V1Button>
             </div>
           </V1Card>
@@ -117,13 +111,7 @@ function DeviceConnectPage() {
         <div className="v1-card-grid">
           <V1Card tone="neutral">
             <span className="v1-card-kicker">Öffnen</span>
-            <h2>{selectedQr === 'live' ? 'Live' : selectedQr === 'addback' ? 'Addback' : selectedQr === 'manualMeasurement' ? 'Messung' : 'Home Assistant'}</h2>
-            <div className="v1-action-row">
-              <V1Button variant={selectedQr === 'live' ? 'primary' : 'secondary'} onClick={() => setSelectedQr('live')}>Live</V1Button>
-              <V1Button variant={selectedQr === 'addback' ? 'primary' : 'secondary'} onClick={() => setSelectedQr('addback')}>Addback</V1Button>
-              <V1Button variant={selectedQr === 'manualMeasurement' ? 'primary' : 'secondary'} onClick={() => setSelectedQr('manualMeasurement')}>Messung</V1Button>
-              <V1Button variant={selectedQr === 'homeAssistant' ? 'primary' : 'secondary'} onClick={() => setSelectedQr('homeAssistant')}>HA</V1Button>
-            </div>
+            <h2>Live</h2>
             <div style={{ display: 'grid', placeItems: 'center', padding: 16 }}><QrCode value={qrValue} /></div>
             <div className="v1-settings-note">{qrValue}</div>
             <V1Button variant="primary" onClick={() => copy('QR-Link', qrValue)}>Link kopieren</V1Button>
@@ -202,7 +190,6 @@ function reedSolomonGenerator(degree: number) { let result = [1]; for (let i = 0
 function polyMultiply(left: number[], right: number[]) { const result = Array(left.length + right.length - 1).fill(0); for (let i = 0; i < left.length; i++) for (let j = 0; j < right.length; j++) result[i + j] ^= gfMultiply(left[i], right[j]); return result }
 function gfExp(power: number) { let value = 1; for (let i = 0; i < power; i++) { value <<= 1; if (value & 0x100) value ^= 0x11d } return value }
 function gfMultiply(left: number, right: number) { if (left === 0 || right === 0) return 0; let result = 0; let a = left; let b = right; while (b > 0) { if (b & 1) result ^= a; a <<= 1; if (a & 0x100) a ^= 0x11d; b >>>= 1 } return result }
-function buildUrls(baseUrl: string): UrlSet { const base = normalizeBaseUrl(baseUrl); return { live: `${base}/`, addback: `${base}/addback`, manualMeasurement: `${base}/messung`, homeAssistant: `${base}/home-assistant` } }
 function normalizeBaseUrl(value: string) { return value.trim().replace(/\/$/, '') }
 function shortenUrl(value: string) { try { return new URL(value).host } catch { return value } }
 export default DeviceConnectPage

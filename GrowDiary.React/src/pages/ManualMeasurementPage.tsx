@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowStage, GrowSummary, MeasurementDto, MeasurementUpsertPayload, PhotoTag, ValueOrigin } from '../types'
+import FileInput from '../components/FileInput'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch } from '../components/v1'
 import { toLocalInputValue } from '../utils'
 
@@ -212,7 +213,7 @@ function ManualMeasurementPage() {
                   <input value={photoDraft.caption} onChange={(event) => setPhotoDraft((current) => ({ ...current, caption: event.target.value }))} />
                 </V1Field>
                 <V1Field label="Fotos" wide>
-                  <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setPhotoDraft((current) => ({ ...current, files: Array.from(event.target.files ?? []) }))} />
+                  <FileInput accept="image/png,image/jpeg,image/webp" multiple fileNames={photoDraft.files.map((file) => file.name)} onFiles={(files) => setPhotoDraft((current) => ({ ...current, files }))} />
                 </V1Field>
               </div>
             </V1Section>

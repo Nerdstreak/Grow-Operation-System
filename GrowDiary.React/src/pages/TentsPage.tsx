@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CreateTentRequest, HydroSetupDto, TentDto, TentLivePayload, TentType, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
+import type { CreateTentRequest, GrowSummary, HydroSetupDto, TentDto, TentLivePayload, TentType, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Stat, V1Switch } from '../components/v1'
 import { toNullableInt, toNullableString } from '../components/v1-utils'
 
@@ -34,6 +34,7 @@ function TentsPage() {
 
   const [tents, setTents] = useState<TentDto[]>([])
   const [hydroSetups, setHydroSetups] = useState<HydroSetupDto[]>([])
+  const [grows, setGrows] = useState<GrowSummary[]>([])
   const [liveByTentId, setLiveByTentId] = useState<Record<number, TentLivePayload>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -46,9 +47,10 @@ function TentsPage() {
     setLoading(true)
     setError(null)
     try {
-      const [tentData, setupData] = await Promise.all([
+      const [tentData, setupData, growData] = await Promise.all([
         apiFetch<TentDto[]>('/api/settings/tents?includeArchived=true'),
         apiFetch<HydroSetupDto[]>('/api/hydro-setups?includeArchived=true'),
+        apiFetch<GrowSummary[]>('/api/grows?archived=false').catch(() => []),
       ])
       const sortedTents = sortTents(tentData)
       const livePairs = await Promise.all(sortedTents.filter((tent) => tent.status === 'Active').map(async (tent) => {
@@ -57,6 +59,7 @@ function TentsPage() {
       }))
       setTents(sortedTents)
       setHydroSetups(setupData)
+      setGrows(growData)
       setLiveByTentId(Object.fromEntries(livePairs.filter((pair): pair is readonly [number, TentLivePayload] => pair[1] !== null)))
       if (routeCreateMode) setDraft(createDraft(tentData.length + 1))
     } catch (caught) {
@@ -131,7 +134,13 @@ function TentsPage() {
   }
 
   async function deleteTent(tent: TentDto) {
-    const confirmed = window.confirm(`${tent.name} löschen? Wenn Abhängigkeiten existieren, wird das Zelt vom Backend archiviert.`)
+    const linkedGrows = getGrowsForTent(grows, tent.id)
+    const linkedHydro = hydroSetups.filter((setup) => setup.tentId === tent.id && setup.status === 'Active')
+    if (linkedGrows.length > 0 || linkedHydro.length > 0) {
+      setError(`${tent.name} hat Abhängigkeiten. Öffne die betroffenen Grows/Hydro-Setups oder archiviere das Zelt: ${[...linkedGrows.map((grow) => grow.name), ...linkedHydro.map((setup) => setup.name)].join(', ')}`)
+      return
+    }
+    const confirmed = window.confirm(`${tent.name} endgültig löschen?`)
     if (!confirmed) return
     setSaving(`delete-${tent.id}`)
     setError(null)
@@ -146,6 +155,21 @@ function TentsPage() {
       setTents((current) => sortTents(current.map((item) => item.id === saved.id ? saved : item)))
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Zelt konnte nicht gelöscht werden.')
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function archiveTent(tent: TentDto) {
+    const confirmed = window.confirm(`${tent.name} archivieren?`)
+    if (!confirmed) return
+    setSaving(`archive-${tent.id}`)
+    setError(null)
+    try {
+      const saved = await apiFetch<TentDto>(`/api/settings/tents/${tent.id}/archive`, { method: 'POST' })
+      setTents((current) => sortTents(current.map((item) => item.id === saved.id ? saved : item)))
+    } catch (caught) {
+      setError(formatApiError(caught, 'Zelt konnte nicht archiviert werden.'))
     } finally {
       setSaving(null)
     }
@@ -212,14 +236,14 @@ function TentsPage() {
 
       {loading ? <V1Empty title="Lade Zelte..." /> : tents.length === 0 ? <V1Empty title="Noch kein Zelt" action={<V1Button variant="primary" onClick={openCreate}>Erstes Zelt anlegen</V1Button>} /> : (
         <section className="v1-card-grid">
-          {tents.map((tent) => <TentCard key={tent.id} tent={tent} live={liveByTentId[tent.id] ?? null} hydroCount={countHydroForTent(hydroSetups, tent.id)} saving={saving === `delete-${tent.id}`} onEdit={openEdit} onDelete={deleteTent} />)}
+          {tents.map((tent) => <TentCard key={tent.id} tent={tent} live={liveByTentId[tent.id] ?? null} hydroCount={countHydroForTent(hydroSetups, tent.id)} linkedGrows={getGrowsForTent(grows, tent.id)} saving={saving === `delete-${tent.id}` || saving === `archive-${tent.id}`} onEdit={openEdit} onArchive={archiveTent} onDelete={deleteTent} />)}
         </section>
       )}
     </V1Page>
   )
 }
 
-function TentCard({ tent, live, hydroCount, saving, onEdit, onDelete }: { tent: TentDto; live: TentLivePayload | null; hydroCount: number; saving: boolean; onEdit: (tent: TentDto) => void; onDelete: (tent: TentDto) => void }) {
+function TentCard({ tent, live, hydroCount, linkedGrows, saving, onEdit, onArchive, onDelete }: { tent: TentDto; live: TentLivePayload | null; hydroCount: number; linkedGrows: GrowSummary[]; saving: boolean; onEdit: (tent: TentDto) => void; onArchive: (tent: TentDto) => void; onDelete: (tent: TentDto) => void }) {
   const archived = tent.status === 'Archived'
   return (
     <V1Card className="v1-tent-card" tone={archived ? 'neutral' : liveTone(live)}>
@@ -238,7 +262,8 @@ function TentCard({ tent, live, hydroCount, saving, onEdit, onDelete }: { tent: 
         <Info label="Licht" value={tent.lightWatt ? `${tent.lightWatt} W` : tent.lightType ?? 'offen'} />
         <Info label="Klima" value={`${tent.exhaustFanCount ?? 0} Abluft · ${tent.circulationFanCount ?? 0} Umluft`} />
       </div>
-      <div className="v1-action-row"><V1LinkButton to={`/zelte/${tent.id}`} variant="primary">Öffnen</V1LinkButton><V1Button onClick={() => onEdit(tent)}>Bearbeiten</V1Button><V1Button variant="danger" disabled={saving} onClick={() => void onDelete(tent)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button></div>
+      {linkedGrows.length > 0 && <p>{linkedGrows.length} aktive Grows verknüpft.</p>}
+      <div className="v1-action-row rc-tent-actions"><V1LinkButton to={`/zelte/${tent.id}`} variant="primary">Öffnen</V1LinkButton><V1Button onClick={() => onEdit(tent)}>Bearbeiten</V1Button><V1Button disabled={saving} onClick={() => void onArchive(tent)}>Archivieren</V1Button><V1Button variant="danger" disabled={saving} onClick={() => void onDelete(tent)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button></div>
     </V1Card>
   )
 }
@@ -246,6 +271,7 @@ function TentCard({ tent, live, hydroCount, saving, onEdit, onDelete }: { tent: 
 function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
 function sortTents(items: TentDto[]) { return [...items].sort((a, b) => a.status.localeCompare(b.status) || a.displayOrder - b.displayOrder || a.name.localeCompare(b.name)) }
 function countHydroForTent(items: HydroSetupDto[], tentId: number) { return items.filter((setup) => setup.tentId === tentId && setup.status === 'Active').length }
+function getGrowsForTent(items: GrowSummary[], tentId: number) { return items.filter((grow) => grow.tentId === tentId && (grow.status === 'Running' || grow.status === 'Planning')) }
 function mapSensors(tent: TentDto): UpdateTentSensorRequest[] { return tent.sensors.map((sensor) => ({ id: sensor.id, metricType: sensor.metricType, haEntityId: sensor.haEntityId, displayLabel: sensor.displayLabel, isActive: sensor.isActive })) }
 function createDraft(displayOrder = 1): TentDraft { return { name: '', kind: 'Grow Tent', tentType: 'Production', notes: '', displayOrder: String(displayOrder), widthCm: '', depthCm: '', tentHeightCm: '', lightType: '', lightWatt: '', exhaustFanCount: '', exhaustM3h: '', circulationFanCount: '', co2Available: false } }
 function createDraftFromTent(tent: TentDto): TentDraft { return { name: tent.name, kind: tent.kind, tentType: tent.tentType, notes: tent.notes ?? '', displayOrder: String(tent.displayOrder), widthCm: String(tent.widthCm ?? ''), depthCm: String(tent.depthCm ?? ''), tentHeightCm: String(tent.tentHeightCm ?? ''), lightType: tent.lightType ?? '', lightWatt: String(tent.lightWatt ?? ''), exhaustFanCount: String(tent.exhaustFanCount ?? ''), exhaustM3h: String(tent.exhaustM3h ?? ''), circulationFanCount: String(tent.circulationFanCount ?? ''), co2Available: tent.co2Available } }
