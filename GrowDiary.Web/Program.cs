@@ -35,6 +35,7 @@ builder.Services.AddDataProtection()
     .SetApplicationName("GrowDiary.Web");
 builder.Services.AddSingleton(paths);
 builder.Services.AddSingleton<DatabaseInitializer>();
+builder.Services.AddSingleton<TentRepository>();
 builder.Services.AddSingleton<GrowRepository>();
 builder.Services.AddSingleton<TaskRepository>();
 builder.Services.AddSingleton<JournalRepository>();
