@@ -44,8 +44,8 @@ function TentDetailPage() {
       try {
         const tentIdNumber = Number(tentId)
         const [tents, livePayload, activeGrows, setupList, hydroSetupList] = await Promise.all([
-          apiFetch<TentDto[]>('/api/settings/tents', { signal: controller.signal }),
-          apiFetch<TentLivePayload>(`/api/live/tents/${tentId}`, { signal: controller.signal }),
+          apiFetch<TentDto[]>('/api/settings/tents?includeArchived=true', { signal: controller.signal }),
+          apiFetch<TentLivePayload>(`/api/live/tents/${tentId}`, { signal: controller.signal }).catch(() => null),
           apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }),
           apiFetch<SetupDto[]>('/api/setups', { signal: controller.signal }),
           apiFetch<HydroSetupDto[]>(`/api/hydro-setups?tentId=${tentIdNumber}&includeArchived=true`, { signal: controller.signal }).catch(() => []),

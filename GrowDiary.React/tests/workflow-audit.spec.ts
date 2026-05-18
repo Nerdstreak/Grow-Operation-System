@@ -1,4 +1,4 @@
-import { test, type APIRequestContext } from '@playwright/test'
+import { expect, test, type APIRequestContext } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -131,12 +131,20 @@ test.describe('workflow audit desktop', () => {
   })
 
   test('walk admin and mapping workflows', async ({ page }) => {
+    await ensureHydroSetupForWorkflowAudit(page.request)
     await auditRoute(page, '/aufgaben', 'desktop-aufgaben')
+    await assertActionPage(page)
     await auditRoute(page, '/home-assistant', 'desktop-ha-setup')
     await auditRoute(page, '/wissen', 'desktop-knowledge')
+    await assertKnowledgePage(page)
     await auditRoute(page, '/release', 'desktop-release')
+    await assertFileInput(page)
     await auditRoute(page, '/settings', 'desktop-settings')
+    await assertSettingsPage(page)
     await auditRoute(page, '/connect', 'desktop-connect')
+    await assertConnectPage(page)
+    await assertOpenDoesNotNotFound(page, '/hydro', 'hydro-open')
+    await assertOpenDoesNotNotFound(page, '/zelte', 'tent-open')
   })
 })
 
@@ -217,6 +225,49 @@ async function apiJson<T>(request: APIRequestContext, method: 'GET' | 'POST', pa
 async function auditRoute(page: import('@playwright/test').Page, url: string, name: string) {
   await page.goto(url, { waitUntil: 'domcontentloaded' })
   await waitForAppIdle(page)
+  await screenshotAndLayout(page, name)
+}
+
+async function assertSettingsPage(page: import('@playwright/test').Page) {
+  await expect(page.getByRole('button', { name: /Vollbackup herunterladen/i })).toBeVisible()
+  await assertFileInput(page)
+}
+
+async function assertFileInput(page: import('@playwright/test').Page) {
+  await expect(page.locator('.rc-file-input').first()).toBeVisible()
+}
+
+async function assertConnectPage(page: import('@playwright/test').Page) {
+  await expect(page.getByRole('button', { name: /^(Addback|Messung|HA)$/i })).toHaveCount(0)
+  const frontendOrigin = await page.evaluate(() => window.location.origin)
+  const network = await apiJson<{ recommendedBaseUrl: string }>(page.request, 'GET', `/api/system/network?frontendOrigin=${encodeURIComponent(frontendOrigin)}`)
+  if (network.recommendedBaseUrl && !network.recommendedBaseUrl.includes('127.0.0.1')) {
+    await expect(page.getByText(`${network.recommendedBaseUrl.replace(/\/$/, '')}/`, { exact: true })).toBeVisible()
+  }
+}
+
+async function assertActionPage(page: import('@playwright/test').Page) {
+  await expect(page.locator('.rc-action-guide-card')).toHaveCount(4)
+  await expect(page.getByText(/Nährlösung prüfen und Addback berechnen/i)).toBeVisible()
+  await expect(page.getByText(/Aktuelle Werte dokumentieren/i)).toBeVisible()
+  await expect(page.getByText(/Sensorstatus, Wartung und Kalibrierung prüfen/i)).toBeVisible()
+  await expect(page.getByText(/Verbindung und Mapping prüfen/i)).toBeVisible()
+}
+
+async function assertKnowledgePage(page: import('@playwright/test').Page) {
+  await expect(page.locator('.rc2-topic-card').first()).toBeVisible()
+  await expect(page.locator('.rc2-topic-detail').first()).toBeVisible()
+  await expect(page.locator('.rc2-topic-sections article').first()).toBeVisible()
+}
+
+async function assertOpenDoesNotNotFound(page: import('@playwright/test').Page, url: string, name: string) {
+  await page.goto(url, { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  const openLink = page.getByRole('link', { name: /^Öffnen$/i }).first()
+  await expect(openLink, `${name}: Öffnen-Link fehlt`).toBeVisible()
+  await openLink.click()
+  await waitForAppIdle(page)
+  await expect(page.getByRole('heading', { name: /Nicht gefunden/i })).toHaveCount(0)
   await screenshotAndLayout(page, name)
 }
 
@@ -469,10 +520,6 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
   fs.writeFileSync(path.join(outputDir, `${name}.json`), JSON.stringify(result, null, 2), 'utf8')
   await page.screenshot({ path: path.join(outputDir, `${name}.png`), fullPage: true })
 
-  if (result.bodyOverflow || result.documentOverflow) {
-    throw new Error(`${name}: horizontal overflow on ${result.path} body=${result.bodyScrollWidth} document=${result.documentScrollWidth} viewport=${result.innerWidth}`)
-  }
-
   const hardOffenders = result.hardOffenders as LayoutFinding[]
   if (hardOffenders.length > 0) {
     const details = hardOffenders.slice(0, 5).map((item) => {
@@ -480,5 +527,9 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
       return `${item.selector} "${item.text}" ${problem} left=${item.left} right=${item.right} top=${item.top} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`
     }).join(' | ')
     throw new Error(`${name}: visible elements blocked or outside viewport: ${details}`)
+  }
+
+  if (result.bodyOverflow) {
+    throw new Error(`${name}: horizontal overflow on ${result.path} body=${result.bodyScrollWidth} document=${result.documentScrollWidth} viewport=${result.innerWidth}`)
   }
 }

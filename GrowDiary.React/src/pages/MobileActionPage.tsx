@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { CalibrationEventDto, GrowSummary, GrowTaskDto, HardwareItemDto, MaintenanceEventDto, RiskEventDto, SopInstanceDto } from '../types'
-import { V1Alert, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
+import { V1Alert, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { classNames, formatDateTime } from '../utils'
 
 type ActionState = { grows: GrowSummary[]; risks: RiskEventDto[]; tasks: GrowTaskDto[]; maintenance: MaintenanceEventDto[]; calibration: CalibrationEventDto[]; sops: SopInstanceDto[]; hardware: HardwareItemDto[]; issues: string[] }
@@ -45,16 +45,22 @@ function MobileActionPage() {
   const rows = buildRows(state, risks)
   const status = loading ? 'Lädt' : risks.some((risk) => risk.severity === 'Critical') ? 'Kritisch' : rows.length > 0 ? 'Offen' : 'Bereit'
   const primaryGrow = activeGrows[0]
+  const actionCards = buildActionCards(state, primaryGrow)
 
   return (
     <V1Page eyebrow="Aktion" title={status}>
       {state.issues.length > 0 && <V1Alert title="Teilweise offline" message={state.issues.join(' · ')} tone="warn" />}
       <section className="v1-kpi-grid"><V1Stat label="Risiken" value={risks.length} /><V1Stat label="Wartung" value={state.maintenance.length} /><V1Stat label="Kalibrierung" value={state.calibration.length} /><V1Stat label="Grows" value={activeGrows.length} /></section>
-      <section className="v1-quick-actions">
-        {primaryGrow ? <V1LinkButton to={`/grows/${primaryGrow.id}/addback`} variant="primary">Addback</V1LinkButton> : <V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>}
-        {primaryGrow && <V1LinkButton to={`/grows/${primaryGrow.id}`}>Messung</V1LinkButton>}
-        <V1LinkButton to="/hardware">Sensoren</V1LinkButton>
-        <V1LinkButton to="/home-assistant">HA</V1LinkButton>
+      <section className="rc-action-guide-grid">
+        {actionCards.map((card) => (
+          <V1Card key={card.key} className="rc-action-guide-card" tone={card.tone}>
+            <span className="v1-card-kicker">{card.kicker}</span>
+            <h2>{card.title}</h2>
+            <p>{card.description}</p>
+            <p>{card.status}</p>
+            <V1LinkButton to={card.to} variant={card.primary ? 'primary' : 'secondary'}>{card.cta}</V1LinkButton>
+          </V1Card>
+        ))}
       </section>
       <V1Section title="Jetzt">
         {loading ? <V1Empty title="Lade Aktionen..." /> : rows.length === 0 ? <V1Empty title="Keine offenen Aktionen" text="Es gibt aktuell keine kritischen Risiken, fälligen Wartungen oder aktiven SOP-Schritte." /> : <div className="v1-list">{rows.map((row) => <Link key={row.id} to={row.to} className={classNames('v1-list-row', row.tone)}><strong>{row.title}</strong><span>{row.meta}</span></Link>)}</div>}
@@ -72,6 +78,64 @@ function buildRows(state: ActionState, risks: RiskEventDto[]) {
     ...state.tasks.map((task) => ({ id: `task-${task.id}`, title: task.title, meta: `${task.growName ?? getGrowName(state.grows, task.growId)} · ${formatDateTime(task.dueAtUtc)}`, to: `/grows/${task.growId}`, tone: 'normal' })),
   ].slice(0, 12)
 }
+
+function buildActionCards(state: ActionState, primaryGrow: GrowSummary | undefined) {
+  const activeSensors = state.hardware.filter((item) => isSensorLike(item) && item.status === 'Active').length
+  const mappedHardware = state.hardware.filter((item) => item.haEntityId).length
+  const dueSensorWork = state.maintenance.length + state.calibration.length
+
+  return [
+    {
+      key: 'addback',
+      kicker: 'Addback',
+      title: 'Nährlösung prüfen und Addback berechnen',
+      description: 'Reservoirwerte, Wasserstand und Ziel-EC zusammen kontrollieren.',
+      status: primaryGrow ? `Kontext: ${primaryGrow.name}` : 'Kein aktiver Grow ausgewählt.',
+      to: primaryGrow ? `/grows/${primaryGrow.id}/addback` : '/grows/new',
+      cta: primaryGrow ? 'Addback starten' : 'Grow starten',
+      primary: true,
+      tone: state.risks.some((risk) => risk.severity === 'Critical') ? 'warn' as const : 'neutral' as const,
+    },
+    {
+      key: 'measurement',
+      kicker: 'Messung',
+      title: 'Aktuelle Werte dokumentieren',
+      description: 'pH, EC, Klima, Reservoir und Beobachtungen als Verlauf speichern.',
+      status: primaryGrow?.latestMeasurementAt ? `Letzte Messung: ${formatDateTime(primaryGrow.latestMeasurementAt)}` : 'Noch keine aktuelle Messung erkannt.',
+      to: '/messung',
+      cta: 'Messung erfassen',
+      primary: false,
+      tone: 'neutral' as const,
+    },
+    {
+      key: 'sensors',
+      kicker: 'Sensoren',
+      title: 'Sensorstatus, Wartung und Kalibrierung prüfen',
+      description: 'Offline-Sensoren und fällige Pflege entscheiden, wie belastbar Live-Werte sind.',
+      status: activeSensors === 0 ? 'Sensorvertrauen nicht bewertet.' : `${activeSensors} aktive Sensoren, ${dueSensorWork} fällige Aufgaben.`,
+      to: '/hardware',
+      cta: 'Sensoren prüfen',
+      primary: false,
+      tone: activeSensors === 0 || dueSensorWork > 0 ? 'warn' as const : 'ok' as const,
+    },
+    {
+      key: 'ha',
+      kicker: 'Home Assistant',
+      title: 'Verbindung und Mapping prüfen',
+      description: 'Sensor-Inventar bleibt getrennt vom Entity-Mapping in Home Assistant.',
+      status: mappedHardware > 0 ? `${mappedHardware} Hardware-Entities verknüpft.` : 'Mapping noch offen oder unvollständig.',
+      to: '/home-assistant',
+      cta: 'HA einrichten',
+      primary: false,
+      tone: mappedHardware > 0 ? 'neutral' as const : 'warn' as const,
+    },
+  ]
+}
+
 function getGrowName(grows: GrowSummary[], id: number | null) { return id == null ? 'Grow offen' : grows.find((grow) => grow.id === id)?.name ?? `Grow #${id}` }
 function getHardwareName(items: HardwareItemDto[], id: number | null) { return id == null ? 'Hardware offen' : items.find((item) => item.id === id)?.name ?? `Hardware #${id}` }
+function isSensorLike(item: HardwareItemDto) {
+  const text = `${item.name} ${item.category}`.toLowerCase()
+  return ['sensor', 'sonde', 'probe', 'ph', 'ec', 'orp', 'do', 'temperatur', 'level'].some((term) => text.includes(term))
+}
 export default MobileActionPage
