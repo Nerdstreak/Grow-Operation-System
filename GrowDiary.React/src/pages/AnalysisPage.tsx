@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowDetail, GrowSummary } from '../types'
@@ -38,15 +38,7 @@ function AnalysisPage() {
     return () => controller.abort()
   }, [])
 
-  useEffect(() => {
-    void loadGrow(leftId, setLeftGrow)
-  }, [leftId])
-
-  useEffect(() => {
-    void loadGrow(rightId, setRightGrow)
-  }, [rightId])
-
-  async function loadGrow(id: string, assign: (grow: GrowDetail | null) => void) {
+  const loadGrow = useCallback(async (id: string, assign: (grow: GrowDetail | null) => void) => {
     if (!id) {
       assign(null)
       return
@@ -57,7 +49,15 @@ function AnalysisPage() {
     } catch {
       assign(null)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    void loadGrow(leftId, setLeftGrow)
+  }, [leftId, loadGrow])
+
+  useEffect(() => {
+    void loadGrow(rightId, setRightGrow)
+  }, [rightId, loadGrow])
 
   function updateSelection(key: 'leftGrowId' | 'rightGrowId', value: string) {
     const next = new URLSearchParams(searchParams)

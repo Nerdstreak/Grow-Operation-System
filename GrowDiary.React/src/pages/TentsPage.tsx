@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { CreateTentRequest, HydroSetupDto, TentDto, TentLivePayload, TentType, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Stat, V1Switch, toNullableInt, toNullableString } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Stat, V1Switch } from '../components/v1'
+import { toNullableInt, toNullableString } from '../components/v1-utils'
 
 const tentTypes: TentType[] = ['Production', 'Mother', 'Propagation', 'Quarantine', 'MultiPurpose']
-const liveMetricKeys = ['temperature', 'humidity', 'vpd', 'light-cycle', 'ppfd'] as const
 
-type LiveMetricKey = typeof liveMetricKeys[number]
+type LiveMetricKey = 'temperature' | 'humidity' | 'vpd' | 'light-cycle' | 'ppfd'
 
 type TentDraft = {
   name: string
@@ -42,9 +42,7 @@ function TentsPage() {
   const [draft, setDraft] = useState<TentDraft>(() => createDraft())
   const [saving, setSaving] = useState<string | null>(null)
 
-  useEffect(() => { void loadTents() }, [])
-
-  async function loadTents() {
+  const loadTents = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -66,7 +64,15 @@ function TentsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [routeCreateMode])
+
+  useEffect(() => {
+    let active = true
+    queueMicrotask(() => {
+      if (active) void loadTents()
+    })
+    return () => { active = false }
+  }, [loadTents])
 
   const activeTents = useMemo(() => tents.filter((tent) => tent.status === 'Active'), [tents])
   const physicalVolumeKnown = useMemo(() => activeTents.filter((tent) => tent.widthCm && tent.depthCm && tent.tentHeightCm).length, [activeTents])

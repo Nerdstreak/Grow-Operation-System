@@ -129,7 +129,7 @@ function AddbackPage() {
     return () => controller.abort()
   }, [growId])
 
-  const programs = knowledge?.programs ?? []
+  const programs = useMemo(() => knowledge?.programs ?? [], [knowledge?.programs])
   const selectedProgram = useMemo(
     () => programs.find((program) => program.key === programKey) ?? null,
     [programKey, programs],
