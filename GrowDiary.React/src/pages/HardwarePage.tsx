@@ -201,7 +201,7 @@ function HardwarePage() {
         <V1Card tone={plannedMaintenance.length + plannedCalibration.length > 0 ? 'warn' : 'ok'}><span className="v1-card-kicker">Pflege</span><h2>{plannedMaintenance.length + plannedCalibration.length}</h2><p>Wartung/Kalibrierung fällig</p></V1Card>
       </section>
 
-      <V1Tabs<Tab> label="Sensoren Bereich" active={tab} onChange={setTab} items={[{ value: 'status', label: 'Status', meta: `${sensors.length} Sensoren` }, { value: 'inventory', label: 'Inventar', meta: `${hardware.length} Geräte` }, { value: 'maintenance', label: 'Wartung', meta: `${plannedMaintenance.length + plannedCalibration.length} offen` }, { value: 'mapping', label: 'Mapping', meta: 'HA getrennt' }]} />
+      <V1Tabs<Tab> label="Sensoren Bereich" active={tab} onChange={setTab} items={[{ value: 'status', label: 'Status', meta: `${sensors.length} Sensoren` }, { value: 'inventory', label: 'Inventar', meta: `${hardware.length} Geräte`, audit: 'hardware-inventory-tab' }, { value: 'maintenance', label: 'Wartung', meta: `${plannedMaintenance.length + plannedCalibration.length} offen` }, { value: 'mapping', label: 'Mapping', meta: 'HA getrennt' }]} />
 
       {loading ? <V1Empty title="Lade Sensoren..." /> : tab === 'status' ? (
         <V1Section title="Sensorstatus">
@@ -277,7 +277,7 @@ function HardwareCard({ item, saving, onStatus, onEdit, onDelete }: { item: Hard
         <V1Button onClick={() => onEdit(item)}>Bearbeiten</V1Button>
         <V1Button disabled={saving} onClick={() => void onStatus(item, item.status === 'Offline' ? 'Active' : 'Offline')}>{item.status === 'Offline' ? 'Aktivieren' : 'Offline setzen'}</V1Button>
         <V1Button disabled={saving} onClick={() => void onStatus(item, 'MaintenanceDue')}>Wartung</V1Button>
-        <V1Button variant="danger" disabled={saving} onClick={() => void onDelete(item)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button>
+        <V1Button variant="danger" disabled={saving} audit="hardware-delete-button" onClick={() => void onDelete(item)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button>
       </div>
     </V1Card>
   )

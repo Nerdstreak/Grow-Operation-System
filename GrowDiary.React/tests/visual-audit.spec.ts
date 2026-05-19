@@ -362,11 +362,9 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
     expect(layout.actionsOverlap, 'HA connection actions must not overlap inputs').toBe(false)
   }
   if (slug === 'hardware') {
-    const inventoryOpenButton = page.getByRole('button', { name: /^Inventar öffnen$/i })
-    await expect(inventoryOpenButton).toBeVisible()
-    await inventoryOpenButton.click()
+    await page.locator('[data-audit="hardware-inventory-tab"]').click()
     await expect(page.locator('[data-audit="hardware-edit-form"]')).toBeVisible()
-    await expect(page.getByRole('button', { name: /^Löschen$/i }).first()).toBeVisible()
+    await expect(page.locator('[data-audit="hardware-delete-button"]').first()).toBeVisible()
     await assertNoAsciiUmlautActions(page, slug)
   }
   if (slug === 'grows') {
@@ -383,7 +381,7 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
   }
   if (slug === 'zelte') {
     await expect(page.locator('[data-audit="tent-delete-blocked"]')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /^Löschen$/i }).first()).toBeVisible()
+    await expect(page.locator('[data-audit="tent-delete-button"]').first()).toBeVisible()
     const overflowingTentCards = await page.locator('.v1-tent-card').evaluateAll((cards) =>
       cards.filter((card) => {
         const html = card as HTMLElement
@@ -410,6 +408,27 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
           || (parentRect != null && (rect.left < parentRect.left - 2 || rect.right > parentRect.right + 2))
       }).length)
     expect(previewProblems, 'Hydro preview must stay inside its card and not overflow horizontally').toBe(0)
+    const clippedPreviewChildren = await page.locator('[data-audit="hydro-preview"]').evaluateAll((previews) =>
+      previews.flatMap((preview) => {
+        const previewRect = (preview as HTMLElement).getBoundingClientRect()
+        return Array.from(preview.querySelectorAll('.rdwc-preview__site, .rdwc-preview__tank, .rdwc-preview__caption'))
+          .filter((child) => {
+            const rect = (child as HTMLElement).getBoundingClientRect()
+            return rect.left < previewRect.left - 2
+              || rect.right > previewRect.right + 2
+              || rect.top < previewRect.top - 2
+              || rect.bottom > previewRect.bottom + 2
+          })
+          .map((child) => {
+            const rect = (child as HTMLElement).getBoundingClientRect()
+            const previewStyle = window.getComputedStyle(preview as HTMLElement)
+            const parent = child.parentElement as HTMLElement | null
+            const parentStyle = parent ? window.getComputedStyle(parent) : null
+            const parentRect = parent?.getBoundingClientRect()
+            return `${child.textContent?.trim()} child=${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.right)},${Math.round(rect.bottom)} preview=${Math.round(previewRect.left)},${Math.round(previewRect.top)},${Math.round(previewRect.right)},${Math.round(previewRect.bottom)} previewStyle=${previewStyle.display}/${previewStyle.position}/${previewStyle.alignItems}/${previewStyle.justifyContent}/${previewStyle.marginTop}/${previewStyle.transform} parent=${parent?.className ?? 'none'} parentRect=${parentRect ? `${Math.round(parentRect.left)},${Math.round(parentRect.top)},${Math.round(parentRect.right)},${Math.round(parentRect.bottom)}` : 'none'} parentStyle=${parentStyle?.display}/${parentStyle?.position}/${parentStyle?.alignItems}/${parentStyle?.justifyContent}/${parentStyle?.marginTop}/${parentStyle?.transform}`
+          })
+      }))
+    expect(clippedPreviewChildren, 'Hydro preview children must not be clipped inside the preview').toEqual([])
     await assertNoAsciiUmlautActions(page, slug)
   }
   if (slug === 'addback') {

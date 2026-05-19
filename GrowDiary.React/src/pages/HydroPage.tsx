@@ -28,6 +28,8 @@ type HydroDraft = {
 }
 
 const wizardSteps = ['System', 'Volumen', 'Layout', 'Technik', 'Prüfen']
+const layoutOptions: HydroSetupLayoutType[] = ['SingleBucket', 'Row', 'Grid2x2', 'Grid2x3', 'Grid2x4', 'Custom']
+const reservoirPositions: ReservoirPosition[] = ['None', 'Left', 'Right', 'Top', 'Bottom', 'External']
 function HydroPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -262,17 +264,49 @@ function StepVolume({ draft, totalVolume, onDraft }: { draft: HydroDraft; totalV
 }
 
 function StepLayout({ draft, onDraft }: { draft: HydroDraft; onDraft: (setter: (current: HydroDraft) => HydroDraft) => void }) {
+  const isDwc = draft.hydroStyle === 'DWC'
+  const safePotCount = toNullableInt(draft.potCount) ?? (isDwc ? 1 : 4)
+
   return (
     <div className="hydro-layout-step">
+      <div className="hydro-layout-controls" data-audit="hydro-layout-controls">
+        <V1Field label="Sites">
+          <input
+            data-audit="hydro-pot-count"
+            type="number"
+            min={isDwc ? 1 : 2}
+            max={12}
+            value={safePotCount}
+            disabled={isDwc}
+            onChange={(event) => onDraft((current) => ({ ...current, potCount: String(Number.parseInt(event.target.value, 10) || (isDwc ? 1 : 2)) }))}
+          />
+        </V1Field>
+        <V1Field label="Layout-Typ">
+          <select
+            data-audit="hydro-layout-select"
+            value={isDwc ? 'SingleBucket' : draft.layoutType}
+            disabled={isDwc}
+            onChange={(event) => onDraft((current) => ({ ...current, layoutType: event.target.value as HydroSetupLayoutType }))}
+          >
+            {layoutOptions.map((value) => <option key={value} value={value}>{formatLayout(value)}</option>)}
+          </select>
+        </V1Field>
+        <V1Field label="Tankposition">
+          <select
+            data-audit="hydro-reservoir-select"
+            value={isDwc ? 'None' : draft.reservoirPosition}
+            disabled={isDwc}
+            onChange={(event) => onDraft((current) => ({ ...current, reservoirPosition: event.target.value as ReservoirPosition }))}
+          >
+            {reservoirPositions.map((value) => <option key={value} value={value}>{formatReservoirPosition(value)}</option>)}
+          </select>
+        </V1Field>
+      </div>
       <RdwcPreview
-        editable
         hydroStyle={draft.hydroStyle}
         layoutType={draft.layoutType}
-        potCount={toNullableInt(draft.potCount) ?? 1}
+        potCount={safePotCount}
         reservoirPosition={draft.reservoirPosition}
-        onPotCountChange={(value) => onDraft((current) => ({ ...current, potCount: String(value) }))}
-        onLayoutChange={(value) => onDraft((current) => ({ ...current, layoutType: value }))}
-        onReservoirPositionChange={(value) => onDraft((current) => ({ ...current, reservoirPosition: value }))}
       />
     </div>
   )

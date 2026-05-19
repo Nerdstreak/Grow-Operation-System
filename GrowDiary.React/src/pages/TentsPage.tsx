@@ -283,7 +283,7 @@ function TentCard({ tent, live, hydroCount, linkedGrows, linkedHydro, deleteBloc
         ]} />
       </div>
       {linkedGrows.length > 0 && <p>{linkedGrows.length} aktive Grows verknüpft.</p>}
-      <div className="v1-action-row rc-tent-actions"><V1LinkButton to={`/zelte/${tent.id}`} variant="primary">Öffnen</V1LinkButton><V1Button onClick={() => onEdit(tent)}>Bearbeiten</V1Button><V1Button disabled={saving} onClick={() => void onArchive(tent)}>Archivieren</V1Button><V1Button variant="danger" disabled={saving} onClick={() => void onDelete(tent)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button></div>
+      <div className="v1-action-row rc-tent-actions" data-audit="tent-card-actions"><V1LinkButton to={`/zelte/${tent.id}`} variant="primary">Öffnen</V1LinkButton><V1Button onClick={() => onEdit(tent)}>Bearbeiten</V1Button><V1Button disabled={saving} onClick={() => void onArchive(tent)}>Archivieren</V1Button><V1Button variant="danger" disabled={saving} audit="tent-delete-button" onClick={() => void onDelete(tent)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button></div>
       {showDependencyPanel && (
         <div className={classNames('dependency-panel', deleteBlocked && 'active')} data-audit="tent-delete-blocked">
           <strong>Löschen blockiert</strong>
