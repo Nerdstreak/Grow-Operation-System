@@ -577,9 +577,15 @@ html,
 
 .rc-file-input-native {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  width: 1px !important;
+  min-width: 1px !important;
+  max-width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  padding: 0 !important;
+  border: 0 !important;
   opacity: 0;
+  overflow: hidden;
   pointer-events: none;
 }
 
