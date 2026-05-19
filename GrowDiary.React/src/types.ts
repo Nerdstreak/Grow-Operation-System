@@ -78,6 +78,7 @@ export interface GrowSummary {
   startMaterial: StartMaterial
   plantCount: number | null
   tentId: number | null
+  systemId: number | null
   setupId: number | null
   tentName: string | null
   startDate: string
@@ -1081,6 +1082,7 @@ export interface HydroSetupDto {
   hasUvSterilizer: boolean
   notes: string | null
   displayOrder: number
+  activeGrowCount: number
   createdAtUtc: string
   updatedAtUtc: string
 }

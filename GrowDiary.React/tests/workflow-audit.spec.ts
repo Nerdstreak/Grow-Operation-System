@@ -7,6 +7,7 @@ const outputDir = path.join(repoRoot, 'artifacts', 'workflow-audit-current')
 const backendUrl = (process.env.GROW_OS_BACKEND_URL ?? 'http://127.0.0.1:5076').replace(/\/$/, '')
 const workflowTentName = 'E2E Workflow Audit Zelt'
 const workflowHydroName = 'E2E Workflow Audit RDWC'
+const workflowGrowName = 'E2E Workflow Audit Grow'
 
 type LayoutFinding = {
   tag: string
@@ -131,7 +132,7 @@ test.describe('workflow audit desktop', () => {
   })
 
   test('walk admin and mapping workflows', async ({ page }) => {
-    await ensureHydroSetupForWorkflowAudit(page.request)
+    const workflowGrowId = await ensureHydroSetupForWorkflowAudit(page.request)
     await auditRoute(page, '/aufgaben', 'desktop-aufgaben')
     await assertActionPage(page)
     await auditRoute(page, '/home-assistant', 'desktop-ha-setup')
@@ -144,7 +145,11 @@ test.describe('workflow audit desktop', () => {
     await auditRoute(page, '/connect', 'desktop-connect')
     await assertConnectPage(page)
     await assertOpenDoesNotNotFound(page, '/hydro', 'hydro-open')
+    await assertHydroBlockedDeleteShowsGrowLinks(page)
     await assertOpenDoesNotNotFound(page, '/zelte', 'tent-open')
+    await assertTentBlockedDeleteShowsDependencyLinks(page)
+    await auditRoute(page, `/grows/${workflowGrowId}/addback`, 'desktop-addback-flow')
+    await expect(page.locator('[data-audit="addback-stepper"]')).toBeVisible()
   })
 })
 
@@ -183,10 +188,13 @@ async function ensureHydroSetupForWorkflowAudit(request: APIRequestContext) {
     })
   }
 
-  const hasWorkflowHydroForTent = hydroSetups.some((setup) => setup.status !== 'Archived' && setup.name === workflowHydroName && setup.tentId === tent.id)
-  if (hasWorkflowHydroForTent) return
+  const existingHydros = hydroSetups.filter((setup) => setup.status !== 'Archived' && setup.name === workflowHydroName)
+  if (existingHydros.length > 0) {
+    const growIds = await Promise.all(existingHydros.map((setup) => ensureGrowForWorkflowAudit(request, setup.tentId ?? tent.id, setup.id)))
+    return growIds[0]
+  }
 
-  await apiJson<WorkflowHydroSetup>(request, 'POST', '/api/hydro-setups', {
+  const hydro = await apiJson<WorkflowHydroSetup>(request, 'POST', '/api/hydro-setups', {
     tentId: tent.id,
     name: workflowHydroName,
     hydroStyle: 'RDWC',
@@ -205,6 +213,29 @@ async function ensureHydroSetupForWorkflowAudit(request: APIRequestContext) {
     notes: 'Automatisch angelegte Testdaten fuer Playwright Workflow Audit',
     displayOrder: 9001,
   })
+
+  return await ensureGrowForWorkflowAudit(request, tent.id, hydro.id)
+}
+
+async function ensureGrowForWorkflowAudit(request: APIRequestContext, tentId: number, hydroSetupId: number) {
+  const grows = await apiJson<Array<{ id: number; name: string; status?: string | null; systemId?: number | null; setupId?: number | null }>>(request, 'GET', '/api/grows?archived=false')
+  const existing = grows.find((grow) => grow.name === workflowGrowName && (grow.systemId === hydroSetupId || grow.setupId === hydroSetupId) && grow.status !== 'Archived')
+  if (existing) return existing.id
+
+  const created = await apiJson<{ id: number }>(request, 'POST', '/api/grows', {
+    name: workflowGrowName,
+    tentId,
+    systemId: hydroSetupId,
+    setupId: null,
+    hydroStyle: 'RDWC',
+    startDate: '2026-01-01',
+    status: 'Running',
+    environment: 'Indoor',
+    seedType: 'Feminized',
+    startMaterial: 'Seed',
+    waterSource: 'RO',
+  })
+  return created.id
 }
 
 async function apiJson<T>(request: APIRequestContext, method: 'GET' | 'POST', pathName: string, data?: unknown): Promise<T> {
@@ -255,9 +286,9 @@ async function assertActionPage(page: import('@playwright/test').Page) {
 }
 
 async function assertKnowledgePage(page: import('@playwright/test').Page) {
-  await expect(page.locator('.rc2-topic-card').first()).toBeVisible()
-  await expect(page.locator('.rc2-topic-detail').first()).toBeVisible()
-  await expect(page.locator('.rc2-topic-sections article').first()).toBeVisible()
+  await expect(page.locator('[data-audit="knowledge-search"]')).toBeVisible()
+  await expect(page.locator('[data-audit="knowledge-topic-nav"]')).toBeVisible()
+  await expect(page.locator('[data-audit="knowledge-article"]')).toBeVisible()
 }
 
 async function assertOpenDoesNotNotFound(page: import('@playwright/test').Page, url: string, name: string) {
@@ -269,6 +300,44 @@ async function assertOpenDoesNotNotFound(page: import('@playwright/test').Page, 
   await waitForAppIdle(page)
   await expect(page.getByRole('heading', { name: /Nicht gefunden/i })).toHaveCount(0)
   await screenshotAndLayout(page, name)
+}
+
+async function assertHydroBlockedDeleteShowsGrowLinks(page: import('@playwright/test').Page) {
+  await page.goto('/hydro', { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  await page.getByRole('button', { name: new RegExp(workflowHydroName, 'i') }).first().click()
+  await page.getByRole('button', { name: /L.schen/i }).click()
+  const panel = page.locator('[data-audit="hydro-delete-blocked"]')
+  await expect(panel).toBeVisible()
+  await expect(panel.getByText(workflowGrowName)).toBeVisible()
+  await expect(panel.getByRole('link', { name: /Öffnen|Oeffnen|Offnen/i })).toBeVisible()
+  await resetScrollForLayoutCheck(page)
+  await screenshotAndLayout(page, 'hydro-delete-blocked')
+}
+
+async function assertTentBlockedDeleteShowsDependencyLinks(page: import('@playwright/test').Page) {
+  await page.goto('/zelte', { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  const card = page.locator('.v1-tent-card').filter({ hasText: workflowTentName }).first()
+  await expect(card).toBeVisible()
+  await card.getByRole('button', { name: /L.schen/i }).click()
+  const panel = card.locator('[data-audit="tent-delete-blocked"]')
+  await expect(panel).toBeVisible()
+  await expect(panel.getByText(workflowGrowName).first()).toBeVisible()
+  await expect(panel.getByText(workflowHydroName).first()).toBeVisible()
+  await expect(panel.getByRole('link', { name: /Öffnen|Oeffnen|Offnen/i }).first()).toBeVisible()
+  await resetScrollForLayoutCheck(page)
+  await screenshotAndLayout(page, 'tent-delete-blocked')
+}
+
+async function resetScrollForLayoutCheck(page: import('@playwright/test').Page) {
+  await page.evaluate(() => {
+    window.scrollTo(0, 0)
+    document.scrollingElement?.scrollTo(0, 0)
+    document.querySelectorAll<HTMLElement>('*').forEach((element) => {
+      element.scrollTo(0, 0)
+    })
+  })
 }
 
 async function waitForAppIdle(page: import('@playwright/test').Page) {

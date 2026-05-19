@@ -215,6 +215,42 @@ public sealed class HydroSetupsApiControllerTests : IDisposable
     }
 
     [Fact]
+    public void Delete_WithoutDependencies_DeletesSetup()
+    {
+        var setup = CreateRdwcSetup(DefaultTent().Id, "Delete Me");
+
+        var result = _controller.Delete(setup.Id);
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.Null(_repository.GetHydroSetup(setup.Id));
+    }
+
+    [Fact]
+    public void Delete_WithActiveGrow_ReturnsConflictAndKeepsSetup()
+    {
+        var tent = DefaultTent();
+        var setup = CreateRdwcSetup(tent.Id, "Blocked Setup");
+        _repository.CreateGrow(new GrowRun
+        {
+            TentId = tent.Id,
+            SystemId = setup.Id,
+            Name = "Blocked Grow",
+            StartDate = new DateTime(2026, 1, 1),
+            Status = GrowStatus.Running,
+            MediumType = MediumType.Hydro,
+            HydroStyle = HydroStyle.RDWC
+        });
+
+        var result = _controller.Delete(setup.Id);
+
+        var conflict = Assert.IsType<ConflictObjectResult>(result);
+        var error = Assert.IsType<ApiError>(conflict.Value);
+        Assert.Equal("hydro_setup_has_active_grows", error.Code);
+        Assert.NotNull(_repository.GetHydroSetup(setup.Id));
+        Assert.Equal(HydroSetupStatus.Active, _repository.GetHydroSetup(setup.Id)!.Status);
+    }
+
+    [Fact]
     public void Archive_SetsStatusArchived()
     {
         var setup = CreateRdwcSetup(DefaultTent().Id, "Archive Me");

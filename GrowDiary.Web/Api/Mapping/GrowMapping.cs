@@ -17,6 +17,7 @@ public static class GrowMapping
         StartMaterial: grow.StartMaterial,
         PlantCount: grow.PlantCount,
         TentId: grow.TentId,
+        SystemId: grow.SystemId,
         SetupId: grow.SetupId,
         TentName: grow.TentName,
         StartDate: grow.StartDate,

@@ -1,8 +1,11 @@
 using GrowDiary.Web.Api.Contracts;
+using GrowDiary.Web.Api.Controllers;
 using GrowDiary.Web.Controllers;
 using GrowDiary.Web.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
+using System.Reflection;
 
 namespace GrowDiary.Web.Tests.Api;
 
@@ -57,5 +60,41 @@ public sealed class LegacyMvcEndpointContainmentTests : IDisposable
 
         var redirect = Assert.IsType<RedirectResult>(result);
         Assert.Equal("/api/exports/grows/42", redirect.Url);
+    }
+
+    [Fact]
+    public void SystemApiRoutes_DoNotCollideWithLegacySystemRoutes()
+    {
+        var duplicateRoutes = GetControllerRoutes(typeof(SystemApiController), typeof(SystemController))
+            .GroupBy(route => $"{route.Method} {route.Template}", StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => $"{group.Key}: {string.Join(", ", group.Select(route => route.ControllerName))}")
+            .ToList();
+
+        Assert.Empty(duplicateRoutes);
+    }
+
+    private static IEnumerable<(string ControllerName, string Method, string Template)> GetControllerRoutes(params Type[] controllerTypes)
+    {
+        foreach (var controllerType in controllerTypes)
+        {
+            var controllerRoute = controllerType.GetCustomAttribute<RouteAttribute>()?.Template?.Trim('/') ?? string.Empty;
+            foreach (var method in controllerType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
+            {
+                foreach (var route in method.GetCustomAttributes().OfType<IActionHttpMethodProvider>())
+                {
+                    var methodRoute = route switch
+                    {
+                        IRouteTemplateProvider templateProvider => templateProvider.Template?.Trim('/') ?? string.Empty,
+                        _ => string.Empty
+                    };
+                    var template = string.Join('/', new[] { controllerRoute, methodRoute }.Where(part => !string.IsNullOrWhiteSpace(part)));
+                    foreach (var httpMethod in route.HttpMethods.DefaultIfEmpty("*"))
+                    {
+                        yield return (controllerType.Name, httpMethod, template);
+                    }
+                }
+            }
+        }
     }
 }

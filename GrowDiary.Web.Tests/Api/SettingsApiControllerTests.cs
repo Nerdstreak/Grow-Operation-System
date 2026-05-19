@@ -275,7 +275,7 @@ public sealed class SettingsApiControllerTests : IDisposable
     }
 
     [Fact]
-    public void DeleteTent_WithDependencies_ArchivesTent()
+    public void DeleteTent_WithDependencies_ReturnsConflictAndKeepsTent()
     {
         var created = _repository.CreateTent("Zelt mit System");
         _repository.CreateHydroSetup(new GrowSystem
@@ -292,11 +292,10 @@ public sealed class SettingsApiControllerTests : IDisposable
 
         var result = _controller.DeleteTent(created.Id);
 
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var dto = Assert.IsType<TentDto>(ok.Value);
-        Assert.Equal(TentStatus.Archived.ToString(), dto.Status);
-        Assert.DoesNotContain(_repository.GetTents(), tent => tent.Id == created.Id);
-        Assert.Contains(_repository.GetTents(includeArchived: true), tent => tent.Id == created.Id && tent.Status == TentStatus.Archived);
+        var conflict = Assert.IsType<ConflictObjectResult>(result);
+        var error = Assert.IsType<ApiError>(conflict.Value);
+        Assert.Equal("tent_has_dependencies", error.Code);
+        Assert.Contains(_repository.GetTents(), tent => tent.Id == created.Id && tent.Status == TentStatus.Active);
     }
 
 }

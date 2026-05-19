@@ -163,8 +163,7 @@ public sealed class SettingsApiController : ApiControllerBase
 
         if (_repository.HasTentDependencies(id))
         {
-            _repository.ArchiveTent(id);
-            return Ok(_repository.GetTent(id)!.ToDto());
+            return ConflictError("tent_has_dependencies", "Zelt kann wegen vorhandener Abhaengigkeiten nicht geloescht werden. Oeffne die verknuepften Hydro-Setups/Grows oder archiviere das Zelt.");
         }
 
         _repository.DeleteTent(id);

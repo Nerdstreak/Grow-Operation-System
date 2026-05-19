@@ -312,6 +312,15 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
   if (slug === 'settings') {
     await expect(page.getByRole('button', { name: /Vollbackup herunterladen/i })).toBeVisible()
     await expect(page.locator('.rc-file-input').first()).toBeVisible()
+    const backupResponse = await page.request.post('/api/system/backup')
+    expect(backupResponse.status(), 'Vollbackup endpoint must not return 500').toBe(201)
+    const manifest = await backupResponse.json() as { downloadUrl?: string; fileName?: string; sizeBytes?: number }
+    expect(manifest.downloadUrl, 'Backup manifest needs a download URL').toMatch(/^\/api\/system\/backup\/grow-os-backup-.*\.zip$/)
+    expect(manifest.sizeBytes ?? 0, 'Backup ZIP must not be empty').toBeGreaterThan(0)
+    const downloadResponse = await page.request.get(manifest.downloadUrl!)
+    expect(downloadResponse.status(), 'Backup ZIP download must return 200').toBe(200)
+    expect(downloadResponse.headers()['content-type'] ?? '').toContain('application/zip')
+    expect((await downloadResponse.body()).length, 'Downloaded Backup ZIP must not be empty').toBeGreaterThan(0)
   }
   if (slug === 'release' || slug === 'messung') {
     await expect(page.locator('.rc-file-input').first()).toBeVisible()
@@ -324,7 +333,24 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
     await expect(page.locator('.rc-action-guide-card')).toHaveCount(4)
   }
   if (slug === 'wissen') {
-    await expect(page.locator('.rc2-topic-card').first()).toBeVisible()
-    await expect(page.locator('.rc2-topic-detail').first()).toBeVisible()
+    await expect(page.locator('[data-audit="knowledge-search"]')).toBeVisible()
+    await expect(page.locator('[data-audit="knowledge-topic-nav"]')).toBeVisible()
+    await expect(page.locator('[data-audit="knowledge-article"]')).toBeVisible()
+    await expect(page.locator('.rc2-topic-grid')).toHaveCount(0)
+  }
+  if (slug === 'home-assistant') {
+    await expect(page.locator('[data-audit="ha-connection-layout"]')).toBeVisible()
+    await expect(page.locator('[data-audit="ha-connection-actions"]')).toBeVisible()
+    await expect(page.locator('[data-audit="ha-camera-field-action"]')).toBeVisible()
+  }
+  if (slug === 'addback') {
+    await expect(page.locator('[data-audit="addback-hub"]')).toBeVisible()
+    await expect(page.locator('.v1-addback-flow-strip, [data-audit="addback-stepper"]')).toHaveCount(0)
+    const overflowingLastFields = await page.locator('.v1-info').filter({ hasText: /^Letzter/ }).evaluateAll((elements) =>
+      elements.filter((element) => {
+        const value = element.querySelector('strong') as HTMLElement | null
+        return Boolean(value && value.scrollWidth > value.clientWidth + 2)
+      }).length)
+    expect(overflowingLastFields, 'Addback Verlauf "Letzter" must not overflow its box').toBe(0)
   }
 }

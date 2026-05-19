@@ -627,7 +627,8 @@ html,
 }
 
 .v1-rdwc-map {
-  overflow: hidden;
+  overflow: visible;
+  max-width: 100%;
 }
 
 .v1-rdwc-inner,
@@ -659,5 +660,241 @@ html,
 
   .v1-rdwc-grid {
     grid-template-columns: repeat(auto-fit, minmax(46px, 1fr)) !important;
+  }
+}
+
+/* Manual audit 4 P1 fixes */
+.wiki-shell {
+  display: grid;
+  grid-template-columns: minmax(220px, .75fr) minmax(0, 1.55fr) minmax(220px, .7fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.wiki-nav,
+.wiki-article,
+.wiki-related {
+  min-width: 0;
+}
+
+.wiki-nav {
+  display: grid;
+  gap: 12px;
+  position: sticky;
+  top: 86px;
+}
+
+.wiki-search {
+  width: 100%;
+}
+
+.wiki-topic-list {
+  display: grid;
+  gap: 6px;
+}
+
+.wiki-topic {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  border: 1px solid var(--v1-border);
+  border-radius: 6px;
+  background: var(--v1-surface);
+  color: var(--v1-text);
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wiki-topic.active,
+.wiki-topic:hover {
+  border-color: var(--v1-accent);
+  background: var(--v1-surface-2);
+}
+
+.wiki-topic strong,
+.wiki-article h2,
+.wiki-related h2 {
+  min-width: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.wiki-topic span,
+.wiki-related-item span {
+  color: var(--v1-muted);
+  font-size: .82rem;
+}
+
+.wiki-article {
+  display: grid;
+  gap: 16px;
+  line-height: 1.58;
+}
+
+.wiki-article-section {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--v1-border);
+  padding-top: 14px;
+}
+
+.wiki-related {
+  display: grid;
+  gap: 12px;
+}
+
+.wiki-related-list {
+  display: grid;
+  gap: 8px;
+}
+
+.wiki-related-item {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  border: 1px solid var(--v1-border);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.wiki-back {
+  display: none;
+}
+
+.rc2-ha-connection-actions,
+.rc2-ha-camera-field-action {
+  display: grid;
+  gap: 10px;
+  align-items: end;
+}
+
+.rc2-ha-connection-actions {
+  grid-template-columns: minmax(140px, auto) auto;
+}
+
+.rc2-ha-camera-field-action {
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 8px;
+}
+
+.dependency-panel {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin-top: 14px;
+  border: 1px solid var(--v1-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--v1-surface-2);
+}
+
+.dependency-panel.active {
+  border-color: var(--v1-warn);
+}
+
+.dependency-panel p {
+  margin: 0;
+}
+
+.dependency-panel .v1-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.dependency-panel .v1-list-row strong,
+.dependency-panel .v1-list-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.v1-hydro-summary > .v1-list {
+  display: none;
+}
+
+.v1-tent-card {
+  display: grid;
+  gap: 14px;
+}
+
+.v1-tent-card .v1-card-title-row {
+  align-items: start;
+  gap: 12px;
+}
+
+.v1-tent-card .v1-card-title-row > div {
+  min-width: 0;
+}
+
+.v1-tent-card h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rc-tent-live-grid,
+.rc-tent-context-grid {
+  min-width: 0;
+}
+
+.rc-tent-actions {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--v1-border);
+  gap: 8px;
+}
+
+.v1-info {
+  min-width: 0;
+}
+
+.v1-info strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.v1-addback-hub-summary {
+  align-content: center;
+}
+
+@media (max-width: 900px) {
+  .wiki-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wiki-nav {
+    position: static;
+  }
+
+  .wiki-related {
+    display: none;
+  }
+
+  .wiki-shell.has-active-topic .wiki-nav {
+    display: none;
+  }
+
+  .wiki-back {
+    display: inline-flex;
+    width: fit-content;
+  }
+
+  .rc2-ha-connection-actions,
+  .rc2-ha-camera-field-action {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dependency-panel .v1-list-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rc-tent-actions .v1-button,
+  .rc-tent-actions .v1-link-button {
+    flex: 1 1 150px;
   }
 }

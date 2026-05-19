@@ -122,8 +122,7 @@ public sealed class HydroSetupsApiController : ApiControllerBase
 
         if (existing.ActiveGrowCount > 0)
         {
-            _repository.ArchiveHydroSetup(id);
-            return Ok(_repository.GetHydroSetup(id)!.ToDto());
+            return ConflictError("hydro_setup_has_active_grows", "HydroSetup kann nicht geloescht werden, solange aktive oder geplante Grows damit verknuepft sind. Oeffne die betroffenen Grows oder archiviere das HydroSetup.");
         }
 
         try
@@ -133,8 +132,7 @@ public sealed class HydroSetupsApiController : ApiControllerBase
         }
         catch
         {
-            _repository.ArchiveHydroSetup(id);
-            return Ok(_repository.GetHydroSetup(id)!.ToDto());
+            return ConflictError("hydro_setup_has_dependencies", "HydroSetup kann wegen vorhandener Abhaengigkeiten nicht geloescht werden. Oeffne die verknuepften Datensaetze oder archiviere das HydroSetup.");
         }
     }
 

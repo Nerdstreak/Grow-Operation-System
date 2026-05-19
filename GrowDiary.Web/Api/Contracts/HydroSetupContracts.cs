@@ -25,6 +25,7 @@ public sealed record HydroSetupDto(
     bool HasUvSterilizer,
     string? Notes,
     int DisplayOrder,
+    int ActiveGrowCount,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc
 );

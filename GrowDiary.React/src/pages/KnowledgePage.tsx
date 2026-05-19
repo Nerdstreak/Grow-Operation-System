@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { KnowledgeOverviewDto, NutrientProgramDto, WearTemplateDto } from '../types'
-import { V1Badge, V1Card, V1Empty, V1Field, V1Page, V1Section } from '../components/v1'
+import { V1Badge, V1Empty, V1Field, V1Page } from '../components/v1'
 
 type TopicId = 'rdwc' | 'addback' | 'rootrot' | 'ph-ec' | 'athena' | 'canna' | 'sensors' | 'troubleshooting'
 type KnowledgeRecord = Record<string, unknown>
@@ -34,64 +34,64 @@ const topics: Topic[] = [
     id: 'rdwc',
     title: 'RDWC Grundlagen',
     kicker: 'System verstehen',
-    intro: 'Reservoir, Umlauf, Sauerstoff, Temperatur und Hygiene hängen in RDWC enger zusammen als bei Erde oder Coco.',
+    intro: 'Reservoir, Umlauf, Sauerstoff, Temperatur und Hygiene haengen in RDWC enger zusammen als bei Erde oder Coco.',
     keywords: ['rdwc', 'dwc', 'reservoir', 'wasser', 'umlauf', 'sauerstoff'],
     sections: [
       { title: 'Worum geht es?', text: 'RDWC ist ein rezirkulierendes Wassersystem. Ein Fehler im Reservoir betrifft deshalb sehr schnell alle Pflanzen.' },
       { title: 'Worauf achten?', text: 'pH, EC, Wassertemperatur, Sauerstoff, Wasserstand und saubere Hardware sind die Kernwerte.' },
       { title: 'In der App', text: 'Hydro-Setup, Addback, Sensoren und Live-Dashboard sind deshalb getrennte Workflows.' },
     ],
-    action: { label: 'Hydro öffnen', to: '/hydro' },
+    action: { label: 'Hydro oeffnen', to: '/hydro' },
   },
   {
     id: 'addback',
-    title: 'Addback',
-    kicker: 'Nährlösung logisch ergänzen',
+    title: 'Addback & Wasserwechsel',
+    kicker: 'Naehrloesung logisch ergaenzen',
     intro: 'Addback ist kein blindes Nachkippen. Ziel ist, Wasserstand und Ziel-EC kontrolliert wieder in den Bereich zu bringen.',
-    keywords: ['addback', 'topoff', 'ec', 'reservoir', 'nachfüllen'],
+    keywords: ['addback', 'topoff', 'ec', 'reservoir', 'nachfuellen', 'wasserwechsel'],
     sections: [
-      { title: 'Prinzip', text: 'Erst Ist-Zustand messen, dann Zielwert bestimmen, dann Wasser/Nährlösung ergänzen und nachmessen.' },
-      { title: 'Fehler vermeiden', text: 'Nicht nur EC korrigieren. Wasserstand, pH, Temperatur und Pflanzenphase gehören dazu.' },
+      { title: 'Prinzip', text: 'Erst Ist-Zustand messen, dann Zielwert bestimmen, dann Wasser oder Naehrloesung ergaenzen und nachmessen.' },
+      { title: 'Fehler vermeiden', text: 'Nicht nur EC korrigieren. Wasserstand, pH, Temperatur und Pflanzenphase gehoeren dazu.' },
       { title: 'In der App', text: 'Der Addback-Assistent nutzt Grow, Hydro-System, Reservoirvolumen und Programm als Kontext.' },
     ],
-    action: { label: 'Addback öffnen', to: '/addback' },
+    action: { label: 'Addback oeffnen', to: '/addback' },
   },
   {
     id: 'rootrot',
-    title: 'Root Rot',
-    kicker: 'Risiko & Sofortmaßnahmen',
-    intro: 'Wurzelfäule ist in Hydro kritisch, weil sich Probleme über Wasser, Biofilm und Sauerstoffmangel schnell ausbreiten können.',
-    keywords: ['root', 'rot', 'wurzel', 'fäule', 'pathogen', 'hygiene'],
+    title: 'Pathogene / Root Rot',
+    kicker: 'Risiko & Sofortmassnahmen',
+    intro: 'Wurzelfaeule ist in Hydro kritisch, weil sich Probleme ueber Wasser, Biofilm und Sauerstoffmangel schnell ausbreiten koennen.',
+    keywords: ['root', 'rot', 'wurzel', 'faeule', 'pathogen', 'hygiene', 'pythium'],
     sections: [
-      { title: 'Symptome', text: 'Braune/slimige Wurzeln, muffiger Geruch, fallender Sauerstoff, instabile Werte und schlapper Wuchs.' },
-      { title: 'Sofortmaßnahmen', text: 'Temperatur, Sauerstoff, Biofilm, tote Wurzelmasse und Hygiene prüfen. Keine hektischen Mehrfachkorrekturen.' },
-      { title: 'In der App', text: 'Wissen, SOPs, Sensorvertrauen und Risiken sollen hier zusammenlaufen.' },
+      { title: 'Symptome', text: 'Braune oder slimige Wurzeln, muffiger Geruch, fallender Sauerstoff, instabile Werte und schlapper Wuchs.' },
+      { title: 'Sofortmassnahmen', text: 'Temperatur, Sauerstoff, Biofilm, tote Wurzelmasse und Hygiene pruefen. Keine hektischen Mehrfachkorrekturen.' },
+      { title: 'In der App', text: 'Wissen, SOPs, Sensorvertrauen und Risiken laufen hier zusammen.' },
     ],
-    action: { label: 'SOPs prüfen', to: '/wissen' },
+    action: { label: 'SOPs pruefen', to: '/wissen' },
   },
   {
     id: 'ph-ec',
-    title: 'pH & EC Stabilisierung',
+    title: 'pH / EC / ORP / DO',
     kicker: 'Werte richtig deuten',
-    intro: 'pH und EC müssen zusammen mit Wasserstand und Pflanzenphase gelesen werden. Einzelwerte alleine führen schnell zu falschen Maßnahmen.',
-    keywords: ['ph', 'ec', 'stabilisierung', 'nährstoff', 'naehrstoff'],
+    intro: 'pH und EC muessen zusammen mit Wasserstand, Sauerstoff und Pflanzenphase gelesen werden.',
+    keywords: ['ph', 'ec', 'orp', 'do', 'stabilisierung', 'naehrstoff'],
     sections: [
-      { title: 'pH', text: 'pH-Drift kann normal sein, aber starke Sprünge deuten auf Puffer-, Hygiene- oder Dosierprobleme hin.' },
-      { title: 'EC', text: 'Steigender EC bei fallendem Wasserstand kann auf stärkere Wasseraufnahme als Nährstoffaufnahme hinweisen.' },
-      { title: 'In der App', text: 'Addback und Live-Score bewerten Werte konservativ und sollen keine Stabilität behaupten, wenn Daten fehlen.' },
+      { title: 'pH', text: 'pH-Drift kann normal sein, aber starke Spruenge deuten auf Puffer-, Hygiene- oder Dosierprobleme hin.' },
+      { title: 'EC', text: 'Steigender EC bei fallendem Wasserstand kann auf staerkere Wasseraufnahme als Naehrstoffaufnahme hinweisen.' },
+      { title: 'In der App', text: 'Addback und Live-Score bewerten Werte konservativ und behaupten keine Stabilitaet, wenn Daten fehlen.' },
     ],
-    action: { label: 'Live öffnen', to: '/' },
+    action: { label: 'Live oeffnen', to: '/' },
   },
   {
     id: 'athena',
     title: 'Athena Blended',
     kicker: 'Programm',
-    intro: 'Athena wird als auswählbares Nährstoffprogramm im Grow gespeichert, damit Empfehlungen später den richtigen Kontext haben.',
+    intro: 'Athena wird als auswaehlbares Naehrstoffprogramm im Grow gespeichert, damit Empfehlungen den richtigen Kontext haben.',
     keywords: ['athena', 'blended', 'grow', 'bloom'],
     sections: [
-      { title: 'Ziel', text: 'Programmkontext für Grow, Addback, Zielwerte und spätere Empfehlungen.' },
-      { title: 'Wichtig', text: 'Nicht nur Herstellername speichern, sondern auch Phase, Wasserquelle und Systemart berücksichtigen.' },
-      { title: 'In der App', text: 'Beim Grow-Start wird das Programm gewählt und in Addback/Knowledge weiterverwendet.' },
+      { title: 'Ziel', text: 'Programmkontext fuer Grow, Addback, Zielwerte und spaetere Empfehlungen.' },
+      { title: 'Wichtig', text: 'Nicht nur Herstellername speichern, sondern auch Phase, Wasserquelle und Systemart beruecksichtigen.' },
+      { title: 'In der App', text: 'Beim Grow-Start wird das Programm gewaehlt und in Addback/Knowledge weiterverwendet.' },
     ],
     action: { label: 'Grow starten', to: '/grows/new' },
   },
@@ -99,12 +99,12 @@ const topics: Topic[] = [
     id: 'canna',
     title: 'Canna Aqua',
     kicker: 'Programm',
-    intro: 'Canna Aqua ist für rezirkulierende Systeme relevant und soll als Programmkontext auswählbar bleiben.',
+    intro: 'Canna Aqua ist fuer rezirkulierende Systeme relevant und bleibt als Programmkontext auswaehlbar.',
     keywords: ['canna', 'aqua', 'vega', 'flores'],
     sections: [
-      { title: 'Ziel', text: 'Nährstofflogik passend zu rezirkulierendem Hydro-System dokumentieren.' },
-      { title: 'Wichtig', text: 'Programmauswahl ist kein Ersatz für Messwerte. Sie liefert Kontext für die Interpretation.' },
-      { title: 'In der App', text: 'Programmwahl wird im Grow gespeichert und später für Empfehlungen genutzt.' },
+      { title: 'Ziel', text: 'Naehrstofflogik passend zu rezirkulierendem Hydro-System dokumentieren.' },
+      { title: 'Wichtig', text: 'Programmauswahl ist kein Ersatz fuer Messwerte. Sie liefert Kontext fuer die Interpretation.' },
+      { title: 'In der App', text: 'Programmwahl wird im Grow gespeichert und spaeter fuer Empfehlungen genutzt.' },
     ],
     action: { label: 'Grow starten', to: '/grows/new' },
   },
@@ -112,27 +112,27 @@ const topics: Topic[] = [
     id: 'sensors',
     title: 'Sensoren & Kalibrierung',
     kicker: 'Vertrauen in Messwerte',
-    intro: 'Automatisierung ist nur so gut wie die Sensoren. pH/EC/ORP/DO brauchen Kalibrierung, Wartung und Plausibilitätsprüfung.',
+    intro: 'Automatisierung ist nur so gut wie die Sensoren. pH/EC/ORP/DO brauchen Kalibrierung, Wartung und Plausibilitaetspruefung.',
     keywords: ['sensor', 'kalibrierung', 'wartung', 'ph', 'ec', 'orp', 'do'],
     sections: [
       { title: 'Sensorvertrauen', text: 'Keine Sensoren bedeutet nicht 100 % stabil. Dann ist die Bewertung offen und muss eingerichtet werden.' },
       { title: 'Kalibrierung', text: 'pH und EC sollten dokumentiert kalibriert werden, sonst sind Empfehlungen nicht belastbar.' },
       { title: 'In der App', text: 'Sensoren-Seite, HA-Mapping und Live-Dashboard greifen hier zusammen.' },
     ],
-    action: { label: 'Sensoren öffnen', to: '/hardware' },
+    action: { label: 'Sensoren oeffnen', to: '/hardware' },
   },
   {
     id: 'troubleshooting',
-    title: 'Fehlersuche',
-    kicker: 'Symptom → Ursache → Handlung',
-    intro: 'Probleme sollen nicht als lose Datensätze erscheinen, sondern als geführte Diagnose.',
+    title: 'Symptome & Diagnose',
+    kicker: 'Symptom -> Ursache -> Handlung',
+    intro: 'Probleme sollen nicht als lose Datensaetze erscheinen, sondern als gefuehrte Diagnose.',
     keywords: ['symptom', 'diagnose', 'fehler', 'treatment', 'risiko'],
     sections: [
-      { title: 'Vorgehen', text: 'Symptom beschreiben, Kontext prüfen, wahrscheinlichste Ursache wählen, eine Maßnahme durchführen und nachmessen.' },
-      { title: 'Vermeiden', text: 'Mehrere starke Korrekturen gleichzeitig machen spätere Auswertung unmöglich.' },
-      { title: 'In der App', text: 'Aufgaben, Wissen, Addback und Messungen sollen diese Diagnose nachvollziehbar machen.' },
+      { title: 'Vorgehen', text: 'Symptom beschreiben, Kontext pruefen, wahrscheinlichste Ursache waehlen, eine Massnahme durchfuehren und nachmessen.' },
+      { title: 'Vermeiden', text: 'Mehrere starke Korrekturen gleichzeitig machen spaetere Auswertung unmoeglich.' },
+      { title: 'In der App', text: 'Aufgaben, Wissen, Addback und Messungen machen diese Diagnose nachvollziehbar.' },
     ],
-    action: { label: 'Aufgaben öffnen', to: '/aufgaben' },
+    action: { label: 'Aufgaben oeffnen', to: '/aufgaben' },
   },
 ]
 
@@ -141,6 +141,7 @@ function KnowledgePage() {
   const [selectedTopicId, setSelectedTopicId] = useState<TopicId>('rdwc')
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
+  const [articleOpen, setArticleOpen] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -176,67 +177,62 @@ function KnowledgePage() {
     return topics.filter((topic) => [topic.title, topic.kicker, topic.intro, ...topic.keywords].join(' ').toLowerCase().includes(normalized))
   }, [query])
 
-  const selectedTopic = topics.find((topic) => topic.id === selectedTopicId) ?? topics[0]
+  const selectedTopic = topics.find((topic) => topic.id === selectedTopicId) ?? filteredTopics[0] ?? topics[0]
   const related = useMemo(() => findRelated(selectedTopic, catalogs), [selectedTopic, catalogs])
 
+  function selectTopic(topicId: TopicId) {
+    setSelectedTopicId(topicId)
+    setArticleOpen(true)
+  }
+
   return (
-    <V1Page eyebrow="Wissen" title="Wissen" subtitle="Wiki-artiger Knowledge-Hub. Erst Oberthema wählen, dann konkrete SOPs, Programme und Hinweise ansehen.">
-      <section className="v1-kpi-grid rc2-knowledge-kpis">
-        <V1Card><span className="v1-card-kicker">Programme</span><h2>{catalogs.programs.length}</h2><p>Athena, Canna und eigene Linien</p></V1Card>
-        <V1Card><span className="v1-card-kicker">SOPs</span><h2>{catalogs.sops.length}</h2><p>Arbeitsabläufe und Checks</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Symptome</span><h2>{catalogs.symptoms.length}</h2><p>Diagnosebasis</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Setpoints</span><h2>{catalogs.setpoints.length}</h2><p>Zielbereiche</p></V1Card>
-      </section>
-
-      <V1Section title="Oberthemen">
-        <div className="rc2-knowledge-toolbar">
+    <V1Page eyebrow="Wissen" title="Wissen">
+      <section className="wiki-shell">
+        <aside className={articleOpen ? 'wiki-nav is-hidden-mobile' : 'wiki-nav'} data-audit="knowledge-topic-nav">
           <V1Field label="Suche">
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Root Rot, Addback, Athena..." />
+            <input data-audit="knowledge-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Root Rot, Addback, Athena..." />
           </V1Field>
-        </div>
-        <div className="rc2-topic-grid">
-          {filteredTopics.map((topic) => (
-            <button key={topic.id} type="button" className={topic.id === selectedTopic.id ? 'rc2-topic-card active' : 'rc2-topic-card'} onClick={() => setSelectedTopicId(topic.id)}>
-              <span>{topic.kicker}</span>
-              <strong>{topic.title}</strong>
-              <small>{topic.intro}</small>
-            </button>
-          ))}
-        </div>
-      </V1Section>
+          <nav aria-label="Wissen Oberthemen">
+            {filteredTopics.map((topic) => (
+              <button key={topic.id} type="button" className={topic.id === selectedTopic.id ? 'wiki-topic active' : 'wiki-topic'} onClick={() => selectTopic(topic.id)}>
+                <span>{topic.kicker}</span>
+                <strong>{topic.title}</strong>
+              </button>
+            ))}
+          </nav>
+        </aside>
 
-      <section className="rc2-knowledge-layout">
-        <V1Section title={selectedTopic.title}>
-          <V1Card className="rc2-topic-detail">
-            <span className="v1-card-kicker">{selectedTopic.kicker}</span>
+        <article className={articleOpen ? 'wiki-article is-open-mobile' : 'wiki-article'} data-audit="knowledge-article">
+          <button type="button" className="wiki-back" onClick={() => setArticleOpen(false)}>Zurueck zu Themen</button>
+          <header>
+            <span>{selectedTopic.kicker}</span>
             <h2>{selectedTopic.title}</h2>
             <p>{selectedTopic.intro}</p>
-            <div className="rc2-topic-sections">
-              {selectedTopic.sections.map((section) => (
-                <article key={section.title}>
-                  <h3>{section.title}</h3>
-                  <p>{section.text}</p>
-                </article>
-              ))}
-            </div>
-            {selectedTopic.action && <Link to={selectedTopic.action.to} className="v1-button is-primary">{selectedTopic.action.label}</Link>}
-          </V1Card>
-        </V1Section>
+          </header>
+          {selectedTopic.sections.map((section) => (
+            <section key={section.title}>
+              <h3>{section.title}</h3>
+              <p>{section.text}</p>
+            </section>
+          ))}
+          {selectedTopic.action && <Link to={selectedTopic.action.to} className="v1-button is-primary">{selectedTopic.action.label}</Link>}
+        </article>
 
-        <V1Section title="Verknüpfte Daten">
-          {loading ? <V1Empty title="Lade Wissensbasis..." /> : (
-            <div className="rc2-related-list">
-              {related.length === 0 ? <V1Empty title="Keine Treffer" text="Zu diesem Thema wurden noch keine passenden Datensätze gefunden." /> : related.map((item) => (
-                <V1Card key={item.key} className="rc2-related-card">
-                  <span className="v1-card-kicker">{item.type}</span>
-                  <h2>{item.title}</h2>
+        <aside className="wiki-related" data-audit="knowledge-related">
+          <h2>Verknuepfte Daten</h2>
+          {loading ? <V1Empty title="Lade Wissensbasis..." /> : related.length === 0 ? <V1Empty title="Keine Treffer" text="Zu diesem Thema wurden noch keine passenden Datensaetze gefunden." /> : (
+            <div className="wiki-related-list">
+              {related.map((item) => (
+                <div key={item.key} className="wiki-related-item">
+                  <span>{item.type}</span>
+                  <strong>{item.title}</strong>
                   <p>{item.description}</p>
                   <V1Badge>{item.source}</V1Badge>
-                </V1Card>
+                </div>
               ))}
             </div>
           )}
-        </V1Section>
+        </aside>
       </section>
     </V1Page>
   )
@@ -262,13 +258,13 @@ function findRelated(topic: Topic, catalogs: Catalogs) {
     }
   }
 
-  collect('Programm', 'Nährstoffprogramm', catalogs.programs)
+  collect('Programm', 'Naehrstoffprogramm', catalogs.programs)
   collect('SOP', 'Arbeitsablauf', catalogs.sops)
-  collect('Treatment', 'Maßnahme', catalogs.treatments)
+  collect('Treatment', 'Massnahme', catalogs.treatments)
   collect('Symptom', 'Diagnose', catalogs.symptoms)
   collect('Setpoint', 'Zielwert', catalogs.setpoints)
   collect('Pathogen', 'Risiko', catalogs.pathogens)
-  collect('Verschleiß', 'Hardware', catalogs.wear)
+  collect('Verschleiss', 'Hardware', catalogs.wear)
 
   return items.slice(0, 8)
 }
