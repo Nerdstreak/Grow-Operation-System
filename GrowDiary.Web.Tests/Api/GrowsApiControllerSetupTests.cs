@@ -85,6 +85,26 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
         Assert.Equal(system.Id, loaded.SystemId);
     }
 
+    [Fact]
+    public void Archive_RunningGrowMarksCompletedAndRemovesActiveBlocker()
+    {
+        var tent = DefaultTent();
+        var system = CreateHydroSetup(tent.Id, HydroStyle.RDWC);
+        var created = Assert.IsType<GrowDetailDto>(Assert.IsType<CreatedAtActionResult>(_controller.Create(NewGrowRequest("Archive Grow", tent.Id, null, system.Id)).Result).Value);
+        var grow = _growRepository.GetGrow(created.Id)!;
+        grow.Status = GrowStatus.Running;
+        _growRepository.UpdateGrow(grow);
+
+        var result = _controller.Archive(created.Id);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<GrowDetailDto>(ok.Value);
+        Assert.Equal(GrowStatus.Completed, dto.Status);
+        Assert.NotNull(dto.EndDate);
+        Assert.DoesNotContain(_growRepository.GetActiveGrows(), item => item.Id == created.Id);
+        Assert.Equal(0, _growRepository.GetHydroSetup(system.Id)!.ActiveGrowCount);
+    }
+
     [Theory]
     [InlineData(HydroStyle.DWC)]
     [InlineData(HydroStyle.RDWC)]

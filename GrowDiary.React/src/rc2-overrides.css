@@ -804,6 +804,30 @@ html,
   align-items: center;
 }
 
+.dependency-panel .dependency-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.dependency-panel .dependency-row > div:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dependency-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dependency-row-actions .v1-button {
+  min-height: 36px;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+
 .dependency-panel .v1-list-row strong,
 .dependency-panel .v1-list-row span {
   min-width: 0;
@@ -831,20 +855,46 @@ html,
 }
 
 .v1-tent-card h2 {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  overflow-wrap: break-word;
+  word-break: normal;
+  white-space: normal;
 }
 
 .rc-tent-live-grid,
 .rc-tent-context-grid {
   min-width: 0;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+}
+
+.v1-tent-card .v1-info {
+  min-height: 64px;
+}
+
+.v1-tent-card .v1-info strong {
+  line-height: 1.2;
+  white-space: normal;
 }
 
 .rc-tent-actions {
   margin-top: 4px;
   padding-top: 12px;
   border-top: 1px solid var(--v1-border);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.rc-tent-actions .v1-button {
+  flex: 1 1 112px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.grow-management-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -893,8 +943,25 @@ html,
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .dependency-row-actions {
+    justify-content: stretch;
+  }
+
+  .dependency-row-actions .v1-button {
+    flex: 1 1 118px;
+  }
+
   .rc-tent-actions .v1-button,
   .rc-tent-actions .v1-link-button {
     flex: 1 1 150px;
+  }
+
+  .grow-management-actions {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .grow-management-actions .btn {
+    flex: 1 1 120px;
   }
 }

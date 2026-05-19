@@ -479,6 +479,7 @@ export interface HardwareItemDto {
   criticality: HardwareItemCriticality
   tentId: number | null
   setupId: number | null
+  hydroSetupId: number | null
   growId: number | null
   wearTemplateId: string | null
   tentSensorId: number | null
@@ -502,6 +503,7 @@ export interface CreateHardwareItemRequest {
   criticality: HardwareItemCriticality
   tentId?: number | null
   setupId?: number | null
+  hydroSetupId?: number | null
   growId?: number | null
   wearTemplateId?: string | null
   tentSensorId?: number | null

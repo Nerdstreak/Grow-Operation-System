@@ -343,6 +343,20 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
     await expect(page.locator('[data-audit="ha-connection-actions"]')).toBeVisible()
     await expect(page.locator('[data-audit="ha-camera-field-action"]')).toBeVisible()
   }
+  if (slug === 'hardware') {
+    await expect(page.getByRole('button', { name: /Inventar/i })).toBeVisible()
+    await page.getByRole('button', { name: /Inventar/i }).click()
+    await expect(page.locator('[data-audit="hardware-edit-form"]')).toBeVisible()
+  }
+  if (slug === 'zelte') {
+    await expect(page.locator('[data-audit="tent-delete-blocked"]')).toHaveCount(0)
+    const overflowingTentCards = await page.locator('.v1-tent-card').evaluateAll((cards) =>
+      cards.filter((card) => {
+        const html = card as HTMLElement
+        return html.scrollWidth > html.clientWidth + 2
+      }).length)
+    expect(overflowingTentCards, 'Zelt cards must not overflow horizontally').toBe(0)
+  }
   if (slug === 'addback') {
     await expect(page.locator('[data-audit="addback-hub"]')).toBeVisible()
     await expect(page.locator('.v1-addback-flow-strip, [data-audit="addback-stepper"]')).toHaveCount(0)

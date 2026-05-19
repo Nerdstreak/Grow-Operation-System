@@ -193,6 +193,22 @@ function HydroPage() {
     }
   }
 
+  async function archiveLinkedGrow(grow: GrowSummary) {
+    const confirmed = window.confirm(`${grow.name} beenden und archivieren?`)
+    if (!confirmed) return
+    setSaving(`grow-archive-${grow.id}`)
+    setError(null)
+    try {
+      await apiFetch(`/api/grows/${grow.id}/archive`, { method: 'POST' })
+      setBlockedDeleteSetupId(null)
+      await load()
+    } catch (caught) {
+      setError(formatApiError(caught, 'Grow konnte nicht beendet werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
+
   if (formOpen) {
     return (
       <V1Page eyebrow="DWC/RDWC-System" title={editingId ? 'Hydro-Setup bearbeiten' : 'Hydro-Setup anlegen'} subtitle="Fokussierter Assistent. Bestehende Setups bleiben während des Anlegens ausgeblendet." action={<V1Button onClick={closeForm}>Schließen</V1Button>}>
@@ -232,7 +248,7 @@ function HydroPage() {
               {setups.map((setup) => <button key={setup.id} type="button" className={classNames('v1-hydro-list-item', selectedSetup?.id === setup.id && 'active')} onClick={() => setSelectedSetupId(setup.id)}><strong>{setup.name}</strong><span>{setup.hydroStyle} · {setup.tentName ?? 'ohne Zelt'} · {formatLiters(setup.totalVolumeLiters)}</span></button>)}
             </div>
           </V1Section>
-          {selectedSetup && <HydroDetail setup={selectedSetup} linkedGrows={getGrowsForSetup(grows, selectedSetup)} deleteBlocked={blockedDeleteSetupId === selectedSetup.id} saving={saving === `delete-${selectedSetup.id}` || saving === `archive-${selectedSetup.id}`} onEdit={openEdit} onDelete={deleteSetup} onArchive={archiveSetup} />}
+          {selectedSetup && <HydroDetail setup={selectedSetup} linkedGrows={getGrowsForSetup(grows, selectedSetup)} deleteBlocked={blockedDeleteSetupId === selectedSetup.id} saving={saving === `delete-${selectedSetup.id}` || saving === `archive-${selectedSetup.id}`} savingKey={saving} onEdit={openEdit} onDelete={deleteSetup} onArchive={archiveSetup} onArchiveGrow={archiveLinkedGrow} />}
         </section>
       )}
     </V1Page>
@@ -260,7 +276,7 @@ function StepReview({ draft, tents, totalVolume }: { draft: HydroDraft; tents: T
   return <div className="v1-review-layout"><V1Card><div className="v1-info-grid"><Info label="Name" value={draft.name || '–'} /><Info label="Zelt" value={tent?.name ?? '–'} /><Info label="Typ" value={draft.hydroStyle} /><Info label="Sites" value={draft.potCount || '–'} /><Info label="Topf" value={`${draft.potSizeLiters || '–'} L`} /><Info label="Tank" value={`${draft.reservoirLiters || '–'} L`} /><Info label="Gesamt" value={`${formatNumber(totalVolume, 1)} L`} /><Info label="Layout" value={formatLayout(draft.layoutType)} /></div></V1Card><RdwcLayoutPreview draft={draft} /></div>
 }
 
-function HydroDetail({ setup, linkedGrows, deleteBlocked, saving, onEdit, onArchive, onDelete }: { setup: HydroSetupDto; linkedGrows: GrowSummary[]; deleteBlocked: boolean; saving: boolean; onEdit: (setup: HydroSetupDto) => void; onArchive: (setup: HydroSetupDto) => void; onDelete: (setup: HydroSetupDto) => void }) {
+function HydroDetail({ setup, linkedGrows, deleteBlocked, saving, savingKey, onEdit, onArchive, onDelete, onArchiveGrow }: { setup: HydroSetupDto; linkedGrows: GrowSummary[]; deleteBlocked: boolean; saving: boolean; savingKey: string | null; onEdit: (setup: HydroSetupDto) => void; onArchive: (setup: HydroSetupDto) => void; onDelete: (setup: HydroSetupDto) => void; onArchiveGrow: (grow: GrowSummary) => void }) {
   const facts = [
     ['Zelt', setup.tentName ?? '–'],
     ['Sites', String(setup.potCount ?? '–')],
@@ -303,17 +319,23 @@ function HydroDetail({ setup, linkedGrows, deleteBlocked, saving, onEdit, onArch
             <V1Button variant="danger" disabled={saving} onClick={() => void onDelete(setup)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button>
           </div>
           {linkedGrows.length > 0 && <div className="v1-list">{linkedGrows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>Verknüpfter aktiver Grow</span></Link>)}</div>}
-          {linkedGrows.length > 0 && (
+          {deleteBlocked && linkedGrows.length > 0 && (
             <div className={classNames('dependency-panel', deleteBlocked && 'active')} data-audit="hydro-delete-blocked">
               <strong>{deleteBlocked ? 'Loeschen blockiert' : 'Aktive Grows'}</strong>
-              <p>Dieses Hydro-Setup ist mit aktiven oder geplanten Grows verknuepft. Oeffne die Grows oder archiviere das Setup als getrennte Aktion.</p>
+              <p>Dieses Hydro-Setup ist mit aktiven oder geplanten Grows verknuepft. Beende oder verwalte die betroffenen Grows, danach ist Loeschen erneut moeglich.</p>
               <div className="v1-list">
                 {linkedGrows.map((grow) => (
-                  <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row">
-                    <strong>{grow.name}</strong>
-                    <span>{grow.status ?? 'aktiv'}</span>
-                    <em>Oeffnen</em>
-                  </Link>
+                  <div key={grow.id} className="v1-list-row dependency-row">
+                    <div>
+                      <strong>{grow.name}</strong>
+                      <span>{grow.status ?? 'aktiv'}</span>
+                    </div>
+                    <div className="dependency-row-actions">
+                      <V1LinkButton to={`/grows/${grow.id}`} variant="primary">Verwalten</V1LinkButton>
+                      <V1LinkButton to={`/grows/${grow.id}/setup`}>Bearbeiten</V1LinkButton>
+                      <V1Button disabled={savingKey === `grow-archive-${grow.id}`} onClick={() => void onArchiveGrow(grow)}>{savingKey === `grow-archive-${grow.id}` ? 'Beendet...' : 'Beenden'}</V1Button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
