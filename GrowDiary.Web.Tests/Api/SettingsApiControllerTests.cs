@@ -33,6 +33,15 @@ public sealed class SettingsApiControllerTests : IDisposable
     }
 
     [Fact]
+    public void HomeAssistantSettingsAlias_UsesApiHomeAssistantSettingsRoute()
+    {
+        var method = typeof(SettingsApiController).GetMethod(nameof(SettingsApiController.HomeAssistantSettings));
+        var attribute = Assert.Single(method!.GetCustomAttributes(typeof(HttpGetAttribute), inherit: false));
+
+        Assert.Equal("~/api/home-assistant/settings", Assert.IsType<HttpGetAttribute>(attribute).Template);
+    }
+
+    [Fact]
     public void CreateTent_WithValidRequest_CreatesTentAndAppearsInList()
     {
         var result = _controller.CreateTent(new CreateTentRequest

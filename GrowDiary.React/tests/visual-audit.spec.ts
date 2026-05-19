@@ -14,6 +14,12 @@ type RouteCase = {
   title: string
 }
 
+type AuditTent = {
+  id: number
+  name: string
+  status?: string | null
+}
+
 type ReportRow = {
   viewport: string
   route: string
@@ -293,6 +299,7 @@ for (const viewport of viewports) {
     })
 
     test(`capture main routes ${viewport.name}`, async ({ page }) => {
+      await ensureVisualAuditData(page.request)
       let pageError: string | null = null
       page.on('pageerror', (error) => { pageError = error.message })
       for (const route of routes) {
@@ -303,6 +310,7 @@ for (const viewport of viewports) {
     })
 
     test(`capture addback deep flow ${viewport.name}`, async ({ page }) => {
+      await ensureVisualAuditData(page.request)
       let pageError: string | null = null
       page.on('pageerror', (error) => { pageError = error.message })
       await auditAddbackDeepFlow(page, viewport, pageError)
@@ -313,6 +321,58 @@ for (const viewport of viewports) {
 test.afterAll(() => {
   writeReports()
 })
+
+async function ensureVisualAuditData(request: import('@playwright/test').APIRequestContext) {
+  const tents = await apiJson<AuditTent[]>(request, 'GET', '/api/settings/tents?includeArchived=true')
+  const existing = tents.find((tent) => tent.name === 'E2E Visual Audit Empty Tent' && tent.status !== 'Archived')
+  if (existing) return existing.id
+
+  const created = await apiJson<AuditTent>(request, 'POST', '/api/settings/tents', {
+    name: 'E2E Visual Audit Empty Tent',
+    kind: 'Grow Tent',
+    tentType: 'Production',
+    status: 'Active',
+    notes: 'Automatisch angelegte Testdaten fuer Playwright Visual Audit',
+    displayOrder: 9100,
+    accentColor: '#22c55e',
+    widthCm: 80,
+    depthCm: 80,
+    tentHeightCm: 160,
+    lightType: 'LED',
+    lightWatt: 120,
+    lightController: null,
+    lightControllerEntityId: null,
+    exhaustFanCount: 1,
+    exhaustM3h: 200,
+    circulationFanCount: 1,
+    hvacController: null,
+    hvacControllerEntityId: null,
+    co2Available: false,
+    cameraEntityId: null,
+    sensors: [],
+  })
+
+  return created.id
+}
+
+async function apiJson<T>(
+  request: import('@playwright/test').APIRequestContext,
+  method: 'GET' | 'POST',
+  pathName: string,
+  body?: unknown,
+) {
+  const response = await request.fetch(pathName, {
+    method,
+    data: body,
+    headers: body ? { 'content-type': 'application/json' } : undefined,
+  })
+
+  if (!response.ok()) {
+    throw new Error(`${method} ${pathName} failed: ${response.status()} ${await response.text()}`)
+  }
+
+  return await response.json() as T
+}
 
 async function assertRouteContract(page: import('@playwright/test').Page, slug: string) {
   if (slug === 'settings') {

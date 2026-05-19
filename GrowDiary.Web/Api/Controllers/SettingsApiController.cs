@@ -30,6 +30,11 @@ public sealed class SettingsApiController : ApiControllerBase
     public ActionResult<HomeAssistantSettingsDto> HomeAssistant()
         => Ok(_repository.GetHomeAssistantSettings().ToDto());
 
+    [HttpGet("~/api/home-assistant/settings")]
+    [ProducesResponseType(typeof(HomeAssistantSettingsDto), StatusCodes.Status200OK)]
+    public ActionResult<HomeAssistantSettingsDto> HomeAssistantSettings()
+        => HomeAssistant();
+
     [HttpPut("home-assistant")]
     [ProducesResponseType(typeof(HomeAssistantSettingsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]

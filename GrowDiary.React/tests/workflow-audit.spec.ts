@@ -89,6 +89,7 @@ test.describe('workflow audit mobile', () => {
   })
 
   test('walk focused create workflows without saving', async ({ page }) => {
+    await ensureHydroSetupForWorkflowAudit(page.request)
     await auditRoute(page, '/zelte/new', 'mobile-zelt-new')
     await fillIfVisible(page, 'input[placeholder="Hauptzelt"]', `E2E Zelt ${Date.now()}`)
     await screenshotAndLayout(page, 'mobile-zelt-new-filled')

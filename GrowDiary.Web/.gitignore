@@ -1,7 +1,11 @@
 bin/
 obj/
 App_Data/*.db
+App_Data/*.db-shm
+App_Data/*.db-wal
+App_Data/DataProtectionKeys/
 App_Data/ha-config.json
+App_Data/local-secrets/
 wwwroot/uploads/*
 !wwwroot/uploads/.gitkeep
 .vscode/

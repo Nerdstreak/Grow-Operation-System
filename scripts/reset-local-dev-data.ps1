@@ -20,17 +20,40 @@ $dbPath = Join-Path $appData 'grow-diary.db'
 $backupRoot = Assert-InRepo (Join-Path $repoRoot 'backups\dev-reset')
 $uploadsRoot = Assert-InRepo (Join-Path $repoRoot 'GrowDiary.Web\wwwroot\uploads')
 $artifactsRoot = Assert-InRepo (Join-Path $repoRoot 'artifacts')
+$haConfigPath = Join-Path $appData 'ha-config.json'
+$haLocalSecretPath = Join-Path $appData 'local-secrets\home-assistant.local.json'
 
 New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
 
-if (Test-Path -LiteralPath $dbPath) {
+function Backup-File {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourcePath,
+        [Parameter(Mandatory = $true)][string]$BackupName
+    )
+
+    $safeSource = Assert-InRepo $SourcePath
+    if (-not (Test-Path -LiteralPath $safeSource)) {
+        return
+    }
+
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-    $backupPath = Join-Path $backupRoot "grow-diary-before-reset-$stamp.db"
-    Copy-Item -LiteralPath $dbPath -Destination $backupPath -Force
+    $backupPath = Join-Path $backupRoot "$BackupName-$stamp"
+    Copy-Item -LiteralPath $safeSource -Destination $backupPath -Force
     Write-Host "Backup erstellt: $backupPath"
 }
 
+Backup-File -SourcePath $dbPath -BackupName 'grow-diary-before-reset.db'
+Backup-File -SourcePath $haConfigPath -BackupName 'ha-config-before-reset.json'
+Backup-File -SourcePath $haLocalSecretPath -BackupName 'home-assistant-before-reset.local.json'
+
 foreach ($file in @($dbPath, "$dbPath-wal", "$dbPath-shm")) {
+    $safeFile = Assert-InRepo $file
+    if (Test-Path -LiteralPath $safeFile) {
+        Remove-Item -LiteralPath $safeFile -Force
+    }
+}
+
+foreach ($file in @($haConfigPath, $haLocalSecretPath)) {
     $safeFile = Assert-InRepo $file
     if (Test-Path -LiteralPath $safeFile) {
         Remove-Item -LiteralPath $safeFile -Force
