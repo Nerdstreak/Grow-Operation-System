@@ -58,7 +58,7 @@ function HydroPage() {
       setGrows(growData)
       const sorted = sortSetups(setupData)
       setSetups(sorted)
-      setSelectedSetupId((current) => current ?? sorted.find((setup) => setup.status === 'Active')?.id ?? sorted[0]?.id ?? null)
+      setSelectedSetupId((current) => sorted.some((setup) => setup.id === current) ? current : sorted.find((setup) => setup.status === 'Active')?.id ?? sorted[0]?.id ?? null)
       if (routeCreateMode) setDraft(createDraft(sorted.length + 1, tentData[0]?.id ?? null))
     } catch (caught) {
       setError(formatApiError(caught, 'Hydro-Daten konnten nicht geladen werden.'))
@@ -143,6 +143,7 @@ function HydroPage() {
   }
 
   async function deleteSetup(setup: HydroSetupDto) {
+    if (saving) return
     const linkedGrows = getGrowsForSetup(grows, setup)
     if (linkedGrows.length > 0) {
       const showDependencyPanel = true
@@ -164,12 +165,26 @@ function HydroPage() {
         setSetups((current) => current.filter((item) => item.id !== setup.id))
         setSelectedSetupId((current) => current === setup.id ? null : current)
         setBlockedDeleteSetupId((current) => current === setup.id ? null : current)
+        await load()
+        return
+      }
+      if (response.status === 404) {
+        setSetups((current) => current.filter((item) => item.id !== setup.id))
+        setSelectedSetupId((current) => current === setup.id ? null : current)
+        setBlockedDeleteSetupId((current) => current === setup.id ? null : current)
+        await load()
+        return
+      }
+      if (response.status === 409) {
+        setBlockedDeleteSetupId(setup.id)
+        await load()
         return
       }
       if (!response.ok) throw new Error(`Hydro-Setup konnte nicht gelöscht werden (${response.status})`)
       const saved = await response.json() as HydroSetupDto
       setSetups((current) => sortSetups(current.map((item) => item.id === saved.id ? saved : item)))
       setSelectedSetupId(saved.id)
+      await load()
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Hydro-Setup konnte nicht gelöscht werden.')
     } finally {
@@ -178,6 +193,7 @@ function HydroPage() {
   }
 
   async function archiveSetup(setup: HydroSetupDto) {
+    if (saving) return
     const confirmed = window.confirm(`${setup.name} archivieren?`)
     if (!confirmed) return
     setSaving(`archive-${setup.id}`)
@@ -186,7 +202,15 @@ function HydroPage() {
       const saved = await apiFetch<HydroSetupDto>(`/api/hydro-setups/${setup.id}/archive`, { method: 'POST' })
       setSetups((current) => sortSetups(current.map((item) => item.id === saved.id ? saved : item)))
       setSelectedSetupId(saved.id)
+      await load()
     } catch (caught) {
+      if (isNotFound(caught)) {
+        setSetups((current) => current.filter((item) => item.id !== setup.id))
+        setSelectedSetupId((current) => current === setup.id ? null : current)
+        setBlockedDeleteSetupId((current) => current === setup.id ? null : current)
+        await load()
+        return
+      }
       setError(formatApiError(caught, 'Hydro-Setup konnte nicht archiviert werden.'))
     } finally {
       setSaving(null)
@@ -194,6 +218,7 @@ function HydroPage() {
   }
 
   async function archiveLinkedGrow(grow: GrowSummary) {
+    if (saving) return
     const confirmed = window.confirm(`${grow.name} beenden und archivieren?`)
     if (!confirmed) return
     setSaving(`grow-archive-${grow.id}`)
@@ -203,6 +228,11 @@ function HydroPage() {
       setBlockedDeleteSetupId(null)
       await load()
     } catch (caught) {
+      if (isNotFound(caught)) {
+        setBlockedDeleteSetupId(null)
+        await load()
+        return
+      }
       setError(formatApiError(caught, 'Grow konnte nicht beendet werden.'))
     } finally {
       setSaving(null)
@@ -410,5 +440,6 @@ function getGrowsForSetup(grows: GrowSummary[], setup: HydroSetupDto) {
 }
 function formatReservoirPosition(value: ReservoirPosition) { return value === 'None' ? 'keiner' : value === 'Left' ? 'links' : value === 'Right' ? 'rechts' : value === 'Top' ? 'oben' : value === 'Bottom' ? 'unten' : 'extern' }
 function formatApiError(caught: unknown, fallback: string) { return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback }
+function isNotFound(caught: unknown) { return caught instanceof ApiRequestError && caught.status === 404 }
 
 export default HydroPage

@@ -38,6 +38,7 @@ function GrowsPage() {
   }
 
   async function archiveGrow(grow: GrowSummary) {
+    if (saving) return
     const confirmed = window.confirm(`${grow.name} beenden und archivieren?`)
     if (!confirmed) return
 
@@ -46,9 +47,17 @@ function GrowsPage() {
     setNotice(null)
     try {
       await apiFetch(`/api/grows/${grow.id}/archive`, { method: 'POST' })
+      setActiveGrows((current) => current.filter((item) => item.id !== grow.id))
       setNotice('Grow beendet und archiviert.')
       await loadGrows()
     } catch (caught) {
+      if (isNotFound(caught)) {
+        setActiveGrows((current) => current.filter((item) => item.id !== grow.id))
+        setArchivedGrows((current) => current.filter((item) => item.id !== grow.id))
+        setNotice('Eintrag existiert bereits nicht mehr.')
+        await loadGrows()
+        return
+      }
       setError(formatApiError(caught, 'Grow konnte nicht beendet werden.'))
     } finally {
       setSaving(null)
@@ -56,6 +65,7 @@ function GrowsPage() {
   }
 
   async function deleteGrow(grow: GrowSummary) {
+    if (saving) return
     const confirmed = window.confirm(`${grow.name} endgültig löschen?`)
     if (!confirmed) return
 
@@ -64,9 +74,18 @@ function GrowsPage() {
     setNotice(null)
     try {
       await apiFetch(`/api/grows/${grow.id}`, { method: 'DELETE' })
+      setActiveGrows((current) => current.filter((item) => item.id !== grow.id))
+      setArchivedGrows((current) => current.filter((item) => item.id !== grow.id))
       setNotice('Grow gelöscht.')
       await loadGrows()
     } catch (caught) {
+      if (isNotFound(caught)) {
+        setActiveGrows((current) => current.filter((item) => item.id !== grow.id))
+        setArchivedGrows((current) => current.filter((item) => item.id !== grow.id))
+        setNotice('Eintrag existiert bereits nicht mehr.')
+        await loadGrows()
+        return
+      }
       setError(formatApiError(caught, 'Grow konnte nicht gelöscht werden.'))
     } finally {
       setSaving(null)
@@ -136,6 +155,7 @@ function GrowsPage() {
 
 function GrowCard({ grow, saving, hydroName, archived = false, onArchive, onDelete }: { grow: GrowSummary; saving: string | null; hydroName: string; archived?: boolean; onArchive: (grow: GrowSummary) => void; onDelete: (grow: GrowSummary) => void }) {
   const canArchive = grow.status === 'Planning' || grow.status === 'Running'
+  const actionDisabled = Boolean(saving)
   return (
     <V1Card className={classNames('grow-overview-card', archived && 'archived')} tone={grow.status === 'Running' ? 'ok' : grow.status === 'Planning' ? 'warn' : 'neutral'}>
       <div className="grow-overview-card__header">
@@ -158,8 +178,8 @@ function GrowCard({ grow, saving, hydroName, archived = false, onArchive, onDele
       <div className="grow-overview-card__actions" data-audit="grow-list-actions">
         <V1LinkButton to={`/grows/${grow.id}`} variant="primary">Öffnen</V1LinkButton>
         <V1LinkButton to={`/grows/${grow.id}/setup`}>Bearbeiten</V1LinkButton>
-        {canArchive && <V1Button disabled={saving === `archive-${grow.id}`} onClick={() => void onArchive(grow)}>{saving === `archive-${grow.id}` ? 'Beendet...' : 'Beenden'}</V1Button>}
-        <V1Button variant="danger" disabled={saving === `delete-${grow.id}`} onClick={() => void onDelete(grow)}>{saving === `delete-${grow.id}` ? 'Löscht...' : 'Löschen'}</V1Button>
+        {canArchive && <V1Button disabled={actionDisabled} onClick={() => void onArchive(grow)}>{saving === `archive-${grow.id}` ? 'Beendet...' : 'Beenden'}</V1Button>}
+        <V1Button variant="danger" disabled={actionDisabled} onClick={() => void onDelete(grow)}>{saving === `delete-${grow.id}` ? 'Löscht...' : 'Löschen'}</V1Button>
       </div>
     </V1Card>
   )
@@ -200,6 +220,10 @@ function formatDateTime(value: string | null) {
 function formatApiError(caught: unknown, fallback: string) {
   if (caught instanceof ApiRequestError && caught.payload?.message) return caught.payload.message
   return caught instanceof Error ? caught.message : fallback
+}
+
+function isNotFound(caught: unknown) {
+  return caught instanceof ApiRequestError && caught.status === 404
 }
 
 export default GrowsPage

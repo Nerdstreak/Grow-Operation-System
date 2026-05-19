@@ -137,6 +137,7 @@ function TentsPage() {
   }
 
   async function deleteTent(tent: TentDto) {
+    if (saving) return
     const confirmed = window.confirm(`${tent.name} endgültig löschen?`)
     if (!confirmed) return
     setSaving(`delete-${tent.id}`)
@@ -146,11 +147,19 @@ function TentsPage() {
       setTents((current) => current.filter((item) => item.id !== tent.id))
       setBlockedDeleteTentId((current) => current === tent.id ? null : current)
       setDeleteDependenciesByTentId((current) => ({ ...current, [tent.id]: null }))
+      await loadTents()
     } catch (caught) {
       const payload = caught instanceof ApiRequestError ? caught.payload : null
       if (caught instanceof ApiRequestError && caught.status === 409 && isTentDependencyError(payload)) {
         setBlockedDeleteTentId(tent.id)
         setDeleteDependenciesByTentId((current) => ({ ...current, [tent.id]: payload.dependencies }))
+        return
+      }
+      if (isNotFound(caught)) {
+        setTents((current) => current.filter((item) => item.id !== tent.id))
+        setBlockedDeleteTentId((current) => current === tent.id ? null : current)
+        setDeleteDependenciesByTentId((current) => ({ ...current, [tent.id]: null }))
+        await loadTents()
         return
       }
       setError(formatApiError(caught, 'Zelt konnte nicht gelöscht werden.'))
@@ -160,6 +169,7 @@ function TentsPage() {
   }
 
   async function archiveTent(tent: TentDto) {
+    if (saving) return
     const confirmed = window.confirm(`${tent.name} archivieren?`)
     if (!confirmed) return
     setSaving(`archive-${tent.id}`)
@@ -167,7 +177,15 @@ function TentsPage() {
     try {
       const saved = await apiFetch<TentDto>(`/api/settings/tents/${tent.id}/archive`, { method: 'POST' })
       setTents((current) => sortTents(current.map((item) => item.id === saved.id ? saved : item)))
+      await loadTents()
     } catch (caught) {
+      if (isNotFound(caught)) {
+        setTents((current) => current.filter((item) => item.id !== tent.id))
+        setBlockedDeleteTentId((current) => current === tent.id ? null : current)
+        setDeleteDependenciesByTentId((current) => ({ ...current, [tent.id]: null }))
+        await loadTents()
+        return
+      }
       setError(formatApiError(caught, 'Zelt konnte nicht archiviert werden.'))
     } finally {
       setSaving(null)
@@ -175,6 +193,7 @@ function TentsPage() {
   }
 
   async function archiveLinkedGrow(grow: Pick<GrowSummary, 'id' | 'name'>) {
+    if (saving) return
     const confirmed = window.confirm(`${grow.name} beenden und archivieren?`)
     if (!confirmed) return
     setSaving(`grow-archive-${grow.id}`)
@@ -184,6 +203,11 @@ function TentsPage() {
       setBlockedDeleteTentId(null)
       await loadTents()
     } catch (caught) {
+      if (isNotFound(caught)) {
+        setBlockedDeleteTentId(null)
+        await loadTents()
+        return
+      }
       setError(formatApiError(caught, 'Grow konnte nicht beendet werden.'))
     } finally {
       setSaving(null)
@@ -397,5 +421,6 @@ function liveValue(live: TentLivePayload | null, key: LiveMetricKey) {
 }
 function liveTone(live: TentLivePayload | null) { return live?.stateTone === 'critical' ? 'critical' : live?.stateTone === 'warn' || live?.stateTone === 'warning' ? 'warn' : live ? 'ok' : 'neutral' }
 function formatApiError(caught: unknown, fallback: string) { return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback }
+function isNotFound(caught: unknown) { return caught instanceof ApiRequestError && caught.status === 404 }
 
 export default TentsPage

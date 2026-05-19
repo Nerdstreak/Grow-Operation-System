@@ -624,6 +624,7 @@ function GrowDetailPage() {
 
   async function archiveGrow() {
     if (!growId || !bundle.grow) return
+    if (saving) return
     const confirmed = window.confirm(`${bundle.grow.name} beenden und archivieren?`)
     if (!confirmed) return
 
@@ -635,6 +636,10 @@ function GrowDetailPage() {
       setNotice('Grow beendet und archiviert.')
       await loadBundle()
     } catch (caught) {
+      if (isNotFound(caught)) {
+        navigate('/grows')
+        return
+      }
       setError(caught instanceof Error ? caught.message : 'Grow konnte nicht beendet werden.')
     } finally {
       setSaving(null)
@@ -643,6 +648,7 @@ function GrowDetailPage() {
 
   async function deleteGrow() {
     if (!growId || !bundle.grow) return
+    if (saving) return
     const confirmed = window.confirm(`${bundle.grow.name} endgültig löschen?`)
     if (!confirmed) return
 
@@ -651,8 +657,12 @@ function GrowDetailPage() {
     setNotice(null)
     try {
       await apiFetch(`/api/grows/${growId}`, { method: 'DELETE' })
-      navigate('/')
+      navigate('/grows')
     } catch (caught) {
+      if (isNotFound(caught)) {
+        navigate('/grows')
+        return
+      }
       setError(caught instanceof Error ? caught.message : 'Grow konnte nicht gelöscht werden.')
     } finally {
       setSaving(null)
@@ -1393,6 +1403,10 @@ function formatDeviationTarget(deviation: GrowDeviationDto): string | null {
     return `>= ${formatNumber(deviation.targetMin, 2)}${deviation.unit ? ` ${deviation.unit}` : ''}`
   }
   return `<= ${formatNumber(deviation.targetMax, 2)}${deviation.unit ? ` ${deviation.unit}` : ''}`
+}
+
+function isNotFound(caught: unknown) {
+  return caught instanceof ApiRequestError && caught.status === 404
 }
 
 export default GrowDetailPage

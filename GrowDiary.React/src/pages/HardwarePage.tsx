@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { apiFetch } from '../api'
+import { apiFetch, ApiRequestError } from '../api'
 import type { CalibrationEventDto, CreateHardwareItemRequest, HardwareItemCriticality, HardwareItemDto, HardwareItemStatus, HydroSetupDto, MaintenanceEventDto, TentDto, UpdateHardwareItemRequest } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Tabs } from '../components/v1'
 
@@ -168,6 +168,7 @@ function HardwarePage() {
   }
 
   async function deleteHardware(item: HardwareItemDto) {
+    if (saving) return
     const confirmed = window.confirm(`${item.name} endgültig löschen?`)
     if (!confirmed) return
 
@@ -176,6 +177,7 @@ function HardwarePage() {
     setMessage(null)
     try {
       await apiFetch(`/api/hardware-items/${item.id}`, { method: 'DELETE' })
+      setHardware((current) => current.filter((hardwareItem) => hardwareItem.id !== item.id))
       setMessage('Sensor gelöscht.')
       if (editingId === item.id) {
         setEditingId(null)
@@ -183,6 +185,16 @@ function HardwarePage() {
       }
       await load()
     } catch (caught) {
+      if (isNotFound(caught)) {
+        setHardware((current) => current.filter((hardwareItem) => hardwareItem.id !== item.id))
+        setMessage('Eintrag existiert bereits nicht mehr.')
+        if (editingId === item.id) {
+          setEditingId(null)
+          setDraft(createDraft())
+        }
+        await load()
+        return
+      }
       setError(caught instanceof Error ? caught.message : 'Sensor konnte nicht gelöscht werden.')
     } finally {
       setSaving(null)
@@ -324,6 +336,10 @@ function getHardwareName(items: HardwareItemDto[], id: number | null) {
 
 function formatDate(value: string | null) {
   return value ? value.slice(0, 10) : 'kein Datum'
+}
+
+function isNotFound(caught: unknown) {
+  return caught instanceof ApiRequestError && caught.status === 404
 }
 
 export default HardwarePage
