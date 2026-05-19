@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext } from '@playwright/test'
+import { expect, test, type APIRequestContext, type Locator } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -496,6 +496,35 @@ async function assertHydroLayoutControls(page: import('@playwright/test').Page) 
   await page.locator('[data-audit="hydro-layout-select"]').selectOption('Grid2x3')
   await page.locator('[data-audit="hydro-reservoir-select"]').selectOption('Right')
   await expect(preview).toContainText('2×3 · Tank rechts')
+  await assertRdwcTankSide(preview, 'right')
+  await page.locator('[data-audit="hydro-reservoir-select"]').selectOption('Left')
+  await expect(preview).toContainText('2×3 · Tank links')
+  await assertRdwcTankSide(preview, 'left')
+  await page.locator('[data-audit="hydro-reservoir-select"]').selectOption('Right')
+  await expect(preview).toContainText('2×3 · Tank rechts')
+  await assertRdwcTankSide(preview, 'right')
+}
+
+async function assertRdwcTankSide(preview: Locator, side: 'left' | 'right') {
+  const placement = await preview.evaluate((element) => {
+    const tank = element.querySelector('.rdwc-preview__tank') as HTMLElement | null
+    const sites = element.querySelector('.rdwc-preview__sites') as HTMLElement | null
+    if (!tank || !sites) return null
+    const tankRect = tank.getBoundingClientRect()
+    const sitesRect = sites.getBoundingClientRect()
+    return {
+      tankLeft: tankRect.left,
+      tankRight: tankRect.right,
+      sitesLeft: sitesRect.left,
+      sitesRight: sitesRect.right,
+    }
+  })
+  expect(placement, `RDWC preview needs tank and site grid for ${side} placement`).not.toBeNull()
+  if (side === 'right') {
+    expect(placement!.tankLeft, 'Tankposition rechts must render tank right of the site grid').toBeGreaterThanOrEqual(placement!.sitesRight - 1)
+  } else {
+    expect(placement!.tankRight, 'Tankposition links must render tank left of the site grid').toBeLessThanOrEqual(placement!.sitesLeft + 1)
+  }
 }
 
 async function assertHardwareDeleteFlow(page: import('@playwright/test').Page) {

@@ -1452,14 +1452,26 @@ html,
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .rdwc-preview__stage,
-  .rdwc-preview__stage.tank-right {
+  .rdwc-preview__stage.tank-top,
+  .rdwc-preview__stage.tank-bottom,
+  .rdwc-preview__stage.tank-external,
+  .rdwc-preview__stage.tank-none {
     flex-direction: column;
   }
 
+  .rdwc-preview__stage.tank-left,
+  .rdwc-preview__stage.tank-right {
+    flex-direction: row;
+  }
+
+  .rdwc-preview__stage.tank-right .rdwc-preview__tank,
+  .rdwc-preview__stage.tank-bottom .rdwc-preview__tank,
+  .rdwc-preview__stage.tank-external .rdwc-preview__tank {
+    order: 2;
+  }
+
   .rdwc-preview__tank {
-    order: 0 !important;
-    min-width: 0;
+    min-width: 64px;
   }
 
   .rdwc-preview__sites {
