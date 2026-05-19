@@ -33,6 +33,15 @@ public sealed class SettingsApiControllerTests : IDisposable
     }
 
     [Fact]
+    public void HomeAssistantSettingsAlias_UsesApiHomeAssistantSettingsRoute()
+    {
+        var method = typeof(SettingsApiController).GetMethod(nameof(SettingsApiController.HomeAssistantSettings));
+        var attribute = Assert.Single(method!.GetCustomAttributes(typeof(HttpGetAttribute), inherit: false));
+
+        Assert.Equal("~/api/home-assistant/settings", Assert.IsType<HttpGetAttribute>(attribute).Template);
+    }
+
+    [Fact]
     public void CreateTent_WithValidRequest_CreatesTentAndAppearsInList()
     {
         var result = _controller.CreateTent(new CreateTentRequest
@@ -81,6 +90,73 @@ public sealed class SettingsApiControllerTests : IDisposable
         var error = Assert.IsType<ApiError>(badRequest.Value);
         Assert.Equal("validation_failed", error.Code);
         Assert.Contains(nameof(CreateTentRequest.TentType), error.FieldErrors!.Keys);
+    }
+
+    [Fact]
+    public void DeleteTent_WithoutBlockingDependencies_RemovesTent()
+    {
+        var created = _repository.CreateTent(new Tent
+        {
+            Name = "Leeres Testzelt",
+            TentType = TentType.Production,
+            Status = TentStatus.Active
+        });
+
+        var result = _controller.DeleteTent(created.Id);
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.Null(_repository.GetTent(created.Id));
+    }
+
+    [Fact]
+    public void DeleteTent_WithActiveGrow_ReturnsStructuredDependencies()
+    {
+        var tent = _repository.CreateTent(new Tent
+        {
+            Name = "Blockiertes Testzelt",
+            TentType = TentType.Production,
+            Status = TentStatus.Active
+        });
+        var growId = _repository.CreateGrow(new GrowRun
+        {
+            Name = "Aktiver Blocker",
+            TentId = tent.Id,
+            StartDate = new DateTime(2026, 5, 1),
+            Status = GrowStatus.Running
+        });
+
+        var result = _controller.DeleteTent(tent.Id);
+
+        var conflict = Assert.IsType<ConflictObjectResult>(result);
+        var error = Assert.IsType<TentDependencyError>(conflict.Value);
+        Assert.Equal("tent_has_active_dependencies", error.Code);
+        Assert.Contains(error.Dependencies.ActiveGrows, grow => grow.Id == growId && grow.Name == "Aktiver Blocker");
+        Assert.Empty(error.Dependencies.ArchivedGrows);
+        Assert.Empty(error.Dependencies.Sensors);
+    }
+
+    [Fact]
+    public void DeleteTent_WithOnlyArchivedGrow_DetachesHistoricalGrowAndRemovesTent()
+    {
+        var tent = _repository.CreateTent(new Tent
+        {
+            Name = "Historisches Testzelt",
+            TentType = TentType.Production,
+            Status = TentStatus.Active
+        });
+        var growId = _repository.CreateGrow(new GrowRun
+        {
+            Name = "Archivierter Grow",
+            TentId = tent.Id,
+            StartDate = new DateTime(2025, 1, 1),
+            Status = GrowStatus.Completed
+        });
+
+        var result = _controller.DeleteTent(tent.Id);
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.Null(_repository.GetTent(tent.Id));
+        Assert.Null(_repository.GetGrow(growId)!.TentId);
     }
     [Fact]
     public void CreateTent_WithDetailedRequest_PersistsAllTentDetailsAndSensors()
@@ -275,7 +351,7 @@ public sealed class SettingsApiControllerTests : IDisposable
     }
 
     [Fact]
-    public void DeleteTent_WithDependencies_ArchivesTent()
+    public void DeleteTent_WithDependencies_ReturnsConflictAndKeepsTent()
     {
         var created = _repository.CreateTent("Zelt mit System");
         _repository.CreateHydroSetup(new GrowSystem
@@ -292,11 +368,11 @@ public sealed class SettingsApiControllerTests : IDisposable
 
         var result = _controller.DeleteTent(created.Id);
 
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var dto = Assert.IsType<TentDto>(ok.Value);
-        Assert.Equal(TentStatus.Archived.ToString(), dto.Status);
-        Assert.DoesNotContain(_repository.GetTents(), tent => tent.Id == created.Id);
-        Assert.Contains(_repository.GetTents(includeArchived: true), tent => tent.Id == created.Id && tent.Status == TentStatus.Archived);
+        var conflict = Assert.IsType<ConflictObjectResult>(result);
+        var error = Assert.IsType<TentDependencyError>(conflict.Value);
+        Assert.Equal("tent_has_active_dependencies", error.Code);
+        Assert.Contains(error.Dependencies.HydroSetups, setup => setup.Name == "RDWC Test");
+        Assert.Contains(_repository.GetTents(), tent => tent.Id == created.Id && tent.Status == TentStatus.Active);
     }
 
 }

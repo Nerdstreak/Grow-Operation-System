@@ -11,6 +11,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Remove="App_Data\**\*" />
+    <Content Remove="App_Data_backup\**\*" />
+    <Content Remove="App_Data\*.db" />
+    <Content Remove="App_Data\*.db-shm" />
+    <Content Remove="App_Data\*.db-wal" />
+    <Content Remove="App_Data\DataProtectionKeys\**\*" />
+    <Content Remove="App_Data\ha-config.json" />
+    <Content Remove="App_Data\local-secrets\**\*" />
+    <Content Remove="wwwroot\uploads\**\*" />
     <Content Update="wwwroot\knowledge-defaults\**\*.json"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />

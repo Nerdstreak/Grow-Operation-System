@@ -18,6 +18,7 @@ public sealed record GrowSummaryDto(
     StartMaterial StartMaterial,
     int? PlantCount,
     int? TentId,
+    int? SystemId,
     int? SetupId,
     string? TentName,
     DateTime StartDate,

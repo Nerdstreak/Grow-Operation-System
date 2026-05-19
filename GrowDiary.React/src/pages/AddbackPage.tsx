@@ -290,7 +290,9 @@ function AddbackPage() {
         <V1Empty title="Lade Addback..." />
       ) : (
         <>
-          <V1Wizard steps={steps} currentStep={step} onStep={(nextStep) => setStep(nextStep as AddbackStep)} />
+          <div data-audit="addback-stepper">
+            <V1Wizard steps={steps} currentStep={step} onStep={(nextStep) => setStep(nextStep as AddbackStep)} />
+          </div>
 
           <div className="addback-assistant-layout">
             <aside className="addback-context-rail">

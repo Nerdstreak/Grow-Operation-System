@@ -66,6 +66,26 @@ export interface ApiError {
   fieldErrors?: Record<string, string[]>
 }
 
+export interface DependencyItemDto {
+  id: number
+  name: string
+  status: string | null
+  type: string | null
+}
+
+export interface TentDependencySummaryDto {
+  activeGrows: DependencyItemDto[]
+  archivedGrows: DependencyItemDto[]
+  hydroSetups: DependencyItemDto[]
+  sensors: DependencyItemDto[]
+  measurements: DependencyItemDto[]
+  other: DependencyItemDto[]
+}
+
+export interface TentDependencyError extends ApiError {
+  dependencies: TentDependencySummaryDto
+}
+
 export interface GrowSummary {
   id: number
   name: string
@@ -78,6 +98,7 @@ export interface GrowSummary {
   startMaterial: StartMaterial
   plantCount: number | null
   tentId: number | null
+  systemId: number | null
   setupId: number | null
   tentName: string | null
   startDate: string
@@ -478,6 +499,7 @@ export interface HardwareItemDto {
   criticality: HardwareItemCriticality
   tentId: number | null
   setupId: number | null
+  hydroSetupId: number | null
   growId: number | null
   wearTemplateId: string | null
   tentSensorId: number | null
@@ -501,6 +523,7 @@ export interface CreateHardwareItemRequest {
   criticality: HardwareItemCriticality
   tentId?: number | null
   setupId?: number | null
+  hydroSetupId?: number | null
   growId?: number | null
   wearTemplateId?: string | null
   tentSensorId?: number | null
@@ -1081,6 +1104,7 @@ export interface HydroSetupDto {
   hasUvSterilizer: boolean
   notes: string | null
   displayOrder: number
+  activeGrowCount: number
   createdAtUtc: string
   updatedAtUtc: string
 }

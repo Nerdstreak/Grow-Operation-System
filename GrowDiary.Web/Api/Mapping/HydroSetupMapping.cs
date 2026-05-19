@@ -27,6 +27,7 @@ public static class HydroSetupMapping
         HasUvSterilizer: system.HasUvSterilizer,
         Notes: system.Notes,
         DisplayOrder: system.DisplayOrder,
+        ActiveGrowCount: system.ActiveGrowCount,
         CreatedAtUtc: system.CreatedAtUtc,
         UpdatedAtUtc: system.UpdatedAtUtc
     );

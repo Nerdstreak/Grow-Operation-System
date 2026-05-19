@@ -5,8 +5,6 @@ import type { AddbackLogDto, GrowDetail, GrowSummary, HydroSetupDto } from '../t
 import { V1Alert, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { formatDateTime, formatNumber } from '../utils'
 
-const addbackSteps = ['Grow', 'Istwerte', 'Ziel', 'Dosierung', 'Nachmessung']
-
 type GrowWithLogs = {
   detail: GrowDetail
   logs: AddbackLogDto[]
@@ -76,7 +74,7 @@ function AddbackHubPage() {
     <V1Page eyebrow="Reservoir" title="Addback" action={<V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>}>
       {error && <V1Alert message={error} tone="warn" />}
 
-      <section className="v1-addback-command">
+      <section className="v1-addback-command" data-audit="addback-hub">
         <V1Card className="v1-addback-command-main">
           <span className="v1-card-kicker">Nächster Addback</span>
           <h2>{primaryGrow?.name ?? 'Kein Hydro-Grow aktiv'}</h2>
@@ -89,9 +87,11 @@ function AddbackHubPage() {
           {primaryGrow ? <V1LinkButton to={`/grows/${primaryGrow.id}/addback`} variant="primary">Addback starten</V1LinkButton> : <V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>}
         </V1Card>
 
-        <div className="v1-addback-flow-strip rc2" aria-label="Addback Ablauf">
-          {addbackSteps.map((item, index) => <div key={item}><span>{index + 1}</span><strong>{item}</strong></div>)}
-        </div>
+        <V1Card className="v1-addback-hub-summary">
+          <span className="v1-card-kicker">Hub</span>
+          <h2>{hydroGrows.length} Hydro-Grows verfuegbar</h2>
+          <p>Waehle einen Grow, starte einen Addback oder oeffne den Verlauf nach Hydro-Setup.</p>
+        </V1Card>
       </section>
 
       <section className="v1-kpi-grid v1-kpi-grid-compact"><V1Stat label="Aktive Grows" value={activeGrows.length} /><V1Stat label="Hydro" value={hydroGrows.length} /><V1Stat label="Hydro-Verläufe" value={protocolGroups.length} /><V1Stat label="Logs" value={totalLogs} /></section>
@@ -138,7 +138,7 @@ function ProtocolGroupCard({ group }: { group: ProtocolGroup }) {
       <p>{group.tentName ?? 'ohne Zelt'} · {group.growNames.join(', ')}</p>
       <div className="v1-info-grid compact">
         <Info label="Logs" value={String(group.logs.length)} />
-        <Info label="Letzter" value={formatDateTime(latest?.performedAtUtc)} />
+        <Info label="Letzter" value={formatShortDateTime(latest?.performedAtUtc)} />
         <Info label="EC" value={latest ? `${formatNumber(latest.ecBefore, 2)} → ${formatNumber(latest.ecAfter ?? latest.ecTarget, 2)}` : '–'} />
         <Info label="Menge" value={latest ? `${formatNumber(latest.litersAdded, 2)} L` : '–'} />
       </div>
@@ -188,5 +188,18 @@ function buildProtocolGroups(items: GrowWithLogs[], hydroSetups: HydroSetupDto[]
 }
 
 function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
+
+function formatShortDateTime(value: string | null | undefined) {
+  if (!value) return '–'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '–'
+  return new Intl.DateTimeFormat('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
 
 export default AddbackHubPage

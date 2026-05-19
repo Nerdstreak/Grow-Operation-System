@@ -9,17 +9,25 @@ GrowDiary.Web/App_Data/DataProtectionKeys/
 GrowDiary.Web/App_Data/snapshots/
 GrowDiary.Web/App_Data/uploads/
 GrowDiary.Web/App_Data/knowledge/
+GrowDiary.Web/App_Data/backups/
+GrowDiary.Web/App_Data/.gitkeep
 GrowDiary.Web/App_Data/*.db
 GrowDiary.Web/App_Data/*.db-shm
 GrowDiary.Web/App_Data/*.db-wal
 GrowDiary.Web/App_Data/ha-config.json
+GrowDiary.Web/App_Data/ha-config.example.json
+GrowDiary.Web/App_Data/local-secrets/
 run.*.log
 RDWC Wissen/
 GrowDiary.Web/wwwroot/docs/
-GrowDiary.Web/wwwroot/
+GrowDiary.Web/wwwroot/icons/
+GrowDiary.Web/wwwroot/manifest.webmanifest
+GrowDiary.Web/wwwroot/offline.html
+GrowDiary.Web/wwwroot/service-worker.js
 .claude/settings.local.json
 docs/superpowers/plans/
 artifacts/
+backups/dev-reset/
 publish/
 release/
 docker-data/
@@ -27,7 +35,6 @@ GrowDiary.Web/wwwroot/index.html
 GrowDiary.Web/wwwroot/assets/
 # Grow OS runtime / local data
 GrowDiary.Web/App_Data_backup/
-GrowDiary.Web/App_Data*/
 # ASP.NET local crypto/session keys
 **/DataProtectionKeys/
 **/key-*.xml

@@ -5,8 +5,15 @@ namespace GrowDiary.Web.Infrastructure;
 
 public static class HaConfigLoader
 {
+    private const string DemoSeedEnvironmentVariable = "GROWDIARY_SEED_DEMO_DATA";
+
     public static void Apply(AppPaths paths, GrowRepository repository)
     {
+        if (!IsDemoSeedEnabled())
+        {
+            return;
+        }
+
         var configPath = Path.Combine(paths.ContentRootPath, "App_Data", "ha-config.json");
         if (!File.Exists(configPath)) return;
 
@@ -97,5 +104,13 @@ public static class HaConfigLoader
                 }
             }
         }
+    }
+
+    private static bool IsDemoSeedEnabled()
+    {
+        var raw = Environment.GetEnvironmentVariable(DemoSeedEnvironmentVariable);
+        return string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(raw, "1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(raw, "yes", StringComparison.OrdinalIgnoreCase);
     }
 }

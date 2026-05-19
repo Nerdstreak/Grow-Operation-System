@@ -36,8 +36,8 @@ export function V1Card({ children, className, tone = 'neutral' }: { children: Re
   return <article className={classNames('v1-card', `tone-${tone}`, className)}>{children}</article>
 }
 
-export function V1Button({ children, onClick, type = 'button', disabled, variant = 'secondary', className }: { children: ReactNode; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean; variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; className?: string }) {
-  return <button type={type} className={classNames('v1-button', `is-${variant}`, className)} disabled={disabled} onClick={onClick}>{children}</button>
+export function V1Button({ children, onClick, type = 'button', disabled, variant = 'secondary', className, audit }: { children: ReactNode; onClick?: () => void; type?: 'button' | 'submit'; disabled?: boolean; variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; className?: string; audit?: string }) {
+  return <button type={type} className={classNames('v1-button', `is-${variant}`, className)} data-audit={audit} disabled={disabled} onClick={onClick}>{children}</button>
 }
 
 export function V1LinkButton({ to, children, variant = 'secondary', className }: { to: string; children: ReactNode; variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; className?: string }) {
@@ -77,7 +77,7 @@ export function V1Alert({ title, message, tone = 'warn' }: { title?: string; mes
   )
 }
 
-export function V1Tabs<T extends string | number>({ items, active, onChange, label }: { items: Array<{ value: T; label: string; meta?: string | null }>; active: T; onChange: (value: T) => void; label?: string }) {
+export function V1Tabs<T extends string | number>({ items, active, onChange, label }: { items: Array<{ value: T; label: string; meta?: string | null; audit?: string }>; active: T; onChange: (value: T) => void; label?: string }) {
   return (
     <div
       className="v1-tabs"
@@ -97,6 +97,7 @@ export function V1Tabs<T extends string | number>({ items, active, onChange, lab
           key={String(item.value)}
           type="button"
           className={classNames('v1-tab', item.value === active && 'active')}
+          data-audit={item.audit}
           onClick={() => onChange(item.value)}
           style={{
             minWidth: 0,

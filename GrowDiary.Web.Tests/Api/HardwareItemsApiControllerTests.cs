@@ -99,6 +99,28 @@ public sealed class HardwareItemsApiControllerTests : IDisposable
     }
 
     [Fact]
+    public void Delete_RemovesHardwareItemFromListAndDetail()
+    {
+        var tent = _repository.GetTents().Single();
+        var created = Assert.IsType<HardwareItemDto>(Assert.IsType<CreatedAtActionResult>(_controller.Create(new CreateHardwareItemRequest
+        {
+            Name = "Delete Sensor",
+            Category = "Sensor",
+            Status = HardwareItemStatus.Active,
+            Criticality = HardwareItemCriticality.High,
+            TentId = tent.Id,
+            InstalledAtUtc = new DateTime(2026, 5, 19, 8, 0, 0, DateTimeKind.Utc)
+        }).Result).Value);
+
+        var result = _controller.Delete(created.Id);
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.IsType<NotFoundObjectResult>(_controller.Detail(created.Id).Result);
+        var list = Assert.IsAssignableFrom<IReadOnlyList<HardwareItemDto>>(Assert.IsType<OkObjectResult>(_controller.List().Result).Value);
+        Assert.DoesNotContain(list, item => item.Id == created.Id);
+    }
+
+    [Fact]
     public void Api_RejectsInvalidReferencesEnumsAndDates()
     {
         var missingTent = _controller.Create(new CreateHardwareItemRequest

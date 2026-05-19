@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type {
   AutoMeasurementAggregation,
@@ -132,6 +132,7 @@ const emptyMappingDraft = (): AutoMeasurementFieldMappingUpsertRequest => ({
 
 function GrowDetailPage() {
   const { growId } = useParams()
+  const navigate = useNavigate()
   const [bundle, setBundle] = useState<DetailBundle>({ grow: null, measurements: [], tasks: [], journal: [] })
   const [photos, setPhotos] = useState<PhotoAssetDto[]>([])
   const [selectedMeasurementId, setSelectedMeasurementId] = useState<number | null>(null)
@@ -621,6 +622,53 @@ function GrowDetailPage() {
     }
   }
 
+  async function archiveGrow() {
+    if (!growId || !bundle.grow) return
+    if (saving) return
+    const confirmed = window.confirm(`${bundle.grow.name} beenden und archivieren?`)
+    if (!confirmed) return
+
+    setSaving('grow-archive')
+    setError(null)
+    setNotice(null)
+    try {
+      await apiFetch<GrowDetail>(`/api/grows/${growId}/archive`, { method: 'POST' })
+      setNotice('Grow beendet und archiviert.')
+      await loadBundle()
+    } catch (caught) {
+      if (isNotFound(caught)) {
+        navigate('/grows')
+        return
+      }
+      setError(caught instanceof Error ? caught.message : 'Grow konnte nicht beendet werden.')
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function deleteGrow() {
+    if (!growId || !bundle.grow) return
+    if (saving) return
+    const confirmed = window.confirm(`${bundle.grow.name} endgültig löschen?`)
+    if (!confirmed) return
+
+    setSaving('grow-delete')
+    setError(null)
+    setNotice(null)
+    try {
+      await apiFetch(`/api/grows/${growId}`, { method: 'DELETE' })
+      navigate('/grows')
+    } catch (caught) {
+      if (isNotFound(caught)) {
+        navigate('/grows')
+        return
+      }
+      setError(caught instanceof Error ? caught.message : 'Grow konnte nicht gelöscht werden.')
+    } finally {
+      setSaving(null)
+    }
+  }
+
   if (loading) {
     return (
       <>
@@ -646,6 +694,7 @@ function GrowDetailPage() {
   const canConfirmGermination = grow.startMaterial === 'Seed' && !grow.germinatedAt
   const canConfirmRooting = grow.startMaterial === 'Clone' && !grow.rootedAt
   const canFlipToFlower = grow.seedType !== 'Autoflower' && !grow.flipDate
+  const canArchiveGrow = grow.status === 'Planning' || grow.status === 'Running'
 
   return (
     <>
@@ -656,7 +705,17 @@ function GrowDetailPage() {
         </div>
         <div className="topbar-right">
           <span className={`badge ${grow.status === 'Running' ? 'badge-ok' : grow.status === 'Planning' ? 'badge-warn' : 'badge-neutral'}`}>{grow.status}</span>
-          <Link className="btn btn-primary" to={`/grows/${grow.id}/setup`}>Setup bearbeiten</Link>
+          <div className="grow-management-actions" data-audit="grow-management-actions">
+            <Link className="btn btn-primary" to={`/grows/${grow.id}/setup`}>Bearbeiten</Link>
+            {canArchiveGrow && (
+              <button type="button" className="btn" disabled={saving === 'grow-archive'} onClick={() => void archiveGrow()}>
+                {saving === 'grow-archive' ? 'Beendet...' : 'Beenden'}
+              </button>
+            )}
+            <button type="button" className="btn" disabled={saving === 'grow-delete'} onClick={() => void deleteGrow()}>
+              {saving === 'grow-delete' ? 'Löscht...' : 'Löschen'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1344,6 +1403,10 @@ function formatDeviationTarget(deviation: GrowDeviationDto): string | null {
     return `>= ${formatNumber(deviation.targetMin, 2)}${deviation.unit ? ` ${deviation.unit}` : ''}`
   }
   return `<= ${formatNumber(deviation.targetMax, 2)}${deviation.unit ? ` ${deviation.unit}` : ''}`
+}
+
+function isNotFound(caught: unknown) {
+  return caught instanceof ApiRequestError && caught.status === 404
 }
 
 export default GrowDetailPage

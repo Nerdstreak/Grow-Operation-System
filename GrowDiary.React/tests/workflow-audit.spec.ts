@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext } from '@playwright/test'
+import { expect, test, type APIRequestContext, type Locator } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -7,6 +7,12 @@ const outputDir = path.join(repoRoot, 'artifacts', 'workflow-audit-current')
 const backendUrl = (process.env.GROW_OS_BACKEND_URL ?? 'http://127.0.0.1:5076').replace(/\/$/, '')
 const workflowTentName = 'E2E Workflow Audit Zelt'
 const workflowHydroName = 'E2E Workflow Audit RDWC'
+const workflowGrowName = 'E2E Workflow Audit Grow'
+const workflowManageHydroName = 'E2E Workflow Manage RDWC'
+const workflowManageGrowName = 'E2E Workflow Manage Grow'
+const workflowHardwareName = 'E2E Workflow Audit pH Sensor'
+const workflowDeleteHardwareName = 'E2E Workflow Delete Sensor'
+const workflowDeleteTentName = 'E2E Workflow Delete Zelt'
 
 type LayoutFinding = {
   tag: string
@@ -83,6 +89,7 @@ test.describe('workflow audit mobile', () => {
   })
 
   test('walk focused create workflows without saving', async ({ page }) => {
+    await ensureHydroSetupForWorkflowAudit(page.request)
     await auditRoute(page, '/zelte/new', 'mobile-zelt-new')
     await fillIfVisible(page, 'input[placeholder="Hauptzelt"]', `E2E Zelt ${Date.now()}`)
     await screenshotAndLayout(page, 'mobile-zelt-new-filled')
@@ -94,10 +101,14 @@ test.describe('workflow audit mobile', () => {
     await clickNextAndExpectStep(page, 2, 'hydro step 2')
     await screenshotAndLayout(page, 'mobile-hydro-step-2')
     await clickNextAndExpectStep(page, 3, 'hydro step 3')
+    await assertHydroLayoutControls(page)
     await screenshotAndLayout(page, 'mobile-hydro-step-3')
     await clickNextAndExpectStep(page, 4, 'hydro step 4')
     await screenshotAndLayout(page, 'mobile-hydro-step-4')
     await clickNextAndExpectStep(page, 5, 'hydro step 5')
+    await expect(page.locator('[data-audit="hydro-preview"]').filter({ hasText: /2×3 · Tank rechts/i })).toBeVisible()
+    await expect(page.getByText(/Tankposition/i)).toBeVisible()
+    await expect(page.locator('.v1-info').filter({ hasText: /Tankposition/i }).filter({ hasText: /rechts/i })).toBeVisible()
     await screenshotAndLayout(page, 'mobile-hydro-step-5')
 
     await ensureHydroSetupForWorkflowAudit(page.request)
@@ -131,7 +142,9 @@ test.describe('workflow audit desktop', () => {
   })
 
   test('walk admin and mapping workflows', async ({ page }) => {
-    await ensureHydroSetupForWorkflowAudit(page.request)
+    const workflowGrowId = await ensureHydroSetupForWorkflowAudit(page.request)
+    const manageGrowId = await ensureManageGrowForWorkflowAudit(page.request)
+    await ensureHardwareForWorkflowAudit(page.request)
     await auditRoute(page, '/aufgaben', 'desktop-aufgaben')
     await assertActionPage(page)
     await auditRoute(page, '/home-assistant', 'desktop-ha-setup')
@@ -143,8 +156,17 @@ test.describe('workflow audit desktop', () => {
     await assertSettingsPage(page)
     await auditRoute(page, '/connect', 'desktop-connect')
     await assertConnectPage(page)
+    await assertHardwareEditFlow(page)
+    await assertHardwareDeleteFlow(page)
+    await assertGrowsOverview(page, workflowGrowId)
     await assertOpenDoesNotNotFound(page, '/hydro', 'hydro-open')
+    await assertHydroBlockedDeleteShowsGrowLinks(page)
     await assertOpenDoesNotNotFound(page, '/zelte', 'tent-open')
+    await assertEmptyTentDeleteFlow(page)
+    await assertTentBlockedDeleteShowsDependencyLinks(page)
+    await assertGrowManagementFlow(page, manageGrowId)
+    await auditRoute(page, `/grows/${workflowGrowId}/addback`, 'desktop-addback-flow')
+    await expect(page.locator('[data-audit="addback-stepper"]')).toBeVisible()
   })
 })
 
@@ -155,6 +177,7 @@ async function ensureHydroSetupForWorkflowAudit(request: APIRequestContext) {
   ])
 
   const activeTents = tents.filter((tent) => tent.status !== 'Archived')
+  const activeTentIds = new Set(activeTents.map((tent) => tent.id))
   let tent = activeTents.find((item) => item.name === workflowTentName)
   if (!tent) {
     tent = await apiJson<WorkflowTent>(request, 'POST', '/api/settings/tents', {
@@ -183,10 +206,13 @@ async function ensureHydroSetupForWorkflowAudit(request: APIRequestContext) {
     })
   }
 
-  const hasWorkflowHydroForTent = hydroSetups.some((setup) => setup.status !== 'Archived' && setup.name === workflowHydroName && setup.tentId === tent.id)
-  if (hasWorkflowHydroForTent) return
+  const existingHydros = hydroSetups.filter((setup) => setup.status !== 'Archived' && setup.name === workflowHydroName && (setup.tentId == null || activeTentIds.has(setup.tentId)))
+  if (existingHydros.length > 0) {
+    const growIds = await Promise.all(existingHydros.map((setup) => ensureGrowForWorkflowAudit(request, setup.tentId ?? tent.id, setup.id)))
+    return growIds[0]
+  }
 
-  await apiJson<WorkflowHydroSetup>(request, 'POST', '/api/hydro-setups', {
+  const hydro = await apiJson<WorkflowHydroSetup>(request, 'POST', '/api/hydro-setups', {
     tentId: tent.id,
     name: workflowHydroName,
     hydroStyle: 'RDWC',
@@ -205,9 +231,188 @@ async function ensureHydroSetupForWorkflowAudit(request: APIRequestContext) {
     notes: 'Automatisch angelegte Testdaten fuer Playwright Workflow Audit',
     displayOrder: 9001,
   })
+
+  return await ensureGrowForWorkflowAudit(request, tent.id, hydro.id)
 }
 
-async function apiJson<T>(request: APIRequestContext, method: 'GET' | 'POST', pathName: string, data?: unknown): Promise<T> {
+async function ensureGrowForWorkflowAudit(request: APIRequestContext, tentId: number, hydroSetupId: number) {
+  const grows = await apiJson<Array<{ id: number; name: string; status?: string | null; systemId?: number | null; setupId?: number | null }>>(request, 'GET', '/api/grows?archived=false')
+  const existing = grows.find((grow) => grow.name === workflowGrowName && (grow.systemId === hydroSetupId || grow.setupId === hydroSetupId) && grow.status !== 'Archived')
+  if (existing) return existing.id
+
+  const created = await apiJson<{ id: number }>(request, 'POST', '/api/grows', {
+    name: workflowGrowName,
+    tentId,
+    systemId: hydroSetupId,
+    setupId: null,
+    hydroStyle: 'RDWC',
+    startDate: '2026-01-01',
+    status: 'Running',
+    environment: 'Indoor',
+    seedType: 'Feminized',
+    startMaterial: 'Seed',
+    waterSource: 'RO',
+  })
+  return created.id
+}
+
+async function ensureManageGrowForWorkflowAudit(request: APIRequestContext) {
+  await ensureHydroSetupForWorkflowAudit(request)
+  const [tents, hydroSetups] = await Promise.all([
+    apiJson<WorkflowTent[]>(request, 'GET', '/api/settings/tents?includeArchived=true'),
+    apiJson<WorkflowHydroSetup[]>(request, 'GET', '/api/hydro-setups?includeArchived=true'),
+  ])
+  const tent = tents.find((item) => item.name === workflowTentName && item.status !== 'Archived') ?? tents.find((item) => item.status !== 'Archived')
+  if (!tent) throw new Error('Workflow-Audit braucht ein aktives Zelt fuer Grow-Verwaltung.')
+
+  const activeTentIds = new Set(tents.filter((item) => item.status !== 'Archived').map((item) => item.id))
+  let hydro = hydroSetups.find((setup) => setup.name === workflowManageHydroName && setup.status !== 'Archived' && (setup.tentId == null || activeTentIds.has(setup.tentId)))
+  if (!hydro) {
+    hydro = await apiJson<WorkflowHydroSetup>(request, 'POST', '/api/hydro-setups', {
+      tentId: tent.id,
+      name: workflowManageHydroName,
+      hydroStyle: 'RDWC',
+      potCount: 2,
+      potSizeLiters: 19,
+      reservoirLiters: 45,
+      layoutType: 'Row',
+      reservoirPosition: 'Left',
+      hasCirculationPump: true,
+      circulationPumpNotes: null,
+      hasAirPump: true,
+      airPumpNotes: null,
+      airStoneCount: 2,
+      hasChiller: false,
+      hasUvSterilizer: false,
+      notes: 'Automatisch angelegte Testdaten fuer Grow-Verwaltung',
+      displayOrder: 9002,
+    })
+  }
+
+  const grows = await apiJson<Array<{ id: number; name: string; status?: string | null; systemId?: number | null; setupId?: number | null }>>(request, 'GET', '/api/grows?archived=false')
+  const existing = grows.find((grow) => grow.name === workflowManageGrowName && (grow.systemId === hydro.id || grow.setupId === hydro.id))
+  if (existing) return existing.id
+  const growTentId = hydro.tentId ?? tent.id
+
+  const created = await apiJson<{ id: number }>(request, 'POST', '/api/grows', {
+    name: workflowManageGrowName,
+    tentId: growTentId,
+    systemId: hydro.id,
+    setupId: null,
+    hydroStyle: 'RDWC',
+    startDate: '2026-01-02',
+    status: 'Running',
+    environment: 'Indoor',
+    seedType: 'Feminized',
+    startMaterial: 'Seed',
+    waterSource: 'RO',
+  })
+  return created.id
+}
+
+async function ensureHardwareForWorkflowAudit(request: APIRequestContext) {
+  await ensureHydroSetupForWorkflowAudit(request)
+  const items = await apiJson<Array<{ id: number; name: string }>>(request, 'GET', '/api/hardware-items')
+  const existing = items.find((item) => item.name === workflowHardwareName)
+  if (existing) return existing.id
+
+  const [tents, hydroSetups] = await Promise.all([
+    apiJson<WorkflowTent[]>(request, 'GET', '/api/settings/tents?includeArchived=true'),
+    apiJson<WorkflowHydroSetup[]>(request, 'GET', '/api/hydro-setups?includeArchived=true'),
+  ])
+  const activeTentIds = new Set(tents.filter((item) => item.status !== 'Archived').map((item) => item.id))
+  const hydro = hydroSetups.find((setup) => setup.name === workflowHydroName && setup.status !== 'Archived' && (setup.tentId == null || activeTentIds.has(setup.tentId))) ?? null
+  const tent = hydro?.tentId != null
+    ? tents.find((item) => item.id === hydro.tentId && item.status !== 'Archived')
+    : tents.find((item) => item.name === workflowTentName && item.status !== 'Archived') ?? tents.find((item) => item.status !== 'Archived')
+  if (!tent) throw new Error('Workflow-Audit braucht ein aktives Zelt fuer Sensor-Testdaten.')
+
+  const created = await apiJson<{ id: number }>(request, 'POST', '/api/hardware-items', {
+    name: workflowHardwareName,
+    category: 'pH Sensor',
+    status: 'Active',
+    criticality: 'High',
+    tentId: tent.id,
+    setupId: null,
+    hydroSetupId: hydro?.id ?? null,
+    growId: null,
+    wearTemplateId: null,
+    tentSensorId: null,
+    haEntityId: 'sensor.e2e_workflow_ph',
+    manufacturer: 'E2E',
+    model: 'Probe A',
+    serialNumber: 'E2E-PH-001',
+    installedAtUtc: '2026-01-01T00:00:00.000Z',
+    retiredAtUtc: null,
+    expectedLifespanDays: null,
+    inspectionIntervalDays: null,
+    notes: 'Automatisch angelegte Testdaten fuer Sensor-Bearbeiten',
+  })
+  return created.id
+}
+
+async function ensureDeletableHardwareForWorkflowAudit(request: APIRequestContext) {
+  const items = await apiJson<Array<{ id: number; name: string }>>(request, 'GET', '/api/hardware-items')
+  const existing = items.find((item) => item.name === workflowDeleteHardwareName)
+  if (existing) return existing.id
+
+  const created = await apiJson<{ id: number }>(request, 'POST', '/api/hardware-items', {
+    name: workflowDeleteHardwareName,
+    category: 'pH Sensor',
+    status: 'Active',
+    criticality: 'Medium',
+    tentId: null,
+    setupId: null,
+    hydroSetupId: null,
+    growId: null,
+    wearTemplateId: null,
+    tentSensorId: null,
+    haEntityId: 'sensor.e2e_delete_sensor',
+    manufacturer: 'E2E',
+    model: 'Delete Probe',
+    serialNumber: 'E2E-DELETE-SENSOR',
+    installedAtUtc: '2026-01-01T00:00:00.000Z',
+    retiredAtUtc: null,
+    expectedLifespanDays: null,
+    inspectionIntervalDays: null,
+    notes: 'Automatisch angelegte Testdaten für Sensor-Löschen',
+  })
+  return created.id
+}
+
+async function ensureDeletableTentForWorkflowAudit(request: APIRequestContext) {
+  const tents = await apiJson<WorkflowTent[]>(request, 'GET', '/api/settings/tents?includeArchived=true')
+  const existing = tents.find((item) => item.name === workflowDeleteTentName && item.status !== 'Archived')
+  if (existing) return existing.id
+
+  const created = await apiJson<WorkflowTent>(request, 'POST', '/api/settings/tents', {
+    name: workflowDeleteTentName,
+    kind: 'Grow Tent',
+    tentType: 'Production',
+    status: 'Active',
+    notes: 'Automatisch angelegte Testdaten für Zelt-Löschen',
+    displayOrder: 9002,
+    accentColor: '#22c55e',
+    widthCm: 80,
+    depthCm: 80,
+    tentHeightCm: 160,
+    lightType: 'LED',
+    lightWatt: 120,
+    lightController: null,
+    lightControllerEntityId: null,
+    exhaustFanCount: 0,
+    exhaustM3h: null,
+    circulationFanCount: 0,
+    hvacController: null,
+    hvacControllerEntityId: null,
+    co2Available: false,
+    cameraEntityId: null,
+    sensors: [],
+  })
+  return created.id
+}
+
+async function apiJson<T>(request: APIRequestContext, method: 'GET' | 'POST' | 'DELETE', pathName: string, data?: unknown): Promise<T> {
   const response = await request.fetch(`${backendUrl}${pathName}`, {
     method,
     data,
@@ -219,6 +424,7 @@ async function apiJson<T>(request: APIRequestContext, method: 'GET' | 'POST', pa
     throw new Error(`Workflow-Audit Testdaten API fehlgeschlagen: ${method} ${pathName} -> ${response.status()} ${body}`)
   }
 
+  if (response.status() === 204) return undefined as T
   return await response.json() as T
 }
 
@@ -246,6 +452,134 @@ async function assertConnectPage(page: import('@playwright/test').Page) {
   }
 }
 
+async function assertHardwareEditFlow(page: import('@playwright/test').Page) {
+  await page.goto('/hardware', { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  await page.getByRole('button', { name: /Inventar/i }).click()
+  const card = page.locator('.v1-card').filter({ hasText: workflowHardwareName }).first()
+  await expect(card).toBeVisible()
+  await card.getByRole('button', { name: /Bearbeiten/i }).click()
+  const form = page.locator('[data-audit="hardware-edit-form"]')
+  await expect(form).toBeVisible()
+  await form.getByLabel(/Modell/i).fill('Probe B')
+  await form.getByRole('button', { name: /^Speichern$/i }).click()
+  await expect(page.getByText(/Sensor gespeichert/i)).toBeVisible()
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  await page.getByRole('button', { name: /Inventar/i }).click()
+  await expect(page.locator('.v1-card').filter({ hasText: workflowHardwareName }).filter({ hasText: 'Probe B' }).first()).toBeVisible()
+  await screenshotAndLayout(page, 'hardware-edit-flow')
+}
+
+async function assertGrowsOverview(page: import('@playwright/test').Page, growId: number) {
+  await page.goto('/grows', { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  await expect(page.getByRole('heading', { name: /^Grows$/i })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Neuen Grow anlegen/i })).toBeVisible()
+  await expect(page.locator('.v1-desktop-nav, .v1-mobile-more-panel').getByText(/^Grow starten$/)).toHaveCount(0)
+  const card = page.locator('.grow-overview-card').filter({ hasText: workflowGrowName }).first()
+  await expect(card).toBeVisible()
+  await expect(card.getByRole('link', { name: /^Öffnen$/i })).toHaveAttribute('href', `/grows/${growId}`)
+  await expect(card.getByRole('link', { name: /^Bearbeiten$/i })).toHaveAttribute('href', `/grows/${growId}/setup`)
+  await expect(card.getByRole('button', { name: /^Beenden$/i })).toBeVisible()
+  await expect(card.getByRole('button', { name: /^Löschen$/i })).toBeVisible()
+  await card.getByRole('link', { name: /^Öffnen$/i }).click()
+  await waitForAppIdle(page)
+  await expect(page).toHaveURL(new RegExp(`/grows/${growId}$`))
+  await expect(page.getByRole('heading', { name: /Nicht gefunden/i })).toHaveCount(0)
+  await screenshotAndLayout(page, 'grows-overview')
+}
+
+async function assertHydroLayoutControls(page: import('@playwright/test').Page) {
+  const preview = page.locator('[data-audit="hydro-preview"]').first()
+  await expect(preview).toBeVisible()
+  await page.locator('[data-audit="hydro-pot-count"]').fill('6')
+  await page.locator('[data-audit="hydro-layout-select"]').selectOption('Grid2x3')
+  await page.locator('[data-audit="hydro-reservoir-select"]').selectOption('Right')
+  await expect(preview).toContainText('2×3 · Tank rechts')
+  await assertRdwcTankSide(preview, 'right')
+  await page.locator('[data-audit="hydro-reservoir-select"]').selectOption('Left')
+  await expect(preview).toContainText('2×3 · Tank links')
+  await assertRdwcTankSide(preview, 'left')
+  await page.locator('[data-audit="hydro-reservoir-select"]').selectOption('Right')
+  await expect(preview).toContainText('2×3 · Tank rechts')
+  await assertRdwcTankSide(preview, 'right')
+}
+
+async function assertRdwcTankSide(preview: Locator, side: 'left' | 'right') {
+  const placement = await preview.evaluate((element) => {
+    const tank = element.querySelector('.rdwc-preview__tank') as HTMLElement | null
+    const sites = element.querySelector('.rdwc-preview__sites') as HTMLElement | null
+    if (!tank || !sites) return null
+    const tankRect = tank.getBoundingClientRect()
+    const sitesRect = sites.getBoundingClientRect()
+    return {
+      tankLeft: tankRect.left,
+      tankRight: tankRect.right,
+      sitesLeft: sitesRect.left,
+      sitesRight: sitesRect.right,
+    }
+  })
+  expect(placement, `RDWC preview needs tank and site grid for ${side} placement`).not.toBeNull()
+  if (side === 'right') {
+    expect(placement!.tankLeft, 'Tankposition rechts must render tank right of the site grid').toBeGreaterThanOrEqual(placement!.sitesRight - 1)
+  } else {
+    expect(placement!.tankRight, 'Tankposition links must render tank left of the site grid').toBeLessThanOrEqual(placement!.sitesLeft + 1)
+  }
+}
+
+async function assertHardwareDeleteFlow(page: import('@playwright/test').Page) {
+  await ensureDeletableHardwareForWorkflowAudit(page.request)
+  await page.goto('/hardware', { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  await page.getByRole('button', { name: /Inventar/i }).click()
+  const card = page.locator('.v1-card').filter({ hasText: workflowDeleteHardwareName }).first()
+  await expect(card).toBeVisible()
+  page.once('dialog', (dialog) => void dialog.accept())
+  await card.getByRole('button', { name: /^Löschen$/i }).click()
+  await expect(page.getByText(/Sensor gelöscht/i)).toBeVisible()
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  await page.getByRole('button', { name: /Inventar/i }).click()
+  await expect(page.locator('.v1-card').filter({ hasText: workflowDeleteHardwareName })).toHaveCount(0)
+  await screenshotAndLayout(page, 'hardware-delete-flow')
+}
+
+async function assertEmptyTentDeleteFlow(page: import('@playwright/test').Page) {
+  await ensureDeletableTentForWorkflowAudit(page.request)
+  await page.goto('/zelte', { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  const card = page.locator('.v1-tent-card').filter({ hasText: workflowDeleteTentName }).first()
+  await expect(card).toBeVisible()
+  page.once('dialog', (dialog) => void dialog.accept())
+  await card.getByRole('button', { name: /^Löschen$/i }).click()
+  await expect(card).toHaveCount(0)
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  await expect(page.locator('.v1-tent-card').filter({ hasText: workflowDeleteTentName })).toHaveCount(0)
+  await screenshotAndLayout(page, 'tent-delete-empty-flow')
+}
+
+async function assertGrowManagementFlow(page: import('@playwright/test').Page, growId: number) {
+  await page.goto(`/grows/${growId}`, { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  const actions = page.locator('[data-audit="grow-management-actions"]')
+  await expect(actions).toBeVisible()
+  await expect(actions.getByRole('link', { name: /Bearbeiten/i })).toBeVisible()
+  await actions.getByRole('link', { name: /Bearbeiten/i }).click()
+  await waitForAppIdle(page)
+  await expect(page).toHaveURL(new RegExp(`/grows/${growId}/setup$`))
+  await page.goto(`/grows/${growId}`, { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  page.once('dialog', (dialog) => void dialog.accept())
+  await page.locator('[data-audit="grow-management-actions"]').getByRole('button', { name: /Beenden/i }).click()
+  await expect(page.getByText(/Grow beendet und archiviert/i)).toBeVisible()
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  await expect(page.locator('.badge').filter({ hasText: /Completed/i }).first()).toBeVisible()
+  await screenshotAndLayout(page, 'grow-management-archived')
+}
+
 async function assertActionPage(page: import('@playwright/test').Page) {
   await expect(page.locator('.rc-action-guide-card')).toHaveCount(4)
   await expect(page.getByText(/Nährlösung prüfen und Addback berechnen/i)).toBeVisible()
@@ -255,9 +589,9 @@ async function assertActionPage(page: import('@playwright/test').Page) {
 }
 
 async function assertKnowledgePage(page: import('@playwright/test').Page) {
-  await expect(page.locator('.rc2-topic-card').first()).toBeVisible()
-  await expect(page.locator('.rc2-topic-detail').first()).toBeVisible()
-  await expect(page.locator('.rc2-topic-sections article').first()).toBeVisible()
+  await expect(page.locator('[data-audit="knowledge-search"]')).toBeVisible()
+  await expect(page.locator('[data-audit="knowledge-topic-nav"]')).toBeVisible()
+  await expect(page.locator('[data-audit="knowledge-article"]')).toBeVisible()
 }
 
 async function assertOpenDoesNotNotFound(page: import('@playwright/test').Page, url: string, name: string) {
@@ -269,6 +603,59 @@ async function assertOpenDoesNotNotFound(page: import('@playwright/test').Page, 
   await waitForAppIdle(page)
   await expect(page.getByRole('heading', { name: /Nicht gefunden/i })).toHaveCount(0)
   await screenshotAndLayout(page, name)
+}
+
+async function assertHydroBlockedDeleteShowsGrowLinks(page: import('@playwright/test').Page) {
+  await page.goto('/hydro', { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  await page.getByRole('button', { name: new RegExp(workflowHydroName, 'i') }).first().click()
+  await page.getByRole('button', { name: /L.schen/i }).click()
+  const panel = page.locator('[data-audit="hydro-delete-blocked"]:visible').filter({ hasText: workflowGrowName }).first()
+  const growRow = panel.locator('.dependency-row').filter({ hasText: workflowGrowName }).first()
+  await expect(panel).toBeVisible()
+  await expect(growRow).toBeVisible()
+  await expect(growRow.getByRole('link', { name: /Verwalten|Öffnen/i })).toBeVisible()
+  await expect(growRow.getByRole('link', { name: /Bearbeiten/i })).toBeVisible()
+  await expect(growRow.getByRole('button', { name: /Beenden/i })).toBeVisible()
+  await resetScrollForLayoutCheck(page)
+  await screenshotAndLayout(page, 'hydro-delete-blocked')
+  await growRow.getByRole('link', { name: /Verwalten|Öffnen/i }).first().click()
+  await waitForAppIdle(page)
+  await expect(page.locator('[data-audit="grow-management-actions"]')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Nicht gefunden/i })).toHaveCount(0)
+}
+
+async function assertTentBlockedDeleteShowsDependencyLinks(page: import('@playwright/test').Page) {
+  await page.goto('/zelte', { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  const card = page.locator('.v1-tent-card').filter({ hasText: workflowTentName }).first()
+  await expect(card).toBeVisible()
+  page.once('dialog', (dialog) => void dialog.accept())
+  await card.getByRole('button', { name: /^Löschen$/i }).click()
+  const panel = card.locator('[data-audit="tent-delete-blocked"]:visible').filter({ hasText: workflowGrowName }).first()
+  const growRow = panel.locator('.dependency-row').filter({ hasText: workflowGrowName }).first()
+  await expect(panel).toBeVisible()
+  await expect(growRow).toBeVisible()
+  await expect(panel.getByText(workflowHydroName).first()).toBeVisible()
+  await expect(growRow.getByRole('link', { name: /Verwalten|Öffnen/i }).first()).toBeVisible()
+  await expect(growRow.getByRole('link', { name: /Bearbeiten/i }).first()).toBeVisible()
+  await expect(growRow.getByRole('button', { name: /Beenden/i }).first()).toBeVisible()
+  await resetScrollForLayoutCheck(page)
+  await screenshotAndLayout(page, 'tent-delete-blocked')
+  await growRow.getByRole('link', { name: /Verwalten|Öffnen/i }).first().click()
+  await waitForAppIdle(page)
+  await expect(page.locator('[data-audit="grow-management-actions"]')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Nicht gefunden/i })).toHaveCount(0)
+}
+
+async function resetScrollForLayoutCheck(page: import('@playwright/test').Page) {
+  await page.evaluate(() => {
+    window.scrollTo(0, 0)
+    document.scrollingElement?.scrollTo(0, 0)
+    document.querySelectorAll<HTMLElement>('*').forEach((element) => {
+      element.scrollTo(0, 0)
+    })
+  })
 }
 
 async function waitForAppIdle(page: import('@playwright/test').Page) {
@@ -409,6 +796,7 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
 
     const bottomNav = document.querySelector('.v1-bottom-nav') as HTMLElement | null
     const bottomNavRect = bottomNav?.getBoundingClientRect() ?? null
+    const bottomNavStyle = bottomNav ? window.getComputedStyle(bottomNav) : null
 
     const candidates = Array.from(document.querySelectorAll('button, a, input, select, textarea, .v1-tab, .v1-wizard-step, .v1-card, .v1-section'))
       .map((element) => {
@@ -500,6 +888,12 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
       innerWidth: window.innerWidth,
       bodyOverflow: document.body.scrollWidth > window.innerWidth + 4,
       documentOverflow: document.documentElement.scrollWidth > window.innerWidth + 4,
+      bottomNavDock: bottomNavRect && bottomNavStyle ? {
+        visible: bottomNavStyle.display !== 'none' && bottomNavRect.width > 1 && bottomNavRect.height > 1,
+        bottomGap: Math.abs(window.innerHeight - bottomNavRect.bottom),
+        backgroundColor: bottomNavStyle.backgroundColor,
+        paddingBottom: Number.parseFloat(bottomNavStyle.paddingBottom || '0'),
+      } : null,
       hardOffenders,
       clipWarnings,
     }
@@ -527,6 +921,21 @@ async function screenshotAndLayout(page: import('@playwright/test').Page, name: 
       return `${item.selector} "${item.text}" ${problem} left=${item.left} right=${item.right} top=${item.top} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`
     }).join(' | ')
     throw new Error(`${name}: visible elements blocked or outside viewport: ${details}`)
+  }
+
+  if (result.innerWidth <= 860) {
+    if (!result.bottomNavDock?.visible) {
+      throw new Error(`${name}: mobile bottom nav is not visible`)
+    }
+    if (result.bottomNavDock.bottomGap > 1) {
+      throw new Error(`${name}: mobile bottom nav floats above viewport bottom gap=${result.bottomNavDock.bottomGap}`)
+    }
+    if (/rgba\(0,\s*0,\s*0,\s*0\)|transparent/i.test(result.bottomNavDock.backgroundColor)) {
+      throw new Error(`${name}: mobile bottom nav background is transparent`)
+    }
+    if (result.bottomNavDock.paddingBottom < 8) {
+      throw new Error(`${name}: mobile bottom nav does not reserve safe-area padding`)
+    }
   }
 
   if (result.bodyOverflow) {

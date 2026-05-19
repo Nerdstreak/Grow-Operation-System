@@ -157,6 +157,54 @@ public sealed class TentRepository : RepositoryBase
         command.ExecuteNonQuery();
     }
 
+    public void DeleteTentWithCleanup(int id)
+    {
+        using var connection = OpenConnection();
+        using var transaction = connection.BeginTransaction();
+
+        Execute(commandText: """
+            UPDATE HardwareItems
+               SET TentId = NULL,
+                   HydroSetupId = CASE
+                       WHEN HydroSetupId IN (SELECT Id FROM GrowSystems WHERE TentId = $id) THEN NULL
+                       ELSE HydroSetupId
+                   END,
+                   UpdatedAtUtc = datetime('now')
+             WHERE TentId = $id
+                OR HydroSetupId IN (SELECT Id FROM GrowSystems WHERE TentId = $id);
+            """);
+
+        Execute(commandText: """
+            UPDATE RiskEvents
+               SET TentId = NULL,
+                   TentSensorId = NULL,
+                   HardwareItemId = CASE
+                       WHEN HardwareItemId IN (SELECT Id FROM HardwareItems WHERE TentId = $id) THEN NULL
+                       ELSE HardwareItemId
+                   END,
+                   UpdatedAtUtc = datetime('now')
+             WHERE TentId = $id
+                OR TentSensorId IN (SELECT Id FROM TentSensors WHERE TentId = $id);
+            """);
+
+        Execute(commandText: "UPDATE Grows SET TentId = NULL, UpdatedAtUtc = datetime('now') WHERE TentId = $id;");
+        Execute(commandText: "UPDATE Setups SET TentId = NULL, UpdatedAtUtc = datetime('now') WHERE TentId = $id;");
+        Execute(commandText: "UPDATE GrowSystems SET TentId = NULL, UpdatedAtUtc = datetime('now') WHERE TentId = $id;");
+        Execute(commandText: "UPDATE AutoMeasurementConfigs SET TentId = NULL WHERE TentId = $id;");
+        Execute(commandText: "DELETE FROM Tents WHERE Id = $id;");
+
+        transaction.Commit();
+
+        void Execute(string commandText)
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = commandText;
+            command.Parameters.AddWithValue("$id", id);
+            command.ExecuteNonQuery();
+        }
+    }
+
     public bool HasTentDependencies(int id)
     {
         using var connection = OpenConnection();

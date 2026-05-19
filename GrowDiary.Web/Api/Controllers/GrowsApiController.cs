@@ -241,6 +241,35 @@ public sealed class GrowsApiController : ApiControllerBase
         return NoContent();
     }
 
+    [HttpPost("{id:int}/archive")]
+    [ProducesResponseType(typeof(GrowDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<GrowDetailDto> Archive(int id)
+    {
+        var existing = _repository.GetGrow(id);
+        if (existing is null)
+        {
+            return NotFoundError("grow_not_found", $"Grow mit Id {id} existiert nicht.");
+        }
+
+        if (existing.Status is GrowStatus.Planning or GrowStatus.Running)
+        {
+            existing.Status = GrowStatus.Completed;
+            existing.EndDate ??= DateTime.Today;
+            _repository.UpdateGrow(existing);
+            _auditRepository.Add(new AuditEntry
+            {
+                GrowId = id,
+                EntityType = "Grow",
+                EntityId = id,
+                Action = "Grow archiviert",
+                Summary = $"Grow '{existing.Name}' wurde beendet und archiviert."
+            });
+        }
+
+        return Ok(_repository.GetGrow(id)!.ToDetailDto());
+    }
+
     private bool ValidateHydroSetupAssignment(GrowRun grow, string fieldName, bool requireHydroSetup)
     {
         if (!grow.SystemId.HasValue)

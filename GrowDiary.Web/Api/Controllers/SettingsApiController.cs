@@ -30,6 +30,11 @@ public sealed class SettingsApiController : ApiControllerBase
     public ActionResult<HomeAssistantSettingsDto> HomeAssistant()
         => Ok(_repository.GetHomeAssistantSettings().ToDto());
 
+    [HttpGet("~/api/home-assistant/settings")]
+    [ProducesResponseType(typeof(HomeAssistantSettingsDto), StatusCodes.Status200OK)]
+    public ActionResult<HomeAssistantSettingsDto> HomeAssistantSettings()
+        => HomeAssistant();
+
     [HttpPut("home-assistant")]
     [ProducesResponseType(typeof(HomeAssistantSettingsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
@@ -153,6 +158,7 @@ public sealed class SettingsApiController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(TentDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(TentDependencyError), StatusCodes.Status409Conflict)]
     public IActionResult DeleteTent(int id)
     {
         var existing = _repository.GetTent(id);
@@ -161,15 +167,69 @@ public sealed class SettingsApiController : ApiControllerBase
             return NotFoundError("tent_not_found", $"Zelt mit Id {id} existiert nicht.");
         }
 
-        if (_repository.HasTentDependencies(id))
+        var dependencies = BuildTentDependencies(id);
+        if (HasBlockingTentDependencies(dependencies))
         {
-            _repository.ArchiveTent(id);
-            return Ok(_repository.GetTent(id)!.ToDto());
+            return Conflict(new TentDependencyError(
+                "tent_has_active_dependencies",
+                "Zelt kann wegen aktiver Abhängigkeiten nicht gelöscht werden. Öffne die verknüpften Grows oder Hydro-Setups und beende sie zuerst.",
+                dependencies,
+                TraceId: HttpContext?.TraceIdentifier));
         }
 
-        _repository.DeleteTent(id);
+        _repository.DeleteTentWithCleanup(id);
         return NoContent();
     }
+
+    private TentDependencySummaryDto BuildTentDependencies(int id)
+    {
+        var activeGrows = _repository.GetActiveGrowsForTent(id)
+            .Select(grow => new DependencyItemDto(grow.Id, grow.Name, grow.Status.ToString(), "Grow"))
+            .ToList();
+
+        var archivedGrows = _repository.GetArchivedGrowsForTent(id)
+            .Select(grow => new DependencyItemDto(grow.Id, grow.Name, grow.Status.ToString(), "Grow"))
+            .ToList();
+
+        var hydroSetups = _repository.GetHydroSetupsByTent(id, includeArchived: true)
+            .Select(setup => new DependencyItemDto(setup.Id, setup.Name, setup.Status.ToString(), "Hydro"))
+            .ToList();
+
+        var hardwareItems = _repository.GetHardwareItemsByTent(id)
+            .Select(item => new DependencyItemDto(item.Id, item.Name, item.Status.ToString(), "Hardware"))
+            .ToList();
+
+        var tentSensors = _repository.GetTent(id)?.Sensors
+            .Select(sensor => new DependencyItemDto(
+                sensor.Id,
+                string.IsNullOrWhiteSpace(sensor.DisplayLabel) ? sensor.MetricType.ToString() : sensor.DisplayLabel,
+                sensor.IsActive ? "Active" : "Inactive",
+                "Sensor"))
+            .ToList() ?? new List<DependencyItemDto>();
+
+        var setups = _repository.GetSetupsForTent(id)
+            .Select(setup => new DependencyItemDto(setup.Id, setup.Name, setup.Status.ToString(), "Setup"))
+            .ToList();
+
+        var measurements = _repository.GetArchivedGrowsForTent(id)
+            .Concat(_repository.GetActiveGrowsForTent(id))
+            .Where(grow => grow.MeasurementCount > 0)
+            .Select(grow => new DependencyItemDto(grow.Id, grow.Name, $"{grow.MeasurementCount} Messungen", "Messung"))
+            .ToList();
+
+        return new TentDependencySummaryDto(
+            activeGrows,
+            archivedGrows,
+            hydroSetups,
+            hardwareItems.Concat(tentSensors).ToList(),
+            measurements,
+            setups);
+    }
+
+    private static bool HasBlockingTentDependencies(TentDependencySummaryDto dependencies)
+        => dependencies.ActiveGrows.Count > 0
+           || dependencies.HydroSetups.Any(item => !string.Equals(item.Status, "Archived", StringComparison.OrdinalIgnoreCase))
+           || dependencies.Other.Any(item => !string.Equals(item.Status, "Archived", StringComparison.OrdinalIgnoreCase));
 
     private void ValidateTentRequest(CreateTentRequest request)
     {

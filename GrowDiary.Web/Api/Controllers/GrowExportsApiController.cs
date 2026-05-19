@@ -472,6 +472,7 @@ public sealed class GrowExportsApiController : ApiControllerBase
             HasUvSterilizer: snapshot.HasUvSterilizer,
             Notes: snapshot.Notes,
             DisplayOrder: snapshot.DisplayOrder,
+            ActiveGrowCount: 0,
             CreatedAtUtc: snapshot.CreatedAtUtc,
             UpdatedAtUtc: snapshot.UpdatedAtUtc);
     }

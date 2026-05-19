@@ -14,6 +14,12 @@ type RouteCase = {
   title: string
 }
 
+type AuditTent = {
+  id: number
+  name: string
+  status?: string | null
+}
+
 type ReportRow = {
   viewport: string
   route: string
@@ -57,7 +63,8 @@ const routes: RouteCase[] = [
   { slug: 'hydro-new', path: '/hydro/new', title: 'Hydro anlegen' },
   { slug: 'home-assistant', path: '/home-assistant', title: 'Home Assistant' },
   { slug: 'connect', path: '/connect', title: 'Gerät verbinden' },
-  { slug: 'grow-starten', path: '/grows/new', title: 'Grow starten' },
+  { slug: 'grows', path: '/grows', title: 'Grows' },
+  { slug: 'grow-new', path: '/grows/new', title: 'Grow starten' },
   { slug: 'settings', path: '/settings', title: 'Einstellungen' },
   { slug: 'wissen', path: '/wissen', title: 'Wissen' },
   { slug: 'release', path: '/release', title: 'Release' },
@@ -175,14 +182,16 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
     const details = metrics.bottomNavFindings.slice(0, 5).map((item) => `${item.selector} "${item.text}" ${item.problem} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`).join(' | ')
     throw new Error(`${fileName}: mobile bottom nav spacing issue: ${details}`)
   }
+  if (viewport.name === 'mobile') {
+    await assertMobileBottomNavDocked(page, fileName)
+  }
 }
 
 async function tryClickFirstAddbackStart(page: import('@playwright/test').Page) {
   const candidates = [
     page.locator('a[href*="/grows/"][href*="/addback"]').first(),
-    page.getByRole('link', { name: /addback starten|addback/i }).first(),
-    page.getByRole('button', { name: /addback starten|starten/i }).first(),
-    page.locator('a').filter({ hasText: /addback/i }).first(),
+    page.getByRole('link', { name: /addback starten/i }).first(),
+    page.getByRole('button', { name: /addback starten/i }).first(),
   ]
 
   for (const candidate of candidates) {
@@ -233,6 +242,9 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
   if (viewport.name === 'mobile' && metrics.bottomNavFindings.length > 0) {
     const details = metrics.bottomNavFindings.slice(0, 5).map((item) => `${item.selector} "${item.text}" ${item.problem} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`).join(' | ')
     throw new Error(`${fileName}: mobile bottom nav spacing issue: ${details}`)
+  }
+  if (viewport.name === 'mobile') {
+    await assertMobileBottomNavDocked(page, fileName)
   }
 }
 
@@ -287,6 +299,7 @@ for (const viewport of viewports) {
     })
 
     test(`capture main routes ${viewport.name}`, async ({ page }) => {
+      await ensureVisualAuditData(page.request)
       let pageError: string | null = null
       page.on('pageerror', (error) => { pageError = error.message })
       for (const route of routes) {
@@ -297,6 +310,7 @@ for (const viewport of viewports) {
     })
 
     test(`capture addback deep flow ${viewport.name}`, async ({ page }) => {
+      await ensureVisualAuditData(page.request)
       let pageError: string | null = null
       page.on('pageerror', (error) => { pageError = error.message })
       await auditAddbackDeepFlow(page, viewport, pageError)
@@ -308,12 +322,73 @@ test.afterAll(() => {
   writeReports()
 })
 
+async function ensureVisualAuditData(request: import('@playwright/test').APIRequestContext) {
+  const tents = await apiJson<AuditTent[]>(request, 'GET', '/api/settings/tents?includeArchived=true')
+  const existing = tents.find((tent) => tent.name === 'E2E Visual Audit Empty Tent' && tent.status !== 'Archived')
+  if (existing) return existing.id
+
+  const created = await apiJson<AuditTent>(request, 'POST', '/api/settings/tents', {
+    name: 'E2E Visual Audit Empty Tent',
+    kind: 'Grow Tent',
+    tentType: 'Production',
+    status: 'Active',
+    notes: 'Automatisch angelegte Testdaten fuer Playwright Visual Audit',
+    displayOrder: 9100,
+    accentColor: '#22c55e',
+    widthCm: 80,
+    depthCm: 80,
+    tentHeightCm: 160,
+    lightType: 'LED',
+    lightWatt: 120,
+    lightController: null,
+    lightControllerEntityId: null,
+    exhaustFanCount: 1,
+    exhaustM3h: 200,
+    circulationFanCount: 1,
+    hvacController: null,
+    hvacControllerEntityId: null,
+    co2Available: false,
+    cameraEntityId: null,
+    sensors: [],
+  })
+
+  return created.id
+}
+
+async function apiJson<T>(
+  request: import('@playwright/test').APIRequestContext,
+  method: 'GET' | 'POST',
+  pathName: string,
+  body?: unknown,
+) {
+  const response = await request.fetch(pathName, {
+    method,
+    data: body,
+    headers: body ? { 'content-type': 'application/json' } : undefined,
+  })
+
+  if (!response.ok()) {
+    throw new Error(`${method} ${pathName} failed: ${response.status()} ${await response.text()}`)
+  }
+
+  return await response.json() as T
+}
+
 async function assertRouteContract(page: import('@playwright/test').Page, slug: string) {
   if (slug === 'settings') {
     await expect(page.getByRole('button', { name: /Vollbackup herunterladen/i })).toBeVisible()
     await expect(page.locator('.rc-file-input').first()).toBeVisible()
+    const backupResponse = await page.request.post('/api/system/backup')
+    expect(backupResponse.status(), 'Vollbackup endpoint must not return 500').toBe(201)
+    const manifest = await backupResponse.json() as { downloadUrl?: string; fileName?: string; sizeBytes?: number }
+    expect(manifest.downloadUrl, 'Backup manifest needs a download URL').toMatch(/^\/api\/system\/backup\/grow-os-backup-.*\.zip$/)
+    expect(manifest.sizeBytes ?? 0, 'Backup ZIP must not be empty').toBeGreaterThan(0)
+    const downloadResponse = await page.request.get(manifest.downloadUrl!)
+    expect(downloadResponse.status(), 'Backup ZIP download must return 200').toBe(200)
+    expect(downloadResponse.headers()['content-type'] ?? '').toContain('application/zip')
+    expect((await downloadResponse.body()).length, 'Downloaded Backup ZIP must not be empty').toBeGreaterThan(0)
   }
-  if (slug === 'release' || slug === 'messung') {
+  if (slug === 'release') {
     await expect(page.locator('.rc-file-input').first()).toBeVisible()
   }
   if (slug === 'connect') {
@@ -324,7 +399,136 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
     await expect(page.locator('.rc-action-guide-card')).toHaveCount(4)
   }
   if (slug === 'wissen') {
-    await expect(page.locator('.rc2-topic-card').first()).toBeVisible()
-    await expect(page.locator('.rc2-topic-detail').first()).toBeVisible()
+    await expect(page.locator('[data-audit="knowledge-search"]')).toBeVisible()
+    await expect(page.locator('[data-audit="knowledge-topic-nav"]')).toBeVisible()
+    await expect(page.locator('[data-audit="knowledge-article"]')).toBeVisible()
+    await expect(page.locator('.rc2-topic-grid')).toHaveCount(0)
   }
+  if (slug === 'home-assistant') {
+    await expect(page.locator('[data-audit="ha-connection-layout"]')).toBeVisible()
+    await expect(page.locator('[data-audit="ha-connection-actions"]')).toBeVisible()
+    await expect(page.locator('[data-audit="ha-camera-field-action"]')).toBeVisible()
+    const layout = await page.locator('[data-audit="ha-connection-layout"]').evaluate((element) => {
+      const rect = (element as HTMLElement).getBoundingClientRect()
+      const actions = element.querySelector('[data-audit="ha-connection-actions"]') as HTMLElement | null
+      const actionsRect = actions?.getBoundingClientRect() ?? null
+      return {
+        overflow: (element as HTMLElement).scrollWidth > (element as HTMLElement).clientWidth + 2,
+        actionsOverlap: Boolean(actionsRect && actionsRect.top < rect.top),
+      }
+    })
+    expect(layout.overflow, 'HA connection layout must not overflow').toBe(false)
+    expect(layout.actionsOverlap, 'HA connection actions must not overlap inputs').toBe(false)
+  }
+  if (slug === 'hardware') {
+    await page.locator('[data-audit="hardware-inventory-tab"]').click()
+    await expect(page.locator('[data-audit="hardware-edit-form"]')).toBeVisible()
+    const deleteButtons = page.locator('[data-audit="hardware-delete-button"]')
+    if (await deleteButtons.count()) {
+      await expect(deleteButtons.first()).toBeVisible()
+    }
+    await assertNoAsciiUmlautActions(page, slug)
+  }
+  if (slug === 'grows') {
+    await expect(page.getByRole('heading', { name: /^Grows$/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Neuen Grow anlegen/i }).first()).toBeVisible()
+    await expect(page.getByRole('link', { name: /Grow starten/i })).toHaveCount(0)
+    const firstCard = page.locator('.grow-overview-card').first()
+    if (await firstCard.count()) {
+      await expect(firstCard.getByRole('link', { name: /^Öffnen$/i })).toBeVisible()
+      await expect(firstCard.getByRole('link', { name: /^Bearbeiten$/i })).toBeVisible()
+      await expect(firstCard.getByRole('button', { name: /^(Beenden|Löschen)$/i }).first()).toBeVisible()
+    }
+    await assertNoAsciiUmlautActions(page, slug)
+  }
+  if (slug === 'zelte') {
+    await expect(page.locator('[data-audit="tent-delete-blocked"]')).toHaveCount(0)
+    await expect(page.locator('[data-audit="tent-delete-button"]').first()).toBeVisible()
+    const overflowingTentCards = await page.locator('.v1-tent-card').evaluateAll((cards) =>
+      cards.filter((card) => {
+        const html = card as HTMLElement
+        return html.scrollWidth > html.clientWidth + 2
+      }).length)
+    expect(overflowingTentCards, 'Zelt cards must not overflow horizontally').toBe(0)
+    const clippedMetricValues = await page.locator('.tent-metric-row dd').evaluateAll((values) =>
+      values.filter((value) => {
+        const html = value as HTMLElement
+        const text = html.textContent ?? ''
+        return text.includes('...') || text.includes('…') || html.scrollWidth > html.clientWidth + 2
+      }).map((value) => value.textContent?.trim()))
+    expect(clippedMetricValues, 'Zelt metric values must not be clipped or ellipsized').toEqual([])
+    await assertNoAsciiUmlautActions(page, slug)
+  }
+  if (slug === 'hydro' || slug === 'hydro-new') {
+    const previewProblems = await page.locator('[data-audit="hydro-preview"]').evaluateAll((previews) =>
+      previews.filter((preview) => {
+        const html = preview as HTMLElement
+        const rect = html.getBoundingClientRect()
+        const parent = html.closest('.v1-card, .v1-section') as HTMLElement | null
+        const parentRect = parent?.getBoundingClientRect() ?? null
+        return html.scrollWidth > html.clientWidth + 2
+          || (parentRect != null && (rect.left < parentRect.left - 2 || rect.right > parentRect.right + 2))
+      }).length)
+    expect(previewProblems, 'Hydro preview must stay inside its card and not overflow horizontally').toBe(0)
+    const clippedPreviewChildren = await page.locator('[data-audit="hydro-preview"]').evaluateAll((previews) =>
+      previews.flatMap((preview) => {
+        const previewRect = (preview as HTMLElement).getBoundingClientRect()
+        return Array.from(preview.querySelectorAll('.rdwc-preview__site, .rdwc-preview__tank, .rdwc-preview__caption'))
+          .filter((child) => {
+            const rect = (child as HTMLElement).getBoundingClientRect()
+            return rect.left < previewRect.left - 2
+              || rect.right > previewRect.right + 2
+              || rect.top < previewRect.top - 2
+              || rect.bottom > previewRect.bottom + 2
+          })
+          .map((child) => {
+            const rect = (child as HTMLElement).getBoundingClientRect()
+            const previewStyle = window.getComputedStyle(preview as HTMLElement)
+            const parent = child.parentElement as HTMLElement | null
+            const parentStyle = parent ? window.getComputedStyle(parent) : null
+            const parentRect = parent?.getBoundingClientRect()
+            return `${child.textContent?.trim()} child=${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.right)},${Math.round(rect.bottom)} preview=${Math.round(previewRect.left)},${Math.round(previewRect.top)},${Math.round(previewRect.right)},${Math.round(previewRect.bottom)} previewStyle=${previewStyle.display}/${previewStyle.position}/${previewStyle.alignItems}/${previewStyle.justifyContent}/${previewStyle.marginTop}/${previewStyle.transform} parent=${parent?.className ?? 'none'} parentRect=${parentRect ? `${Math.round(parentRect.left)},${Math.round(parentRect.top)},${Math.round(parentRect.right)},${Math.round(parentRect.bottom)}` : 'none'} parentStyle=${parentStyle?.display}/${parentStyle?.position}/${parentStyle?.alignItems}/${parentStyle?.justifyContent}/${parentStyle?.marginTop}/${parentStyle?.transform}`
+          })
+      }))
+    expect(clippedPreviewChildren, 'Hydro preview children must not be clipped inside the preview').toEqual([])
+    await assertNoAsciiUmlautActions(page, slug)
+  }
+  if (slug === 'addback') {
+    await expect(page.locator('[data-audit="addback-hub"]')).toBeVisible()
+    await expect(page.locator('.v1-addback-flow-strip, [data-audit="addback-stepper"]')).toHaveCount(0)
+    const overflowingLastFields = await page.locator('.v1-info').filter({ hasText: /^Letzter/ }).evaluateAll((elements) =>
+      elements.filter((element) => {
+        const value = element.querySelector('strong') as HTMLElement | null
+        return Boolean(value && value.scrollWidth > value.clientWidth + 2)
+      }).length)
+    expect(overflowingLastFields, 'Addback Verlauf "Letzter" must not overflow its box').toBe(0)
+  }
+}
+
+async function assertMobileBottomNavDocked(page: import('@playwright/test').Page, context: string) {
+  const nav = await page.evaluate(() => {
+    const element = document.querySelector('.v1-bottom-nav') as HTMLElement | null
+    if (!element) return null
+    const rect = element.getBoundingClientRect()
+    const style = window.getComputedStyle(element)
+    return {
+      visible: style.display !== 'none' && rect.width > 1 && rect.height > 1,
+      bottomGap: Math.abs(window.innerHeight - rect.bottom),
+      backgroundColor: style.backgroundColor,
+      paddingBottom: Number.parseFloat(style.paddingBottom || '0'),
+    }
+  })
+  expect(nav, `${context}: mobile bottom nav must exist`).not.toBeNull()
+  expect(nav!.visible, `${context}: mobile bottom nav must be visible`).toBe(true)
+  expect(nav!.bottomGap, `${context}: mobile bottom nav must be docked to viewport bottom`).toBeLessThanOrEqual(1)
+  expect(nav!.backgroundColor, `${context}: mobile bottom nav background must be opaque`).not.toMatch(/rgba\(0,\s*0,\s*0,\s*0\)|transparent/i)
+  expect(nav!.paddingBottom, `${context}: mobile bottom nav must reserve safe-area padding`).toBeGreaterThanOrEqual(8)
+}
+
+async function assertNoAsciiUmlautActions(page: import('@playwright/test').Page, slug: string) {
+  const offenders = await page.locator('button, a, [role="button"], [role="link"]').evaluateAll((items) =>
+    items
+      .map((item) => (item.textContent ?? '').trim().replace(/\s+/g, ' '))
+      .filter((text) => /\b(Loeschen|Loescht|geloescht|endgueltig|Oeffnen|Zurueck|waehle|laedt|bestaetigen|moeglich|verknuepft)\b/i.test(text)))
+  expect(offenders, `${slug}: visible actions must use German umlauts`).toEqual([])
 }

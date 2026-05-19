@@ -151,7 +151,7 @@ function HomeAssistantPage() {
       {loading ? <V1Empty title="Lade Home Assistant..." /> : (
         <>
           <V1Section title="1. Verbindung">
-            <form className="v1-ha-connect-form rc2-ha-connect-form" onSubmit={(event) => void saveConnection(event)}>
+            <form className="v1-ha-connect-form rc2-ha-connect-form" data-audit="ha-connection-layout" onSubmit={(event) => void saveConnection(event)}>
               <V1Field label="Home Assistant URL" hint="Beispiel: http://homeassistant.local:8123">
                 <input value={ha.baseUrl ?? ''} onChange={(event) => setHa((current) => ({ ...current, baseUrl: event.target.value }))} placeholder="http://homeassistant.local:8123" />
               </V1Field>
@@ -161,8 +161,10 @@ function HomeAssistantPage() {
                   <V1Button onClick={() => setShowToken((current) => !current)}>{showToken ? 'Verbergen' : 'Anzeigen'}</V1Button>
                 </div>
               </V1Field>
-              <V1Switch label="Home Assistant aktiv" checked={ha.enabled} onChange={(checked) => setHa((current) => ({ ...current, enabled: checked }))} />
-              <V1Button type="submit" variant="primary" disabled={saving === 'ha'} className="rc2-compact-action">{saving === 'ha' ? 'Speichert...' : 'Verbindung speichern'}</V1Button>
+              <div className="rc2-ha-connection-actions" data-audit="ha-connection-actions">
+                <V1Switch label="Home Assistant aktiv" checked={ha.enabled} onChange={(checked) => setHa((current) => ({ ...current, enabled: checked }))} />
+                <V1Button type="submit" variant="primary" disabled={saving === 'ha'} className="rc2-compact-action">{saving === 'ha' ? 'Speichert...' : 'Verbindung speichern'}</V1Button>
+              </div>
             </form>
           </V1Section>
 
@@ -179,10 +181,10 @@ function HomeAssistantPage() {
                   <V1Card tone={cameraStatus?.ok ? 'ok' : cameraStatus ? 'warn' : 'neutral'}>
                     <span className="v1-card-kicker">Kamera</span>
                     <h2>{cameraStatus?.ok ? 'Snapshot OK' : selectedDraft.cameraEntityId.trim() ? 'eingetragen' : 'optional'}</h2>
+                    <div className="rc2-ha-camera-field-action" data-audit="ha-camera-field-action">
                     <V1Field label="Kamera Entity">
                       <input value={selectedDraft.cameraEntityId} onChange={(event) => updateCamera(event.target.value)} placeholder="camera.hauptzelt" />
                     </V1Field>
-                    <div className="v1-action-row">
                       <V1Button onClick={() => void testCamera()}>Kamera testen</V1Button>
                       {cameraStatus?.previewUrl && <a className="v1-button is-secondary" href={cameraStatus.previewUrl} target="_blank" rel="noreferrer">Snapshot öffnen</a>}
                     </div>
