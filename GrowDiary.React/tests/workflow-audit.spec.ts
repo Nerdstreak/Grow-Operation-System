@@ -100,10 +100,14 @@ test.describe('workflow audit mobile', () => {
     await clickNextAndExpectStep(page, 2, 'hydro step 2')
     await screenshotAndLayout(page, 'mobile-hydro-step-2')
     await clickNextAndExpectStep(page, 3, 'hydro step 3')
+    await assertHydroLayoutControls(page)
     await screenshotAndLayout(page, 'mobile-hydro-step-3')
     await clickNextAndExpectStep(page, 4, 'hydro step 4')
     await screenshotAndLayout(page, 'mobile-hydro-step-4')
     await clickNextAndExpectStep(page, 5, 'hydro step 5')
+    await expect(page.locator('[data-audit="hydro-preview"]').filter({ hasText: /2×3 · Tank rechts/i })).toBeVisible()
+    await expect(page.getByText(/Tankposition/i)).toBeVisible()
+    await expect(page.locator('.v1-info').filter({ hasText: /Tankposition/i }).filter({ hasText: /rechts/i })).toBeVisible()
     await screenshotAndLayout(page, 'mobile-hydro-step-5')
 
     await ensureHydroSetupForWorkflowAudit(page.request)
@@ -153,6 +157,7 @@ test.describe('workflow audit desktop', () => {
     await assertConnectPage(page)
     await assertHardwareEditFlow(page)
     await assertHardwareDeleteFlow(page)
+    await assertGrowsOverview(page, workflowGrowId)
     await assertOpenDoesNotNotFound(page, '/hydro', 'hydro-open')
     await assertHydroBlockedDeleteShowsGrowLinks(page)
     await assertOpenDoesNotNotFound(page, '/zelte', 'tent-open')
@@ -463,6 +468,34 @@ async function assertHardwareEditFlow(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: /Inventar/i }).click()
   await expect(page.locator('.v1-card').filter({ hasText: workflowHardwareName }).filter({ hasText: 'Probe B' }).first()).toBeVisible()
   await screenshotAndLayout(page, 'hardware-edit-flow')
+}
+
+async function assertGrowsOverview(page: import('@playwright/test').Page, growId: number) {
+  await page.goto('/grows', { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  await expect(page.getByRole('heading', { name: /^Grows$/i })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Neuen Grow anlegen/i })).toBeVisible()
+  await expect(page.locator('.v1-desktop-nav, .v1-mobile-more-panel').getByText(/^Grow starten$/)).toHaveCount(0)
+  const card = page.locator('.grow-overview-card').filter({ hasText: workflowGrowName }).first()
+  await expect(card).toBeVisible()
+  await expect(card.getByRole('link', { name: /^Öffnen$/i })).toHaveAttribute('href', `/grows/${growId}`)
+  await expect(card.getByRole('link', { name: /^Bearbeiten$/i })).toHaveAttribute('href', `/grows/${growId}/setup`)
+  await expect(card.getByRole('button', { name: /^Beenden$/i })).toBeVisible()
+  await expect(card.getByRole('button', { name: /^Löschen$/i })).toBeVisible()
+  await card.getByRole('link', { name: /^Öffnen$/i }).click()
+  await waitForAppIdle(page)
+  await expect(page).toHaveURL(new RegExp(`/grows/${growId}$`))
+  await expect(page.getByRole('heading', { name: /Nicht gefunden/i })).toHaveCount(0)
+  await screenshotAndLayout(page, 'grows-overview')
+}
+
+async function assertHydroLayoutControls(page: import('@playwright/test').Page) {
+  const preview = page.locator('[data-audit="hydro-preview"]').first()
+  await expect(preview).toBeVisible()
+  await page.locator('[data-audit="hydro-pot-count"]').fill('6')
+  await page.locator('[data-audit="hydro-layout-select"]').selectOption('Grid2x3')
+  await page.locator('[data-audit="hydro-reservoir-select"]').selectOption('Right')
+  await expect(preview).toContainText('2×3 · Tank rechts')
 }
 
 async function assertHardwareDeleteFlow(page: import('@playwright/test').Page) {

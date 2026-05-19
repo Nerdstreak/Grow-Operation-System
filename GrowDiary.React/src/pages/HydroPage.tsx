@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { CSSProperties } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { CreateHydroSetupRequest, GrowSummary, HydroSetupDto, HydroSetupLayoutType, ReservoirPosition, SelectableHydroStyle, TentDto, UpdateHydroSetupRequest } from '../types'
+import { RdwcPreview } from '../components/RdwcPreview'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Stat, V1Switch, V1Wizard } from '../components/v1'
 import { draftNumber, formatLiters, toNullableFloat, toNullableInt, toNullableString } from '../components/v1-utils'
 import { classNames, formatNumber } from '../utils'
@@ -28,9 +28,6 @@ type HydroDraft = {
 }
 
 const wizardSteps = ['System', 'Volumen', 'Layout', 'Technik', 'Prüfen']
-const layoutOptions: HydroSetupLayoutType[] = ['SingleBucket', 'Row', 'Grid2x2', 'Grid2x3', 'Grid2x4', 'Custom']
-const reservoirPositions: ReservoirPosition[] = ['None', 'Left', 'Right', 'Top', 'Bottom', 'External']
-
 function HydroPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -265,7 +262,20 @@ function StepVolume({ draft, totalVolume, onDraft }: { draft: HydroDraft; totalV
 }
 
 function StepLayout({ draft, onDraft }: { draft: HydroDraft; onDraft: (setter: (current: HydroDraft) => HydroDraft) => void }) {
-  return <div className="v1-form-grid"><V1Field label="Layout"><select value={draft.layoutType} onChange={(event) => onDraft((current) => ({ ...current, layoutType: event.target.value as HydroSetupLayoutType }))}>{layoutOptions.map((value) => <option key={value} value={value}>{formatLayout(value)}</option>)}</select></V1Field><V1Field label="Tankposition"><select value={draft.reservoirPosition} onChange={(event) => onDraft((current) => ({ ...current, reservoirPosition: event.target.value as ReservoirPosition }))}>{reservoirPositions.map((value) => <option key={value} value={value}>{formatReservoirPosition(value)}</option>)}</select></V1Field><div className="is-wide"><RdwcLayoutPreview draft={draft} /></div></div>
+  return (
+    <div className="hydro-layout-step">
+      <RdwcPreview
+        editable
+        hydroStyle={draft.hydroStyle}
+        layoutType={draft.layoutType}
+        potCount={toNullableInt(draft.potCount) ?? 1}
+        reservoirPosition={draft.reservoirPosition}
+        onPotCountChange={(value) => onDraft((current) => ({ ...current, potCount: String(value) }))}
+        onLayoutChange={(value) => onDraft((current) => ({ ...current, layoutType: value }))}
+        onReservoirPositionChange={(value) => onDraft((current) => ({ ...current, reservoirPosition: value }))}
+      />
+    </div>
+  )
 }
 
 function StepTech({ draft, onDraft }: { draft: HydroDraft; onDraft: (setter: (current: HydroDraft) => HydroDraft) => void }) {
@@ -274,7 +284,7 @@ function StepTech({ draft, onDraft }: { draft: HydroDraft; onDraft: (setter: (cu
 
 function StepReview({ draft, tents, totalVolume }: { draft: HydroDraft; tents: TentDto[]; totalVolume: number | null }) {
   const tent = tents.find((item) => String(item.id) === draft.tentId)
-  return <div className="v1-review-layout"><V1Card><div className="v1-info-grid"><Info label="Name" value={draft.name || '–'} /><Info label="Zelt" value={tent?.name ?? '–'} /><Info label="Typ" value={draft.hydroStyle} /><Info label="Sites" value={draft.potCount || '–'} /><Info label="Topf" value={`${draft.potSizeLiters || '–'} L`} /><Info label="Tank" value={`${draft.reservoirLiters || '–'} L`} /><Info label="Gesamt" value={`${formatNumber(totalVolume, 1)} L`} /><Info label="Layout" value={formatLayout(draft.layoutType)} /></div></V1Card><RdwcLayoutPreview draft={draft} /></div>
+  return <div className="v1-review-layout hydro-review-layout"><V1Card><div className="v1-info-grid"><Info label="Name" value={draft.name || '–'} /><Info label="Zelt" value={tent?.name ?? '–'} /><Info label="Typ" value={draft.hydroStyle} /><Info label="Sites" value={draft.potCount || '–'} /><Info label="Topf" value={`${draft.potSizeLiters || '–'} L`} /><Info label="Tank" value={`${draft.reservoirLiters || '–'} L`} /><Info label="Gesamt" value={`${formatNumber(totalVolume, 1)} L`} /><Info label="Layout" value={formatLayout(draft.layoutType)} /><Info label="Tankposition" value={formatReservoirPosition(draft.reservoirPosition)} /></div></V1Card><RdwcPreview hydroStyle={draft.hydroStyle} layoutType={draft.layoutType} potCount={toNullableInt(draft.potCount) ?? 1} reservoirPosition={draft.reservoirPosition} /></div>
 }
 
 function HydroDetail({ setup, linkedGrows, deleteBlocked, saving, savingKey, onEdit, onArchive, onDelete, onArchiveGrow }: { setup: HydroSetupDto; linkedGrows: GrowSummary[]; deleteBlocked: boolean; saving: boolean; savingKey: string | null; onEdit: (setup: HydroSetupDto) => void; onArchive: (setup: HydroSetupDto) => void; onDelete: (setup: HydroSetupDto) => void; onArchiveGrow: (grow: GrowSummary) => void }) {
@@ -342,20 +352,10 @@ function HydroDetail({ setup, linkedGrows, deleteBlocked, saving, savingKey, onE
             </div>
           )}
         </V1Card>
-        <RdwcLayoutPreview setup={setup} />
+        <RdwcPreview compact hydroStyle={setup.hydroStyle === 'DWC' ? 'DWC' : 'RDWC'} layoutType={setup.layoutType} potCount={setup.potCount ?? 1} reservoirPosition={setup.reservoirPosition} />
       </div>
     </V1Section>
   )
-}
-
-function RdwcLayoutPreview({ draft, setup }: { draft?: HydroDraft; setup?: HydroSetupDto }) {
-  const hydroStyle = draft?.hydroStyle ?? setup?.hydroStyle ?? 'DWC'
-  const layoutType = draft?.layoutType ?? setup?.layoutType ?? 'SingleBucket'
-  const reservoirPosition = draft?.reservoirPosition ?? setup?.reservoirPosition ?? 'None'
-  const potCount = Math.max(1, toNullableInt(draft?.potCount ?? '') ?? setup?.potCount ?? 1)
-  const columns = hydroStyle === 'DWC' ? 1 : Math.min(4, layoutColumns(layoutType, potCount))
-  const sites = Array.from({ length: potCount }, (_, index) => index + 1)
-  return <div className={classNames('v1-rdwc-map', `tank-${reservoirPosition.toLowerCase()}`)} data-audit="hydro-preview"><div className="v1-rdwc-inner">{hydroStyle === 'RDWC' && reservoirPosition !== 'None' && <div className="v1-rdwc-tank">Tank</div>}<div className="v1-rdwc-grid" style={{ '--rdwc-columns': String(columns) } as CSSProperties}>{sites.map((site) => <div key={site} className="v1-rdwc-site">{hydroStyle === 'DWC' ? 'DWC' : site}</div>)}</div></div><span>{formatLayout(layoutType)} · Tank {formatReservoirPosition(reservoirPosition)}</span></div>
 }
 
 function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
@@ -367,8 +367,7 @@ function calculateTotalVolume(draft: HydroDraft) { const count = toNullableFloat
 function validateStep(draft: HydroDraft, step: number) { if (step === 1 && !draft.name.trim()) return 'Bitte gib einen Namen ein.'; if (step === 1 && !draft.tentId) return 'Bitte wähle ein Zelt.'; if (step === 2 && (toNullableInt(draft.potCount) ?? 0) < (draft.hydroStyle === 'RDWC' ? 2 : 1)) return 'RDWC braucht mindestens zwei Sites.'; if (step === 2 && (toNullableFloat(draft.potSizeLiters) ?? 0) <= 0) return 'Topfvolumen fehlt.'; return null }
 function validateAll(draft: HydroDraft) { for (let i = 1; i <= 4; i += 1) { const message = validateStep(draft, i); if (message) return message } return null }
 function draftToRequest(draft: HydroDraft): CreateHydroSetupRequest { return { tentId: toNullableInt(draft.tentId), name: draft.name.trim(), hydroStyle: draft.hydroStyle, potCount: toNullableInt(draft.potCount), potSizeLiters: toNullableFloat(draft.potSizeLiters), reservoirLiters: toNullableFloat(draft.reservoirLiters), layoutType: draft.hydroStyle === 'DWC' ? 'SingleBucket' : draft.layoutType, reservoirPosition: draft.hydroStyle === 'DWC' ? 'None' : draft.reservoirPosition, hasCirculationPump: draft.hasCirculationPump, circulationPumpNotes: toNullableString(draft.circulationPumpNotes), hasAirPump: draft.hasAirPump, airPumpNotes: toNullableString(draft.airPumpNotes), airStoneCount: toNullableInt(draft.airStoneCount), hasChiller: draft.hasChiller, hasUvSterilizer: draft.hasUvSterilizer, notes: toNullableString(draft.notes), displayOrder: toNullableInt(draft.displayOrder) ?? 0 } }
-function layoutColumns(layout: HydroSetupLayoutType, count: number) { if (layout === 'Grid2x2' || layout === 'Grid2x3' || layout === 'Grid2x4') return 2; if (layout === 'Row') return count; return Math.min(4, Math.max(1, Math.ceil(Math.sqrt(count)))) }
-function formatLayout(value: HydroSetupLayoutType) { return value === 'SingleBucket' ? 'Einzeleimer' : value === 'Row' ? 'Reihe' : value === 'Grid2x2' ? '2×2' : value === 'Grid2x3' ? '2×3' : value === 'Grid2x4' ? '2×4' : 'Custom' }
+function formatLayout(value: HydroSetupLayoutType) { return value === 'SingleBucket' ? 'Einzeleimer' : value === 'Row' ? 'Reihe' : value === 'Grid2x2' ? '2×2' : value === 'Grid2x3' ? '2×3' : value === 'Grid2x4' ? '2×4' : 'Flexibel' }
 function getGrowsForSetup(grows: GrowSummary[], setup: HydroSetupDto) {
   const activeGrows = grows.filter((grow) => grow.status === 'Running' || grow.status === 'Planning')
   const direct = activeGrows.filter((grow) => grow.systemId === setup.id || grow.setupId === setup.id)

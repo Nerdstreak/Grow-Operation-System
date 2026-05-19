@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react'
+﻿import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
@@ -155,7 +155,7 @@ function MeasurementEditPage() {
       await apiFetch(`/api/measurements/${measurementId}`, { method: 'DELETE' })
       navigate(grow ? `/grows/${grow.id}` : '/')
     } catch (caught) {
-      setError(caught instanceof ApiRequestError ? caught.message : 'Messung konnte nicht geloescht werden.')
+      setError(caught instanceof ApiRequestError ? caught.message : 'Messung konnte nicht gelöscht werden.')
     } finally {
       setDeleting(false)
     }

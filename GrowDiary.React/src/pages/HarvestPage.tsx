@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react'
+﻿import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
@@ -90,7 +90,7 @@ function HarvestPage() {
     <>
       <div className="topbar">
         <div className="topbar-left">
-          <Link className="btn" to={growId ? `/grows/${growId}` : '/'}>â† Zurueck</Link>
+          <Link className="btn" to={growId ? `/grows/${growId}` : '/'}>â† Zurück</Link>
           <span className="topbar-title">{harvest?.growName ?? 'Ernte'}</span>
         </div>
       </div>

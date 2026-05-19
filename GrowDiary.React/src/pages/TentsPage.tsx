@@ -265,19 +265,22 @@ function TentCard({ tent, live, hydroCount, linkedGrows, linkedHydro, deleteBloc
   return (
     <V1Card className="v1-tent-card" tone={archived ? 'neutral' : liveTone(live)}>
       <div className="v1-card-title-row"><div><span className="v1-card-kicker">{formatTentType(tent.tentType)}</span><h2>{tent.name}</h2></div><V1Badge tone={archived ? 'neutral' : liveTone(live)}>{archived ? 'Archiv' : live?.stateLabel ?? 'aktiv'}</V1Badge></div>
-      <div className="v1-info-grid compact rc-tent-live-grid">
-        <Info label="Temp" value={liveValue(live, 'temperature')} />
-        <Info label="RLF" value={liveValue(live, 'humidity')} />
-        <Info label="VPD" value={liveValue(live, 'vpd')} />
-        <Info label="Licht" value={liveValue(live, 'light-cycle')} />
-        <Info label="PPFD" value={liveValue(live, 'ppfd')} />
-        <Info label="Hydro" value={String(hydroCount)} />
-      </div>
-      <div className="v1-info-grid compact rc-tent-context-grid">
-        <Info label="Größe" value={formatSize(tent)} />
-        <Info label="Grows" value={String(tent.activeGrowCount)} />
-        <Info label="Licht" value={tent.lightWatt ? `${tent.lightWatt} W` : tent.lightType ?? 'offen'} />
-        <Info label="Klima" value={`${tent.exhaustFanCount ?? 0} Abluft · ${tent.circulationFanCount ?? 0} Umluft`} />
+      <div className="tent-metric-groups" data-audit="tent-metrics">
+        <MetricGroup title="Klima" items={[
+          ['Temp', liveValue(live, 'temperature')],
+          ['RLF', liveValue(live, 'humidity')],
+          ['VPD', liveValue(live, 'vpd')],
+        ]} />
+        <MetricGroup title="Licht" items={[
+          ['Zyklus', liveValue(live, 'light-cycle')],
+          ['PPFD', liveValue(live, 'ppfd')],
+          ['Watt', tent.lightWatt ? `${tent.lightWatt} W` : '–'],
+        ]} />
+        <MetricGroup title="Setup" items={[
+          ['Hydro', String(hydroCount)],
+          ['Grows', String(tent.activeGrowCount)],
+          ['Größe', formatSize(tent)],
+        ]} />
       </div>
       {linkedGrows.length > 0 && <p>{linkedGrows.length} aktive Grows verknüpft.</p>}
       <div className="v1-action-row rc-tent-actions"><V1LinkButton to={`/zelte/${tent.id}`} variant="primary">Öffnen</V1LinkButton><V1Button onClick={() => onEdit(tent)}>Bearbeiten</V1Button><V1Button disabled={saving} onClick={() => void onArchive(tent)}>Archivieren</V1Button><V1Button variant="danger" disabled={saving} onClick={() => void onDelete(tent)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button></div>
@@ -361,7 +364,21 @@ function hasDependencies(dependencies: TentDependencySummaryDto) {
     || dependencies.other.length > 0
 }
 
-function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
+function MetricGroup({ title, items }: { title: string; items: Array<[string, string]> }) {
+  return (
+    <section className="tent-metric-group">
+      <h3>{title}</h3>
+      <dl>
+        {items.map(([label, value]) => (
+          <div key={label} className="tent-metric-row">
+            <dt>{label}</dt>
+            <dd>{value || '–'}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
+}
 function sortTents(items: TentDto[]) { return [...items].sort((a, b) => a.status.localeCompare(b.status) || a.displayOrder - b.displayOrder || a.name.localeCompare(b.name)) }
 function countHydroForTent(items: HydroSetupDto[], tentId: number) { return items.filter((setup) => setup.tentId === tentId && setup.status === 'Active').length }
 function getHydroForTent(items: HydroSetupDto[], tentId: number) { return items.filter((setup) => setup.tentId === tentId && setup.status === 'Active') }
@@ -371,8 +388,13 @@ function createDraft(displayOrder = 1): TentDraft { return { name: '', kind: 'Gr
 function createDraftFromTent(tent: TentDto): TentDraft { return { name: tent.name, kind: tent.kind, tentType: tent.tentType, notes: tent.notes ?? '', displayOrder: String(tent.displayOrder), widthCm: String(tent.widthCm ?? ''), depthCm: String(tent.depthCm ?? ''), tentHeightCm: String(tent.tentHeightCm ?? ''), lightType: tent.lightType ?? '', lightWatt: String(tent.lightWatt ?? ''), exhaustFanCount: String(tent.exhaustFanCount ?? ''), exhaustM3h: String(tent.exhaustM3h ?? ''), circulationFanCount: String(tent.circulationFanCount ?? ''), co2Available: tent.co2Available } }
 function draftToRequest(draft: TentDraft) { return { name: draft.name.trim(), kind: draft.kind.trim() || 'Grow Tent', tentType: draft.tentType, notes: toNullableString(draft.notes), displayOrder: toNullableInt(draft.displayOrder) ?? 0, accentColor: '#22c55e', widthCm: toNullableInt(draft.widthCm), depthCm: toNullableInt(draft.depthCm), tentHeightCm: toNullableInt(draft.tentHeightCm), lightType: toNullableString(draft.lightType), lightWatt: toNullableInt(draft.lightWatt), lightController: null, lightControllerEntityId: null, exhaustFanCount: toNullableInt(draft.exhaustFanCount), exhaustM3h: toNullableInt(draft.exhaustM3h), circulationFanCount: toNullableInt(draft.circulationFanCount), hvacController: null, hvacControllerEntityId: null, co2Available: draft.co2Available, cameraEntityId: null } }
 function formatTentType(value: TentType) { return value === 'Production' ? 'Blüte / Run' : value === 'Mother' ? 'Mutter' : value === 'Propagation' ? 'Anzucht' : value === 'Quarantine' ? 'Quarantäne' : 'Mehrzweck' }
-function formatSize(tent: TentDto) { return !tent.widthCm && !tent.depthCm && !tent.tentHeightCm ? 'offen' : `${tent.widthCm ?? '–'}×${tent.depthCm ?? '–'}×${tent.tentHeightCm ?? '–'} cm` }
-function liveValue(live: TentLivePayload | null, key: LiveMetricKey) { const metric = live?.metrics.find((item) => item.key === key); return metric ? `${metric.value}${metric.unit && metric.value !== '–' ? ` ${metric.unit}` : ''}` : '–' }
+function formatSize(tent: TentDto) {
+  return tent.widthCm && tent.depthCm && tent.tentHeightCm ? `${tent.widthCm}×${tent.depthCm}×${tent.tentHeightCm} cm` : '–'
+}
+function liveValue(live: TentLivePayload | null, key: LiveMetricKey) {
+  const metric = live?.metrics.find((item) => item.key === key)
+  return metric ? `${metric.value}${metric.unit && metric.value !== '–' ? ` ${metric.unit}` : ''}` : '–'
+}
 function liveTone(live: TentLivePayload | null) { return live?.stateTone === 'critical' ? 'critical' : live?.stateTone === 'warn' || live?.stateTone === 'warning' ? 'warn' : live ? 'ok' : 'neutral' }
 function formatApiError(caught: unknown, fallback: string) { return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback }
 

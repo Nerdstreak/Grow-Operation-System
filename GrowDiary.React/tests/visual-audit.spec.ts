@@ -57,7 +57,8 @@ const routes: RouteCase[] = [
   { slug: 'hydro-new', path: '/hydro/new', title: 'Hydro anlegen' },
   { slug: 'home-assistant', path: '/home-assistant', title: 'Home Assistant' },
   { slug: 'connect', path: '/connect', title: 'Gerät verbinden' },
-  { slug: 'grow-starten', path: '/grows/new', title: 'Grow starten' },
+  { slug: 'grows', path: '/grows', title: 'Grows' },
+  { slug: 'grow-new', path: '/grows/new', title: 'Grow starten' },
   { slug: 'settings', path: '/settings', title: 'Einstellungen' },
   { slug: 'wissen', path: '/wissen', title: 'Wissen' },
   { slug: 'release', path: '/release', title: 'Release' },
@@ -328,7 +329,7 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
     expect(downloadResponse.headers()['content-type'] ?? '').toContain('application/zip')
     expect((await downloadResponse.body()).length, 'Downloaded Backup ZIP must not be empty').toBeGreaterThan(0)
   }
-  if (slug === 'release' || slug === 'messung') {
+  if (slug === 'release') {
     await expect(page.locator('.rc-file-input').first()).toBeVisible()
   }
   if (slug === 'connect') {
@@ -367,6 +368,18 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
     await expect(page.getByRole('button', { name: /^Löschen$/i }).first()).toBeVisible()
     await assertNoAsciiUmlautActions(page, slug)
   }
+  if (slug === 'grows') {
+    await expect(page.getByRole('heading', { name: /^Grows$/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Neuen Grow anlegen/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Grow starten/i })).toHaveCount(0)
+    const firstCard = page.locator('.grow-overview-card').first()
+    if (await firstCard.count()) {
+      await expect(firstCard.getByRole('link', { name: /^Öffnen$/i })).toBeVisible()
+      await expect(firstCard.getByRole('link', { name: /^Bearbeiten$/i })).toBeVisible()
+      await expect(firstCard.getByRole('button', { name: /^(Beenden|Löschen)$/i }).first()).toBeVisible()
+    }
+    await assertNoAsciiUmlautActions(page, slug)
+  }
   if (slug === 'zelte') {
     await expect(page.locator('[data-audit="tent-delete-blocked"]')).toHaveCount(0)
     await expect(page.getByRole('button', { name: /^Löschen$/i }).first()).toBeVisible()
@@ -376,15 +389,26 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
         return html.scrollWidth > html.clientWidth + 2
       }).length)
     expect(overflowingTentCards, 'Zelt cards must not overflow horizontally').toBe(0)
+    const clippedMetricValues = await page.locator('.tent-metric-row dd').evaluateAll((values) =>
+      values.filter((value) => {
+        const html = value as HTMLElement
+        const text = html.textContent ?? ''
+        return text.includes('...') || text.includes('…') || html.scrollWidth > html.clientWidth + 2
+      }).map((value) => value.textContent?.trim()))
+    expect(clippedMetricValues, 'Zelt metric values must not be clipped or ellipsized').toEqual([])
     await assertNoAsciiUmlautActions(page, slug)
   }
   if (slug === 'hydro' || slug === 'hydro-new') {
-    const overflowingPreview = await page.locator('[data-audit="hydro-preview"]').evaluateAll((previews) =>
+    const previewProblems = await page.locator('[data-audit="hydro-preview"]').evaluateAll((previews) =>
       previews.filter((preview) => {
         const html = preview as HTMLElement
+        const rect = html.getBoundingClientRect()
+        const parent = html.closest('.v1-card, .v1-section') as HTMLElement | null
+        const parentRect = parent?.getBoundingClientRect() ?? null
         return html.scrollWidth > html.clientWidth + 2
+          || (parentRect != null && (rect.left < parentRect.left - 2 || rect.right > parentRect.right + 2))
       }).length)
-    expect(overflowingPreview, 'Hydro preview must not overflow horizontally').toBe(0)
+    expect(previewProblems, 'Hydro preview must stay inside its card and not overflow horizontally').toBe(0)
     await assertNoAsciiUmlautActions(page, slug)
   }
   if (slug === 'addback') {

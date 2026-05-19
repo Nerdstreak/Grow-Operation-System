@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { KnowledgeOverviewDto, NutrientProgramDto, WearTemplateDto } from '../types'
@@ -60,14 +60,14 @@ const topics: Topic[] = [
     id: 'rootrot',
     title: 'Pathogene / Root Rot',
     kicker: 'Risiko & Sofortmassnahmen',
-    intro: 'Wurzelfaeule ist in Hydro kritisch, weil sich Probleme ueber Wasser, Biofilm und Sauerstoffmangel schnell ausbreiten koennen.',
+    intro: 'Wurzelfäule ist in Hydro kritisch, weil sich Probleme über Wasser, Biofilm und Sauerstoffmangel schnell ausbreiten können.',
     keywords: ['root', 'rot', 'wurzel', 'faeule', 'pathogen', 'hygiene', 'pythium'],
     sections: [
       { title: 'Symptome', text: 'Braune oder slimige Wurzeln, muffiger Geruch, fallender Sauerstoff, instabile Werte und schlapper Wuchs.' },
-      { title: 'Sofortmassnahmen', text: 'Temperatur, Sauerstoff, Biofilm, tote Wurzelmasse und Hygiene pruefen. Keine hektischen Mehrfachkorrekturen.' },
+      { title: 'Sofortmassnahmen', text: 'Temperatur, Sauerstoff, Biofilm, tote Wurzelmasse und Hygiene prüfen. Keine hektischen Mehrfachkorrekturen.' },
       { title: 'In der App', text: 'Wissen, SOPs, Sensorvertrauen und Risiken laufen hier zusammen.' },
     ],
-    action: { label: 'SOPs pruefen', to: '/wissen' },
+    action: { label: 'SOPs prüfen', to: '/wissen' },
   },
   {
     id: 'ph-ec',
@@ -89,9 +89,9 @@ const topics: Topic[] = [
     intro: 'Athena wird als auswaehlbares Naehrstoffprogramm im Grow gespeichert, damit Empfehlungen den richtigen Kontext haben.',
     keywords: ['athena', 'blended', 'grow', 'bloom'],
     sections: [
-      { title: 'Ziel', text: 'Programmkontext fuer Grow, Addback, Zielwerte und spaetere Empfehlungen.' },
+      { title: 'Ziel', text: 'Programmkontext fuer Grow, Addback, Zielwerte und spätere Empfehlungen.' },
       { title: 'Wichtig', text: 'Nicht nur Herstellername speichern, sondern auch Phase, Wasserquelle und Systemart beruecksichtigen.' },
-      { title: 'In der App', text: 'Beim Grow-Start wird das Programm gewaehlt und in Addback/Knowledge weiterverwendet.' },
+      { title: 'In der App', text: 'Beim Grow-Start wird das Programm gewählt und in Addback/Knowledge weiterverwendet.' },
     ],
     action: { label: 'Grow starten', to: '/grows/new' },
   },
@@ -125,11 +125,11 @@ const topics: Topic[] = [
     id: 'troubleshooting',
     title: 'Symptome & Diagnose',
     kicker: 'Symptom -> Ursache -> Handlung',
-    intro: 'Probleme sollen nicht als lose Datensaetze erscheinen, sondern als gefuehrte Diagnose.',
+    intro: 'Probleme sollen nicht als lose Datensätze erscheinen, sondern als geführte Diagnose.',
     keywords: ['symptom', 'diagnose', 'fehler', 'treatment', 'risiko'],
     sections: [
-      { title: 'Vorgehen', text: 'Symptom beschreiben, Kontext pruefen, wahrscheinlichste Ursache waehlen, eine Massnahme durchfuehren und nachmessen.' },
-      { title: 'Vermeiden', text: 'Mehrere starke Korrekturen gleichzeitig machen spaetere Auswertung unmoeglich.' },
+      { title: 'Vorgehen', text: 'Symptom beschreiben, Kontext prüfen, wahrscheinlichste Ursache wählen, eine Maßnahme durchführen und nachmessen.' },
+      { title: 'Vermeiden', text: 'Mehrere starke Korrekturen gleichzeitig machen spätere Auswertung unmöglich.' },
       { title: 'In der App', text: 'Aufgaben, Wissen, Addback und Messungen machen diese Diagnose nachvollziehbar.' },
     ],
     action: { label: 'Aufgaben oeffnen', to: '/aufgaben' },
@@ -203,7 +203,7 @@ function KnowledgePage() {
         </aside>
 
         <article className={articleOpen ? 'wiki-article is-open-mobile' : 'wiki-article'} data-audit="knowledge-article">
-          <button type="button" className="wiki-back" onClick={() => setArticleOpen(false)}>Zurueck zu Themen</button>
+          <button type="button" className="wiki-back" onClick={() => setArticleOpen(false)}>Zurück zu Themen</button>
           <header>
             <span>{selectedTopic.kicker}</span>
             <h2>{selectedTopic.title}</h2>
@@ -220,7 +220,7 @@ function KnowledgePage() {
 
         <aside className="wiki-related" data-audit="knowledge-related">
           <h2>Verknuepfte Daten</h2>
-          {loading ? <V1Empty title="Lade Wissensbasis..." /> : related.length === 0 ? <V1Empty title="Keine Treffer" text="Zu diesem Thema wurden noch keine passenden Datensaetze gefunden." /> : (
+          {loading ? <V1Empty title="Lade Wissensbasis..." /> : related.length === 0 ? <V1Empty title="Keine Treffer" text="Zu diesem Thema wurden noch keine passenden Datensätze gefunden." /> : (
             <div className="wiki-related-list">
               {related.map((item) => (
                 <div key={item.key} className="wiki-related-item">
@@ -260,7 +260,7 @@ function findRelated(topic: Topic, catalogs: Catalogs) {
 
   collect('Programm', 'Naehrstoffprogramm', catalogs.programs)
   collect('SOP', 'Arbeitsablauf', catalogs.sops)
-  collect('Treatment', 'Massnahme', catalogs.treatments)
+  collect('Treatment', 'Maßnahme', catalogs.treatments)
   collect('Symptom', 'Diagnose', catalogs.symptoms)
   collect('Setpoint', 'Zielwert', catalogs.setpoints)
   collect('Pathogen', 'Risiko', catalogs.pathogens)

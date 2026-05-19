@@ -6,6 +6,7 @@ import AnalysisPage from './pages/AnalysisPage'
 import ArchivePage from './pages/ArchivePage'
 import DeviceConnectPage from './pages/DeviceConnectPage'
 import GrowDetailPage from './pages/GrowDetailPage'
+import GrowsPage from './pages/GrowsPage'
 import GrowSetupPage from './pages/GrowSetupPage'
 import HardwarePage from './pages/HardwarePage'
 import HarvestPage from './pages/HarvestPage'
@@ -32,7 +33,7 @@ const coreNav = [
 
 const moreNav = [
   { to: '/action', label: 'Aufgaben', end: true },
-  { to: '/grows/new', label: 'Grow starten', end: true },
+  { to: '/grows', label: 'Grows', end: false },
   { to: '/messung', label: 'Messung', end: true },
   { to: '/home-assistant', label: 'Home Assistant', end: true },
   { to: '/connect', label: 'Gerät verbinden', end: true },
@@ -101,7 +102,7 @@ function App() {
           <Route path="/addback" element={<AddbackHubPage />} />
           <Route path="/action" element={<MobileActionPage />} />
           <Route path="/aufgaben" element={<Navigate to="/action" replace />} />
-          <Route path="/grows" element={<Navigate to="/" replace />} />
+          <Route path="/grows" element={<GrowsPage />} />
           <Route path="/grows/new" element={<GrowSetupPage />} />
           <Route path="/messung" element={<ManualMeasurementPage />} />
           <Route path="/messungen/new" element={<Navigate to="/messung" replace />} />
@@ -153,7 +154,7 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/connect')) return 'Gerät verbinden'
   if (pathname.startsWith('/grows/new')) return 'Grow starten'
   if (pathname.startsWith('/messung') || pathname.startsWith('/messungen')) return 'Messung'
-  if (pathname.startsWith('/grows')) return 'Grow'
+  if (pathname.startsWith('/grows')) return 'Grows'
   if (pathname.startsWith('/hardware')) return 'Sensoren'
   if (pathname.startsWith('/wissen')) return 'Wissen'
   if (pathname.startsWith('/release')) return 'Release'
