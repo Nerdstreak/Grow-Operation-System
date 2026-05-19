@@ -362,8 +362,9 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
     expect(layout.actionsOverlap, 'HA connection actions must not overlap inputs').toBe(false)
   }
   if (slug === 'hardware') {
-    await expect(page.getByRole('button', { name: /Inventar/i })).toBeVisible()
-    await page.getByRole('button', { name: /Inventar/i }).click()
+    const inventoryOpenButton = page.getByRole('button', { name: /^Inventar öffnen$/i })
+    await expect(inventoryOpenButton).toBeVisible()
+    await inventoryOpenButton.click()
     await expect(page.locator('[data-audit="hardware-edit-form"]')).toBeVisible()
     await expect(page.getByRole('button', { name: /^Löschen$/i }).first()).toBeVisible()
     await assertNoAsciiUmlautActions(page, slug)
