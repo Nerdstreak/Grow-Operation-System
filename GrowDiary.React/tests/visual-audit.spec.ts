@@ -175,6 +175,9 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
     const details = metrics.bottomNavFindings.slice(0, 5).map((item) => `${item.selector} "${item.text}" ${item.problem} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`).join(' | ')
     throw new Error(`${fileName}: mobile bottom nav spacing issue: ${details}`)
   }
+  if (viewport.name === 'mobile') {
+    await assertMobileBottomNavDocked(page, fileName)
+  }
 }
 
 async function tryClickFirstAddbackStart(page: import('@playwright/test').Page) {
@@ -233,6 +236,9 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
   if (viewport.name === 'mobile' && metrics.bottomNavFindings.length > 0) {
     const details = metrics.bottomNavFindings.slice(0, 5).map((item) => `${item.selector} "${item.text}" ${item.problem} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`).join(' | ')
     throw new Error(`${fileName}: mobile bottom nav spacing issue: ${details}`)
+  }
+  if (viewport.name === 'mobile') {
+    await assertMobileBottomNavDocked(page, fileName)
   }
 }
 
@@ -342,20 +348,44 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
     await expect(page.locator('[data-audit="ha-connection-layout"]')).toBeVisible()
     await expect(page.locator('[data-audit="ha-connection-actions"]')).toBeVisible()
     await expect(page.locator('[data-audit="ha-camera-field-action"]')).toBeVisible()
+    const layout = await page.locator('[data-audit="ha-connection-layout"]').evaluate((element) => {
+      const rect = (element as HTMLElement).getBoundingClientRect()
+      const actions = element.querySelector('[data-audit="ha-connection-actions"]') as HTMLElement | null
+      const actionsRect = actions?.getBoundingClientRect() ?? null
+      return {
+        overflow: (element as HTMLElement).scrollWidth > (element as HTMLElement).clientWidth + 2,
+        actionsOverlap: Boolean(actionsRect && actionsRect.top < rect.top),
+      }
+    })
+    expect(layout.overflow, 'HA connection layout must not overflow').toBe(false)
+    expect(layout.actionsOverlap, 'HA connection actions must not overlap inputs').toBe(false)
   }
   if (slug === 'hardware') {
     await expect(page.getByRole('button', { name: /Inventar/i })).toBeVisible()
     await page.getByRole('button', { name: /Inventar/i }).click()
     await expect(page.locator('[data-audit="hardware-edit-form"]')).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Löschen$/i }).first()).toBeVisible()
+    await assertNoAsciiUmlautActions(page, slug)
   }
   if (slug === 'zelte') {
     await expect(page.locator('[data-audit="tent-delete-blocked"]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^Löschen$/i }).first()).toBeVisible()
     const overflowingTentCards = await page.locator('.v1-tent-card').evaluateAll((cards) =>
       cards.filter((card) => {
         const html = card as HTMLElement
         return html.scrollWidth > html.clientWidth + 2
       }).length)
     expect(overflowingTentCards, 'Zelt cards must not overflow horizontally').toBe(0)
+    await assertNoAsciiUmlautActions(page, slug)
+  }
+  if (slug === 'hydro' || slug === 'hydro-new') {
+    const overflowingPreview = await page.locator('[data-audit="hydro-preview"]').evaluateAll((previews) =>
+      previews.filter((preview) => {
+        const html = preview as HTMLElement
+        return html.scrollWidth > html.clientWidth + 2
+      }).length)
+    expect(overflowingPreview, 'Hydro preview must not overflow horizontally').toBe(0)
+    await assertNoAsciiUmlautActions(page, slug)
   }
   if (slug === 'addback') {
     await expect(page.locator('[data-audit="addback-hub"]')).toBeVisible()
@@ -367,4 +397,32 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
       }).length)
     expect(overflowingLastFields, 'Addback Verlauf "Letzter" must not overflow its box').toBe(0)
   }
+}
+
+async function assertMobileBottomNavDocked(page: import('@playwright/test').Page, context: string) {
+  const nav = await page.evaluate(() => {
+    const element = document.querySelector('.v1-bottom-nav') as HTMLElement | null
+    if (!element) return null
+    const rect = element.getBoundingClientRect()
+    const style = window.getComputedStyle(element)
+    return {
+      visible: style.display !== 'none' && rect.width > 1 && rect.height > 1,
+      bottomGap: Math.abs(window.innerHeight - rect.bottom),
+      backgroundColor: style.backgroundColor,
+      paddingBottom: Number.parseFloat(style.paddingBottom || '0'),
+    }
+  })
+  expect(nav, `${context}: mobile bottom nav must exist`).not.toBeNull()
+  expect(nav!.visible, `${context}: mobile bottom nav must be visible`).toBe(true)
+  expect(nav!.bottomGap, `${context}: mobile bottom nav must be docked to viewport bottom`).toBeLessThanOrEqual(1)
+  expect(nav!.backgroundColor, `${context}: mobile bottom nav background must be opaque`).not.toMatch(/rgba\(0,\s*0,\s*0,\s*0\)|transparent/i)
+  expect(nav!.paddingBottom, `${context}: mobile bottom nav must reserve safe-area padding`).toBeGreaterThanOrEqual(8)
+}
+
+async function assertNoAsciiUmlautActions(page: import('@playwright/test').Page, slug: string) {
+  const offenders = await page.locator('button, a, [role="button"], [role="link"]').evaluateAll((items) =>
+    items
+      .map((item) => (item.textContent ?? '').trim().replace(/\s+/g, ' '))
+      .filter((text) => /\b(Loeschen|Loescht|geloescht|endgueltig|Oeffnen|Zurueck|waehle|laedt|bestaetigen|moeglich|verknuepft)\b/i.test(text)))
+  expect(offenders, `${slug}: visible actions must use German umlauts`).toEqual([])
 }

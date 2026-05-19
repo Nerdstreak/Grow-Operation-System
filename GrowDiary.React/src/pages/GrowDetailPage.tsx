@@ -643,7 +643,7 @@ function GrowDetailPage() {
 
   async function deleteGrow() {
     if (!growId || !bundle.grow) return
-    const confirmed = window.confirm(`${bundle.grow.name} endgueltig loeschen?`)
+    const confirmed = window.confirm(`${bundle.grow.name} endgültig löschen?`)
     if (!confirmed) return
 
     setSaving('grow-delete')
@@ -653,7 +653,7 @@ function GrowDetailPage() {
       await apiFetch(`/api/grows/${growId}`, { method: 'DELETE' })
       navigate('/')
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Grow konnte nicht geloescht werden.')
+      setError(caught instanceof Error ? caught.message : 'Grow konnte nicht gelöscht werden.')
     } finally {
       setSaving(null)
     }
@@ -703,7 +703,7 @@ function GrowDetailPage() {
               </button>
             )}
             <button type="button" className="btn" disabled={saving === 'grow-delete'} onClick={() => void deleteGrow()}>
-              {saving === 'grow-delete' ? 'Loescht...' : 'Loeschen'}
+              {saving === 'grow-delete' ? 'Löscht...' : 'Löschen'}
             </button>
           </div>
         </div>

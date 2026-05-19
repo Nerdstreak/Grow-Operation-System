@@ -40,7 +40,7 @@ public sealed class HardwareItemsApiController : ApiControllerBase
 
         if (status.HasValue && !Enum.IsDefined(status.Value))
         {
-            ModelState.AddModelError(nameof(status), "Status ist ungueltig.");
+            ModelState.AddModelError(nameof(status), "Status ist ungültig.");
             return ValidationError();
         }
 
@@ -110,6 +110,21 @@ public sealed class HardwareItemsApiController : ApiControllerBase
         return Ok(_repository.GetHardwareItem(id)!.ToDto());
     }
 
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public IActionResult Delete(int id)
+    {
+        var item = _repository.GetHardwareItem(id);
+        if (item is null)
+        {
+            return NotFoundError("hardware_item_not_found", $"HardwareItem mit Id {id} existiert nicht.");
+        }
+
+        _repository.DeleteHardwareItem(id);
+        return NoContent();
+    }
+
     private void ApplyWearTemplateDefaults(CreateHardwareItemRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.WearTemplateId))
@@ -156,12 +171,12 @@ public sealed class HardwareItemsApiController : ApiControllerBase
 
         if (!Enum.IsDefined(status))
         {
-            ModelState.AddModelError(nameof(CreateHardwareItemRequest.Status), "Status ist ungueltig.");
+            ModelState.AddModelError(nameof(CreateHardwareItemRequest.Status), "Status ist ungültig.");
         }
 
         if (!Enum.IsDefined(criticality))
         {
-            ModelState.AddModelError(nameof(CreateHardwareItemRequest.Criticality), "Criticality ist ungueltig.");
+            ModelState.AddModelError(nameof(CreateHardwareItemRequest.Criticality), "Criticality ist ungültig.");
         }
 
         if (tentId.HasValue && _repository.GetTent(tentId.Value) is null)
@@ -182,7 +197,7 @@ public sealed class HardwareItemsApiController : ApiControllerBase
 
         if (hydroSetup is not null && tentId.HasValue && hydroSetup.TentId.HasValue && hydroSetup.TentId.Value != tentId.Value)
         {
-            ModelState.AddModelError(nameof(CreateHardwareItemRequest.HydroSetupId), "HydroSetup gehoert nicht zum angegebenen Zelt.");
+            ModelState.AddModelError(nameof(CreateHardwareItemRequest.HydroSetupId), "HydroSetup gehört nicht zum angegebenen Zelt.");
         }
 
         if (growId.HasValue && _repository.GetGrow(growId.Value) is null)

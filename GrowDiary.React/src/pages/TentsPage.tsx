@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CreateTentRequest, GrowSummary, HydroSetupDto, TentDto, TentLivePayload, TentType, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
+import type { CreateTentRequest, GrowSummary, HydroSetupDto, TentDependencyError, TentDependencySummaryDto, TentDto, TentLivePayload, TentType, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Stat, V1Switch } from '../components/v1'
 import { toNullableInt, toNullableString } from '../components/v1-utils'
 import { classNames } from '../utils'
@@ -44,6 +44,7 @@ function TentsPage() {
   const [draft, setDraft] = useState<TentDraft>(() => createDraft())
   const [saving, setSaving] = useState<string | null>(null)
   const [blockedDeleteTentId, setBlockedDeleteTentId] = useState<number | null>(null)
+  const [deleteDependenciesByTentId, setDeleteDependenciesByTentId] = useState<Record<number, TentDependencySummaryDto | null>>({})
 
   const loadTents = useCallback(async () => {
     setLoading(true)
@@ -136,34 +137,23 @@ function TentsPage() {
   }
 
   async function deleteTent(tent: TentDto) {
-    const linkedGrows = getGrowsForTent(grows, tent.id)
-    const linkedHydro = hydroSetups.filter((setup) => setup.tentId === tent.id && setup.status === 'Active')
-    if (linkedGrows.length > 0 || linkedHydro.length > 0) {
-      const showDependencyPanel = true
-      if (showDependencyPanel) {
-        setError(null)
-        setBlockedDeleteTentId(tent.id)
-        return
-      }
-      setError(`${tent.name} hat Abhängigkeiten. Öffne die betroffenen Grows/Hydro-Setups oder archiviere das Zelt: ${[...linkedGrows.map((grow) => grow.name), ...linkedHydro.map((setup) => setup.name)].join(', ')}`)
-      return
-    }
     const confirmed = window.confirm(`${tent.name} endgültig löschen?`)
     if (!confirmed) return
     setSaving(`delete-${tent.id}`)
     setError(null)
     try {
-      const response = await fetch(`/api/settings/tents/${tent.id}`, { method: 'DELETE' })
-      if (response.status === 204) {
-        setTents((current) => current.filter((item) => item.id !== tent.id))
-        setBlockedDeleteTentId((current) => current === tent.id ? null : current)
+      await apiFetch<void>(`/api/settings/tents/${tent.id}`, { method: 'DELETE' })
+      setTents((current) => current.filter((item) => item.id !== tent.id))
+      setBlockedDeleteTentId((current) => current === tent.id ? null : current)
+      setDeleteDependenciesByTentId((current) => ({ ...current, [tent.id]: null }))
+    } catch (caught) {
+      const payload = caught instanceof ApiRequestError ? caught.payload : null
+      if (caught instanceof ApiRequestError && caught.status === 409 && isTentDependencyError(payload)) {
+        setBlockedDeleteTentId(tent.id)
+        setDeleteDependenciesByTentId((current) => ({ ...current, [tent.id]: payload.dependencies }))
         return
       }
-      if (!response.ok) throw new Error(`Zelt konnte nicht gelöscht werden (${response.status})`)
-      const saved = await response.json() as TentDto
-      setTents((current) => sortTents(current.map((item) => item.id === saved.id ? saved : item)))
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Zelt konnte nicht gelöscht werden.')
+      setError(formatApiError(caught, 'Zelt konnte nicht gelöscht werden.'))
     } finally {
       setSaving(null)
     }
@@ -184,7 +174,7 @@ function TentsPage() {
     }
   }
 
-  async function archiveLinkedGrow(grow: GrowSummary) {
+  async function archiveLinkedGrow(grow: Pick<GrowSummary, 'id' | 'name'>) {
     const confirmed = window.confirm(`${grow.name} beenden und archivieren?`)
     if (!confirmed) return
     setSaving(`grow-archive-${grow.id}`)
@@ -261,15 +251,17 @@ function TentsPage() {
 
       {loading ? <V1Empty title="Lade Zelte..." /> : tents.length === 0 ? <V1Empty title="Noch kein Zelt" action={<V1Button variant="primary" onClick={openCreate}>Erstes Zelt anlegen</V1Button>} /> : (
         <section className="v1-card-grid">
-          {tents.map((tent) => <TentCard key={tent.id} tent={tent} live={liveByTentId[tent.id] ?? null} hydroCount={countHydroForTent(hydroSetups, tent.id)} linkedGrows={getGrowsForTent(grows, tent.id)} linkedHydro={getHydroForTent(hydroSetups, tent.id)} deleteBlocked={blockedDeleteTentId === tent.id} saving={saving === `delete-${tent.id}` || saving === `archive-${tent.id}`} savingKey={saving} onEdit={openEdit} onArchive={archiveTent} onDelete={deleteTent} onArchiveGrow={archiveLinkedGrow} />)}
+          {tents.map((tent) => <TentCard key={tent.id} tent={tent} live={liveByTentId[tent.id] ?? null} hydroCount={countHydroForTent(hydroSetups, tent.id)} linkedGrows={getGrowsForTent(grows, tent.id)} linkedHydro={getHydroForTent(hydroSetups, tent.id)} deleteBlocked={blockedDeleteTentId === tent.id} deleteDependencies={deleteDependenciesByTentId[tent.id] ?? null} saving={saving === `delete-${tent.id}` || saving === `archive-${tent.id}`} savingKey={saving} onEdit={openEdit} onArchive={archiveTent} onDelete={deleteTent} onArchiveGrow={archiveLinkedGrow} />)}
         </section>
       )}
     </V1Page>
   )
 }
 
-function TentCard({ tent, live, hydroCount, linkedGrows, linkedHydro, deleteBlocked, saving, savingKey, onEdit, onArchive, onDelete, onArchiveGrow }: { tent: TentDto; live: TentLivePayload | null; hydroCount: number; linkedGrows: GrowSummary[]; linkedHydro: HydroSetupDto[]; deleteBlocked: boolean; saving: boolean; savingKey: string | null; onEdit: (tent: TentDto) => void; onArchive: (tent: TentDto) => void; onDelete: (tent: TentDto) => void; onArchiveGrow: (grow: GrowSummary) => void }) {
+function TentCard({ tent, live, hydroCount, linkedGrows, linkedHydro, deleteBlocked, deleteDependencies, saving, savingKey, onEdit, onArchive, onDelete, onArchiveGrow }: { tent: TentDto; live: TentLivePayload | null; hydroCount: number; linkedGrows: GrowSummary[]; linkedHydro: HydroSetupDto[]; deleteBlocked: boolean; deleteDependencies: TentDependencySummaryDto | null; saving: boolean; savingKey: string | null; onEdit: (tent: TentDto) => void; onArchive: (tent: TentDto) => void; onDelete: (tent: TentDto) => void; onArchiveGrow: (grow: Pick<GrowSummary, 'id' | 'name'>) => void }) {
   const archived = tent.status === 'Archived'
+  const panelDependencies = deleteDependencies ?? createClientDependencySummary(linkedGrows, linkedHydro)
+  const showDependencyPanel = deleteBlocked && hasDependencies(panelDependencies)
   return (
     <V1Card className="v1-tent-card" tone={archived ? 'neutral' : liveTone(live)}>
       <div className="v1-card-title-row"><div><span className="v1-card-kicker">{formatTentType(tent.tentType)}</span><h2>{tent.name}</h2></div><V1Badge tone={archived ? 'neutral' : liveTone(live)}>{archived ? 'Archiv' : live?.stateLabel ?? 'aktiv'}</V1Badge></div>
@@ -289,12 +281,12 @@ function TentCard({ tent, live, hydroCount, linkedGrows, linkedHydro, deleteBloc
       </div>
       {linkedGrows.length > 0 && <p>{linkedGrows.length} aktive Grows verknüpft.</p>}
       <div className="v1-action-row rc-tent-actions"><V1LinkButton to={`/zelte/${tent.id}`} variant="primary">Öffnen</V1LinkButton><V1Button onClick={() => onEdit(tent)}>Bearbeiten</V1Button><V1Button disabled={saving} onClick={() => void onArchive(tent)}>Archivieren</V1Button><V1Button variant="danger" disabled={saving} onClick={() => void onDelete(tent)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button></div>
-      {deleteBlocked && (linkedGrows.length > 0 || linkedHydro.length > 0) && (
+      {showDependencyPanel && (
         <div className={classNames('dependency-panel', deleteBlocked && 'active')} data-audit="tent-delete-blocked">
-          <strong>{deleteBlocked ? 'Loeschen blockiert' : 'Abhaengigkeiten'}</strong>
-          <p>Dieses Zelt ist mit aktiven Grows oder Hydro-Setups verknuepft. Verwalte die Abhaengigkeiten direkt, danach ist Loeschen erneut moeglich.</p>
+          <strong>Löschen blockiert</strong>
+          <p>Dieses Zelt ist mit aktiven Abhängigkeiten verknüpft. Verwalte sie direkt, danach ist Löschen erneut möglich.</p>
           <div className="v1-list">
-            {linkedGrows.map((grow) => (
+            {panelDependencies.activeGrows.map((grow) => (
               <div key={`grow-${grow.id}`} className="v1-list-row dependency-row">
                 <div>
                   <strong>{grow.name}</strong>
@@ -303,18 +295,40 @@ function TentCard({ tent, live, hydroCount, linkedGrows, linkedHydro, deleteBloc
                 <div className="dependency-row-actions">
                   <V1LinkButton to={`/grows/${grow.id}`} variant="primary">Verwalten</V1LinkButton>
                   <V1LinkButton to={`/grows/${grow.id}/setup`}>Bearbeiten</V1LinkButton>
-                  <V1Button disabled={savingKey === `grow-archive-${grow.id}`} onClick={() => void onArchiveGrow(grow)}>{savingKey === `grow-archive-${grow.id}` ? 'Beendet...' : 'Beenden'}</V1Button>
+                  <V1Button disabled={savingKey === `grow-archive-${grow.id}`} onClick={() => void onArchiveGrow({ id: grow.id, name: grow.name })}>{savingKey === `grow-archive-${grow.id}` ? 'Beendet...' : 'Beenden'}</V1Button>
                 </div>
               </div>
             ))}
-            {linkedHydro.map((setup) => (
+            {panelDependencies.hydroSetups.map((setup) => (
               <div key={`hydro-${setup.id}`} className="v1-list-row dependency-row">
                 <div>
                   <strong>{setup.name}</strong>
                   <span>{setup.status}</span>
                 </div>
                 <div className="dependency-row-actions">
-                  <V1LinkButton to={`/hydro/${setup.id}`} variant="primary">Oeffnen</V1LinkButton>
+                  <V1LinkButton to={`/hydro/${setup.id}`} variant="primary">Öffnen</V1LinkButton>
+                </div>
+              </div>
+            ))}
+            {panelDependencies.sensors.map((sensor) => (
+              <div key={`sensor-${sensor.id}`} className="v1-list-row dependency-row">
+                <div>
+                  <strong>{sensor.name}</strong>
+                  <span>{sensor.status ?? 'verknüpft'}</span>
+                </div>
+                <div className="dependency-row-actions">
+                  <V1LinkButton to="/hardware" variant="primary">Sensoren öffnen</V1LinkButton>
+                </div>
+              </div>
+            ))}
+            {panelDependencies.other.map((item) => (
+              <div key={`other-${item.type}-${item.id}`} className="v1-list-row dependency-row">
+                <div>
+                  <strong>{item.name}</strong>
+                  <span>{[item.type, item.status].filter(Boolean).join(' · ')}</span>
+                </div>
+                <div className="dependency-row-actions">
+                  <V1LinkButton to="/hydro" variant="primary">Setups öffnen</V1LinkButton>
                 </div>
               </div>
             ))}
@@ -323,6 +337,28 @@ function TentCard({ tent, live, hydroCount, linkedGrows, linkedHydro, deleteBloc
       )}
     </V1Card>
   )
+}
+
+function isTentDependencyError(payload: unknown): payload is TentDependencyError {
+  return Boolean(payload && typeof payload === 'object' && 'dependencies' in payload)
+}
+
+function createClientDependencySummary(linkedGrows: GrowSummary[], linkedHydro: HydroSetupDto[]): TentDependencySummaryDto {
+  return {
+    activeGrows: linkedGrows.map((grow) => ({ id: grow.id, name: grow.name, status: grow.status, type: 'Grow' })),
+    archivedGrows: [],
+    hydroSetups: linkedHydro.map((setup) => ({ id: setup.id, name: setup.name, status: setup.status, type: 'Hydro' })),
+    sensors: [],
+    measurements: [],
+    other: [],
+  }
+}
+
+function hasDependencies(dependencies: TentDependencySummaryDto) {
+  return dependencies.activeGrows.length > 0
+    || dependencies.hydroSetups.length > 0
+    || dependencies.sensors.length > 0
+    || dependencies.other.length > 0
 }
 
 function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }

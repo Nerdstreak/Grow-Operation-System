@@ -94,6 +94,9 @@ public sealed class GrowRepository
     public void DeleteTent(int id)
         => _tentRepository.DeleteTent(id);
 
+    public void DeleteTentWithCleanup(int id)
+        => _tentRepository.DeleteTentWithCleanup(id);
+
     public bool HasTentDependencies(int id)
         => _tentRepository.HasTentDependencies(id);
 
@@ -129,6 +132,9 @@ public sealed class GrowRepository
 
     public void UpdateHardwareItem(HardwareItem item)
         => _hardwareRepository.UpdateHardwareItem(item);
+
+    public void DeleteHardwareItem(int id)
+        => _hardwareRepository.DeleteHardwareItem(id);
 
     public HardwareItem? GetHardwareItem(int id)
         => _hardwareRepository.GetHardwareItem(id);

@@ -80,6 +80,46 @@ public sealed class HardwareRepository : RepositoryBase
         command.ExecuteNonQuery();
     }
 
+    public void DeleteHardwareItem(int id)
+    {
+        using var connection = OpenConnection();
+        using var transaction = connection.BeginTransaction();
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = "DELETE FROM MaintenanceEvents WHERE HardwareItemId = $id;";
+            command.Parameters.AddWithValue("$id", id);
+            command.ExecuteNonQuery();
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = "DELETE FROM CalibrationEvents WHERE HardwareItemId = $id;";
+            command.Parameters.AddWithValue("$id", id);
+            command.ExecuteNonQuery();
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = "UPDATE RiskEvents SET HardwareItemId = NULL, UpdatedAtUtc = datetime('now') WHERE HardwareItemId = $id;";
+            command.Parameters.AddWithValue("$id", id);
+            command.ExecuteNonQuery();
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = "DELETE FROM HardwareItems WHERE Id = $id;";
+            command.Parameters.AddWithValue("$id", id);
+            command.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
+    }
+
     public HardwareItem? GetHardwareItem(int id)
     {
         using var connection = OpenConnection();

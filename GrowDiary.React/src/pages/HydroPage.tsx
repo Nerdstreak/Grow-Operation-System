@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { CreateHydroSetupRequest, GrowSummary, HydroSetupDto, HydroSetupLayoutType, ReservoirPosition, SelectableHydroStyle, TentDto, UpdateHydroSetupRequest } from '../types'
@@ -321,8 +322,8 @@ function HydroDetail({ setup, linkedGrows, deleteBlocked, saving, savingKey, onE
           {linkedGrows.length > 0 && <div className="v1-list">{linkedGrows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>Verknüpfter aktiver Grow</span></Link>)}</div>}
           {deleteBlocked && linkedGrows.length > 0 && (
             <div className={classNames('dependency-panel', deleteBlocked && 'active')} data-audit="hydro-delete-blocked">
-              <strong>{deleteBlocked ? 'Loeschen blockiert' : 'Aktive Grows'}</strong>
-              <p>Dieses Hydro-Setup ist mit aktiven oder geplanten Grows verknuepft. Beende oder verwalte die betroffenen Grows, danach ist Loeschen erneut moeglich.</p>
+              <strong>{deleteBlocked ? 'Löschen blockiert' : 'Aktive Grows'}</strong>
+              <p>Dieses Hydro-Setup ist mit aktiven oder geplanten Grows verknüpft. Beende oder verwalte die betroffenen Grows, danach ist Löschen erneut möglich.</p>
               <div className="v1-list">
                 {linkedGrows.map((grow) => (
                   <div key={grow.id} className="v1-list-row dependency-row">
@@ -352,9 +353,9 @@ function RdwcLayoutPreview({ draft, setup }: { draft?: HydroDraft; setup?: Hydro
   const layoutType = draft?.layoutType ?? setup?.layoutType ?? 'SingleBucket'
   const reservoirPosition = draft?.reservoirPosition ?? setup?.reservoirPosition ?? 'None'
   const potCount = Math.max(1, toNullableInt(draft?.potCount ?? '') ?? setup?.potCount ?? 1)
-  const columns = hydroStyle === 'DWC' ? 1 : layoutColumns(layoutType, potCount)
+  const columns = hydroStyle === 'DWC' ? 1 : Math.min(4, layoutColumns(layoutType, potCount))
   const sites = Array.from({ length: potCount }, (_, index) => index + 1)
-  return <div className={classNames('v1-rdwc-map', `tank-${reservoirPosition.toLowerCase()}`)}><div className="v1-rdwc-inner">{hydroStyle === 'RDWC' && reservoirPosition !== 'None' && <div className="v1-rdwc-tank">Tank</div>}<div className="v1-rdwc-grid" style={{ gridTemplateColumns: `repeat(${columns}, minmax(64px, 1fr))` }}>{sites.map((site) => <div key={site} className="v1-rdwc-site">{hydroStyle === 'DWC' ? 'DWC' : site}</div>)}</div></div><span>{formatLayout(layoutType)} · Tank {formatReservoirPosition(reservoirPosition)}</span></div>
+  return <div className={classNames('v1-rdwc-map', `tank-${reservoirPosition.toLowerCase()}`)} data-audit="hydro-preview"><div className="v1-rdwc-inner">{hydroStyle === 'RDWC' && reservoirPosition !== 'None' && <div className="v1-rdwc-tank">Tank</div>}<div className="v1-rdwc-grid" style={{ '--rdwc-columns': String(columns) } as CSSProperties}>{sites.map((site) => <div key={site} className="v1-rdwc-site">{hydroStyle === 'DWC' ? 'DWC' : site}</div>)}</div></div><span>{formatLayout(layoutType)} · Tank {formatReservoirPosition(reservoirPosition)}</span></div>
 }
 
 function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }

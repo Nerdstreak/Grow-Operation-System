@@ -912,6 +912,169 @@ html,
   align-content: center;
 }
 
+@media (max-width: 860px) {
+  :root {
+    --rc2-bottom-nav-height: 72px;
+    --rc2-bottom-safe: calc(var(--rc2-bottom-nav-height) + max(0px, env(safe-area-inset-bottom)) + 18px);
+  }
+
+  .v1-route-frame {
+    padding-bottom: var(--rc2-bottom-safe) !important;
+  }
+
+  .v1-bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    position: fixed;
+    inset: auto 0 0 0 !important;
+    min-height: calc(var(--rc2-bottom-nav-height) + max(0px, env(safe-area-inset-bottom)));
+    margin: 0 !important;
+    padding: 8px 10px max(8px, env(safe-area-inset-bottom)) !important;
+    border: 1px solid var(--v1-line-strong);
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 18px 18px 0 0 !important;
+    background: rgb(3, 16, 8) !important;
+    box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.34);
+  }
+
+  .sticky-actions {
+    bottom: calc(var(--rc2-bottom-nav-height) + max(0px, env(safe-area-inset-bottom)) + 12px) !important;
+  }
+}
+
+.rc2-ha-connect-form {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(260px, 1fr);
+  gap: 14px;
+  align-items: end;
+}
+
+.rc2-ha-connect-form .v1-field {
+  min-width: 0;
+}
+
+.rc2-ha-connect-form .v1-inline-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.rc2-ha-connect-form .v1-inline-input input,
+.rc2-ha-connect-form .v1-inline-input .v1-button,
+.rc2-ha-connection-actions .v1-button {
+  min-height: 44px;
+}
+
+.rc2-ha-connection-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.rc2-ha-connection-actions .v1-switch {
+  margin-right: auto;
+}
+
+.v1-tent-card {
+  min-width: 0;
+}
+
+.v1-tent-card .v1-info-grid {
+  gap: 10px;
+}
+
+.v1-tent-card .v1-info {
+  min-width: 0;
+  min-height: 58px;
+  padding: 10px;
+}
+
+.v1-tent-card .v1-info strong {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.rc-tent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--v1-border);
+}
+
+.rc-tent-actions .v1-button,
+.rc-tent-actions .v1-link-button {
+  flex: 1 1 116px;
+  min-width: 0;
+  min-height: 40px;
+}
+
+.v1-rdwc-map {
+  display: grid;
+  gap: 10px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.v1-rdwc-inner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.v1-rdwc-map.tank-right .v1-rdwc-inner {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.v1-rdwc-map.tank-right .v1-rdwc-tank {
+  order: 2;
+}
+
+.v1-rdwc-map.tank-top .v1-rdwc-inner,
+.v1-rdwc-map.tank-bottom .v1-rdwc-inner,
+.v1-rdwc-map.tank-external .v1-rdwc-inner,
+.v1-rdwc-map.tank-none .v1-rdwc-inner {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.v1-rdwc-map.tank-bottom .v1-rdwc-tank,
+.v1-rdwc-map.tank-external .v1-rdwc-tank {
+  order: 2;
+}
+
+.v1-rdwc-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--rdwc-columns, 2), minmax(46px, 1fr)) !important;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.v1-rdwc-site,
+.v1-rdwc-tank {
+  min-width: 0;
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.v1-rdwc-tank {
+  min-width: 72px;
+}
+
 @media (max-width: 900px) {
   .wiki-shell {
     grid-template-columns: minmax(0, 1fr);
@@ -937,6 +1100,37 @@ html,
   .rc2-ha-connection-actions,
   .rc2-ha-camera-field-action {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rc2-ha-connect-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rc2-ha-connect-form .v1-inline-input {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rc2-ha-connection-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
+  }
+
+  .rc2-ha-connection-actions .v1-switch {
+    margin-right: 0;
+  }
+
+  .v1-rdwc-inner {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .v1-rdwc-tank {
+    order: 0 !important;
+    min-width: 0;
+  }
+
+  .v1-rdwc-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
   .dependency-panel .v1-list-row {

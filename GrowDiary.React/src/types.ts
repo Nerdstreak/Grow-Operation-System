@@ -66,6 +66,26 @@ export interface ApiError {
   fieldErrors?: Record<string, string[]>
 }
 
+export interface DependencyItemDto {
+  id: number
+  name: string
+  status: string | null
+  type: string | null
+}
+
+export interface TentDependencySummaryDto {
+  activeGrows: DependencyItemDto[]
+  archivedGrows: DependencyItemDto[]
+  hydroSetups: DependencyItemDto[]
+  sensors: DependencyItemDto[]
+  measurements: DependencyItemDto[]
+  other: DependencyItemDto[]
+}
+
+export interface TentDependencyError extends ApiError {
+  dependencies: TentDependencySummaryDto
+}
+
 export interface GrowSummary {
   id: number
   name: string
