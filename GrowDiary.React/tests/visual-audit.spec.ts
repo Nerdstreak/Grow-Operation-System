@@ -41,6 +41,7 @@ type ReportRow = {
   navStructureFindings: AuditFinding[]
   tabletLayoutFindings: AuditFinding[]
   liveDashboardFindings: AuditFinding[]
+  addbackFindings: AuditFinding[]
 }
 
 type LayoutFinding = {
@@ -240,6 +241,28 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       ].filter((item): item is AuditFinding => item !== null)
       : []
 
+    const addbackSurface = document.querySelector('[data-audit="addback-hub"], [data-audit="addback-flow"]') as HTMLElement | null
+    const addbackFindings = addbackSurface
+      ? [
+        (() => {
+          const cards = Array.from(addbackSurface.querySelectorAll('.v1-card, .v1-section, [data-audit^="addback-"]'))
+          const foldBottom = isPhone ? window.innerHeight : Math.min(window.innerHeight, 1024)
+          const visibleAboveFold = cards.filter((item) => {
+            const rect = (item as HTMLElement).getBoundingClientRect()
+            return rect.top < foldBottom && rect.bottom > 0 && rect.width > 1 && rect.height > 1
+          }).length
+          return { selector: '[data-audit^="addback-"]', text: '', problem: 'addbackCardsAboveFold', details: String(visibleAboveFold) }
+        })(),
+        (() => {
+          const stepper = document.querySelector('[data-audit="addback-mobile-stepper"], [data-audit="addback-stepper"]') as HTMLElement | null
+          if (!stepper) return null
+          const rect = stepper.getBoundingClientRect()
+          return { selector: '[data-audit="addback-stepper"]', text: '', problem: 'addbackStepperHeight', details: `${Math.round(rect.height)}px` }
+        })(),
+        isTablet ? { selector: '[data-audit^="addback-"]', text: '', problem: 'tabletAddbackLayout', details: `viewport=${window.innerWidth}x${window.innerHeight}` } : null,
+      ].filter((item): item is AuditFinding => item !== null)
+      : []
+
     return {
       bodyScrollWidth: document.body.scrollWidth,
       documentScrollWidth: document.documentElement.scrollWidth,
@@ -251,6 +274,7 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       navStructureFindings,
       tabletLayoutFindings,
       liveDashboardFindings,
+      addbackFindings,
     }
   })
 }
@@ -292,6 +316,7 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
     navStructureFindings: metrics.navStructureFindings,
     tabletLayoutFindings: metrics.tabletLayoutFindings,
     liveDashboardFindings: metrics.liveDashboardFindings,
+    addbackFindings: metrics.addbackFindings,
   })
 
   if (viewport.enforceShellHardChecks && shellOverflowSlugs.has(route.slug)) {
@@ -307,6 +332,7 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
   }
   if (viewport.category === 'phone' && viewport.enforceShellHardChecks) {
     await assertMobileShellContract(page, fileName)
+    await assertAddbackFlowMobileContract(page, fileName)
   }
   if (viewport.category === 'tablet' && viewport.enforceShellHardChecks) {
     await assertTabletShellContract(page, fileName)
@@ -368,6 +394,7 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
     navStructureFindings: metrics.navStructureFindings,
     tabletLayoutFindings: metrics.tabletLayoutFindings,
     liveDashboardFindings: metrics.liveDashboardFindings,
+    addbackFindings: metrics.addbackFindings,
   })
 
   const coveredByBottomNav = metrics.bottomNavFindings.filter((item) => item.problem === 'coveredByBottomNav')
@@ -377,6 +404,7 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
   }
   if (viewport.category === 'phone' && viewport.enforceShellHardChecks) {
     await assertMobileShellContract(page, fileName)
+    await assertAddbackFlowMobileContract(page, fileName)
   }
   if (viewport.category === 'tablet' && viewport.enforceShellHardChecks) {
     await assertTabletShellContract(page, fileName)
@@ -414,6 +442,7 @@ function writeReports() {
       ...row.navStructureFindings.map((finding) => findingLine(row, 'navStructureFindings', finding)),
       ...row.tabletLayoutFindings.map((finding) => findingLine(row, 'tabletLayoutFindings', finding)),
       ...row.liveDashboardFindings.map((finding) => findingLine(row, 'liveDashboardFindings', finding)),
+      ...row.addbackFindings.map((finding) => findingLine(row, 'addbackFindings', finding)),
     ]),
     '',
     '## Addback Deep Flow',
@@ -658,12 +687,91 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
         return Boolean(value && value.scrollWidth > value.clientWidth + 2)
       }).length)
     expect(overflowingLastFields, 'Addback Verlauf "Letzter" must not overflow its box').toBe(0)
+    await assertAddbackHubMobileContract(page, slug)
   }
   if (slug === 'dashboard') {
     await assertLiveMobileContract(page, slug)
   }
 
   await assertNoAsciiUmlautUiText(page, slug)
+}
+
+async function assertAddbackHubMobileContract(page: import('@playwright/test').Page, slug: string) {
+  const isPhone = await page.evaluate(() => window.innerWidth < 768)
+  if (!isPhone) return
+
+  await expect(page.locator('[data-audit="addback-hub"]'), `${slug}: Addback hub audit hook`).toBeVisible()
+  await expect(page.locator('[data-audit="addback-stepper"], .v1-addback-flow-strip'), `${slug}: hub must not render workflow stepper`).toHaveCount(0)
+
+  const hasStartCta = await page.getByRole('link', { name: /Addback starten/i }).count()
+  const emptyState = page.locator('[data-audit="addback-empty-state"]')
+  if (await emptyState.isVisible().catch(() => false)) {
+    await expect(emptyState).toContainText(/Kein aktiver Hydro-Grow/i)
+    await expect(emptyState.getByRole('link', { name: /Grow anlegen|Hydro öffnen/i }).first()).toBeVisible()
+  } else {
+    expect(hasStartCta, `${slug}: Addback hub needs visible Addback start CTA when data exists`).toBeGreaterThan(0)
+  }
+
+  const actions = await page.locator('[data-audit="addback-hub"] a, [data-audit="addback-hub"] button').evaluateAll((items) =>
+    items
+      .map((item) => {
+        const html = item as HTMLElement
+        const rect = html.getBoundingClientRect()
+        const style = window.getComputedStyle(html)
+        return {
+          text: (html.textContent ?? '').trim().replace(/\s+/g, ' '),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+          visible: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1,
+        }
+      })
+      .filter((item) => item.visible))
+  expect(actions.length, `${slug}: Addback hub must expose visible actions`).toBeGreaterThan(0)
+  for (const action of actions) {
+    expect(action.width, `${slug}: Addback action "${action.text}" touch width`).toBeGreaterThanOrEqual(44)
+    expect(action.height, `${slug}: Addback action "${action.text}" touch height`).toBeGreaterThanOrEqual(44)
+  }
+
+  const overflow = await page.locator('[data-audit="addback-hub"] .v1-info, [data-audit="addback-log-list"] *').evaluateAll((items) =>
+    items
+      .filter((item) => {
+        const html = item as HTMLElement
+        const rect = html.getBoundingClientRect()
+        const style = window.getComputedStyle(html)
+        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && html.scrollWidth > html.clientWidth + 2
+      })
+      .map((item) => (item.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 120)))
+  expect(overflow, `${slug}: Addback Verlauf/values must not overflow cards`).toEqual([])
+}
+
+async function assertAddbackFlowMobileContract(page: import('@playwright/test').Page, context: string) {
+  const isPhone = await page.evaluate(() => window.innerWidth < 768)
+  if (!isPhone) return
+  if (!/\/grows\/[^/]+\/addback/i.test(page.url())) return
+
+  await expect(page.locator('[data-audit="addback-flow"]'), `${context}: Addback flow audit hook`).toBeVisible()
+  await expect(page.locator('[data-audit="addback-mobile-stepper"]'), `${context}: compact mobile stepper`).toBeVisible()
+  const stepperHeight = await page.locator('[data-audit="addback-mobile-stepper"]').evaluate((element) => Math.round((element as HTMLElement).getBoundingClientRect().height))
+  expect(stepperHeight, `${context}: mobile stepper must stay compact`).toBeLessThanOrEqual(96)
+
+  const controls = await page.locator('[data-audit="addback-flow"] input, [data-audit="addback-flow"] select, [data-audit="addback-flow"] textarea, [data-audit="addback-flow"] button, [data-audit="addback-flow"] a').evaluateAll((items) =>
+    items.map((item) => {
+      const html = item as HTMLElement
+      const rect = html.getBoundingClientRect()
+      const style = window.getComputedStyle(html)
+      return {
+        tag: html.tagName.toLowerCase(),
+        text: (html.textContent ?? html.getAttribute('aria-label') ?? '').trim().replace(/\s+/g, ' '),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        visible: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1,
+      }
+    }).filter((item) => item.visible))
+  for (const control of controls) {
+    const minHeight = control.tag === 'input' || control.tag === 'select' || control.tag === 'textarea' ? 48 : 44
+    expect(control.width, `${context}: Addback control "${control.text || control.tag}" touch width`).toBeGreaterThanOrEqual(44)
+    expect(control.height, `${context}: Addback control "${control.text || control.tag}" height`).toBeGreaterThanOrEqual(minHeight)
+  }
 }
 
 async function assertLiveMobileContract(page: import('@playwright/test').Page, slug: string) {

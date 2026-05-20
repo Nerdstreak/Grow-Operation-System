@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { AddbackLogDto, GrowDetail, GrowSummary, HydroSetupDto } from '../types'
 import { V1Alert, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
-import { formatDateTime, formatNumber } from '../utils'
+import { formatNumber } from '../utils'
 
 type GrowWithLogs = {
   detail: GrowDetail
@@ -69,43 +69,71 @@ function AddbackHubPage() {
   const hydroGrows = useMemo(() => activeGrows.filter((grow) => grow.hydroStyle === 'DWC' || grow.hydroStyle === 'RDWC'), [activeGrows])
   const primaryGrow = hydroGrows[0] ?? null
   const totalLogs = useMemo(() => protocolGroups.reduce((sum, group) => sum + group.logs.length, 0), [protocolGroups])
+  const latestAddbackByGrowId = useMemo(() => {
+    const latest = new Map<number, AddbackLogDto>()
+    for (const group of protocolGroups) {
+      for (const log of group.logs) {
+        const existing = latest.get(log.growId)
+        if (!existing || log.performedAtUtc.localeCompare(existing.performedAtUtc) > 0) latest.set(log.growId, log)
+      }
+    }
+    return latest
+  }, [protocolGroups])
+  const primaryGrowLastAddback = primaryGrow ? latestAddbackByGrowId.get(primaryGrow.id) ?? null : null
 
   return (
-    <V1Page eyebrow="Reservoir" title="Addback" action={<V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>}>
+    <V1Page eyebrow="Reservoir" title="Addback" action={<V1LinkButton to="/grows/new" variant="primary">Grow anlegen</V1LinkButton>} className="addback-hub-page">
       {error && <V1Alert message={error} tone="warn" />}
 
       <section className="v1-addback-command" data-audit="addback-hub">
-        <V1Card className="v1-addback-command-main">
-          <span className="v1-card-kicker">Nächster Addback</span>
-          <h2>{primaryGrow?.name ?? 'Kein Hydro-Grow aktiv'}</h2>
-          <p>{primaryGrow ? `${primaryGrow.strain ?? 'Sorte offen'} · ${primaryGrow.tentName ?? 'ohne Zelt'} · ${primaryGrow.hydroStyle}` : 'Addback braucht einen aktiven DWC/RDWC-Grow.'}</p>
-          <div className="v1-addback-current-values">
-            <Info label="pH" value={formatNumber(primaryGrow?.latestReservoirPh, 2)} />
-            <Info label="EC" value={formatNumber(primaryGrow?.latestReservoirEc, 2)} />
-            <Info label="Messung" value={formatDateTime(primaryGrow?.latestMeasurementAt)} />
+        {primaryGrow ? (
+          <V1Card className="v1-addback-command-main">
+            <span className="v1-card-kicker">Nächster Addback</span>
+            <h2>{primaryGrow.name}</h2>
+            <p>{`${primaryGrow.strain ?? 'Sorte offen'} · ${primaryGrow.tentName ?? 'ohne Zelt'} · ${primaryGrow.hydroStyle}`}</p>
+            <div className="v1-addback-current-values">
+              <Info label="pH" value={formatNumber(primaryGrow.latestReservoirPh, 2)} />
+              <Info label="EC" value={formatNumber(primaryGrow.latestReservoirEc, 2)} />
+              <Info label="Letzter" value={formatShortDateTime(primaryGrowLastAddback?.performedAtUtc)} />
+            </div>
+            <div className="addback-hub-actions">
+              <V1LinkButton to={`/grows/${primaryGrow.id}/addback`} variant="primary">Addback starten</V1LinkButton>
+              <V1LinkButton to="#addback-history" variant="secondary">Verlauf ansehen</V1LinkButton>
+            </div>
+          </V1Card>
+        ) : (
+          <div className="v1-card v1-addback-command-main addback-mobile-empty" data-audit="addback-empty-state">
+            <span className="v1-card-kicker">Addback</span>
+            <h2>Kein aktiver Hydro-Grow</h2>
+            <p>Addback benötigt einen aktiven DWC/RDWC-Grow mit Hydro-Setup.</p>
+            <div className="addback-hub-actions">
+              <V1LinkButton to="/grows/new" variant="primary">Grow anlegen</V1LinkButton>
+              <V1LinkButton to="/hydro" variant="secondary">Hydro öffnen</V1LinkButton>
+            </div>
           </div>
-          {primaryGrow ? <V1LinkButton to={`/grows/${primaryGrow.id}/addback`} variant="primary">Addback starten</V1LinkButton> : <V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>}
-        </V1Card>
+        )}
 
         <V1Card className="v1-addback-hub-summary">
           <span className="v1-card-kicker">Hub</span>
-          <h2>{hydroGrows.length} Hydro-Grows verfügbar</h2>
-          <p>Wähle einen Grow, starte einen Addback oder öffne den Verlauf nach Hydro-Setup.</p>
+          <h2>{hydroGrows.length} Hydro-Grow{hydroGrows.length === 1 ? '' : 's'} verfügbar</h2>
+          <p>Wähle einen Grow, starte einen Addback oder öffne den Verlauf.</p>
         </V1Card>
       </section>
 
       <section className="v1-kpi-grid v1-kpi-grid-compact"><V1Stat label="Aktive Grows" value={activeGrows.length} /><V1Stat label="Hydro" value={hydroGrows.length} /><V1Stat label="Hydro-Verläufe" value={protocolGroups.length} /><V1Stat label="Logs" value={totalLogs} /></section>
 
-      <V1Section title="Addback-Verlauf nach Hydro-Setup">
-        {loading ? <V1Empty title="Lade Addback-Verlauf..." /> : protocolGroups.length === 0 ? <V1Empty title="Noch kein Addback-Verlauf" text="Der Verlauf entsteht aus echten Addback-Logs und wird nach Hydro-Setup gruppiert, nicht aus der letzten Grow-Messung." /> : (
+      <V1Section title="Addback-Verlauf" className="addback-history-section">
+        <div id="addback-history" data-audit="addback-log-list">
+        {loading ? <V1Empty title="Lade Addback-Verlauf..." /> : protocolGroups.length === 0 ? <V1Empty title="Noch kein Addback-Verlauf" text="Logs erscheinen hier nach dem ersten gespeicherten Addback." /> : (
           <div className="v1-card-grid v1-card-grid-compact">
             {protocolGroups.map((group) => <ProtocolGroupCard key={group.hydroSetupId ?? `legacy-${group.name}`} group={group} />)}
           </div>
         )}
+        </div>
       </V1Section>
 
       <V1Section title="Grow wählen">
-        {loading ? <V1Empty title="Lade Grows..." /> : hydroGrows.length === 0 ? <V1Empty title="Kein DWC/RDWC-Grow" text="Addback braucht einen aktiven Grow mit Hydro-Setup." action={<V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>} /> : (
+        {loading ? <V1Empty title="Lade Grows..." /> : hydroGrows.length === 0 ? <V1Empty title="Kein DWC/RDWC-Grow" text="Addback braucht einen aktiven Grow mit Hydro-Setup." action={<V1LinkButton to="/grows/new" variant="primary">Grow anlegen</V1LinkButton>} /> : (
           <div className="v1-card-grid v1-card-grid-compact">
             {hydroGrows.map((grow) => (
               <Link key={grow.id} to={`/grows/${grow.id}/addback`} className="v1-grow-card-link">
@@ -116,9 +144,9 @@ function AddbackHubPage() {
                   <div className="v1-info-grid compact">
                     <Info label="pH" value={formatNumber(grow.latestReservoirPh, 2)} />
                     <Info label="EC" value={formatNumber(grow.latestReservoirEc, 2)} />
-                    <Info label="Messung" value={formatDateTime(grow.latestMeasurementAt)} />
+                    <Info label="Letzter" value={formatShortDateTime(latestAddbackByGrowId.get(grow.id)?.performedAtUtc)} />
                   </div>
-                  <div className="v1-button is-primary full">Addback</div>
+                  <div className="v1-button is-primary full">Addback starten</div>
                 </V1Card>
               </Link>
             ))}
@@ -144,8 +172,8 @@ function ProtocolGroupCard({ group }: { group: ProtocolGroup }) {
       </div>
       <div className="v1-list">
         {group.logs.slice(0, 5).map((log) => (
-          <Link key={log.id} className="v1-list-row" to={`/grows/${log.growId}/addback`}>
-            <strong>{formatDateTime(log.performedAtUtc)}</strong>
+          <Link key={log.id} className="v1-list-row addback-protocol-row" to={`/grows/${log.growId}/addback`}>
+            <strong>{formatShortDateTime(log.performedAtUtc)}</strong>
             <span>EC {formatNumber(log.ecBefore, 2)} → {formatNumber(log.ecAfter ?? log.ecTarget, 2)} · pH {formatNumber(log.phBefore, 2)} → {formatNumber(log.phAfter, 2)}</span>
             <em>{formatNumber(log.litersAdded, 2)} L</em>
           </Link>

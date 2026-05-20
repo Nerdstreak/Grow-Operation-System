@@ -23,7 +23,7 @@ import {
   V1Stat,
   V1Wizard,
 } from '../components/v1'
-import { classNames, formatDateTime, formatNumber } from '../utils'
+import { classNames, formatNumber } from '../utils'
 
 type AddbackStep = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -286,11 +286,13 @@ function AddbackPage() {
       {error && <V1Alert title="Hinweis" message={error} tone="warn" />}
       {success && <V1Alert title="Gespeichert" message={success} tone="ok" />}
 
-      {loading ? (
-        <V1Empty title="Lade Addback..." />
-      ) : (
-        <>
-          <div data-audit="addback-stepper">
+      <div data-audit="addback-flow">
+        {loading ? (
+          <V1Empty title="Lade Addback..." />
+        ) : (
+          <>
+          <MobileStepper step={step} steps={steps} />
+          <div className="addback-desktop-stepper" data-audit="addback-stepper">
             <V1Wizard steps={steps} currentStep={step} onStep={(nextStep) => setStep(nextStep as AddbackStep)} />
           </div>
 
@@ -303,7 +305,7 @@ function AddbackPage() {
                   <ContextItem label="Reservoir" value={formatLiters(parseNullableNumber(form.reservoirLiters) ?? defaults?.suggestedReservoirLiters)} />
                   <ContextItem label="Programm" value={selectedProgram?.name ?? grow?.nutrients ?? 'Eigenes'} />
                   <ContextItem label="Phase" value={grow?.latestMeasurement?.stage ?? grow?.entryPoint ?? 'offen'} />
-                  <ContextItem label="Letzter Log" value={lastLog ? formatDateTime(lastLog.performedAtUtc) : '–'} />
+                  <ContextItem label="Letzter Log" value={formatShortDateTime(lastLog?.performedAtUtc)} />
                 </div>
               </V1Card>
 
@@ -448,11 +450,11 @@ function AddbackPage() {
                     <V1Button variant="primary" onClick={handleSave} disabled={saving || calculating}>{saving ? 'Speichert...' : 'Addback speichern'}</V1Button>
                   </div>
                   {logs.length > 0 && (
-                    <div className="addback-log-list">
+                    <div className="addback-log-list" data-audit="addback-log-list">
                       <h3>Letzte Addbacks</h3>
                       {logs.slice(0, 4).map((log) => (
                         <div key={log.id}>
-                          <strong>{formatDateTime(log.performedAtUtc)}</strong>
+                          <strong>{formatShortDateTime(log.performedAtUtc)}</strong>
                           <span>{formatNumber(log.litersAdded, 2)} L · EC {formatNumber(log.ecBefore, 2)} → {formatNumber(log.ecAfter, 2)}</span>
                         </div>
                       ))}
@@ -462,9 +464,26 @@ function AddbackPage() {
               )}
             </section>
           </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </V1Page>
+  )
+}
+
+function MobileStepper({ step, steps }: { step: AddbackStep; steps: string[] }) {
+  return (
+    <div className="addback-mobile-stepper" data-audit="addback-mobile-stepper" aria-label={`Schritt ${step} von ${steps.length}: ${steps[step - 1]}`}>
+      <div>
+        <span>Schritt {step} / {steps.length}</span>
+        <strong>{steps[step - 1]}</strong>
+      </div>
+      <ol>
+        {steps.map((item, index) => (
+          <li key={item} className={classNames(step === index + 1 && 'active', step > index + 1 && 'done')} aria-label={`${index + 1}. ${item}`} />
+        ))}
+      </ol>
+    </div>
   )
 }
 
@@ -581,6 +600,19 @@ function buildNotes(program: NutrientProgramDto | null, stage: NutrientProgramSt
 
 function formatLiters(value: number | null | undefined): string {
   return value == null ? '–' : `${formatNumber(value, 1)} L`
+}
+
+function formatShortDateTime(value: string | null | undefined) {
+  if (!value) return '–'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '–'
+  return new Intl.DateTimeFormat('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
 }
 
 function draftNumber(value: number | null | undefined): string {
