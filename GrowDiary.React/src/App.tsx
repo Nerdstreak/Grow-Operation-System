@@ -31,7 +31,14 @@ const coreNav = [
   { to: '/hydro', label: 'Hydro', end: true },
 ]
 
-const moreNav = [
+const mobilePrimaryNav = [
+  { to: '/', label: 'Live', end: true },
+  { to: '/addback', label: 'Addback', end: true },
+  { to: '/messung', label: 'Messung', end: true },
+  { to: '/grows', label: 'Grows', end: false },
+]
+
+const desktopMoreNav = [
   { to: '/action', label: 'Aufgaben', end: true },
   { to: '/grows', label: 'Grows', end: false },
   { to: '/messung', label: 'Messung', end: true },
@@ -42,6 +49,36 @@ const moreNav = [
   { to: '/analyse', label: 'Vergleich', end: true },
   { to: '/archiv', label: 'Archiv', end: true },
   { to: '/settings', label: 'Einstellungen', end: true },
+  { to: '/release', label: 'Release', end: true },
+]
+
+const mobileMoreGroups = [
+  {
+    label: 'Setup',
+    audit: 'mobile-more-group-setup',
+    items: [
+      { to: '/zelte', label: 'Zelte', end: false },
+      { to: '/hydro', label: 'Hydro', end: true },
+      { to: '/hardware', label: 'Sensoren', end: true },
+    ],
+  },
+  {
+    label: 'Integration',
+    audit: 'mobile-more-group-integration',
+    items: [
+      { to: '/home-assistant', label: 'Home Assistant', end: true },
+      { to: '/connect', label: 'Gerät verbinden', end: true },
+    ],
+  },
+  {
+    label: 'Wissen & System',
+    audit: 'mobile-more-group-system',
+    items: [
+      { to: '/wissen', label: 'Wissen', end: true },
+      { to: '/settings', label: 'Einstellungen', end: true },
+      { to: '/release', label: 'Release', end: true },
+    ],
+  },
 ]
 
 function App() {
@@ -50,7 +87,7 @@ function App() {
   const title = getCurrentTitle(location.pathname)
 
   return (
-    <div className="v1-app-shell rc2-shell">
+    <div className="v1-app-shell rc2-shell" data-audit="mobile-shell">
       <aside className="v1-desktop-nav" aria-label="Desktop Navigation">
         <div className="v1-brand">
           <div className="v1-brand-mark">●</div>
@@ -65,12 +102,12 @@ function App() {
         </nav>
         <nav className="v1-nav-group" aria-label="Mehr">
           <span>Mehr</span>
-          {moreNav.map((item) => <NavItem key={item.to} {...item} />)}
+          {desktopMoreNav.map((item) => <NavItem key={item.to} {...item} />)}
         </nav>
         <div className="v1-nav-foot">Selfhost · HA · Offline-first</div>
       </aside>
 
-      <header className="v1-mobile-topbar">
+      <header className="v1-mobile-topbar" data-audit="mobile-header">
         <div className="v1-brand compact">
           <div className="v1-brand-mark">●</div>
           <div>
@@ -78,20 +115,25 @@ function App() {
             <span>{title}</span>
           </div>
         </div>
-        <button type="button" className="v1-mobile-more-button" onClick={() => setMobileMoreOpen((current) => !current)} aria-expanded={mobileMoreOpen}>
+        <button type="button" className="v1-mobile-more-button" data-audit="mobile-more-button" onClick={() => setMobileMoreOpen((current) => !current)} aria-expanded={mobileMoreOpen}>
           Mehr
         </button>
       </header>
 
       {mobileMoreOpen && (
-        <div className="v1-mobile-more-panel">
-          <div className="v1-mobile-more-grid">
-            {moreNav.map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setMobileMoreOpen(false)} className={({ isActive }) => (isActive ? 'v1-more-tile active' : 'v1-more-tile')}>
-                {item.label}
-              </NavLink>
-            ))}
-          </div>
+        <div className="v1-mobile-more-panel" data-audit="mobile-more-menu">
+          {mobileMoreGroups.map((group) => (
+            <section key={group.label} className="v1-mobile-more-group" data-audit={group.audit}>
+              <h2>{group.label}</h2>
+              <div className="v1-mobile-more-grid">
+                {group.items.map((item) => (
+                  <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setMobileMoreOpen(false)} className={({ isActive }) => (isActive ? 'v1-more-tile active' : 'v1-more-tile')}>
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 
@@ -129,9 +171,9 @@ function App() {
         </Routes>
       </main>
 
-      <nav className="v1-bottom-nav" aria-label="Mobile Hauptnavigation">
-        {coreNav.map((item) => (
-          <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setMobileMoreOpen(false)} className={({ isActive }) => (isActive ? 'v1-bottom-item active' : 'v1-bottom-item')}>
+      <nav className="v1-bottom-nav" aria-label="Mobile Hauptnavigation" data-audit="mobile-bottom-nav">
+        {mobilePrimaryNav.map((item) => (
+          <NavLink key={item.to} to={item.to} end={item.end} data-audit="mobile-bottom-nav-item" onClick={() => setMobileMoreOpen(false)} className={({ isActive }) => (isActive ? 'v1-bottom-item active' : 'v1-bottom-item')}>
             {item.label}
           </NavLink>
         ))}

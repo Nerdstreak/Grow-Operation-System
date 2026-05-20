@@ -7,7 +7,7 @@ type ViewportCase = {
   width: number
   height: number
   category: 'desktop' | 'phone' | 'tablet'
-  enforceMobileHardChecks?: boolean
+  enforceShellHardChecks?: boolean
 }
 
 type RouteCase = {
@@ -61,12 +61,28 @@ type AuditFinding = {
 
 const viewports: ViewportCase[] = [
   { name: 'desktop', width: 1440, height: 1000, category: 'desktop' },
-  { name: 'mobile', width: 390, height: 844, category: 'phone', enforceMobileHardChecks: true },
-  { name: 'iphone17-near', width: 393, height: 852, category: 'phone' },
-  { name: 'phone-plus', width: 430, height: 932, category: 'phone' },
-  { name: 'ipad-portrait', width: 768, height: 1024, category: 'tablet' },
-  { name: 'ipad-landscape', width: 1024, height: 768, category: 'tablet' },
+  { name: 'android-small', width: 360, height: 800, category: 'phone', enforceShellHardChecks: true },
+  { name: 'iphone-se', width: 375, height: 667, category: 'phone', enforceShellHardChecks: true },
+  { name: 'mobile', width: 390, height: 844, category: 'phone', enforceShellHardChecks: true },
+  { name: 'iphone17-near', width: 393, height: 852, category: 'phone', enforceShellHardChecks: true },
+  { name: 'phone-plus', width: 430, height: 932, category: 'phone', enforceShellHardChecks: true },
+  { name: 'ipad-portrait', width: 768, height: 1024, category: 'tablet', enforceShellHardChecks: true },
+  { name: 'ipad-landscape', width: 1024, height: 768, category: 'tablet', enforceShellHardChecks: true },
+  { name: 'ipad-air-portrait', width: 820, height: 1180, category: 'tablet' },
+  { name: 'ipad-air-landscape', width: 1180, height: 820, category: 'tablet' },
 ]
+
+const shellOverflowSlugs = new Set([
+  'dashboard',
+  'addback',
+  'messung',
+  'grows',
+  'grow-new',
+  'zelte',
+  'hydro',
+  'hardware',
+  'home-assistant',
+])
 
 const routes: RouteCase[] = [
   { slug: 'dashboard', path: '/', title: 'Dashboard / Live' },
@@ -253,12 +269,22 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
     tabletLayoutFindings: metrics.tabletLayoutFindings,
   })
 
-  if (viewport.enforceMobileHardChecks && metrics.bottomNavFindings.length > 0) {
-    const details = metrics.bottomNavFindings.slice(0, 5).map((item) => `${item.selector} "${item.text}" ${item.problem} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`).join(' | ')
+  if (viewport.enforceShellHardChecks && shellOverflowSlugs.has(route.slug)) {
+    expect(
+      metrics.bodyScrollWidth > metrics.innerWidth || metrics.documentScrollWidth > metrics.innerWidth,
+      `${fileName}: shell route must not overflow horizontally body=${metrics.bodyScrollWidth} document=${metrics.documentScrollWidth} viewport=${metrics.innerWidth}`,
+    ).toBe(false)
+  }
+  const coveredByBottomNav = metrics.bottomNavFindings.filter((item) => item.problem === 'coveredByBottomNav')
+  if (viewport.category === 'phone' && viewport.enforceShellHardChecks && coveredByBottomNav.length > 0) {
+    const details = coveredByBottomNav.slice(0, 5).map((item) => `${item.selector} "${item.text}" ${item.problem} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`).join(' | ')
     throw new Error(`${fileName}: mobile bottom nav spacing issue: ${details}`)
   }
-  if (viewport.enforceMobileHardChecks) {
-    await assertMobileBottomNavDocked(page, fileName)
+  if (viewport.category === 'phone' && viewport.enforceShellHardChecks) {
+    await assertMobileShellContract(page, fileName)
+  }
+  if (viewport.category === 'tablet' && viewport.enforceShellHardChecks) {
+    await assertTabletShellContract(page, fileName)
   }
 }
 
@@ -318,12 +344,16 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
     tabletLayoutFindings: metrics.tabletLayoutFindings,
   })
 
-  if (viewport.enforceMobileHardChecks && metrics.bottomNavFindings.length > 0) {
-    const details = metrics.bottomNavFindings.slice(0, 5).map((item) => `${item.selector} "${item.text}" ${item.problem} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`).join(' | ')
+  const coveredByBottomNav = metrics.bottomNavFindings.filter((item) => item.problem === 'coveredByBottomNav')
+  if (viewport.category === 'phone' && viewport.enforceShellHardChecks && coveredByBottomNav.length > 0) {
+    const details = coveredByBottomNav.slice(0, 5).map((item) => `${item.selector} "${item.text}" ${item.problem} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`).join(' | ')
     throw new Error(`${fileName}: mobile bottom nav spacing issue: ${details}`)
   }
-  if (viewport.enforceMobileHardChecks) {
-    await assertMobileBottomNavDocked(page, fileName)
+  if (viewport.category === 'phone' && viewport.enforceShellHardChecks) {
+    await assertMobileShellContract(page, fileName)
+  }
+  if (viewport.category === 'tablet' && viewport.enforceShellHardChecks) {
+    await assertTabletShellContract(page, fileName)
   }
 }
 
@@ -401,7 +431,9 @@ for (const viewport of viewports) {
       page.on('pageerror', (error) => { pageError = error.message })
       for (const route of routes) {
         await auditRoute(page, viewport, route, pageError)
-        await assertRouteContract(page, route.slug)
+        if (viewport.enforceShellHardChecks || viewport.category === 'desktop') {
+          await assertRouteContract(page, route.slug)
+        }
         pageError = null
       }
     })
@@ -620,6 +652,103 @@ async function assertMobileBottomNavDocked(page: import('@playwright/test').Page
   expect(nav!.bottomGap, `${context}: mobile bottom nav must be docked to viewport bottom`).toBeLessThanOrEqual(1)
   expect(nav!.backgroundColor, `${context}: mobile bottom nav background must be opaque`).not.toMatch(/rgba\(0,\s*0,\s*0,\s*0\)|transparent/i)
   expect(nav!.paddingBottom, `${context}: mobile bottom nav must reserve safe-area padding`).toBeGreaterThanOrEqual(8)
+}
+
+async function assertMobileShellContract(page: import('@playwright/test').Page, context: string) {
+  await assertMobileBottomNavDocked(page, context)
+
+  const shell = await page.evaluate(() => {
+    const topbar = document.querySelector('.v1-mobile-topbar') as HTMLElement | null
+    const bottomNav = document.querySelector('.v1-bottom-nav') as HTMLElement | null
+    const moreButton = document.querySelector('.v1-mobile-more-button') as HTMLElement | null
+    const bottomItems = Array.from(document.querySelectorAll('.v1-bottom-nav a, .v1-bottom-nav button')).map((element) => {
+      const html = element as HTMLElement
+      const rect = html.getBoundingClientRect()
+      return {
+        text: (html.textContent ?? '').trim().replace(/\s+/g, ' '),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      }
+    })
+    const topbarRect = topbar?.getBoundingClientRect() ?? null
+    const moreButtonRect = moreButton?.getBoundingClientRect() ?? null
+    const bottomNavRect = bottomNav?.getBoundingClientRect() ?? null
+    const bottomNavStyle = bottomNav ? window.getComputedStyle(bottomNav) : null
+
+    const topbarChildTops = Array.from(topbar?.children ?? [])
+      .map((child) => child.getBoundingClientRect().top)
+      .filter(Number.isFinite)
+
+    return {
+      topbarTop: topbarRect ? Math.round(topbarRect.top) : null,
+      topbarFirstContentTop: topbarChildTops.length > 0 ? Math.round(Math.min(...topbarChildTops)) : null,
+      moreButtonWidth: moreButtonRect ? Math.round(moreButtonRect.width) : 0,
+      moreButtonHeight: moreButtonRect ? Math.round(moreButtonRect.height) : 0,
+      bottomItems,
+      bottomGap: bottomNavRect ? Math.round(Math.abs(window.innerHeight - bottomNavRect.bottom)) : null,
+      bottomBackground: bottomNavStyle?.backgroundColor ?? '',
+    }
+  })
+
+  expect(shell.topbarTop, `${context}: mobile header must exist`).not.toBeNull()
+  expect(shell.topbarFirstContentTop, `${context}: mobile header content must exist`).not.toBeNull()
+  expect(shell.bottomItems.map((item) => item.text), `${context}: phone bottom nav labels`).toEqual(['Live', 'Addback', 'Messung', 'Grows'])
+  expect(shell.bottomItems.map((item) => item.text), `${context}: phone bottom nav must not contain secondary setup items`).not.toEqual(expect.arrayContaining(['Zelte', 'Hydro']))
+  expect(shell.topbarFirstContentTop, `${context}: mobile header content must not touch y=0`).toBeGreaterThan(0)
+  expect(shell.moreButtonWidth, `${context}: more button touch width`).toBeGreaterThanOrEqual(44)
+  expect(shell.moreButtonHeight, `${context}: more button touch height`).toBeGreaterThanOrEqual(44)
+  for (const item of shell.bottomItems) {
+    expect(item.width, `${context}: bottom nav item "${item.text}" touch width`).toBeGreaterThanOrEqual(44)
+    expect(item.height, `${context}: bottom nav item "${item.text}" touch height`).toBeGreaterThanOrEqual(44)
+  }
+  expect(shell.bottomGap, `${context}: mobile bottom nav must be docked`).toBeLessThanOrEqual(1)
+  expect(shell.bottomBackground, `${context}: mobile bottom nav background must be opaque`).not.toMatch(/rgba\(0,\s*0,\s*0,\s*0\)|transparent/i)
+
+  await page.locator('.v1-mobile-more-button').click()
+  await expect(page.locator('[data-audit="mobile-more-menu"]')).toBeVisible()
+  await expect(page.locator('[data-audit="mobile-more-group-setup"]')).toBeVisible()
+  await expect(page.locator('[data-audit="mobile-more-group-integration"]')).toBeVisible()
+  await expect(page.locator('[data-audit="mobile-more-group-system"]')).toBeVisible()
+  for (const label of ['Zelte', 'Hydro', 'Sensoren', 'Home Assistant', 'Gerät verbinden', 'Wissen', 'Einstellungen', 'Release']) {
+    await expect(page.locator('[data-audit="mobile-more-menu"]').getByRole('link', { name: label })).toBeVisible()
+  }
+  const panel = await page.locator('[data-audit="mobile-more-menu"]').evaluate((element) => {
+    const html = element as HTMLElement
+    const rect = html.getBoundingClientRect()
+    const bottomNav = document.querySelector('.v1-bottom-nav') as HTMLElement | null
+    const bottomNavRect = bottomNav?.getBoundingClientRect() ?? null
+    return {
+      top: Math.round(rect.top),
+      bottom: Math.round(rect.bottom),
+      bottomNavTop: bottomNavRect ? Math.round(bottomNavRect.top) : window.innerHeight,
+      scrollable: html.scrollHeight >= html.clientHeight,
+    }
+  })
+  expect(panel.top, `${context}: more menu must not touch notch/top edge`).toBeGreaterThan(0)
+  expect(panel.bottom, `${context}: more menu must stay above bottom nav`).toBeLessThanOrEqual(panel.bottomNavTop)
+  expect(panel.scrollable, `${context}: more menu must be scroll-capable`).toBe(true)
+  await page.locator('.v1-mobile-more-button').click()
+  await expect(page.locator('[data-audit="mobile-more-menu"]')).toHaveCount(0)
+}
+
+async function assertTabletShellContract(page: import('@playwright/test').Page, context: string) {
+  const shell = await page.evaluate(() => {
+    const desktopNav = document.querySelector('.v1-desktop-nav') as HTMLElement | null
+    const bottomNav = document.querySelector('.v1-bottom-nav') as HTMLElement | null
+    const desktopRect = desktopNav?.getBoundingClientRect() ?? null
+    const bottomRect = bottomNav?.getBoundingClientRect() ?? null
+    const desktopStyle = desktopNav ? window.getComputedStyle(desktopNav) : null
+    const bottomStyle = bottomNav ? window.getComputedStyle(bottomNav) : null
+    return {
+      desktopNavVisible: Boolean(desktopStyle && desktopStyle.display !== 'none' && desktopRect && desktopRect.width > 1 && desktopRect.height > 1),
+      bottomNavVisible: Boolean(bottomStyle && bottomStyle.display !== 'none' && bottomRect && bottomRect.width > 1 && bottomRect.height > 1),
+      desktopNavWidth: desktopRect ? Math.round(desktopRect.width) : 0,
+    }
+  })
+
+  expect(shell.desktopNavVisible, `${context}: tablet should use sidebar/adaptive navigation, not phone-only shell`).toBe(true)
+  expect(shell.desktopNavWidth, `${context}: tablet sidebar must remain touch-friendly`).toBeGreaterThanOrEqual(220)
+  expect(shell.bottomNavVisible, `${context}: tablet must not force phone bottom nav`).toBe(false)
 }
 
 async function assertNoAsciiUmlautActions(page: import('@playwright/test').Page, slug: string) {
