@@ -632,6 +632,8 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
       }).length)
     expect(overflowingLastFields, 'Addback Verlauf "Letzter" must not overflow its box').toBe(0)
   }
+
+  await assertNoAsciiUmlautUiText(page, slug)
 }
 
 async function assertMobileBottomNavDocked(page: import('@playwright/test').Page, context: string) {
@@ -757,4 +759,24 @@ async function assertNoAsciiUmlautActions(page: import('@playwright/test').Page,
       .map((item) => (item.textContent ?? '').trim().replace(/\s+/g, ' '))
       .filter((text) => /\b(Loeschen|Loescht|geloescht|endgueltig|Oeffnen|Zurueck|waehle|laedt|bestaetigen|moeglich|verknuepft)\b/i.test(text)))
   expect(offenders, `${slug}: visible actions must use German umlauts`).toEqual([])
+}
+
+async function assertNoAsciiUmlautUiText(page: import('@playwright/test').Page, slug: string) {
+  const offenders = await page
+    .locator('button, a, label, h1, h2, h3, h4, h5, h6, [role="button"], [role="link"], [role="alert"], .v1-empty, .v1-stat, .v1-info, .panel-card-title')
+    .evaluateAll((items) => {
+      const asciiUmlautPattern = /\b(?:Oeffnen|oeffnen|Loeschen|loeschen|Loesung|loesung|Loescht|loescht|geloescht|Zurueck|zurueck|gewaehlt|ausgewaehlt|waehlen|waehle|Geraete|geraete|muessen|koennen|fuer|ueber|spaeter|moeglich|verknuepft|ungueltig|bestaetigen|laedt|Naehrstoff|naehrstoff|Naehrloesung|naehrloesung|ergaenzen|Ergaenzen|verfuegbar|Spruenge|Stabilitaet|beruecksichtigen|Sofortmassnahmen|Verschleiss|haengen|gehoeren|staerkere|auswaehlbar)\b/i
+      return items
+        .map((item) => {
+          const html = item as HTMLElement
+          const rect = html.getBoundingClientRect()
+          const style = window.getComputedStyle(html)
+          const visible = style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1
+          if (!visible || html.closest('[aria-hidden="true"]')) return ''
+          return (html.textContent ?? '').trim().replace(/\s+/g, ' ')
+        })
+        .filter((text) => text && asciiUmlautPattern.test(text))
+    })
+
+  expect(offenders, `${slug}: visible UI text must use German umlauts`).toEqual([])
 }

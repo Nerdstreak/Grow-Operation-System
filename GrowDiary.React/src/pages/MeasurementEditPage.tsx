@@ -243,7 +243,7 @@ function MeasurementEditPage() {
                     </div>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
                       <input type="checkbox" checked={draft.solutionChange} onChange={(event) => setDraft((current) => current ? { ...current, solutionChange: event.target.checked } : current)} />
-                      <span>Loesungswechsel dokumentiert</span>
+                      <span>Lösungswechsel dokumentiert</span>
                     </label>
                     <label className="field">
                       <span>Notiz</span>
@@ -299,7 +299,7 @@ function MeasurementEditPage() {
 
               <div className="panel-card">
                 <div className="panel-card-header">
-                  <span className="panel-card-title">Fotos ergaenzen</span>
+                  <span className="panel-card-title">Fotos ergänzen</span>
                 </div>
                 <form onSubmit={handlePhotoSubmit} style={{ padding: '12px 14px', display: 'grid', gap: 10 }}>
                   <label className="field">

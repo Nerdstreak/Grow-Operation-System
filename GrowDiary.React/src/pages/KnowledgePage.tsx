@@ -34,37 +34,37 @@ const topics: Topic[] = [
     id: 'rdwc',
     title: 'RDWC Grundlagen',
     kicker: 'System verstehen',
-    intro: 'Reservoir, Umlauf, Sauerstoff, Temperatur und Hygiene haengen in RDWC enger zusammen als bei Erde oder Coco.',
+    intro: 'Reservoir, Umlauf, Sauerstoff, Temperatur und Hygiene hängen in RDWC enger zusammen als bei Erde oder Coco.',
     keywords: ['rdwc', 'dwc', 'reservoir', 'wasser', 'umlauf', 'sauerstoff'],
     sections: [
       { title: 'Worum geht es?', text: 'RDWC ist ein rezirkulierendes Wassersystem. Ein Fehler im Reservoir betrifft deshalb sehr schnell alle Pflanzen.' },
       { title: 'Worauf achten?', text: 'pH, EC, Wassertemperatur, Sauerstoff, Wasserstand und saubere Hardware sind die Kernwerte.' },
       { title: 'In der App', text: 'Hydro-Setup, Addback, Sensoren und Live-Dashboard sind deshalb getrennte Workflows.' },
     ],
-    action: { label: 'Hydro oeffnen', to: '/hydro' },
+    action: { label: 'Hydro öffnen', to: '/hydro' },
   },
   {
     id: 'addback',
     title: 'Addback & Wasserwechsel',
-    kicker: 'Naehrloesung logisch ergaenzen',
+    kicker: 'Nährlösung logisch ergänzen',
     intro: 'Addback ist kein blindes Nachkippen. Ziel ist, Wasserstand und Ziel-EC kontrolliert wieder in den Bereich zu bringen.',
     keywords: ['addback', 'topoff', 'ec', 'reservoir', 'nachfuellen', 'wasserwechsel'],
     sections: [
-      { title: 'Prinzip', text: 'Erst Ist-Zustand messen, dann Zielwert bestimmen, dann Wasser oder Naehrloesung ergaenzen und nachmessen.' },
-      { title: 'Fehler vermeiden', text: 'Nicht nur EC korrigieren. Wasserstand, pH, Temperatur und Pflanzenphase gehoeren dazu.' },
+      { title: 'Prinzip', text: 'Erst Ist-Zustand messen, dann Zielwert bestimmen, dann Wasser oder Nährlösung ergänzen und nachmessen.' },
+      { title: 'Fehler vermeiden', text: 'Nicht nur EC korrigieren. Wasserstand, pH, Temperatur und Pflanzenphase gehören dazu.' },
       { title: 'In der App', text: 'Der Addback-Assistent nutzt Grow, Hydro-System, Reservoirvolumen und Programm als Kontext.' },
     ],
-    action: { label: 'Addback oeffnen', to: '/addback' },
+    action: { label: 'Addback öffnen', to: '/addback' },
   },
   {
     id: 'rootrot',
     title: 'Pathogene / Root Rot',
-    kicker: 'Risiko & Sofortmassnahmen',
+    kicker: 'Risiko & Sofortmaßnahmen',
     intro: 'Wurzelfäule ist in Hydro kritisch, weil sich Probleme über Wasser, Biofilm und Sauerstoffmangel schnell ausbreiten können.',
     keywords: ['root', 'rot', 'wurzel', 'faeule', 'pathogen', 'hygiene', 'pythium'],
     sections: [
       { title: 'Symptome', text: 'Braune oder slimige Wurzeln, muffiger Geruch, fallender Sauerstoff, instabile Werte und schlapper Wuchs.' },
-      { title: 'Sofortmassnahmen', text: 'Temperatur, Sauerstoff, Biofilm, tote Wurzelmasse und Hygiene prüfen. Keine hektischen Mehrfachkorrekturen.' },
+      { title: 'Sofortmaßnahmen', text: 'Temperatur, Sauerstoff, Biofilm, tote Wurzelmasse und Hygiene prüfen. Keine hektischen Mehrfachkorrekturen.' },
       { title: 'In der App', text: 'Wissen, SOPs, Sensorvertrauen und Risiken laufen hier zusammen.' },
     ],
     action: { label: 'SOPs prüfen', to: '/wissen' },
@@ -73,24 +73,24 @@ const topics: Topic[] = [
     id: 'ph-ec',
     title: 'pH / EC / ORP / DO',
     kicker: 'Werte richtig deuten',
-    intro: 'pH und EC muessen zusammen mit Wasserstand, Sauerstoff und Pflanzenphase gelesen werden.',
+    intro: 'pH und EC müssen zusammen mit Wasserstand, Sauerstoff und Pflanzenphase gelesen werden.',
     keywords: ['ph', 'ec', 'orp', 'do', 'stabilisierung', 'naehrstoff'],
     sections: [
-      { title: 'pH', text: 'pH-Drift kann normal sein, aber starke Spruenge deuten auf Puffer-, Hygiene- oder Dosierprobleme hin.' },
-      { title: 'EC', text: 'Steigender EC bei fallendem Wasserstand kann auf staerkere Wasseraufnahme als Naehrstoffaufnahme hinweisen.' },
-      { title: 'In der App', text: 'Addback und Live-Score bewerten Werte konservativ und behaupten keine Stabilitaet, wenn Daten fehlen.' },
+      { title: 'pH', text: 'pH-Drift kann normal sein, aber starke Sprünge deuten auf Puffer-, Hygiene- oder Dosierprobleme hin.' },
+      { title: 'EC', text: 'Steigender EC bei fallendem Wasserstand kann auf stärkere Wasseraufnahme als Nährstoffaufnahme hinweisen.' },
+      { title: 'In der App', text: 'Addback und Live-Score bewerten Werte konservativ und behaupten keine Stabilität, wenn Daten fehlen.' },
     ],
-    action: { label: 'Live oeffnen', to: '/' },
+    action: { label: 'Live öffnen', to: '/' },
   },
   {
     id: 'athena',
     title: 'Athena Blended',
     kicker: 'Programm',
-    intro: 'Athena wird als auswaehlbares Naehrstoffprogramm im Grow gespeichert, damit Empfehlungen den richtigen Kontext haben.',
+    intro: 'Athena wird als auswählbares Nährstoffprogramm im Grow gespeichert, damit Empfehlungen den richtigen Kontext haben.',
     keywords: ['athena', 'blended', 'grow', 'bloom'],
     sections: [
-      { title: 'Ziel', text: 'Programmkontext fuer Grow, Addback, Zielwerte und spätere Empfehlungen.' },
-      { title: 'Wichtig', text: 'Nicht nur Herstellername speichern, sondern auch Phase, Wasserquelle und Systemart beruecksichtigen.' },
+      { title: 'Ziel', text: 'Programmkontext für Grow, Addback, Zielwerte und spätere Empfehlungen.' },
+      { title: 'Wichtig', text: 'Nicht nur Herstellername speichern, sondern auch Phase, Wasserquelle und Systemart berücksichtigen.' },
       { title: 'In der App', text: 'Beim Grow-Start wird das Programm gewählt und in Addback/Knowledge weiterverwendet.' },
     ],
     action: { label: 'Grow starten', to: '/grows/new' },
@@ -99,12 +99,12 @@ const topics: Topic[] = [
     id: 'canna',
     title: 'Canna Aqua',
     kicker: 'Programm',
-    intro: 'Canna Aqua ist fuer rezirkulierende Systeme relevant und bleibt als Programmkontext auswaehlbar.',
+    intro: 'Canna Aqua ist für rezirkulierende Systeme relevant und bleibt als Programmkontext auswählbar.',
     keywords: ['canna', 'aqua', 'vega', 'flores'],
     sections: [
-      { title: 'Ziel', text: 'Naehrstofflogik passend zu rezirkulierendem Hydro-System dokumentieren.' },
-      { title: 'Wichtig', text: 'Programmauswahl ist kein Ersatz fuer Messwerte. Sie liefert Kontext fuer die Interpretation.' },
-      { title: 'In der App', text: 'Programmwahl wird im Grow gespeichert und spaeter fuer Empfehlungen genutzt.' },
+      { title: 'Ziel', text: 'Nährstofflogik passend zu rezirkulierendem Hydro-System dokumentieren.' },
+      { title: 'Wichtig', text: 'Programmauswahl ist kein Ersatz für Messwerte. Sie liefert Kontext für die Interpretation.' },
+      { title: 'In der App', text: 'Programmwahl wird im Grow gespeichert und später für Empfehlungen genutzt.' },
     ],
     action: { label: 'Grow starten', to: '/grows/new' },
   },
@@ -119,7 +119,7 @@ const topics: Topic[] = [
       { title: 'Kalibrierung', text: 'pH und EC sollten dokumentiert kalibriert werden, sonst sind Empfehlungen nicht belastbar.' },
       { title: 'In der App', text: 'Sensoren-Seite, HA-Mapping und Live-Dashboard greifen hier zusammen.' },
     ],
-    action: { label: 'Sensoren oeffnen', to: '/hardware' },
+    action: { label: 'Sensoren öffnen', to: '/hardware' },
   },
   {
     id: 'troubleshooting',
@@ -132,7 +132,7 @@ const topics: Topic[] = [
       { title: 'Vermeiden', text: 'Mehrere starke Korrekturen gleichzeitig machen spätere Auswertung unmöglich.' },
       { title: 'In der App', text: 'Aufgaben, Wissen, Addback und Messungen machen diese Diagnose nachvollziehbar.' },
     ],
-    action: { label: 'Aufgaben oeffnen', to: '/aufgaben' },
+    action: { label: 'Aufgaben öffnen', to: '/aufgaben' },
   },
 ]
 
@@ -219,7 +219,7 @@ function KnowledgePage() {
         </article>
 
         <aside className="wiki-related" data-audit="knowledge-related">
-          <h2>Verknuepfte Daten</h2>
+          <h2>Verknüpfte Daten</h2>
           {loading ? <V1Empty title="Lade Wissensbasis..." /> : related.length === 0 ? <V1Empty title="Keine Treffer" text="Zu diesem Thema wurden noch keine passenden Datensätze gefunden." /> : (
             <div className="wiki-related-list">
               {related.map((item) => (
@@ -258,13 +258,13 @@ function findRelated(topic: Topic, catalogs: Catalogs) {
     }
   }
 
-  collect('Programm', 'Naehrstoffprogramm', catalogs.programs)
+  collect('Programm', 'Nährstoffprogramm', catalogs.programs)
   collect('SOP', 'Arbeitsablauf', catalogs.sops)
   collect('Treatment', 'Maßnahme', catalogs.treatments)
   collect('Symptom', 'Diagnose', catalogs.symptoms)
   collect('Setpoint', 'Zielwert', catalogs.setpoints)
   collect('Pathogen', 'Risiko', catalogs.pathogens)
-  collect('Verschleiss', 'Hardware', catalogs.wear)
+  collect('Verschleiß', 'Hardware', catalogs.wear)
 
   return items.slice(0, 8)
 }

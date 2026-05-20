@@ -89,8 +89,8 @@ function AddbackHubPage() {
 
         <V1Card className="v1-addback-hub-summary">
           <span className="v1-card-kicker">Hub</span>
-          <h2>{hydroGrows.length} Hydro-Grows verfuegbar</h2>
-          <p>Waehle einen Grow, starte einen Addback oder oeffne den Verlauf nach Hydro-Setup.</p>
+          <h2>{hydroGrows.length} Hydro-Grows verfügbar</h2>
+          <p>Wähle einen Grow, starte einen Addback oder öffne den Verlauf nach Hydro-Setup.</p>
         </V1Card>
       </section>
 
