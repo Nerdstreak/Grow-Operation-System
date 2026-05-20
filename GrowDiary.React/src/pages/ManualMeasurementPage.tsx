@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowStage, GrowSummary, MeasurementDto, MeasurementUpsertPayload, PhotoTag, ValueOrigin } from '../types'
+import type { GrowStage, GrowSummary, HydroStyle, MeasurementDto, MeasurementUpsertPayload, PhotoTag, ValueOrigin } from '../types'
 import FileInput from '../components/FileInput'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch } from '../components/v1'
 import { toLocalInputValue } from '../utils'
@@ -49,17 +49,16 @@ const stages: GrowStage[] = ['Seedling', 'Clone', 'Veg', 'Transition', 'Flower',
 const photoTags: PhotoTag[] = ['Overview', 'Canopy', 'Leaf', 'Root', 'Training', 'Flower', 'Problem', 'Comparison', 'Other']
 
 const climateFields: FieldDefinition[] = [
-  { key: 'airTemperatureC', label: 'Lufttemperatur', unit: '°C' },
+  { key: 'airTemperatureC', label: 'Temperatur', unit: '°C' },
   { key: 'humidityPercent', label: 'Luftfeuchte', unit: '%' },
   { key: 'ppfdMol', label: 'PPFD', unit: 'µmol/m²/s' },
   { key: 'co2Ppm', label: 'CO₂', unit: 'ppm' },
-  { key: 'heightCm', label: 'Pflanzenhöhe', unit: 'cm' },
 ]
 
 const reservoirFields: FieldDefinition[] = [
   { key: 'reservoirPh', label: 'pH', unit: 'pH' },
   { key: 'reservoirEc', label: 'EC', unit: 'mS/cm' },
-  { key: 'reservoirWaterTempC', label: 'Wassertemperatur', unit: '°C' },
+  { key: 'reservoirWaterTempC', label: 'Wassertemp.', unit: '°C' },
   { key: 'reservoirLevelCm', label: 'Wasserstand', unit: 'cm' },
   { key: 'reservoirLevelLiters', label: 'Wasserstand', unit: 'L' },
   { key: 'dissolvedOxygenMgL', label: 'DO', unit: 'mg/L' },
@@ -75,6 +74,12 @@ const irrigationFields: FieldDefinition[] = [
   { key: 'drainEc', label: 'Drain EC', unit: 'mS/cm' },
   { key: 'topOffLiters', label: 'Top-Off', unit: 'L' },
   { key: 'addbackEc', label: 'Addback EC', unit: 'mS/cm' },
+]
+
+const soilSolutionFields: FieldDefinition[] = irrigationFields.filter((field) => field.key !== 'topOffLiters' && field.key !== 'addbackEc')
+
+const observationFields: FieldDefinition[] = [
+  { key: 'heightCm', label: 'Höhe', unit: 'cm' },
 ]
 
 function ManualMeasurementPage() {
@@ -115,9 +120,18 @@ function ManualMeasurementPage() {
 
   const selectedGrow = useMemo(() => grows.find((grow) => grow.id === selectedGrowId) ?? null, [grows, selectedGrowId])
   const filledCount = useMemo(() => countFilled(draft), [draft])
+  const vpd = useMemo(() => calculateVpd(draft.airTemperatureC, draft.humidityPercent), [draft.airTemperatureC, draft.humidityPercent])
+  const isHydroGrow = isHydroStyle(selectedGrow?.hydroStyle)
+  const solutionFields = isHydroGrow ? reservoirFields : soilSolutionFields
 
   function patch(patchValue: Partial<MeasurementDraft>) {
     setDraft((current) => ({ ...current, ...patchValue }))
+  }
+
+  function selectGrow(growId: number) {
+    const grow = grows.find((item) => item.id === growId)
+    setSelectedGrowId(growId)
+    if (grow?.latestStage) patch({ stage: grow.latestStage })
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -152,7 +166,7 @@ function ManualMeasurementPage() {
     <V1Page
       eyebrow="Manuell"
       title="Messung erfassen"
-      subtitle="Unabhängig von Addback und Home Assistant. Für echte Nutzung ohne vollständiges Sensor-Setup."
+      subtitle="Werte, Foto, speichern."
       action={<Link className="v1-button is-ghost" to="/">Zurück</Link>}
       className="rc2-measurement-page"
     >
@@ -160,19 +174,30 @@ function ManualMeasurementPage() {
       {message && <V1Alert message={message} tone="ok" />}
 
       {loading ? <V1Empty title="Lade Grows..." /> : grows.length === 0 ? (
-        <V1Empty title="Kein aktiver Grow" text="Lege zuerst einen Grow an, bevor du manuelle Messungen erfassen kannst." action={<Link to="/grows/new" className="v1-button is-primary">Grow starten</Link>} />
+        <div data-audit="measurement-empty-state">
+          <V1Empty
+            title="Noch kein Grow für Messungen"
+            action={(
+              <div className="measurement-empty-actions">
+                <Link to="/grows/new" className="v1-button is-primary">Grow anlegen</Link>
+                <Link to="/zelte/new" className="v1-button is-secondary">Zelt anlegen</Link>
+              </div>
+            )}
+          />
+        </div>
       ) : (
-        <form className="rc2-measurement-layout" onSubmit={(event) => void submit(event)}>
-          <aside className="rc2-measurement-side">
-            <V1Card className="rc2-sticky-card">
+        <form className="rc2-measurement-layout" data-audit="measurement-form" onSubmit={(event) => void submit(event)}>
+          <aside className="rc2-measurement-side" data-audit="measurement-group">
+            <V1Card className="rc2-sticky-card rc2-measurement-context">
               <span className="v1-card-kicker">Kontext</span>
               <h2>{selectedGrow?.name ?? 'Grow wählen'}</h2>
               <p>{selectedGrow?.strain ?? 'Sorte offen'} · {selectedGrow?.tentName ?? 'ohne Zelt'}</p>
               <V1Field label="Grow">
-                <select value={selectedGrowId ?? ''} onChange={(event) => setSelectedGrowId(Number(event.target.value))}>
+                <select value={selectedGrowId ?? ''} onChange={(event) => selectGrow(Number(event.target.value))}>
                   {grows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
                 </select>
               </V1Field>
+              {grows.length === 1 && <small className="rc2-measurement-note">Eindeutig vorausgewählt, Wechsel bleibt möglich.</small>}
               <V1Field label="Zeitpunkt">
                 <input type="datetime-local" value={draft.takenAtLocal} onChange={(event) => patch({ takenAtLocal: event.target.value })} />
               </V1Field>
@@ -186,39 +211,63 @@ function ManualMeasurementPage() {
           </aside>
 
           <div className="rc2-measurement-main">
-            <V1Section title="RDWC/DWC Reservoir">
-              <FieldGrid fields={reservoirFields} draft={draft} patch={patch} />
-            </V1Section>
+            <div data-audit="measurement-group">
+              <V1Section title="Klima">
+                <FieldGrid fields={climateFields} draft={draft} patch={patch}>
+                  <div className="rc2-measurement-derived" data-audit="measurement-vpd">
+                    <span>VPD</span>
+                    <strong>{vpd ?? '–'}<em>kPa</em></strong>
+                  </div>
+                </FieldGrid>
+              </V1Section>
+            </div>
 
-            <V1Section title="Zelt / Klima">
-              <FieldGrid fields={climateFields} draft={draft} patch={patch} />
-            </V1Section>
+            <div data-audit="measurement-group">
+              <V1Section title={isHydroGrow ? 'Hydro / Nährlösung' : 'Gießen / Drain'}>
+                <FieldGrid fields={solutionFields} draft={draft} patch={patch} />
+              </V1Section>
+            </div>
 
-            <V1Section title="Gießen / Drain / Addback">
-              <FieldGrid fields={irrigationFields} draft={draft} patch={patch} />
-            </V1Section>
+            {isHydroGrow && (
+              <div data-audit="measurement-group">
+                <V1Section title="Addback">
+                  <FieldGrid fields={irrigationFields} draft={draft} patch={patch} />
+                </V1Section>
+              </div>
+            )}
 
-            <V1Section title="Notiz & Fotos">
-              <div className="rc2-measurement-extra">
-                <V1Field label="Notiz">
-                  <textarea rows={4} value={draft.notes} onChange={(event) => patch({ notes: event.target.value })} placeholder="Beobachtung, Korrektur, Geruch, Wurzeln, Blattbild..." />
-                </V1Field>
-                <V1Switch label="Lösungswechsel" checked={draft.solutionChange} onChange={(checked) => patch({ solutionChange: checked })} hint="Reservoir oder Nährlösung vollständig gewechselt." />
+            <div data-audit="measurement-group">
+              <V1Section title="Beobachtung">
+                <div className="rc2-measurement-extra">
+                  <FieldGrid fields={observationFields} draft={draft} patch={patch} />
+                  <V1Switch label="Lösungswechsel" checked={draft.solutionChange} onChange={(checked) => patch({ solutionChange: checked })} hint="Reservoir oder Nährlösung vollständig gewechselt." />
+                  <V1Field label="Notiz" wide>
+                    <textarea rows={4} value={draft.notes} onChange={(event) => patch({ notes: event.target.value })} placeholder="Blattbild, Wurzeln, Geruch, Korrektur..." />
+                  </V1Field>
+                </div>
+              </V1Section>
+            </div>
+
+            <div data-audit="measurement-group">
+              <V1Section title="Foto">
+              <div className="rc2-measurement-extra rc2-measurement-photo">
                 <V1Field label="Foto-Tag">
                   <select value={photoDraft.tag} onChange={(event) => setPhotoDraft((current) => ({ ...current, tag: event.target.value as PhotoTag }))}>
                     {photoTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
                   </select>
                 </V1Field>
-                <V1Field label="Foto-Beschriftung">
+                <V1Field label="Beschriftung">
                   <input value={photoDraft.caption} onChange={(event) => setPhotoDraft((current) => ({ ...current, caption: event.target.value }))} />
                 </V1Field>
                 <V1Field label="Fotos" wide>
-                  <FileInput accept="image/png,image/jpeg,image/webp" multiple fileNames={photoDraft.files.map((file) => file.name)} onFiles={(files) => setPhotoDraft((current) => ({ ...current, files }))} />
+                  <FileInput accept="image/png,image/jpeg,image/webp" label="Foto auswählen" multiple fileNames={photoDraft.files.map((file) => file.name)} onFiles={(files) => setPhotoDraft((current) => ({ ...current, files }))} />
+                  <small>Optional, ein oder mehrere Bilder.</small>
                 </V1Field>
               </div>
-            </V1Section>
+              </V1Section>
+            </div>
 
-            <div className="v1-form-actions sticky-actions">
+            <div className="v1-form-actions sticky-actions" data-audit="measurement-save-actions">
               <Link className="v1-button is-ghost" to="/">Abbrechen</Link>
               <V1Button type="submit" variant="primary" disabled={saving}>{saving ? 'Speichert...' : 'Messung speichern'}</V1Button>
             </div>
@@ -229,7 +278,7 @@ function ManualMeasurementPage() {
   )
 }
 
-function FieldGrid({ fields, draft, patch }: { fields: FieldDefinition[]; draft: MeasurementDraft; patch: (patchValue: Partial<MeasurementDraft>) => void }) {
+function FieldGrid({ children, fields, draft, patch }: { children?: ReactNode; fields: FieldDefinition[]; draft: MeasurementDraft; patch: (patchValue: Partial<MeasurementDraft>) => void }) {
   return (
     <div className="rc2-measurement-grid">
       {fields.map((field) => (
@@ -242,6 +291,7 @@ function FieldGrid({ fields, draft, patch }: { fields: FieldDefinition[]; draft:
           />
         </V1Field>
       ))}
+      {children}
     </div>
   )
 }
@@ -336,6 +386,18 @@ function toPayload(draft: MeasurementDraft): MeasurementUpsertPayload {
 function countFilled(draft: MeasurementDraft) {
   const ignored = new Set(['takenAtLocal', 'stage', 'source', 'notes', 'solutionChange'])
   return Object.entries(draft).filter(([key, value]) => !ignored.has(key) && String(value).trim().length > 0).length
+}
+
+function isHydroStyle(style: HydroStyle | null | undefined) {
+  return style != null && style !== 'None'
+}
+
+function calculateVpd(temperatureValue: string, humidityValue: string) {
+  const temperature = parseNullableNumber(temperatureValue)
+  const humidity = parseNullableNumber(humidityValue)
+  if (temperature == null || humidity == null || humidity < 0 || humidity > 100) return null
+  const saturationKpa = 0.6108 * Math.exp((17.27 * temperature) / (temperature + 237.3))
+  return (saturationKpa * (1 - humidity / 100)).toFixed(2)
 }
 
 function parseNullableNumber(value: string) {

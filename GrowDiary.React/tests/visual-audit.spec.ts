@@ -42,6 +42,9 @@ type ReportRow = {
   tabletLayoutFindings: AuditFinding[]
   liveDashboardFindings: AuditFinding[]
   addbackFindings: AuditFinding[]
+  measurementFindings: AuditFinding[]
+  measurementFormGroups: number | null
+  measurementFieldsAboveFold: number | null
 }
 
 type LayoutFinding = {
@@ -263,6 +266,68 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       ].filter((item): item is AuditFinding => item !== null)
       : []
 
+    const measurementForm = document.querySelector('[data-audit="measurement-form"]') as HTMLElement | null
+    const measurementEmpty = document.querySelector('[data-audit="measurement-empty-state"]') as HTMLElement | null
+    const measurementSave = document.querySelector('[data-audit="measurement-save-actions"]') as HTMLElement | null
+    const measurementFileInput = measurementForm?.querySelector('.rc-file-input') as HTMLElement | null
+    const measurementGroups = measurementForm ? Array.from(measurementForm.querySelectorAll('[data-audit="measurement-group"]')) : []
+    const measurementControls = measurementForm
+      ? Array.from(measurementForm.querySelectorAll('input, select, textarea, button, a'))
+        .map((element) => {
+          const html = element as HTMLElement
+          const rect = html.getBoundingClientRect()
+          const style = window.getComputedStyle(html)
+          return {
+            tag: html.tagName.toLowerCase(),
+            selector: selectorFor(html),
+            text: (html.textContent ?? html.getAttribute('aria-label') ?? '').trim().replace(/\s+/g, ' ').slice(0, 100),
+            top: rect.top,
+            bottom: rect.bottom,
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+            visible: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1,
+          }
+        })
+        .filter((item) => item.visible)
+      : []
+    const measurementSaveRect = measurementSave?.getBoundingClientRect() ?? null
+    const measurementFileRect = measurementFileInput?.getBoundingClientRect() ?? null
+    const measurementFindings = [
+      isPhone && !measurementForm && measurementEmpty && !/Noch kein Grow für Messungen/i.test(measurementEmpty.textContent ?? '')
+        ? { selector: '[data-audit="measurement-empty-state"]', text: (measurementEmpty.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 120), problem: 'measurementEmptyStateText', details: 'Expected short fresh-install empty state.' }
+        : null,
+      isPhone && !measurementForm && measurementEmpty && !Array.from(measurementEmpty.querySelectorAll('a, button')).some((item) => /Grow anlegen/i.test(item.textContent ?? ''))
+        ? { selector: '[data-audit="measurement-empty-state"]', text: '', problem: 'measurementEmptyStateMissingGrowCta', details: 'Expected Grow anlegen CTA.' }
+        : null,
+      isPhone && measurementForm && measurementGroups.length < 4
+        ? { selector: '[data-audit="measurement-group"]', text: '', problem: 'measurementGroupCountLow', details: String(measurementGroups.length) }
+        : null,
+      isPhone && measurementForm && !measurementSave
+        ? { selector: '[data-audit="measurement-save-actions"]', text: '', problem: 'measurementSaveMissing', details: 'Expected save actions.' }
+        : null,
+      isPhone && measurementSaveRect && bottomNavRect && measurementSaveRect.bottom > bottomNavRect.top + 4 && measurementSaveRect.top < bottomNavRect.bottom - 4
+        ? { selector: '[data-audit="measurement-save-actions"]', text: '', problem: 'measurementSaveUnderBottomNav', details: `saveBottom=${Math.round(measurementSaveRect.bottom)} navTop=${Math.round(bottomNavRect.top)}` }
+        : null,
+      isPhone && measurementFileRect && measurementFileRect.width > window.innerWidth
+        ? { selector: '.rc-file-input', text: '', problem: 'measurementFileInputTooWide', details: `fileWidth=${Math.round(measurementFileRect.width)} viewport=${window.innerWidth}` }
+        : null,
+      ...measurementControls
+        .filter((control) => {
+          const isInput = control.tag === 'input' || control.tag === 'select' || control.tag === 'textarea'
+          const minHeight = isInput ? 48 : 44
+          return isPhone && control.height < minHeight
+        })
+        .map((control) => ({
+          selector: control.selector,
+          text: control.text,
+          problem: 'measurementControlTooSmall',
+          details: `${control.tag} ${control.width}x${control.height}`,
+        })),
+      isTablet && measurementForm
+        ? { selector: '[data-audit="measurement-form"]', text: '', problem: 'tabletMeasurementLayout', details: `groups=${measurementGroups.length} fieldsAboveFold=${measurementControls.filter((control) => ['input', 'select', 'textarea'].includes(control.tag) && control.top < Math.min(window.innerHeight, 1024) && control.bottom > 0).length}` }
+        : null,
+    ].filter((item): item is AuditFinding => item !== null)
+
     return {
       bodyScrollWidth: document.body.scrollWidth,
       documentScrollWidth: document.documentElement.scrollWidth,
@@ -275,6 +340,11 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       tabletLayoutFindings,
       liveDashboardFindings,
       addbackFindings,
+      measurementFindings,
+      measurementFormGroups: measurementForm ? measurementGroups.length : null,
+      measurementFieldsAboveFold: measurementForm
+        ? measurementControls.filter((control) => ['input', 'select', 'textarea'].includes(control.tag) && control.top < (isPhone ? window.innerHeight : Math.min(window.innerHeight, 1024)) && control.bottom > 0).length
+        : null,
     }
   })
 }
@@ -296,6 +366,7 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
   const metrics = await collectPageMetrics(page)
   const fileName = `${viewport.name}-${viewport.width}x${viewport.height}-${route.slug}.png`
   await page.screenshot({ path: path.join(outputDir, fileName), fullPage: true })
+  copyMeasurementScreenshotAlias(viewport, route.slug, fileName)
 
   reportRows.push({
     viewport: `${viewport.name}-${viewport.width}x${viewport.height}`,
@@ -317,6 +388,9 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
     tabletLayoutFindings: metrics.tabletLayoutFindings,
     liveDashboardFindings: metrics.liveDashboardFindings,
     addbackFindings: metrics.addbackFindings,
+    measurementFindings: metrics.measurementFindings,
+    measurementFormGroups: metrics.measurementFormGroups,
+    measurementFieldsAboveFold: metrics.measurementFieldsAboveFold,
   })
 
   if (viewport.enforceShellHardChecks && shellOverflowSlugs.has(route.slug)) {
@@ -333,6 +407,7 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
   if (viewport.category === 'phone' && viewport.enforceShellHardChecks) {
     await assertMobileShellContract(page, fileName)
     await assertAddbackFlowMobileContract(page, fileName)
+    await assertMeasurementMobileContract(page, fileName)
   }
   if (viewport.category === 'tablet' && viewport.enforceShellHardChecks) {
     await assertTabletShellContract(page, fileName)
@@ -395,6 +470,9 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
     tabletLayoutFindings: metrics.tabletLayoutFindings,
     liveDashboardFindings: metrics.liveDashboardFindings,
     addbackFindings: metrics.addbackFindings,
+    measurementFindings: metrics.measurementFindings,
+    measurementFormGroups: metrics.measurementFormGroups,
+    measurementFieldsAboveFold: metrics.measurementFieldsAboveFold,
   })
 
   const coveredByBottomNav = metrics.bottomNavFindings.filter((item) => item.problem === 'coveredByBottomNav')
@@ -405,6 +483,7 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
   if (viewport.category === 'phone' && viewport.enforceShellHardChecks) {
     await assertMobileShellContract(page, fileName)
     await assertAddbackFlowMobileContract(page, fileName)
+    await assertMeasurementMobileContract(page, fileName)
   }
   if (viewport.category === 'tablet' && viewport.enforceShellHardChecks) {
     await assertTabletShellContract(page, fileName)
@@ -422,12 +501,12 @@ function writeReports() {
     '',
     '## Screenshots',
     '',
-    '| Viewport | Route | Status | Overflow | Bottom Nav | Touch | Safe Area | Nav Structure | Tablet | Heading | Screenshot | Note | PageError |',
-    '|---|---|---:|---|---:|---:|---:|---:|---:|---|---|---|---|',
+    '| Viewport | Route | Status | Overflow | Bottom Nav | Touch | Safe Area | Nav Structure | Tablet | Messung | Gruppen | Felder above fold | Heading | Screenshot | Note | PageError |',
+    '|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|',
     ...reportRows.map((row) => {
       const note = row.note ? row.note.replace(/\|/g, '\\|').slice(0, 220) : ''
       const error = row.pageError ? row.pageError.replace(/\|/g, '\\|').slice(0, 160) : ''
-      return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.bottomNavFindings.length} | ${row.touchTargetFindings.length} | ${row.safeAreaFindings.length} | ${row.navStructureFindings.length} | ${row.tabletLayoutFindings.length} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
+      return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.bottomNavFindings.length} | ${row.touchTargetFindings.length} | ${row.safeAreaFindings.length} | ${row.navStructureFindings.length} | ${row.tabletLayoutFindings.length} | ${row.measurementFindings.length} | ${row.measurementFormGroups ?? ''} | ${row.measurementFieldsAboveFold ?? ''} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
     }),
     '',
     '## Mobile / Tablet Findings',
@@ -443,6 +522,7 @@ function writeReports() {
       ...row.tabletLayoutFindings.map((finding) => findingLine(row, 'tabletLayoutFindings', finding)),
       ...row.liveDashboardFindings.map((finding) => findingLine(row, 'liveDashboardFindings', finding)),
       ...row.addbackFindings.map((finding) => findingLine(row, 'addbackFindings', finding)),
+      ...row.measurementFindings.map((finding) => findingLine(row, 'measurementFindings', finding)),
     ]),
     '',
     '## Addback Deep Flow',
@@ -457,6 +537,15 @@ function writeReports() {
   ]
 
   fs.writeFileSync(path.join(outputDir, 'visual-audit-report.md'), lines.join('\n'), 'utf8')
+}
+
+function copyMeasurementScreenshotAlias(viewport: ViewportCase, slug: string, fileName: string) {
+  if (slug !== 'messung') return
+  const prefix = viewport.category === 'phone' ? 'mobile' : viewport.category === 'tablet' ? 'tablet' : null
+  if (!prefix) return
+  const alias = `${prefix}-${viewport.width}x${viewport.height}-messung.png`
+  if (alias === fileName) return
+  fs.copyFileSync(path.join(outputDir, fileName), path.join(outputDir, alias))
 }
 
 function findingLine(row: ReportRow, category: string, finding: AuditFinding) {
@@ -692,6 +781,9 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
   if (slug === 'dashboard') {
     await assertLiveMobileContract(page, slug)
   }
+  if (slug === 'messung') {
+    await assertMeasurementMobileContract(page, slug)
+  }
 
   await assertNoAsciiUmlautUiText(page, slug)
 }
@@ -841,6 +933,82 @@ async function assertLiveMobileContract(page: import('@playwright/test').Page, s
 
 }
 
+async function assertMeasurementMobileContract(page: import('@playwright/test').Page, context: string) {
+  const isPhone = await page.evaluate(() => window.innerWidth < 768)
+  if (!isPhone) return
+  if (!/\/messung(?:$|[?#])/i.test(page.url())) return
+
+  await expect(page.getByRole('heading', { name: /Messung erfassen/i }), `${context}: /messung page heading`).toBeVisible()
+
+  const emptyState = page.locator('[data-audit="measurement-empty-state"]')
+  if (await emptyState.isVisible().catch(() => false)) {
+    await expect(emptyState, `${context}: fresh install empty title`).toContainText(/Noch kein Grow für Messungen/i)
+    await expect(emptyState.getByRole('link', { name: /Grow anlegen/i }), `${context}: fresh install Grow CTA`).toBeVisible()
+    await expect(page.locator('[data-audit="measurement-form"]'), `${context}: no broken form without grow context`).toHaveCount(0)
+    const ctas = await emptyState.locator('a, button').evaluateAll((items) =>
+      items.map((item) => {
+        const html = item as HTMLElement
+        const rect = html.getBoundingClientRect()
+        return { text: (html.textContent ?? '').trim().replace(/\s+/g, ' '), width: Math.round(rect.width), height: Math.round(rect.height) }
+      }))
+    for (const cta of ctas) {
+      expect(cta.width, `${context}: empty-state CTA "${cta.text}" touch width`).toBeGreaterThanOrEqual(44)
+      expect(cta.height, `${context}: empty-state CTA "${cta.text}" touch height`).toBeGreaterThanOrEqual(44)
+    }
+    return
+  }
+
+  const form = page.locator('[data-audit="measurement-form"]')
+  await expect(form, `${context}: measurement form or empty state must render`).toBeVisible()
+  await expect(page.locator('[data-audit="measurement-save-actions"]'), `${context}: save actions must render`).toBeVisible()
+
+  const groups = await page.locator('[data-audit="measurement-form"] [data-audit="measurement-group"]').count()
+  expect(groups, `${context}: measurement form group count`).toBeGreaterThanOrEqual(4)
+
+  const controls = await page.locator('[data-audit="measurement-form"] input, [data-audit="measurement-form"] select, [data-audit="measurement-form"] textarea, [data-audit="measurement-form"] button, [data-audit="measurement-form"] a').evaluateAll((items) =>
+    items.map((item) => {
+      const html = item as HTMLElement
+      const rect = html.getBoundingClientRect()
+      const style = window.getComputedStyle(html)
+      return {
+        tag: html.tagName.toLowerCase(),
+        text: (html.textContent ?? html.getAttribute('aria-label') ?? '').trim().replace(/\s+/g, ' '),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        visible: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1,
+      }
+    }).filter((item) => item.visible))
+
+  for (const control of controls) {
+    const minHeight = control.tag === 'input' || control.tag === 'select' || control.tag === 'textarea' ? 48 : 44
+    expect(control.width, `${context}: measurement control "${control.text || control.tag}" touch width`).toBeGreaterThanOrEqual(44)
+    expect(control.height, `${context}: measurement control "${control.text || control.tag}" height`).toBeGreaterThanOrEqual(minHeight)
+  }
+
+  const saveLayout = await page.locator('[data-audit="measurement-save-actions"]').evaluate((element) => {
+    const rect = (element as HTMLElement).getBoundingClientRect()
+    const bottomNav = document.querySelector('.v1-bottom-nav') as HTMLElement | null
+    const navRect = bottomNav?.getBoundingClientRect() ?? null
+    return {
+      visible: rect.width > 1 && rect.height > 1 && rect.bottom > 0 && rect.top < window.innerHeight,
+      bottom: Math.round(rect.bottom),
+      navTop: navRect ? Math.round(navRect.top) : window.innerHeight,
+    }
+  })
+  expect(saveLayout.visible, `${context}: save button must be visible`).toBe(true)
+  expect(saveLayout.bottom, `${context}: save button must stay above bottom nav`).toBeLessThanOrEqual(saveLayout.navTop - 4)
+
+  const fileInputWidths = await page.locator('[data-audit="measurement-form"] .rc-file-input').evaluateAll((items) =>
+    items.map((item) => {
+      const rect = (item as HTMLElement).getBoundingClientRect()
+      return { width: Math.round(rect.width), viewport: window.innerWidth }
+    }))
+  expect(fileInputWidths.length, `${context}: photo/file input must be present`).toBeGreaterThan(0)
+  for (const fileInput of fileInputWidths) {
+    expect(fileInput.width, `${context}: photo/file input must not exceed viewport`).toBeLessThanOrEqual(fileInput.viewport)
+  }
+}
+
 async function assertMobileBottomNavDocked(page: import('@playwright/test').Page, context: string) {
   const nav = await page.evaluate(() => {
     const element = document.querySelector('.v1-bottom-nav') as HTMLElement | null
@@ -968,7 +1136,7 @@ async function assertNoAsciiUmlautActions(page: import('@playwright/test').Page,
 
 async function assertNoAsciiUmlautUiText(page: import('@playwright/test').Page, slug: string) {
   const offenders = await page
-    .locator('button, a, label, h1, h2, h3, h4, h5, h6, [role="button"], [role="link"], [role="alert"], .v1-empty, .v1-stat, .v1-info, .panel-card-title')
+    .locator('button, a, label, h1, h2, h3, h4, h5, h6, [role="button"], [role="link"], [role="alert"], .v1-empty, .v1-stat, .v1-info, .panel-card-title, .rc-file-input')
     .evaluateAll((items) => {
       const asciiUmlautPattern = /\b(?:Oeffnen|oeffnen|Loeschen|loeschen|Loesung|loesung|Loescht|loescht|geloescht|Zurueck|zurueck|gewaehlt|ausgewaehlt|waehlen|waehle|Geraete|geraete|muessen|koennen|fuer|ueber|spaeter|moeglich|verknuepft|ungueltig|bestaetigen|laedt|Naehrstoff|naehrstoff|Naehrloesung|naehrloesung|ergaenzen|Ergaenzen|verfuegbar|Spruenge|Stabilitaet|beruecksichtigen|Sofortmassnahmen|Verschleiss|haengen|gehoeren|staerkere|auswaehlbar)\b/i
       return items
