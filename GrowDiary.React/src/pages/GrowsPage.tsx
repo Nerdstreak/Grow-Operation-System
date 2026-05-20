@@ -96,8 +96,9 @@ function GrowsPage() {
     <V1Page
       eyebrow="Grow-Verwaltung"
       title="Grows"
-      subtitle="Aktive und geplante Grows verwalten. Neue Grows werden über den bestehenden Start-Workflow angelegt."
+      subtitle="Aktive Grows verwalten."
       action={<V1LinkButton to="/grows/new" variant="primary">Neuen Grow anlegen</V1LinkButton>}
+      className="grows-page"
     >
       {error && <V1Alert title="Fehler" message={error} tone="warn" />}
       {notice && <V1Alert message={notice} tone="ok" />}
@@ -113,7 +114,17 @@ function GrowsPage() {
         <>
           <V1Section title="Aktive Grows">
             {activeGrows.length === 0 ? (
-              <V1Empty title="Keine aktiven Grows" action={<V1LinkButton to="/grows/new" variant="primary">Neuen Grow anlegen</V1LinkButton>} />
+              <div data-audit="grows-empty-state">
+                <V1Empty
+                  title="Noch kein Grow"
+                  action={(
+                    <div className="grows-empty-actions">
+                      <V1LinkButton to="/grows/new" variant="primary">Neuen Grow anlegen</V1LinkButton>
+                      <V1LinkButton to="/zelte/new">Zelt anlegen</V1LinkButton>
+                    </div>
+                  )}
+                />
+              </div>
             ) : (
               <div className="grows-overview-grid" data-audit="grows-overview">
                 {activeGrows.map((grow) => (
@@ -168,8 +179,8 @@ function GrowCard({ grow, saving, hydroName, archived = false, onArchive, onDele
 
       <dl className="grow-overview-card__metrics">
         <Metric label="Zelt" value={grow.tentName ?? '–'} />
-        <Metric label="Hydro" value={hydroName} />
-        <Metric label="Start" value={formatDate(grow.startDate)} />
+        <Metric label="Hydro / Medium" value={formatHydroMedium(grow, hydroName)} />
+        <Metric label="Start / Laufzeit" value={`${formatDate(grow.startDate)} · ${formatRuntime(grow.startDate)}`} />
         <Metric label="Phase" value={grow.latestStage ?? '–'} />
         <Metric label="Letzte Messung" value={formatDateTime(grow.latestMeasurementAt)} />
         <Metric label="Messungen" value={String(grow.measurementCount)} />
@@ -178,7 +189,7 @@ function GrowCard({ grow, saving, hydroName, archived = false, onArchive, onDele
       <div className="grow-overview-card__actions" data-audit="grow-list-actions">
         <V1LinkButton to={`/grows/${grow.id}`} variant="primary">Öffnen</V1LinkButton>
         <V1LinkButton to={`/grows/${grow.id}/setup`}>Bearbeiten</V1LinkButton>
-        {canArchive && <V1Button disabled={actionDisabled} onClick={() => void onArchive(grow)}>{saving === `archive-${grow.id}` ? 'Beendet...' : 'Beenden'}</V1Button>}
+        <V1Button disabled={actionDisabled || !canArchive} onClick={() => void onArchive(grow)}>{saving === `archive-${grow.id}` ? 'Beendet...' : canArchive ? 'Beenden' : 'Beendet'}</V1Button>
         <V1Button variant="danger" disabled={actionDisabled} onClick={() => void onDelete(grow)}>{saving === `delete-${grow.id}` ? 'Löscht...' : 'Löschen'}</V1Button>
       </div>
     </V1Card>
@@ -190,7 +201,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function sortGrows(items: GrowSummary[]) {
-  return [...items].sort((a, b) => a.status.localeCompare(b.status) || a.name.localeCompare(b.name))
+  return [...items].sort((a, b) => statusRank(a.status) - statusRank(b.status) || a.name.localeCompare(b.name))
 }
 
 function getHydroName(grow: GrowSummary, hydroNames: Map<number, string>) {
@@ -217,7 +228,29 @@ function formatDateTime(value: string | null) {
   return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
 }
 
+function formatHydroMedium(grow: GrowSummary, hydroName: string) {
+  if (hydroName !== '–') return hydroName
+  return grow.hydroStyle === 'None' ? 'Medium offen' : grow.hydroStyle
+}
+
+function formatRuntime(startDate: string | null) {
+  if (!startDate) return '–'
+  const start = new Date(startDate)
+  if (Number.isNaN(start.getTime())) return '–'
+  const days = Math.max(0, Math.floor((Date.now() - start.getTime()) / 86_400_000))
+  return `${days} d`
+}
+
+function statusRank(status: GrowSummary['status']) {
+  return status === 'Running' ? 0
+    : status === 'Planning' ? 1
+      : status === 'Completed' ? 2
+        : status === 'Aborted' ? 3
+          : 9
+}
+
 function formatApiError(caught: unknown, fallback: string) {
+  if (caught instanceof ApiRequestError && caught.status === 409) return caught.payload?.message ?? 'Grow kann wegen verknüpfter Daten nicht gelöscht werden.'
   if (caught instanceof ApiRequestError && caught.payload?.message) return caught.payload.message
   return caught instanceof Error ? caught.message : fallback
 }

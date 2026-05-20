@@ -103,7 +103,8 @@ function GrowSetupPage() {
   if (loading) return <V1Page eyebrow="Grow" title={isEditing ? 'Grow bearbeiten' : 'Grow starten'}><V1Empty title="Lade Wizard..." /></V1Page>
 
   return (
-    <V1Page eyebrow="Grow" title={isEditing ? 'Grow bearbeiten' : 'Grow starten'} className="grow-wizard-page" action={<Link className="v1-button is-ghost" to={isEditing && growId ? `/grows/${growId}` : '/'}>Zurück</Link>}>
+    <V1Page eyebrow="Grow" title={isEditing ? 'Grow bearbeiten' : 'Grow starten'} className="grow-wizard-page" action={<Link className="v1-button is-ghost" to={isEditing && growId ? `/grows/${growId}` : '/grows'}>Zurück</Link>}>
+      <div className="grow-wizard-mobile-surface" data-audit="grow-wizard">
       {error && <V1Alert message={error} tone="warn" />}
       <V1Wizard steps={steps} currentStep={step} onStep={goTo} />
 
@@ -119,9 +120,10 @@ function GrowSetupPage() {
         </div>
       </div>
 
-      <div className="v1-form-actions sticky-actions">
-        <V1Button variant="ghost" onClick={() => (step === 1 ? navigate('/') : setStep((current) => Math.max(1, current - 1)))}>{step === 1 ? 'Abbrechen' : 'Zurück'}</V1Button>
+      <div className="v1-form-actions sticky-actions" data-audit="grow-wizard-actions">
+        <V1Button variant="ghost" onClick={() => (step === 1 ? navigate('/grows') : setStep((current) => Math.max(1, current - 1)))}>{step === 1 ? 'Abbrechen' : 'Zurück'}</V1Button>
         {step < steps.length ? <V1Button variant="primary" onClick={() => goTo(step + 1)}>Weiter</V1Button> : <V1Button variant="primary" disabled={saving} onClick={() => void saveGrow()}>{saving ? 'Speichert...' : isEditing ? 'Speichern' : 'Grow starten'}</V1Button>}
+      </div>
       </div>
     </V1Page>
   )

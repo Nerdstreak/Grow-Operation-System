@@ -1380,7 +1380,25 @@ html,
 .grow-overview-card__actions .v1-button,
 .grow-overview-card__actions .v1-link-button {
   flex: 1 1 116px;
-  min-height: 40px;
+  min-height: 44px;
+}
+
+.grows-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.grow-detail-mobile-summary {
+  display: none;
+}
+
+.grows-page .v1-hero .v1-button,
+.grows-page .v1-hero .v1-link-button,
+.grow-wizard-page .v1-button,
+.grow-wizard-page .v1-link-button {
+  min-height: 44px;
 }
 
 .hydro-layout-step {
@@ -1633,6 +1651,199 @@ html,
   }
 }
 
+@media (max-width: 767px) {
+  .grows-page {
+    gap: 12px;
+  }
+
+  .grows-page .v1-hero {
+    gap: 10px;
+    padding-bottom: 4px;
+  }
+
+  .grows-page .v1-hero .v1-button,
+  .grows-page .v1-hero .v1-link-button {
+    min-height: 44px;
+  }
+
+  .grows-page .v1-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .grows-page .v1-section {
+    gap: 10px;
+  }
+
+  .grows-page .grows-overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .grows-page .grow-overview-card {
+    gap: 10px;
+    padding: 13px;
+  }
+
+  .grows-page .grow-overview-card__header {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .grows-page .grow-overview-card__header h2 {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .grows-page .grow-overview-card__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .grows-page .grow-overview-card__metrics div {
+    min-height: 48px;
+    padding: 8px;
+    border: 1px solid var(--v1-border);
+    border-radius: 8px;
+  }
+
+  .grows-page .grow-overview-card__metrics dd {
+    overflow-wrap: anywhere;
+  }
+
+  .grows-page .grow-overview-card__actions {
+    gap: 7px;
+    padding-top: 10px;
+  }
+
+  .grows-page .grow-overview-card__actions .v1-button,
+  .grows-page .grow-overview-card__actions .v1-link-button {
+    flex: 1 1 calc(50% - 7px);
+    min-height: 44px;
+    padding-inline: 10px;
+  }
+
+  .grows-empty-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: min(100%, 320px);
+    margin-inline: auto;
+  }
+
+  .grows-empty-actions .v1-button,
+  .grows-empty-actions .v1-link-button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .topbar .grow-management-actions {
+    display: none;
+  }
+
+  .grow-detail-page {
+    padding-bottom: calc(18px + var(--safe-bottom));
+  }
+
+  .grow-detail-mobile-summary {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    min-width: 0;
+  }
+
+  .grow-detail-mobile-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .grow-detail-mobile-head h1 {
+    margin: 3px 0 2px;
+    font-size: 22px;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .grow-detail-mobile-head p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  .grow-detail-mobile-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin: 0;
+  }
+
+  .grow-detail-mobile-facts div {
+    min-width: 0;
+    min-height: 48px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .03);
+  }
+
+  .grow-detail-mobile-facts dt {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .grow-detail-mobile-facts dd {
+    margin: 2px 0 0;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+
+  .grow-detail-mobile-links,
+  .grow-detail-mobile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .grow-detail-mobile-links .btn,
+  .grow-detail-mobile-actions .btn {
+    flex: 1 1 calc(50% - 8px);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .grow-wizard-mobile-surface {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .grow-wizard-mobile-surface .v1-wizard-steps {
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+
+  .grow-wizard-mobile-surface .v1-wizard-step {
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 374px) {
+  .grows-page .grow-overview-card__metrics,
+  .grow-detail-mobile-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 760px) {
   .grow-wizard-page .sticky-actions {
     position: static !important;
@@ -1648,6 +1859,7 @@ html,
 
   .grow-wizard-page .sticky-actions .v1-button {
     width: 100% !important;
+    min-height: 44px;
   }
 }
 

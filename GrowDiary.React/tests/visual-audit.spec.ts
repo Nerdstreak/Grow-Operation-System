@@ -22,6 +22,21 @@ type AuditTent = {
   status?: string | null
 }
 
+type AuditHydroSetup = {
+  id: number
+  name: string
+  tentId?: number | null
+  status?: string | null
+}
+
+type AuditGrowSummary = {
+  id: number
+  name: string
+  status?: string | null
+  systemId?: number | null
+  setupId?: number | null
+}
+
 type ReportRow = {
   viewport: string
   route: string
@@ -45,6 +60,9 @@ type ReportRow = {
   measurementFindings: AuditFinding[]
   measurementFormGroups: number | null
   measurementFieldsAboveFold: number | null
+  growsFindings: AuditFinding[]
+  growsCardsAboveFold: number | null
+  growsActionBarHeight: number | null
 }
 
 type LayoutFinding = {
@@ -88,6 +106,10 @@ const shellOverflowSlugs = new Set([
   'hardware',
   'home-assistant',
 ])
+
+const visualAuditTentName = 'E2E Visual Audit Empty Tent'
+const visualAuditHydroName = 'E2E Visual Audit RDWC'
+const visualAuditGrowName = 'E2E Visual Audit Grow'
 
 const routes: RouteCase[] = [
   { slug: 'dashboard', path: '/', title: 'Dashboard / Live' },
@@ -325,6 +347,60 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
         })),
       isTablet && measurementForm
         ? { selector: '[data-audit="measurement-form"]', text: '', problem: 'tabletMeasurementLayout', details: `groups=${measurementGroups.length} fieldsAboveFold=${measurementControls.filter((control) => ['input', 'select', 'textarea'].includes(control.tag) && control.top < Math.min(window.innerHeight, 1024) && control.bottom > 0).length}` }
+      : null,
+    ].filter((item): item is AuditFinding => item !== null)
+
+    const growsOverview = document.querySelector('[data-audit="grows-overview"]') as HTMLElement | null
+    const growsEmpty = document.querySelector('[data-audit="grows-empty-state"]') as HTMLElement | null
+    const growsCards = Array.from(document.querySelectorAll('.grow-overview-card')) as HTMLElement[]
+    const firstGrowActions = document.querySelector('[data-audit="grow-list-actions"]') as HTMLElement | null
+    const firstGrowActionsRect = firstGrowActions?.getBoundingClientRect() ?? null
+    const growActionControls = Array.from(document.querySelectorAll('[data-audit="grow-list-actions"] a, [data-audit="grow-list-actions"] button'))
+      .map((element) => {
+        const html = element as HTMLElement
+        const rect = html.getBoundingClientRect()
+        const style = window.getComputedStyle(html)
+        return {
+          selector: selectorFor(html),
+          text: (html.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 100),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+          visible: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1,
+        }
+      })
+      .filter((item) => item.visible)
+    const growDetail = document.querySelector('[data-audit="grow-detail"]') as HTMLElement | null
+    const growDetailActions = document.querySelector('[data-audit="grow-detail-actions"]') as HTMLElement | null
+    const growWizard = document.querySelector('[data-audit="grow-wizard"]') as HTMLElement | null
+    const growsFindings = [
+      isPhone && /\/grows(?:$|[?#])/i.test(window.location.pathname) && !growsOverview && !growsEmpty
+        ? { selector: '[data-audit="grows-overview"]', text: '', problem: 'growsSurfaceMissing', details: 'Expected grows overview or empty state.' }
+        : null,
+      isPhone && growsEmpty && !Array.from(growsEmpty.querySelectorAll('a, button')).some((item) => /Neuen Grow anlegen/i.test(item.textContent ?? ''))
+        ? { selector: '[data-audit="grows-empty-state"]', text: '', problem: 'growsEmptyMissingCreateCta', details: 'Expected Neuen Grow anlegen CTA.' }
+        : null,
+      isPhone && growsOverview && growsCards.length === 0
+        ? { selector: '[data-audit="grows-overview"]', text: '', problem: 'growsCardMissing', details: 'Expected at least one grow card when overview is visible.' }
+        : null,
+      ...growActionControls
+        .filter((control) => isPhone && (control.width < 44 || control.height < 44))
+        .map((control) => ({
+          selector: control.selector,
+          text: control.text,
+          problem: 'growActionTouchTargetBelow44px',
+          details: `${control.width}x${control.height}`,
+        })),
+      isPhone && /\/grows\/\d+(?:$|[?#])/i.test(window.location.pathname) && !growDetail
+        ? { selector: '[data-audit="grow-detail"]', text: '', problem: 'growDetailMissingHook', details: 'Expected mobile grow detail surface.' }
+        : null,
+      isPhone && growDetail && !growDetailActions
+        ? { selector: '[data-audit="grow-detail-actions"]', text: '', problem: 'growDetailActionsMissing', details: 'Expected detail actions.' }
+        : null,
+      isPhone && /\/grows\/new(?:$|[?#])/i.test(window.location.pathname) && !growWizard
+        ? { selector: '[data-audit="grow-wizard"]', text: '', problem: 'growWizardMissingHook', details: 'Expected grow wizard audit hook.' }
+        : null,
+      isTablet && /\/grows(?:$|[?#])/i.test(window.location.pathname)
+        ? { selector: '[data-audit="grows-overview"]', text: '', problem: 'tabletGrowsLayout', details: `cardsAboveFold=${growsCards.filter((card) => { const rect = card.getBoundingClientRect(); return rect.top < Math.min(window.innerHeight, 1024) && rect.bottom > 0 }).length}` }
         : null,
     ].filter((item): item is AuditFinding => item !== null)
 
@@ -345,6 +421,11 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       measurementFieldsAboveFold: measurementForm
         ? measurementControls.filter((control) => ['input', 'select', 'textarea'].includes(control.tag) && control.top < (isPhone ? window.innerHeight : Math.min(window.innerHeight, 1024)) && control.bottom > 0).length
         : null,
+      growsFindings,
+      growsCardsAboveFold: growsOverview
+        ? growsCards.filter((card) => { const rect = card.getBoundingClientRect(); return rect.top < (isPhone ? window.innerHeight : Math.min(window.innerHeight, 1024)) && rect.bottom > 0 }).length
+        : null,
+      growsActionBarHeight: firstGrowActionsRect ? Math.round(firstGrowActionsRect.height) : null,
     }
   })
 }
@@ -366,7 +447,7 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
   const metrics = await collectPageMetrics(page)
   const fileName = `${viewport.name}-${viewport.width}x${viewport.height}-${route.slug}.png`
   await page.screenshot({ path: path.join(outputDir, fileName), fullPage: true })
-  copyMeasurementScreenshotAlias(viewport, route.slug, fileName)
+  copyRouteScreenshotAlias(viewport, route.slug, fileName)
 
   reportRows.push({
     viewport: `${viewport.name}-${viewport.width}x${viewport.height}`,
@@ -391,6 +472,9 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
     measurementFindings: metrics.measurementFindings,
     measurementFormGroups: metrics.measurementFormGroups,
     measurementFieldsAboveFold: metrics.measurementFieldsAboveFold,
+    growsFindings: metrics.growsFindings,
+    growsCardsAboveFold: metrics.growsCardsAboveFold,
+    growsActionBarHeight: metrics.growsActionBarHeight,
   })
 
   if (viewport.enforceShellHardChecks && shellOverflowSlugs.has(route.slug)) {
@@ -408,6 +492,8 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
     await assertMobileShellContract(page, fileName)
     await assertAddbackFlowMobileContract(page, fileName)
     await assertMeasurementMobileContract(page, fileName)
+    await assertGrowsMobileContract(page, fileName)
+    await assertGrowWizardMobileContract(page, fileName)
   }
   if (viewport.category === 'tablet' && viewport.enforceShellHardChecks) {
     await assertTabletShellContract(page, fileName)
@@ -436,6 +522,31 @@ async function tryClickFirstAddbackStart(page: import('@playwright/test').Page) 
   }
 
   return { opened: false, note: 'Addback-Flow wurde nicht automatisch geöffnet. Wahrscheinlich kein aktiver Grow oder kein eindeutiger Start-Link.' }
+}
+
+async function mockEmptyGrows(page: import('@playwright/test').Page) {
+  await page.route('**/api/grows?archived=false', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
+  await page.route('**/api/grows?archived=true', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
+  await page.route('**/api/hydro-setups?includeArchived=true', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
+}
+
+async function unmockEmptyGrows(page: import('@playwright/test').Page) {
+  await page.unroute('**/api/grows?archived=false')
+  await page.unroute('**/api/grows?archived=true')
+  await page.unroute('**/api/hydro-setups?includeArchived=true')
+}
+
+async function tryOpenFirstGrowDetail(page: import('@playwright/test').Page) {
+  await page.goto('/grows', { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  const firstOpen = page.locator('[data-audit="grows-overview"] [data-audit="grow-list-actions"] a').filter({ hasText: /^Öffnen$/ }).first()
+  if ((await firstOpen.count()) === 0) return false
+  await firstOpen.scrollIntoViewIfNeeded()
+  await Promise.all([
+    page.waitForURL(/\/grows\/\d+$/i, { timeout: 4500 }).catch(() => null),
+    firstOpen.click({ timeout: 3000 }),
+  ])
+  return /\/grows\/\d+$/i.test(page.url())
 }
 
 async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewport: ViewportCase, pageError: string | null) {
@@ -473,6 +584,9 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
     measurementFindings: metrics.measurementFindings,
     measurementFormGroups: metrics.measurementFormGroups,
     measurementFieldsAboveFold: metrics.measurementFieldsAboveFold,
+    growsFindings: metrics.growsFindings,
+    growsCardsAboveFold: metrics.growsCardsAboveFold,
+    growsActionBarHeight: metrics.growsActionBarHeight,
   })
 
   const coveredByBottomNav = metrics.bottomNavFindings.filter((item) => item.problem === 'coveredByBottomNav')
@@ -484,6 +598,8 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
     await assertMobileShellContract(page, fileName)
     await assertAddbackFlowMobileContract(page, fileName)
     await assertMeasurementMobileContract(page, fileName)
+    await assertGrowsMobileContract(page, fileName)
+    await assertGrowWizardMobileContract(page, fileName)
   }
   if (viewport.category === 'tablet' && viewport.enforceShellHardChecks) {
     await assertTabletShellContract(page, fileName)
@@ -501,12 +617,12 @@ function writeReports() {
     '',
     '## Screenshots',
     '',
-    '| Viewport | Route | Status | Overflow | Bottom Nav | Touch | Safe Area | Nav Structure | Tablet | Messung | Gruppen | Felder above fold | Heading | Screenshot | Note | PageError |',
-    '|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|',
+    '| Viewport | Route | Status | Overflow | Bottom Nav | Touch | Safe Area | Nav Structure | Tablet | Messung | Grows | Grow-Karten above fold | Grow-Aktionshöhe | Gruppen | Felder above fold | Heading | Screenshot | Note | PageError |',
+    '|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|',
     ...reportRows.map((row) => {
       const note = row.note ? row.note.replace(/\|/g, '\\|').slice(0, 220) : ''
       const error = row.pageError ? row.pageError.replace(/\|/g, '\\|').slice(0, 160) : ''
-      return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.bottomNavFindings.length} | ${row.touchTargetFindings.length} | ${row.safeAreaFindings.length} | ${row.navStructureFindings.length} | ${row.tabletLayoutFindings.length} | ${row.measurementFindings.length} | ${row.measurementFormGroups ?? ''} | ${row.measurementFieldsAboveFold ?? ''} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
+      return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.bottomNavFindings.length} | ${row.touchTargetFindings.length} | ${row.safeAreaFindings.length} | ${row.navStructureFindings.length} | ${row.tabletLayoutFindings.length} | ${row.measurementFindings.length} | ${row.growsFindings.length} | ${row.growsCardsAboveFold ?? ''} | ${row.growsActionBarHeight ?? ''} | ${row.measurementFormGroups ?? ''} | ${row.measurementFieldsAboveFold ?? ''} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
     }),
     '',
     '## Mobile / Tablet Findings',
@@ -523,6 +639,7 @@ function writeReports() {
       ...row.liveDashboardFindings.map((finding) => findingLine(row, 'liveDashboardFindings', finding)),
       ...row.addbackFindings.map((finding) => findingLine(row, 'addbackFindings', finding)),
       ...row.measurementFindings.map((finding) => findingLine(row, 'measurementFindings', finding)),
+      ...row.growsFindings.map((finding) => findingLine(row, 'growsFindings', finding)),
     ]),
     '',
     '## Addback Deep Flow',
@@ -539,11 +656,12 @@ function writeReports() {
   fs.writeFileSync(path.join(outputDir, 'visual-audit-report.md'), lines.join('\n'), 'utf8')
 }
 
-function copyMeasurementScreenshotAlias(viewport: ViewportCase, slug: string, fileName: string) {
-  if (slug !== 'messung') return
+function copyRouteScreenshotAlias(viewport: ViewportCase, slug: string, fileName: string) {
   const prefix = viewport.category === 'phone' ? 'mobile' : viewport.category === 'tablet' ? 'tablet' : null
   if (!prefix) return
-  const alias = `${prefix}-${viewport.width}x${viewport.height}-messung.png`
+  const aliasSlug = slug === 'messung' || slug === 'grows' || slug === 'grow-new' ? slug : null
+  if (!aliasSlug) return
+  const alias = `${prefix}-${viewport.width}x${viewport.height}-${aliasSlug}.png`
   if (alias === fileName) return
   fs.copyFileSync(path.join(outputDir, fileName), path.join(outputDir, alias))
 }
@@ -575,9 +693,15 @@ for (const viewport of viewports) {
       let pageError: string | null = null
       page.on('pageerror', (error) => { pageError = error.message })
       for (const route of routes) {
-        await auditRoute(page, viewport, route, pageError)
-        if (viewport.enforceShellHardChecks || viewport.category === 'desktop') {
-          await assertRouteContract(page, route.slug)
+        const useEmptyGrowsMock = route.slug === 'addback' || route.slug === 'hydro' || route.slug === 'messung'
+        if (useEmptyGrowsMock) await mockEmptyGrows(page)
+        try {
+          await auditRoute(page, viewport, route, pageError)
+          if (viewport.enforceShellHardChecks || viewport.category === 'desktop') {
+            await assertRouteContract(page, route.slug)
+          }
+        } finally {
+          if (useEmptyGrowsMock) await unmockEmptyGrows(page)
         }
         pageError = null
       }
@@ -587,7 +711,36 @@ for (const viewport of viewports) {
       await ensureVisualAuditData(page.request)
       let pageError: string | null = null
       page.on('pageerror', (error) => { pageError = error.message })
-      await auditAddbackDeepFlow(page, viewport, pageError)
+      await mockEmptyGrows(page)
+      try {
+        await auditAddbackDeepFlow(page, viewport, pageError)
+      } finally {
+        await unmockEmptyGrows(page)
+      }
+    })
+
+    test(`capture grows fresh install ${viewport.name}`, async ({ page }) => {
+      if (viewport.category !== 'phone') return
+      await mockEmptyGrows(page)
+      const response = await page.goto('/grows', { waitUntil: 'domcontentloaded' })
+      await waitForAppIdle(page)
+      expect(response?.status() ?? null, `${viewport.name}: /grows fresh install loads`).toBe(200)
+      await assertMobileShellContract(page, `${viewport.name}: grows fresh install shell`)
+      await assertGrowsMobileContract(page, `${viewport.name}: grows fresh install`)
+      const fileName = `mobile-${viewport.width}x${viewport.height}-grows-empty.png`
+      await page.screenshot({ path: path.join(outputDir, fileName), fullPage: true })
+    })
+
+    test(`capture grow detail when available ${viewport.name}`, async ({ page }) => {
+      await ensureVisualAuditData(page.request)
+      const opened = await tryOpenFirstGrowDetail(page)
+      if (!opened) return
+      await waitForAppIdle(page)
+      await assertGrowDetailMobileContract(page, `${viewport.name}: grow detail`)
+      const prefix = viewport.category === 'phone' ? 'mobile' : viewport.category === 'tablet' ? 'tablet' : null
+      if (prefix) {
+        await page.screenshot({ path: path.join(outputDir, `${prefix}-${viewport.width}x${viewport.height}-grow-detail.png`), fullPage: true })
+      }
     })
   })
 }
@@ -598,11 +751,9 @@ test.afterAll(() => {
 
 async function ensureVisualAuditData(request: import('@playwright/test').APIRequestContext) {
   const tents = await apiJson<AuditTent[]>(request, 'GET', '/api/settings/tents?includeArchived=true')
-  const existing = tents.find((tent) => tent.name === 'E2E Visual Audit Empty Tent' && tent.status !== 'Archived')
-  if (existing) return existing.id
-
-  const created = await apiJson<AuditTent>(request, 'POST', '/api/settings/tents', {
-    name: 'E2E Visual Audit Empty Tent',
+  const existingTent = tents.find((tent) => tent.name === visualAuditTentName && tent.status !== 'Archived')
+  const tent = existingTent ?? await apiJson<AuditTent>(request, 'POST', '/api/settings/tents', {
+    name: visualAuditTentName,
     kind: 'Grow Tent',
     tentType: 'Production',
     status: 'Active',
@@ -626,7 +777,49 @@ async function ensureVisualAuditData(request: import('@playwright/test').APIRequ
     sensors: [],
   })
 
-  return created.id
+  const hydroSetups = await apiJson<AuditHydroSetup[]>(request, 'GET', '/api/hydro-setups?includeArchived=true')
+  const hydro = hydroSetups.find((setup) => setup.name === visualAuditHydroName && setup.status !== 'Archived' && (setup.tentId == null || setup.tentId === tent.id))
+    ?? await apiJson<AuditHydroSetup>(request, 'POST', '/api/hydro-setups', {
+      tentId: tent.id,
+      name: visualAuditHydroName,
+      hydroStyle: 'RDWC',
+      potCount: 2,
+      potSizeLiters: 19,
+      reservoirLiters: 45,
+      layoutType: 'Row',
+      reservoirPosition: 'Left',
+      hasCirculationPump: true,
+      circulationPumpNotes: null,
+      hasAirPump: true,
+      airPumpNotes: null,
+      airStoneCount: 2,
+      hasChiller: false,
+      hasUvSterilizer: false,
+      notes: 'Automatisch angelegte Testdaten fuer Playwright Visual Audit',
+      displayOrder: 9101,
+    })
+
+  const grows = await apiJson<AuditGrowSummary[]>(request, 'GET', '/api/grows?archived=false')
+  const existingGrow = grows.find((grow) => grow.name === visualAuditGrowName && (grow.systemId === hydro.id || grow.setupId === hydro.id))
+  if (existingGrow) return existingGrow.id
+
+  const createdGrow = await apiJson<AuditGrowSummary>(request, 'POST', '/api/grows', {
+    name: visualAuditGrowName,
+    tentId: hydro.tentId ?? tent.id,
+    systemId: hydro.id,
+    setupId: null,
+    hydroStyle: 'RDWC',
+    startDate: '2026-01-03',
+    status: 'Running',
+    environment: 'Indoor',
+    seedType: 'Feminized',
+    startMaterial: 'Seed',
+    waterSource: 'RO',
+    strain: 'Audit Kush',
+    breeder: 'Audit',
+  })
+
+  return createdGrow.id
 }
 
 async function apiJson<T>(
@@ -704,15 +897,7 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
     await assertNoAsciiUmlautActions(page, slug)
   }
   if (slug === 'grows') {
-    await expect(page.getByRole('heading', { name: /^Grows$/i })).toBeVisible()
-    await expect(page.getByRole('link', { name: /Neuen Grow anlegen/i }).first()).toBeVisible()
-    await expect(page.getByRole('link', { name: /Grow starten/i })).toHaveCount(0)
-    const firstCard = page.locator('.grow-overview-card').first()
-    if (await firstCard.count()) {
-      await expect(firstCard.getByRole('link', { name: /^Öffnen$/i })).toBeVisible()
-      await expect(firstCard.getByRole('link', { name: /^Bearbeiten$/i })).toBeVisible()
-      await expect(firstCard.getByRole('button', { name: /^(Beenden|Löschen)$/i }).first()).toBeVisible()
-    }
+    await assertGrowsMobileContract(page, slug)
     await assertNoAsciiUmlautActions(page, slug)
   }
   if (slug === 'zelte') {
@@ -783,6 +968,9 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
   }
   if (slug === 'messung') {
     await assertMeasurementMobileContract(page, slug)
+  }
+  if (slug === 'grow-new') {
+    await assertGrowWizardMobileContract(page, slug)
   }
 
   await assertNoAsciiUmlautUiText(page, slug)
@@ -1006,6 +1194,104 @@ async function assertMeasurementMobileContract(page: import('@playwright/test').
   expect(fileInputWidths.length, `${context}: photo/file input must be present`).toBeGreaterThan(0)
   for (const fileInput of fileInputWidths) {
     expect(fileInput.width, `${context}: photo/file input must not exceed viewport`).toBeLessThanOrEqual(fileInput.viewport)
+  }
+}
+
+async function assertGrowsMobileContract(page: import('@playwright/test').Page, context: string) {
+  const isPhone = await page.evaluate(() => window.innerWidth < 768)
+  if (!/\/grows(?:$|[?#])/i.test(page.url())) return
+
+  await expect(page.getByRole('heading', { name: /^Grows$/i }), `${context}: /grows heading`).toBeVisible()
+  await expect(page.getByRole('link', { name: /Neuen Grow anlegen/i }).first(), `${context}: create grow CTA`).toBeVisible()
+  await expect(page.getByRole('link', { name: /Grow starten/i }), `${context}: Grows overview must not link primary nav directly into wizard wording`).toHaveCount(0)
+
+  if (!isPhone) return
+
+  const emptyState = page.locator('[data-audit="grows-empty-state"]')
+  if (await emptyState.isVisible().catch(() => false)) {
+    await expect(emptyState, `${context}: empty state text`).toContainText(/Noch kein Grow/i)
+    await expect(emptyState.getByRole('link', { name: /Neuen Grow anlegen/i }), `${context}: empty create CTA`).toBeVisible()
+    await expect(page.locator('[data-audit="grows-overview"] .grow-overview-card'), `${context}: empty state must not render grow cards`).toHaveCount(0)
+    const ctas = await emptyState.locator('a, button').evaluateAll((items) =>
+      items.map((item) => {
+        const html = item as HTMLElement
+        const rect = html.getBoundingClientRect()
+        return { text: (html.textContent ?? '').trim().replace(/\s+/g, ' '), width: Math.round(rect.width), height: Math.round(rect.height) }
+      }))
+    for (const cta of ctas) {
+      expect(cta.width, `${context}: empty CTA "${cta.text}" touch width`).toBeGreaterThanOrEqual(44)
+      expect(cta.height, `${context}: empty CTA "${cta.text}" touch height`).toBeGreaterThanOrEqual(44)
+    }
+    return
+  }
+
+  const firstCard = page.locator('[data-audit="grows-overview"] .grow-overview-card').first()
+  await expect(firstCard, `${context}: grow card visible`).toBeVisible()
+  await expect(firstCard.getByRole('link', { name: /^Öffnen$/i }), `${context}: Öffnen action`).toBeVisible()
+  await expect(firstCard.getByRole('link', { name: /^Bearbeiten$/i }), `${context}: Bearbeiten action`).toBeVisible()
+  await expect(firstCard.getByRole('button', { name: /^Beenden$/i }), `${context}: Beenden action`).toBeVisible()
+  await expect(firstCard.getByRole('button', { name: /^Löschen$/i }), `${context}: Löschen action`).toBeVisible()
+
+  const actions = await firstCard.locator('[data-audit="grow-list-actions"] a, [data-audit="grow-list-actions"] button').evaluateAll((items) =>
+    items.map((item) => {
+      const html = item as HTMLElement
+      const rect = html.getBoundingClientRect()
+      const style = window.getComputedStyle(html)
+      return {
+        text: (html.textContent ?? '').trim().replace(/\s+/g, ' '),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        visible: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1,
+      }
+    }).filter((item) => item.visible))
+  for (const action of actions) {
+    expect(action.width, `${context}: grow action "${action.text}" touch width`).toBeGreaterThanOrEqual(44)
+    expect(action.height, `${context}: grow action "${action.text}" touch height`).toBeGreaterThanOrEqual(44)
+  }
+}
+
+async function assertGrowDetailMobileContract(page: import('@playwright/test').Page, context: string) {
+  const isPhone = await page.evaluate(() => window.innerWidth < 768)
+  if (!isPhone) return
+  if (!/\/grows\/\d+(?:$|[?#])/i.test(page.url())) return
+
+  const detail = page.locator('[data-audit="grow-detail"]')
+  await expect(detail, `${context}: grow detail audit hook`).toBeVisible()
+  await expect(page.locator('[data-audit="grow-detail-summary"]'), `${context}: detail summary`).toBeVisible()
+  await expect(page.locator('[data-audit="grow-detail-actions"]'), `${context}: detail actions`).toBeVisible()
+  await expect(page.locator('[data-audit="grow-detail-actions"]').getByRole('link', { name: /Bearbeiten/i }), `${context}: edit action`).toBeVisible()
+  await expect(page.locator('[data-audit="grow-detail-actions"]').getByRole('button', { name: /^(Beenden|Löschen)$/i }).first(), `${context}: destructive actions`).toBeVisible()
+
+  const actions = await page.locator('[data-audit="grow-detail-actions"] a, [data-audit="grow-detail-actions"] button').evaluateAll((items) =>
+    items.map((item) => {
+      const html = item as HTMLElement
+      const rect = html.getBoundingClientRect()
+      return { text: (html.textContent ?? '').trim().replace(/\s+/g, ' '), width: Math.round(rect.width), height: Math.round(rect.height) }
+    }))
+  for (const action of actions) {
+    expect(action.width, `${context}: detail action "${action.text}" touch width`).toBeGreaterThanOrEqual(44)
+    expect(action.height, `${context}: detail action "${action.text}" touch height`).toBeGreaterThanOrEqual(44)
+  }
+}
+
+async function assertGrowWizardMobileContract(page: import('@playwright/test').Page, context: string) {
+  const isPhone = await page.evaluate(() => window.innerWidth < 768)
+  if (!isPhone) return
+  if (!/\/grows\/new(?:$|[?#])/i.test(page.url()) && !/\/grows\/\d+\/setup(?:$|[?#])/i.test(page.url())) return
+
+  await expect(page.locator('[data-audit="grow-wizard"]'), `${context}: grow wizard audit hook`).toBeVisible()
+  const steps = await page.locator('[data-audit="grow-wizard"] .v1-wizard-step').count()
+  expect(steps, `${context}: grow wizard step count must stay complete`).toBe(6)
+  await expect(page.locator('[data-audit="grow-wizard-actions"]'), `${context}: grow wizard actions`).toBeVisible()
+  const actions = await page.locator('[data-audit="grow-wizard-actions"] button, [data-audit="grow-wizard-actions"] a').evaluateAll((items) =>
+    items.map((item) => {
+      const html = item as HTMLElement
+      const rect = html.getBoundingClientRect()
+      return { text: (html.textContent ?? '').trim().replace(/\s+/g, ' '), width: Math.round(rect.width), height: Math.round(rect.height) }
+    }))
+  for (const action of actions) {
+    expect(action.width, `${context}: wizard action "${action.text}" touch width`).toBeGreaterThanOrEqual(44)
+    expect(action.height, `${context}: wizard action "${action.text}" touch height`).toBeGreaterThanOrEqual(44)
   }
 }
 

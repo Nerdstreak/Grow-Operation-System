@@ -681,7 +681,7 @@ function GrowDetailPage() {
   if (!bundle.grow) {
     return (
       <>
-        <div className="topbar"><Link className="btn" to="/">Zurück</Link></div>
+        <div className="topbar"><Link className="btn" to="/grows">Zurück</Link></div>
         <div className="page-scroll">
           <div className="empty-hint" style={{ color: 'var(--red)' }}>{error ?? 'Grow nicht gefunden.'}</div>
         </div>
@@ -700,26 +700,24 @@ function GrowDetailPage() {
     <>
       <div className="topbar">
         <div className="topbar-left">
-          <Link className="btn" to="/">Zurück</Link>
+          <Link className="btn" to="/grows">Zurück</Link>
           <span className="topbar-title">{grow.name}</span>
         </div>
         <div className="topbar-right">
           <span className={`badge ${grow.status === 'Running' ? 'badge-ok' : grow.status === 'Planning' ? 'badge-warn' : 'badge-neutral'}`}>{grow.status}</span>
           <div className="grow-management-actions" data-audit="grow-management-actions">
             <Link className="btn btn-primary" to={`/grows/${grow.id}/setup`}>Bearbeiten</Link>
-            {canArchiveGrow && (
-              <button type="button" className="btn" disabled={saving === 'grow-archive'} onClick={() => void archiveGrow()}>
-                {saving === 'grow-archive' ? 'Beendet...' : 'Beenden'}
-              </button>
-            )}
-            <button type="button" className="btn" disabled={saving === 'grow-delete'} onClick={() => void deleteGrow()}>
+            <button type="button" className="btn" disabled={Boolean(saving) || !canArchiveGrow} onClick={() => void archiveGrow()}>
+              {saving === 'grow-archive' ? 'Beendet...' : canArchiveGrow ? 'Beenden' : 'Beendet'}
+            </button>
+            <button type="button" className="btn" disabled={Boolean(saving)} onClick={() => void deleteGrow()}>
               {saving === 'grow-delete' ? 'Löscht...' : 'Löschen'}
             </button>
           </div>
         </div>
       </div>
 
-      <div className="page-scroll">
+      <div className="page-scroll grow-detail-page" data-audit="grow-detail">
         {error && (
           <div className="alert-bar" style={{ marginBottom: 14, borderRadius: 'var(--radius)' }}>
             <div className="alert-dot" />
@@ -734,6 +732,39 @@ function GrowDetailPage() {
             <span>{notice}</span>
           </div>
         )}
+
+        <section className="grow-detail-mobile-summary" data-audit="grow-detail-summary">
+          <div className="grow-detail-mobile-head">
+            <div>
+              <span className="section-label">Grow</span>
+              <h1>{grow.name}</h1>
+              <p>{grow.strain ?? 'Sorte offen'} · {grow.breeder ?? 'Breeder offen'}</p>
+            </div>
+            <span className={`badge ${grow.status === 'Running' ? 'badge-ok' : grow.status === 'Planning' ? 'badge-warn' : 'badge-neutral'}`}>{formatGrowStatus(grow.status)}</span>
+          </div>
+          <dl className="grow-detail-mobile-facts">
+            <div><dt>Phase</dt><dd>{grow.latestMeasurement?.stage ?? grow.entryPoint ?? '–'}</dd></div>
+            <div><dt>Zelt</dt><dd>{grow.tentName ?? 'ohne Zelt'}</dd></div>
+            <div><dt>Hydro / Medium</dt><dd>{formatGrowHydroMedium(grow)}</dd></div>
+            <div><dt>Start</dt><dd>{formatDate(grow.startDate)} · {formatGrowRuntime(grow.startDate)}</dd></div>
+            <div><dt>Letzte Messung</dt><dd>{grow.latestMeasurement ? formatDateTime(grow.latestMeasurement.takenAt) : '–'}</dd></div>
+            <div><dt>Messungen</dt><dd>{bundle.measurements.length}</dd></div>
+          </dl>
+          <div className="grow-detail-mobile-links">
+            <Link className="btn" to={`/grows/${grow.id}/addback`}>Addback</Link>
+            <Link className="btn" to="/messung">Messung</Link>
+            <Link className="btn" to={`/analyse?leftGrowId=${grow.id}`}>Vergleichen</Link>
+          </div>
+          <div className="grow-management-actions grow-detail-mobile-actions" data-audit="grow-detail-actions">
+            <Link className="btn btn-primary" to={`/grows/${grow.id}/setup`}>Bearbeiten</Link>
+            <button type="button" className="btn" disabled={Boolean(saving) || !canArchiveGrow} onClick={() => void archiveGrow()}>
+              {saving === 'grow-archive' ? 'Beendet...' : canArchiveGrow ? 'Beenden' : 'Beendet'}
+            </button>
+            <button type="button" className="btn" disabled={Boolean(saving)} onClick={() => void deleteGrow()}>
+              {saving === 'grow-delete' ? 'Löscht...' : 'Löschen'}
+            </button>
+          </div>
+        </section>
 
         <div className="section-tabs detail-tabs" style={{ marginBottom: 18 }}>
           {detailSections.map((section) => (
@@ -1403,6 +1434,27 @@ function formatDeviationTarget(deviation: GrowDeviationDto): string | null {
     return `>= ${formatNumber(deviation.targetMin, 2)}${deviation.unit ? ` ${deviation.unit}` : ''}`
   }
   return `<= ${formatNumber(deviation.targetMax, 2)}${deviation.unit ? ` ${deviation.unit}` : ''}`
+}
+
+function formatGrowStatus(status: GrowDetail['status']) {
+  return status === 'Running' ? 'aktiv'
+    : status === 'Planning' ? 'geplant'
+      : status === 'Completed' ? 'beendet'
+        : status === 'Aborted' ? 'abgebrochen'
+          : status
+}
+
+function formatGrowHydroMedium(grow: GrowDetail) {
+  if (grow.hydroStyle !== 'None') return grow.hydroStyle
+  return grow.mediumDetail ?? grow.mediumType ?? 'Medium offen'
+}
+
+function formatGrowRuntime(startDate: string | null) {
+  if (!startDate) return '-'
+  const start = new Date(startDate)
+  if (Number.isNaN(start.getTime())) return '-'
+  const days = Math.max(0, Math.floor((Date.now() - start.getTime()) / 86_400_000))
+  return `${days} d`
 }
 
 function isNotFound(caught: unknown) {
