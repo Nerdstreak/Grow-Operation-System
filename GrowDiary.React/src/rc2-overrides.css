@@ -450,12 +450,20 @@
     box-shadow: 0 -18px 40px rgba(0,0,0,.28);
   }
 
-  .rc2-measurement-page [data-audit="measurement-save-actions"] {
-    position: fixed;
-    left: max(12px, calc(env(safe-area-inset-left) + 12px));
-    right: max(12px, calc(env(safe-area-inset-right) + 12px));
-    bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 10px);
-    margin: 0;
+  .rc2-measurement-page [data-audit="measurement-form-actions"] {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
+    margin-top: 4px;
+    margin-bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 22px);
+    padding: 10px 0 0;
+    border: 0;
+    border-top: 1px solid var(--v1-line);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 }
 

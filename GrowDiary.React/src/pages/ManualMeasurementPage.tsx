@@ -187,7 +187,7 @@ function ManualMeasurementPage() {
         </div>
       ) : (
         <form className="rc2-measurement-layout" data-audit="measurement-form" onSubmit={(event) => void submit(event)}>
-          <aside className="rc2-measurement-side" data-audit="measurement-group">
+          <aside className="rc2-measurement-side" data-audit="measurement-section-context">
             <V1Card className="rc2-sticky-card rc2-measurement-context">
               <span className="v1-card-kicker">Kontext</span>
               <h2>{selectedGrow?.name ?? 'Grow wählen'}</h2>
@@ -211,7 +211,7 @@ function ManualMeasurementPage() {
           </aside>
 
           <div className="rc2-measurement-main">
-            <div data-audit="measurement-group">
+            <div data-audit="measurement-section-climate">
               <V1Section title="Klima">
                 <FieldGrid fields={climateFields} draft={draft} patch={patch}>
                   <div className="rc2-measurement-derived" data-audit="measurement-vpd">
@@ -222,21 +222,21 @@ function ManualMeasurementPage() {
               </V1Section>
             </div>
 
-            <div data-audit="measurement-group">
+            <div data-audit="measurement-section-hydro">
               <V1Section title={isHydroGrow ? 'Hydro / Nährlösung' : 'Gießen / Drain'}>
                 <FieldGrid fields={solutionFields} draft={draft} patch={patch} />
               </V1Section>
             </div>
 
             {isHydroGrow && (
-              <div data-audit="measurement-group">
+              <div data-audit="measurement-section-addback">
                 <V1Section title="Addback">
                   <FieldGrid fields={irrigationFields} draft={draft} patch={patch} />
                 </V1Section>
               </div>
             )}
 
-            <div data-audit="measurement-group">
+            <div data-audit="measurement-section-observation">
               <V1Section title="Beobachtung">
                 <div className="rc2-measurement-extra">
                   <FieldGrid fields={observationFields} draft={draft} patch={patch} />
@@ -248,7 +248,7 @@ function ManualMeasurementPage() {
               </V1Section>
             </div>
 
-            <div data-audit="measurement-group">
+            <div data-audit="measurement-section-photo">
               <V1Section title="Foto">
               <div className="rc2-measurement-extra rc2-measurement-photo">
                 <V1Field label="Foto-Tag">
@@ -267,7 +267,7 @@ function ManualMeasurementPage() {
               </V1Section>
             </div>
 
-            <div className="v1-form-actions sticky-actions" data-audit="measurement-save-actions">
+            <div className="v1-form-actions sticky-actions" data-audit="measurement-form-actions">
               <Link className="v1-button is-ghost" to="/">Abbrechen</Link>
               <V1Button type="submit" variant="primary" disabled={saving}>{saving ? 'Speichert...' : 'Messung speichern'}</V1Button>
             </div>

@@ -290,11 +290,15 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
 
     const measurementForm = document.querySelector('[data-audit="measurement-form"]') as HTMLElement | null
     const measurementEmpty = document.querySelector('[data-audit="measurement-empty-state"]') as HTMLElement | null
-    const measurementSave = document.querySelector('[data-audit="measurement-save-actions"]') as HTMLElement | null
+    const measurementSave = document.querySelector('[data-audit="measurement-form-actions"]') as HTMLElement | null
     const measurementFileInput = measurementForm?.querySelector('.rc-file-input') as HTMLElement | null
-    const measurementGroups = measurementForm ? Array.from(measurementForm.querySelectorAll('[data-audit="measurement-group"]')) : []
+    const measurementGroups = measurementForm ? Array.from(measurementForm.querySelectorAll('[data-audit^="measurement-section-"]')) : []
     const measurementControls = measurementForm
       ? Array.from(measurementForm.querySelectorAll('input, select, textarea, button, a'))
+        .filter((element) => {
+          const input = element as HTMLInputElement
+          return input.type !== 'file' && input.type !== 'checkbox' && input.type !== 'radio' && !(element as HTMLElement).classList.contains('rc-file-input-native')
+        })
         .map((element) => {
           const html = element as HTMLElement
           const rect = html.getBoundingClientRect()
@@ -322,13 +326,13 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
         ? { selector: '[data-audit="measurement-empty-state"]', text: '', problem: 'measurementEmptyStateMissingGrowCta', details: 'Expected Grow anlegen CTA.' }
         : null,
       isPhone && measurementForm && measurementGroups.length < 4
-        ? { selector: '[data-audit="measurement-group"]', text: '', problem: 'measurementGroupCountLow', details: String(measurementGroups.length) }
+        ? { selector: '[data-audit^="measurement-section-"]', text: '', problem: 'measurementGroupCountLow', details: String(measurementGroups.length) }
         : null,
       isPhone && measurementForm && !measurementSave
-        ? { selector: '[data-audit="measurement-save-actions"]', text: '', problem: 'measurementSaveMissing', details: 'Expected save actions.' }
+        ? { selector: '[data-audit="measurement-form-actions"]', text: '', problem: 'measurementSaveMissing', details: 'Expected save actions.' }
         : null,
       isPhone && measurementSaveRect && bottomNavRect && measurementSaveRect.bottom > bottomNavRect.top + 4 && measurementSaveRect.top < bottomNavRect.bottom - 4
-        ? { selector: '[data-audit="measurement-save-actions"]', text: '', problem: 'measurementSaveUnderBottomNav', details: `saveBottom=${Math.round(measurementSaveRect.bottom)} navTop=${Math.round(bottomNavRect.top)}` }
+        ? { selector: '[data-audit="measurement-form-actions"]', text: '', problem: 'measurementSaveUnderBottomNav', details: `saveBottom=${Math.round(measurementSaveRect.bottom)} navTop=${Math.round(bottomNavRect.top)}` }
         : null,
       isPhone && measurementFileRect && measurementFileRect.width > window.innerWidth
         ? { selector: '.rc-file-input', text: '', problem: 'measurementFileInputTooWide', details: `fileWidth=${Math.round(measurementFileRect.width)} viewport=${window.innerWidth}` }
@@ -729,6 +733,22 @@ for (const viewport of viewports) {
       await assertGrowsMobileContract(page, `${viewport.name}: grows fresh install`)
       const fileName = `mobile-${viewport.width}x${viewport.height}-grows-empty.png`
       await page.screenshot({ path: path.join(outputDir, fileName), fullPage: true })
+    })
+
+    test(`capture measurement active form actions ${viewport.name}`, async ({ page }) => {
+      if (viewport.category !== 'phone') return
+      await ensureVisualAuditData(page.request)
+      const response = await page.goto('/messung', { waitUntil: 'domcontentloaded' })
+      await waitForAppIdle(page)
+      expect(response?.status() ?? null, `${viewport.name}: /messung active grow loads`).toBe(200)
+      await assertMobileShellContract(page, `${viewport.name}: measurement active shell`)
+      await assertMeasurementMobileContract(page, `${viewport.name}: measurement active form`)
+      await assertMeasurementActionsDoNotOverlapHydro(page, `${viewport.name}: measurement active form actions`)
+      const fileName = `mobile-${viewport.width}x${viewport.height}-measurement-form-actions.png`
+      await page.screenshot({ path: path.join(outputDir, fileName), fullPage: false })
+      if (viewport.name === 'iphone17-near') {
+        await page.screenshot({ path: path.join(outputDir, 'mobile-measurement-form-actions.png'), fullPage: false })
+      }
     })
 
     test(`capture grow detail when available ${viewport.name}`, async ({ page }) => {
@@ -1148,13 +1168,16 @@ async function assertMeasurementMobileContract(page: import('@playwright/test').
 
   const form = page.locator('[data-audit="measurement-form"]')
   await expect(form, `${context}: measurement form or empty state must render`).toBeVisible()
-  await expect(page.locator('[data-audit="measurement-save-actions"]'), `${context}: save actions must render`).toBeVisible()
+  await expect(page.locator('[data-audit="measurement-form-actions"]'), `${context}: save actions must render`).toBeVisible()
 
-  const groups = await page.locator('[data-audit="measurement-form"] [data-audit="measurement-group"]').count()
+  const groups = await page.locator('[data-audit="measurement-form"] [data-audit^="measurement-section-"]').count()
   expect(groups, `${context}: measurement form group count`).toBeGreaterThanOrEqual(4)
 
   const controls = await page.locator('[data-audit="measurement-form"] input, [data-audit="measurement-form"] select, [data-audit="measurement-form"] textarea, [data-audit="measurement-form"] button, [data-audit="measurement-form"] a').evaluateAll((items) =>
-    items.map((item) => {
+    items.filter((item) => {
+      const input = item as HTMLInputElement
+      return input.type !== 'file' && input.type !== 'checkbox' && input.type !== 'radio' && !(item as HTMLElement).classList.contains('rc-file-input-native')
+    }).map((item) => {
       const html = item as HTMLElement
       const rect = html.getBoundingClientRect()
       const style = window.getComputedStyle(html)
@@ -1173,7 +1196,7 @@ async function assertMeasurementMobileContract(page: import('@playwright/test').
     expect(control.height, `${context}: measurement control "${control.text || control.tag}" height`).toBeGreaterThanOrEqual(minHeight)
   }
 
-  const saveLayout = await page.locator('[data-audit="measurement-save-actions"]').evaluate((element) => {
+  const saveLayout = await page.locator('[data-audit="measurement-form-actions"]').evaluate((element) => {
     const rect = (element as HTMLElement).getBoundingClientRect()
     const bottomNav = document.querySelector('.v1-bottom-nav') as HTMLElement | null
     const navRect = bottomNav?.getBoundingClientRect() ?? null
@@ -1183,8 +1206,9 @@ async function assertMeasurementMobileContract(page: import('@playwright/test').
       navTop: navRect ? Math.round(navRect.top) : window.innerHeight,
     }
   })
-  expect(saveLayout.visible, `${context}: save button must be visible`).toBe(true)
-  expect(saveLayout.bottom, `${context}: save button must stay above bottom nav`).toBeLessThanOrEqual(saveLayout.navTop - 4)
+  if (saveLayout.visible) {
+    expect(saveLayout.bottom, `${context}: save button must stay above bottom nav`).toBeLessThanOrEqual(saveLayout.navTop - 4)
+  }
 
   const fileInputWidths = await page.locator('[data-audit="measurement-form"] .rc-file-input').evaluateAll((items) =>
     items.map((item) => {
@@ -1194,6 +1218,73 @@ async function assertMeasurementMobileContract(page: import('@playwright/test').
   expect(fileInputWidths.length, `${context}: photo/file input must be present`).toBeGreaterThan(0)
   for (const fileInput of fileInputWidths) {
     expect(fileInput.width, `${context}: photo/file input must not exceed viewport`).toBeLessThanOrEqual(fileInput.viewport)
+  }
+}
+
+async function assertMeasurementActionsDoNotOverlapHydro(page: import('@playwright/test').Page, context: string) {
+  const isPhone = await page.evaluate(() => window.innerWidth < 768)
+  if (!isPhone) return
+
+  const form = page.locator('[data-audit="measurement-form"]')
+  const hydroSection = page.locator('[data-audit="measurement-section-hydro"]')
+  const actions = page.locator('[data-audit="measurement-form-actions"]')
+  await expect(form, `${context}: active measurement form`).toBeVisible()
+  await expect(hydroSection, `${context}: hydro section hook`).toBeVisible()
+  await expect(actions, `${context}: action hook`).toHaveCount(1)
+
+  await hydroSection.scrollIntoViewIfNeeded()
+  await page.evaluate(() => window.scrollBy(0, -12))
+  await expect(hydroSection, `${context}: hydro section after scroll`).toBeVisible()
+
+  const layout = await page.evaluate(() => {
+    const hydro = document.querySelector('[data-audit="measurement-section-hydro"]') as HTMLElement | null
+    const actionsElement = document.querySelector('[data-audit="measurement-form-actions"]') as HTMLElement | null
+    const bottomNav = document.querySelector('.v1-bottom-nav') as HTMLElement | null
+    if (!hydro || !actionsElement) return null
+
+    const hydroRect = hydro.getBoundingClientRect()
+    const actionRect = actionsElement.getBoundingClientRect()
+    const navRect = bottomNav?.getBoundingClientRect() ?? null
+    const style = window.getComputedStyle(actionsElement)
+    const actionVisible = actionRect.width > 1 && actionRect.height > 1 && actionRect.bottom > 0 && actionRect.top < window.innerHeight
+    const hydroVisible = hydroRect.width > 1 && hydroRect.height > 1 && hydroRect.bottom > 0 && hydroRect.top < window.innerHeight
+    const overlapsHydro = actionVisible && hydroVisible && actionRect.left < hydroRect.right && actionRect.right > hydroRect.left && actionRect.top < hydroRect.bottom && actionRect.bottom > hydroRect.top
+    const coveredControls = Array.from(document.querySelectorAll('[data-audit="measurement-form"] input, [data-audit="measurement-form"] select, [data-audit="measurement-form"] textarea, [data-audit="measurement-form"] button, [data-audit="measurement-form"] a'))
+      .filter((element) => {
+        const input = element as HTMLInputElement
+        return !actionsElement.contains(element) && input.type !== 'file' && input.type !== 'checkbox' && input.type !== 'radio' && !(element as HTMLElement).classList.contains('rc-file-input-native')
+      })
+      .map((element) => {
+        const html = element as HTMLElement
+        const rect = html.getBoundingClientRect()
+        const controlStyle = window.getComputedStyle(html)
+        const visible = controlStyle.display !== 'none' && controlStyle.visibility !== 'hidden' && rect.width > 1 && rect.height > 1 && rect.bottom > 0 && rect.top < window.innerHeight
+        const covered = actionVisible && visible && actionRect.left < rect.right && actionRect.right > rect.left && actionRect.top < rect.bottom && actionRect.bottom > rect.top
+        return covered ? (html.textContent ?? html.getAttribute('aria-label') ?? html.tagName).trim().replace(/\s+/g, ' ') || html.tagName.toLowerCase() : null
+      })
+      .filter((item): item is string => item !== null)
+
+    return {
+      actionPosition: style.position,
+      actionTop: Math.round(actionRect.top),
+      actionBottom: Math.round(actionRect.bottom),
+      hydroTop: Math.round(hydroRect.top),
+      hydroBottom: Math.round(hydroRect.bottom),
+      navTop: navRect ? Math.round(navRect.top) : window.innerHeight,
+      actionVisible,
+      overlapsHydro,
+      coveredControls,
+      actionFloatingInViewport: actionVisible && (style.position === 'fixed' || style.position === 'sticky') && actionRect.top > 80 && actionRect.bottom < (navRect?.top ?? window.innerHeight),
+    }
+  })
+
+  expect(layout, `${context}: measurement layout metrics`).not.toBeNull()
+  expect(layout!.actionPosition, `${context}: measurement actions must not be sticky/fixed on phone`).not.toMatch(/^(fixed|sticky)$/)
+  expect(layout!.overlapsHydro, `${context}: measurement actions must not overlap hydro section ${JSON.stringify(layout)}`).toBe(false)
+  expect(layout!.coveredControls, `${context}: measurement actions must not cover form controls`).toEqual([])
+  expect(layout!.actionFloatingInViewport, `${context}: measurement actions must not float mid viewport`).toBe(false)
+  if (layout!.actionVisible) {
+    expect(layout!.actionBottom, `${context}: visible measurement actions must stay above bottom nav`).toBeLessThanOrEqual(layout!.navTop - 4)
   }
 }
 
