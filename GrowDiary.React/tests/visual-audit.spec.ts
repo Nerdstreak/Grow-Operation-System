@@ -3,9 +3,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 type ViewportCase = {
-  name: 'desktop' | 'mobile'
+  name: string
   width: number
   height: number
+  category: 'desktop' | 'phone' | 'tablet'
+  enforceMobileHardChecks?: boolean
 }
 
 type RouteCase = {
@@ -34,6 +36,10 @@ type ReportRow = {
   note: string | null
   pageError: string | null
   bottomNavFindings: LayoutFinding[]
+  touchTargetFindings: AuditFinding[]
+  safeAreaFindings: AuditFinding[]
+  navStructureFindings: AuditFinding[]
+  tabletLayoutFindings: AuditFinding[]
 }
 
 type LayoutFinding = {
@@ -46,9 +52,20 @@ type LayoutFinding = {
   bottomNavGap: number | null
 }
 
+type AuditFinding = {
+  selector: string
+  text: string
+  problem: string
+  details: string
+}
+
 const viewports: ViewportCase[] = [
-  { name: 'desktop', width: 1440, height: 1000 },
-  { name: 'mobile', width: 390, height: 844 },
+  { name: 'desktop', width: 1440, height: 1000, category: 'desktop' },
+  { name: 'mobile', width: 390, height: 844, category: 'phone', enforceMobileHardChecks: true },
+  { name: 'iphone17-near', width: 393, height: 852, category: 'phone' },
+  { name: 'phone-plus', width: 430, height: 932, category: 'phone' },
+  { name: 'ipad-portrait', width: 768, height: 1024, category: 'tablet' },
+  { name: 'ipad-landscape', width: 1024, height: 768, category: 'tablet' },
 ]
 
 const routes: RouteCase[] = [
@@ -106,6 +123,14 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
 
     const bottomNav = document.querySelector('.v1-bottom-nav') as HTMLElement | null
     const bottomNavRect = bottomNav?.getBoundingClientRect() ?? null
+    const mobileTopbar = document.querySelector('.v1-mobile-topbar') as HTMLElement | null
+    const topbarRect = mobileTopbar?.getBoundingClientRect() ?? null
+    const routeFrame = document.querySelector('.v1-route-frame') as HTMLElement | null
+    const routeFrameRect = routeFrame?.getBoundingClientRect() ?? null
+    const safeTop = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-top') || '0')
+    const safeBottom = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom') || '0')
+    const isPhone = window.innerWidth < 768
+    const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024
     const bottomNavFindings = bottomNavRect
       ? Array.from(document.querySelectorAll('button, a, input, select, textarea, .v1-card, .v1-section, .v1-wizard-step, .v1-form-actions, .v1-action-row, .grow-select-card'))
         .map((element) => {
@@ -134,12 +159,58 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
         .filter((item) => item.problem)
       : []
 
+    const touchTargetFindings = Array.from(document.querySelectorAll('button, a, input, select, textarea, [role="button"], [role="link"]'))
+      .map((element) => {
+        const html = element as HTMLElement
+        const rect = html.getBoundingClientRect()
+        const style = window.getComputedStyle(html)
+        const visible = style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1 && rect.bottom > 0 && rect.top < window.innerHeight
+        const ignored = Boolean(html.closest('[aria-hidden="true"]')) || html.hasAttribute('hidden')
+        const tooSmall = visible && !ignored && (rect.width < 44 || rect.height < 44)
+        return {
+          selector: selectorFor(html),
+          text: (html.textContent ?? html.getAttribute('aria-label') ?? '').trim().replace(/\s+/g, ' ').slice(0, 100),
+          problem: tooSmall ? 'touchTargetBelow44px' : '',
+          details: `${Math.round(rect.width)}x${Math.round(rect.height)}`,
+        }
+      })
+      .filter((item) => item.problem)
+
+    const navLabels = bottomNav
+      ? Array.from(bottomNav.querySelectorAll('a, button')).map((item) => (item.textContent ?? '').trim().replace(/\s+/g, ' ')).filter(Boolean)
+      : []
+    const expectedPhoneNav = ['Live', 'Addback', 'Messung', 'Grows']
+    const navStructureFindings = isPhone
+      ? [
+        !bottomNav ? { selector: '.v1-bottom-nav', text: '', problem: 'missingPhoneBottomNav', details: 'Phone requires a 4-item bottom navigation.' } : null,
+        bottomNav && navLabels.length !== 4 ? { selector: '.v1-bottom-nav', text: navLabels.join(', '), problem: 'phoneBottomNavItemCount', details: `expected 4, got ${navLabels.length}` } : null,
+        bottomNav && navLabels.join('|') !== expectedPhoneNav.join('|') ? { selector: '.v1-bottom-nav', text: navLabels.join(', '), problem: 'phoneBottomNavLabels', details: `expected ${expectedPhoneNav.join(', ')}` } : null,
+      ].filter((item): item is AuditFinding => item !== null)
+      : []
+
+    const safeAreaFindings = [
+      isPhone && topbarRect && topbarRect.top < safeTop - 1 ? { selector: '.v1-mobile-topbar', text: '', problem: 'topbarAboveSafeTop', details: `top=${Math.round(topbarRect.top)} safeTop=${safeTop}` } : null,
+      isPhone && bottomNavRect && window.innerHeight - bottomNavRect.bottom > Math.max(1, safeBottom + 1) ? { selector: '.v1-bottom-nav', text: '', problem: 'bottomNavGapToViewport', details: `gap=${Math.round(window.innerHeight - bottomNavRect.bottom)} safeBottom=${safeBottom}` } : null,
+      isPhone && bottomNavRect && routeFrameRect && routeFrameRect.bottom > bottomNavRect.top + 4 ? { selector: '.v1-route-frame', text: '', problem: 'contentCanExtendUnderBottomNav', details: `contentBottom=${Math.round(routeFrameRect.bottom)} navTop=${Math.round(bottomNavRect.top)}` } : null,
+    ].filter((item): item is AuditFinding => item !== null)
+
+    const tabletLayoutFindings = isTablet
+      ? [
+        bottomNavRect && bottomNavRect.width > 1 ? { selector: '.v1-bottom-nav', text: navLabels.join(', '), problem: 'tabletUsesPhoneBottomNav', details: 'Contract prefers sidebar or adaptive tablet navigation.' } : null,
+        !document.querySelector('.v1-desktop-nav') ? { selector: '.v1-desktop-nav', text: '', problem: 'tabletNavigationMissing', details: 'No sidebar/adaptive navigation candidate found.' } : null,
+      ].filter((item): item is AuditFinding => item !== null)
+      : []
+
     return {
       bodyScrollWidth: document.body.scrollWidth,
       documentScrollWidth: document.documentElement.scrollWidth,
       innerWidth: window.innerWidth,
       heading: firstHeading,
       bottomNavFindings,
+      touchTargetFindings,
+      safeAreaFindings,
+      navStructureFindings,
+      tabletLayoutFindings,
     }
   })
 }
@@ -176,13 +247,17 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
     note: null,
     pageError,
     bottomNavFindings: metrics.bottomNavFindings,
+    touchTargetFindings: metrics.touchTargetFindings,
+    safeAreaFindings: metrics.safeAreaFindings,
+    navStructureFindings: metrics.navStructureFindings,
+    tabletLayoutFindings: metrics.tabletLayoutFindings,
   })
 
-  if (viewport.name === 'mobile' && metrics.bottomNavFindings.length > 0) {
+  if (viewport.enforceMobileHardChecks && metrics.bottomNavFindings.length > 0) {
     const details = metrics.bottomNavFindings.slice(0, 5).map((item) => `${item.selector} "${item.text}" ${item.problem} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`).join(' | ')
     throw new Error(`${fileName}: mobile bottom nav spacing issue: ${details}`)
   }
-  if (viewport.name === 'mobile') {
+  if (viewport.enforceMobileHardChecks) {
     await assertMobileBottomNavDocked(page, fileName)
   }
 }
@@ -237,13 +312,17 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
     note: result.note,
     pageError,
     bottomNavFindings: metrics.bottomNavFindings,
+    touchTargetFindings: metrics.touchTargetFindings,
+    safeAreaFindings: metrics.safeAreaFindings,
+    navStructureFindings: metrics.navStructureFindings,
+    tabletLayoutFindings: metrics.tabletLayoutFindings,
   })
 
-  if (viewport.name === 'mobile' && metrics.bottomNavFindings.length > 0) {
+  if (viewport.enforceMobileHardChecks && metrics.bottomNavFindings.length > 0) {
     const details = metrics.bottomNavFindings.slice(0, 5).map((item) => `${item.selector} "${item.text}" ${item.problem} bottom=${item.bottom} navTop=${item.bottomNavTop ?? 'n/a'} gap=${item.bottomNavGap ?? 'n/a'}`).join(' | ')
     throw new Error(`${fileName}: mobile bottom nav spacing issue: ${details}`)
   }
-  if (viewport.name === 'mobile') {
+  if (viewport.enforceMobileHardChecks) {
     await assertMobileBottomNavDocked(page, fileName)
   }
 }
@@ -259,13 +338,26 @@ function writeReports() {
     '',
     '## Screenshots',
     '',
-    '| Viewport | Route | Status | Overflow | Bottom Nav Findings | Heading | Screenshot | Note | PageError |',
-    '|---|---|---:|---|---:|---|---|---|---|',
+    '| Viewport | Route | Status | Overflow | Bottom Nav | Touch | Safe Area | Nav Structure | Tablet | Heading | Screenshot | Note | PageError |',
+    '|---|---|---:|---|---:|---:|---:|---:|---:|---|---|---|---|',
     ...reportRows.map((row) => {
       const note = row.note ? row.note.replace(/\|/g, '\\|').slice(0, 220) : ''
       const error = row.pageError ? row.pageError.replace(/\|/g, '\\|').slice(0, 160) : ''
-      return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.bottomNavFindings.length} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
+      return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.bottomNavFindings.length} | ${row.touchTargetFindings.length} | ${row.safeAreaFindings.length} | ${row.navStructureFindings.length} | ${row.tabletLayoutFindings.length} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
     }),
+    '',
+    '## Mobile / Tablet Findings',
+    '',
+    'Diese Findings sind vorbereitend und reportend. Sie aktivieren noch keine neuen harten Contract-Fails.',
+    '',
+    '| Viewport | Route | Kategorie | Problem | Details |',
+    '|---|---|---|---|---|',
+    ...reportRows.flatMap((row) => [
+      ...row.touchTargetFindings.map((finding) => findingLine(row, 'touchTargetFindings', finding)),
+      ...row.safeAreaFindings.map((finding) => findingLine(row, 'safeAreaFindings', finding)),
+      ...row.navStructureFindings.map((finding) => findingLine(row, 'navStructureFindings', finding)),
+      ...row.tabletLayoutFindings.map((finding) => findingLine(row, 'tabletLayoutFindings', finding)),
+    ]),
     '',
     '## Addback Deep Flow',
     '',
@@ -279,6 +371,11 @@ function writeReports() {
   ]
 
   fs.writeFileSync(path.join(outputDir, 'visual-audit-report.md'), lines.join('\n'), 'utf8')
+}
+
+function findingLine(row: ReportRow, category: string, finding: AuditFinding) {
+  const detail = `${finding.selector} ${finding.text ? `"${finding.text}" ` : ''}${finding.details}`.replace(/\|/g, '\\|').slice(0, 260)
+  return `| ${row.viewport} | ${row.route} | ${category} | ${finding.problem} | ${detail} |`
 }
 
 test.describe.configure({ mode: 'serial' })
