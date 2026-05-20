@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary, MetricPayload, TentDto, TentLivePayload } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat, V1Tabs } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Tabs } from '../components/v1'
 import { formatDateTime } from '../utils'
 
 type LiveState = {
@@ -14,22 +14,10 @@ type LiveState = {
 
 const initialState: LiveState = { tents: [], liveByTentId: {}, grows: [], issues: [] }
 
-const tentMetrics = [
+const climateMetricKeys = [
   ['temperature', 'Luft', '°C'],
   ['humidity', 'RLF', '%'],
   ['vpd', 'VPD', 'kPa'],
-  ['ppfd', 'PPFD', 'µmol/m²/s'],
-  ['co2', 'CO₂', 'ppm'],
-  ['light-cycle', 'Licht', null],
-] as const
-
-const hydroMetrics = [
-  ['reservoir-ph', 'pH', null],
-  ['reservoir-ec', 'EC', 'mS/cm'],
-  ['reservoir-temp', 'Wasser', '°C'],
-  ['reservoir-level', 'Level', 'L/cm'],
-  ['orp', 'ORP', 'mV'],
-  ['dissolved-oxygen', 'DO', 'mg/L'],
 ] as const
 
 function LiveDashboardPage() {
@@ -70,56 +58,99 @@ function LiveDashboardPage() {
 
   const selectedTent = state.tents.find((tent) => tent.id === selectedTentId) ?? state.tents[0] ?? null
   const live = selectedTent ? state.liveByTentId[selectedTent.id] : undefined
-  const growsForTent = selectedTent ? state.grows.filter((grow) => (grow.status === 'Running' || grow.status === 'Planning') && grow.tentId === selectedTent.id) : []
+  const activeGrows = state.grows.filter((grow) => grow.status === 'Running' || grow.status === 'Planning')
+  const growsForTent = selectedTent ? activeGrows.filter((grow) => grow.tentId === selectedTent.id) : []
   const primaryGrow = growsForTent[0] ?? null
   const score = buildScore(live?.metrics ?? [], selectedTent)
+  const climateMetrics = mapMetrics(live?.metrics ?? [], climateMetricKeys)
+  const lightMetric = findMetric(live?.metrics ?? [], ['light-cycle', 'ppfd'])
+  const sensorStatus = buildSensorStatus(live, state.issues)
+  const hasHydroGrow = primaryGrow ? primaryGrow.hydroStyle === 'DWC' || primaryGrow.hydroStyle === 'RDWC' : false
 
   return (
-    <V1Page eyebrow="Live" title={score.label} className="v1-live-page rc2-live-page" action={<V1Button variant="primary" onClick={() => setRefresh((current) => current + 1)}>Aktualisieren</V1Button>}>
+    <V1Page eyebrow="Live" title={selectedTent ? score.label : 'Live'} className="v1-live-page rc2-live-page">
       {state.issues.length > 0 && <V1Alert title="Teilweise offline" message={state.issues.slice(0, 3).join(' · ')} tone="warn" />}
 
       {state.tents.length > 1 && (
         <V1Tabs label="Zelt auswählen" active={selectedTent?.id ?? state.tents[0].id} onChange={(id) => setSelectedTentId(Number(id))} items={state.tents.map((tent) => ({ value: tent.id, label: tent.name, meta: formatTentType(tent.tentType) }))} />
       )}
 
-      {!selectedTent ? <V1Empty title={loading ? 'Lade Live-Daten...' : 'Noch kein Zelt'} action={<V1LinkButton to="/zelte" variant="primary">Zelt anlegen</V1LinkButton>} /> : (
-        <>
-          <section className="v1-live-hero-grid">
-            <CameraTile tent={selectedTent} refresh={refresh} />
-            <V1Card className="v1-live-now-card" tone={score.tone}>
-              <div className="v1-card-title-row">
-                <div><span className="v1-card-kicker">{selectedTent.name}</span><h2>{primaryGrow?.name ?? 'Kein aktiver Grow in diesem Zelt'}</h2></div>
-                <V1Badge tone={score.tone}>{score.label}</V1Badge>
-              </div>
-              <div className="rc2-score-line"><strong>{score.value}</strong><span>%</span></div>
-              <div className="v1-now-list">
-                <Row label="Zelt" value={formatTentType(selectedTent.tentType)} />
-                <Row label="Grow" value={primaryGrow?.strain ?? 'kein Grow'} />
-                <Row label="Phase" value={primaryGrow?.latestStage ?? 'offen'} />
-                <Row label="Messung" value={formatDateTime(primaryGrow?.latestMeasurementAt)} />
-              </div>
-              <div className="v1-action-row">
-                {primaryGrow ? <V1LinkButton to={`/grows/${primaryGrow.id}/addback`} variant="primary">Addback</V1LinkButton> : <V1LinkButton to="/grows/new" variant="primary">Grow starten</V1LinkButton>}
-                <V1LinkButton to="/messung">Messung</V1LinkButton>
-                <V1LinkButton to="/home-assistant">HA</V1LinkButton>
-              </div>
-            </V1Card>
-          </section>
-
-          <div className="v1-live-metrics-pair">
-            <V1Section title="Zelt"><div className="v1-metric-grid compact">{mapMetrics(live?.metrics ?? [], tentMetrics).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div></V1Section>
-            <V1Section title="RDWC/DWC"><div className="v1-metric-grid compact">{mapMetrics(live?.metrics ?? [], hydroMetrics).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div></V1Section>
+      <div className="live-mobile-stack" data-audit="live-screen">
+        {loading ? (
+          <V1Empty title="Lade Live-Daten..." />
+        ) : !selectedTent || !primaryGrow ? (
+          <div className="live-mobile-empty" data-audit="live-empty-state">
+            <V1Empty
+              title="Noch kein aktiver Grow"
+              text="Lege einen Grow an oder richte zuerst ein Zelt ein."
+              action={(
+                <div className="live-empty-actions">
+                  <V1LinkButton to="/grows/new" variant="primary">Grow anlegen</V1LinkButton>
+                  <V1LinkButton to="/zelte">Zelt anlegen</V1LinkButton>
+                </div>
+              )}
+            />
           </div>
+        ) : selectedTent && primaryGrow ? (
+          <>
+            <div data-audit="live-status-card">
+              <V1Card className="live-mobile-card live-status-card" tone={score.tone}>
+                <div className="v1-card-title-row">
+                  <div><span className="v1-card-kicker">Aktuell</span><h2>{selectedTent.name}</h2></div>
+                  <V1Badge tone={score.tone}>{score.label}</V1Badge>
+                </div>
+                <div className="live-status-summary">
+                  <div><span>Grow</span><strong>{primaryGrow.name}</strong></div>
+                  <div><span>Status</span><strong>{formatGrowStatus(primaryGrow.status)}</strong></div>
+                  <div><span>Phase</span><strong>{primaryGrow.latestStage ?? 'offen'}</strong></div>
+                  <div><span>Letzte Messung</span><strong>{formatDateTime(primaryGrow.latestMeasurementAt)}</strong></div>
+                </div>
+              </V1Card>
+            </div>
 
-          <V1Section title={`Aktive Grows in ${selectedTent.name}`} action={<V1LinkButton to="/grows/new">Starten</V1LinkButton>}>
-            {growsForTent.length === 0 ? <V1Empty title="Kein Grow in diesem Zelt" text="Beim Zeltwechsel zeigt diese Liste nur noch Grows des ausgewählten Zelts." /> : (
+            <div data-audit="live-climate-card">
+              <V1Card className="live-mobile-card live-climate-card">
+                <div className="live-card-head">
+                  <span className="v1-card-kicker">Klima</span>
+                  <h2>Zustand</h2>
+                </div>
+                <div className="live-mobile-metric-grid">
+                  {climateMetrics.map((metric) => <LiveMetric key={metric.key} metric={metric} />)}
+                  {lightMetric && <LiveMetric metric={{ ...lightMetric, label: lightMetric.key === 'ppfd' ? 'PPFD' : 'Licht' }} />}
+                </div>
+              </V1Card>
+            </div>
+
+            <div data-audit="live-sensor-card">
+              <V1Card className="live-mobile-card live-sensor-card" tone={sensorStatus.tone}>
+                <div className="live-card-head">
+                  <span className="v1-card-kicker">Sensorstatus</span>
+                  <h2>{sensorStatus.label}</h2>
+                </div>
+                <p>{sensorStatus.text}</p>
+              </V1Card>
+            </div>
+
+            {selectedTent.cameraEntityId ? (
+              <CameraTile tent={selectedTent} refresh={refresh} />
+            ) : (
+              <div className="live-camera-note" data-audit="live-camera-note">Keine Kamera eingerichtet.</div>
+            )}
+
+            <div className="live-quick-actions" data-audit="live-quick-actions">
+              <V1LinkButton to="/messung" variant="primary">Messung erfassen</V1LinkButton>
+              {hasHydroGrow && <V1LinkButton to={`/grows/${primaryGrow.id}/addback`}>Addback starten</V1LinkButton>}
+              <V1Button onClick={() => setRefresh((current) => current + 1)}>Aktualisieren</V1Button>
+            </div>
+
+            <V1Section title={`Aktive Grows in ${selectedTent.name}`} action={<V1LinkButton to="/grows/new">Grow anlegen</V1LinkButton>}>
               <div className="v1-list">
                 {growsForTent.map((grow) => <Link key={grow.id} className="v1-list-row" to={`/grows/${grow.id}`}><strong>{grow.name}</strong><span>{grow.strain ?? 'Sorte offen'}</span><em>{grow.latestStage ?? grow.status}</em></Link>)}
               </div>
-            )}
-          </V1Section>
-        </>
-      )}
+            </V1Section>
+          </>
+        ) : null}
+      </div>
     </V1Page>
   )
 }
@@ -154,25 +185,28 @@ function CameraTile({ tent, refresh }: { tent: TentDto; refresh: number }) {
 
   if (!src && !lastGoodSrc) {
     return (
-      <V1Card className="v1-camera-empty is-compact" tone="neutral">
-        <div><span className="v1-card-kicker">Kamera</span><h2>Nicht eingerichtet</h2><p>{tent.name}</p></div>
-        <div className="v1-action-row"><V1LinkButton to="/home-assistant">HA öffnen</V1LinkButton></div>
-      </V1Card>
+      <div data-audit="live-camera">
+        <V1Card className="v1-camera-empty is-compact live-camera-card" tone="neutral">
+          <div><span className="v1-card-kicker">Kamera</span><h2>Nicht eingerichtet</h2><p>{tent.name}</p></div>
+        </V1Card>
+      </div>
     )
   }
 
   if (status === 'failed' && !lastGoodSrc) {
     return (
-      <V1Card className="v1-camera-empty is-compact" tone="warn">
-        <div><span className="v1-card-kicker">Kamera-Snapshot</span><h2>Snapshot nicht erreichbar</h2><p>{tent.cameraEntityId ?? tent.name}</p></div>
-        <div className="v1-action-row"><V1Button onClick={() => { setVersion((current) => current + 1); setStatus('loading') }}>Neu laden</V1Button><V1LinkButton to="/home-assistant">HA öffnen</V1LinkButton></div>
-      </V1Card>
+      <div data-audit="live-camera">
+        <V1Card className="v1-camera-empty is-compact live-camera-card" tone="warn">
+          <div><span className="v1-card-kicker">Kamera-Snapshot</span><h2>Snapshot nicht erreichbar</h2><p>{tent.cameraEntityId ?? tent.name}</p></div>
+          <div className="v1-action-row"><V1Button onClick={() => { setVersion((current) => current + 1); setStatus('loading') }}>Neu laden</V1Button><V1LinkButton to="/home-assistant">HA öffnen</V1LinkButton></div>
+        </V1Card>
+      </div>
     )
   }
 
   const imageSrc = src ?? lastGoodSrc
   return (
-    <div className="v1-camera-card rc2-camera-card">
+    <div className="v1-camera-card rc2-camera-card live-camera-card" data-audit="live-camera">
       {status === 'loading' && !lastGoodSrc && <div className="v1-camera-loader">Snapshot lädt...</div>}
       {status === 'failed' && lastGoodSrc && <div className="v1-camera-loader">Letzter Snapshot · neuer Snapshot fehlgeschlagen</div>}
       {imageSrc && (
@@ -189,13 +223,15 @@ function CameraTile({ tent, refresh }: { tent: TentDto; refresh: number }) {
   )
 }
 
-function MetricCard({ metric }: { metric: MetricPayload }) {
+function LiveMetric({ metric }: { metric: MetricPayload }) {
   const tone = metric.tone === 'danger' ? 'critical' : metric.tone === 'warning' ? 'warn' : metric.tone === 'success' ? 'ok' : 'neutral'
-  return <V1Stat label={metric.label} value={metric.value} unit={metric.unit} hint={metric.hint ?? undefined} tone={tone} />
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return <div><span>{label}</span><strong>{value}</strong></div>
+  return (
+    <div className={`live-mobile-metric tone-${tone}`}>
+      <span>{metric.label}</span>
+      <strong>{metric.value}{metric.unit && metric.value !== '–' && <em>{metric.unit}</em>}</strong>
+      {metric.hint && <small>{metric.hint}</small>}
+    </div>
+  )
 }
 
 function mapMetrics(items: MetricPayload[], definitions: readonly (readonly [string, string, string | null])[]): MetricPayload[] {
@@ -203,6 +239,21 @@ function mapMetrics(items: MetricPayload[], definitions: readonly (readonly [str
     const found = items.find((item) => item.key === key)
     return found ? { ...found, label, unit: found.unit ?? unit } : { key, label, value: '–', unit, tone: 'muted', hint: null }
   })
+}
+
+function findMetric(items: MetricPayload[], keys: string[]) {
+  return keys.map((key) => items.find((item) => item.key === key)).find((item): item is MetricPayload => Boolean(item)) ?? null
+}
+
+function buildSensorStatus(live: TentLivePayload | undefined, issues: string[]) {
+  if (issues.length > 0) return { label: 'Offline', text: 'Ein Teil der Live-Daten ist nicht erreichbar.', tone: 'warn' as const }
+  if (!live) return { label: 'Nicht bewertet', text: 'Für dieses Zelt liegen noch keine Live-Werte vor.', tone: 'neutral' as const }
+  const values = live.metrics.filter((metric) => metric.value && metric.value !== '–')
+  if (values.length === 0) return { label: 'Nicht bewertet', text: 'Sensorwerte fehlen oder sind noch nicht gemappt.', tone: 'neutral' as const }
+  const warnings = live.metrics.filter((metric) => metric.tone === 'warning' || metric.tone === 'danger').length
+  return warnings > 0
+    ? { label: 'Warnung', text: 'Mindestens ein Sensorwert braucht Aufmerksamkeit.', tone: 'warn' as const }
+    : { label: 'Aktiv', text: `${values.length} Live-Werte werden ausgewertet.`, tone: 'ok' as const }
 }
 
 function buildScore(metrics: MetricPayload[], tent: TentDto | null) {
@@ -221,6 +272,10 @@ function chooseInitialTent(tents: TentDto[], grows: GrowSummary[]) {
 
 function formatTentType(value: string) {
   return value === 'Production' ? 'Blüte / Run' : value === 'Mother' ? 'Mutter' : value === 'Propagation' ? 'Anzucht' : value === 'Quarantine' ? 'Quarantäne' : value === 'MultiPurpose' ? 'Mehrzweck' : value
+}
+
+function formatGrowStatus(value: string) {
+  return value === 'Running' ? 'aktiv' : value === 'Planning' ? 'geplant' : value === 'Harvested' ? 'geerntet' : value === 'Archived' ? 'archiviert' : value
 }
 
 function formatApiError(caught: unknown, fallback: string) {

@@ -40,6 +40,7 @@ type ReportRow = {
   safeAreaFindings: AuditFinding[]
   navStructureFindings: AuditFinding[]
   tabletLayoutFindings: AuditFinding[]
+  liveDashboardFindings: AuditFinding[]
 }
 
 type LayoutFinding = {
@@ -217,6 +218,28 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       ].filter((item): item is AuditFinding => item !== null)
       : []
 
+    const liveScreen = document.querySelector('[data-audit="live-screen"]') as HTMLElement | null
+    const liveDashboardFindings = liveScreen
+      ? [
+        (() => {
+          const camera = document.querySelector('[data-audit="live-camera"]') as HTMLElement | null
+          if (!camera) return null
+          const rect = camera.getBoundingClientRect()
+          return { selector: '[data-audit="live-camera"]', text: '', problem: 'cameraBlockHeight', details: `${Math.round(rect.height)}px` }
+        })(),
+        (() => {
+          const foldBottom = isPhone ? window.innerHeight : Math.min(window.innerHeight, 1024)
+          const cards = Array.from(liveScreen.querySelectorAll('.v1-card, .v1-section, [data-audit^="live-"]'))
+          const visibleAboveFold = cards.filter((item) => {
+            const rect = (item as HTMLElement).getBoundingClientRect()
+            return rect.top < foldBottom && rect.bottom > 0 && rect.width > 1 && rect.height > 1
+          }).length
+          return { selector: '[data-audit="live-screen"]', text: '', problem: 'visibleCardsAboveFold', details: String(visibleAboveFold) }
+        })(),
+        isTablet ? { selector: '[data-audit="live-screen"]', text: '', problem: 'tabletLiveLayout', details: `viewport=${window.innerWidth}x${window.innerHeight}` } : null,
+      ].filter((item): item is AuditFinding => item !== null)
+      : []
+
     return {
       bodyScrollWidth: document.body.scrollWidth,
       documentScrollWidth: document.documentElement.scrollWidth,
@@ -227,6 +250,7 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       safeAreaFindings,
       navStructureFindings,
       tabletLayoutFindings,
+      liveDashboardFindings,
     }
   })
 }
@@ -267,6 +291,7 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
     safeAreaFindings: metrics.safeAreaFindings,
     navStructureFindings: metrics.navStructureFindings,
     tabletLayoutFindings: metrics.tabletLayoutFindings,
+    liveDashboardFindings: metrics.liveDashboardFindings,
   })
 
   if (viewport.enforceShellHardChecks && shellOverflowSlugs.has(route.slug)) {
@@ -342,6 +367,7 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
     safeAreaFindings: metrics.safeAreaFindings,
     navStructureFindings: metrics.navStructureFindings,
     tabletLayoutFindings: metrics.tabletLayoutFindings,
+    liveDashboardFindings: metrics.liveDashboardFindings,
   })
 
   const coveredByBottomNav = metrics.bottomNavFindings.filter((item) => item.problem === 'coveredByBottomNav')
@@ -387,6 +413,7 @@ function writeReports() {
       ...row.safeAreaFindings.map((finding) => findingLine(row, 'safeAreaFindings', finding)),
       ...row.navStructureFindings.map((finding) => findingLine(row, 'navStructureFindings', finding)),
       ...row.tabletLayoutFindings.map((finding) => findingLine(row, 'tabletLayoutFindings', finding)),
+      ...row.liveDashboardFindings.map((finding) => findingLine(row, 'liveDashboardFindings', finding)),
     ]),
     '',
     '## Addback Deep Flow',
@@ -632,8 +659,78 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
       }).length)
     expect(overflowingLastFields, 'Addback Verlauf "Letzter" must not overflow its box').toBe(0)
   }
+  if (slug === 'dashboard') {
+    await assertLiveMobileContract(page, slug)
+  }
 
   await assertNoAsciiUmlautUiText(page, slug)
+}
+
+async function assertLiveMobileContract(page: import('@playwright/test').Page, slug: string) {
+  await expect(page.locator('[data-audit="live-screen"]'), `${slug}: Live screen audit hook`).toBeVisible()
+
+  const isPhone = await page.evaluate(() => window.innerWidth < 768)
+  if (!isPhone) return
+
+  const emptyState = page.locator('[data-audit="live-empty-state"]')
+  if (await emptyState.isVisible().catch(() => false)) {
+    await expect(emptyState).toContainText(/Noch kein aktiver Grow/i)
+    await expect(emptyState.getByRole('link', { name: /Grow anlegen/i })).toBeVisible()
+    const ctas = await emptyState.locator('a, button').evaluateAll((items) =>
+      items.map((item) => {
+        const html = item as HTMLElement
+        const rect = html.getBoundingClientRect()
+        return { text: (html.textContent ?? '').trim().replace(/\s+/g, ' '), width: Math.round(rect.width), height: Math.round(rect.height) }
+      }))
+    expect(ctas.length, `${slug}: fresh install empty state must expose setup CTAs`).toBeGreaterThan(0)
+    for (const cta of ctas) {
+      expect(cta.width, `${slug}: empty-state CTA "${cta.text}" touch width`).toBeGreaterThanOrEqual(44)
+      expect(cta.height, `${slug}: empty-state CTA "${cta.text}" touch height`).toBeGreaterThanOrEqual(44)
+    }
+    return
+  }
+
+  await expect(page.locator('[data-audit="live-status-card"]'), `${slug}: phone status card first`).toBeVisible()
+  await expect(page.locator('[data-audit="live-climate-card"]'), `${slug}: phone climate card`).toBeVisible()
+  await expect(page.locator('[data-audit="live-sensor-card"]'), `${slug}: phone sensor card`).toBeVisible()
+  await expect(page.locator('[data-audit="live-quick-actions"]'), `${slug}: phone quick actions`).toBeVisible()
+
+  const order = await page.evaluate(() => {
+    const names = ['live-status-card', 'live-climate-card', 'live-sensor-card', 'live-camera', 'live-quick-actions']
+    return names
+      .map((name) => {
+        const element = document.querySelector(`[data-audit="${name}"]`) as HTMLElement | null
+        const rect = element?.getBoundingClientRect() ?? null
+        return rect && rect.width > 1 && rect.height > 1 ? { name, top: Math.round(rect.top) } : null
+      })
+      .filter((item): item is { name: string; top: number } => item !== null)
+  })
+  const statusTop = order.find((item) => item.name === 'live-status-card')?.top ?? 0
+  const climateTop = order.find((item) => item.name === 'live-climate-card')?.top ?? 0
+  const sensorTop = order.find((item) => item.name === 'live-sensor-card')?.top ?? 0
+  expect(statusTop, `${slug}: status card must be before climate`).toBeLessThanOrEqual(climateTop)
+  expect(climateTop, `${slug}: climate card must be before sensor`).toBeLessThanOrEqual(sensorTop)
+
+  const actions = await page.locator('[data-audit="live-quick-actions"] a, [data-audit="live-quick-actions"] button').evaluateAll((items) =>
+    items
+      .map((item) => {
+        const html = item as HTMLElement
+        const rect = html.getBoundingClientRect()
+        const style = window.getComputedStyle(html)
+        return {
+          text: (html.textContent ?? '').trim().replace(/\s+/g, ' '),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+          visible: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1,
+        }
+      })
+      .filter((item) => item.visible))
+  expect(actions.length, `${slug}: quick actions must contain visible actions`).toBeGreaterThan(0)
+  for (const action of actions) {
+    expect(action.width, `${slug}: live action "${action.text}" touch width`).toBeGreaterThanOrEqual(44)
+    expect(action.height, `${slug}: live action "${action.text}" touch height`).toBeGreaterThanOrEqual(44)
+  }
+
 }
 
 async function assertMobileBottomNavDocked(page: import('@playwright/test').Page, context: string) {
