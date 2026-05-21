@@ -238,7 +238,10 @@ async function ensureHydroSetupForWorkflowAudit(request: APIRequestContext) {
 async function ensureGrowForWorkflowAudit(request: APIRequestContext, tentId: number, hydroSetupId: number) {
   const grows = await apiJson<Array<{ id: number; name: string; status?: string | null; systemId?: number | null; setupId?: number | null }>>(request, 'GET', '/api/grows?archived=false')
   const existing = grows.find((grow) => grow.name === workflowGrowName && (grow.systemId === hydroSetupId || grow.setupId === hydroSetupId) && grow.status !== 'Archived')
-  if (existing) return existing.id
+  if (existing) {
+    await ensureDeviationMeasurementsForWorkflowAudit(request, existing.id)
+    return existing.id
+  }
 
   const created = await apiJson<{ id: number }>(request, 'POST', '/api/grows', {
     name: workflowGrowName,
@@ -253,7 +256,46 @@ async function ensureGrowForWorkflowAudit(request: APIRequestContext, tentId: nu
     startMaterial: 'Seed',
     waterSource: 'RO',
   })
+  await ensureDeviationMeasurementsForWorkflowAudit(request, created.id)
   return created.id
+}
+
+async function ensureDeviationMeasurementsForWorkflowAudit(request: APIRequestContext, growId: number) {
+  const measurements = await apiJson<Array<{ id: number; takenAt: string; reservoirEc: number | null; orpMv: number | null; reservoirWaterTempC: number | null }>>(request, 'GET', `/api/grows/${growId}/measurements`)
+  const hasAuditDeviation = measurements.some((measurement) =>
+    measurement.takenAt.startsWith('2026-05-20') &&
+    measurement.reservoirEc === 3.2 &&
+    measurement.orpMv === 700 &&
+    measurement.reservoirWaterTempC === 25)
+  if (hasAuditDeviation) return
+
+  await apiJson(request, 'POST', `/api/grows/${growId}/measurements`, {
+    takenAtLocal: '2026-05-20T12:00',
+    stage: 'Veg',
+    source: 'Manual',
+    notes: 'Workflow-Audit Deviation-Seed',
+    airTemperatureC: 25,
+    humidityPercent: 60,
+    heightCm: null,
+    waterAmountMl: null,
+    runoffAmountMl: null,
+    irrigationPh: null,
+    irrigationEc: null,
+    drainPh: null,
+    drainEc: null,
+    reservoirPh: 6.0,
+    reservoirEc: 3.2,
+    reservoirWaterTempC: 25,
+    reservoirLevelCm: null,
+    reservoirLevelLiters: null,
+    dissolvedOxygenMgL: 8,
+    orpMv: 700,
+    topOffLiters: null,
+    addbackEc: null,
+    solutionChange: false,
+    ppfdMol: null,
+    co2Ppm: null,
+  })
 }
 
 async function ensureManageGrowForWorkflowAudit(request: APIRequestContext) {
@@ -479,6 +521,7 @@ async function assertGrowsOverview(page: import('@playwright/test').Page, growId
   await expect(page.locator('.v1-desktop-nav, .v1-mobile-more-panel').getByText(/^Grow starten$/)).toHaveCount(0)
   const card = page.locator('.grow-overview-card').filter({ hasText: workflowGrowName }).first()
   await expect(card).toBeVisible()
+  await expect(card.getByText(workflowHydroName).first()).toBeVisible()
   await expect(card.getByRole('link', { name: /^Öffnen$/i })).toHaveAttribute('href', `/grows/${growId}`)
   await expect(card.getByRole('link', { name: /^Bearbeiten$/i })).toHaveAttribute('href', `/grows/${growId}/setup`)
   await expect(card.getByRole('button', { name: /^Beenden$/i })).toBeVisible()
@@ -487,6 +530,7 @@ async function assertGrowsOverview(page: import('@playwright/test').Page, growId
   await waitForAppIdle(page)
   await expect(page).toHaveURL(new RegExp(`/grows/${growId}$`))
   await expect(page.getByRole('heading', { name: /Nicht gefunden/i })).toHaveCount(0)
+  await expect(page.locator('.grow-hero-sub').filter({ hasText: workflowHydroName }).first()).toBeVisible()
   await screenshotAndLayout(page, 'grows-overview')
 }
 
@@ -586,6 +630,18 @@ async function assertActionPage(page: import('@playwright/test').Page) {
   await expect(page.getByRole('heading', { name: /Werte dokumentieren/i })).toBeVisible()
   await expect(page.getByRole('heading', { name: /Sensoren prüfen/i })).toBeVisible()
   await expect(page.getByRole('heading', { name: /HA-Mapping prüfen/i })).toBeVisible()
+  const actionRows = page.locator('[data-audit="open-action-row"]')
+  await expect(actionRows.first()).toBeVisible()
+  await expect(actionRows.filter({ hasText: /Ec|EC/i }).first()).toBeVisible()
+  await expect(actionRows.filter({ hasText: /Orp|ORP/i }).first()).toBeVisible()
+  await expect(actionRows.filter({ hasText: /WaterTemp|Wassertemperatur/i }).first()).toBeVisible()
+  await expect(actionRows.filter({ hasText: /Critical/i }).first()).toBeVisible()
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  const rowsAfterReload = page.locator('[data-audit="open-action-row"]')
+  await expect(rowsAfterReload.filter({ hasText: /Ec|EC/i }).first()).toBeVisible()
+  await expect(rowsAfterReload.filter({ hasText: /Orp|ORP/i }).first()).toBeVisible()
+  await expect(rowsAfterReload.filter({ hasText: /WaterTemp|Wassertemperatur/i }).first()).toBeVisible()
 }
 
 async function assertKnowledgePage(page: import('@playwright/test').Page) {

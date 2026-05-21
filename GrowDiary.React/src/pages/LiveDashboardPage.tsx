@@ -105,6 +105,7 @@ function LiveDashboardPage() {
                     <div className="live-status-summary">
                       <div><span>Grow</span><strong>{primaryGrow.name}</strong></div>
                       <div><span>Status</span><strong>{formatGrowStatus(primaryGrow.status)}</strong></div>
+                      <div><span>Hydro</span><strong>{formatGrowHydroMedium(primaryGrow)}</strong></div>
                       <div><span>Phase</span><strong>{primaryGrow.latestStage ?? 'offen'}</strong></div>
                       <div><span>Letzte Messung</span><strong>{formatDateTime(primaryGrow.latestMeasurementAt)}</strong></div>
                     </div>
@@ -148,7 +149,7 @@ function LiveDashboardPage() {
 
                 <V1Section title={`Aktive Grows in ${selectedTent.name}`} action={<V1LinkButton to="/grows/new">Grow anlegen</V1LinkButton>}>
                   <div className="v1-list">
-                    {growsForTent.map((grow) => <Link key={grow.id} className="v1-list-row" to={`/grows/${grow.id}`}><strong>{grow.name}</strong><span>{grow.strain ?? 'Sorte offen'}</span><em>{grow.latestStage ?? grow.status}</em></Link>)}
+                    {growsForTent.map((grow) => <Link key={grow.id} className="v1-list-row" to={`/grows/${grow.id}`}><strong>{grow.name}</strong><span>{formatGrowHydroMedium(grow)}</span><em>{grow.latestStage ?? grow.status}</em></Link>)}
                   </div>
                 </V1Section>
               </>
@@ -234,6 +235,7 @@ function DesktopLiveDashboard({
             <div className="live-status-summary">
               <div><span>Grow</span><strong>{primaryGrow.name}</strong></div>
               <div><span>Status</span><strong>{formatGrowStatus(primaryGrow.status)}</strong></div>
+              <div><span>Hydro</span><strong>{formatGrowHydroMedium(primaryGrow)}</strong></div>
               <div><span>Phase</span><strong>{primaryGrow.latestStage ?? 'offen'}</strong></div>
               <div><span>Letzte Messung</span><strong>{formatDateTime(primaryGrow.latestMeasurementAt)}</strong></div>
             </div>
@@ -279,7 +281,7 @@ function DesktopLiveDashboard({
 
       <V1Section title={`Aktive Grows in ${selectedTent.name}`} action={<V1LinkButton to="/grows/new">Grow anlegen</V1LinkButton>}>
         <div className="v1-list">
-          {growsForTent.map((grow) => <Link key={grow.id} className="v1-list-row" to={`/grows/${grow.id}`}><strong>{grow.name}</strong><span>{grow.strain ?? 'Sorte offen'}</span><em>{grow.latestStage ?? grow.status}</em></Link>)}
+          {growsForTent.map((grow) => <Link key={grow.id} className="v1-list-row" to={`/grows/${grow.id}`}><strong>{grow.name}</strong><span>{formatGrowHydroMedium(grow)}</span><em>{grow.latestStage ?? grow.status}</em></Link>)}
         </div>
       </V1Section>
     </div>
@@ -421,6 +423,10 @@ function formatTentType(value: string) {
 
 function formatGrowStatus(value: string) {
   return value === 'Running' ? 'aktiv' : value === 'Planning' ? 'geplant' : value === 'Harvested' ? 'geerntet' : value === 'Archived' ? 'archiviert' : value
+}
+
+function formatGrowHydroMedium(grow: GrowSummary) {
+  return grow.hydroSetupName ?? (grow.hydroStyle === 'None' ? 'kein Hydro-Setup' : grow.hydroStyle)
 }
 
 function formatApiError(caught: unknown, fallback: string) {

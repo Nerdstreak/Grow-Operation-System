@@ -8,6 +8,18 @@ import { classNames, formatDateTime } from '../utils'
 type ActionState = { grows: GrowSummary[]; risks: RiskEventDto[]; tasks: GrowTaskDto[]; maintenance: MaintenanceEventDto[]; calibration: CalibrationEventDto[]; sops: SopInstanceDto[]; hardware: HardwareItemDto[]; issues: string[] }
 const initial: ActionState = { grows: [], risks: [], tasks: [], maintenance: [], calibration: [], sops: [], hardware: [], issues: [] }
 const riskRank: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 }
+const taskRank: Record<string, number> = { Critical: 0, High: 1, Normal: 2, Low: 3 }
+
+type ActionRow = {
+  id: string
+  title: string
+  context: string
+  priority: string
+  action: string
+  to: string
+  tone: 'critical' | 'warning' | 'normal'
+  rank: number
+}
 
 function MobileActionPage() {
   const [state, setState] = useState<ActionState>(initial)
@@ -24,7 +36,7 @@ function MobileActionPage() {
       }
       const [grows, risks, maintenance, calibration, hardware] = await Promise.all([
         safe<GrowSummary[]>('Grows', '/api/grows?archived=false', []),
-        safe<RiskEventDto[]>('Risiken', '/api/risk-events?status=Open', []),
+        safe<RiskEventDto[]>('Risiken', '/api/risk-events?openOnly=true', []),
         safe<MaintenanceEventDto[]>('Wartung', `/api/maintenance-events?dueBeforeUtc=${encodeURIComponent(dueBeforeUtc)}`, []),
         safe<CalibrationEventDto[]>('Kalibrierung', `/api/calibration-events?dueBeforeUtc=${encodeURIComponent(dueBeforeUtc)}`, []),
         safe<HardwareItemDto[]>('Hardware', '/api/hardware-items', []),
@@ -33,7 +45,7 @@ function MobileActionPage() {
       const taskLists = await Promise.all(activeGrows.map((grow) => safe<GrowTaskDto[]>(`Tasks ${grow.id}`, `/api/grows/${grow.id}/tasks`, [])))
       const sopLists = await Promise.all(activeGrows.map((grow) => safe<SopInstanceDto[]>(`SOP ${grow.id}`, `/api/sop-instances?growId=${grow.id}`, [])))
       if (controller.signal.aborted) return
-      setState({ grows, risks: risks.filter((risk) => risk.status === 'Open'), maintenance: maintenance.filter((item) => item.status === 'Planned'), calibration: calibration.filter((item) => item.status === 'Planned'), tasks: taskLists.flat().filter((task) => task.status === 'Open'), sops: sopLists.flat().filter((sop) => sop.status === 'Active'), hardware, issues })
+      setState({ grows, risks: risks.filter((risk) => risk.status === 'Open' || risk.status === 'Acknowledged'), maintenance: maintenance.filter((item) => item.status === 'Planned'), calibration: calibration.filter((item) => item.status === 'Planned'), tasks: taskLists.flat().filter((task) => task.status === 'Open'), sops: sopLists.flat().filter((sop) => sop.status === 'Active'), hardware, issues })
       setLoading(false)
     }
     void load()
@@ -63,20 +75,94 @@ function MobileActionPage() {
         ))}
       </section>
       <V1Section title="Jetzt">
-        {loading ? <V1Empty title="Lade Aktionen..." /> : rows.length === 0 ? <V1Empty title="Keine offenen Aktionen" text="Es gibt aktuell keine kritischen Risiken, fälligen Wartungen oder aktiven SOP-Schritte." /> : <div className="v1-list">{rows.map((row) => <Link key={row.id} to={row.to} className={classNames('v1-list-row', row.tone)}><strong>{row.title}</strong><span>{row.meta}</span></Link>)}</div>}
+        {loading ? <V1Empty title="Lade Aktionen..." /> : rows.length === 0 ? <V1Empty title="Keine offenen Aufgaben" text="Es gibt aktuell keine kritischen Risiken, fälligen Wartungen oder aktiven SOP-Schritte." /> : <div className="v1-list rc-action-list" data-audit="open-action-list">{rows.map((row) => <ActionListRow key={row.id} row={row} />)}</div>}
       </V1Section>
     </V1Page>
   )
 }
 
-function buildRows(state: ActionState, risks: RiskEventDto[]) {
+function ActionListRow({ row }: { row: ActionRow }) {
+  return (
+    <Link to={row.to} className={classNames('v1-list-row rc-action-row', row.tone)} data-audit="open-action-row">
+      <div>
+        <strong>{row.title}</strong>
+        <span>{row.context}</span>
+      </div>
+      <em>{row.priority}</em>
+      <small>{row.action}</small>
+    </Link>
+  )
+}
+
+function buildRows(state: ActionState, risks: RiskEventDto[]): ActionRow[] {
   return [
-    ...risks.map((risk) => ({ id: `risk-${risk.id}`, title: risk.title, meta: `${risk.severity} · ${risk.eventType}`, to: '/hardware', tone: risk.severity === 'Critical' ? 'critical' : 'warning' })),
-    ...state.sops.map((sop) => ({ id: `sop-${sop.id}`, title: sop.sopName, meta: `${getGrowName(state.grows, sop.growId)} · ${formatDateTime(sop.nextStepDueAtUtc ?? sop.dueAtUtc)}`, to: `/grows/${sop.growId}`, tone: 'normal' })),
-    ...state.maintenance.map((event) => ({ id: `maintenance-${event.id}`, title: event.title, meta: `${getHardwareName(state.hardware, event.hardwareItemId)} · ${formatDateTime(event.dueAtUtc)}`, to: '/hardware', tone: 'warning' })),
-    ...state.calibration.map((event) => ({ id: `calibration-${event.id}`, title: event.title, meta: `${getHardwareName(state.hardware, event.hardwareItemId)} · ${formatDateTime(event.dueAtUtc)}`, to: '/hardware', tone: 'warning' })),
-    ...state.tasks.map((task) => ({ id: `task-${task.id}`, title: task.title, meta: `${task.growName ?? getGrowName(state.grows, task.growId)} · ${formatDateTime(task.dueAtUtc)}`, to: `/grows/${task.growId}`, tone: 'normal' })),
-  ].slice(0, 12)
+    ...risks.map((risk) => ({
+      id: `risk-${risk.id}`,
+      title: risk.title,
+      context: risk.growId ? getGrowName(state.grows, risk.growId) : risk.hardwareItemId ? getHardwareName(state.hardware, risk.hardwareItemId) : risk.tentId ? `Zelt #${risk.tentId}` : 'System',
+      priority: risk.severity,
+      action: risk.description ?? risk.eventType,
+      to: risk.growId ? `/grows/${risk.growId}` : '/hardware',
+      tone: risk.severity === 'Critical' ? 'critical' as const : 'warning' as const,
+      rank: riskRank[risk.severity] ?? 9,
+    })),
+    ...state.tasks.map((task) => ({
+      id: `task-${task.id}`,
+      title: task.title,
+      context: task.growName ?? getGrowName(state.grows, task.growId),
+      priority: task.priority,
+      action: task.dueAtUtc ? `Fällig ${formatDateTime(task.dueAtUtc)}` : 'Offene Aufgabe',
+      to: `/grows/${task.growId}`,
+      tone: task.priority === 'Critical' ? 'critical' as const : task.priority === 'High' ? 'warning' as const : 'normal' as const,
+      rank: 20 + (taskRank[task.priority] ?? 9),
+    })),
+    ...state.sops.map((sop) => ({
+      id: `sop-${sop.id}`,
+      title: sop.sopName,
+      context: getGrowName(state.grows, sop.growId),
+      priority: 'SOP',
+      action: formatDateTime(sop.nextStepDueAtUtc ?? sop.dueAtUtc),
+      to: `/grows/${sop.growId}`,
+      tone: 'normal' as const,
+      rank: 35,
+    })),
+    ...state.maintenance.map((event) => ({
+      id: `maintenance-${event.id}`,
+      title: event.title,
+      context: getHardwareName(state.hardware, event.hardwareItemId),
+      priority: 'Wartung',
+      action: formatDateTime(event.dueAtUtc),
+      to: '/hardware',
+      tone: 'warning' as const,
+      rank: 40,
+    })),
+    ...state.calibration.map((event) => ({
+      id: `calibration-${event.id}`,
+      title: event.title,
+      context: getHardwareName(state.hardware, event.hardwareItemId),
+      priority: 'Kalibrierung',
+      action: formatDateTime(event.dueAtUtc),
+      to: '/hardware',
+      tone: 'warning' as const,
+      rank: 41,
+    })),
+    ...buildHardwareRows(state),
+  ].sort((a, b) => a.rank - b.rank || a.title.localeCompare(b.title)).slice(0, 16)
+}
+
+function buildHardwareRows(state: ActionState): ActionRow[] {
+  return state.hardware
+    .filter((item) => item.status === 'Offline' || item.status === 'MaintenanceDue' || (isSensorLike(item) && !item.haEntityId))
+    .map((item) => ({
+      id: `hardware-${item.id}`,
+      title: item.name,
+      context: item.growId ? getGrowName(state.grows, item.growId) : item.hydroSetupId ? `Hydro #${item.hydroSetupId}` : item.tentId ? `Zelt #${item.tentId}` : 'Hardware',
+      priority: item.status === 'Offline' || item.criticality === 'Critical' ? 'Critical' : 'Warning',
+      action: item.status === 'Offline' ? 'Offline prüfen' : item.haEntityId ? 'Wartung prüfen' : 'Mapping prüfen',
+      to: '/hardware',
+      tone: item.status === 'Offline' || item.criticality === 'Critical' ? 'critical' as const : 'warning' as const,
+      rank: item.status === 'Offline' ? 10 : 45,
+    }))
 }
 
 function buildActionCards(state: ActionState, primaryGrow: GrowSummary | undefined) {

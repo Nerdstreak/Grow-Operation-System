@@ -21,6 +21,7 @@ public sealed record GrowSummaryDto(
     int? SystemId,
     int? SetupId,
     string? TentName,
+    string? HydroSetupName,
     DateTime StartDate,
     DateTime? EndDate,
     DateTime? FlipDate,

@@ -781,7 +781,7 @@ function GrowDetailPage() {
 
         <div className="grow-hero" style={{ display: activeSection === 'overview' ? undefined : 'none' }}>
           <div className="grow-hero-title">{grow.name}</div>
-          <div className="grow-hero-sub">{grow.strain ?? 'Unbekannter Strain'} · {grow.breeder ?? 'kein Breeder'} · {grow.hydroStyle} · {grow.tentName ?? 'ohne Zelt'}</div>
+          <div className="grow-hero-sub">{grow.strain ?? 'Unbekannter Strain'} · {grow.breeder ?? 'kein Breeder'} · {formatGrowHydroMedium(grow)} · {grow.tentName ?? 'ohne Zelt'}</div>
           <div className="grow-kpis">
             <div className="grow-kpi">
               <div className="grow-kpi-val">{formatNumber(latest?.reservoirPh, 2)}</div>
@@ -842,21 +842,21 @@ function GrowDetailPage() {
           ) : deviations.length === 0 ? (
             <div className="empty-hint">Keine strukturierten Hydro-Deviations erkannt.</div>
           ) : (
-            <div style={{ display: 'grid' }}>
+            <div className="grow-deviation-list" data-audit="grow-deviation-list">
               {deviations.map((deviation) => (
-                <div key={deviation.stableKey} style={{ display: 'grid', gridTemplateColumns: '120px minmax(120px, 0.7fr) minmax(180px, 1fr) minmax(0, 2fr)', gap: 10, alignItems: 'center', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
+                <div key={deviation.stableKey} className={`grow-deviation-card ${deviation.severity.toLowerCase()}`} data-audit="grow-deviation-row">
                   <span className={`badge ${deviation.severity === 'Critical' ? 'badge-warn' : deviation.severity === 'Warning' ? 'badge-neutral' : 'badge-ok'}`}>{deviation.severity}</span>
-                  <div>
+                  <div className="grow-deviation-main">
                     <div className="tl-title">{deviation.metric}</div>
-                    <div className="tl-sub">{deviation.source}</div>
+                    <div className="tl-sub">{deviation.source} · Folge {deviation.consecutiveCount}</div>
                   </div>
-                  <div className="tl-sub">
-                    Ist {formatDeviationValue(deviation.actualValue, deviation.unit)}
-                    {formatDeviationTarget(deviation) ? ` / Ziel ${formatDeviationTarget(deviation)}` : ''}
+                  <div className="grow-deviation-values">
+                    <span>Ist {formatDeviationValue(deviation.actualValue, deviation.unit)}</span>
+                    {formatDeviationTarget(deviation) && <span>Ziel {formatDeviationTarget(deviation)}</span>}
                   </div>
-                  <div className="tl-sub">
-                    {deviation.message}
-                    <span> Folge {deviation.consecutiveCount}</span>
+                  <div className="grow-deviation-copy">
+                    <p>{deviation.message}</p>
+                    {deviation.recommendationHint && <small>{deviation.recommendationHint}</small>}
                   </div>
                 </div>
               ))}
@@ -1309,6 +1309,7 @@ function GrowDetailPage() {
               <div style={{ padding: '12px 14px', fontSize: 13, display: 'grid', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Start</span><span>{formatDate(grow.startDate)}</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Medium</span><span>{grow.mediumType}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Hydro-Setup</span><span>{formatGrowHydroMedium(grow)}</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Wasser</span><span>{grow.waterSource}</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Licht</span><span>{grow.light ?? '—'}</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Reservoir</span><span>{grow.reservoirSize ?? '—'}</span></div>
@@ -1445,6 +1446,7 @@ function formatGrowStatus(status: GrowDetail['status']) {
 }
 
 function formatGrowHydroMedium(grow: GrowDetail) {
+  if (grow.hydroSetupName) return grow.hydroSetupName
   if (grow.hydroStyle !== 'None') return grow.hydroStyle
   return grow.mediumDetail ?? grow.mediumType ?? 'Medium offen'
 }

@@ -60,11 +60,12 @@ public sealed class GrowCoreRepository : RepositoryBase
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT g.*, t.Name AS TentName,
+            SELECT g.*, t.Name AS TentName, hs.Name AS HydroSetupName,
                    (SELECT COUNT(*) FROM Measurements m WHERE m.GrowId = g.Id) AS MeasurementCount,
                    (SELECT RelativePath FROM Photos p WHERE p.GrowId = g.Id ORDER BY p.TakenAtUtc DESC LIMIT 1) AS LatestPhotoPath
             FROM Grows g
             LEFT JOIN Tents t ON t.Id = g.TentId
+            LEFT JOIN GrowSystems hs ON hs.Id = g.SystemId
             WHERE g.Id = $id
             LIMIT 1;
         """;
@@ -234,11 +235,12 @@ public sealed class GrowCoreRepository : RepositoryBase
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = $"""
-            SELECT g.*, t.Name AS TentName,
+            SELECT g.*, t.Name AS TentName, hs.Name AS HydroSetupName,
                    (SELECT COUNT(*) FROM Measurements m WHERE m.GrowId = g.Id) AS MeasurementCount,
                    (SELECT RelativePath FROM Photos p WHERE p.GrowId = g.Id ORDER BY p.TakenAtUtc DESC LIMIT 1) AS LatestPhotoPath
             FROM Grows g
             LEFT JOIN Tents t ON t.Id = g.TentId
+            LEFT JOIN GrowSystems hs ON hs.Id = g.SystemId
             {whereClause}
             ORDER BY g.StartDate DESC, g.Id DESC;
         """;
@@ -483,6 +485,7 @@ public sealed class GrowCoreRepository : RepositoryBase
             SystemId = reader["SystemId"] is DBNull or null ? null : Convert.ToInt32((long)reader["SystemId"]),
             SetupId = reader["SetupId"] is DBNull or null ? null : Convert.ToInt32((long)reader["SetupId"]),
             TentName = NullString(reader["TentName"]),
+            HydroSetupName = HasColumn(reader, "HydroSetupName") ? NullString(reader["HydroSetupName"]) : null,
             Name = reader["Name"]?.ToString() ?? string.Empty,
             Strain = NullString(reader["Strain"]),
             Breeder = NullString(reader["Breeder"]),

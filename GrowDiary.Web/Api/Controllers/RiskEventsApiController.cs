@@ -17,17 +17,20 @@ public sealed class RiskEventsApiController : ApiControllerBase
     private readonly TaskRepository _taskRepository;
     private readonly KnowledgeBaseLoader _knowledgeBase;
     private readonly RiskEventSopRecommender _sopRecommender;
+    private readonly DeviationRiskEventSyncService? _deviationRiskSync;
 
     public RiskEventsApiController(
         GrowRepository repository,
         TaskRepository taskRepository,
         KnowledgeBaseLoader knowledgeBase,
-        RiskEventSopRecommender sopRecommender)
+        RiskEventSopRecommender sopRecommender,
+        DeviationRiskEventSyncService? deviationRiskSync = null)
     {
         _repository = repository;
         _taskRepository = taskRepository;
         _knowledgeBase = knowledgeBase;
         _sopRecommender = sopRecommender;
+        _deviationRiskSync = deviationRiskSync;
     }
 
     [HttpGet]
@@ -37,7 +40,8 @@ public sealed class RiskEventsApiController : ApiControllerBase
         [FromQuery] RiskEventStatus? status = null,
         [FromQuery] int? tentId = null,
         [FromQuery] int? growId = null,
-        [FromQuery] int? hardwareItemId = null)
+        [FromQuery] int? hardwareItemId = null,
+        [FromQuery] bool openOnly = false)
     {
         if (status.HasValue && !Enum.IsDefined(status.Value))
         {
@@ -45,7 +49,11 @@ public sealed class RiskEventsApiController : ApiControllerBase
             return ValidationError();
         }
 
-        var items = status.HasValue
+        _deviationRiskSync?.SyncActiveGrowDeviations();
+
+        var items = openOnly
+            ? _repository.GetOpenRiskEvents()
+            : status.HasValue
             ? _repository.GetRiskEventsByStatus(status.Value)
             : tentId.HasValue
                 ? _repository.GetRiskEventsByTent(tentId.Value)

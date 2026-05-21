@@ -62,6 +62,7 @@ builder.Services.AddSingleton<RecommendationEngine>();
 builder.Services.AddSingleton<GrowAlertService>();
 builder.Services.AddSingleton<DeviationAnalyzerService>();
 builder.Services.AddSingleton<TreatmentRecommender>();
+builder.Services.AddSingleton<DeviationRiskEventSyncService>();
 builder.Services.AddSingleton<RiskEventSopRecommender>();
 builder.Services.AddSingleton<WeekCounterService>();
 builder.Services.AddSingleton<ChartService>();

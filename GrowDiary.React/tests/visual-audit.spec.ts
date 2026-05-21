@@ -329,6 +329,14 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       : []
     const measurementSaveRect = measurementSave?.getBoundingClientRect() ?? null
     const measurementFileRect = measurementFileInput?.getBoundingClientRect() ?? null
+    const measurementPhoto = document.querySelector('[data-audit="measurement-section-photo"]') as HTMLElement | null
+    const measurementPhotoRect = measurementPhoto?.getBoundingClientRect() ?? null
+    const measurementSaveOverlapsPhoto = Boolean(
+      measurementSaveRect && measurementPhotoRect &&
+      measurementSaveRect.left < measurementPhotoRect.right &&
+      measurementSaveRect.right > measurementPhotoRect.left &&
+      measurementSaveRect.top < measurementPhotoRect.bottom &&
+      measurementSaveRect.bottom > measurementPhotoRect.top)
     const measurementFindings = [
       isPhone && !measurementForm && measurementEmpty && !/Noch kein Grow für Messungen/i.test(measurementEmpty.textContent ?? '')
         ? { selector: '[data-audit="measurement-empty-state"]', text: (measurementEmpty.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 120), problem: 'measurementEmptyStateText', details: 'Expected short fresh-install empty state.' }
@@ -347,6 +355,9 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
         : null,
       isPhone && measurementFileRect && measurementFileRect.width > window.innerWidth
         ? { selector: '.rc-file-input', text: '', problem: 'measurementFileInputTooWide', details: `fileWidth=${Math.round(measurementFileRect.width)} viewport=${window.innerWidth}` }
+        : null,
+      !isPhone && measurementSaveOverlapsPhoto
+        ? { selector: '[data-audit="measurement-form-actions"]', text: '', problem: 'measurementActionsOverlapPhoto', details: `actions=${Math.round(measurementSaveRect!.top)}-${Math.round(measurementSaveRect!.bottom)} photo=${Math.round(measurementPhotoRect!.top)}-${Math.round(measurementPhotoRect!.bottom)}` }
         : null,
       ...measurementControls
         .filter((control) => {
@@ -386,6 +397,7 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       .filter((item) => item.visible)
     const growDetail = document.querySelector('[data-audit="grow-detail"]') as HTMLElement | null
     const growDetailActions = document.querySelector('[data-audit="grow-detail-actions"]') as HTMLElement | null
+    const growDeviationRows = Array.from(document.querySelectorAll('[data-audit="grow-deviation-row"]')) as HTMLElement[]
     const growWizard = document.querySelector('[data-audit="grow-wizard"]') as HTMLElement | null
     const growsFindings = [
       isPhone && /\/grows(?:$|[?#])/i.test(window.location.pathname) && !growsOverview && !growsEmpty
@@ -411,6 +423,21 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       isPhone && growDetail && !growDetailActions
         ? { selector: '[data-audit="grow-detail-actions"]', text: '', problem: 'growDetailActionsMissing', details: 'Expected detail actions.' }
         : null,
+      ...growDeviationRows
+        .map((row) => {
+          const smallest = Array.from(row.querySelectorAll('*'))
+            .map((element) => Number.parseFloat(window.getComputedStyle(element).fontSize))
+            .filter((size) => Number.isFinite(size))
+            .sort((a, b) => a - b)[0] ?? Number.parseFloat(window.getComputedStyle(row).fontSize)
+          return { row, smallest }
+        })
+        .filter((item) => item.smallest < 13)
+        .map((item) => ({
+          selector: '[data-audit="grow-deviation-row"]',
+          text: (item.row.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 120),
+          problem: 'growDeviationFontTooSmall',
+          details: `${item.smallest}px`,
+        })),
       isPhone && /\/grows\/new(?:$|[?#])/i.test(window.location.pathname) && !growWizard
         ? { selector: '[data-audit="grow-wizard"]', text: '', problem: 'growWizardMissingHook', details: 'Expected grow wizard audit hook.' }
         : null,

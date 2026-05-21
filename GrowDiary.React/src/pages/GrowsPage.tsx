@@ -205,6 +205,7 @@ function sortGrows(items: GrowSummary[]) {
 }
 
 function getHydroName(grow: GrowSummary, hydroNames: Map<number, string>) {
+  if (grow.hydroSetupName) return grow.hydroSetupName
   return grow.systemId ? hydroNames.get(grow.systemId) ?? `Hydro #${grow.systemId}`
     : grow.setupId ? `Setup #${grow.setupId}`
       : '–'

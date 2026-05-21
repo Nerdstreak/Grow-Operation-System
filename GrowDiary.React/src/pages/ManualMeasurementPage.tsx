@@ -192,6 +192,7 @@ function ManualMeasurementPage() {
               <span className="v1-card-kicker">Kontext</span>
               <h2>{selectedGrow?.name ?? 'Grow wählen'}</h2>
               <p>{selectedGrow?.strain ?? 'Sorte offen'} · {selectedGrow?.tentName ?? 'ohne Zelt'}</p>
+              {selectedGrow && <p className="rc2-measurement-note">Hydro: {formatGrowHydroMedium(selectedGrow)}</p>}
               <V1Field label="Grow">
                 <select value={selectedGrowId ?? ''} onChange={(event) => selectGrow(Number(event.target.value))}>
                   {grows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
@@ -390,6 +391,10 @@ function countFilled(draft: MeasurementDraft) {
 
 function isHydroStyle(style: HydroStyle | null | undefined) {
   return style != null && style !== 'None'
+}
+
+function formatGrowHydroMedium(grow: GrowSummary) {
+  return grow.hydroSetupName ?? (grow.hydroStyle === 'None' ? 'kein Hydro-Setup' : grow.hydroStyle)
 }
 
 function calculateVpd(temperatureValue: string, humidityValue: string) {

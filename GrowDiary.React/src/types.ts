@@ -101,6 +101,7 @@ export interface GrowSummary {
   systemId: number | null
   setupId: number | null
   tentName: string | null
+  hydroSetupName: string | null
   startDate: string
   endDate: string | null
   flipDate: string | null
@@ -262,6 +263,7 @@ export interface GrowDetail {
   phenoNumber: number | null
   tentId: number | null
   tentName: string | null
+  hydroSetupName: string | null
   entryPoint: GrowEntryPoint
   daysAlreadyInPhase: number | null
   autoflowerDaysSinceGermination: number | null

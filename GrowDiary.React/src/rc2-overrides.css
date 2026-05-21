@@ -248,6 +248,19 @@
   margin-top: 4px;
 }
 
+.rc2-measurement-page [data-audit="measurement-form-actions"] {
+  position: static;
+  z-index: auto;
+  margin-top: 4px;
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid var(--v1-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
 .rc2-measurement-page .v1-hero {
   margin-bottom: 12px;
 }
@@ -758,6 +771,33 @@ html,
   overflow-wrap: normal;
   word-break: normal;
   hyphens: manual;
+}
+
+.rc-action-list {
+  gap: 10px;
+}
+
+.rc-action-row {
+  grid-template-columns: minmax(0, 1fr) auto minmax(160px, .8fr);
+  align-items: center;
+}
+
+.rc-action-row > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.rc-action-row strong,
+.rc-action-row span,
+.rc-action-row small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rc-action-row small {
+  color: var(--v1-soft);
+  line-height: 1.35;
 }
 
 .rc-tent-actions {
@@ -1373,8 +1413,61 @@ html,
   margin: 2px 0 0;
   color: var(--v1-text);
   font-weight: 800;
-  overflow-wrap: normal;
+  overflow-wrap: anywhere;
   word-break: normal;
+}
+
+.grow-deviation-list {
+  display: grid;
+}
+
+.grow-deviation-card {
+  display: grid;
+  grid-template-columns: 116px minmax(120px, .7fr) minmax(180px, .8fr) minmax(0, 1.7fr);
+  gap: 12px;
+  align-items: start;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.grow-deviation-card.critical {
+  background: color-mix(in oklch, var(--red-bg), transparent 48%);
+}
+
+.grow-deviation-card.warning {
+  background: color-mix(in oklch, var(--amber-bg), transparent 55%);
+}
+
+.grow-deviation-main,
+.grow-deviation-values,
+.grow-deviation-copy {
+  min-width: 0;
+}
+
+.grow-deviation-values {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.grow-deviation-copy {
+  display: grid;
+  gap: 5px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.grow-deviation-copy p {
+  margin: 0;
+}
+
+.grow-deviation-copy small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .grow-overview-card__actions {
@@ -2067,5 +2160,32 @@ html,
   .v1-page {
     width: min(100% - 24px, 1040px) !important;
     padding: 16px 0 48px;
+  }
+}
+
+@media (max-width: 760px) {
+  .rc-action-row,
+  .grow-deviation-card {
+    grid-template-columns: 1fr;
+  }
+
+  .rc-action-row {
+    gap: 6px;
+    align-items: start;
+  }
+
+  .rc-action-row em,
+  .rc-action-row small {
+    justify-self: start;
+  }
+
+  .grow-deviation-card {
+    gap: 8px;
+    padding: 14px;
+  }
+
+  .grow-deviation-values,
+  .grow-deviation-copy {
+    font-size: 13px;
   }
 }

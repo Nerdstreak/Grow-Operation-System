@@ -38,6 +38,7 @@ public sealed record GrowDetailDto(
     int? PhenoNumber,
     int? TentId,
     string? TentName,
+    string? HydroSetupName,
     GrowEntryPoint EntryPoint,
     int? DaysAlreadyInPhase,
     int? AutoflowerDaysSinceGermination,

@@ -7,6 +7,7 @@ public sealed class GrowRun
     public int? SystemId { get; set; }
     public int? SetupId { get; set; }
     public string? TentName { get; set; }
+    public string? HydroSetupName { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Strain { get; set; }
     public string? Breeder { get; set; }
