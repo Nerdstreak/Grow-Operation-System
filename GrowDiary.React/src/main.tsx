@@ -11,6 +11,18 @@ import '@fontsource/jetbrains-mono/600.css'
 import './index.css'
 import App from './App'
 
+function updateAppViewportHeight() {
+  const height = window.visualViewport?.height ?? window.innerHeight
+  document.documentElement.style.setProperty('--app-viewport-height', `${Math.round(height)}px`)
+}
+
+updateAppViewportHeight()
+window.addEventListener('load', updateAppViewportHeight, { passive: true })
+window.addEventListener('resize', updateAppViewportHeight, { passive: true })
+window.addEventListener('orientationchange', updateAppViewportHeight, { passive: true })
+window.visualViewport?.addEventListener('resize', updateAppViewportHeight, { passive: true })
+window.visualViewport?.addEventListener('scroll', updateAppViewportHeight, { passive: true })
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

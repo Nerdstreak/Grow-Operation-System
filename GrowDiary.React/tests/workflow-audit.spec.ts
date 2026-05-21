@@ -582,10 +582,10 @@ async function assertGrowManagementFlow(page: import('@playwright/test').Page, g
 
 async function assertActionPage(page: import('@playwright/test').Page) {
   await expect(page.locator('.rc-action-guide-card')).toHaveCount(4)
-  await expect(page.getByText(/Nährlösung prüfen und Addback berechnen/i)).toBeVisible()
-  await expect(page.getByText(/Aktuelle Werte dokumentieren/i)).toBeVisible()
-  await expect(page.getByText(/Sensorstatus, Wartung und Kalibrierung prüfen/i)).toBeVisible()
-  await expect(page.getByText(/Verbindung und Mapping prüfen/i)).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Addback berechnen/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Werte dokumentieren/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Sensoren prüfen/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /HA-Mapping prüfen/i })).toBeVisible()
 }
 
 async function assertKnowledgePage(page: import('@playwright/test').Page) {

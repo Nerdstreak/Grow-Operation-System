@@ -63,6 +63,9 @@ type ReportRow = {
   growsFindings: AuditFinding[]
   growsCardsAboveFold: number | null
   growsActionBarHeight: number | null
+  viewportHeight: number
+  visualViewportHeight: number | null
+  appViewportHeight: string
 }
 
 type LayoutFinding = {
@@ -172,6 +175,8 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
     const routeFrameRect = routeFrame?.getBoundingClientRect() ?? null
     const safeTop = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-top') || '0')
     const safeBottom = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom') || '0')
+    const appViewportHeight = getComputedStyle(document.documentElement).getPropertyValue('--app-viewport-height').trim()
+    const visualViewportHeight = window.visualViewport ? Math.round(window.visualViewport.height) : null
     const isPhone = window.innerWidth < 768
     const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024
     const bottomNavFindings = bottomNavRect
@@ -223,11 +228,13 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       ? Array.from(bottomNav.querySelectorAll('a, button')).map((item) => (item.textContent ?? '').trim().replace(/\s+/g, ' ')).filter(Boolean)
       : []
     const expectedPhoneNav = ['Live', 'Addback', 'Messung', 'Grows']
+    const stalePhoneNavLabels = navLabels.filter((label) => label === 'Zelte' || label === 'Hydro')
     const navStructureFindings = isPhone
       ? [
         !bottomNav ? { selector: '.v1-bottom-nav', text: '', problem: 'missingPhoneBottomNav', details: 'Phone requires a 4-item bottom navigation.' } : null,
         bottomNav && navLabels.length !== 4 ? { selector: '.v1-bottom-nav', text: navLabels.join(', '), problem: 'phoneBottomNavItemCount', details: `expected 4, got ${navLabels.length}` } : null,
         bottomNav && navLabels.join('|') !== expectedPhoneNav.join('|') ? { selector: '.v1-bottom-nav', text: navLabels.join(', '), problem: 'phoneBottomNavLabels', details: `expected ${expectedPhoneNav.join(', ')}` } : null,
+        stalePhoneNavLabels.length > 0 ? { selector: '.v1-bottom-nav', text: navLabels.join(', '), problem: 'stalePhoneBottomNavLabels', details: `unexpected ${stalePhoneNavLabels.join(', ')}` } : null,
       ].filter((item): item is AuditFinding => item !== null)
       : []
 
@@ -245,8 +252,12 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       : []
 
     const liveScreen = document.querySelector('[data-audit="live-screen"]') as HTMLElement | null
+    const liveDesktop = document.querySelector('[data-audit="live-dashboard-desktop"]') as HTMLElement | null
+    const liveMobile = document.querySelector('[data-audit="live-dashboard-mobile"]') as HTMLElement | null
     const liveDashboardFindings = liveScreen
       ? [
+        isPhone && !liveMobile ? { selector: '[data-audit="live-dashboard-mobile"]', text: '', problem: 'missingMobileLiveLayoutMarker', details: `viewport=${window.innerWidth}x${window.innerHeight}` } : null,
+        !isPhone && !liveDesktop ? { selector: '[data-audit="live-dashboard-desktop"]', text: '', problem: 'missingDesktopLiveLayoutMarker', details: `viewport=${window.innerWidth}x${window.innerHeight}` } : null,
         (() => {
           const camera = document.querySelector('[data-audit="live-camera"]') as HTMLElement | null
           if (!camera) return null
@@ -430,6 +441,9 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
         ? growsCards.filter((card) => { const rect = card.getBoundingClientRect(); return rect.top < (isPhone ? window.innerHeight : Math.min(window.innerHeight, 1024)) && rect.bottom > 0 }).length
         : null,
       growsActionBarHeight: firstGrowActionsRect ? Math.round(firstGrowActionsRect.height) : null,
+      viewportHeight: window.innerHeight,
+      visualViewportHeight,
+      appViewportHeight,
     }
   })
 }
@@ -479,6 +493,9 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
     growsFindings: metrics.growsFindings,
     growsCardsAboveFold: metrics.growsCardsAboveFold,
     growsActionBarHeight: metrics.growsActionBarHeight,
+    viewportHeight: metrics.viewportHeight,
+    visualViewportHeight: metrics.visualViewportHeight,
+    appViewportHeight: metrics.appViewportHeight,
   })
 
   if (viewport.enforceShellHardChecks && shellOverflowSlugs.has(route.slug)) {
@@ -591,6 +608,9 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
     growsFindings: metrics.growsFindings,
     growsCardsAboveFold: metrics.growsCardsAboveFold,
     growsActionBarHeight: metrics.growsActionBarHeight,
+    viewportHeight: metrics.viewportHeight,
+    visualViewportHeight: metrics.visualViewportHeight,
+    appViewportHeight: metrics.appViewportHeight,
   })
 
   const coveredByBottomNav = metrics.bottomNavFindings.filter((item) => item.problem === 'coveredByBottomNav')
@@ -621,12 +641,12 @@ function writeReports() {
     '',
     '## Screenshots',
     '',
-    '| Viewport | Route | Status | Overflow | Bottom Nav | Touch | Safe Area | Nav Structure | Tablet | Messung | Grows | Grow-Karten above fold | Grow-Aktionshöhe | Gruppen | Felder above fold | Heading | Screenshot | Note | PageError |',
-    '|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|',
+    '| Viewport | Route | Status | Overflow | Bottom Nav | Touch | Safe Area | Nav Structure | Tablet | Live | Messung | Grows | Grow-Karten above fold | Grow-Aktionshöhe | Gruppen | Felder above fold | Viewport px | VisualViewport px | AppViewport | Heading | Screenshot | Note | PageError |',
+    '|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|---|',
     ...reportRows.map((row) => {
       const note = row.note ? row.note.replace(/\|/g, '\\|').slice(0, 220) : ''
       const error = row.pageError ? row.pageError.replace(/\|/g, '\\|').slice(0, 160) : ''
-      return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.bottomNavFindings.length} | ${row.touchTargetFindings.length} | ${row.safeAreaFindings.length} | ${row.navStructureFindings.length} | ${row.tabletLayoutFindings.length} | ${row.measurementFindings.length} | ${row.growsFindings.length} | ${row.growsCardsAboveFold ?? ''} | ${row.growsActionBarHeight ?? ''} | ${row.measurementFormGroups ?? ''} | ${row.measurementFieldsAboveFold ?? ''} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
+      return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.bottomNavFindings.length} | ${row.touchTargetFindings.length} | ${row.safeAreaFindings.length} | ${row.navStructureFindings.length} | ${row.tabletLayoutFindings.length} | ${row.liveDashboardFindings.length} | ${row.measurementFindings.length} | ${row.growsFindings.length} | ${row.growsCardsAboveFold ?? ''} | ${row.growsActionBarHeight ?? ''} | ${row.measurementFormGroups ?? ''} | ${row.measurementFieldsAboveFold ?? ''} | ${row.viewportHeight} | ${row.visualViewportHeight ?? ''} | ${row.appViewportHeight} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
     }),
     '',
     '## Mobile / Tablet Findings',
@@ -663,7 +683,7 @@ function writeReports() {
 function copyRouteScreenshotAlias(viewport: ViewportCase, slug: string, fileName: string) {
   const prefix = viewport.category === 'phone' ? 'mobile' : viewport.category === 'tablet' ? 'tablet' : null
   if (!prefix) return
-  const aliasSlug = slug === 'messung' || slug === 'grows' || slug === 'grow-new' ? slug : null
+  const aliasSlug = slug === 'dashboard' || slug === 'messung' || slug === 'grows' || slug === 'grow-new' ? slug : null
   if (!aliasSlug) return
   const alias = `${prefix}-${viewport.width}x${viewport.height}-${aliasSlug}.png`
   if (alias === fileName) return
@@ -1078,7 +1098,14 @@ async function assertLiveMobileContract(page: import('@playwright/test').Page, s
   await expect(page.locator('[data-audit="live-screen"]'), `${slug}: Live screen audit hook`).toBeVisible()
 
   const isPhone = await page.evaluate(() => window.innerWidth < 768)
-  if (!isPhone) return
+  if (!isPhone) {
+    await expect(page.locator('[data-audit="live-dashboard-desktop"]'), `${slug}: desktop Live layout marker`).toBeVisible()
+    await expect(page.locator('[data-audit="live-dashboard-mobile"]'), `${slug}: desktop must not render mobile Live layout`).toHaveCount(0)
+    return
+  }
+
+  await expect(page.locator('[data-audit="live-dashboard-mobile"]'), `${slug}: mobile Live layout marker`).toBeVisible()
+  await expect(page.locator('[data-audit="live-dashboard-desktop"]'), `${slug}: mobile must not render desktop Live layout`).toHaveCount(0)
 
   const emptyState = page.locator('[data-audit="live-empty-state"]')
   if (await emptyState.isVisible().catch(() => false)) {
@@ -1397,6 +1424,12 @@ async function assertMobileBottomNavDocked(page: import('@playwright/test').Page
       bottomGap: Math.abs(window.innerHeight - rect.bottom),
       backgroundColor: style.backgroundColor,
       paddingBottom: Number.parseFloat(style.paddingBottom || '0'),
+      bottom: style.bottom,
+      marginBottom: style.marginBottom,
+      transform: style.transform,
+      viewportHeight: window.innerHeight,
+      visualViewportHeight: window.visualViewport ? Math.round(window.visualViewport.height) : null,
+      appViewportHeight: getComputedStyle(document.documentElement).getPropertyValue('--app-viewport-height').trim(),
     }
   })
   expect(nav, `${context}: mobile bottom nav must exist`).not.toBeNull()
@@ -1404,6 +1437,13 @@ async function assertMobileBottomNavDocked(page: import('@playwright/test').Page
   expect(nav!.bottomGap, `${context}: mobile bottom nav must be docked to viewport bottom`).toBeLessThanOrEqual(1)
   expect(nav!.backgroundColor, `${context}: mobile bottom nav background must be opaque`).not.toMatch(/rgba\(0,\s*0,\s*0,\s*0\)|transparent/i)
   expect(nav!.paddingBottom, `${context}: mobile bottom nav must reserve safe-area padding`).toBeGreaterThanOrEqual(8)
+  expect(nav!.bottom, `${context}: mobile bottom nav CSS bottom`).toBe('0px')
+  expect(nav!.marginBottom, `${context}: mobile bottom nav must not use margin-bottom`).toBe('0px')
+  expect(nav!.transform, `${context}: mobile bottom nav must not translate upward`).toBe('none')
+  expect(Number.parseFloat(nav!.appViewportHeight), `${context}: app viewport CSS variable must be populated`).toBeGreaterThan(0)
+  if (nav!.visualViewportHeight != null) {
+    expect(Math.abs(Number.parseFloat(nav!.appViewportHeight) - nav!.visualViewportHeight), `${context}: app viewport CSS variable must track visualViewport height`).toBeLessThanOrEqual(1)
+  }
 }
 
 async function assertMobileShellContract(page: import('@playwright/test').Page, context: string) {

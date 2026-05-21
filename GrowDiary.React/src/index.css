@@ -2593,6 +2593,52 @@ input, select, textarea { min-width: 0; }
 .live-mobile-empty .v1-empty {
   min-height: 180px;
 }
+.live-desktop-dashboard {
+  display: grid;
+  gap: 18px;
+}
+.live-desktop-overview {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+.live-desktop-operations {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.55fr);
+  gap: 18px;
+  align-items: stretch;
+}
+.live-desktop-overview > [data-audit],
+.live-desktop-operations > [data-audit] {
+  min-width: 0;
+}
+.live-desktop-overview .v1-card,
+.live-desktop-operations .v1-card {
+  height: 100%;
+}
+.live-desktop-status-card,
+.live-desktop-climate-card,
+.live-desktop-control-card {
+  display: grid;
+  gap: 16px;
+}
+.live-desktop-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.live-desktop-control-card p {
+  margin: 0;
+  color: var(--v1-muted);
+  line-height: 1.45;
+}
+@media (max-width: 1100px) {
+  .live-desktop-overview,
+  .live-desktop-operations {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 
 .v1-hydro-detail {
   display: grid;

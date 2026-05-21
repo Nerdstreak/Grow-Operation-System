@@ -88,8 +88,8 @@ function buildActionCards(state: ActionState, primaryGrow: GrowSummary | undefin
     {
       key: 'addback',
       kicker: 'Addback',
-      title: 'Nährlösung prüfen und Addback berechnen',
-      description: 'Reservoirwerte, Wasserstand und Ziel-EC zusammen kontrollieren.',
+      title: 'Addback berechnen',
+      description: 'Reservoir, Wasserstand und Ziel-EC prüfen.',
       status: primaryGrow ? `Kontext: ${primaryGrow.name}` : 'Kein aktiver Grow ausgewählt.',
       to: primaryGrow ? `/grows/${primaryGrow.id}/addback` : '/grows/new',
       cta: primaryGrow ? 'Addback starten' : 'Grow starten',
@@ -99,8 +99,8 @@ function buildActionCards(state: ActionState, primaryGrow: GrowSummary | undefin
     {
       key: 'measurement',
       kicker: 'Messung',
-      title: 'Aktuelle Werte dokumentieren',
-      description: 'pH, EC, Klima, Reservoir und Beobachtungen als Verlauf speichern.',
+      title: 'Werte dokumentieren',
+      description: 'pH, EC, Klima und Beobachtungen speichern.',
       status: primaryGrow?.latestMeasurementAt ? `Letzte Messung: ${formatDateTime(primaryGrow.latestMeasurementAt)}` : 'Noch keine aktuelle Messung erkannt.',
       to: '/messung',
       cta: 'Messung erfassen',
@@ -110,8 +110,8 @@ function buildActionCards(state: ActionState, primaryGrow: GrowSummary | undefin
     {
       key: 'sensors',
       kicker: 'Sensoren',
-      title: 'Sensorstatus, Wartung und Kalibrierung prüfen',
-      description: 'Offline-Sensoren und fällige Pflege entscheiden, wie belastbar Live-Werte sind.',
+      title: 'Sensoren prüfen',
+      description: 'Offline-Sensoren und fällige Pflege prüfen.',
       status: activeSensors === 0 ? 'Sensorvertrauen nicht bewertet.' : `${activeSensors} aktive Sensoren, ${dueSensorWork} fällige Aufgaben.`,
       to: '/hardware',
       cta: 'Sensoren prüfen',
@@ -121,8 +121,8 @@ function buildActionCards(state: ActionState, primaryGrow: GrowSummary | undefin
     {
       key: 'ha',
       kicker: 'Home Assistant',
-      title: 'Verbindung und Mapping prüfen',
-      description: 'Sensor-Inventar bleibt getrennt vom Entity-Mapping in Home Assistant.',
+      title: 'HA-Mapping prüfen',
+      description: 'Hardware-Entities in Home Assistant prüfen.',
       status: mappedHardware > 0 ? `${mappedHardware} Hardware-Entities verknüpft.` : 'Mapping noch offen oder unvollständig.',
       to: '/home-assistant',
       cta: 'HA einrichten',

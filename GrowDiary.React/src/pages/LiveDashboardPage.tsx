@@ -25,6 +25,7 @@ function LiveDashboardPage() {
   const [selectedTentId, setSelectedTentId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [refresh, setRefresh] = useState(0)
+  const isPhoneViewport = useIsPhoneViewport()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -75,84 +76,228 @@ function LiveDashboardPage() {
         <V1Tabs label="Zelt auswählen" active={selectedTent?.id ?? state.tents[0].id} onChange={(id) => setSelectedTentId(Number(id))} items={state.tents.map((tent) => ({ value: tent.id, label: tent.name, meta: formatTentType(tent.tentType) }))} />
       )}
 
-      <div className="live-mobile-stack" data-audit="live-screen">
-        {loading ? (
-          <V1Empty title="Lade Live-Daten..." />
-        ) : !selectedTent || !primaryGrow ? (
-          <div className="live-mobile-empty" data-audit="live-empty-state">
-            <V1Empty
-              title="Noch kein aktiver Grow"
-              text="Lege einen Grow an oder richte zuerst ein Zelt ein."
-              action={(
-                <div className="live-empty-actions">
-                  <V1LinkButton to="/grows/new" variant="primary">Grow anlegen</V1LinkButton>
-                  <V1LinkButton to="/zelte">Zelt anlegen</V1LinkButton>
-                </div>
-              )}
-            />
-          </div>
-        ) : selectedTent && primaryGrow ? (
-          <>
-            <div data-audit="live-status-card">
-              <V1Card className="live-mobile-card live-status-card" tone={score.tone}>
-                <div className="v1-card-title-row">
-                  <div><span className="v1-card-kicker">Aktuell</span><h2>{selectedTent.name}</h2></div>
-                  <V1Badge tone={score.tone}>{score.label}</V1Badge>
-                </div>
-                <div className="live-status-summary">
-                  <div><span>Grow</span><strong>{primaryGrow.name}</strong></div>
-                  <div><span>Status</span><strong>{formatGrowStatus(primaryGrow.status)}</strong></div>
-                  <div><span>Phase</span><strong>{primaryGrow.latestStage ?? 'offen'}</strong></div>
-                  <div><span>Letzte Messung</span><strong>{formatDateTime(primaryGrow.latestMeasurementAt)}</strong></div>
-                </div>
-              </V1Card>
-            </div>
-
-            <div data-audit="live-climate-card">
-              <V1Card className="live-mobile-card live-climate-card">
-                <div className="live-card-head">
-                  <span className="v1-card-kicker">Klima</span>
-                  <h2>Zustand</h2>
-                </div>
-                <div className="live-mobile-metric-grid">
-                  {climateMetrics.map((metric) => <LiveMetric key={metric.key} metric={metric} />)}
-                  {lightMetric && <LiveMetric metric={{ ...lightMetric, label: lightMetric.key === 'ppfd' ? 'PPFD' : 'Licht' }} />}
-                </div>
-              </V1Card>
-            </div>
-
-            <div data-audit="live-sensor-card">
-              <V1Card className="live-mobile-card live-sensor-card" tone={sensorStatus.tone}>
-                <div className="live-card-head">
-                  <span className="v1-card-kicker">Sensorstatus</span>
-                  <h2>{sensorStatus.label}</h2>
-                </div>
-                <p>{sensorStatus.text}</p>
-              </V1Card>
-            </div>
-
-            {selectedTent.cameraEntityId ? (
-              <CameraTile tent={selectedTent} refresh={refresh} />
-            ) : (
-              <div className="live-camera-note" data-audit="live-camera-note">Keine Kamera eingerichtet.</div>
-            )}
-
-            <div className="live-quick-actions" data-audit="live-quick-actions">
-              <V1LinkButton to="/messung" variant="primary">Messung erfassen</V1LinkButton>
-              {hasHydroGrow && <V1LinkButton to={`/grows/${primaryGrow.id}/addback`}>Addback starten</V1LinkButton>}
-              <V1Button onClick={() => setRefresh((current) => current + 1)}>Aktualisieren</V1Button>
-            </div>
-
-            <V1Section title={`Aktive Grows in ${selectedTent.name}`} action={<V1LinkButton to="/grows/new">Grow anlegen</V1LinkButton>}>
-              <div className="v1-list">
-                {growsForTent.map((grow) => <Link key={grow.id} className="v1-list-row" to={`/grows/${grow.id}`}><strong>{grow.name}</strong><span>{grow.strain ?? 'Sorte offen'}</span><em>{grow.latestStage ?? grow.status}</em></Link>)}
+      <div data-audit="live-screen">
+        {isPhoneViewport ? (
+          <div className="live-mobile-stack" data-audit="live-dashboard-mobile">
+            {loading ? (
+              <V1Empty title="Lade Live-Daten..." />
+            ) : !selectedTent || !primaryGrow ? (
+              <div className="live-mobile-empty" data-audit="live-empty-state">
+                <V1Empty
+                  title="Noch kein aktiver Grow"
+                  text="Lege einen Grow an oder richte zuerst ein Zelt ein."
+                  action={(
+                    <div className="live-empty-actions">
+                      <V1LinkButton to="/grows/new" variant="primary">Grow anlegen</V1LinkButton>
+                      <V1LinkButton to="/zelte">Zelt anlegen</V1LinkButton>
+                    </div>
+                  )}
+                />
               </div>
-            </V1Section>
-          </>
-        ) : null}
+            ) : selectedTent && primaryGrow ? (
+              <>
+                <div data-audit="live-status-card">
+                  <V1Card className="live-mobile-card live-status-card" tone={score.tone}>
+                    <div className="v1-card-title-row">
+                      <div><span className="v1-card-kicker">Aktuell</span><h2>{selectedTent.name}</h2></div>
+                      <V1Badge tone={score.tone}>{score.label}</V1Badge>
+                    </div>
+                    <div className="live-status-summary">
+                      <div><span>Grow</span><strong>{primaryGrow.name}</strong></div>
+                      <div><span>Status</span><strong>{formatGrowStatus(primaryGrow.status)}</strong></div>
+                      <div><span>Phase</span><strong>{primaryGrow.latestStage ?? 'offen'}</strong></div>
+                      <div><span>Letzte Messung</span><strong>{formatDateTime(primaryGrow.latestMeasurementAt)}</strong></div>
+                    </div>
+                  </V1Card>
+                </div>
+
+                <div data-audit="live-climate-card">
+                  <V1Card className="live-mobile-card live-climate-card">
+                    <div className="live-card-head">
+                      <span className="v1-card-kicker">Klima</span>
+                      <h2>Zustand</h2>
+                    </div>
+                    <div className="live-mobile-metric-grid">
+                      {climateMetrics.map((metric) => <LiveMetric key={metric.key} metric={metric} />)}
+                      {lightMetric && <LiveMetric metric={{ ...lightMetric, label: lightMetric.key === 'ppfd' ? 'PPFD' : 'Licht' }} />}
+                    </div>
+                  </V1Card>
+                </div>
+
+                <div data-audit="live-sensor-card">
+                  <V1Card className="live-mobile-card live-sensor-card" tone={sensorStatus.tone}>
+                    <div className="live-card-head">
+                      <span className="v1-card-kicker">Sensorstatus</span>
+                      <h2>{sensorStatus.label}</h2>
+                    </div>
+                    <p>{sensorStatus.text}</p>
+                  </V1Card>
+                </div>
+
+                {selectedTent.cameraEntityId ? (
+                  <CameraTile tent={selectedTent} refresh={refresh} />
+                ) : (
+                  <div className="live-camera-note" data-audit="live-camera-note">Keine Kamera eingerichtet.</div>
+                )}
+
+                <div className="live-quick-actions" data-audit="live-quick-actions">
+                  <V1LinkButton to="/messung" variant="primary">Messung erfassen</V1LinkButton>
+                  {hasHydroGrow && <V1LinkButton to={`/grows/${primaryGrow.id}/addback`}>Addback starten</V1LinkButton>}
+                  <V1Button onClick={() => setRefresh((current) => current + 1)}>Aktualisieren</V1Button>
+                </div>
+
+                <V1Section title={`Aktive Grows in ${selectedTent.name}`} action={<V1LinkButton to="/grows/new">Grow anlegen</V1LinkButton>}>
+                  <div className="v1-list">
+                    {growsForTent.map((grow) => <Link key={grow.id} className="v1-list-row" to={`/grows/${grow.id}`}><strong>{grow.name}</strong><span>{grow.strain ?? 'Sorte offen'}</span><em>{grow.latestStage ?? grow.status}</em></Link>)}
+                  </div>
+                </V1Section>
+              </>
+            ) : null}
+          </div>
+        ) : (
+          <DesktopLiveDashboard
+            loading={loading}
+            selectedTent={selectedTent}
+            primaryGrow={primaryGrow}
+            growsForTent={growsForTent}
+            score={score}
+            climateMetrics={climateMetrics}
+            lightMetric={lightMetric}
+            sensorStatus={sensorStatus}
+            hasHydroGrow={hasHydroGrow}
+            refresh={refresh}
+            onRefresh={() => setRefresh((current) => current + 1)}
+          />
+        )}
       </div>
     </V1Page>
   )
+}
+
+type DesktopLiveDashboardProps = {
+  loading: boolean
+  selectedTent: TentDto | null
+  primaryGrow: GrowSummary | null
+  growsForTent: GrowSummary[]
+  score: ReturnType<typeof buildScore>
+  climateMetrics: MetricPayload[]
+  lightMetric: MetricPayload | null
+  sensorStatus: ReturnType<typeof buildSensorStatus>
+  hasHydroGrow: boolean
+  refresh: number
+  onRefresh: () => void
+}
+
+function DesktopLiveDashboard({
+  loading,
+  selectedTent,
+  primaryGrow,
+  growsForTent,
+  score,
+  climateMetrics,
+  lightMetric,
+  sensorStatus,
+  hasHydroGrow,
+  refresh,
+  onRefresh,
+}: DesktopLiveDashboardProps) {
+  if (loading) {
+    return <V1Empty title="Lade Live-Daten..." />
+  }
+
+  if (!selectedTent || !primaryGrow) {
+    return (
+      <div className="live-desktop-dashboard" data-audit="live-dashboard-desktop">
+        <V1Empty
+          title="Noch kein aktiver Grow"
+          text="Lege einen Grow an oder richte zuerst ein Zelt ein."
+          action={(
+            <div className="live-empty-actions">
+              <V1LinkButton to="/grows/new" variant="primary">Grow anlegen</V1LinkButton>
+              <V1LinkButton to="/zelte">Zelt anlegen</V1LinkButton>
+            </div>
+          )}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="live-desktop-dashboard" data-audit="live-dashboard-desktop">
+      <section className="live-desktop-overview">
+        <div data-audit="live-status-card">
+          <V1Card className="live-desktop-status-card" tone={score.tone}>
+            <div className="v1-card-title-row">
+              <div><span className="v1-card-kicker">Live-Status</span><h2>{selectedTent.name}</h2></div>
+              <V1Badge tone={score.tone}>{score.label}</V1Badge>
+            </div>
+            <div className="live-status-summary">
+              <div><span>Grow</span><strong>{primaryGrow.name}</strong></div>
+              <div><span>Status</span><strong>{formatGrowStatus(primaryGrow.status)}</strong></div>
+              <div><span>Phase</span><strong>{primaryGrow.latestStage ?? 'offen'}</strong></div>
+              <div><span>Letzte Messung</span><strong>{formatDateTime(primaryGrow.latestMeasurementAt)}</strong></div>
+            </div>
+          </V1Card>
+        </div>
+
+        <div data-audit="live-climate-card">
+          <V1Card className="live-desktop-climate-card">
+            <div className="live-card-head">
+              <span className="v1-card-kicker">Klima</span>
+              <h2>Aktuelle Werte</h2>
+            </div>
+            <div className="live-desktop-metric-grid">
+              {climateMetrics.map((metric) => <LiveMetric key={metric.key} metric={metric} />)}
+              {lightMetric && <LiveMetric metric={{ ...lightMetric, label: lightMetric.key === 'ppfd' ? 'PPFD' : 'Licht' }} />}
+            </div>
+          </V1Card>
+        </div>
+      </section>
+
+      <section className="live-desktop-operations">
+        {selectedTent.cameraEntityId ? (
+          <CameraTile tent={selectedTent} refresh={refresh} />
+        ) : (
+          <div className="live-camera-note" data-audit="live-camera-note">Keine Kamera eingerichtet.</div>
+        )}
+
+        <div data-audit="live-sensor-card">
+          <V1Card className="live-desktop-control-card" tone={sensorStatus.tone}>
+            <div className="live-card-head">
+              <span className="v1-card-kicker">Sensorstatus</span>
+              <h2>{sensorStatus.label}</h2>
+            </div>
+            <p>{sensorStatus.text}</p>
+            <div className="live-quick-actions" data-audit="live-quick-actions">
+              <V1LinkButton to="/messung" variant="primary">Messung erfassen</V1LinkButton>
+              {hasHydroGrow && <V1LinkButton to={`/grows/${primaryGrow.id}/addback`}>Addback starten</V1LinkButton>}
+              <V1Button onClick={onRefresh}>Aktualisieren</V1Button>
+            </div>
+          </V1Card>
+        </div>
+      </section>
+
+      <V1Section title={`Aktive Grows in ${selectedTent.name}`} action={<V1LinkButton to="/grows/new">Grow anlegen</V1LinkButton>}>
+        <div className="v1-list">
+          {growsForTent.map((grow) => <Link key={grow.id} className="v1-list-row" to={`/grows/${grow.id}`}><strong>{grow.name}</strong><span>{grow.strain ?? 'Sorte offen'}</span><em>{grow.latestStage ?? grow.status}</em></Link>)}
+        </div>
+      </V1Section>
+    </div>
+  )
+}
+
+function useIsPhoneViewport() {
+  const [isPhone, setIsPhone] = useState(() => window.matchMedia('(max-width: 767px)').matches)
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)')
+    const update = () => setIsPhone(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  return isPhone
 }
 
 function CameraTile({ tent, refresh }: { tent: TentDto; refresh: number }) {
