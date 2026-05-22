@@ -485,9 +485,58 @@ async function waitForAppIdle(page: import('@playwright/test').Page) {
   }
 }
 
+async function resetAuditScroll(page: import('@playwright/test').Page) {
+  await page.evaluate(() => {
+    const routeFrame = document.querySelector('.v1-route-frame') as HTMLElement | null
+    const candidates = [
+      routeFrame,
+      document.scrollingElement as HTMLElement | null,
+      document.documentElement,
+      document.body,
+    ].filter((item): item is HTMLElement => item != null)
+    for (const item of candidates) item.scrollTo(0, 0)
+    window.scrollTo(0, 0)
+  })
+}
+
+async function scrollAuditTargetIntoView(page: import('@playwright/test').Page, selector: string) {
+  const target = page.locator(selector).first()
+  await expect(target, `${selector}: audit scroll target`).toBeVisible()
+  await target.evaluate((element) => {
+    function scrollableAncestor(node: Element | null) {
+      let current = node?.parentElement ?? null
+      while (current) {
+        const style = window.getComputedStyle(current)
+        const canScroll = current.scrollHeight > current.clientHeight + 4
+        if (canScroll && /(auto|scroll|overlay)/i.test(`${style.overflowY} ${style.overflow}`)) return current
+        current = current.parentElement
+      }
+      const routeFrame = document.querySelector('.v1-route-frame') as HTMLElement | null
+      if (routeFrame && routeFrame.scrollHeight > routeFrame.clientHeight + 4) return routeFrame
+      return document.scrollingElement as HTMLElement | null
+    }
+
+    const html = element as HTMLElement
+    const scroller = scrollableAncestor(html)
+    if (!scroller) {
+      html.scrollIntoView({ block: 'center', inline: 'nearest' })
+      return
+    }
+
+    const scrollerRect = scroller === document.scrollingElement
+      ? { top: 0, height: window.innerHeight }
+      : scroller.getBoundingClientRect()
+    const rect = html.getBoundingClientRect()
+    const top = scroller.scrollTop + rect.top - scrollerRect.top - Math.max(12, (scrollerRect.height - rect.height) / 2)
+    scroller.scrollTo({ top: Math.max(0, top), left: 0 })
+  })
+  await page.waitForTimeout(120)
+}
+
 async function auditRoute(page: import('@playwright/test').Page, viewport: ViewportCase, route: RouteCase, pageError: string | null) {
   const response = await page.goto(route.path, { waitUntil: 'domcontentloaded' })
   await waitForAppIdle(page)
+  await resetAuditScroll(page)
 
   const metrics = await collectPageMetrics(page)
   const fileName = `${viewport.name}-${viewport.width}x${viewport.height}-${route.slug}.png`
@@ -791,6 +840,28 @@ for (const viewport of viewports) {
       await assertMobileShellContract(page, `${viewport.name}: measurement active shell`)
       await assertMeasurementMobileContract(page, `${viewport.name}: measurement active form`)
       await assertMeasurementActionsDoNotOverlapHydro(page, `${viewport.name}: measurement active form actions`)
+      const sectionShots = [
+        ['context', '[data-audit="measurement-section-context"]'],
+        ['climate', '[data-audit="measurement-section-climate"]'],
+        ['hydro', '[data-audit="measurement-section-hydro"]'],
+        ['addback', '[data-audit="measurement-section-addback"]'],
+        ['observation', '[data-audit="measurement-section-observation"]'],
+        ['photo', '[data-audit="measurement-section-photo"]'],
+        ['save-end', '[data-audit="measurement-form-actions"]'],
+      ] as const
+      const positions: number[] = []
+      for (const [name, selector] of sectionShots) {
+        if ((await page.locator(selector).count()) === 0) continue
+        await scrollAuditTargetIntoView(page, selector)
+        positions.push(await page.locator('.v1-route-frame').evaluate((element) => Math.round((element as HTMLElement).scrollTop)).catch(() => 0))
+        const fileName = `mobile-${viewport.width}x${viewport.height}-flow-measurement-${name}.png`
+        await page.screenshot({ path: path.join(outputDir, fileName), fullPage: false })
+        if (viewport.name === 'iphone17-near' && name === 'save-end') {
+          await page.screenshot({ path: path.join(outputDir, 'mobile-measurement-form-actions.png'), fullPage: false })
+        }
+      }
+      expect(new Set(positions).size, `${viewport.name}: measurement flow screenshots must use distinct internal scroll positions`).toBeGreaterThan(2)
+      await scrollAuditTargetIntoView(page, '[data-audit="measurement-form-actions"]')
       const fileName = `mobile-${viewport.width}x${viewport.height}-measurement-form-actions.png`
       await page.screenshot({ path: path.join(outputDir, fileName), fullPage: false })
       if (viewport.name === 'iphone17-near') {
@@ -930,7 +1001,11 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
     await expect(page.getByText(/\/addback|\/messung|\/home-assistant/i)).toHaveCount(0)
   }
   if (slug === 'action' || slug === 'aufgaben') {
+    if (slug === 'action') {
+      await expect(page, 'Legacy /action must redirect to canonical /aufgaben').toHaveURL(/\/aufgaben$/)
+    }
     await expect(page.locator('.rc-action-guide-card')).toHaveCount(4)
+    await expect(page.getByText(/Lade Aktionen/i)).toHaveCount(0)
   }
   if (slug === 'wissen') {
     await expect(page.locator('[data-audit="knowledge-search"]')).toBeVisible()
@@ -1286,8 +1361,7 @@ async function assertMeasurementActionsDoNotOverlapHydro(page: import('@playwrig
   await expect(hydroSection, `${context}: hydro section hook`).toBeVisible()
   await expect(actions, `${context}: action hook`).toHaveCount(1)
 
-  await hydroSection.scrollIntoViewIfNeeded()
-  await page.evaluate(() => window.scrollBy(0, -12))
+  await scrollAuditTargetIntoView(page, '[data-audit="measurement-section-hydro"]')
   await expect(hydroSection, `${context}: hydro section after scroll`).toBeVisible()
 
   const layout = await page.evaluate(() => {

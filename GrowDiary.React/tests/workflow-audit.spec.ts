@@ -147,6 +147,10 @@ test.describe('workflow audit desktop', () => {
     await ensureHardwareForWorkflowAudit(page.request)
     await auditRoute(page, '/aufgaben', 'desktop-aufgaben')
     await assertActionPage(page)
+    await page.goto('/action', { waitUntil: 'domcontentloaded' })
+    await waitForAppIdle(page)
+    await expect(page).toHaveURL(/\/aufgaben$/)
+    await assertActionPage(page)
     await auditRoute(page, '/home-assistant', 'desktop-ha-setup')
     await auditRoute(page, '/wissen', 'desktop-knowledge')
     await assertKnowledgePage(page)
@@ -635,7 +639,8 @@ async function assertActionPage(page: import('@playwright/test').Page) {
   await expect(actionRows.filter({ hasText: /Ec|EC/i }).first()).toBeVisible()
   await expect(actionRows.filter({ hasText: /Orp|ORP/i }).first()).toBeVisible()
   await expect(actionRows.filter({ hasText: /WaterTemp|Wassertemperatur/i }).first()).toBeVisible()
-  await expect(actionRows.filter({ hasText: /Critical/i }).first()).toBeVisible()
+  await expect(actionRows.filter({ hasText: /Kritisch/i }).first()).toBeVisible()
+  await expect(page.getByText(/Lade Aktionen/i)).toHaveCount(0)
   await page.reload({ waitUntil: 'domcontentloaded' })
   await waitForAppIdle(page)
   const rowsAfterReload = page.locator('[data-audit="open-action-row"]')
@@ -708,9 +713,8 @@ async function resetScrollForLayoutCheck(page: import('@playwright/test').Page) 
   await page.evaluate(() => {
     window.scrollTo(0, 0)
     document.scrollingElement?.scrollTo(0, 0)
-    document.querySelectorAll<HTMLElement>('*').forEach((element) => {
-      element.scrollTo(0, 0)
-    })
+    const routeFrame = document.querySelector('.v1-route-frame') as HTMLElement | null
+    routeFrame?.scrollTo(0, 0)
   })
 }
 
@@ -833,6 +837,7 @@ async function selectProgramIfPresent(page: import('@playwright/test').Page) {
 }
 
 async function screenshotAndLayout(page: import('@playwright/test').Page, name: string) {
+  await resetScrollForLayoutCheck(page)
   const result = await page.evaluate(() => {
     function selectorFor(element: Element) {
       if (element.id) return `#${element.id}`

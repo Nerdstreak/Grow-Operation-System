@@ -2039,19 +2039,19 @@ html,
     margin: 0 !important;
     padding-top: 0 !important;
     padding-right: max(var(--mobile-page-padding), var(--safe-right));
-    padding-bottom: 16px !important;
+    padding-bottom: 28px !important;
     padding-left: max(var(--mobile-page-padding), var(--safe-left)) !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     overscroll-behavior: contain;
-    scroll-padding-bottom: 16px;
+    scroll-padding-bottom: 28px;
   }
 
   .v1-page {
     box-sizing: border-box;
     width: 100% !important;
     max-width: 100%;
-    padding: var(--mobile-page-padding) 0 18px !important;
+    padding: var(--mobile-page-padding) 0 32px !important;
   }
 
   .v1-mobile-more-panel {
@@ -2128,6 +2128,40 @@ html,
   .sticky-actions,
   .ops1b-sticky-actions {
     bottom: calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 12px) !important;
+  }
+
+  .rc2-measurement-page [data-audit="measurement-form-actions"] {
+    position: static !important;
+    bottom: auto !important;
+    z-index: auto !important;
+    margin-top: 4px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    backdrop-filter: none;
+  }
+}
+
+.tent-detail-room-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.tent-detail-room-grid .v1-info {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+  align-content: start;
+}
+
+.tent-detail-room-grid .v1-info strong {
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 861px) {
+  .tent-detail-room-grid {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   }
 }
 

@@ -268,7 +268,7 @@ function ManualMeasurementPage() {
               </V1Section>
             </div>
 
-            <div className="v1-form-actions sticky-actions" data-audit="measurement-form-actions">
+            <div className="v1-form-actions measurement-form-actions" data-audit="measurement-form-actions">
               <Link className="v1-button is-ghost" to="/">Abbrechen</Link>
               <V1Button type="submit" variant="primary" disabled={saving}>{saving ? 'Speichert...' : 'Messung speichern'}</V1Button>
             </div>

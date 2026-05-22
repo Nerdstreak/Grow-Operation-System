@@ -39,3 +39,17 @@ export function toLocalInputValue(date = new Date()): string {
 export function classNames(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(' ')
 }
+
+const severityLabels: Record<string, string> = {
+  Critical: 'Kritisch',
+  Warning: 'Warnung',
+  High: 'Hoch',
+  Medium: 'Mittel',
+  Low: 'Niedrig',
+  Normal: 'Normal',
+}
+
+export function formatSeverityLabel(value: string | null | undefined): string {
+  if (!value) return '–'
+  return severityLabels[value] ?? value
+}

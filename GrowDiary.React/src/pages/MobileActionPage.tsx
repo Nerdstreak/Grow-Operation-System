@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { CalibrationEventDto, GrowSummary, GrowTaskDto, HardwareItemDto, MaintenanceEventDto, RiskEventDto, SopInstanceDto } from '../types'
 import { V1Alert, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
-import { classNames, formatDateTime } from '../utils'
+import { classNames, formatDateTime, formatSeverityLabel } from '../utils'
 
 type ActionState = { grows: GrowSummary[]; risks: RiskEventDto[]; tasks: GrowTaskDto[]; maintenance: MaintenanceEventDto[]; calibration: CalibrationEventDto[]; sops: SopInstanceDto[]; hardware: HardwareItemDto[]; issues: string[] }
 const initial: ActionState = { grows: [], risks: [], tasks: [], maintenance: [], calibration: [], sops: [], hardware: [], issues: [] }
@@ -88,7 +88,7 @@ function ActionListRow({ row }: { row: ActionRow }) {
         <strong>{row.title}</strong>
         <span>{row.context}</span>
       </div>
-      <em>{row.priority}</em>
+      <em>{formatSeverityLabel(row.priority)}</em>
       <small>{row.action}</small>
     </Link>
   )

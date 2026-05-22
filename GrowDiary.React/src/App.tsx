@@ -39,7 +39,7 @@ const mobilePrimaryNav = [
 ]
 
 const desktopMoreNav = [
-  { to: '/action', label: 'Aufgaben', end: true },
+  { to: '/aufgaben', label: 'Aufgaben', end: true },
   { to: '/grows', label: 'Grows', end: false },
   { to: '/messung', label: 'Messung', end: true },
   { to: '/home-assistant', label: 'Home Assistant', end: true },
@@ -142,8 +142,8 @@ function App() {
           <Route path="/" element={<LiveDashboardPage />} />
           <Route path="/live" element={<Navigate to="/" replace />} />
           <Route path="/addback" element={<AddbackHubPage />} />
-          <Route path="/action" element={<MobileActionPage />} />
-          <Route path="/aufgaben" element={<Navigate to="/action" replace />} />
+          <Route path="/aufgaben" element={<MobileActionPage />} />
+          <Route path="/action" element={<Navigate to="/aufgaben" replace />} />
           <Route path="/grows" element={<GrowsPage />} />
           <Route path="/grows/new" element={<GrowSetupPage />} />
           <Route path="/messung" element={<ManualMeasurementPage />} />

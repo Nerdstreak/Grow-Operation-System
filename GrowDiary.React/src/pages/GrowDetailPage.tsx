@@ -29,7 +29,7 @@ import type {
   UpdateSopStepInstanceRequest,
   ValueOrigin,
 } from '../types'
-import { formatDate, formatDateTime, formatNumber, toLocalInputValue } from '../utils'
+import { formatDate, formatDateTime, formatNumber, formatSeverityLabel, toLocalInputValue } from '../utils'
 
 interface DetailBundle {
   grow: GrowDetail | null
@@ -845,7 +845,7 @@ function GrowDetailPage() {
             <div className="grow-deviation-list" data-audit="grow-deviation-list">
               {deviations.map((deviation) => (
                 <div key={deviation.stableKey} className={`grow-deviation-card ${deviation.severity.toLowerCase()}`} data-audit="grow-deviation-row">
-                  <span className={`badge ${deviation.severity === 'Critical' ? 'badge-warn' : deviation.severity === 'Warning' ? 'badge-neutral' : 'badge-ok'}`}>{deviation.severity}</span>
+                  <span className={`badge ${deviation.severity === 'Critical' ? 'badge-warn' : deviation.severity === 'Warning' ? 'badge-neutral' : 'badge-ok'}`}>{formatSeverityLabel(deviation.severity)}</span>
                   <div className="grow-deviation-main">
                     <div className="tl-title">{deviation.metric}</div>
                     <div className="tl-sub">{deviation.source} · Folge {deviation.consecutiveCount}</div>
@@ -879,8 +879,8 @@ function GrowDetailPage() {
               {treatmentRecommendations.recommendations.map((recommendation) => (
                 <div key={recommendation.stableKey} style={{ display: 'grid', gridTemplateColumns: '120px minmax(180px, 1fr) minmax(0, 2fr)', gap: 10, alignItems: 'start', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
                   <div style={{ display: 'grid', gap: 6 }}>
-                    <span className={`badge ${recommendation.confidence === 'High' ? 'badge-warn' : recommendation.confidence === 'Medium' ? 'badge-neutral' : 'badge-ok'}`}>{recommendation.confidence}</span>
-                    <span className="tl-sub">{recommendation.severity}</span>
+                    <span className={`badge ${recommendation.confidence === 'High' ? 'badge-warn' : recommendation.confidence === 'Medium' ? 'badge-neutral' : 'badge-ok'}`}>{formatSeverityLabel(recommendation.confidence)}</span>
+                    <span className="tl-sub">{formatSeverityLabel(recommendation.severity)}</span>
                   </div>
                   <div>
                     <div className="tl-title">{recommendation.treatmentName ?? recommendation.sopTitle ?? recommendation.metric}</div>
@@ -1348,7 +1348,7 @@ function GrowDetailPage() {
                 <div className="field">
                   <label>Prioritaet</label>
                   <select value={taskForm.priority} onChange={(event) => setTaskForm((current) => ({ ...current, priority: event.target.value }))}>
-                    <option>Low</option><option>Normal</option><option>High</option><option>Critical</option>
+                    <option value="Low">{formatSeverityLabel('Low')}</option><option value="Normal">{formatSeverityLabel('Normal')}</option><option value="High">{formatSeverityLabel('High')}</option><option value="Critical">{formatSeverityLabel('Critical')}</option>
                   </select>
                 </div>
                 <div className="field">

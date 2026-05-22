@@ -11,7 +11,7 @@ import type {
   SopInstanceDto,
   TentDto,
 } from '../types'
-import { classNames, formatDate, formatDateTime, formatNumber } from '../utils'
+import { classNames, formatDate, formatDateTime, formatNumber, formatSeverityLabel } from '../utils'
 
 type LoadIssue = {
   area: string
@@ -176,7 +176,7 @@ function DashboardPage() {
         <div className="ops-layout">
           <div style={{ display: 'grid', gap: 24 }}>
             <section>
-              <div className="section-label">Critical Now</div>
+              <div className="section-label">Jetzt kritisch</div>
               <div className="card">
                 <div className="card-header">
                   <span className="card-title">Offene RiskEvents</span>
@@ -194,7 +194,7 @@ function DashboardPage() {
                         <div>
                           <div className="task-title">{event.title}</div>
                           <div className="task-sub">
-                            {event.severity} · {event.eventType} · {getHardwareName(data.hardwareItems, event.hardwareItemId)} · {getTentName(data.tents, event.tentId)} · {getGrowName(data.grows, event.growId)}
+                            {formatSeverityLabel(event.severity)} · {event.eventType} · {getHardwareName(data.hardwareItems, event.hardwareItemId)} · {getTentName(data.tents, event.tentId)} · {getGrowName(data.grows, event.growId)}
                           </div>
                           <div className="task-sub">Seit {formatDateTime(event.startedAtUtc)}</div>
                         </div>

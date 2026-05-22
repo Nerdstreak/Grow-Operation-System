@@ -2595,18 +2595,18 @@ input, select, textarea { min-width: 0; }
 }
 .live-desktop-dashboard {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 .live-desktop-overview {
   display: grid;
-  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
-  gap: 18px;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(520px, 1.28fr);
+  gap: 14px;
   align-items: stretch;
 }
 .live-desktop-operations {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.55fr);
-  gap: 18px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.45fr);
+  gap: 14px;
   align-items: stretch;
 }
 .live-desktop-overview > [data-audit],
@@ -2621,12 +2621,12 @@ input, select, textarea { min-width: 0; }
 .live-desktop-climate-card,
 .live-desktop-control-card {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 .live-desktop-metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 .live-desktop-control-card p {
   margin: 0;
@@ -2670,8 +2670,8 @@ input, select, textarea { min-width: 0; }
 .v1-rdwc-site { position: relative; z-index: 1; }
 
 @media (min-width: 861px) {
-  .v1-live-page .v1-hero { min-height: 92px; }
-  .v1-live-page .v1-hero h1 { font-size: clamp(44px, 4.4vw, 64px); }
+  .v1-live-page .v1-hero { min-height: 82px; padding-top: 18px; padding-bottom: 18px; }
+  .v1-live-page .v1-hero h1 { font-size: clamp(36px, 3.5vw, 52px); }
   .v1-camera-card { min-height: 330px; }
   .v1-camera-empty { min-height: 154px; }
   .v1-live-now-card { min-height: 330px; }
