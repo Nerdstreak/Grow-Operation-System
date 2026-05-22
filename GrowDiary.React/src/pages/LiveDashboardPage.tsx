@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowSummary, MetricPayload, TentDto, TentLivePayload } from '../types'
+import type { GrowSummary, MetricPayload, RiskEventDto, TentDto, TentLivePayload } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Tabs } from '../components/v1'
-import { formatDateTime } from '../utils'
+import { formatDateTime, formatSeverityLabel } from '../utils'
 
 type LiveState = {
   tents: TentDto[]
   liveByTentId: Record<number, TentLivePayload>
   grows: GrowSummary[]
+  risks: RiskEventDto[]
   issues: string[]
 }
 
-const initialState: LiveState = { tents: [], liveByTentId: {}, grows: [], issues: [] }
+const initialState: LiveState = { tents: [], liveByTentId: {}, grows: [], risks: [], issues: [] }
 
 const climateMetricKeys = [
   ['temperature', 'Luft', '°C'],
@@ -46,9 +47,10 @@ function LiveDashboardPage() {
         catch (caught) { if (!controller.signal.aborted) issues.push(`${name}: ${formatApiError(caught, 'nicht erreichbar')}`); return fallback }
       }
 
-      const [tents, grows] = await Promise.all([
+      const [tents, grows, risks] = await Promise.all([
         safe<TentDto[]>('Zelte', '/api/settings/tents', []),
         safe<GrowSummary[]>('Grows', '/api/grows?archived=false', []),
+        safe<RiskEventDto[]>('Risiken', '/api/risk-events?openOnly=true', []),
       ])
 
       const sorted = [...tents].sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name))
@@ -58,7 +60,7 @@ function LiveDashboardPage() {
       }))
 
       if (controller.signal.aborted) return
-      setState({ tents: sorted, grows, liveByTentId: Object.fromEntries(livePairs.filter((pair): pair is readonly [number, TentLivePayload] => pair[1] !== null)), issues })
+      setState({ tents: sorted, grows, risks, liveByTentId: Object.fromEntries(livePairs.filter((pair): pair is readonly [number, TentLivePayload] => pair[1] !== null)), issues })
       setSelectedTentId((current) => current ?? chooseInitialTent(sorted, grows))
       setLoading(false)
     }
@@ -77,9 +79,14 @@ function LiveDashboardPage() {
   const lightMetric = findMetric(live?.metrics ?? [], ['light-cycle', 'ppfd'])
   const sensorStatus = buildSensorStatus(live, state.issues)
   const hasHydroGrow = primaryGrow ? primaryGrow.hydroStyle === 'DWC' || primaryGrow.hydroStyle === 'RDWC' : false
+  const risksForContext = state.risks
+    .filter((risk) => risk.status === 'Open' || risk.status === 'Acknowledged')
+    .filter((risk) => (primaryGrow ? risk.growId === primaryGrow.id : false) || (selectedTent ? risk.tentId === selectedTent.id : false))
+    .sort((a, b) => riskRank(a.severity) - riskRank(b.severity) || a.startedAtUtc.localeCompare(b.startedAtUtc))
+  const pageTitle = selectedTent && primaryGrow ? 'Live Dashboard' : selectedTent ? score.label : 'Live'
 
   return (
-    <V1Page eyebrow="Live" title={selectedTent ? score.label : 'Live'} className="v1-live-page rc2-live-page">
+    <V1Page eyebrow="Live" title={pageTitle} className="v1-live-page rc2-live-page">
       {state.issues.length > 0 && <V1Alert title="Teilweise offline" message={state.issues.slice(0, 3).join(' · ')} tone="warn" />}
 
       {state.tents.length > 1 && (
@@ -159,6 +166,8 @@ function LiveDashboardPage() {
                   </V1Card>
                 </div>
 
+                <RiskSummaryCard risks={risksForContext} />
+
                 {selectedTent.cameraEntityId ? (
                   <CameraTile tent={selectedTent} refresh={refresh} />
                 ) : (
@@ -191,6 +200,7 @@ function LiveDashboardPage() {
             lightMetric={lightMetric}
             sensorStatus={sensorStatus}
             hasHydroGrow={hasHydroGrow}
+            risksForContext={risksForContext}
             refresh={refresh}
             onRefresh={() => setRefresh((current) => current + 1)}
           />
@@ -211,6 +221,7 @@ type DesktopLiveDashboardProps = {
   lightMetric: MetricPayload | null
   sensorStatus: ReturnType<typeof buildSensorStatus>
   hasHydroGrow: boolean
+  risksForContext: RiskEventDto[]
   refresh: number
   onRefresh: () => void
 }
@@ -226,6 +237,7 @@ function DesktopLiveDashboard({
   lightMetric,
   sensorStatus,
   hasHydroGrow,
+  risksForContext,
   refresh,
   onRefresh,
 }: DesktopLiveDashboardProps) {
@@ -318,6 +330,8 @@ function DesktopLiveDashboard({
             </div>
           </V1Card>
         </div>
+
+        <RiskSummaryCard risks={risksForContext} />
       </section>
 
       <V1Section title={`Aktive Grows in ${selectedTent.name}`} action={<V1LinkButton to="/grows/new">Grow anlegen</V1LinkButton>}>
@@ -325,6 +339,34 @@ function DesktopLiveDashboard({
           {growsForTent.map((grow) => <Link key={grow.id} className="v1-list-row" to={`/grows/${grow.id}`}><strong>{grow.name}</strong><span>{formatGrowHydroMedium(grow)}</span><em>{grow.latestStage ?? grow.status}</em></Link>)}
         </div>
       </V1Section>
+    </div>
+  )
+}
+
+function RiskSummaryCard({ risks }: { risks: RiskEventDto[] }) {
+  const critical = risks.filter((risk) => risk.severity === 'Critical').length
+  const tone = critical > 0 ? 'warn' : risks.length > 0 ? 'neutral' : 'ok'
+  return (
+    <div data-audit="live-risk-card">
+      <V1Card className="live-risk-card" tone={tone}>
+        <div className="live-card-head">
+          <span className="v1-card-kicker">Aufgaben / Risiken</span>
+          <h2>{risks.length > 0 ? `${risks.length} offen` : 'Keine offenen Risiken'}</h2>
+        </div>
+        {risks.length === 0 ? (
+          <p>Keine offenen RiskEvents für diesen Grow-Kontext.</p>
+        ) : (
+          <div className="live-risk-list">
+            {risks.slice(0, 3).map((risk) => (
+              <Link key={risk.id} to={risk.growId ? `/grows/${risk.growId}` : '/aufgaben'} className="live-risk-row">
+                <strong>{risk.title}</strong>
+                <span>{formatSeverityLabel(risk.severity)}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+        <V1LinkButton to="/aufgaben">Aufgaben öffnen</V1LinkButton>
+      </V1Card>
     </div>
   )
 }
@@ -431,6 +473,10 @@ function mapMetrics(items: MetricPayload[], definitions: readonly (readonly [str
 
 function findMetric(items: MetricPayload[], keys: string[]) {
   return keys.map((key) => items.find((item) => item.key === key)).find((item): item is MetricPayload => Boolean(item)) ?? null
+}
+
+function riskRank(value: string) {
+  return value === 'Critical' ? 0 : value === 'Warning' ? 1 : 2
 }
 
 function buildSensorStatus(live: TentLivePayload | undefined, issues: string[]) {

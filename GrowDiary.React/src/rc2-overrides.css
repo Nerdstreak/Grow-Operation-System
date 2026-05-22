@@ -2144,25 +2144,35 @@ html,
 }
 
 .tent-detail-room-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .tent-detail-room-grid .v1-info {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 5px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  align-items: start;
   align-content: start;
+  max-width: 100%;
+  overflow: visible;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
+.tent-detail-room-grid .v1-info span,
 .tent-detail-room-grid .v1-info strong {
   text-align: left;
   white-space: normal;
-  overflow-wrap: anywhere;
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 @media (min-width: 861px) {
   .tent-detail-room-grid {
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   }
 }
 
@@ -2172,11 +2182,81 @@ html,
 }
 
 .live-desktop-overview {
-  grid-template-columns: minmax(260px, .78fr) minmax(360px, 1fr) minmax(360px, 1fr);
+  grid-template-columns: minmax(250px, .8fr) minmax(340px, 1fr) minmax(430px, 1.2fr);
+}
+
+.live-desktop-operations {
+  grid-template-columns: minmax(260px, .85fr) minmax(280px, 1fr) minmax(280px, 1fr);
 }
 
 .live-desktop-hydro-card {
   min-height: 100%;
+}
+
+.live-desktop-metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+}
+
+.live-desktop-hydro-card .live-desktop-metric-grid {
+  grid-template-columns: repeat(3, minmax(124px, 1fr));
+}
+
+.live-mobile-metric {
+  min-width: 0;
+}
+
+.live-mobile-metric strong {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.live-mobile-metric small {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.live-risk-card {
+  display: grid;
+  gap: 12px;
+  height: 100%;
+}
+
+.live-risk-card p {
+  margin: 0;
+  color: var(--v1-muted);
+  line-height: 1.45;
+}
+
+.live-risk-list {
+  display: grid;
+  gap: 8px;
+}
+
+.live-risk-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 9px 10px;
+  border: 1px solid var(--v1-line);
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+}
+
+.live-risk-row strong,
+.live-risk-row span {
+  min-width: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.live-risk-row span {
+  color: var(--v1-muted);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .addback-hub-page .v1-info-grid.compact {
@@ -2226,8 +2306,13 @@ html,
 }
 
 @media (max-width: 1180px) {
-  .live-desktop-overview {
+  .live-desktop-overview,
+  .live-desktop-operations {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .live-desktop-hydro-card .live-desktop-metric-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 
   .v1-hydro-detail.rc2 {
@@ -2238,6 +2323,11 @@ html,
 @media (max-width: 430px) {
   .tent-metric-row {
     grid-template-columns: minmax(0, .36fr) minmax(0, 1fr);
+  }
+
+  .live-risk-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
   }
 }
 

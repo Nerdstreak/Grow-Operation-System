@@ -27,8 +27,8 @@ import './rc2-overrides.css'
 const coreNav = [
   { to: '/', label: 'Live', end: true },
   { to: '/addback', label: 'Addback', end: true },
-  { to: '/zelte', label: 'Zelte', end: false },
-  { to: '/hydro', label: 'Hydro', end: true },
+  { to: '/messung', label: 'Messung', end: true },
+  { to: '/grows', label: 'Grows', end: false },
 ]
 
 const mobilePrimaryNav = [
@@ -40,8 +40,8 @@ const mobilePrimaryNav = [
 
 const desktopMoreNav = [
   { to: '/aufgaben', label: 'Aufgaben', end: true },
-  { to: '/grows', label: 'Grows', end: false },
-  { to: '/messung', label: 'Messung', end: true },
+  { to: '/zelte', label: 'Zelte', end: false },
+  { to: '/hydro', label: 'Hydro', end: true },
   { to: '/home-assistant', label: 'Home Assistant', end: true },
   { to: '/connect', label: 'Gerät verbinden', end: true },
   { to: '/hardware', label: 'Sensoren', end: true },
@@ -49,7 +49,6 @@ const desktopMoreNav = [
   { to: '/analyse', label: 'Vergleich', end: true },
   { to: '/archiv', label: 'Archiv', end: true },
   { to: '/settings', label: 'Einstellungen', end: true },
-  { to: '/release', label: 'Release', end: true },
 ]
 
 const mobileMoreGroups = [
@@ -76,7 +75,6 @@ const mobileMoreGroups = [
     items: [
       { to: '/wissen', label: 'Wissen', end: true },
       { to: '/settings', label: 'Einstellungen', end: true },
-      { to: '/release', label: 'Release', end: true },
     ],
   },
 ]

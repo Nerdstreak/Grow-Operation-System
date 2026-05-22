@@ -47,7 +47,9 @@ public sealed class GrowDashboardComposer
                 Value = value.HasValue ? FormatMetricValue(key, value.Value) : "–",
                 Unit = explicitUnit,
                 Tone = tone,
-                Hint = states.Count == 0 ? "Noch nicht mit Home Assistant verbunden" : "Kein Entity gemappt"
+                Hint = value.HasValue
+                    ? "Letzte Messung"
+                    : states.Count == 0 ? "Noch nicht mit Home Assistant verbunden" : "Kein Entity gemappt"
             };
         }
 
@@ -55,9 +57,9 @@ public sealed class GrowDashboardComposer
         {
             Build("Temperatur", "temperature", m => m?.AirTemperatureC, explicitUnit: "°C"),
             Build("Luftfeuchte", "humidity", m => m?.HumidityPercent, explicitUnit: "%"),
-            Build("VPD", "vpd", _ => null, tone: "accent", explicitUnit: "kPa"),
+            Build("VPD", "vpd", m => CalculateVpd(m?.AirTemperatureC, m?.HumidityPercent), tone: "accent", explicitUnit: "kPa"),
             BuildLightCycleMetric(tent),
-            BuildPpfdMetric(tent, states)
+            BuildPpfdMetric(tent, states, latest)
         };
 
         if (tent.Co2Available || measurements.Any(m => m.Co2Ppm.HasValue))
@@ -88,7 +90,10 @@ public sealed class GrowDashboardComposer
                     ? levelState.NumericValue?.ToString("0.0") ?? levelState.State
                     : latest?.ReservoirLevelLiters?.ToString("0.0") ?? latest?.ReservoirLevelCm?.ToString("0.0") ?? "–",
                 Unit = levelState?.UnitOfMeasurement ?? (latest?.ReservoirLevelLiters.HasValue == true ? "L" : "cm"),
-                Tone = "info"
+                Tone = "info",
+                Hint = levelState is not null
+                    ? levelState.FriendlyName
+                    : latest?.ReservoirLevelLiters.HasValue == true || latest?.ReservoirLevelCm.HasValue == true ? "Letzte Messung" : null
             });
         }
 
@@ -304,7 +309,7 @@ public sealed class GrowDashboardComposer
         };
     }
 
-    private static MetricCard BuildPpfdMetric(Tent tent, IReadOnlyDictionary<string, HomeAssistantState> states)
+    private static MetricCard BuildPpfdMetric(Tent tent, IReadOnlyDictionary<string, HomeAssistantState> states, Measurement? latest)
     {
         if (states.TryGetValue("ppfd", out var state))
         {
@@ -318,6 +323,19 @@ public sealed class GrowDashboardComposer
                 Unit = state.UnitOfMeasurement ?? "µmol/m²/s",
                 Tone = "accent",
                 Hint = state.FriendlyName
+            };
+        }
+
+        if (latest?.PpfdMol.HasValue == true)
+        {
+            return new MetricCard
+            {
+                Key = "ppfd",
+                Label = "PPFD",
+                Value = FormatMetricValue("ppfd", latest.PpfdMol.Value),
+                Unit = "µmol/m²/s",
+                Tone = "accent",
+                Hint = "Letzte Messung"
             };
         }
 
@@ -373,6 +391,15 @@ public sealed class GrowDashboardComposer
             "ups-battery"     => value.ToString("0"),
             _                 => value.ToString("0.#")
         };
+    }
+
+    private static double? CalculateVpd(double? temperatureC, double? humidityPercent)
+    {
+        if (!temperatureC.HasValue || !humidityPercent.HasValue || humidityPercent.Value < 0 || humidityPercent.Value > 100)
+            return null;
+
+        var saturationKpa = 0.6108 * Math.Exp((17.27 * temperatureC.Value) / (temperatureC.Value + 237.3));
+        return saturationKpa * (1 - humidityPercent.Value / 100);
     }
 
     private static string? ResolveLightCycle(Tent tent)
