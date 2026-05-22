@@ -20,6 +20,15 @@ const climateMetricKeys = [
   ['vpd', 'VPD', 'kPa'],
 ] as const
 
+const hydroMetricKeys = [
+  ['reservoir-ph', 'pH', null],
+  ['reservoir-ec', 'EC', 'mS/cm'],
+  ['orp', 'ORP', 'mV'],
+  ['dissolved-oxygen', 'DO', 'mg/L'],
+  ['reservoir-temp', 'Wassertemp.', '°C'],
+  ['reservoir-level', 'Wasserstand', null],
+] as const
+
 function LiveDashboardPage() {
   const [state, setState] = useState<LiveState>(initialState)
   const [selectedTentId, setSelectedTentId] = useState<number | null>(null)
@@ -64,6 +73,7 @@ function LiveDashboardPage() {
   const primaryGrow = growsForTent[0] ?? null
   const score = buildScore(live?.metrics ?? [], selectedTent)
   const climateMetrics = mapMetrics(live?.metrics ?? [], climateMetricKeys)
+  const hydroMetrics = mapMetrics(live?.metrics ?? [], hydroMetricKeys)
   const lightMetric = findMetric(live?.metrics ?? [], ['light-cycle', 'ppfd'])
   const sensorStatus = buildSensorStatus(live, state.issues)
   const hasHydroGrow = primaryGrow ? primaryGrow.hydroStyle === 'DWC' || primaryGrow.hydroStyle === 'RDWC' : false
@@ -125,6 +135,20 @@ function LiveDashboardPage() {
                   </V1Card>
                 </div>
 
+                {hasHydroGrow && (
+                  <div data-audit="live-hydro-card">
+                    <V1Card className="live-mobile-card live-hydro-card">
+                      <div className="live-card-head">
+                        <span className="v1-card-kicker">Reservoir</span>
+                        <h2>Hydro-Werte</h2>
+                      </div>
+                      <div className="live-mobile-metric-grid">
+                        {hydroMetrics.map((metric) => <LiveMetric key={metric.key} metric={metric} />)}
+                      </div>
+                    </V1Card>
+                  </div>
+                )}
+
                 <div data-audit="live-sensor-card">
                   <V1Card className="live-mobile-card live-sensor-card" tone={sensorStatus.tone}>
                     <div className="live-card-head">
@@ -163,6 +187,7 @@ function LiveDashboardPage() {
             growsForTent={growsForTent}
             score={score}
             climateMetrics={climateMetrics}
+            hydroMetrics={hydroMetrics}
             lightMetric={lightMetric}
             sensorStatus={sensorStatus}
             hasHydroGrow={hasHydroGrow}
@@ -182,6 +207,7 @@ type DesktopLiveDashboardProps = {
   growsForTent: GrowSummary[]
   score: ReturnType<typeof buildScore>
   climateMetrics: MetricPayload[]
+  hydroMetrics: MetricPayload[]
   lightMetric: MetricPayload | null
   sensorStatus: ReturnType<typeof buildSensorStatus>
   hasHydroGrow: boolean
@@ -196,6 +222,7 @@ function DesktopLiveDashboard({
   growsForTent,
   score,
   climateMetrics,
+  hydroMetrics,
   lightMetric,
   sensorStatus,
   hasHydroGrow,
@@ -254,6 +281,20 @@ function DesktopLiveDashboard({
             </div>
           </V1Card>
         </div>
+
+        {hasHydroGrow && (
+          <div data-audit="live-hydro-card">
+            <V1Card className="live-desktop-hydro-card">
+              <div className="live-card-head">
+                <span className="v1-card-kicker">Reservoir</span>
+                <h2>Hydro-Werte</h2>
+              </div>
+              <div className="live-desktop-metric-grid">
+                {hydroMetrics.map((metric) => <LiveMetric key={metric.key} metric={metric} />)}
+              </div>
+            </V1Card>
+          </div>
+        )}
       </section>
 
       <section className="live-desktop-operations">

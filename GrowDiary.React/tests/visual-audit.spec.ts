@@ -37,7 +37,18 @@ type AuditGrowSummary = {
   setupId?: number | null
 }
 
+type AuditMeasurement = {
+  id: number
+}
+
+type AuditSeedIds = {
+  tentId: number
+  hydroId: number
+  growId: number
+}
+
 type ReportRow = {
+  state: 'empty' | 'seeded' | 'unknown'
   viewport: string
   route: string
   url: string
@@ -110,9 +121,9 @@ const shellOverflowSlugs = new Set([
   'home-assistant',
 ])
 
-const visualAuditTentName = 'E2E Visual Audit Empty Tent'
-const visualAuditHydroName = 'E2E Visual Audit RDWC'
-const visualAuditGrowName = 'E2E Visual Audit Grow'
+const visualAuditTentName = 'AC Infinity Growzelt'
+const visualAuditHydroName = 'RDWC Test Setup'
+const visualAuditGrowName = 'Purple Lemonade #1'
 
 const routes: RouteCase[] = [
   { slug: 'dashboard', path: '/', title: 'Dashboard / Live' },
@@ -258,6 +269,12 @@ async function collectPageMetrics(page: import('@playwright/test').Page) {
       ? [
         isPhone && !liveMobile ? { selector: '[data-audit="live-dashboard-mobile"]', text: '', problem: 'missingMobileLiveLayoutMarker', details: `viewport=${window.innerWidth}x${window.innerHeight}` } : null,
         !isPhone && !liveDesktop ? { selector: '[data-audit="live-dashboard-desktop"]', text: '', problem: 'missingDesktopLiveLayoutMarker', details: `viewport=${window.innerWidth}x${window.innerHeight}` } : null,
+        (() => {
+          const status = document.querySelector('[data-audit="live-status-card"]') as HTMLElement | null
+          const hydroCard = document.querySelector('[data-audit="live-hydro-card"]') as HTMLElement | null
+          const hasHydroContext = /RDWC|DWC|Hydro/i.test(status?.textContent ?? '') && !/kein Hydro-Setup/i.test(status?.textContent ?? '')
+          return hasHydroContext && !hydroCard ? { selector: '[data-audit="live-hydro-card"]', text: status?.textContent?.trim().replace(/\s+/g, ' ').slice(0, 120) ?? '', problem: 'liveHydroMetricsMissing', details: 'Seeded hydro grow must render reservoir metrics.' } : null
+        })(),
         (() => {
           const camera = document.querySelector('[data-audit="live-camera"]') as HTMLElement | null
           if (!camera) return null
@@ -533,7 +550,7 @@ async function scrollAuditTargetIntoView(page: import('@playwright/test').Page, 
   await page.waitForTimeout(120)
 }
 
-async function auditRoute(page: import('@playwright/test').Page, viewport: ViewportCase, route: RouteCase, pageError: string | null) {
+async function auditRoute(page: import('@playwright/test').Page, viewport: ViewportCase, route: RouteCase, pageError: string | null, state: ReportRow['state'] = 'seeded') {
   const response = await page.goto(route.path, { waitUntil: 'domcontentloaded' })
   await waitForAppIdle(page)
   await resetAuditScroll(page)
@@ -544,6 +561,7 @@ async function auditRoute(page: import('@playwright/test').Page, viewport: Viewp
   copyRouteScreenshotAlias(viewport, route.slug, fileName)
 
   reportRows.push({
+    state,
     viewport: `${viewport.name}-${viewport.width}x${viewport.height}`,
     route: route.path,
     url: page.url(),
@@ -621,16 +639,21 @@ async function tryClickFirstAddbackStart(page: import('@playwright/test').Page) 
   return { opened: false, note: 'Addback-Flow wurde nicht automatisch geöffnet. Wahrscheinlich kein aktiver Grow oder kein eindeutiger Start-Link.' }
 }
 
-async function mockEmptyGrows(page: import('@playwright/test').Page) {
-  await page.route('**/api/grows?archived=false', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
-  await page.route('**/api/grows?archived=true', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
-  await page.route('**/api/hydro-setups?includeArchived=true', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
+async function mockFreshInstall(page: import('@playwright/test').Page) {
+  const emptyArray = { status: 200, contentType: 'application/json', body: '[]' }
+  await page.route('**/api/settings/tents**', (route) => route.fulfill(emptyArray))
+  await page.route('**/api/grows**', (route) => route.fulfill(emptyArray))
+  await page.route('**/api/hydro-setups**', (route) => route.fulfill(emptyArray))
+  await page.route('**/api/hardware-items**', (route) => route.fulfill(emptyArray))
+  await page.route('**/api/risk-events**', (route) => route.fulfill(emptyArray))
 }
 
-async function unmockEmptyGrows(page: import('@playwright/test').Page) {
-  await page.unroute('**/api/grows?archived=false')
-  await page.unroute('**/api/grows?archived=true')
-  await page.unroute('**/api/hydro-setups?includeArchived=true')
+async function unmockFreshInstall(page: import('@playwright/test').Page) {
+  await page.unroute('**/api/settings/tents**')
+  await page.unroute('**/api/grows**')
+  await page.unroute('**/api/hydro-setups**')
+  await page.unroute('**/api/hardware-items**')
+  await page.unroute('**/api/risk-events**')
 }
 
 async function tryOpenFirstGrowDetail(page: import('@playwright/test').Page) {
@@ -646,6 +669,19 @@ async function tryOpenFirstGrowDetail(page: import('@playwright/test').Page) {
   return /\/grows\/\d+$/i.test(page.url())
 }
 
+async function tryOpenFirstTentDetail(page: import('@playwright/test').Page) {
+  await page.goto('/zelte', { waitUntil: 'domcontentloaded' })
+  await waitForAppIdle(page)
+  const firstOpen = page.locator('[data-audit="tent-card-actions"] a').filter({ hasText: /^Öffnen$/ }).first()
+  if ((await firstOpen.count()) === 0) return false
+  await firstOpen.scrollIntoViewIfNeeded()
+  await Promise.all([
+    page.waitForURL(/\/zelte\/\d+$/i, { timeout: 4500 }).catch(() => null),
+    firstOpen.click({ timeout: 3000 }),
+  ])
+  return /\/zelte\/\d+$/i.test(page.url())
+}
+
 async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewport: ViewportCase, pageError: string | null) {
   const response = await page.goto('/addback', { waitUntil: 'domcontentloaded' })
   await waitForAppIdle(page)
@@ -659,6 +695,7 @@ async function auditAddbackDeepFlow(page: import('@playwright/test').Page, viewp
   await page.screenshot({ path: path.join(outputDir, fileName), fullPage: true })
 
   reportRows.push({
+    state: 'seeded',
     viewport: `${viewport.name}-${viewport.width}x${viewport.height}`,
     route: result.opened ? '/grows/:growId/addback' : '/addback → Flow nicht geöffnet',
     url: page.url(),
@@ -717,20 +754,20 @@ function writeReports() {
     '',
     '## Screenshots',
     '',
-    '| Viewport | Route | Status | Overflow | Bottom Nav | Touch | Safe Area | Nav Structure | Tablet | Live | Messung | Grows | Grow-Karten above fold | Grow-Aktionshöhe | Gruppen | Felder above fold | Viewport px | VisualViewport px | AppViewport | Heading | Screenshot | Note | PageError |',
-    '|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|---|',
+    '| State | Viewport | Route | Status | Overflow | Bottom Nav | Touch | Safe Area | Nav Structure | Tablet | Live | Messung | Grows | Grow-Karten above fold | Grow-Aktionshöhe | Gruppen | Felder above fold | Viewport px | VisualViewport px | AppViewport | Heading | Screenshot | Note | PageError |',
+    '|---|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|---|',
     ...reportRows.map((row) => {
       const note = row.note ? row.note.replace(/\|/g, '\\|').slice(0, 220) : ''
       const error = row.pageError ? row.pageError.replace(/\|/g, '\\|').slice(0, 160) : ''
-      return `| ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.bottomNavFindings.length} | ${row.touchTargetFindings.length} | ${row.safeAreaFindings.length} | ${row.navStructureFindings.length} | ${row.tabletLayoutFindings.length} | ${row.liveDashboardFindings.length} | ${row.measurementFindings.length} | ${row.growsFindings.length} | ${row.growsCardsAboveFold ?? ''} | ${row.growsActionBarHeight ?? ''} | ${row.measurementFormGroups ?? ''} | ${row.measurementFieldsAboveFold ?? ''} | ${row.viewportHeight} | ${row.visualViewportHeight ?? ''} | ${row.appViewportHeight} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
+      return `| ${row.state} | ${row.viewport} | ${row.route} | ${row.status ?? ''} | ${row.horizontalOverflow ? 'YES' : 'no'} | ${row.bottomNavFindings.length} | ${row.touchTargetFindings.length} | ${row.safeAreaFindings.length} | ${row.navStructureFindings.length} | ${row.tabletLayoutFindings.length} | ${row.liveDashboardFindings.length} | ${row.measurementFindings.length} | ${row.growsFindings.length} | ${row.growsCardsAboveFold ?? ''} | ${row.growsActionBarHeight ?? ''} | ${row.measurementFormGroups ?? ''} | ${row.measurementFieldsAboveFold ?? ''} | ${row.viewportHeight} | ${row.visualViewportHeight ?? ''} | ${row.appViewportHeight} | ${row.heading ?? ''} | ${row.screenshot} | ${note} | ${error} |`
     }),
     '',
     '## Mobile / Tablet Findings',
     '',
     'Diese Findings sind vorbereitend und reportend. Sie aktivieren noch keine neuen harten Contract-Fails.',
     '',
-    '| Viewport | Route | Kategorie | Problem | Details |',
-    '|---|---|---|---|---|',
+    '| Priority | State | Device | Viewport | Route | Screenshot | Kategorie | Problem | Details |',
+    '|---|---|---|---|---|---|---|---|---|',
     ...reportRows.flatMap((row) => [
       ...row.touchTargetFindings.map((finding) => findingLine(row, 'touchTargetFindings', finding)),
       ...row.safeAreaFindings.map((finding) => findingLine(row, 'safeAreaFindings', finding)),
@@ -754,6 +791,7 @@ function writeReports() {
   ]
 
   fs.writeFileSync(path.join(outputDir, 'visual-audit-report.md'), lines.join('\n'), 'utf8')
+  fs.writeFileSync(path.join(outputDir, 'audit-summary.md'), buildAuditSummary(), 'utf8')
 }
 
 function copyRouteScreenshotAlias(viewport: ViewportCase, slug: string, fileName: string) {
@@ -768,7 +806,63 @@ function copyRouteScreenshotAlias(viewport: ViewportCase, slug: string, fileName
 
 function findingLine(row: ReportRow, category: string, finding: AuditFinding) {
   const detail = `${finding.selector} ${finding.text ? `"${finding.text}" ` : ''}${finding.details}`.replace(/\|/g, '\\|').slice(0, 260)
-  return `| ${row.viewport} | ${row.route} | ${category} | ${finding.problem} | ${detail} |`
+  return `| ${classifyFinding(row, finding)} | ${row.state} | ${deviceClass(row)} | ${row.viewport} | ${row.route} | ${row.screenshot} | ${category} | ${finding.problem} | ${detail} |`
+}
+
+function classifyFinding(row: ReportRow, finding: AuditFinding) {
+  if (row.state === 'empty' && /(measurementGroupCountLow|measurementSaveMissing|growsCardMissing)/i.test(finding.problem)) return 'Noise / False Positive'
+  if (/missing|stale|UnderBottomNav|coveredByBottomNav|phoneBottomNavLabels|measurementSaveMissing|liveHydro/i.test(finding.problem)) return 'P1 funktional kaputt'
+  if (/Overflow|TooWide|Overlap|TooSmall|Below44|FontTooSmall|tablet.*Layout|cameraBlockHeight/i.test(finding.problem)) return 'P2 sichtbare UI-Regression'
+  if (/visibleCardsAboveFold|addbackCardsAboveFold|Height|Spacing|Gap/i.test(finding.problem)) return 'P3 Lesbarkeit/Spacing'
+  return 'Noise / False Positive'
+}
+
+function deviceClass(row: ReportRow) {
+  if (/android|iphone|mobile|phone/i.test(row.viewport)) return 'mobile'
+  if (/ipad|tablet/i.test(row.viewport)) return 'tablet'
+  return 'desktop'
+}
+
+function buildAuditSummary() {
+  const findings = reportRows.flatMap((row) => [
+    ...row.bottomNavFindings.map((finding) => ({ row, finding })),
+    ...row.touchTargetFindings.map((finding) => ({ row, finding })),
+    ...row.safeAreaFindings.map((finding) => ({ row, finding })),
+    ...row.navStructureFindings.map((finding) => ({ row, finding })),
+    ...row.tabletLayoutFindings.map((finding) => ({ row, finding })),
+    ...row.liveDashboardFindings.map((finding) => ({ row, finding })),
+    ...row.addbackFindings.map((finding) => ({ row, finding })),
+    ...row.measurementFindings.map((finding) => ({ row, finding })),
+    ...row.growsFindings.map((finding) => ({ row, finding })),
+  ])
+  const grouped = new Map<string, number>()
+  for (const item of findings) {
+    const key = `${classifyFinding(item.row, item.finding)} | ${item.row.state} | ${deviceClass(item.row)}`
+    grouped.set(key, (grouped.get(key) ?? 0) + 1)
+  }
+  return [
+    '# Audit Summary',
+    '',
+    `Generated: ${new Date().toISOString()}`,
+    '',
+    '## Finding-Klassifikation',
+    '',
+    '| Priority | State | Device | Count |',
+    '|---|---|---|---:|',
+    ...Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([key, count]) => {
+      const [priority, state, device] = key.split(' | ')
+      return `| ${priority} | ${state} | ${device} | ${count} |`
+    }),
+    '',
+    '## P1/P2 Details',
+    '',
+    '| Priority | State | Device | Route | Screenshot | Problem | Details |',
+    '|---|---|---|---|---|---|---|',
+    ...findings
+      .filter((item) => /^P[12]/.test(classifyFinding(item.row, item.finding)))
+      .map((item) => `| ${classifyFinding(item.row, item.finding)} | ${item.row.state} | ${deviceClass(item.row)} | ${item.row.route} | ${item.row.screenshot} | ${item.finding.problem} | ${`${item.finding.selector} ${item.finding.details}`.replace(/\|/g, '\\|').slice(0, 220)} |`),
+    '',
+  ].join('\n')
 }
 
 test.describe.configure({ mode: 'serial' })
@@ -793,15 +887,9 @@ for (const viewport of viewports) {
       let pageError: string | null = null
       page.on('pageerror', (error) => { pageError = error.message })
       for (const route of routes) {
-        const useEmptyGrowsMock = route.slug === 'addback' || route.slug === 'hydro' || route.slug === 'messung'
-        if (useEmptyGrowsMock) await mockEmptyGrows(page)
-        try {
-          await auditRoute(page, viewport, route, pageError)
-          if (viewport.enforceShellHardChecks || viewport.category === 'desktop') {
-            await assertRouteContract(page, route.slug)
-          }
-        } finally {
-          if (useEmptyGrowsMock) await unmockEmptyGrows(page)
+        await auditRoute(page, viewport, route, pageError, 'seeded')
+        if (viewport.enforceShellHardChecks || viewport.category === 'desktop') {
+          await assertRouteContract(page, route.slug)
         }
         pageError = null
       }
@@ -811,24 +899,35 @@ for (const viewport of viewports) {
       await ensureVisualAuditData(page.request)
       let pageError: string | null = null
       page.on('pageerror', (error) => { pageError = error.message })
-      await mockEmptyGrows(page)
-      try {
-        await auditAddbackDeepFlow(page, viewport, pageError)
-      } finally {
-        await unmockEmptyGrows(page)
-      }
+      await auditAddbackDeepFlow(page, viewport, pageError)
     })
 
-    test(`capture grows fresh install ${viewport.name}`, async ({ page }) => {
+    test(`capture fresh install empty states ${viewport.name}`, async ({ page }) => {
       if (viewport.category !== 'phone') return
-      await mockEmptyGrows(page)
-      const response = await page.goto('/grows', { waitUntil: 'domcontentloaded' })
-      await waitForAppIdle(page)
-      expect(response?.status() ?? null, `${viewport.name}: /grows fresh install loads`).toBe(200)
-      await assertMobileShellContract(page, `${viewport.name}: grows fresh install shell`)
-      await assertGrowsMobileContract(page, `${viewport.name}: grows fresh install`)
-      const fileName = `mobile-${viewport.width}x${viewport.height}-grows-empty.png`
-      await page.screenshot({ path: path.join(outputDir, fileName), fullPage: true })
+      await mockFreshInstall(page)
+      let pageError: string | null = null
+      page.on('pageerror', (error) => { pageError = error.message })
+      const emptyRoutes: RouteCase[] = [
+        { slug: 'empty-dashboard', path: '/', title: 'Live Empty State' },
+        { slug: 'empty-addback', path: '/addback', title: 'Addback Empty State' },
+        { slug: 'empty-messung', path: '/messung', title: 'Messung Empty State' },
+        { slug: 'empty-grows', path: '/grows', title: 'Grows Empty State' },
+        { slug: 'empty-zelte', path: '/zelte', title: 'Zelte Empty State' },
+        { slug: 'empty-hydro', path: '/hydro', title: 'Hydro Empty State' },
+        { slug: 'empty-hardware', path: '/hardware', title: 'Hardware Empty State' },
+        { slug: 'empty-home-assistant', path: '/home-assistant', title: 'Home Assistant Empty State' },
+      ]
+      try {
+        for (const route of emptyRoutes) {
+          await auditRoute(page, viewport, route, pageError, 'empty')
+          if (route.slug === 'empty-messung') {
+            await assertMeasurementEmptyContract(page, `${viewport.name}: measurement fresh install`)
+          }
+          pageError = null
+        }
+      } finally {
+        await unmockFreshInstall(page)
+      }
     })
 
     test(`capture measurement active form actions ${viewport.name}`, async ({ page }) => {
@@ -878,6 +977,21 @@ for (const viewport of viewports) {
       const prefix = viewport.category === 'phone' ? 'mobile' : viewport.category === 'tablet' ? 'tablet' : null
       if (prefix) {
         await page.screenshot({ path: path.join(outputDir, `${prefix}-${viewport.width}x${viewport.height}-grow-detail.png`), fullPage: true })
+      } else {
+        await page.screenshot({ path: path.join(outputDir, `desktop-${viewport.width}x${viewport.height}-grow-detail.png`), fullPage: true })
+      }
+    })
+
+    test(`capture tent detail when available ${viewport.name}`, async ({ page }) => {
+      await ensureVisualAuditData(page.request)
+      const opened = await tryOpenFirstTentDetail(page)
+      if (!opened) return
+      await waitForAppIdle(page)
+      await assertTentMetricLayout(page, `${viewport.name}: tent detail`)
+      const prefix = viewport.category === 'phone' ? 'mobile' : viewport.category === 'tablet' ? 'tablet' : 'desktop'
+      await page.screenshot({ path: path.join(outputDir, `${prefix}-${viewport.width}x${viewport.height}-zelte-detail.png`), fullPage: true })
+      if (viewport.width === 1440 && viewport.height === 1000) {
+        await page.screenshot({ path: path.join(outputDir, 'desktop-1440x1000-zelte-detail.png'), fullPage: true })
       }
     })
   })
@@ -887,7 +1001,7 @@ test.afterAll(() => {
   writeReports()
 })
 
-async function ensureVisualAuditData(request: import('@playwright/test').APIRequestContext) {
+async function ensureVisualAuditData(request: import('@playwright/test').APIRequestContext): Promise<AuditSeedIds> {
   const tents = await apiJson<AuditTent[]>(request, 'GET', '/api/settings/tents?includeArchived=true')
   const existingTent = tents.find((tent) => tent.name === visualAuditTentName && tent.status !== 'Archived')
   const tent = existingTent ?? await apiJson<AuditTent>(request, 'POST', '/api/settings/tents', {
@@ -895,19 +1009,19 @@ async function ensureVisualAuditData(request: import('@playwright/test').APIRequ
     kind: 'Grow Tent',
     tentType: 'Production',
     status: 'Active',
-    notes: 'Automatisch angelegte Testdaten fuer Playwright Visual Audit',
+    notes: 'Temporäre Testdaten für Playwright Visual Audit',
     displayOrder: 9100,
     accentColor: '#22c55e',
-    widthCm: 80,
-    depthCm: 80,
-    tentHeightCm: 160,
+    widthCm: 90,
+    depthCm: 90,
+    tentHeightCm: 200,
     lightType: 'LED',
-    lightWatt: 120,
+    lightWatt: 300,
     lightController: null,
     lightControllerEntityId: null,
     exhaustFanCount: 1,
-    exhaustM3h: 200,
-    circulationFanCount: 1,
+    exhaustM3h: 420,
+    circulationFanCount: 2,
     hvacController: null,
     hvacControllerEntityId: null,
     co2Available: false,
@@ -921,43 +1035,171 @@ async function ensureVisualAuditData(request: import('@playwright/test').APIRequ
       tentId: tent.id,
       name: visualAuditHydroName,
       hydroStyle: 'RDWC',
-      potCount: 2,
+      potCount: 4,
       potSizeLiters: 19,
-      reservoirLiters: 45,
-      layoutType: 'Row',
+      reservoirLiters: 60,
+      layoutType: 'Grid2x2',
       reservoirPosition: 'Left',
       hasCirculationPump: true,
       circulationPumpNotes: null,
       hasAirPump: true,
       airPumpNotes: null,
-      airStoneCount: 2,
+      airStoneCount: 4,
       hasChiller: false,
       hasUvSterilizer: false,
-      notes: 'Automatisch angelegte Testdaten fuer Playwright Visual Audit',
+      notes: 'Temporäre Testdaten für Playwright Visual Audit',
       displayOrder: 9101,
     })
 
   const grows = await apiJson<AuditGrowSummary[]>(request, 'GET', '/api/grows?archived=false')
   const existingGrow = grows.find((grow) => grow.name === visualAuditGrowName && (grow.systemId === hydro.id || grow.setupId === hydro.id))
-  if (existingGrow) return existingGrow.id
-
-  const createdGrow = await apiJson<AuditGrowSummary>(request, 'POST', '/api/grows', {
+  const grow = existingGrow ?? await apiJson<AuditGrowSummary>(request, 'POST', '/api/grows', {
     name: visualAuditGrowName,
     tentId: hydro.tentId ?? tent.id,
     systemId: hydro.id,
     setupId: null,
     hydroStyle: 'RDWC',
-    startDate: '2026-01-03',
+    startDate: '2026-04-10',
     status: 'Running',
     environment: 'Indoor',
     seedType: 'Feminized',
     startMaterial: 'Seed',
     waterSource: 'RO',
-    strain: 'Audit Kush',
-    breeder: 'Audit',
+    strain: 'Purple Lemonade',
+    breeder: 'Fast Buds',
+    plantCount: 4,
+    entryPoint: 'Veg',
   })
 
-  return createdGrow.id
+  await ensureSeededAuditExtras(request, tent.id, hydro.id, grow.id)
+
+  return { tentId: tent.id, hydroId: hydro.id, growId: grow.id }
+}
+
+async function ensureSeededAuditExtras(request: import('@playwright/test').APIRequestContext, tentId: number, hydroId: number, growId: number) {
+  const measurements = await apiJson<AuditMeasurement[]>(request, 'GET', `/api/grows/${growId}/measurements`)
+  if (measurements.length === 0) {
+    await apiJson<AuditMeasurement>(request, 'POST', `/api/grows/${growId}/measurements`, {
+      takenAtLocal: '2026-05-22T08:00',
+      stage: 'Veg',
+      source: 'Manual',
+      notes: 'Audit-Abweichung: Reservoir außerhalb Zielbereich, Foto-Kontext: Wurzelzone prüfen.',
+      airTemperatureC: 27.8,
+      humidityPercent: 42,
+      reservoirPh: 6.7,
+      reservoirEc: 0.6,
+      reservoirWaterTempC: 23.9,
+      reservoirLevelLiters: 44,
+      dissolvedOxygenMgL: 3.2,
+      orpMv: 290,
+      ppfdMol: 180,
+    })
+    await apiJson<AuditMeasurement>(request, 'POST', `/api/grows/${growId}/measurements`, {
+      takenAtLocal: '2026-05-22T12:00',
+      stage: 'Veg',
+      source: 'Manual',
+      notes: 'Audit-Referenzmessung mit Foto-Kontext für das Messformular.',
+      airTemperatureC: 25.1,
+      humidityPercent: 49,
+      reservoirPh: 5.8,
+      reservoirEc: 1.4,
+      reservoirWaterTempC: 20.5,
+      reservoirLevelLiters: 62,
+      dissolvedOxygenMgL: 7.5,
+      orpMv: 420,
+      ppfdMol: 300,
+      topOffLiters: 3.0,
+      addbackEc: 1.8,
+    })
+  }
+
+  const addbackLogs = await apiJson<unknown[]>(request, 'GET', `/api/grows/${growId}/addback/logs`)
+  if (addbackLogs.length === 0) {
+    await apiJson<unknown>(request, 'POST', `/api/grows/${growId}/addback/logs`, {
+      kind: 'Addback',
+      performedAtUtc: '2026-05-22T12:30:00Z',
+      reservoirLiters: 136,
+      ecBefore: 1.2,
+      ecTarget: 1.4,
+      ecStock: 8.0,
+      ecAfter: 1.4,
+      phBefore: 5.7,
+      phAfter: 5.8,
+      litersAdded: 3.0,
+      newReservoirVolumeLiters: 65,
+      usedHydroSetupVolume: true,
+      notes: 'Audit Addback-Verlaufseintrag.',
+    })
+  }
+
+  const hardware = await apiJson<Array<{ id: number; name: string }>>(request, 'GET', `/api/hardware-items?hydroSetupId=${hydroId}`)
+  let hardwareId = hardware.find((item) => item.name === 'Audit pH/EC Sensor')?.id ?? null
+  if (!hardwareId) {
+    const createdHardware = await apiJson<{ id: number }>(request, 'POST', '/api/hardware-items', {
+      name: 'Audit pH/EC Sensor',
+      category: 'Sensor',
+      status: 'Active',
+      criticality: 'High',
+      tentId,
+      hydroSetupId: hydroId,
+      growId,
+      manufacturer: 'Bluelab',
+      model: 'Guardian Monitor',
+      installedAtUtc: '2026-05-01T08:00:00Z',
+      expectedLifespanDays: 730,
+      inspectionIntervalDays: 14,
+      notes: 'Audit-HardwareItem mit Wartungskontext.',
+    })
+    hardwareId = createdHardware.id
+  }
+
+  const tasks = await apiJson<unknown[]>(request, 'GET', `/api/grows/${growId}/tasks`)
+  if (tasks.length === 0) {
+    await apiJson<unknown>(request, 'POST', `/api/grows/${growId}/tasks`, {
+      title: 'Reservoir-Abweichung prüfen',
+      notes: 'Aus Audit Critical/Warning Deviation erzeugte Aufgabe.',
+      dueAtLocal: '2026-05-23T09:00',
+      priority: 'Critical',
+    })
+    await apiJson<unknown>(request, 'POST', `/api/grows/${growId}/tasks`, {
+      title: 'Sensor-Kalibrierung einplanen',
+      notes: 'Audit Wartung/Kalibrierung prüfen.',
+      dueAtLocal: '2026-05-24T09:00',
+      priority: 'High',
+    })
+  }
+
+  const risks = await apiJson<unknown[]>(request, 'GET', `/api/risk-events?growId=${growId}`)
+  if (risks.length === 0) {
+    await apiJson<unknown>(request, 'POST', '/api/risk-events', {
+      eventType: 'CriticalDo',
+      severity: 'Critical',
+      status: 'Open',
+      source: 'Deviation',
+      title: 'DO kritisch niedrig',
+      description: 'Audit Seed: gelöster Sauerstoff war außerhalb des Zielbereichs.',
+      hardwareItemId: hardwareId,
+      tentId,
+      growId,
+      startedAtUtc: '2026-05-22T08:00:00Z',
+      lastSeenAtUtc: '2026-05-22T08:10:00Z',
+      rawValue: '3.2 mg/L',
+      notes: 'Seeded Hydro-Grow State.',
+    })
+    await apiJson<unknown>(request, 'POST', '/api/risk-events', {
+      eventType: 'Other',
+      severity: 'Warning',
+      status: 'Open',
+      source: 'Deviation',
+      title: 'EC Drift beobachtet',
+      description: 'Audit Seed: EC war im Verlauf zu niedrig.',
+      tentId,
+      growId,
+      startedAtUtc: '2026-05-22T08:15:00Z',
+      rawValue: '0.6 mS/cm',
+      notes: 'Seeded Hydro-Grow State.',
+    })
+  }
 }
 
 async function apiJson<T>(
@@ -1107,9 +1349,13 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
   }
   if (slug === 'dashboard') {
     await assertLiveMobileContract(page, slug)
+    await assertSeededLiveHydroContract(page, slug)
   }
   if (slug === 'messung') {
     await assertMeasurementMobileContract(page, slug)
+  }
+  if (slug === 'zelte') {
+    await assertTentMetricLayout(page, slug)
   }
   if (slug === 'grow-new') {
     await assertGrowWizardMobileContract(page, slug)
@@ -1298,6 +1544,10 @@ async function assertMeasurementMobileContract(page: import('@playwright/test').
   const form = page.locator('[data-audit="measurement-form"]')
   await expect(form, `${context}: measurement form or empty state must render`).toBeVisible()
   await expect(page.locator('[data-audit="measurement-form-actions"]'), `${context}: save actions must render`).toBeVisible()
+  await expect(page.locator('[data-audit="measurement-section-context"]'), `${context}: seeded grow context section`).toBeVisible()
+  await expect(page.locator('[data-audit="measurement-section-hydro"]'), `${context}: seeded hydro section`).toBeVisible()
+  await expect(form, `${context}: seeded grow selected`).toContainText(/Purple Lemonade #1|AC Infinity Growzelt|RDWC Test Setup/i)
+  await expect(page.locator('[data-audit="measurement-section-hydro"]'), `${context}: seeded hydro fields`).toContainText(/pH|EC|ORP|DO|Wassertemp|Wasserstand/i)
 
   const groups = await page.locator('[data-audit="measurement-form"] [data-audit^="measurement-section-"]').count()
   expect(groups, `${context}: measurement form group count`).toBeGreaterThanOrEqual(4)
@@ -1348,6 +1598,42 @@ async function assertMeasurementMobileContract(page: import('@playwright/test').
   for (const fileInput of fileInputWidths) {
     expect(fileInput.width, `${context}: photo/file input must not exceed viewport`).toBeLessThanOrEqual(fileInput.viewport)
   }
+}
+
+async function assertMeasurementEmptyContract(page: import('@playwright/test').Page, context: string) {
+  await expect(page.locator('[data-audit="measurement-empty-state"]'), `${context}: empty state hook`).toBeVisible()
+  await expect(page.locator('[data-audit="measurement-empty-state"]'), `${context}: empty state title`).toContainText(/Noch kein Grow für Messungen/i)
+  await expect(page.locator('[data-audit="measurement-empty-state"]').getByRole('link', { name: /Grow anlegen/i }), `${context}: grow create CTA`).toBeVisible()
+  await expect(page.locator('[data-audit="measurement-form"]'), `${context}: empty state must not be evaluated as broken form`).toHaveCount(0)
+}
+
+async function assertSeededLiveHydroContract(page: import('@playwright/test').Page, context: string) {
+  await expect(page.locator('[data-audit="live-hydro-card"]'), `${context}: seeded hydro card`).toBeVisible()
+  const card = page.locator('[data-audit="live-hydro-card"]')
+  for (const expected of [/pH/i, /EC/i, /ORP/i, /DO/i, /Wassertemp/i, /Wasserstand/i, /5\.80|5,80|5\.8|5,8/, /1\.40|1,40|1\.4|1,4/, /420/, /7\.5|7,5/, /20\.5|20,5/]) {
+    await expect(card, `${context}: hydro metric ${expected}`).toContainText(expected)
+  }
+}
+
+async function assertTentMetricLayout(page: import('@playwright/test').Page, context: string) {
+  const offenders = await page.locator('[data-audit="tent-metrics"] .tent-metric-row, .tent-detail-room-grid .v1-info').evaluateAll((items) =>
+    items
+      .map((item) => {
+        const html = item as HTMLElement
+        const rect = html.getBoundingClientRect()
+        const style = window.getComputedStyle(html)
+        const text = (html.textContent ?? '').trim().replace(/\s+/g, ' ')
+        return {
+          text,
+          visible: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1,
+          clipped: html.scrollWidth > html.clientWidth + 2,
+          wordBreak: style.wordBreak,
+          overflowWrap: style.overflowWrap,
+        }
+      })
+      .filter((item) => item.visible && (item.clipped || item.wordBreak === 'break-all')))
+  expect(offenders, `${context}: tent metrics must not clip or break normal values`).toEqual([])
+  await expect(page.getByText(/90×90×200 cm/).first(), `${context}: tent size must be readable`).toBeVisible()
 }
 
 async function assertMeasurementActionsDoNotOverlapHydro(page: import('@playwright/test').Page, context: string) {
