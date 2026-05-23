@@ -2170,6 +2170,22 @@ html,
   word-break: normal;
 }
 
+.tent-detail-fact-list {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.tent-detail-fact-list .v1-info {
+  min-height: 0;
+  grid-template-columns: minmax(104px, .34fr) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.tent-detail-fact-list .v1-info strong {
+  font-variant-numeric: tabular-nums;
+}
+
 @media (min-width: 1200px) {
   .tent-detail-room-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -2211,21 +2227,99 @@ html,
 }
 
 .live-desktop-metric-grid {
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .live-desktop-hydro-card .live-desktop-metric-grid {
-  grid-template-columns: repeat(3, minmax(124px, 1fr));
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+}
+
+.live-metric-value,
+.live-mobile-metric strong.live-metric-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  width: fit-content;
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: normal;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.live-metric-number,
+.live-metric-unit {
+  display: inline-block;
+  min-width: 0;
+  letter-spacing: normal;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.live-metric-unit {
+  color: var(--v1-soft);
+  font-size: .42em;
+  font-style: normal;
+}
+
+.live-camera-empty-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 0;
+  padding: 14px 16px;
+}
+
+.live-camera-empty-card h2 {
+  margin: 2px 0 0;
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.live-camera-empty-card p {
+  margin: 4px 0 0;
+  color: var(--v1-muted);
+  line-height: 1.35;
 }
 
 @media (min-width: 861px) {
-  .rc2-live-page .live-desktop-overview {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  .rc2-live-page .live-desktop-status-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
   }
 
-  .rc2-live-page .live-desktop-overview > [data-audit="live-status-card"] {
-    grid-column: 1 / -1;
+  .rc2-live-page .live-desktop-main-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+
+  .rc2-live-page .live-desktop-main-grid > [data-audit] {
+    min-width: 0;
+  }
+
+  .rc2-live-page .live-desktop-main-grid > [data-audit="live-climate-card"] {
+    grid-column: span 4;
+  }
+
+  .rc2-live-page .live-desktop-main-grid > [data-audit="live-hydro-card"] {
+    grid-column: span 5;
+  }
+
+  .rc2-live-page .live-desktop-main-grid > [data-audit="live-risk-card"] {
+    grid-column: span 3;
+  }
+
+  .rc2-live-page .live-desktop-main-grid > [data-audit="live-sensor-card"],
+  .rc2-live-page .live-desktop-main-grid > [data-audit="live-camera"],
+  .rc2-live-page .live-desktop-main-grid > [data-audit="live-camera-note"] {
+    grid-column: span 6;
   }
 
   .rc2-live-page .live-desktop-status-card {
@@ -2241,7 +2335,7 @@ html,
   }
 
   .rc2-live-page .live-desktop-metric-grid {
-    grid-template-columns: repeat(2, minmax(170px, 1fr));
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
   }
 
   .rc2-live-page .live-desktop-hydro-card .live-desktop-metric-grid {
@@ -2258,20 +2352,29 @@ html,
     overflow-wrap: normal;
     word-break: normal;
     white-space: nowrap;
-  }
-
-  .rc2-live-page .live-desktop-operations {
-    grid-template-columns: minmax(220px, .55fr) minmax(340px, 1fr) minmax(340px, 1fr);
-    align-items: start;
+    letter-spacing: normal;
+    font-variant-numeric: tabular-nums;
   }
 
   .rc2-live-page .live-camera-note {
     align-self: start;
-    min-height: 64px;
+  }
+
+  .rc2-live-page .live-camera-empty-card {
+    padding: 10px 12px;
+  }
+
+  .rc2-live-page .live-camera-empty-card p {
+    display: none;
+  }
+
+  .rc2-live-page .live-camera-empty-card .v1-button {
+    min-height: 38px;
+    padding-inline: 12px;
   }
 
   .hydro-page .v1-hydro-layout {
-    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
     align-items: start;
   }
 
@@ -2280,7 +2383,7 @@ html,
   }
 
   .hydro-page .v1-hydro-detail.rc2 {
-    grid-template-columns: minmax(360px, .85fr) minmax(360px, 1.15fr);
+    grid-template-columns: minmax(0, .92fr) minmax(350px, 1.08fr);
     gap: 16px;
   }
 
@@ -2300,6 +2403,12 @@ html,
     align-content: center;
   }
 
+  .hydro-page .v1-hydro-preview-card {
+    min-width: 0;
+    height: 100%;
+    padding: 12px;
+  }
+
   .hydro-page .rdwc-preview__stage {
     min-height: 160px;
     align-items: center;
@@ -2312,16 +2421,35 @@ html,
   }
 
   .tents-page .v1-card-grid {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr));
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
   }
 
   .tents-page .v1-tent-card {
+    display: grid;
+    grid-template-columns: minmax(220px, .52fr) minmax(0, 1.48fr);
+    align-items: start;
+    column-gap: 18px;
     max-width: none;
   }
 
+  .tents-page .v1-tent-card .v1-card-title-row {
+    grid-column: 1;
+  }
+
   .tents-page .tent-metric-groups {
+    grid-column: 2;
     grid-template-columns: repeat(3, minmax(190px, 1fr));
+  }
+
+  .tents-page .v1-tent-card > p,
+  .tents-page .v1-tent-card > .rc-tent-actions,
+  .tents-page .v1-tent-card > .dependency-panel {
+    grid-column: 1 / -1;
+  }
+
+  .tents-page .rc-tent-actions {
+    justify-content: flex-end;
   }
 
   .tents-page .tent-metric-row {
@@ -2344,6 +2472,10 @@ html,
   align-items: baseline;
   gap: 5px;
   white-space: nowrap;
+  letter-spacing: normal;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .live-mobile-metric small {
@@ -2441,20 +2573,45 @@ html,
 
 @media (max-width: 1180px) {
   .live-desktop-overview,
-  .live-desktop-operations {
+  .live-desktop-operations,
+  .live-desktop-main-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rc2-live-page .live-desktop-main-grid > [data-audit],
+  .rc2-live-page .live-desktop-main-grid > [data-audit="live-climate-card"],
+  .rc2-live-page .live-desktop-main-grid > [data-audit="live-hydro-card"],
+  .rc2-live-page .live-desktop-main-grid > [data-audit="live-risk-card"],
+  .rc2-live-page .live-desktop-main-grid > [data-audit="live-sensor-card"],
+  .rc2-live-page .live-desktop-main-grid > [data-audit="live-camera"],
+  .rc2-live-page .live-desktop-main-grid > [data-audit="live-camera-note"] {
+    grid-column: 1 / -1;
   }
 
   .live-desktop-hydro-card .live-desktop-metric-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 
-  .v1-hydro-detail.rc2 {
+  .v1-hydro-detail.rc2,
+  .hydro-page .v1-hydro-detail.rc2 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .tents-page .v1-tent-card {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tents-page .v1-tent-card .v1-card-title-row,
+  .tents-page .tent-metric-groups {
+    grid-column: 1;
+  }
+
+  .tents-page .tent-metric-groups {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   }
 }
 
-@media (max-width: 1199px) {
+@media (max-width: 1023px) {
   .hydro-page .v1-hydro-layout,
   .hydro-page .v1-hydro-detail.rc2 {
     grid-template-columns: minmax(0, 1fr) !important;

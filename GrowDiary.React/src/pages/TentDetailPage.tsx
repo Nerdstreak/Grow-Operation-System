@@ -103,7 +103,7 @@ function TentDetailPage() {
 
         <V1Card className="v1-live-now-card">
           <div className="v1-card-title-row"><div><span className="v1-card-kicker">Raum</span><h2>{formatSize(tent)}</h2></div><V1Badge tone={tent.status === 'Active' ? 'ok' : 'neutral'}>{tent.status === 'Active' ? 'aktiv' : 'Archiv'}</V1Badge></div>
-          <div className="v1-info-grid compact tent-detail-room-grid">
+          <div className="v1-info-grid compact tent-detail-room-grid tent-detail-fact-list">
             <Info label="Grows" value={String(grows.length)} />
             <Info label="Hydro" value={String(activeHydroSetups.length)} />
             <Info label="Setups" value={String(setups.length)} />

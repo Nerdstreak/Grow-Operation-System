@@ -1335,6 +1335,8 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
     expect((await downloadResponse.body()).length, 'Downloaded Backup ZIP must not be empty').toBeGreaterThan(0)
   }
   if (slug === 'release') {
+    await expect(page, 'Release route must remain directly reachable').toHaveURL(/\/release$/)
+    await expect(page.getByRole('heading', { name: /Release/i }).first(), 'Release direct route heading').toBeVisible()
     await expect(page.locator('.rc-file-input').first()).toBeVisible()
   }
   if (slug === 'connect') {
@@ -1739,10 +1741,11 @@ async function assertSeededLiveHydroContract(page: import('@playwright/test').Pa
   for (const expected of [/pH/i, /EC/i, /ORP/i, /DO/i, /Wassertemp/i, /Wasserstand/i, /5\.80|5,80|5\.8|5,8/, /1\.40|1,40|1\.4|1,4/, /420/, /7\.5|7,5/, /20\.5|20,5/, /62\.0|62,0|62/]) {
     await expect(card, `${context}: hydro metric ${expected}`).toContainText(expected)
   }
+  await expect(card, `${context}: hydro values must not be visually separated around decimals`).not.toContainText(/\d\s+[,.]\s+\d/)
 }
 
 async function assertDesktopLiveLayoutContract(page: import('@playwright/test').Page, context: string) {
-  const isDesktop = await page.evaluate(() => window.innerWidth >= 1024)
+  const isDesktop = await page.evaluate(() => window.innerWidth >= 1200)
   if (!isDesktop) return
 
   const hydroMetricOffenders = await page.locator('[data-audit="live-hydro-card"] .live-mobile-metric').evaluateAll((items) =>
@@ -1751,25 +1754,62 @@ async function assertDesktopLiveLayoutContract(page: import('@playwright/test').
         const html = item as HTMLElement
         const rect = html.getBoundingClientRect()
         const value = html.querySelector('strong') as HTMLElement | null
+        const valueRect = value?.getBoundingClientRect() ?? null
+        const valueStyle = value ? window.getComputedStyle(value) : null
+        const valueText = (value?.textContent ?? '').trim().replace(/\s+/g, ' ')
         return {
           text: (html.textContent ?? '').trim().replace(/\s+/g, ' '),
           cardWidth: Math.round(rect.width),
           valueClipped: value ? value.scrollWidth > value.clientWidth + 2 : false,
           cardClipped: html.scrollWidth > html.clientWidth + 2,
+          valueOutsideCard: valueRect ? valueRect.left < rect.left - 1 || valueRect.right > rect.right + 1 : true,
+          decimalSplit: /\d\s+[,.]\s+\d/.test(valueText),
+          letterSpacing: valueStyle?.letterSpacing ?? '',
+          whiteSpace: valueStyle?.whiteSpace ?? '',
+          numericVariant: valueStyle?.fontVariantNumeric ?? '',
         }
       })
-      .filter((item) => item.cardWidth < 140 || item.valueClipped || item.cardClipped))
+      .filter((item) => item.cardWidth < 150
+        || item.valueClipped
+        || item.cardClipped
+        || item.valueOutsideCard
+        || item.decimalSplit
+        || (item.letterSpacing !== 'normal' && item.letterSpacing !== '0px')
+        || item.whiteSpace !== 'nowrap'
+        || !/tabular-nums/.test(item.numericVariant)))
   expect(hydroMetricOffenders, `${context}: desktop hydro metric cards must be readable`).toEqual([])
+
+  const dashboardShape = await page.locator('[data-audit="live-dashboard-desktop"]').evaluate((element) => {
+    const root = element as HTMLElement
+    const climate = root.querySelector('[data-audit="live-climate-card"]') as HTMLElement | null
+    const hydro = root.querySelector('[data-audit="live-hydro-card"]') as HTMLElement | null
+    const risk = root.querySelector('[data-audit="live-risk-card"]') as HTMLElement | null
+    const status = root.querySelector('[data-audit="live-status-card"]') as HTMLElement | null
+    function width(node: HTMLElement | null) {
+      return node ? Math.round(node.getBoundingClientRect().width) : 0
+    }
+    return {
+      statusWidth: width(status),
+      climateWidth: width(climate),
+      hydroWidth: width(hydro),
+      riskWidth: width(risk),
+    }
+  })
+  expect(dashboardShape.statusWidth, `${context}: desktop status row should span usable dashboard width`).toBeGreaterThanOrEqual(760)
+  expect(dashboardShape.climateWidth, `${context}: climate card must not be a narrow mobile card`).toBeGreaterThanOrEqual(300)
+  expect(dashboardShape.hydroWidth, `${context}: hydro card must have enough width for 3x2 metrics`).toBeGreaterThanOrEqual(430)
+  expect(dashboardShape.riskWidth, `${context}: tasks/risks card must be visible in desktop dashboard`).toBeGreaterThanOrEqual(260)
 
   const cameraNote = page.locator('[data-audit="live-camera-note"]')
   if (await cameraNote.isVisible().catch(() => false)) {
     const cameraHeight = await cameraNote.evaluate((element) => Math.round((element as HTMLElement).getBoundingClientRect().height))
-    expect(cameraHeight, `${context}: missing camera note must stay compact on desktop`).toBeLessThanOrEqual(90)
+    expect(cameraHeight, `${context}: missing camera note must stay compact on desktop`).toBeLessThanOrEqual(120)
+    await expect(cameraNote, `${context}: missing camera state text`).toContainText(/Kamera nicht eingerichtet/i)
   }
 }
 
 async function assertDesktopHydroLayoutContract(page: import('@playwright/test').Page, context: string) {
-  const isDesktop = await page.evaluate(() => window.innerWidth >= 1024)
+  const isDesktop = await page.evaluate(() => window.innerWidth >= 1200)
   if (!isDesktop) return
 
   await expect(page.getByText(/RDWC Test Setup/i).first(), `${context}: seeded hydro setup`).toBeVisible()
@@ -1779,15 +1819,25 @@ async function assertDesktopHydroLayoutContract(page: import('@playwright/test')
       .map((item) => {
         const html = item as HTMLElement
         const rect = html.getBoundingClientRect()
+        const parent = html.closest('.v1-card, .v1-section') as HTMLElement | null
+        const parentRect = parent?.getBoundingClientRect() ?? null
         return {
           text: (html.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 120),
           isTitle: html.matches('.v1-hydro-title-line.rc2 strong'),
+          isDetail: html.matches('.v1-hydro-detail.rc2'),
+          isPreview: html.matches('[data-audit="hydro-preview"]'),
           width: Math.round(rect.width),
           overflowX: html.scrollWidth > html.clientWidth + 2,
           rightOverflow: rect.right > window.innerWidth + 1,
+          outsideParent: parentRect != null && (rect.left < parentRect.left - 2 || rect.right > parentRect.right + 2),
         }
       })
-      .filter((item) => item.overflowX || item.rightOverflow || (!item.isTitle && item.width < 300)))
+      .filter((item) => item.overflowX
+        || item.rightOverflow
+        || item.outsideParent
+        || (item.isDetail && item.width < 700)
+        || (item.isPreview && item.width < 320)
+        || (!item.isTitle && !item.isDetail && !item.isPreview && item.width < 300)))
   expect(offenders, `${context}: desktop hydro detail/preview must not be squeezed or overflow`).toEqual([])
 }
 
@@ -1838,9 +1888,11 @@ async function assertTentMetricLayout(page: import('@playwright/test').Page, con
           clipped: html.scrollWidth > html.clientWidth + 2,
           wordBreak: style.wordBreak,
           overflowWrap: style.overflowWrap,
+          textOverflow: style.textOverflow,
+          lineHeight: style.lineHeight,
         }
       })
-      .filter((item) => item.visible && (item.clipped || item.wordBreak === 'break-all')))
+      .filter((item) => item.visible && (item.clipped || item.wordBreak === 'break-all' || item.textOverflow === 'ellipsis')))
   expect(offenders, `${context}: tent metrics must not clip or break normal values`).toEqual([])
   await expect(page.getByText(/90×90×200 cm/).first(), `${context}: tent size must be readable`).toBeVisible()
   if ((await page.getByText(/Abluft/i).count()) > 0) {

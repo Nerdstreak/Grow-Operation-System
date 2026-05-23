@@ -416,7 +416,9 @@ function HydroDetail({ setup, linkedGrows, deleteBlocked, saving, savingKey, onE
             </div>
           )}
         </V1Card>
-        <RdwcPreview compact hydroStyle={setup.hydroStyle === 'DWC' ? 'DWC' : 'RDWC'} layoutType={setup.layoutType} potCount={setup.potCount ?? 1} reservoirPosition={setup.reservoirPosition} />
+        <V1Card className="v1-hydro-preview-card">
+          <RdwcPreview compact hydroStyle={setup.hydroStyle === 'DWC' ? 'DWC' : 'RDWC'} layoutType={setup.layoutType} potCount={setup.potCount ?? 1} reservoirPosition={setup.reservoirPosition} />
+        </V1Card>
       </div>
     </V1Section>
   )

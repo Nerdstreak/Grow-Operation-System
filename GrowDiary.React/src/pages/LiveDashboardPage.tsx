@@ -168,11 +168,7 @@ function LiveDashboardPage() {
 
                 <RiskSummaryCard risks={risksForContext} />
 
-                {selectedTent.cameraEntityId ? (
-                  <CameraTile tent={selectedTent} refresh={refresh} />
-                ) : (
-                  <div className="live-camera-note" data-audit="live-camera-note">Keine Kamera eingerichtet.</div>
-                )}
+                {selectedTent.cameraEntityId ? <CameraTile tent={selectedTent} refresh={refresh} /> : <CameraEmptyState tent={selectedTent} />}
 
                 <div className="live-quick-actions" data-audit="live-quick-actions">
                   <V1LinkButton to="/messung" variant="primary">Messung erfassen</V1LinkButton>
@@ -264,7 +260,7 @@ function DesktopLiveDashboard({
 
   return (
     <div className="live-desktop-dashboard" data-audit="live-dashboard-desktop">
-      <section className="live-desktop-overview">
+      <section className="live-desktop-status-row">
         <div data-audit="live-status-card">
           <V1Card className="live-desktop-status-card" tone={score.tone}>
             <div className="v1-card-title-row">
@@ -280,7 +276,9 @@ function DesktopLiveDashboard({
             </div>
           </V1Card>
         </div>
+      </section>
 
+      <section className="live-desktop-main-grid">
         <div data-audit="live-climate-card">
           <V1Card className="live-desktop-climate-card">
             <div className="live-card-head">
@@ -307,14 +305,8 @@ function DesktopLiveDashboard({
             </V1Card>
           </div>
         )}
-      </section>
 
-      <section className="live-desktop-operations">
-        {selectedTent.cameraEntityId ? (
-          <CameraTile tent={selectedTent} refresh={refresh} />
-        ) : (
-          <div className="live-camera-note" data-audit="live-camera-note">Keine Kamera eingerichtet.</div>
-        )}
+        <RiskSummaryCard risks={risksForContext} />
 
         <div data-audit="live-sensor-card">
           <V1Card className="live-desktop-control-card" tone={sensorStatus.tone}>
@@ -331,7 +323,7 @@ function DesktopLiveDashboard({
           </V1Card>
         </div>
 
-        <RiskSummaryCard risks={risksForContext} />
+        {selectedTent.cameraEntityId ? <CameraTile tent={selectedTent} refresh={refresh} /> : <CameraEmptyState tent={selectedTent} />}
       </section>
 
       <V1Section title={`Aktive Grows in ${selectedTent.name}`} action={<V1LinkButton to="/grows/new">Grow anlegen</V1LinkButton>}>
@@ -383,6 +375,21 @@ function useIsPhoneViewport() {
   }, [])
 
   return isPhone
+}
+
+function CameraEmptyState({ tent }: { tent: TentDto }) {
+  return (
+    <div className="live-camera-note" data-audit="live-camera-note">
+      <V1Card className="live-camera-empty-card" tone="neutral">
+        <div>
+          <span className="v1-card-kicker">Kamera</span>
+          <h2>Kamera nicht eingerichtet</h2>
+          <p>{tent.name} hat aktuell keine Kamera-Entity im Home-Assistant-Mapping.</p>
+        </div>
+        <V1LinkButton to="/home-assistant">HA-Mapping</V1LinkButton>
+      </V1Card>
+    </div>
+  )
 }
 
 function CameraTile({ tent, refresh }: { tent: TentDto; refresh: number }) {
@@ -455,10 +462,14 @@ function CameraTile({ tent, refresh }: { tent: TentDto; refresh: number }) {
 
 function LiveMetric({ metric }: { metric: MetricPayload }) {
   const tone = metric.tone === 'danger' ? 'critical' : metric.tone === 'warning' ? 'warn' : metric.tone === 'success' ? 'ok' : 'neutral'
+  const hasUnit = Boolean(metric.unit && metric.value !== '–')
   return (
-    <div className={`live-mobile-metric tone-${tone}`}>
+    <div className={`live-mobile-metric tone-${tone}`} data-audit={`live-metric-${metric.key}`}>
       <span>{metric.label}</span>
-      <strong>{metric.value}{metric.unit && metric.value !== '–' && <em>{metric.unit}</em>}</strong>
+      <strong className="live-metric-value">
+        <span className="live-metric-number">{metric.value}</span>
+        {hasUnit && <span className="live-metric-unit">{metric.unit}</span>}
+      </strong>
       {metric.hint && <small>{metric.hint}</small>}
     </div>
   )
