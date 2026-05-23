@@ -1013,7 +1013,10 @@ for (const viewport of viewports) {
         await waitForAppIdle(page)
         expect(response?.status() ?? null, `${viewport.name}: /messung active grow loads`).toBe(200)
         await assertMeasurementDesktopEndContract(page, `${viewport.name}: measurement desktop end`)
-        await page.screenshot({ path: path.join(outputDir, 'desktop-1440x1000-messung-end.png'), fullPage: false })
+        const measurementEndPath = path.join(outputDir, 'desktop-1440x1000-messung-end.png')
+        await page.screenshot({ path: measurementEndPath, fullPage: false })
+        expect(fs.existsSync(measurementEndPath), `${viewport.name}: measurement end screenshot file must exist`).toBe(true)
+        expect(fs.statSync(measurementEndPath).size, `${viewport.name}: measurement end screenshot file must not be empty`).toBeGreaterThan(0)
         return
       }
       await ensureVisualAuditData(page.request)
@@ -1072,6 +1075,7 @@ for (const viewport of viewports) {
       if (!opened) return
       await waitForAppIdle(page)
       await assertTentMetricLayout(page, `${viewport.name}: tent detail`)
+      await assertNoSeparatedMetricNumbers(page, `${viewport.name}: tent detail`)
       const prefix = viewport.category === 'phone' ? 'mobile' : viewport.category === 'tablet' ? 'tablet' : 'desktop'
       await page.screenshot({ path: path.join(outputDir, `${prefix}-${viewport.width}x${viewport.height}-zelte-detail.png`), fullPage: true })
       if (viewport.width === 1440 && viewport.height === 1000) {
@@ -1086,6 +1090,7 @@ for (const viewport of viewports) {
       await waitForAppIdle(page)
       await expect(page.getByText(/RDWC Test Setup/i).first(), `${viewport.name}: seeded hydro detail name`).toBeVisible()
       await expect(page.getByText(/AC Infinity Growzelt/i).first(), `${viewport.name}: seeded hydro detail tent`).toBeVisible()
+      await assertNoSeparatedMetricNumbers(page, `${viewport.name}: hydro detail`)
       const prefix = viewport.category === 'phone' ? 'mobile' : viewport.category === 'tablet' ? 'tablet' : 'desktop'
       await page.screenshot({ path: path.join(outputDir, `${prefix}-${viewport.width}x${viewport.height}-hydro-detail.png`), fullPage: true })
       if (viewport.width === 1440 && viewport.height === 1000) {
@@ -1321,6 +1326,7 @@ async function apiJson<T>(
 
 async function assertRouteContract(page: import('@playwright/test').Page, slug: string) {
   await assertNavigationProductContract(page, slug)
+  await assertNoSeparatedMetricNumbers(page, slug)
   if (slug === 'settings') {
     await expect(page.getByRole('button', { name: /Vollbackup herunterladen/i })).toBeVisible()
     await expect(page.locator('.rc-file-input').first()).toBeVisible()
@@ -1473,6 +1479,81 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
   }
 
   await assertNoAsciiUmlautUiText(page, slug)
+}
+
+async function assertNoSeparatedMetricNumbers(page: import('@playwright/test').Page, context: string) {
+  const offenders = await page.evaluate(() => {
+    const visibleTextPattern = /\d\s+[,.]\s+\d/
+    const numericLikePattern = /\d|°C|mS\/cm|mg\/l|ppm|pH|EC|ORP|Liter|\bl\b/i
+    const valueSelectors = [
+      '.live-metric-value',
+      '.live-metric-number',
+      '.live-metric-unit',
+      '.v1-stat strong',
+      '.v1-stat strong em',
+      '.v1-fact strong',
+      '.tent-metric-row dd',
+      '.grow-overview-card__metrics dd',
+      '.tc-metric-value',
+      '.metric-block-val',
+      '.grow-kpi-val',
+      '.addback-ec-val',
+      '.ops-metric strong',
+      '.ops-metric-value strong',
+      '.ops-metric-value em',
+      '.rc2-measurement-derived strong',
+    ].join(',')
+
+    function isVisible(element: Element) {
+      const html = element as HTMLElement
+      const rect = html.getBoundingClientRect()
+      const style = window.getComputedStyle(html)
+      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 1 && rect.height > 1
+    }
+
+    const textOffenders = Array.from(document.body.querySelectorAll<HTMLElement>('body *'))
+      .filter((element) => isVisible(element) && !element.closest('script, style, noscript, svg'))
+      .map((element) => ({
+        selector: element.className ? `.${String(element.className).trim().replace(/\s+/g, '.')}` : element.tagName.toLowerCase(),
+        text: (element.innerText ?? '').replace(/\u00a0/g, ' ').trim().replace(/[ \t]+/g, ' ').slice(0, 160),
+        problem: 'separatedDecimalText',
+      }))
+      .filter((item) => visibleTextPattern.test(item.text))
+
+    const styleOffenders = Array.from(document.querySelectorAll<HTMLElement>(valueSelectors))
+      .filter((element) => isVisible(element) && numericLikePattern.test(element.textContent ?? ''))
+      .map((element) => {
+        const style = window.getComputedStyle(element)
+        const text = (element.textContent ?? '').replace(/\s+/g, ' ').trim()
+        const allowsValueWrap = element.matches('.tent-metric-row dd, .grow-overview-card__metrics dd')
+        const letterSpacingOk = style.letterSpacing === 'normal' || style.letterSpacing === '0px'
+        const wordSpacingOk = style.wordSpacing === 'normal' || style.wordSpacing === '0px'
+        const whiteSpaceOk = allowsValueWrap || /nowrap/i.test(style.whiteSpace)
+        const overflowWrapOk = /normal/i.test(style.overflowWrap)
+        const wordBreakOk = /normal/i.test(style.wordBreak)
+        const textTransformOk = !/uppercase/i.test(style.textTransform)
+        const problem = [
+          letterSpacingOk ? null : `letterSpacing=${style.letterSpacing}`,
+          wordSpacingOk ? null : `wordSpacing=${style.wordSpacing}`,
+          whiteSpaceOk ? null : `whiteSpace=${style.whiteSpace}`,
+          overflowWrapOk ? null : `overflowWrap=${style.overflowWrap}`,
+          wordBreakOk ? null : `wordBreak=${style.wordBreak}`,
+          textTransformOk ? null : `textTransform=${style.textTransform}`,
+        ].filter(Boolean).join(' ')
+        return problem
+          ? {
+              selector: element.className ? `.${String(element.className).trim().replace(/\s+/g, '.')}` : element.tagName.toLowerCase(),
+              text,
+              problem,
+            }
+          : null
+      })
+      .filter((item): item is { selector: string; text: string; problem: string } => item != null)
+
+    return [...textOffenders, ...styleOffenders].slice(0, 20)
+  })
+
+  expect(offenders, `${context}: metric decimals and units must not be visually split`).toEqual([])
 }
 
 async function assertNavigationProductContract(page: import('@playwright/test').Page, context: string) {
