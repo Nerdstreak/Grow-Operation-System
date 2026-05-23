@@ -221,7 +221,7 @@ function TentsPage() {
         title={editingId ? 'Zelt bearbeiten' : 'Zelt anlegen'}
         subtitle="Raum, Größe und verbaute Technik. Home-Assistant-Entities werden separat gemappt."
         action={<V1Button onClick={closeForm}>Schließen</V1Button>}
-        className="rc2-focused-form"
+        className="rc2-focused-form tents-page"
       >
         {error && <V1Alert message={error} tone="warn" />}
         <div className="rc2-focused-layout">
@@ -263,7 +263,7 @@ function TentsPage() {
   }
 
   return (
-    <V1Page eyebrow="Räume" title="Zelte" action={<V1Button variant="primary" onClick={openCreate}>Zelt anlegen</V1Button>}>
+    <V1Page eyebrow="Räume" title="Zelte" action={<V1Button variant="primary" onClick={openCreate}>Zelt anlegen</V1Button>} className="tents-page">
       {error && <V1Alert message={error} tone="warn" />}
 
       <section className="v1-kpi-grid">

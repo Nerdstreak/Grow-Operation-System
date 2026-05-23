@@ -241,7 +241,7 @@ function HydroPage() {
 
   if (formOpen) {
     return (
-      <V1Page eyebrow="DWC/RDWC-System" title={editingId ? 'Hydro-Setup bearbeiten' : 'Hydro-Setup anlegen'} subtitle="Fokussierter Assistent. Bestehende Setups bleiben während des Anlegens ausgeblendet." action={<V1Button onClick={closeForm}>Schließen</V1Button>}>
+      <V1Page eyebrow="DWC/RDWC-System" title={editingId ? 'Hydro-Setup bearbeiten' : 'Hydro-Setup anlegen'} subtitle="Fokussierter Assistent. Bestehende Setups bleiben während des Anlegens ausgeblendet." action={<V1Button onClick={closeForm}>Schließen</V1Button>} className="hydro-page">
         {error && <V1Alert message={error} tone="warn" />}
         <V1Section title={editingId ? 'Setup bearbeiten' : 'Setup anlegen'}>
           <V1Wizard steps={wizardSteps} currentStep={step} />
@@ -262,7 +262,7 @@ function HydroPage() {
   }
 
   return (
-    <V1Page eyebrow="DWC/RDWC-Systeme" title="Hydro" action={<V1Button variant="primary" onClick={openCreate}>Hydro-Setup anlegen</V1Button>}>
+    <V1Page eyebrow="DWC/RDWC-Systeme" title="Hydro" action={<V1Button variant="primary" onClick={openCreate}>Hydro-Setup anlegen</V1Button>} className="hydro-page">
       {error && <V1Alert message={error} tone="warn" />}
       <section className="v1-kpi-grid">
         <V1Stat label="Aktive Setups" value={activeSetups.length} />

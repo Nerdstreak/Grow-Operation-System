@@ -2170,23 +2170,40 @@ html,
   word-break: normal;
 }
 
-@media (min-width: 861px) {
+@media (min-width: 1200px) {
   .tent-detail-room-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .tent-detail-v2 .tent-detail-room-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .tent-detail-v2 .tent-detail-room-grid .v1-info {
+    min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
+    grid-template-columns: minmax(88px, .28fr) minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 14px;
+    padding: 12px 14px;
+    overflow: visible;
+  }
+
+  .tent-detail-v2 .tent-detail-room-grid .v1-info span {
+    align-self: baseline;
+  }
+
+  .tent-detail-v2 .tent-detail-room-grid .v1-info strong {
+    align-self: baseline;
+    font-size: 18px;
+    line-height: 1.25;
   }
 }
 
 .live-hydro-card,
 .live-desktop-hydro-card {
   min-width: 0;
-}
-
-.live-desktop-overview {
-  grid-template-columns: minmax(250px, .8fr) minmax(340px, 1fr) minmax(430px, 1.2fr);
-}
-
-.live-desktop-operations {
-  grid-template-columns: minmax(260px, .85fr) minmax(280px, 1fr) minmax(280px, 1fr);
 }
 
 .live-desktop-hydro-card {
@@ -2199,6 +2216,123 @@ html,
 
 .live-desktop-hydro-card .live-desktop-metric-grid {
   grid-template-columns: repeat(3, minmax(124px, 1fr));
+}
+
+@media (min-width: 861px) {
+  .rc2-live-page .live-desktop-overview {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .rc2-live-page .live-desktop-overview > [data-audit="live-status-card"] {
+    grid-column: 1 / -1;
+  }
+
+  .rc2-live-page .live-desktop-status-card {
+    padding: 16px 18px;
+  }
+
+  .rc2-live-page .live-desktop-status-card .v1-card-title-row {
+    align-items: center;
+  }
+
+  .rc2-live-page .live-desktop-status-card .live-status-summary {
+    grid-template-columns: repeat(5, minmax(128px, 1fr));
+  }
+
+  .rc2-live-page .live-desktop-metric-grid {
+    grid-template-columns: repeat(2, minmax(170px, 1fr));
+  }
+
+  .rc2-live-page .live-desktop-hydro-card .live-desktop-metric-grid {
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+  }
+
+  .rc2-live-page .live-desktop-metric-grid .live-mobile-metric {
+    min-height: 104px;
+    align-content: start;
+  }
+
+  .rc2-live-page .live-desktop-hydro-card .live-mobile-metric strong {
+    font-size: 30px;
+    overflow-wrap: normal;
+    word-break: normal;
+    white-space: nowrap;
+  }
+
+  .rc2-live-page .live-desktop-operations {
+    grid-template-columns: minmax(220px, .55fr) minmax(340px, 1fr) minmax(340px, 1fr);
+    align-items: start;
+  }
+
+  .rc2-live-page .live-camera-note {
+    align-self: start;
+    min-height: 64px;
+  }
+
+  .hydro-page .v1-hydro-layout {
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .hydro-page .v1-hydro-list-item {
+    min-height: 64px;
+  }
+
+  .hydro-page .v1-hydro-detail.rc2 {
+    grid-template-columns: minmax(360px, .85fr) minmax(360px, 1.15fr);
+    gap: 16px;
+  }
+
+  .hydro-page .v1-hydro-title-line.rc2 strong {
+    font-size: clamp(24px, 2vw, 30px);
+    line-height: 1.05;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .hydro-page .v1-hydro-facts {
+    grid-template-columns: repeat(2, minmax(135px, 1fr));
+  }
+
+  .hydro-page .rdwc-preview.compact {
+    min-height: 100%;
+    align-content: center;
+  }
+
+  .hydro-page .rdwc-preview__stage {
+    min-height: 160px;
+    align-items: center;
+  }
+
+  .hydro-page .rdwc-preview__caption {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .tents-page .v1-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr));
+    align-items: start;
+  }
+
+  .tents-page .v1-tent-card {
+    max-width: none;
+  }
+
+  .tents-page .tent-metric-groups {
+    grid-template-columns: repeat(3, minmax(190px, 1fr));
+  }
+
+  .tents-page .tent-metric-row {
+    grid-template-columns: minmax(90px, .36fr) minmax(0, 1fr);
+  }
+
+  .tents-page .tent-metric-row dd {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
 }
 
 .live-mobile-metric {
@@ -2317,6 +2451,18 @@ html,
 
   .v1-hydro-detail.rc2 {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1199px) {
+  .hydro-page .v1-hydro-layout,
+  .hydro-page .v1-hydro-detail.rc2 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .hydro-page [data-audit="hydro-preview"] {
+    width: 100%;
+    max-width: 100%;
   }
 }
 

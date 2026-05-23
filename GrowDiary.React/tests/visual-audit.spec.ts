@@ -692,9 +692,25 @@ async function unmockFreshInstall(page: import('@playwright/test').Page) {
   await page.unroute('**/api/risk-events**')
 }
 
+async function gotoAuditPath(page: import('@playwright/test').Page, pathName: string) {
+  let lastError: unknown = null
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await page.goto(pathName, { waitUntil: 'domcontentloaded' })
+      await waitForAppIdle(page)
+      await ensureAppShellMounted(page, pathName)
+      return response
+    } catch (caught) {
+      lastError = caught
+      if (!/ERR_NO_BUFFER_SPACE|ERR_INSUFFICIENT_RESOURCES/i.test(String(caught))) throw caught
+      await page.waitForTimeout(350 + attempt * 250)
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(`Navigation failed for ${pathName}`)
+}
+
 async function tryOpenFirstGrowDetail(page: import('@playwright/test').Page) {
-  await page.goto('/grows', { waitUntil: 'domcontentloaded' })
-  await waitForAppIdle(page)
+  await gotoAuditPath(page, '/grows')
   const firstOpen = page.locator('[data-audit="grows-overview"] [data-audit="grow-list-actions"] a').filter({ hasText: /^Öffnen$/ }).first()
   if ((await firstOpen.count()) === 0) return false
   await firstOpen.scrollIntoViewIfNeeded()
@@ -706,8 +722,7 @@ async function tryOpenFirstGrowDetail(page: import('@playwright/test').Page) {
 }
 
 async function tryOpenFirstTentDetail(page: import('@playwright/test').Page) {
-  await page.goto('/zelte', { waitUntil: 'domcontentloaded' })
-  await waitForAppIdle(page)
+  await gotoAuditPath(page, '/zelte')
   const firstOpen = page.locator('[data-audit="tent-card-actions"] a').filter({ hasText: /^Öffnen$/ }).first()
   if ((await firstOpen.count()) === 0) return false
   await firstOpen.scrollIntoViewIfNeeded()
@@ -719,8 +734,7 @@ async function tryOpenFirstTentDetail(page: import('@playwright/test').Page) {
 }
 
 async function tryOpenFirstHydroDetail(page: import('@playwright/test').Page) {
-  await page.goto('/hydro', { waitUntil: 'domcontentloaded' })
-  await waitForAppIdle(page)
+  await gotoAuditPath(page, '/hydro')
   const firstOpen = page.getByRole('link', { name: /^Öffnen$/ }).first()
   if ((await firstOpen.count()) === 0) return false
   await firstOpen.scrollIntoViewIfNeeded()
@@ -992,7 +1006,16 @@ for (const viewport of viewports) {
     })
 
     test(`capture measurement active form actions ${viewport.name}`, async ({ page }) => {
-      if (viewport.category !== 'phone') return
+      if (viewport.category !== 'phone') {
+        if (viewport.category !== 'desktop' || viewport.width !== 1440 || viewport.height !== 1000) return
+        await ensureVisualAuditData(page.request)
+        const response = await page.goto('/messung', { waitUntil: 'domcontentloaded' })
+        await waitForAppIdle(page)
+        expect(response?.status() ?? null, `${viewport.name}: /messung active grow loads`).toBe(200)
+        await assertMeasurementDesktopEndContract(page, `${viewport.name}: measurement desktop end`)
+        await page.screenshot({ path: path.join(outputDir, 'desktop-1440x1000-messung-end.png'), fullPage: false })
+        return
+      }
       await ensureVisualAuditData(page.request)
       const response = await page.goto('/messung', { waitUntil: 'domcontentloaded' })
       await waitForAppIdle(page)
@@ -1432,12 +1455,16 @@ async function assertRouteContract(page: import('@playwright/test').Page, slug: 
   if (slug === 'dashboard') {
     await assertLiveMobileContract(page, slug)
     await assertSeededLiveHydroContract(page, slug)
+    await assertDesktopLiveLayoutContract(page, slug)
   }
   if (slug === 'messung') {
     await assertMeasurementMobileContract(page, slug)
   }
   if (slug === 'zelte') {
     await assertTentMetricLayout(page, slug)
+  }
+  if (slug === 'hydro') {
+    await assertDesktopHydroLayoutContract(page, slug)
   }
   if (slug === 'grow-new') {
     await assertGrowWizardMobileContract(page, slug)
@@ -1712,6 +1739,89 @@ async function assertSeededLiveHydroContract(page: import('@playwright/test').Pa
   for (const expected of [/pH/i, /EC/i, /ORP/i, /DO/i, /Wassertemp/i, /Wasserstand/i, /5\.80|5,80|5\.8|5,8/, /1\.40|1,40|1\.4|1,4/, /420/, /7\.5|7,5/, /20\.5|20,5/, /62\.0|62,0|62/]) {
     await expect(card, `${context}: hydro metric ${expected}`).toContainText(expected)
   }
+}
+
+async function assertDesktopLiveLayoutContract(page: import('@playwright/test').Page, context: string) {
+  const isDesktop = await page.evaluate(() => window.innerWidth >= 1024)
+  if (!isDesktop) return
+
+  const hydroMetricOffenders = await page.locator('[data-audit="live-hydro-card"] .live-mobile-metric').evaluateAll((items) =>
+    items
+      .map((item) => {
+        const html = item as HTMLElement
+        const rect = html.getBoundingClientRect()
+        const value = html.querySelector('strong') as HTMLElement | null
+        return {
+          text: (html.textContent ?? '').trim().replace(/\s+/g, ' '),
+          cardWidth: Math.round(rect.width),
+          valueClipped: value ? value.scrollWidth > value.clientWidth + 2 : false,
+          cardClipped: html.scrollWidth > html.clientWidth + 2,
+        }
+      })
+      .filter((item) => item.cardWidth < 140 || item.valueClipped || item.cardClipped))
+  expect(hydroMetricOffenders, `${context}: desktop hydro metric cards must be readable`).toEqual([])
+
+  const cameraNote = page.locator('[data-audit="live-camera-note"]')
+  if (await cameraNote.isVisible().catch(() => false)) {
+    const cameraHeight = await cameraNote.evaluate((element) => Math.round((element as HTMLElement).getBoundingClientRect().height))
+    expect(cameraHeight, `${context}: missing camera note must stay compact on desktop`).toBeLessThanOrEqual(90)
+  }
+}
+
+async function assertDesktopHydroLayoutContract(page: import('@playwright/test').Page, context: string) {
+  const isDesktop = await page.evaluate(() => window.innerWidth >= 1024)
+  if (!isDesktop) return
+
+  await expect(page.getByText(/RDWC Test Setup/i).first(), `${context}: seeded hydro setup`).toBeVisible()
+  await expect(page.locator('[data-audit="hydro-preview"]').first(), `${context}: RDWC preview`).toBeVisible()
+  const offenders = await page.locator('.hydro-page [data-audit="hydro-preview"], .hydro-page .v1-hydro-detail.rc2, .hydro-page .v1-hydro-title-line.rc2 strong').evaluateAll((items) =>
+    items
+      .map((item) => {
+        const html = item as HTMLElement
+        const rect = html.getBoundingClientRect()
+        return {
+          text: (html.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 120),
+          isTitle: html.matches('.v1-hydro-title-line.rc2 strong'),
+          width: Math.round(rect.width),
+          overflowX: html.scrollWidth > html.clientWidth + 2,
+          rightOverflow: rect.right > window.innerWidth + 1,
+        }
+      })
+      .filter((item) => item.overflowX || item.rightOverflow || (!item.isTitle && item.width < 300)))
+  expect(offenders, `${context}: desktop hydro detail/preview must not be squeezed or overflow`).toEqual([])
+}
+
+async function assertMeasurementDesktopEndContract(page: import('@playwright/test').Page, context: string) {
+  const isDesktop = await page.evaluate(() => window.innerWidth >= 1024)
+  if (!isDesktop) return
+
+  await expect(page.locator('[data-audit="measurement-form"]'), `${context}: seeded form`).toBeVisible()
+  await expect(page.locator('[data-audit="measurement-section-photo"]'), `${context}: photo section exists`).toBeVisible()
+  await expect(page.locator('[data-audit="measurement-form-actions"]'), `${context}: actions exist`).toBeVisible()
+  await scrollAuditTargetIntoView(page, '[data-audit="measurement-form-actions"]')
+  await expect(page.locator('[data-audit="measurement-form-actions"]'), `${context}: actions visible at end`).toBeVisible()
+  await expect(page.locator('[data-audit="measurement-section-photo"]'), `${context}: photo visible near actions`).toBeVisible()
+
+  const layout = await page.evaluate(() => {
+    const actions = document.querySelector('[data-audit="measurement-form-actions"]') as HTMLElement | null
+    const photo = document.querySelector('[data-audit="measurement-section-photo"]') as HTMLElement | null
+    if (!actions || !photo) return null
+    const actionRect = actions.getBoundingClientRect()
+    const photoRect = photo.getBoundingClientRect()
+    const style = window.getComputedStyle(actions)
+    const overlapsPhoto = actionRect.left < photoRect.right && actionRect.right > photoRect.left && actionRect.top < photoRect.bottom && actionRect.bottom > photoRect.top
+    return {
+      position: style.position,
+      actionVisible: actionRect.width > 1 && actionRect.height > 1 && actionRect.bottom > 0 && actionRect.top < window.innerHeight,
+      photoVisible: photoRect.width > 1 && photoRect.height > 1 && photoRect.bottom > 0 && photoRect.top < window.innerHeight,
+      overlapsPhoto,
+    }
+  })
+  expect(layout, `${context}: desktop measurement end layout`).not.toBeNull()
+  expect(layout?.position, `${context}: actions must stay in normal flow`).not.toMatch(/fixed|sticky/i)
+  expect(layout?.actionVisible, `${context}: actions must be visible`).toBe(true)
+  expect(layout?.photoVisible, `${context}: photo section must be visible`).toBe(true)
+  expect(layout?.overlapsPhoto, `${context}: actions must not overlap photo`).toBe(false)
 }
 
 async function assertTentMetricLayout(page: import('@playwright/test').Page, context: string) {
