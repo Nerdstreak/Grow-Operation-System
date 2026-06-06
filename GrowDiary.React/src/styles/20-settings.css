@@ -1,0 +1,50 @@
+/* Structure fix: Settings is configuration only; Zelte/Systeme live on /zelte. */
+.settings-page-clean {
+  display: grid;
+  gap: 22px;
+}
+
+.settings-token-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.settings-strain-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.settings-form-wide {
+  grid-column: 1 / -1;
+}
+
+.settings-strain-list,
+.settings-link-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.settings-strain-card,
+.settings-link-card {
+  display: grid;
+  gap: 5px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.settings-strain-card span,
+.settings-link-card span {
+  color: var(--faint);
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .settings-token-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -49,7 +49,8 @@ public sealed class DeviationAnalyzerService
 
     private static void CheckPh(GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, List<GrowDeviation> result)
     {
-        if (sorted[0].ReservoirPh is not { } actual)
+        sorted = sorted.Where(measurement => measurement.ReservoirPh.HasValue).ToList();
+        if (sorted.Count == 0 || sorted[0].ReservoirPh is not { } actual)
         {
             return;
         }
@@ -88,7 +89,8 @@ public sealed class DeviationAnalyzerService
 
     private static void CheckEc(GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, List<GrowDeviation> result)
     {
-        if (sorted[0].ReservoirEc is not { } actual)
+        sorted = sorted.Where(measurement => measurement.ReservoirEc.HasValue).ToList();
+        if (sorted.Count == 0 || sorted[0].ReservoirEc is not { } actual)
         {
             return;
         }
@@ -141,7 +143,8 @@ public sealed class DeviationAnalyzerService
 
     private static void CheckWaterTemp(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
     {
-        if (sorted[0].ReservoirWaterTempC is not { } actual)
+        sorted = sorted.Where(measurement => measurement.ReservoirWaterTempC.HasValue).ToList();
+        if (sorted.Count == 0 || sorted[0].ReservoirWaterTempC is not { } actual)
         {
             return;
         }
@@ -171,7 +174,8 @@ public sealed class DeviationAnalyzerService
 
     private static void CheckDissolvedOxygen(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
     {
-        if (sorted[0].DissolvedOxygenMgL is not { } actual || actual >= 6)
+        sorted = sorted.Where(measurement => measurement.DissolvedOxygenMgL.HasValue).ToList();
+        if (sorted.Count == 0 || sorted[0].DissolvedOxygenMgL is not { } actual || actual >= 6)
         {
             return;
         }
@@ -194,7 +198,8 @@ public sealed class DeviationAnalyzerService
 
     private static void CheckOrp(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
     {
-        if (sorted[0].OrpMv is not { } actual)
+        sorted = sorted.Where(measurement => measurement.OrpMv.HasValue).ToList();
+        if (sorted.Count == 0 || sorted[0].OrpMv is not { } actual)
         {
             return;
         }
@@ -224,7 +229,8 @@ public sealed class DeviationAnalyzerService
 
     private static void CheckPpfd(GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, List<GrowDeviation> result)
     {
-        if (sorted[0].PpfdMol is not { } actual)
+        sorted = sorted.Where(measurement => measurement.PpfdMol.HasValue).ToList();
+        if (sorted.Count == 0 || sorted[0].PpfdMol is not { } actual)
         {
             return;
         }
@@ -254,7 +260,8 @@ public sealed class DeviationAnalyzerService
 
     private static void CheckCo2(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
     {
-        if (sorted[0].Co2Ppm is not { } actual || actual <= 1600)
+        sorted = sorted.Where(measurement => measurement.Co2Ppm.HasValue).ToList();
+        if (sorted.Count == 0 || sorted[0].Co2Ppm is not { } actual || actual <= 1600)
         {
             return;
         }

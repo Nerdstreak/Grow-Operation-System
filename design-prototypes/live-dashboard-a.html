@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="de" data-theme="instrument">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grow OS · Live — Direction A · Instrument Cluster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#04070a; --ink:#e9f4ee; --muted:rgba(233,244,238,.56); --faint:rgba(233,244,238,.32);
+    --panel:rgba(10,16,14,.72); --panel-2:rgba(14,22,19,.9);
+    --hair:rgba(94,231,160,.14); --hair-2:rgba(94,231,160,.30);
+    --phos:#52e98c; --phos-dim:#1f7d49; --amber:#ffc24d; --red:#ff5f5f; --cyan:#5cd7ff;
+    --mono:'IBM Plex Mono',ui-monospace,monospace; --sans:'IBM Plex Sans',system-ui,sans-serif;
+    --cond:'IBM Plex Sans Condensed',var(--sans); --r:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--sans); color:var(--ink); background:var(--bg);
+    -webkit-font-smoothing:antialiased; line-height:1.5; letter-spacing:.01em;
+    background-image:
+      radial-gradient(120% 80% at 78% -10%, rgba(82,233,140,.10), transparent 55%),
+      radial-gradient(90% 70% at 0% 110%, rgba(92,215,255,.06), transparent 50%);
+    background-attachment:fixed;
+  }
+  /* grain + scanline atmosphere */
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;mix-blend-mode:overlay;opacity:.05;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:59;opacity:.35;
+    background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.18) 3px 4px);}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:22px clamp(14px,3vw,34px) 60px}
+
+  /* ── top bar ── */
+  .top{display:flex;align-items:center;gap:18px;padding:12px 4px 22px;border-bottom:1px solid var(--hair);margin-bottom:24px}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand .dot{width:11px;height:11px;border-radius:50%;background:var(--phos);box-shadow:0 0 14px var(--phos);animation:pulse 2.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .brand b{font-family:var(--mono);font-weight:600;letter-spacing:.34em;font-size:13px}
+  .brand span{font-family:var(--mono);color:var(--faint);font-size:10.5px;letter-spacing:.28em;text-transform:uppercase}
+  .tents{display:flex;gap:6px;margin-left:6px}
+  .tent{font-family:var(--mono);font-size:11px;letter-spacing:.12em;padding:7px 13px;border:1px solid var(--hair);border-radius:999px;color:var(--muted);background:rgba(255,255,255,.012);cursor:pointer;transition:.2s}
+  .tent.on{color:var(--bg);background:var(--phos);border-color:var(--phos);font-weight:600}
+  .tent:not(.on):hover{border-color:var(--hair-2);color:var(--ink)}
+  .top .live{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--muted)}
+  .top .live .rec{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 10px var(--red);animation:pulse 1.4s infinite}
+  .clock{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.1em}
+
+  /* ── hero ── */
+  .hero{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;margin-bottom:16px}
+  .panel{background:var(--panel);border:1px solid var(--hair);border-radius:var(--r);backdrop-filter:blur(6px);position:relative;overflow:hidden}
+  .panel .corner{position:absolute;width:9px;height:9px;border:1px solid var(--hair-2)}
+  .c-tl{top:8px;left:8px;border-right:0;border-bottom:0}.c-tr{top:8px;right:8px;border-left:0;border-bottom:0}
+  .c-bl{bottom:8px;left:8px;border-right:0;border-top:0}.c-br{bottom:8px;right:8px;border-left:0;border-top:0}
+  .kick{font-family:var(--mono);font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--faint)}
+
+  .status{display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:center;padding:26px 28px}
+  .gauge{position:relative;width:158px;height:158px;flex:0 0 auto}
+  .gauge svg{transform:rotate(-90deg)}
+  .gauge .ring-bg{fill:none;stroke:rgba(255,255,255,.06);stroke-width:9}
+  .gauge .ring{fill:none;stroke:var(--amber);stroke-width:9;stroke-linecap:round;stroke-dasharray:434;stroke-dashoffset:434;filter:drop-shadow(0 0 8px rgba(255,194,77,.5));animation:fill 1.5s cubic-bezier(.16,1,.3,1) .25s forwards}
+  @keyframes fill{to{stroke-dashoffset:calc(434 - 434 * .74)}}
+  .gauge .mid{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+  .gauge .mid b{font-family:var(--cond);font-size:54px;font-weight:700;line-height:.9;letter-spacing:-.02em}
+  .gauge .mid em{font-family:var(--mono);font-style:normal;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--amber)}
+  .status h1{font-family:var(--cond);font-weight:700;font-size:30px;letter-spacing:-.01em;line-height:1.04;margin:2px 0 3px}
+  .status .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:11px 22px}
+  .facts div{display:flex;flex-direction:column;gap:2px;padding-bottom:9px;border-bottom:1px solid var(--hair)}
+  .facts span{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+  .facts strong{font-weight:500;font-size:14px}
+
+  .sensor{padding:22px 22px 20px;display:flex;flex-direction:column;gap:14px}
+  .sensor-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .sensor h2{font-family:var(--cond);font-size:22px;font-weight:700;margin-top:6px}
+  .badge{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;padding:5px 10px;border-radius:999px;border:1px solid;white-space:nowrap}
+  .b-warn{color:var(--amber);border-color:rgba(255,194,77,.4);background:rgba(255,194,77,.08)}
+  .b-ok{color:var(--phos);border-color:rgba(82,233,140,.4);background:rgba(82,233,140,.08)}
+  .b-crit{color:var(--red);border-color:rgba(255,95,95,.45);background:rgba(255,95,95,.1)}
+  .sensor p{color:var(--muted);font-size:13px;flex:1}
+  .actions{display:flex;flex-direction:column;gap:8px}
+  .btn{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;padding:12px 14px;border-radius:10px;border:1px solid var(--hair-2);background:rgba(255,255,255,.015);color:var(--ink);cursor:pointer;text-align:center;transition:.18s}
+  .btn:hover{border-color:var(--phos);color:var(--phos);transform:translateY(-1px)}
+  .btn.pri{background:var(--phos);color:#04140a;border-color:var(--phos);font-weight:600}
+  .btn.pri:hover{box-shadow:0 8px 26px rgba(82,233,140,.28);color:#04140a;transform:translateY(-1px)}
+
+  /* ── instrument clusters ── */
+  .clusters{display:grid;grid-template-columns:1fr 1.42fr;gap:16px;margin-bottom:16px}
+  .cluster{padding:18px 20px 20px}
+  .cluster-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .cluster-head .t{display:flex;align-items:baseline;gap:10px}
+  .cluster-head h3{font-family:var(--cond);font-size:17px;font-weight:700;letter-spacing:.02em}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--hair);border:1px solid var(--hair);border-radius:11px;overflow:hidden}
+  .m{background:var(--panel-2);padding:14px 14px 12px;display:flex;flex-direction:column;gap:7px;min-height:96px;position:relative}
+  .m .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+  .m .val{font-family:var(--cond);font-size:30px;font-weight:700;line-height:.95;letter-spacing:-.01em;margin-top:auto}
+  .m .val u{text-decoration:none;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--muted);margin-left:3px}
+  .m .bar{height:3px;border-radius:2px;background:rgba(255,255,255,.07);overflow:hidden}
+  .m .bar i{display:block;height:100%;border-radius:2px}
+  .m.ok .val u{color:var(--phos)} .m.ok .bar i{background:var(--phos);width:62%}
+  .m.warn .val{color:var(--amber)} .m.warn .bar i{background:var(--amber);width:84%}
+  .m.crit .val{color:var(--red)} .m.crit .bar i{background:var(--red);width:96%}
+  .m .bar i{width:55%;background:var(--phos-dim)}
+  .m .pip{position:absolute;top:13px;right:13px;width:6px;height:6px;border-radius:50%;background:var(--phos);box-shadow:0 0 8px var(--phos)}
+  .m.warn .pip{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+  .m.crit .pip{background:var(--red);box-shadow:0 0 8px var(--red);animation:pulse 1.3s infinite}
+  .m.muted .val{color:var(--faint)} .m.muted .pip{background:var(--faint);box-shadow:none}
+
+  /* ── lower row ── */
+  .lower{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:16px}
+  .alerts{padding:18px 20px 20px}
+  .alerts-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .alerts-head h3{font-family:var(--cond);font-size:17px;font-weight:700}
+  .alert{display:grid;grid-template-columns:auto 1fr auto;gap:13px;align-items:center;padding:13px 4px;border-top:1px solid var(--hair)}
+  .alert .sev{width:3px;align-self:stretch;border-radius:3px}
+  .alert.crit .sev{background:var(--red)} .alert.warn .sev{background:var(--amber)}
+  .alert .ttl{font-weight:600;font-size:14px}
+  .alert .meta{font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:.06em;margin-top:2px}
+  .alert .go{font-family:var(--mono);font-size:16px;color:var(--muted);transition:.15s}
+  .alert:hover .go{color:var(--phos);transform:translateX(3px)}
+  .feed{padding:18px 20px;display:flex;flex-direction:column}
+  .feed h3{font-family:var(--cond);font-size:17px;font-weight:700;margin-bottom:13px}
+  .screen{flex:1;border:1px solid var(--hair-2);border-radius:11px;min-height:188px;display:grid;place-content:center;gap:7px;text-align:center;color:var(--faint);
+    background:repeating-linear-gradient(135deg,rgba(82,233,140,.04) 0 12px,transparent 12px 24px),rgba(0,0,0,.3)}
+  .screen .ico{font-size:26px;opacity:.5}
+  .screen .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase}
+
+  /* ── grows ── */
+  .grows{padding:6px 4px}
+  .grows-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px 12px}
+  .grows-head h3{font-family:var(--cond);font-size:15px;font-weight:700;letter-spacing:.02em;color:var(--muted)}
+  .grow-row{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:14px 16px;border:1px solid var(--hair);border-radius:11px;background:var(--panel);margin-bottom:8px;cursor:pointer;transition:.16s}
+  .grow-row:hover{border-color:var(--hair-2);transform:translateX(3px)}
+  .grow-row strong{font-weight:600;font-size:14px}
+  .grow-row span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .grow-row em{font-family:var(--mono);font-style:normal;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--phos);padding:4px 9px;border:1px solid rgba(82,233,140,.3);border-radius:999px}
+
+  /* reveal */
+  .rise{opacity:0;transform:translateY(14px);animation:rise .7s cubic-bezier(.16,1,.3,1) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  .d1{animation-delay:.05s}.d2{animation-delay:.12s}.d3{animation-delay:.19s}.d4{animation-delay:.26s}.d5{animation-delay:.33s}.d6{animation-delay:.4s}
+  @media(max-width:900px){.hero,.clusters,.lower{grid-template-columns:1fr}.grid-3{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top rise">
+    <div class="brand"><span class="dot"></span><div><b>GROW OS</b></div></div>
+    <div class="tents">
+      <button class="tent on">ZELT 1 · BLÜTE</button>
+      <button class="tent">ZELT 2 · MUTTER</button>
+      <button class="tent">ZELT 3 · ANZUCHT</button>
+    </div>
+    <div class="live"><span class="rec"></span>LIVE</div>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="panel status rise d1">
+      <span class="corner c-tl"></span><span class="corner c-tr"></span><span class="corner c-bl"></span><span class="corner c-br"></span>
+      <div class="gauge">
+        <svg width="158" height="158" viewBox="0 0 158 158">
+          <circle class="ring-bg" cx="79" cy="79" r="69"/>
+          <circle class="ring" cx="79" cy="79" r="69"/>
+        </svg>
+        <div class="mid"><b>74</b><em>Beobachten</em></div>
+      </div>
+      <div>
+        <div class="kick">Live-Status · Reservoir 1</div>
+        <h1>Purple Lemonade</h1>
+        <div class="sub">RDWC · Blüte Woche 5 · Tag 34</div>
+        <div class="facts">
+          <div><span>Hydro</span><strong>RDWC · 4 Buckets</strong></div>
+          <div><span>Phase</span><strong>Blüte 12/12</strong></div>
+          <div><span>Letzte Messung</span><strong>vor 18 min</strong></div>
+          <div><span>Nächster Addback</span><strong>heute fällig</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel sensor rise d2">
+      <span class="corner c-tl"></span><span class="corner c-br"></span>
+      <div class="sensor-head">
+        <div><div class="kick">Sensorstatus</div><h2>Warnung</h2></div>
+        <span class="badge b-warn">3 Sensoren</span>
+      </div>
+      <p>Mind. ein Sensorwert braucht Aufmerksamkeit. ORP unter Zielband, Wassertemperatur steigt.</p>
+      <div class="actions">
+        <button class="btn pri">Messung erfassen</button>
+        <button class="btn">Addback starten</button>
+        <button class="btn">Aktualisieren</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTRUMENT CLUSTERS -->
+  <section class="clusters">
+    <div class="panel cluster rise d3">
+      <div class="cluster-head"><div class="t"><span class="kick">Sektion 01</span><h3>Klima</h3></div><span class="badge b-ok">stabil</span></div>
+      <div class="grid-3">
+        <div class="m ok"><span class="pip"></span><div class="lab">Luft</div><div class="val">24.5<u>°C</u></div><div class="bar"><i></i></div></div>
+        <div class="m ok"><span class="pip"></span><div class="lab">RLF</div><div class="val">58<u>%</u></div><div class="bar"><i></i></div></div>
+        <div class="m ok"><span class="pip"></span><div class="lab">VPD</div><div class="val">1.15<u>kPa</u></div><div class="bar"><i></i></div></div>
+        <div class="m ok"><span class="pip"></span><div class="lab">PPFD</div><div class="val">720<u>µmol</u></div><div class="bar"><i></i></div></div>
+        <div class="m ok"><span class="pip"></span><div class="lab">CO₂</div><div class="val">980<u>ppm</u></div><div class="bar"><i></i></div></div>
+        <div class="m muted"><span class="pip"></span><div class="lab">Licht</div><div class="val">AN<u></u></div><div class="bar"><i></i></div></div>
+      </div>
+    </div>
+
+    <div class="panel cluster rise d4">
+      <div class="cluster-head"><div class="t"><span class="kick">Sektion 02</span><h3>Reservoir</h3></div><span class="badge b-crit">prüfen</span></div>
+      <div class="grid-3">
+        <div class="m ok"><span class="pip"></span><div class="lab">pH</div><div class="val">5.8<u></u></div><div class="bar"><i></i></div></div>
+        <div class="m warn"><span class="pip"></span><div class="lab">EC</div><div class="val">2.0<u>mS</u></div><div class="bar"><i></i></div></div>
+        <div class="m crit"><span class="pip"></span><div class="lab">ORP</div><div class="val">240<u>mV</u></div><div class="bar"><i></i></div></div>
+        <div class="m ok"><span class="pip"></span><div class="lab">DO</div><div class="val">7.2<u>mg/L</u></div><div class="bar"><i></i></div></div>
+        <div class="m warn"><span class="pip"></span><div class="lab">Wassertemp</div><div class="val">23.0<u>°C</u></div><div class="bar"><i></i></div></div>
+        <div class="m ok"><span class="pip"></span><div class="lab">Level</div><div class="val">78<u>%</u></div><div class="bar"><i></i></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOWER -->
+  <section class="lower">
+    <div class="panel alerts rise d5">
+      <div class="alerts-head"><h3>Risiken · offen</h3><span class="badge b-crit">3 aktiv</span></div>
+      <div class="alert crit"><div class="sev"></div><div><div class="ttl">ORP kritische Abweichung</div><div class="meta">RESERVOIR · 240 mV &lt; ZIEL 500 · VOR 6 MIN</div></div><div class="go">→</div></div>
+      <div class="alert warn"><div class="sev"></div><div><div class="ttl">EC über Zielband</div><div class="meta">RESERVOIR · 2.0 mS · RO-ADDBACK EMPFOHLEN</div></div><div class="go">→</div></div>
+      <div class="alert warn"><div class="sev"></div><div><div class="ttl">Wassertemperatur steigt</div><div class="meta">RESERVOIR · 23.0 °C · CHILLER PRÜFEN</div></div><div class="go">→</div></div>
+    </div>
+    <div class="panel feed rise d6">
+      <h3>Kamera · Zelt 1</h3>
+      <div class="screen"><div class="ico">⬡</div><div class="l">Kein Stream gemappt</div></div>
+    </div>
+  </section>
+
+  <!-- GROWS -->
+  <div class="grows rise d6">
+    <div class="grows-head"><h3>Aktive Grows · Zelt 1</h3></div>
+    <div class="grow-row"><strong>Purple Lemonade</strong><span>RDWC · 4 Buckets</span><em>Blüte W5</em></div>
+    <div class="grow-row"><strong>Gelato #33 (Klon)</strong><span>RDWC · 2 Buckets</span><em>Veg W2</em></div>
+  </div>
+
+</div>
+</body>
+</html>

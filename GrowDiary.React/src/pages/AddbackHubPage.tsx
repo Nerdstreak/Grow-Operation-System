@@ -2,25 +2,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { AddbackLogDto, GrowDetail, GrowSummary, HydroSetupDto } from '../types'
-import { V1Alert, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { formatNumber } from '../utils'
+import { ChangeoutsPanel } from '../features/changeouts/ChangeoutsPanel'
+import '../features/addback/addback-instrument.css'
 
-type GrowWithLogs = {
-  detail: GrowDetail
-  logs: AddbackLogDto[]
-}
-
-type ProtocolGroup = {
-  hydroSetupId: number | null
-  name: string
-  tentName: string | null
-  growNames: string[]
-  logs: AddbackLogDto[]
-}
+type GrowWithLogs = { detail: GrowDetail; logs: AddbackLogDto[] }
+type ProtocolGroup = { hydroSetupId: number | null; name: string; tentName: string | null; growNames: string[]; logs: AddbackLogDto[] }
 
 function AddbackHubPage() {
   const [grows, setGrows] = useState<GrowSummary[]>([])
   const [protocolGroups, setProtocolGroups] = useState<ProtocolGroup[]>([])
+  const [selectedGrowId, setSelectedGrowId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,13 +27,9 @@ function AddbackHubPage() {
           apiFetch<HydroSetupDto[]>('/api/hydro-setups?includeArchived=true', { signal: controller.signal }).catch(() => []),
         ])
         if (controller.signal.aborted) return
-
         setGrows(data)
-        const hydroGrows = data
-          .filter((grow) => grow.status === 'Running' || grow.status === 'Planning')
-          .filter((grow) => grow.hydroStyle === 'DWC' || grow.hydroStyle === 'RDWC')
-
-        const detailsAndLogs = await Promise.all(hydroGrows.map(async (grow) => {
+        const hydro = data.filter((grow) => (grow.status === 'Running' || grow.status === 'Planning') && (grow.hydroStyle === 'DWC' || grow.hydroStyle === 'RDWC'))
+        const detailsAndLogs = await Promise.all(hydro.map(async (grow) => {
           try {
             const [detail, logs] = await Promise.all([
               apiFetch<GrowDetail>(`/api/grows/${grow.id}`, { signal: controller.signal }),
@@ -52,7 +40,6 @@ function AddbackHubPage() {
             return null
           }
         }))
-
         if (controller.signal.aborted) return
         setProtocolGroups(buildProtocolGroups(detailsAndLogs.filter((item): item is GrowWithLogs => item !== null), hydroSetups))
       } catch (caught) {
@@ -67,119 +54,123 @@ function AddbackHubPage() {
 
   const activeGrows = useMemo(() => grows.filter((grow) => grow.status === 'Running' || grow.status === 'Planning'), [grows])
   const hydroGrows = useMemo(() => activeGrows.filter((grow) => grow.hydroStyle === 'DWC' || grow.hydroStyle === 'RDWC'), [activeGrows])
-  const primaryGrow = hydroGrows[0] ?? null
-  const totalLogs = useMemo(() => protocolGroups.reduce((sum, group) => sum + group.logs.length, 0), [protocolGroups])
-  const latestAddbackByGrowId = useMemo(() => {
-    const latest = new Map<number, AddbackLogDto>()
-    for (const group of protocolGroups) {
-      for (const log of group.logs) {
-        const existing = latest.get(log.growId)
-        if (!existing || log.performedAtUtc.localeCompare(existing.performedAtUtc) > 0) latest.set(log.growId, log)
-      }
+  const allLogs = useMemo(() => protocolGroups.flatMap((group) => group.logs), [protocolGroups])
+  const latestByGrowId = useMemo(() => {
+    const map = new Map<number, AddbackLogDto>()
+    for (const log of allLogs) {
+      const existing = map.get(log.growId)
+      if (!existing || log.performedAtUtc.localeCompare(existing.performedAtUtc) > 0) map.set(log.growId, log)
     }
-    return latest
-  }, [protocolGroups])
-  const primaryGrowLastAddback = primaryGrow ? latestAddbackByGrowId.get(primaryGrow.id) ?? null : null
+    return map
+  }, [allLogs])
+
+  const selectedGrow = hydroGrows.find((grow) => grow.id === selectedGrowId) ?? hydroGrows[0] ?? null
+  const selectedLogs = useMemo(
+    () => (selectedGrow ? allLogs.filter((log) => log.growId === selectedGrow.id).sort((a, b) => b.performedAtUtc.localeCompare(a.performedAtUtc)) : []),
+    [allLogs, selectedGrow],
+  )
+  const lastAddback = selectedGrow ? latestByGrowId.get(selectedGrow.id) ?? null : null
+
+  const topBar = (
+    <div className="ix-top">
+      <div className="ix-brand"><span className="dot" /><b>RESERVOIR</b></div>
+      {hydroGrows.length > 0 && (
+        <div className="ix-tents">
+          {hydroGrows.map((grow) => (
+            <button key={grow.id} type="button" className={`ix-tent ${grow.id === selectedGrow?.id ? 'on' : ''}`} onClick={() => setSelectedGrowId(grow.id)}>
+              {grow.name} · {grow.hydroStyle}
+            </button>
+          ))}
+        </div>
+      )}
+      <Link className="ix-btn" to="/grows/new" style={{ marginLeft: 'auto' }}>Grow anlegen</Link>
+    </div>
+  )
+
+  if (loading) {
+    return <div className="ix-addback" data-audit="addback-hub">{topBar}<div className="ix-panel ix-addback-empty"><h2>Lade Addback …</h2></div></div>
+  }
+
+  if (!selectedGrow) {
+    return (
+      <div className="ix-addback" data-audit="addback-hub">
+        {topBar}
+        {error && <div className="ix-empty-line" style={{ color: 'var(--ix-red)' }}>{error}</div>}
+        <div className="ix-panel ix-addback-empty ix-rise ix-d1">
+          <span className="ix-corner ix-tl" /><span className="ix-corner ix-br" />
+          <h2>Kein aktiver Hydro-Grow</h2>
+          <p>Addback braucht einen aktiven DWC/RDWC-Grow mit Hydro-Setup.</p>
+          <div className="ix-addback-cta" style={{ justifyContent: 'center' }}>
+            <Link className="ix-btn pri" to="/grows/new">Grow anlegen</Link>
+            <Link className="ix-btn" to="/hydro">Hydro öffnen</Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <V1Page eyebrow="Reservoir" title="Addback" action={<V1LinkButton to="/grows/new" variant="primary">Grow anlegen</V1LinkButton>} className="addback-hub-page">
-      {error && <V1Alert message={error} tone="warn" />}
+    <div className="ix-addback" data-audit="addback-hub">
+      {topBar}
+      {error && <div className="ix-empty-line" style={{ color: 'var(--ix-red)' }}>{error}</div>}
 
-      <section className="v1-addback-command" data-audit="addback-hub">
-        {primaryGrow ? (
-          <V1Card className="v1-addback-command-main">
-            <span className="v1-card-kicker">Nächster Addback</span>
-            <h2>{primaryGrow.name}</h2>
-            <p>{`${primaryGrow.strain ?? 'Sorte offen'} · ${primaryGrow.tentName ?? 'ohne Zelt'} · ${primaryGrow.hydroStyle}`}</p>
-            <div className="v1-addback-current-values">
-              <Info label="pH" value={formatNumber(primaryGrow.latestReservoirPh, 2)} />
-              <Info label="EC" value={formatNumber(primaryGrow.latestReservoirEc, 2)} />
-              <Info label="Letzter" value={formatShortDateTime(primaryGrowLastAddback?.performedAtUtc)} />
+      <section className="ix-addback-top-grid">
+        <div className="ix-panel ix-addback-hero ix-rise ix-d1">
+          <span className="ix-corner ix-tl" /><span className="ix-corner ix-tr" /><span className="ix-corner ix-bl" /><span className="ix-corner ix-br" />
+          <div className="ix-addback-res">
+            <div className="ix-res-cell ph"><div className="lab">pH</div><div className="val">{formatNumber(selectedGrow.latestReservoirPh, 2)}</div></div>
+            <div className="ix-res-cell ec"><div className="lab">EC</div><div className="val">{formatNumber(selectedGrow.latestReservoirEc, 2)}<u>mS</u></div></div>
+          </div>
+          <div>
+            <div className="ix-kick">Nächster Addback · {selectedGrow.tentName ?? 'ohne Zelt'}</div>
+            <h1>{selectedGrow.name}</h1>
+            <div className="sub">{selectedGrow.strain ?? 'Sorte offen'} · {selectedGrow.hydroStyle}</div>
+            <div className="ix-facts">
+              <div><span>Hydro</span><strong>{selectedGrow.hydroStyle}</strong></div>
+              <div><span>Letzter Addback</span><strong>{formatShortDateTime(lastAddback?.performedAtUtc)}</strong></div>
             </div>
-            <div className="addback-hub-actions">
-              <V1LinkButton to={`/grows/${primaryGrow.id}/addback`} variant="primary">Addback starten</V1LinkButton>
-              <V1LinkButton to="#addback-history" variant="secondary">Verlauf ansehen</V1LinkButton>
-            </div>
-          </V1Card>
-        ) : (
-          <div className="v1-card v1-addback-command-main addback-mobile-empty" data-audit="addback-empty-state">
-            <span className="v1-card-kicker">Addback</span>
-            <h2>Kein aktiver Hydro-Grow</h2>
-            <p>Addback benötigt einen aktiven DWC/RDWC-Grow mit Hydro-Setup.</p>
-            <div className="addback-hub-actions">
-              <V1LinkButton to="/grows/new" variant="primary">Grow anlegen</V1LinkButton>
-              <V1LinkButton to="/hydro" variant="secondary">Hydro öffnen</V1LinkButton>
+            <div className="ix-addback-cta">
+              <Link className="ix-btn pri" to={`/grows/${selectedGrow.id}/addback`}>Addback starten</Link>
+              <Link className="ix-btn" to={`/grows/${selectedGrow.id}`}>Grow öffnen</Link>
             </div>
           </div>
-        )}
+        </div>
 
-        <V1Card className="v1-addback-hub-summary">
-          <span className="v1-card-kicker">Hub</span>
-          <h2>{hydroGrows.length} Hydro-Grow{hydroGrows.length === 1 ? '' : 's'} verfügbar</h2>
-          <p>Wähle einen Grow, starte einen Addback oder öffne den Verlauf.</p>
-        </V1Card>
+        <div className="ix-panel ix-addback-side ix-rise ix-d2">
+          <span className="ix-corner ix-tl" /><span className="ix-corner ix-br" />
+          <div className="ix-kick">Hub</div>
+          <h2>{hydroGrows.length} Hydro-Grow{hydroGrows.length === 1 ? '' : 's'}</h2>
+          <p>Reservoir-Pflege & Addback-Verlauf je Grow. Oben den Grow wählen, Werte prüfen und Addback starten.</p>
+        </div>
       </section>
 
-      <section className="v1-kpi-grid v1-kpi-grid-compact"><V1Stat label="Aktive Grows" value={activeGrows.length} /><V1Stat label="Hydro" value={hydroGrows.length} /><V1Stat label="Hydro-Verläufe" value={protocolGroups.length} /><V1Stat label="Logs" value={totalLogs} /></section>
+      <section className="ix-addback-kpis ix-rise ix-d3">
+        <div className="ix-addback-kpi"><span>Aktive Grows</span><strong>{activeGrows.length}</strong></div>
+        <div className="ix-addback-kpi"><span>Hydro</span><strong>{hydroGrows.length}</strong></div>
+        <div className="ix-addback-kpi"><span>Verläufe</span><strong>{protocolGroups.length}</strong></div>
+        <div className="ix-addback-kpi"><span>Logs</span><strong>{allLogs.length}</strong></div>
+      </section>
 
-      <V1Section title="Addback-Verlauf" className="addback-history-section">
-        <div id="addback-history" data-audit="addback-log-list">
-        {loading ? <V1Empty title="Lade Addback-Verlauf..." /> : protocolGroups.length === 0 ? <V1Empty title="Noch kein Addback-Verlauf" text="Logs erscheinen hier nach dem ersten gespeicherten Addback." /> : (
-          <div className="v1-card-grid v1-card-grid-compact">
-            {protocolGroups.map((group) => <ProtocolGroupCard key={group.hydroSetupId ?? `legacy-${group.name}`} group={group} />)}
-          </div>
-        )}
+      <ChangeoutsPanel growId={selectedGrow.id} growName={selectedGrow.name} />
+
+      <div className="ix-panel ix-cluster ix-rise ix-d4" data-audit="addback-log-list" style={{ marginTop: 16 }}>
+        <div className="ix-cluster-head">
+          <div className="t"><span className="ix-kick">Verlauf</span><h3>Addback-Protokoll · {selectedGrow.name}</h3></div>
+          {selectedLogs.length > 0 && <span className="ix-badge ix-b-ok">{selectedLogs.length}</span>}
         </div>
-      </V1Section>
-
-      <V1Section title="Grow wählen">
-        {loading ? <V1Empty title="Lade Grows..." /> : hydroGrows.length === 0 ? <V1Empty title="Kein DWC/RDWC-Grow" text="Addback braucht einen aktiven Grow mit Hydro-Setup." action={<V1LinkButton to="/grows/new" variant="primary">Grow anlegen</V1LinkButton>} /> : (
-          <div className="v1-card-grid v1-card-grid-compact">
-            {hydroGrows.map((grow) => (
-              <Link key={grow.id} to={`/grows/${grow.id}/addback`} className="v1-grow-card-link">
-                <V1Card className="v1-grow-card v1-grow-card-compact">
-                  <span className="v1-card-kicker">{grow.hydroStyle}</span>
-                  <h2>{grow.name}</h2>
-                  <p>{grow.strain ?? 'Sorte offen'} · {grow.tentName ?? 'ohne Zelt'}</p>
-                  <div className="v1-info-grid compact">
-                    <Info label="pH" value={formatNumber(grow.latestReservoirPh, 2)} />
-                    <Info label="EC" value={formatNumber(grow.latestReservoirEc, 2)} />
-                    <Info label="Letzter" value={formatShortDateTime(latestAddbackByGrowId.get(grow.id)?.performedAtUtc)} />
-                  </div>
-                  <div className="v1-button is-primary full">Addback starten</div>
-                </V1Card>
-              </Link>
-            ))}
-          </div>
+        {selectedLogs.length === 0 ? (
+          <div className="ix-empty-line">Noch kein Addback für diesen Grow erfasst.</div>
+        ) : (
+          selectedLogs.slice(0, 8).map((log) => (
+            <Link key={log.id} className="ix-grow-row" to={`/grows/${log.growId}/addback`}>
+              <strong>{formatShortDateTime(log.performedAtUtc)}</strong>
+              <span>EC {formatNumber(log.ecBefore, 2)} → {formatNumber(log.ecAfter ?? log.ecTarget, 2)} · pH {formatNumber(log.phBefore, 2)} → {formatNumber(log.phAfter, 2)}</span>
+              <em>{formatNumber(log.litersAdded, 2)} L</em>
+            </Link>
+          ))
         )}
-      </V1Section>
-    </V1Page>
-  )
-}
-
-function ProtocolGroupCard({ group }: { group: ProtocolGroup }) {
-  const latest = group.logs[0] ?? null
-  return (
-    <V1Card>
-      <span className="v1-card-kicker">Hydro-Setup</span>
-      <h2>{group.name}</h2>
-      <p>{group.tentName ?? 'ohne Zelt'} · {group.growNames.join(', ')}</p>
-      <div className="v1-info-grid compact">
-        <Info label="Logs" value={String(group.logs.length)} />
-        <Info label="Letzter" value={formatShortDateTime(latest?.performedAtUtc)} />
-        <Info label="EC" value={latest ? `${formatNumber(latest.ecBefore, 2)} → ${formatNumber(latest.ecAfter ?? latest.ecTarget, 2)}` : '–'} />
-        <Info label="Menge" value={latest ? `${formatNumber(latest.litersAdded, 2)} L` : '–'} />
       </div>
-      <div className="v1-list">
-        {group.logs.slice(0, 5).map((log) => (
-          <Link key={log.id} className="v1-list-row addback-protocol-row" to={`/grows/${log.growId}/addback`}>
-            <strong>{formatShortDateTime(log.performedAtUtc)}</strong>
-            <span>EC {formatNumber(log.ecBefore, 2)} → {formatNumber(log.ecAfter ?? log.ecTarget, 2)} · pH {formatNumber(log.phBefore, 2)} → {formatNumber(log.phAfter, 2)}</span>
-            <em>{formatNumber(log.litersAdded, 2)} L</em>
-          </Link>
-        ))}
-      </div>
-    </V1Card>
+    </div>
   )
 }
 
@@ -199,7 +190,6 @@ function buildProtocolGroups(items: GrowWithLogs[], hydroSetups: HydroSetupDto[]
         if (!existing.tentName) existing.tentName = item.detail.tentName
         continue
       }
-
       groups.set(key, {
         hydroSetupId,
         name: hydroSetupId == null ? 'Legacy / ohne HydroSetup' : setupNames.get(hydroSetupId) ?? `HydroSetup #${hydroSetupId}`,
@@ -210,24 +200,14 @@ function buildProtocolGroups(items: GrowWithLogs[], hydroSetups: HydroSetupDto[]
     }
   }
 
-  return Array.from(groups.values())
-    .map((group) => ({ ...group, logs: [...group.logs].sort((a, b) => b.performedAtUtc.localeCompare(a.performedAtUtc)) }))
-    .sort((a, b) => (b.logs[0]?.performedAtUtc ?? '').localeCompare(a.logs[0]?.performedAtUtc ?? ''))
+  return Array.from(groups.values()).map((group) => ({ ...group, logs: [...group.logs] }))
 }
-
-function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
 
 function formatShortDateTime(value: string | null | undefined) {
   if (!value) return '–'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '–'
-  return new Intl.DateTimeFormat('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).format(date)
 }
 
 export default AddbackHubPage

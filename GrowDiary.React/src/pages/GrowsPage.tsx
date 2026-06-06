@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import type { GrowSummary, HydroSetupDto } from '../types'
-import { classNames } from '../utils'
+import '../features/grows/grows-instrument.css'
 
 function GrowsPage() {
   const [activeGrows, setActiveGrows] = useState<GrowSummary[]>([])
@@ -39,25 +39,16 @@ function GrowsPage() {
 
   async function archiveGrow(grow: GrowSummary) {
     if (saving) return
-    const confirmed = window.confirm(`${grow.name} beenden und archivieren?`)
-    if (!confirmed) return
-
+    if (!window.confirm(`${grow.name} beenden und archivieren?`)) return
     setSaving(`archive-${grow.id}`)
     setError(null)
     setNotice(null)
     try {
       await apiFetch(`/api/grows/${grow.id}/archive`, { method: 'POST' })
-      setActiveGrows((current) => current.filter((item) => item.id !== grow.id))
       setNotice('Grow beendet und archiviert.')
       await loadGrows()
     } catch (caught) {
-      if (isNotFound(caught)) {
-        setActiveGrows((current) => current.filter((item) => item.id !== grow.id))
-        setArchivedGrows((current) => current.filter((item) => item.id !== grow.id))
-        setNotice('Eintrag existiert bereits nicht mehr.')
-        await loadGrows()
-        return
-      }
+      if (isNotFound(caught)) { setNotice('Eintrag existiert bereits nicht mehr.'); await loadGrows(); return }
       setError(formatApiError(caught, 'Grow konnte nicht beendet werden.'))
     } finally {
       setSaving(null)
@@ -66,26 +57,16 @@ function GrowsPage() {
 
   async function deleteGrow(grow: GrowSummary) {
     if (saving) return
-    const confirmed = window.confirm(`${grow.name} endgültig löschen?`)
-    if (!confirmed) return
-
+    if (!window.confirm(`${grow.name} endgültig löschen?`)) return
     setSaving(`delete-${grow.id}`)
     setError(null)
     setNotice(null)
     try {
       await apiFetch(`/api/grows/${grow.id}`, { method: 'DELETE' })
-      setActiveGrows((current) => current.filter((item) => item.id !== grow.id))
-      setArchivedGrows((current) => current.filter((item) => item.id !== grow.id))
       setNotice('Grow gelöscht.')
       await loadGrows()
     } catch (caught) {
-      if (isNotFound(caught)) {
-        setActiveGrows((current) => current.filter((item) => item.id !== grow.id))
-        setArchivedGrows((current) => current.filter((item) => item.id !== grow.id))
-        setNotice('Eintrag existiert bereits nicht mehr.')
-        await loadGrows()
-        return
-      }
+      if (isNotFound(caught)) { setNotice('Eintrag existiert bereits nicht mehr.'); await loadGrows(); return }
       setError(formatApiError(caught, 'Grow konnte nicht gelöscht werden.'))
     } finally {
       setSaving(null)
@@ -93,106 +74,82 @@ function GrowsPage() {
   }
 
   return (
-    <V1Page
-      eyebrow="Grow-Verwaltung"
-      title="Grows"
-      subtitle="Aktive Grows verwalten."
-      action={<V1LinkButton to="/grows/new" variant="primary">Neuen Grow anlegen</V1LinkButton>}
-      className="grows-page"
-    >
-      {error && <V1Alert title="Fehler" message={error} tone="warn" />}
-      {notice && <V1Alert message={notice} tone="ok" />}
+    <div className="ix-grows" data-audit="grows-page">
+      <div className="ix-top">
+        <div className="ix-brand"><span className="dot" /><b>GROWS</b></div>
+        <Link className="ix-btn pri" to="/grows/new" style={{ marginLeft: 'auto' }}>Neuen Grow anlegen</Link>
+      </div>
 
-      <section className="v1-kpi-grid">
-        <V1Stat label="Aktiv" value={activeGrows.filter((grow) => grow.status === 'Running').length} />
-        <V1Stat label="Geplant" value={activeGrows.filter((grow) => grow.status === 'Planning').length} />
-        <V1Stat label="Archiviert" value={archivedGrows.length} />
-        <V1Stat label="Messungen" value={activeGrows.reduce((sum, grow) => sum + grow.measurementCount, 0)} />
+      {error && <div className="ix-empty-line" style={{ color: 'var(--ix-red)' }}>{error}</div>}
+      {notice && <div className="ix-empty-line" style={{ color: 'var(--ix-phos)' }}>{notice}</div>}
+
+      <section className="ix-grows-kpis ix-rise ix-d1">
+        <div className="ix-grows-kpi"><span>Aktiv</span><strong>{activeGrows.filter((grow) => grow.status === 'Running').length}</strong></div>
+        <div className="ix-grows-kpi"><span>Geplant</span><strong>{activeGrows.filter((grow) => grow.status === 'Planning').length}</strong></div>
+        <div className="ix-grows-kpi"><span>Archiviert</span><strong>{archivedGrows.length}</strong></div>
+        <div className="ix-grows-kpi"><span>Messungen</span><strong>{activeGrows.reduce((sum, grow) => sum + grow.measurementCount, 0)}</strong></div>
       </section>
 
-      {loading ? <V1Empty title="Lade Grows..." /> : (
+      {loading ? (
+        <div className="ix-panel ix-grows-empty"><h2>Lade Grows …</h2></div>
+      ) : (
         <>
-          <V1Section title="Aktive Grows">
+          <section className="ix-grows-section ix-rise ix-d2">
+            <h2>Aktive Grows</h2>
             {activeGrows.length === 0 ? (
-              <div data-audit="grows-empty-state">
-                <V1Empty
-                  title="Noch kein Grow"
-                  action={(
-                    <div className="grows-empty-actions">
-                      <V1LinkButton to="/grows/new" variant="primary">Neuen Grow anlegen</V1LinkButton>
-                      <V1LinkButton to="/zelte/new">Zelt anlegen</V1LinkButton>
-                    </div>
-                  )}
-                />
+              <div className="ix-panel ix-grows-empty" data-audit="grows-empty-state">
+                <h2>Noch kein Grow</h2>
+                <div className="ix-grows-empty-actions">
+                  <Link className="ix-btn pri" to="/grows/new">Neuen Grow anlegen</Link>
+                  <Link className="ix-btn" to="/zelte/new">Zelt anlegen</Link>
+                </div>
               </div>
             ) : (
-              <div className="grows-overview-grid" data-audit="grows-overview">
-                {activeGrows.map((grow) => (
-                  <GrowCard
-                    key={grow.id}
-                    grow={grow}
-                    saving={saving}
-                    hydroName={getHydroName(grow, hydroNames)}
-                    onArchive={archiveGrow}
-                    onDelete={deleteGrow}
-                  />
-                ))}
+              <div className="ix-grows-grid" data-audit="grows-overview">
+                {activeGrows.map((grow) => <GrowCard key={grow.id} grow={grow} saving={saving} hydroName={getHydroName(grow, hydroNames)} onArchive={archiveGrow} onDelete={deleteGrow} />)}
               </div>
             )}
-          </V1Section>
+          </section>
 
           {visibleArchived.length > 0 && (
-            <V1Section title="Zuletzt archiviert">
-              <div className="grows-overview-grid compact" data-audit="grows-archive">
-                {visibleArchived.map((grow) => (
-                  <GrowCard
-                    key={grow.id}
-                    grow={grow}
-                    saving={saving}
-                    archived
-                    hydroName={getHydroName(grow, hydroNames)}
-                    onArchive={archiveGrow}
-                    onDelete={deleteGrow}
-                  />
-                ))}
+            <section className="ix-grows-section ix-rise ix-d3">
+              <h2>Zuletzt archiviert</h2>
+              <div className="ix-grows-grid compact" data-audit="grows-archive">
+                {visibleArchived.map((grow) => <GrowCard key={grow.id} grow={grow} saving={saving} archived hydroName={getHydroName(grow, hydroNames)} onArchive={archiveGrow} onDelete={deleteGrow} />)}
               </div>
-            </V1Section>
+            </section>
           )}
         </>
       )}
-    </V1Page>
+    </div>
   )
 }
 
 function GrowCard({ grow, saving, hydroName, archived = false, onArchive, onDelete }: { grow: GrowSummary; saving: string | null; hydroName: string; archived?: boolean; onArchive: (grow: GrowSummary) => void; onDelete: (grow: GrowSummary) => void }) {
   const canArchive = grow.status === 'Planning' || grow.status === 'Running'
   const actionDisabled = Boolean(saving)
+  const tone = grow.status === 'Running' ? 'ix-b-ok' : grow.status === 'Planning' ? 'ix-b-warn' : 'ix-b-neutral'
   return (
-    <V1Card className={classNames('grow-overview-card', archived && 'archived')} tone={grow.status === 'Running' ? 'ok' : grow.status === 'Planning' ? 'warn' : 'neutral'}>
-      <div className="grow-overview-card__header">
-        <div>
-          <span className="v1-card-kicker">{grow.hydroStyle}</span>
-          <h2>{grow.name}</h2>
-        </div>
-        <V1Badge tone={grow.status === 'Running' ? 'ok' : grow.status === 'Planning' ? 'warn' : 'neutral'}>{formatStatus(grow.status)}</V1Badge>
+    <article className={`ix-panel ix-grow-card${archived ? ' archived' : ''}`}>
+      <div className="ix-grow-card-head">
+        <div><span className="ix-kick">{grow.hydroStyle}</span><h2>{grow.name}</h2></div>
+        <span className={`ix-badge ${tone}`}>{formatStatus(grow.status)}</span>
       </div>
-
-      <dl className="grow-overview-card__metrics">
+      <dl className="ix-grow-metrics">
         <Metric label="Zelt" value={grow.tentName ?? '–'} />
-        <Metric label="Hydro / Medium" value={formatHydroMedium(grow, hydroName)} />
-        <Metric label="Start / Laufzeit" value={`${formatDate(grow.startDate)} · ${formatRuntime(grow.startDate)}`} />
+        <Metric label="Hydro" value={formatHydroMedium(grow, hydroName)} />
+        <Metric label="Start" value={`${formatDate(grow.startDate)} · ${formatRuntime(grow.startDate)}`} />
         <Metric label="Phase" value={grow.latestStage ?? '–'} />
         <Metric label="Letzte Messung" value={formatDateTime(grow.latestMeasurementAt)} />
         <Metric label="Messungen" value={String(grow.measurementCount)} />
       </dl>
-
-      <div className="grow-overview-card__actions" data-audit="grow-list-actions">
-        <V1LinkButton to={`/grows/${grow.id}`} variant="primary">Öffnen</V1LinkButton>
-        <V1LinkButton to={`/grows/${grow.id}/setup`}>Bearbeiten</V1LinkButton>
-        <V1Button disabled={actionDisabled || !canArchive} onClick={() => void onArchive(grow)}>{saving === `archive-${grow.id}` ? 'Beendet...' : canArchive ? 'Beenden' : 'Beendet'}</V1Button>
-        <V1Button variant="danger" disabled={actionDisabled} onClick={() => void onDelete(grow)}>{saving === `delete-${grow.id}` ? 'Löscht...' : 'Löschen'}</V1Button>
+      <div className="ix-grow-card-actions" data-audit="grow-list-actions">
+        <Link className="ix-btn pri" to={`/grows/${grow.id}`}>Öffnen</Link>
+        <Link className="ix-btn" to={`/grows/${grow.id}/setup`}>Bearbeiten</Link>
+        <button type="button" className="ix-btn" disabled={actionDisabled || !canArchive} onClick={() => void onArchive(grow)}>{saving === `archive-${grow.id}` ? 'Beendet…' : canArchive ? 'Beenden' : 'Beendet'}</button>
+        <button type="button" className="ix-btn danger" disabled={actionDisabled} onClick={() => void onDelete(grow)}>{saving === `delete-${grow.id}` ? 'Löscht…' : 'Löschen'}</button>
       </div>
-    </V1Card>
+    </article>
   )
 }
 
@@ -206,17 +163,11 @@ function sortGrows(items: GrowSummary[]) {
 
 function getHydroName(grow: GrowSummary, hydroNames: Map<number, string>) {
   if (grow.hydroSetupName) return grow.hydroSetupName
-  return grow.systemId ? hydroNames.get(grow.systemId) ?? `Hydro #${grow.systemId}`
-    : grow.setupId ? `Setup #${grow.setupId}`
-      : '–'
+  return grow.systemId ? hydroNames.get(grow.systemId) ?? `Hydro #${grow.systemId}` : grow.setupId ? `Setup #${grow.setupId}` : '–'
 }
 
 function formatStatus(status: GrowSummary['status']) {
-  return status === 'Running' ? 'aktiv'
-    : status === 'Planning' ? 'geplant'
-      : status === 'Completed' ? 'beendet'
-        : status === 'Aborted' ? 'abgebrochen'
-          : status
+  return status === 'Running' ? 'aktiv' : status === 'Planning' ? 'geplant' : status === 'Completed' ? 'beendet' : status === 'Aborted' ? 'abgebrochen' : status
 }
 
 function formatDate(value: string | null) {
@@ -243,11 +194,7 @@ function formatRuntime(startDate: string | null) {
 }
 
 function statusRank(status: GrowSummary['status']) {
-  return status === 'Running' ? 0
-    : status === 'Planning' ? 1
-      : status === 'Completed' ? 2
-        : status === 'Aborted' ? 3
-          : 9
+  return status === 'Running' ? 0 : status === 'Planning' ? 1 : status === 'Completed' ? 2 : status === 'Aborted' ? 3 : 9
 }
 
 function formatApiError(caught: unknown, fallback: string) {

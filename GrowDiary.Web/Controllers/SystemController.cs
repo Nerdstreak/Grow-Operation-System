@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using GrowDiary.Web.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GrowDiary.Web.Controllers;
@@ -10,13 +9,6 @@ namespace GrowDiary.Web.Controllers;
 [Route("api/system")]
 public sealed class SystemController : ControllerBase
 {
-    private readonly AppPaths _paths;
-
-    public SystemController(AppPaths paths)
-    {
-        _paths = paths;
-    }
-
     [HttpGet("network")]
     public ActionResult<NetworkOverviewDto> GetNetwork([FromQuery] string? frontendOrigin = null)
     {

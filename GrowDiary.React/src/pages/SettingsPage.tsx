@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowSummary, SettingsOverviewDto } from '../types'
+import type { AdminKeyDto, GrowSummary, SettingsOverviewDto } from '../types'
 import FileInput from '../components/FileInput'
 import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section } from '../components/v1'
 
@@ -16,6 +16,11 @@ function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [adminKey, setAdminKey] = useState<AdminKeyDto | null>(null)
+  const [adminManageable, setAdminManageable] = useState(false)
+  const [adminBusy, setAdminBusy] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const adminKeyInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -30,6 +35,16 @@ function SettingsPage() {
         if (controller.signal.aborted) return
         setSettings(overview)
         setGrows(activeGrows)
+        try {
+          const keyDto = await apiFetch<AdminKeyDto>('/api/settings/admin-key', { signal: controller.signal })
+          if (!controller.signal.aborted) {
+            setAdminKey(keyDto)
+            setAdminManageable(true)
+          }
+        } catch {
+          // 403 (remote device) or older backend → show the read-only hint instead of the form
+          if (!controller.signal.aborted) setAdminManageable(false)
+        }
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatApiError(caught, 'Einstellungen konnten nicht geladen werden.'))
       } finally {
@@ -134,8 +149,62 @@ function SettingsPage() {
     }
   }
 
+  async function generateAdminKey() {
+    setAdminBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const dto = await apiFetch<AdminKeyDto>('/api/settings/admin-key', { method: 'POST' })
+      setAdminKey(dto)
+      setCopied(false)
+      setMessage('Neuer Admin-Key erzeugt. Gib ihn einmalig am Handy ein, um Remote-Zugriff zu erlauben.')
+    } catch (caught) {
+      setError(formatApiError(caught, 'Admin-Key konnte nicht erzeugt werden.'))
+    } finally {
+      setAdminBusy(false)
+    }
+  }
+
+  async function clearAdminKey() {
+    setAdminBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const dto = await apiFetch<AdminKeyDto>('/api/settings/admin-key', { method: 'DELETE' })
+      setAdminKey(dto)
+      setCopied(false)
+      setMessage('Admin-Key entfernt. Remote-Zugriff ist jetzt gesperrt (nur noch localhost).')
+    } catch (caught) {
+      setError(formatApiError(caught, 'Admin-Key konnte nicht entfernt werden.'))
+    } finally {
+      setAdminBusy(false)
+    }
+  }
+
+  async function copyAdminKey() {
+    if (!adminKey?.key) return
+    try {
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(adminKey.key)
+      } else {
+        // Fallback for non-secure contexts (http:// via LAN IP): select + execCommand.
+        const input = adminKeyInputRef.current
+        if (!input) throw new Error('no input')
+        input.focus()
+        input.select()
+        const ok = document.execCommand('copy')
+        if (!ok) throw new Error('execCommand failed')
+      }
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch {
+      adminKeyInputRef.current?.select()
+      setError('Automatisches Kopieren nicht möglich — der Key ist markiert, kopiere ihn mit Strg+C.')
+    }
+  }
+
   return (
-    <V1Page eyebrow="Admin" title="Einstellungen" subtitle="Backup, Export und Import. Keine Link-Sammlung, keine manuelle JSON-Eingabe.">
+    <V1Page eyebrow="System" title="Einstellungen" subtitle="Backup, Export und Import. Keine Link-Sammlung, keine manuelle JSON-Eingabe.">
       {error && <V1Alert title="Fehler" message={error} tone="warn" />}
       {message && <V1Alert message={message} tone="ok" />}
 
@@ -147,6 +216,45 @@ function SettingsPage() {
             <V1Card tone={settings?.homeAssistant.enabled ? 'ok' : 'warn'}><span className="v1-card-kicker">HA</span><h2>{settings?.homeAssistant.enabled ? 'aktiv' : 'aus'}</h2><p>{settings?.homeAssistant.baseUrl || 'keine URL'}</p></V1Card>
             <V1Card><span className="v1-card-kicker">Backup</span><h2>ZIP</h2><p>DB + Knowledge</p></V1Card>
           </section>
+
+          <V1Section title="Remote-Zugriff (Handy / LAN)">
+            <div className="rc2-admin-grid two">
+              <V1Card tone={adminKey?.configured ? 'ok' : 'neutral'}>
+                <span className="v1-card-kicker">Admin-Key</span>
+                <h2>{adminKey?.configured ? 'aktiv' : 'nicht gesetzt'}</h2>
+                {adminManageable ? (
+                  <>
+                    <p>Dein eigener, geheimer Schlüssel schaltet den Zugriff von anderen Geräten (z. B. Handy) frei. Generiere ihn hier und gib ihn einmalig am Handy ein.</p>
+                    {adminKey?.key && (
+                      <V1Field label="Dein Admin-Key">
+                        <div className="v1-inline-input">
+                          <input ref={adminKeyInputRef} readOnly value={adminKey.key} onFocus={(event) => event.currentTarget.select()} />
+                          <V1Button onClick={() => void copyAdminKey()}>{copied ? 'Kopiert ✓' : 'Kopieren'}</V1Button>
+                        </div>
+                      </V1Field>
+                    )}
+                    <div className="v1-action-row">
+                      <V1Button variant="primary" disabled={adminBusy} onClick={() => void generateAdminKey()}>
+                        {adminBusy ? 'Arbeite…' : adminKey?.configured ? 'Neuen Key generieren' : 'Admin-Key generieren'}
+                      </V1Button>
+                      {adminKey?.configured && <V1Button disabled={adminBusy} onClick={() => void clearAdminKey()}>Entfernen</V1Button>}
+                    </div>
+                    {adminKey?.configured && <p>„Neuen Key generieren" macht den alten ungültig — bereits verbundene Geräte müssen den neuen Key eingeben.</p>}
+                  </>
+                ) : (
+                  <p>Der Admin-Key kann aus Sicherheitsgründen nur direkt auf dem Gerät verwaltet werden, auf dem Grow OS läuft (Desktop) — nicht aus der Ferne.</p>
+                )}
+              </V1Card>
+
+              <V1Card>
+                <span className="v1-card-kicker">So verbindest du dein Handy</span>
+                <h2>In 3 Schritten</h2>
+                <p>1. Hier einen Admin-Key generieren und kopieren.</p>
+                <p>2. Am Handy die App öffnen — die Key-Abfrage erscheint automatisch (oder über „Mehr → Remote-Zugriff").</p>
+                <p>3. Key einfügen, „Speichern & neu laden" — fertig. Der Key bleibt auf dem Gerät gespeichert.</p>
+              </V1Card>
+            </div>
+          </V1Section>
 
           <V1Section title="Backup & Export">
             <div className="rc2-admin-grid">

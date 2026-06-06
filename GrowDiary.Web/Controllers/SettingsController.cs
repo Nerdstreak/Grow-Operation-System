@@ -9,14 +9,10 @@ namespace GrowDiary.Web.Controllers;
 public sealed class SettingsController : Controller
 {
     private readonly GrowRepository _repository;
-    private readonly TemplateRepository _templateRepository;
-    private readonly AppPaths _paths;
 
-    public SettingsController(GrowRepository repository, TemplateRepository templateRepository, AppPaths paths)
+    public SettingsController(GrowRepository repository)
     {
         _repository = repository;
-        _templateRepository = templateRepository;
-        _paths = paths;
     }
 
     [HttpGet("")]

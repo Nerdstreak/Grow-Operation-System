@@ -22,7 +22,11 @@ import ReleasePage from './pages/ReleasePage'
 import SettingsPage from './pages/SettingsPage'
 import TentDetailPage from './pages/TentDetailPage'
 import TentsPage from './pages/TentsPage'
+import AdminKeyGate from './components/AdminKeyGate'
+import { openAdminKeyDialog } from './api'
 import './rc2-overrides.css'
+import './styles/redesign-shell.css'
+import './styles/redesign-primitives.css'
 
 const coreNav = [
   { to: '/', label: 'Live', end: true },
@@ -102,7 +106,10 @@ function App() {
           <span>Mehr</span>
           {desktopMoreNav.map((item) => <NavItem key={item.to} {...item} />)}
         </nav>
-        <div className="v1-nav-foot">Selfhost · HA · Offline-first</div>
+        <div className="v1-nav-foot">
+          <button type="button" className="v1-nav-remote" onClick={openAdminKeyDialog}>Remote-Zugriff</button>
+          <span>Selfhost · HA · Offline-first</span>
+        </div>
       </aside>
 
       <header className="v1-mobile-topbar" data-audit="mobile-header">
@@ -132,6 +139,9 @@ function App() {
               </div>
             </section>
           ))}
+          <button type="button" className="v1-mobile-more-remote" onClick={() => { setMobileMoreOpen(false); openAdminKeyDialog() }}>
+            Remote-Zugriff (Admin-Key)
+          </button>
         </div>
       )}
 
@@ -176,6 +186,8 @@ function App() {
           </NavLink>
         ))}
       </nav>
+
+      <AdminKeyGate />
     </div>
   )
 }

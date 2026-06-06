@@ -4,6 +4,7 @@ import { apiFetch } from '../api'
 import type { CalibrationEventDto, GrowSummary, GrowTaskDto, HardwareItemDto, MaintenanceEventDto, RiskEventDto, SopInstanceDto } from '../types'
 import { V1Alert, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { classNames, formatDateTime, formatSeverityLabel } from '../utils'
+import { RiskActionCard } from '../features/risks/RiskActionCard'
 
 type ActionState = { grows: GrowSummary[]; risks: RiskEventDto[]; tasks: GrowTaskDto[]; maintenance: MaintenanceEventDto[]; calibration: CalibrationEventDto[]; sops: SopInstanceDto[]; hardware: HardwareItemDto[]; issues: string[] }
 const initial: ActionState = { grows: [], risks: [], tasks: [], maintenance: [], calibration: [], sops: [], hardware: [], issues: [] }
@@ -24,6 +25,8 @@ type ActionRow = {
 function MobileActionPage() {
   const [state, setState] = useState<ActionState>(initial)
   const [loading, setLoading] = useState(true)
+  const [refresh, setRefresh] = useState(0)
+  const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -50,18 +53,23 @@ function MobileActionPage() {
     }
     void load()
     return () => controller.abort()
-  }, [])
+  }, [refresh])
 
   const activeGrows = useMemo(() => state.grows.filter((grow) => grow.status === 'Running' || grow.status === 'Planning'), [state.grows])
   const risks = useMemo(() => [...state.risks].sort((a, b) => (riskRank[a.severity] ?? 9) - (riskRank[b.severity] ?? 9)), [state.risks])
-  const rows = buildRows(state, risks)
-  const status = loading ? 'Lädt' : risks.some((risk) => risk.severity === 'Critical') ? 'Kritisch' : rows.length > 0 ? 'Offen' : 'Bereit'
+  const rows = buildRows(state)
+  const status = loading ? 'Lädt' : risks.some((risk) => risk.severity === 'Critical') ? 'Kritisch' : risks.length > 0 || rows.length > 0 ? 'Offen' : 'Bereit'
   const primaryGrow = activeGrows[0]
   const actionCards = buildActionCards(state, primaryGrow)
+  const handleRiskChanged = (message: string) => {
+    setNotice(message)
+    setRefresh((current) => current + 1)
+  }
 
   return (
     <V1Page eyebrow="Aktion" title={status}>
       {state.issues.length > 0 && <V1Alert title="Teilweise offline" message={state.issues.join(' · ')} tone="warn" />}
+      {notice && <V1Alert title="Erledigt" message={notice} tone="ok" />}
       <section className="v1-kpi-grid"><V1Stat label="Risiken" value={risks.length} /><V1Stat label="Wartung" value={state.maintenance.length} /><V1Stat label="Kalibrierung" value={state.calibration.length} /><V1Stat label="Grows" value={activeGrows.length} /></section>
       <section className="rc-action-guide-grid">
         {actionCards.map((card) => (
@@ -74,6 +82,20 @@ function MobileActionPage() {
           </V1Card>
         ))}
       </section>
+      {risks.length > 0 && (
+        <V1Section title="Risiken">
+          <div className="rc-risk-action-grid" data-audit="risk-action-section">
+            {risks.map((risk) => (
+              <RiskActionCard
+                key={risk.id}
+                risk={risk}
+                context={risk.growId ? getGrowName(state.grows, risk.growId) : risk.hardwareItemId ? getHardwareName(state.hardware, risk.hardwareItemId) : risk.tentId ? `Zelt #${risk.tentId}` : 'System'}
+                onChanged={handleRiskChanged}
+              />
+            ))}
+          </div>
+        </V1Section>
+      )}
       <V1Section title="Jetzt">
         {loading ? <V1Empty title="Lade Aktionen..." /> : rows.length === 0 ? <V1Empty title="Keine offenen Aufgaben" text="Es gibt aktuell keine kritischen Risiken, fälligen Wartungen oder aktiven SOP-Schritte." /> : <div className="v1-list rc-action-list" data-audit="open-action-list">{rows.map((row) => <ActionListRow key={row.id} row={row} />)}</div>}
       </V1Section>
@@ -94,18 +116,8 @@ function ActionListRow({ row }: { row: ActionRow }) {
   )
 }
 
-function buildRows(state: ActionState, risks: RiskEventDto[]): ActionRow[] {
+function buildRows(state: ActionState): ActionRow[] {
   return [
-    ...risks.map((risk) => ({
-      id: `risk-${risk.id}`,
-      title: risk.title,
-      context: risk.growId ? getGrowName(state.grows, risk.growId) : risk.hardwareItemId ? getHardwareName(state.hardware, risk.hardwareItemId) : risk.tentId ? `Zelt #${risk.tentId}` : 'System',
-      priority: risk.severity,
-      action: risk.description ?? risk.eventType,
-      to: risk.growId ? `/grows/${risk.growId}` : '/hardware',
-      tone: risk.severity === 'Critical' ? 'critical' as const : 'warning' as const,
-      rank: riskRank[risk.severity] ?? 9,
-    })),
     ...state.tasks.map((task) => ({
       id: `task-${task.id}`,
       title: task.title,

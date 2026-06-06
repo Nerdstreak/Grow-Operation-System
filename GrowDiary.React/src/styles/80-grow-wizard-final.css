@@ -1,0 +1,320 @@
+/* ──────────────────────────────────────────────────────────────
+
+GROW-2 · Grow Wizard final
+   ────────────────────────────────────────────────────────────── */
+
+.grow-wizard-page .v1-hero {
+  margin-bottom: 14px;
+}
+
+.grow-wizard-shell {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.78fr) minmax(0, 1.6fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.grow-wizard-context {
+  position: sticky;
+  top: 18px;
+}
+
+.grow-wizard-main {
+  min-width: 0;
+}
+
+.grow-step-lead {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.grow-step-lead h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.2vw, 2rem);
+  letter-spacing: -0.04em;
+}
+
+.grow-step-lead p {
+  margin: 0;
+  max-width: 32rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.grow-form-grid {
+  align-items: start;
+}
+
+.grow-inline-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.grow-inline-switch {
+  min-height: 100%;
+}
+
+.grow-select-grid,
+.program-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.grow-select-card,
+.program-card {
+  appearance: none;
+  border: 1px solid color-mix(in oklch, var(--border) 86%, transparent);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--surface2) 72%, transparent), color-mix(in oklch, var(--surface) 92%, black));
+  color: var(--text);
+  padding: 16px;
+  text-align: left;
+  display: grid;
+  gap: 12px;
+  min-height: 145px;
+  cursor: pointer;
+  transition: border-color .16s ease, transform .16s ease, background .16s ease;
+}
+
+.grow-select-card:hover,
+.program-card:hover {
+  border-color: color-mix(in oklch, var(--accent) 48%, var(--border));
+  transform: translateY(-1px);
+}
+
+.grow-select-card.active,
+.program-card.active {
+  border-color: color-mix(in oklch, var(--accent) 78%, white);
+  background:
+    radial-gradient(circle at top right, color-mix(in oklch, var(--accent) 18%, transparent), transparent 42%),
+    color-mix(in oklch, var(--accent) 8%, var(--surface));
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--accent) 22%, transparent);
+}
+
+.grow-card-topline {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.grow-card-topline strong {
+  font-size: 1.04rem;
+  line-height: 1.2;
+}
+
+.grow-card-meta,
+.program-summary,
+.program-stage {
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1.45;
+}
+
+.grow-card-facts,
+.program-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.grow-card-facts b,
+.program-targets b,
+.program-stage {
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: color-mix(in oklch, var(--surface3) 42%, transparent);
+  color: color-mix(in oklch, var(--text) 88%, var(--accent));
+  font-size: .78rem;
+}
+
+.grow-custom-program {
+  margin-top: 14px;
+  max-width: 620px;
+}
+
+.grow-review-hero {
+  border: 1px solid color-mix(in oklch, var(--accent) 22%, var(--border));
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, color-mix(in oklch, var(--accent) 20%, transparent), transparent 48%),
+    color-mix(in oklch, var(--surface2) 70%, black);
+  padding: 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.grow-review-hero h2 {
+  margin: 3px 0 6px;
+  font-size: clamp(1.5rem, 2.8vw, 2.4rem);
+  letter-spacing: -0.05em;
+}
+
+.grow-review-hero p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.grow-review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.program-review-card {
+  margin-top: 12px;
+}
+
+.grow-summary-card {
+  display: grid;
+  gap: 14px;
+}
+
+.grow-summary-card h2 {
+  margin: 0;
+  font-size: clamp(1.25rem, 2vw, 1.8rem);
+  letter-spacing: -0.04em;
+}
+
+.grow-summary-list {
+  display: grid;
+  gap: 8px;
+}
+
+.grow-summary-list span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 55%, transparent);
+  padding-bottom: 8px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.grow-summary-list b {
+  color: color-mix(in oklch, var(--text) 88%, var(--muted));
+}
+
+.grow-summary-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.grow-summary-stats .v1-stat {
+  min-height: 92px;
+  padding: 12px;
+}
+
+.grow-program-mini {
+  border: 1px solid color-mix(in oklch, var(--accent) 18%, var(--border));
+  border-radius: 18px;
+  background: color-mix(in oklch, var(--accent) 8%, var(--surface));
+  padding: 12px;
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: .86rem;
+}
+
+.grow-program-mini strong {
+  color: var(--text);
+}
+
+@media (max-width: 980px) {
+  .grow-wizard-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .grow-wizard-context {
+    position: static;
+    order: 2;
+  }
+
+  .grow-wizard-main {
+    order: 1;
+  }
+
+  .grow-summary-card {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .grow-wizard-page .v1-hero {
+    margin-bottom: 10px;
+  }
+
+  .grow-step-lead {
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  .grow-step-lead h2 {
+    font-size: 1.45rem;
+  }
+
+  .grow-step-lead p {
+    margin-top: 4px;
+    font-size: .92rem;
+  }
+
+  .grow-select-grid,
+  .program-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .grow-select-card,
+  .program-card {
+    min-height: unset;
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .grow-card-facts,
+  .program-targets {
+    gap: 6px;
+  }
+
+  .grow-card-facts b,
+  .program-targets b,
+  .program-stage {
+    font-size: .74rem;
+  }
+
+  .grow-review-hero {
+    align-items: start;
+    padding: 14px;
+  }
+
+  .grow-review-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .grow-inline-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .sticky-actions {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 430px) {
+  .grow-review-grid {
+    grid-template-columns: 1fr;
+  }
+}

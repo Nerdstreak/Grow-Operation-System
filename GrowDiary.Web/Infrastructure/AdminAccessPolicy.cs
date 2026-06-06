@@ -1,4 +1,6 @@
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Http;
 
 namespace GrowDiary.Web.Infrastructure;
@@ -8,6 +10,49 @@ public static class AdminAccessPolicy
     public const string AllowRemoteAdminEnvironmentVariable = "GROWDIARY_ALLOW_REMOTE_ADMIN";
     public const string AdminKeyEnvironmentVariable = "GROWDIARY_ADMIN_KEY";
     public const string AdminKeyHeaderName = "X-GrowOS-Admin-Key";
+
+    // Unambiguous alphabet (no 0/o/1/l/i) for keys that are typed on a phone.
+    private const string KeyAlphabet = "abcdefghkmnpqrstuvwxyz23456789";
+
+    /// <summary>Returns the currently configured admin key (process environment), or null.</summary>
+    public static string? CurrentAdminKey()
+    {
+        var value = Environment.GetEnvironmentVariable(AdminKeyEnvironmentVariable);
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    /// <summary>Generates a new random, human-typeable admin key.</summary>
+    public static string GenerateKey(int length = 20)
+    {
+        var builder = new StringBuilder(length);
+        for (var i = 0; i < length; i++)
+        {
+            builder.Append(KeyAlphabet[RandomNumberGenerator.GetInt32(KeyAlphabet.Length)]);
+        }
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// Stores (or clears, when null/blank) the admin key. Applied to the current
+    /// process immediately and persisted to the Windows user environment so it
+    /// survives restarts.
+    /// </summary>
+    public static void StoreAdminKey(string? key)
+    {
+        var value = string.IsNullOrWhiteSpace(key) ? null : key.Trim();
+        Environment.SetEnvironmentVariable(AdminKeyEnvironmentVariable, value, EnvironmentVariableTarget.Process);
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                Environment.SetEnvironmentVariable(AdminKeyEnvironmentVariable, value, EnvironmentVariableTarget.User);
+            }
+            catch
+            {
+                // Persistence is best-effort; the process-level value still applies for this run.
+            }
+        }
+    }
 
     private static readonly string[] ProtectedPrefixes =
     {

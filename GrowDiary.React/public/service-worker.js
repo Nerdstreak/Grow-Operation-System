@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'grow-os-'
-const CACHE_NAME = 'grow-os-app-shell-v0.1.1'
+const CACHE_NAME = 'grow-os-app-shell-v0.1.2'
 
 const APP_SHELL_URLS = [
   '/',
@@ -84,7 +84,8 @@ async function cacheFirst(request) {
 
 async function navigationNetworkFirst(request) {
   try {
-    const response = await fetch(request)
+    // Always pull a fresh index.html so it never points at a stale asset hash.
+    const response = await fetch(request, { cache: 'no-store' })
     await cacheIfOk(request, response)
     return response
   } catch {

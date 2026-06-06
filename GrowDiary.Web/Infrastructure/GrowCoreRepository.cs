@@ -79,6 +79,12 @@ public sealed class GrowCoreRepository : RepositoryBase
 
         var grow = MapGrow(reader);
         grow.LatestMeasurement = GetLatestMeasurement(id);
+        using (var reservoirConnection = OpenConnection())
+        {
+            var reservoir = GetLatestReservoirBatch(reservoirConnection, new[] { id }).GetValueOrDefault(id);
+            grow.LatestReservoirPh = reservoir.Ph;
+            grow.LatestReservoirEc = reservoir.Ec;
+        }
         return grow;
     }
 
@@ -266,9 +272,13 @@ public sealed class GrowCoreRepository : RepositoryBase
         if (items.Count > 0)
         {
             var latestMeasurements = GetLatestMeasurementsBatch(connection, items.Select(g => g.Id));
+            var latestReservoir = GetLatestReservoirBatch(connection, items.Select(g => g.Id));
             foreach (var grow in items)
             {
                 grow.LatestMeasurement = latestMeasurements.GetValueOrDefault(grow.Id);
+                var reservoir = latestReservoir.GetValueOrDefault(grow.Id);
+                grow.LatestReservoirPh = reservoir.Ph;
+                grow.LatestReservoirEc = reservoir.Ec;
             }
         }
 
@@ -312,6 +322,47 @@ public sealed class GrowCoreRepository : RepositoryBase
             var m = MeasurementRepository.MapMeasurement(reader);
             result[m.GrowId] = m;
         }
+        return result;
+    }
+
+    // Per grow: the latest NON-NULL ReservoirPh / ReservoirEc across all measurements.
+    private static Dictionary<int, (double? Ph, double? Ec)> GetLatestReservoirBatch(SqliteConnection connection, IEnumerable<int> growIds)
+    {
+        var ids = growIds.Distinct().ToList();
+        var result = new Dictionary<int, (double? Ph, double? Ec)>();
+        if (ids.Count == 0) return result;
+
+        var placeholders = string.Join(", ", ids.Select((_, i) => $"$p{i}"));
+
+        void LoadColumn(string column, bool isPh)
+        {
+            using var command = connection.CreateCommand();
+            // column is a hardcoded literal ("ReservoirPh"/"ReservoirEc") — not user input.
+            command.CommandText = $"""
+                SELECT GrowId, value FROM (
+                    SELECT GrowId, {column} AS value,
+                           ROW_NUMBER() OVER (PARTITION BY GrowId ORDER BY TakenAt DESC, Id DESC) AS rn
+                    FROM Measurements
+                    WHERE GrowId IN ({placeholders}) AND {column} IS NOT NULL
+                ) WHERE rn = 1;
+            """;
+            for (var i = 0; i < ids.Count; i++)
+            {
+                command.Parameters.AddWithValue($"$p{i}", ids[i]);
+            }
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var growId = reader.GetInt32(0);
+                double? value = reader.IsDBNull(1) ? null : reader.GetDouble(1);
+                var existing = result.GetValueOrDefault(growId);
+                result[growId] = isPh ? (value, existing.Ec) : (existing.Ph, value);
+            }
+        }
+
+        LoadColumn("ReservoirPh", true);
+        LoadColumn("ReservoirEc", false);
         return result;
     }
 

@@ -20,7 +20,10 @@ public sealed class GrowDashboardComposer
 
     public List<MetricCard> BuildTentMetrics(Tent tent, Dictionary<string, HomeAssistantState> states, IReadOnlyList<Measurement> measurements)
     {
-        var latest = measurements.OrderByDescending(x => x.TakenAt).FirstOrDefault();
+        // Use the latest non-null value PER metric, so a partial measurement
+        // (e.g. an auto-measurement that only captured temp/humidity) does not
+        // blank out pH/EC/ORP that an earlier manual measurement recorded.
+        var latest = BuildLatestComposite(measurements);
 
         MetricCard Build(string label, string key, Func<Measurement?, double?> fallback, string tone = "default", string? explicitUnit = null)
         {
@@ -58,7 +61,7 @@ public sealed class GrowDashboardComposer
             Build("Temperatur", "temperature", m => m?.AirTemperatureC, explicitUnit: "°C"),
             Build("Luftfeuchte", "humidity", m => m?.HumidityPercent, explicitUnit: "%"),
             Build("VPD", "vpd", m => CalculateVpd(m?.AirTemperatureC, m?.HumidityPercent), tone: "accent", explicitUnit: "kPa"),
-            BuildLightCycleMetric(tent),
+            BuildLightCycleMetric(tent, states),
             BuildPpfdMetric(tent, states, latest)
         };
 
@@ -296,8 +299,73 @@ public sealed class GrowDashboardComposer
             ("Höhe", "#f59e0b", measurements.Where(x => x.HeightCm.HasValue).Select(x => (x.TakenAt, x.HeightCm))));
     }
 
-    private static MetricCard BuildLightCycleMetric(Tent tent)
+    private static Measurement? BuildLatestComposite(IReadOnlyList<Measurement> measurements)
     {
+        var ordered = measurements
+            .OrderByDescending(measurement => measurement.TakenAt)
+            .ThenByDescending(measurement => measurement.Id)
+            .ToList();
+        if (ordered.Count == 0)
+        {
+            return null;
+        }
+
+        double? Pick(Func<Measurement, double?> selector)
+        {
+            foreach (var measurement in ordered)
+            {
+                var value = selector(measurement);
+                if (value.HasValue)
+                {
+                    return value;
+                }
+            }
+
+            return null;
+        }
+
+        var head = ordered[0];
+        return new Measurement
+        {
+            Id = head.Id,
+            GrowId = head.GrowId,
+            TakenAt = head.TakenAt,
+            Stage = head.Stage,
+            Source = head.Source,
+            AirTemperatureC = Pick(m => m.AirTemperatureC),
+            HumidityPercent = Pick(m => m.HumidityPercent),
+            ReservoirPh = Pick(m => m.ReservoirPh),
+            ReservoirEc = Pick(m => m.ReservoirEc),
+            ReservoirWaterTempC = Pick(m => m.ReservoirWaterTempC),
+            ReservoirLevelLiters = Pick(m => m.ReservoirLevelLiters),
+            ReservoirLevelCm = Pick(m => m.ReservoirLevelCm),
+            DissolvedOxygenMgL = Pick(m => m.DissolvedOxygenMgL),
+            OrpMv = Pick(m => m.OrpMv),
+            PpfdMol = Pick(m => m.PpfdMol),
+            Co2Ppm = Pick(m => m.Co2Ppm),
+        };
+    }
+
+    private static MetricCard BuildLightCycleMetric(Tent tent, Dictionary<string, HomeAssistantState> states)
+    {
+        // Show the live light on/off state from the mapped LightStatus entity.
+        if (states.TryGetValue(TentSensorMetricKeyMap.Resolve(SensorMetricType.LightStatus), out var lightState))
+        {
+            var normalized = LightStateNormalizer.Normalize(lightState.State);
+            if (normalized != LightState.Unknown)
+            {
+                var isOn = normalized == LightState.On;
+                return new MetricCard
+                {
+                    Key = "light-cycle",
+                    Label = "Licht",
+                    Value = isOn ? "An" : "Aus",
+                    Tone = isOn ? "accent" : "info",
+                    Hint = lightState.FriendlyName ?? (isOn ? "Licht eingeschaltet" : "Licht ausgeschaltet")
+                };
+            }
+        }
+
         var cycle = ResolveLightCycle(tent);
         return new MetricCard
         {
@@ -305,7 +373,7 @@ public sealed class GrowDashboardComposer
             Label = "Lichtzyklus",
             Value = cycle ?? "–",
             Tone = "info",
-            Hint = "Kein Lichtzyklus konfiguriert"
+            Hint = states.Count == 0 ? "Nicht mit Home Assistant verbunden" : "Kein Licht-Sensor gemappt"
         };
     }
 

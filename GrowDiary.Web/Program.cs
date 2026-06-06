@@ -45,6 +45,7 @@ builder.Services.AddSingleton<LightRepository>();
 builder.Services.AddSingleton<SopRepository>();
 builder.Services.AddSingleton<PhotoRepository>();
 builder.Services.AddSingleton<HomeAssistantSettingsRepository>();
+builder.Services.AddSingleton<CameraFrameCache>();
 builder.Services.AddSingleton<GrowCoreRepository>();
 builder.Services.AddSingleton<MeasurementRepository>();
 builder.Services.AddSingleton<GrowRepository>();
@@ -157,13 +158,32 @@ static void TryLogAdminAccess(HttpContext context, bool allowed)
     }
 }
 
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        var name = ctx.File.Name;
+        // index.html / offline.html and the service worker must always revalidate,
+        // otherwise mobile clients keep loading a stale shell that points at old asset
+        // hashes (hashed /assets/* files stay immutably cacheable).
+        if (name.EndsWith(".html", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("service-worker.js", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+        }
+    }
+});
 app.UseRouting();
 
 // API-Attribute-Routes, Kamera-Routen und Export-Endpoints
 app.MapControllers();
 
-// SPA-Fallback fuer alle non-API-Routen
-app.MapFallbackToFile("index.html");
+// SPA-Fallback fuer alle non-API-Routen — index.html immer frisch (kein Stale-Shell)
+app.MapFallback(async context =>
+{
+    context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+    context.Response.ContentType = "text/html; charset=utf-8";
+    await context.Response.SendFileAsync(Path.Combine(app.Environment.WebRootPath, "index.html"));
+});
 
 app.Run();

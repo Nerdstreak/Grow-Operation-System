@@ -1,0 +1,43 @@
+/* ───────────────────────────────────────────────────────────────
+   REDESIGN · App-Shell chrome → "Instrument Cluster" palette.
+   Transitional override layer (color/typography only, no layout
+   changes) so the global nav matches the redesigned pages during
+   the page-by-page rollout. Imported last in App.tsx to win cascade.
+   ─────────────────────────────────────────────────────────────── */
+:root {
+  --ix-bg: #04070a;
+  --ix-phos: #52e98c;
+  --ix-ink: #e9f4ee;
+  --ix-muted: rgba(233, 244, 238, 0.56);
+  --ix-faint: rgba(233, 244, 238, 0.32);
+  --ix-hair: rgba(94, 231, 160, 0.14);
+  --ix-hair-2: rgba(94, 231, 160, 0.3);
+  --ix-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.v1-app-shell { background: var(--ix-bg); }
+
+/* desktop sidebar */
+.v1-desktop-nav { background: linear-gradient(180deg, rgba(10, 16, 14, 0.92), rgba(4, 7, 10, 0.97)); border-right: 1px solid var(--ix-hair); }
+.v1-brand strong { font-family: var(--ix-mono); letter-spacing: 0.14em; color: var(--ix-ink); }
+.v1-brand span { color: var(--ix-faint); }
+.v1-brand-mark { background: var(--ix-phos); box-shadow: 0 0 14px rgba(82, 233, 140, 0.55); color: #04140a; border: 0; }
+.v1-nav-group > span { font-family: var(--ix-mono); letter-spacing: 0.24em; color: var(--ix-faint); }
+.v1-nav-item { color: var(--ix-muted); border-radius: 10px; }
+.v1-nav-item:hover { color: var(--ix-ink); background: rgba(255, 255, 255, 0.03); }
+.v1-nav-item.active { color: #04140a; background: var(--ix-phos); font-weight: 600; }
+.v1-nav-foot { color: var(--ix-faint); font-family: var(--ix-mono); letter-spacing: 0.08em; }
+
+/* mobile chrome */
+.v1-mobile-topbar { background: rgba(4, 7, 10, 0.9); border-bottom: 1px solid var(--ix-hair); }
+.v1-mobile-topbar .v1-brand strong { font-family: var(--ix-mono); }
+.v1-mobile-more-button { font-family: var(--ix-mono); letter-spacing: 0.06em; color: var(--ix-ink); border: 1px solid var(--ix-hair-2); background: rgba(255, 255, 255, 0.02); }
+.v1-mobile-more-panel { background: var(--ix-bg); border-bottom: 1px solid var(--ix-hair); }
+.v1-mobile-more-group h2 { font-family: var(--ix-mono); color: var(--ix-faint); letter-spacing: 0.14em; }
+.v1-more-tile { color: var(--ix-muted); border: 1px solid var(--ix-hair); }
+.v1-more-tile.active { color: #04140a; background: var(--ix-phos); border-color: var(--ix-phos); }
+.v1-bottom-nav { background: rgba(4, 7, 10, 0.93); border-top: 1px solid var(--ix-hair); }
+.v1-bottom-item { color: var(--ix-muted); }
+/* active item sits on a phosphor pill (base sets background: var(--v1-green)) →
+   keep dark text for contrast, NOT green-on-green */
+.v1-bottom-item.active { color: #04140a; }

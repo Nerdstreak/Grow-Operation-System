@@ -1,0 +1,125 @@
+/* ───────────────────────────────────────────────────────────────
+   REDESIGN · Shared V1 primitives + base tokens → "Instrument Cluster".
+   Token re-map + typography accents only — NO structural/layout
+   changes — so the ~18 pages built on the V1 primitives re-skin at
+   once during rollout. Loaded after redesign-shell.css.
+   ─────────────────────────────────────────────────────────────── */
+
+/* 1) Unify both token systems onto the instrument palette */
+:root {
+  /* V1 system (drives most pages) */
+  --v1-bg: #04070a;
+  --v1-panel: rgba(10, 16, 14, 0.72);
+  --v1-panel-2: rgba(14, 22, 19, 0.92);
+  --v1-line: rgba(94, 231, 160, 0.14);
+  --v1-line-strong: rgba(94, 231, 160, 0.3);
+  --v1-text: #e9f4ee;
+  --v1-muted: rgba(233, 244, 238, 0.56);
+  --v1-soft: rgba(233, 244, 238, 0.32);
+  --v1-green: #52e98c;
+  --v1-green-dark: #1f7d49;
+  --v1-warn: #ffc24d;
+  --v1-red: #ff5f5f;
+  --v1-cyan: #5cd7ff;
+  --v1-radius: 14px;
+  --v1-radius-sm: 11px;
+  /* base system (System A) accents nudged to match the phosphor look */
+  --green: #52e98c;
+  --green-bg: rgba(82, 233, 140, 0.1);
+  --amber: #ffc24d;
+  --amber-bg: rgba(255, 194, 77, 0.1);
+  --red: #ff5f5f;
+  --red-bg: rgba(255, 95, 95, 0.1);
+}
+html[data-theme="light"] {
+  --green-bg: rgba(82, 233, 140, 0.08);
+  --amber-bg: rgba(255, 194, 77, 0.08);
+  --red-bg: rgba(255, 95, 95, 0.08);
+}
+
+/* 2) Instrument typography signature on the shared label elements
+      (mono + uppercase on short labels/kickers/section heads/badges) */
+.v1-card-kicker,
+.v1-eyebrow,
+.v1-section-head h2,
+.v1-stat span,
+.v1-field > span {
+  font-family: var(--ix-mono, 'JetBrains Mono', ui-monospace, monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.v1-badge {
+  font-family: var(--ix-mono, 'JetBrains Mono', ui-monospace, monospace);
+  letter-spacing: 0.1em;
+}
+
+/* ── Unify page headers ───────────────────────────────────────────
+   The V1 pages (Zelte, Hydro, Hardware, HA, Einstellungen, Messung …)
+   used a giant 42–72px title card, which clashed with the compact
+   instrument top-bar of the flagship pages (Live, Grows, Addback,
+   Wissen). Restyle the shared V1 hero into a compact hairline header
+   so every page reads as one design language. High specificity
+   (main.v1-page >) beats the per-page hero overrides + media queries. */
+main.v1-page > .v1-hero {
+  min-height: 0;
+  padding: 4px 2px 16px;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--v1-line);
+  background: transparent;
+  box-shadow: none;
+  margin-bottom: 18px;
+  align-items: flex-end;
+}
+main.v1-page > .v1-hero h1 {
+  font-family: var(--ix-mono, 'JetBrains Mono', ui-monospace, monospace);
+  font-size: clamp(22px, 2.3vw, 30px);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  margin: 3px 0 0;
+}
+main.v1-page > .v1-hero p {
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 6px 0 0;
+  max-width: 72ch;
+}
+
+/* instrument atmosphere on all page surfaces (flagship pages bring their own) */
+.v1-page, .page-scroll {
+  background-image:
+    radial-gradient(120% 55% at 88% -5%, rgba(82, 233, 140, 0.06), transparent 55%),
+    radial-gradient(90% 55% at -5% 105%, rgba(92, 215, 255, 0.04), transparent 50%);
+  background-attachment: local;
+}
+
+/* changeouts capture form (Addback hub) */
+.changeouts-form-card { margin-bottom: 14px; }
+.changeouts-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: end; }
+.changeouts-form .v1-field.is-wide { grid-column: 1 / -1; }
+.changeouts-form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+
+/* plant clone / quarantine actions (Tent-Detail) */
+.plant-entry { display: grid; gap: 8px; padding: 10px 0; border-top: 1px solid var(--v1-line); }
+.plant-entry:first-child { border-top: 0; }
+.plant-actions { display: grid; gap: 10px; }
+.plant-actions-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.plant-action-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; padding: 12px; border: 1px solid var(--v1-line); border-radius: 12px; background: rgba(255, 255, 255, 0.02); }
+.plant-action-submit { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+.plant-action-error { color: #ffb2b2; font-size: 12px; margin: 0; }
+.plant-row { display: grid; gap: 2px; }
+.plant-row strong { font-size: 14px; font-weight: 600; }
+.plant-row span { color: var(--v1-muted); font-size: 12.5px; }
+.plant-row em { font-style: normal; font-size: 11px; color: var(--v1-soft); text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* 3) Base-class chrome (used by Grow-Detail + the 4 legacy pages) */
+/* Fix: active section tab lost its background to the higher-specificity
+   `.section-tabs .btn` rule → restore phosphor bg + dark readable text. */
+.section-tabs .btn.btn-primary {
+  background: var(--green);
+  color: #04140a;
+}
+/* instrument typography on shared base labels/titles */
+.topbar-title { font-family: var(--ix-mono, 'JetBrains Mono', ui-monospace, monospace); letter-spacing: 0.04em; }
+.card-title,
+.section-label { font-family: var(--ix-mono, 'JetBrains Mono', ui-monospace, monospace); letter-spacing: 0.14em; }

@@ -1,4 +1,4 @@
-﻿export function formatDate(value: string | null | undefined, options?: Intl.DateTimeFormatOptions): string {
+export function formatDate(value: string | null | undefined, options?: Intl.DateTimeFormatOptions): string {
   if (!value) {
     return '–'
   }

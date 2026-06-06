@@ -29,8 +29,8 @@ public static class GrowMapping
         MeasurementCount: grow.MeasurementCount,
         LatestPhotoPath: grow.LatestPhotoPath,
         LatestStage: grow.LatestMeasurement?.Stage,
-        LatestReservoirPh: grow.LatestMeasurement?.ReservoirPh,
-        LatestReservoirEc: grow.LatestMeasurement?.ReservoirEc,
+        LatestReservoirPh: grow.LatestReservoirPh ?? grow.LatestMeasurement?.ReservoirPh,
+        LatestReservoirEc: grow.LatestReservoirEc ?? grow.LatestMeasurement?.ReservoirEc,
         LatestMeasurementAt: grow.LatestMeasurement?.TakenAt
     );
 

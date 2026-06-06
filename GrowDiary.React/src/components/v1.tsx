@@ -203,7 +203,3 @@ export function V1Wizard({ steps, currentStep, onStep }: { steps: string[]; curr
     </div>
   )
 }
-
-export function V1Skeleton({ label = 'Lädt...' }: { label?: string }) {
-  return <div className="v1-skeleton">{label}</div>
-}

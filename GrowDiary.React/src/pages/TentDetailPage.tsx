@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary, HydroSetupDto, MetricPayload, PlantInstanceDto, SetupDto, TentDto, TentLivePayload } from '../types'
 import { V1Alert, V1Badge, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
+import { PlantActions } from '../features/plants/PlantActions'
 
 const tentMetricDefinitions = [
   ['temperature', 'Temp', '°C'],
@@ -32,6 +33,8 @@ function TentDetailPage() {
   const [plantsBySetupId, setPlantsBySetupId] = useState<Record<number, PlantInstanceDto[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refresh, setRefresh] = useState(0)
+  const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -75,9 +78,11 @@ function TentDetailPage() {
 
     void load()
     return () => controller.abort()
-  }, [tentId])
+  }, [tentId, refresh])
 
   const activeHydroSetups = useMemo(() => hydroSetups.filter((setup) => setup.status === 'Active'), [hydroSetups])
+  const quarantineSetups = useMemo(() => setups.filter((setup) => setup.setupType === 'Quarantine'), [setups])
+  const productionSetups = useMemo(() => setups.filter((setup) => setup.setupType === 'Production'), [setups])
   const score = buildScore(live?.metrics ?? [], tent)
 
   if (loading) return <V1Page eyebrow="Zelt" title="Lade Zelt..."><V1Empty title="Live-Daten werden geladen..." /></V1Page>
@@ -91,6 +96,7 @@ function TentDetailPage() {
       action={<div className="v1-action-row"><V1LinkButton to="/zelte" variant="ghost">Zelte</V1LinkButton><V1LinkButton to="/home-assistant">HA</V1LinkButton><V1LinkButton to="/hydro">Hydro</V1LinkButton></div>}
     >
       {error && <V1Alert title="Fehler" message={error} tone="warn" />}
+      {notice && <V1Alert title="Erledigt" message={notice} tone="ok" />}
 
       <section className="v1-live-hero-grid">
         <V1Card tone={score.tone} className="v1-live-now-card">
@@ -134,7 +140,7 @@ function TentDetailPage() {
       </V1Section>
 
       <V1Section title="Setups & Pflanzen">
-        {setups.length === 0 ? <V1Empty title="Keine aktiven Plant-Setups" /> : <div className="v1-card-grid">{setups.map((setup) => <SetupCard key={setup.id} setup={setup} plants={plantsBySetupId[setup.id] ?? []} />)}</div>}
+        {setups.length === 0 ? <V1Empty title="Keine aktiven Plant-Setups" /> : <div className="v1-card-grid">{setups.map((setup) => <SetupCard key={setup.id} setup={setup} plants={plantsBySetupId[setup.id] ?? []} quarantineSetups={quarantineSetups} productionSetups={productionSetups} grows={grows} onChanged={(message) => { setNotice(message); setRefresh((value) => value + 1) }} />)}</div>}
       </V1Section>
     </V1Page>
   )
@@ -144,8 +150,8 @@ function HydroSetupCard({ setup }: { setup: HydroSetupDto }) {
   return <V1Card><div className="v1-card-title-row"><div><span className="v1-card-kicker">{setup.hydroStyle}</span><h2>{setup.name}</h2></div><V1Badge tone="accent">{setup.layoutType}</V1Badge></div><div className="v1-info-grid compact"><Info label="Sites" value={String(setup.potCount ?? '–')} /><Info label="Topf" value={formatLiters(setup.potSizeLiters)} /><Info label="Tank" value={formatLiters(setup.reservoirLiters)} /><Info label="Gesamt" value={formatLiters(setup.totalVolumeLiters)} /><Info label="Chiller" value={setup.hasChiller ? 'ja' : 'nein'} /><Info label="Luft" value={setup.hasAirPump ? `${setup.airStoneCount ?? '–'} Steine` : 'offen'} /></div></V1Card>
 }
 
-function SetupCard({ setup, plants }: { setup: SetupDto; plants: PlantInstanceDto[] }) {
-  return <V1Card><div className="v1-card-title-row"><div><span className="v1-card-kicker">{setup.setupType}</span><h2>{setup.name}</h2></div><V1Badge tone={setup.status === 'Active' ? 'ok' : 'neutral'}>{setup.status}</V1Badge></div><div className="v1-info-grid compact">{formatSetupDetails(setup).map((detail) => <Info key={detail.label} label={detail.label} value={detail.value} />)}</div>{plants.length === 0 ? <V1Empty title="Keine Pflanzen in diesem Setup" /> : <div className="v1-list">{plants.map((plant) => <div key={plant.id} className="v1-list-row"><strong>{plant.label}</strong><span>{formatPlantLine(plant)}</span><em>{plant.plantStatus}</em></div>)}</div>}</V1Card>
+function SetupCard({ setup, plants, quarantineSetups, productionSetups, grows, onChanged }: { setup: SetupDto; plants: PlantInstanceDto[]; quarantineSetups: SetupDto[]; productionSetups: SetupDto[]; grows: GrowSummary[]; onChanged: (notice: string) => void }) {
+  return <V1Card><div className="v1-card-title-row"><div><span className="v1-card-kicker">{setup.setupType}</span><h2>{setup.name}</h2></div><V1Badge tone={setup.status === 'Active' ? 'ok' : 'neutral'}>{setup.status}</V1Badge></div><div className="v1-info-grid compact">{formatSetupDetails(setup).map((detail) => <Info key={detail.label} label={detail.label} value={detail.value} />)}</div>{plants.length === 0 ? <V1Empty title="Keine Pflanzen in diesem Setup" /> : <div className="plant-list">{plants.map((plant) => <div key={plant.id} className="plant-entry"><div className="plant-row"><strong>{plant.label}</strong><span>{formatPlantLine(plant)}</span><em>{plant.plantStatus}</em></div><PlantActions plant={plant} setup={setup} quarantineSetups={quarantineSetups} productionSetups={productionSetups} grows={grows} onChanged={onChanged} /></div>)}</div>}</V1Card>
 }
 
 function MetricCard({ metric }: { metric: MetricPayload }) { return <V1Stat label={metric.label} value={metric.value} unit={metric.unit} hint={metric.hint ?? undefined} tone={metricTone(metric)} /> }

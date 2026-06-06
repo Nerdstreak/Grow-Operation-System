@@ -1,8 +1,9 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { KnowledgeOverviewDto, NutrientProgramDto, WearTemplateDto } from '../types'
-import { V1Badge, V1Empty, V1Field, V1Page } from '../components/v1'
+import '../features/knowledge/knowledge-instrument.css'
 
 type TopicId = 'rdwc' | 'addback' | 'rootrot' | 'ph-ec' | 'athena' | 'canna' | 'sensors' | 'troubleshooting'
 type KnowledgeRecord = Record<string, unknown>
@@ -25,6 +26,24 @@ type Topic = {
   keywords: string[]
   sections: Array<{ title: string; text: string }>
   action?: { label: string; to: string }
+}
+
+type Entry = {
+  key: string
+  title: string
+  subtitle: string
+  search: string
+  refId?: string
+  topic?: Topic
+  record?: KnowledgeRecord
+}
+
+type Category = {
+  id: string
+  label: string
+  kicker: string
+  desc: string
+  entries: Entry[]
 }
 
 const emptyCatalogs: Catalogs = { programs: [], sops: [], treatments: [], symptoms: [], setpoints: [], pathogens: [], wear: [] }
@@ -67,7 +86,6 @@ const topics: Topic[] = [
       { title: 'Sofortmaßnahmen', text: 'Temperatur, Sauerstoff, Biofilm, tote Wurzelmasse und Hygiene prüfen. Keine hektischen Mehrfachkorrekturen.' },
       { title: 'In der App', text: 'Wissen, SOPs, Sensorvertrauen und Risiken laufen hier zusammen.' },
     ],
-    action: { label: 'SOPs prüfen', to: '/wissen' },
   },
   {
     id: 'ph-ec',
@@ -112,7 +130,7 @@ const topics: Topic[] = [
     id: 'sensors',
     title: 'Sensoren & Kalibrierung',
     kicker: 'Vertrauen in Messwerte',
-    intro: 'Automatisierung ist nur so gut wie die Sensoren. pH/EC/ORP/DO brauchen Kalibrierung, Wartung und Plausibilitaetspruefung.',
+    intro: 'Automatisierung ist nur so gut wie die Sensoren. pH/EC/ORP/DO brauchen Kalibrierung, Wartung und Plausibilitätsprüfung.',
     keywords: ['sensor', 'kalibrierung', 'wartung', 'ph', 'ec', 'orp', 'do'],
     sections: [
       { title: 'Sensorvertrauen', text: 'Keine Sensoren bedeutet nicht 100 % stabil. Dann ist die Bewertung offen und muss eingerichtet werden.' },
@@ -124,7 +142,7 @@ const topics: Topic[] = [
   {
     id: 'troubleshooting',
     title: 'Symptome & Diagnose',
-    kicker: 'Symptom -> Ursache -> Handlung',
+    kicker: 'Symptom → Ursache → Handlung',
     intro: 'Probleme sollen nicht als lose Datensätze erscheinen, sondern als geführte Diagnose.',
     keywords: ['symptom', 'diagnose', 'fehler', 'treatment', 'risiko'],
     sections: [
@@ -136,12 +154,319 @@ const topics: Topic[] = [
   },
 ]
 
+/* ── value helpers ─────────────────────────────────────────────── */
+function isRecord(value: unknown): value is KnowledgeRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+function asStr(v: unknown): string | undefined {
+  return typeof v === 'string' && v.trim() ? v : undefined
+}
+function asStrArr(v: unknown): string[] | undefined {
+  if (!Array.isArray(v)) return undefined
+  const out = v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+  return out.length ? out : undefined
+}
+function asRecArr(v: unknown): KnowledgeRecord[] | undefined {
+  if (!Array.isArray(v)) return undefined
+  const out = v.filter(isRecord)
+  return out.length ? out : undefined
+}
+function getId(record: KnowledgeRecord): string | undefined {
+  return asStr(record.id) ?? asStr(record.key)
+}
+function getTitle(record: KnowledgeRecord, fallback: unknown): string {
+  return asStr(record.name) ?? asStr(record.title) ?? asStr(record.id) ?? asStr(record.key) ?? String(fallback ?? 'Eintrag')
+}
+function getRecordTag(record: KnowledgeRecord): string {
+  return asStr(record.type) ?? asStr(record.category) ?? asStr(record.systemType) ?? asStr(record.riskLevel) ?? asStr(record.manufacturer) ?? ''
+}
+
+const KEY_LABELS: Record<string, string> = {
+  standard: 'Standard-Dosis', context: 'Kontext', method: 'Methode', timing: 'Zeitpunkt', frequency: 'Häufigkeit',
+  durationStandard: 'Dauer (Standard)', durationHeavy: 'Dauer (stark)', heavy: 'Bei starkem Befall', light: 'Bei leichtem Befall',
+  preventive: 'Vorbeugend', maxConcentration: 'Max. Konzentration', notes: 'Hinweis', warning: 'Warnung', compatibility: 'Kompatibilität',
+  reference: 'Referenz', title: 'Titel', bestFor: 'Geeignet für', avoidFor: 'Ungeeignet für', manufacturer: 'Hersteller',
+}
+function humanize(key: string): string {
+  if (KEY_LABELS[key]) return KEY_LABELS[key]
+  const spaced = key.replace(/([A-Z])/g, ' $1').replace(/[_-]+/g, ' ').trim()
+  const cased = spaced.charAt(0).toUpperCase() + spaced.slice(1)
+  return cased.replace(/\b(ph|ec|orp|do|co2|vpd|ppfd|ipm|hocl|dwc|rdwc)\b/gi, (m) => m.toUpperCase())
+}
+
+const STAGE_LABELS: Record<string, string> = {
+  seedling: 'Sämling', clone: 'Steckling', earlyVeg: 'Frühe Veg', veg: 'Vegetativ', lateVeg: 'Späte Veg',
+  earlyFlower: 'Frühe Blüte', midFlower: 'Mittlere Blüte', flower: 'Blüte', lateFlower: 'Späte Blüte',
+  ripen: 'Reife', flush: 'Spülen',
+}
+function num(v: unknown): number | undefined {
+  return typeof v === 'number' && Number.isFinite(v) ? v : undefined
+}
+function range(a: unknown, b: unknown): string {
+  const x = num(a)
+  const y = num(b)
+  if (x === undefined && y === undefined) return '–'
+  if (x === undefined) return String(y)
+  if (y === undefined) return String(x)
+  return x === y ? String(x) : `${x}–${y}`
+}
+
+const STAGE_COLS: Array<{ label: string; render: (s: KnowledgeRecord) => string }> = [
+  { label: 'pH', render: (s) => range(s.phMin, s.phMax) },
+  { label: 'EC', render: (s) => range(s.ecMin, s.ecMax) },
+  { label: 'ORP', render: (s) => range(s.orpMin, s.orpMax) },
+  { label: 'H₂O °C', render: (s) => (num(s.waterTempDayC) !== undefined ? `${num(s.waterTempDayC)}/${num(s.waterTempNightC) ?? '–'}` : '–') },
+  { label: 'VPD', render: (s) => range(s.vpdMin, s.vpdMax) },
+  { label: 'PPFD', render: (s) => range(s.ppfdMin, s.ppfdMax) },
+  { label: 'CO₂', render: (s) => range(s.co2Min, s.co2Max) },
+]
+
+/* ── detail renderers ──────────────────────────────────────────── */
+function StageTable({ stages }: { stages: KnowledgeRecord }) {
+  const rows = Object.entries(stages).filter(([, v]) => isRecord(v)) as Array<[string, KnowledgeRecord]>
+  if (!rows.length) return null
+  const cols = STAGE_COLS.filter((col) => rows.some(([, s]) => col.render(s) !== '–'))
+  return (
+    <div className="ix-kb-table-wrap">
+      <table className="ix-kb-table">
+        <thead>
+          <tr>
+            <th>Phase</th>
+            {cols.map((c) => <th key={c.label}>{c.label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(([stage, s]) => (
+            <tr key={stage}>
+              <td>{STAGE_LABELS[stage] ?? humanize(stage)}</td>
+              {cols.map((c) => <td key={c.label}>{c.render(s)}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function ObjFacts({ obj }: { obj: KnowledgeRecord }) {
+  const facts = Object.entries(obj).filter(([, v]) => asStr(v) !== undefined || num(v) !== undefined)
+  if (!facts.length) return null
+  return (
+    <dl className="ix-kb-facts">
+      {facts.map(([k, v]) => (
+        <div key={k} className="ix-kb-fact">
+          <dt>{humanize(k)}</dt>
+          <dd>{asStr(v) ?? String(v)}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+function RefChips({ ids, index, onNavigate }: { ids: string[]; index: Map<string, RefTarget>; onNavigate: (id: string) => void }) {
+  return (
+    <div className="ix-kb-refs">
+      {ids.map((id) => {
+        const hit = index.get(id)
+        if (!hit) return <span key={id} className="ix-kb-ref dead">{id}</span>
+        return (
+          <button key={id} type="button" className="ix-kb-ref" onClick={() => onNavigate(id)}>
+            {hit.title}<span className="arr">↗</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="ix-kb-sec">
+      <h4>{title}</h4>
+      {children}
+    </div>
+  )
+}
+
+function BulletList({ items }: { items: string[] }) {
+  return <ul className="ix-kb-ul">{items.map((it, i) => <li key={i}>{it}</li>)}</ul>
+}
+
+const ID_ARRAY_FIELDS: Array<[string, string]> = [
+  ['symptoms', 'Symptome'],
+  ['targetSymptoms', 'Ziel-Symptome'],
+  ['suggestedTreatmentIds', 'Empfohlene Maßnahmen'],
+  ['suggestedSopIds', 'Empfohlene SOPs'],
+]
+const TEXT_ARRAY_FIELDS: Array<[string, string]> = [
+  ['requiredMaterials', 'Material'],
+  ['applicableSetups', 'Geeignete Setups'],
+  ['possibleCauses', 'Mögliche Ursachen'],
+  ['diagnosticChecks', 'Diagnose-Checks'],
+  ['replacementTriggers', 'Austausch-Anzeichen'],
+]
+
+function RecordDetail({ category, record, index, onNavigate }: { category: Category; record: KnowledgeRecord; index: Map<string, RefTarget>; onNavigate: (id: string) => void }) {
+  const consumed = new Set<string>(['id', 'key', 'name', 'title', 'schemaVersion', 'slug', 'icon', 'stepType'])
+  const mark = (...keys: string[]) => keys.forEach((k) => consumed.add(k))
+
+  const title = getTitle(record, record)
+
+  const metaKeys: Array<{ k: string; fmt?: (v: unknown) => string; tone?: (v: unknown) => string }> = [
+    { k: 'type' },
+    { k: 'category' },
+    { k: 'systemType' },
+    { k: 'scientificName' },
+    { k: 'riskLevel', fmt: (v) => `Risiko: ${v}`, tone: (v) => (v === 'High' || v === 'Critical' ? 'crit' : v === 'Medium' ? 'warn' : 'ok') },
+    { k: 'treatable', fmt: (v) => (v ? 'Behandelbar' : 'Nicht behandelbar'), tone: (v) => (v ? 'ok' : 'crit') },
+    { k: 'durationDays', fmt: (v) => `${v} Tage` },
+    { k: 'estimatedDurationMinutes', fmt: (v) => `~${v} min` },
+    { k: 'expectedLifespanDays', fmt: (v) => `Lebensdauer ${v} T` },
+    { k: 'inspectionIntervalDays', fmt: (v) => `Prüfung alle ${v} T` },
+  ]
+  const metaTags = metaKeys
+    .map((spec) => {
+      const v = record[spec.k]
+      mark(spec.k)
+      if (v === undefined || v === null || v === '') return null
+      return { key: spec.k, text: spec.fmt ? spec.fmt(v) : String(v), tone: spec.tone ? spec.tone(v) : '' }
+    })
+    .filter((t): t is { key: string; text: string; tone: string } => t !== null)
+
+  const lede = asStr(record.summary) ?? asStr(record.description) ?? asStr(record.notes) ?? asStr(record.intro)
+  mark('summary', 'description', 'notes', 'intro')
+
+  const bestFor = asStr(record.bestFor)
+  const avoidFor = asStr(record.avoidFor)
+  mark('bestFor', 'avoidFor')
+
+  const steps = (asRecArr(record.steps) ?? []).slice().sort((a, b) => (num(a.order) ?? 0) - (num(b.order) ?? 0))
+  mark('steps')
+
+  const treatmentSopId = asStr(record.treatmentSopId)
+  mark('treatmentSopId')
+
+  const dosage = isRecord(record.dosage) ? record.dosage : undefined
+  const application = isRecord(record.application) ? record.application : undefined
+  const stages = isRecord(record.stages) ? record.stages : undefined
+  mark('dosage', 'application', 'stages')
+
+  const triggers = asRecArr(record.triggers)
+  const triggerTypes = triggers ? triggers.map((t) => asStr(t.type)).filter((x): x is string => !!x) : undefined
+  mark('triggers')
+
+  const sources = asRecArr(record.sources)
+  mark('sources')
+
+  TEXT_ARRAY_FIELDS.forEach(([k]) => mark(k))
+  ID_ARRAY_FIELDS.forEach(([k]) => mark(k))
+
+  // generic leftovers
+  const leftover = Object.keys(record).filter((k) => !consumed.has(k))
+  const leftoverFacts = leftover.filter((k) => asStr(record[k]) !== undefined || num(record[k]) !== undefined || typeof record[k] === 'boolean')
+  const leftoverArrays = leftover.map((k) => [k, asStrArr(record[k])] as const).filter((p): p is [string, string[]] => p[1] !== undefined)
+
+  return (
+    <>
+      <span className="kk">{category.kicker}</span>
+      <h2>{title}</h2>
+      {metaTags.length > 0 && (
+        <div className="ix-kb-meta">
+          {metaTags.map((t) => <span key={t.key} className={t.tone ? `ix-kb-tag ${t.tone}` : 'ix-kb-tag'}>{t.text}</span>)}
+        </div>
+      )}
+      {lede && <p className="ix-kb-lede">{lede}</p>}
+
+      {bestFor && <Section title="Geeignet für"><p>{bestFor}</p></Section>}
+      {avoidFor && <Section title="Ungeeignet für"><p>{avoidFor}</p></Section>}
+
+      {steps.length > 0 && (
+        <Section title="Ablauf">
+          <div className="ix-kb-steps">
+            {steps.map((s, i) => (
+              <div key={asStr(s.id) ?? i} className="ix-kb-step">
+                <div className="h">
+                  <span className="num">{String(num(s.order) ?? i + 1).padStart(2, '0')}</span>
+                  <strong>{asStr(s.title) ?? `Schritt ${i + 1}`}</strong>
+                </div>
+                {asStr(s.description) && <p>{asStr(s.description)}</p>}
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {TEXT_ARRAY_FIELDS.map(([k, label]) => {
+        const items = asStrArr(record[k])
+        return items ? <Section key={k} title={label}><BulletList items={items} /></Section> : null
+      })}
+
+      {ID_ARRAY_FIELDS.map(([k, label]) => {
+        const items = asStrArr(record[k])
+        return items ? <Section key={k} title={label}><RefChips ids={items} index={index} onNavigate={onNavigate} /></Section> : null
+      })}
+
+      {treatmentSopId && (
+        <Section title="Behandlungs-SOP"><RefChips ids={[treatmentSopId]} index={index} onNavigate={onNavigate} /></Section>
+      )}
+
+      {dosage && <Section title="Dosierung"><ObjFacts obj={dosage} /></Section>}
+      {application && <Section title="Anwendung"><ObjFacts obj={application} /></Section>}
+      {stages && <Section title="Phasen-Sollwerte"><StageTable stages={stages} /></Section>}
+
+      {triggerTypes && triggerTypes.length > 0 && (
+        <Section title="Auslöser"><BulletList items={triggerTypes.map(humanize)} /></Section>
+      )}
+
+      {sources && (
+        <Section title="Quellen">
+          <BulletList items={sources.map((s) => [asStr(s.title), asStr(s.reference)].filter(Boolean).join(' — ') || asStr(s.url) || 'Quelle')} />
+        </Section>
+      )}
+
+      {leftoverArrays.map(([k, items]) => (
+        <Section key={k} title={humanize(k)}><BulletList items={items} /></Section>
+      ))}
+      {leftoverFacts.length > 0 && (
+        <Section title="Weitere Angaben">
+          <dl className="ix-kb-facts">
+            {leftoverFacts.map((k) => {
+              const v = record[k]
+              const text = typeof v === 'boolean' ? (v ? 'Ja' : 'Nein') : (asStr(v) ?? String(v))
+              return <div key={k} className="ix-kb-fact"><dt>{humanize(k)}</dt><dd>{text}</dd></div>
+            })}
+          </dl>
+        </Section>
+      )}
+    </>
+  )
+}
+
+function TopicDetail({ topic }: { topic: Topic }) {
+  return (
+    <>
+      <span className="kk">{topic.kicker}</span>
+      <h2>{topic.title}</h2>
+      <p className="ix-kb-lede">{topic.intro}</p>
+      {topic.sections.map((s) => <Section key={s.title} title={s.title}><p>{s.text}</p></Section>)}
+      {topic.action && (
+        <div className="ix-kb-sec">
+          <Link to={topic.action.to} className="v1-button is-primary">{topic.action.label}</Link>
+        </div>
+      )}
+    </>
+  )
+}
+
+type RefTarget = { catId: string; entryKey: string; title: string }
+
 function KnowledgePage() {
   const [catalogs, setCatalogs] = useState<Catalogs>(emptyCatalogs)
-  const [selectedTopicId, setSelectedTopicId] = useState<TopicId>('rdwc')
   const [query, setQuery] = useState('')
+  const [categoryId, setCategoryId] = useState<string | null>(null)
+  const [entryKey, setEntryKey] = useState<string | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [articleOpen, setArticleOpen] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -171,117 +496,179 @@ function KnowledgePage() {
     return () => controller.abort()
   }, [])
 
-  const filteredTopics = useMemo(() => {
-    const normalized = query.trim().toLowerCase()
-    if (!normalized) return topics
-    return topics.filter((topic) => [topic.title, topic.kicker, topic.intro, ...topic.keywords].join(' ').toLowerCase().includes(normalized))
-  }, [query])
+  const categories = useMemo<Category[]>(() => {
+    const recCat = (id: string, label: string, kicker: string, desc: string, records: KnowledgeRecord[]): Category => ({
+      id, label, kicker, desc,
+      entries: records.map((raw, i) => {
+        const rec = isRecord(raw) ? raw : {}
+        return {
+          key: `${id}-${getId(rec) ?? i}`,
+          refId: getId(rec),
+          title: getTitle(rec, raw),
+          subtitle: getRecordTag(rec),
+          search: `${getTitle(rec, raw)} ${JSON.stringify(raw)}`.toLowerCase(),
+          record: rec,
+        }
+      }),
+    })
 
-  const selectedTopic = topics.find((topic) => topic.id === selectedTopicId) ?? filteredTopics[0] ?? topics[0]
-  const related = useMemo(() => findRelated(selectedTopic, catalogs), [selectedTopic, catalogs])
+    const grundlagen: Category = {
+      id: 'grundlagen', label: 'Grundlagen', kicker: 'Guides',
+      desc: 'Kompakte Erklärungen zu RDWC, Addback, Werten und Diagnose.',
+      entries: topics.map((t) => ({
+        key: `grundlagen-${t.id}`,
+        title: t.title,
+        subtitle: t.kicker,
+        search: [t.title, t.kicker, t.intro, ...t.keywords, ...t.sections.map((s) => `${s.title} ${s.text}`)].join(' ').toLowerCase(),
+        topic: t,
+      })),
+    }
 
-  function selectTopic(topicId: TopicId) {
-    setSelectedTopicId(topicId)
-    setArticleOpen(true)
+    return [
+      grundlagen,
+      recCat('sops', 'SOPs', 'Arbeitsabläufe', 'Schritt-für-Schritt-Prozeduren für den Betrieb.', catalogs.sops),
+      recCat('treatments', 'Maßnahmen', 'Treatments', 'Behandlungen gegen Symptome und Schädlinge.', catalogs.treatments),
+      recCat('symptoms', 'Symptome', 'Diagnose', 'Symptom, mögliche Ursache und empfohlene Maßnahme.', catalogs.symptoms),
+      recCat('pathogens', 'Pathogene', 'Risiken', 'Erreger, Risiko-Level und Gegenmaßnahmen.', catalogs.pathogens),
+      recCat('setpoints', 'Sollwerte', 'Zielbereiche', 'Phasen-Zielwerte für pH, EC, ORP und Klima.', catalogs.setpoints),
+      recCat('programs', 'Programme', 'Nährstoffe', 'Nährstoff-Programme und ihr Einsatzkontext.', catalogs.programs as unknown as KnowledgeRecord[]),
+      recCat('wear', 'Verschleiß', 'Hardware', 'Lebensdauer und Austausch-Anzeichen für Hardware.', catalogs.wear as unknown as KnowledgeRecord[]),
+    ]
+  }, [catalogs])
+
+  const refIndex = useMemo<Map<string, RefTarget>>(() => {
+    const map = new Map<string, RefTarget>()
+    for (const cat of categories) {
+      for (const entry of cat.entries) {
+        if (entry.refId && !map.has(entry.refId)) map.set(entry.refId, { catId: cat.id, entryKey: entry.key, title: entry.title })
+      }
+    }
+    return map
+  }, [categories])
+
+  const q = query.trim().toLowerCase()
+  const searchResults = useMemo(() => {
+    if (!q) return []
+    const out: Array<{ cat: Category; entry: Entry }> = []
+    for (const cat of categories) {
+      for (const entry of cat.entries) {
+        if (entry.search.includes(q)) out.push({ cat, entry })
+      }
+    }
+    return out.slice(0, 60)
+  }, [q, categories])
+
+  const currentCategory = categories.find((c) => c.id === categoryId) ?? null
+  const entries = currentCategory?.entries ?? []
+  const selectedEntry = entries.find((e) => e.key === entryKey) ?? entries[0] ?? null
+
+  function openCategory(id: string) {
+    const cat = categories.find((c) => c.id === id)
+    setCategoryId(id)
+    setEntryKey(cat?.entries[0]?.key ?? null)
+    setDetailOpen(false)
+  }
+  function openEntry(key: string) {
+    setEntryKey(key)
+    setDetailOpen(true)
+  }
+  function openTarget(target: RefTarget) {
+    setQuery('')
+    setCategoryId(target.catId)
+    setEntryKey(target.entryKey)
+    setDetailOpen(true)
+  }
+  function navigateToId(id: string) {
+    const hit = refIndex.get(id)
+    if (hit) openTarget(hit)
+  }
+  function backToOverview() {
+    setCategoryId(null)
+    setEntryKey(null)
+    setDetailOpen(false)
+  }
+
+  let body: ReactNode
+  if (loading) {
+    body = <div className="ix-kb-empty"><h2>Lade Wissensbasis…</h2></div>
+  } else if (q) {
+    body = (
+      <>
+        <div className="ix-kb-backrow"><button type="button" className="ix-kb-back" onClick={() => setQuery('')}>← Übersicht</button></div>
+        {searchResults.length === 0 ? (
+          <div className="ix-kb-empty"><h2>Keine Treffer</h2><p>Für „{query}" wurde nichts gefunden.</p></div>
+        ) : (
+          <div className="ix-kb-results">
+            {searchResults.map(({ cat, entry }) => (
+              <button key={`${cat.id}-${entry.key}`} type="button" className="ix-kb-entry" onClick={() => openTarget({ catId: cat.id, entryKey: entry.key, title: entry.title })}>
+                <span className="ix-kb-result-cat">{cat.label}{entry.subtitle ? ` · ${entry.subtitle}` : ''}</span>
+                <strong>{entry.title}</strong>
+              </button>
+            ))}
+          </div>
+        )}
+      </>
+    )
+  } else if (!currentCategory) {
+    body = (
+      <div className="ix-kb-cats">
+        {categories.map((cat) => (
+          <button key={cat.id} type="button" className="ix-kb-cat" onClick={() => openCategory(cat.id)}>
+            <div className="ix-kb-cat-top">
+              <h3>{cat.label}</h3>
+              <span className="count">{cat.entries.length}</span>
+            </div>
+            <span className="kk">{cat.kicker}</span>
+            <p>{cat.desc}</p>
+          </button>
+        ))}
+      </div>
+    )
+  } else {
+    body = (
+      <>
+        <div className="ix-kb-backrow"><button type="button" className="ix-kb-back" onClick={backToOverview}>← Alle Kategorien</button></div>
+        <div className={detailOpen ? 'ix-kb-browse entry-open' : 'ix-kb-browse'}>
+          <div className="ix-kb-list">
+            {entries.map((e) => (
+              <button key={e.key} type="button" className={e.key === selectedEntry?.key ? 'ix-kb-entry active' : 'ix-kb-entry'} onClick={() => openEntry(e.key)}>
+                <strong>{e.title}</strong>
+                {e.subtitle && <span>{e.subtitle}</span>}
+              </button>
+            ))}
+            {entries.length === 0 && <div className="ix-kb-empty"><p>Keine Einträge in dieser Kategorie.</p></div>}
+          </div>
+          <div className="ix-kb-detail">
+            <button type="button" className="ix-kb-back ix-kb-detail-back" onClick={() => setDetailOpen(false)}>← Liste</button>
+            {selectedEntry?.topic && <TopicDetail topic={selectedEntry.topic} />}
+            {selectedEntry?.record && currentCategory && <RecordDetail category={currentCategory} record={selectedEntry.record} index={refIndex} onNavigate={navigateToId} />}
+            {!selectedEntry && <div className="ix-kb-empty"><p>Eintrag links auswählen.</p></div>}
+          </div>
+        </div>
+      </>
+    )
   }
 
   return (
-    <V1Page eyebrow="Wissen" title="Wissen">
-      <section className="wiki-shell">
-        <aside className={articleOpen ? 'wiki-nav is-hidden-mobile' : 'wiki-nav'} data-audit="knowledge-topic-nav">
-          <V1Field label="Suche">
-            <input data-audit="knowledge-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Root Rot, Addback, Athena..." />
-          </V1Field>
-          <nav aria-label="Wissen Oberthemen">
-            {filteredTopics.map((topic) => (
-              <button key={topic.id} type="button" className={topic.id === selectedTopic.id ? 'wiki-topic active' : 'wiki-topic'} onClick={() => selectTopic(topic.id)}>
-                <span>{topic.kicker}</span>
-                <strong>{topic.title}</strong>
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        <article className={articleOpen ? 'wiki-article is-open-mobile' : 'wiki-article'} data-audit="knowledge-article">
-          <button type="button" className="wiki-back" onClick={() => setArticleOpen(false)}>Zurück zu Themen</button>
-          <header>
-            <span>{selectedTopic.kicker}</span>
-            <h2>{selectedTopic.title}</h2>
-            <p>{selectedTopic.intro}</p>
-          </header>
-          {selectedTopic.sections.map((section) => (
-            <section key={section.title}>
-              <h3>{section.title}</h3>
-              <p>{section.text}</p>
-            </section>
-          ))}
-          {selectedTopic.action && <Link to={selectedTopic.action.to} className="v1-button is-primary">{selectedTopic.action.label}</Link>}
-        </article>
-
-        <aside className="wiki-related" data-audit="knowledge-related">
-          <h2>Verknüpfte Daten</h2>
-          {loading ? <V1Empty title="Lade Wissensbasis..." /> : related.length === 0 ? <V1Empty title="Keine Treffer" text="Zu diesem Thema wurden noch keine passenden Datensätze gefunden." /> : (
-            <div className="wiki-related-list">
-              {related.map((item) => (
-                <div key={item.key} className="wiki-related-item">
-                  <span>{item.type}</span>
-                  <strong>{item.title}</strong>
-                  <p>{item.description}</p>
-                  <V1Badge>{item.source}</V1Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </aside>
-      </section>
-    </V1Page>
+    <div className="ix-kb">
+      <header className="ix-kb-head">
+        <div className="ix-kb-brand">
+          <span className="kk">Wissensbasis</span>
+          <h1>WISSEN</h1>
+        </div>
+        <div className="ix-kb-search">
+          <input
+            data-audit="knowledge-search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Suche: Root Rot, Addback, EC, Athena…"
+            aria-label="Wissensbasis durchsuchen"
+          />
+        </div>
+      </header>
+      {body}
+    </div>
   )
-}
-
-function findRelated(topic: Topic, catalogs: Catalogs) {
-  const terms = topic.keywords.map((keyword) => keyword.toLowerCase())
-  const items: Array<{ key: string; type: string; title: string; description: string; source: string }> = []
-
-  const collect = (type: string, source: string, values: unknown[]) => {
-    for (const value of values) {
-      const text = JSON.stringify(value).toLowerCase()
-      if (!terms.some((term) => text.includes(term))) continue
-      const record = isRecord(value) ? value : {}
-      items.push({
-        key: `${type}-${items.length}`,
-        type,
-        source,
-        title: getTitle(record, value),
-        description: getDescription(record),
-      })
-      if (items.length >= 8) return
-    }
-  }
-
-  collect('Programm', 'Nährstoffprogramm', catalogs.programs)
-  collect('SOP', 'Arbeitsablauf', catalogs.sops)
-  collect('Treatment', 'Maßnahme', catalogs.treatments)
-  collect('Symptom', 'Diagnose', catalogs.symptoms)
-  collect('Setpoint', 'Zielwert', catalogs.setpoints)
-  collect('Pathogen', 'Risiko', catalogs.pathogens)
-  collect('Verschleiß', 'Hardware', catalogs.wear)
-
-  return items.slice(0, 8)
-}
-
-function getTitle(record: Record<string, unknown>, fallback: unknown) {
-  const value = record.name ?? record.title ?? record.id ?? record.key
-  return typeof value === 'string' ? value : String(value ?? fallback ?? 'Eintrag')
-}
-
-function getDescription(record: Record<string, unknown>) {
-  const value = record.summary ?? record.description ?? record.notes ?? record.category ?? record.type
-  if (typeof value === 'string') return value
-  return 'Passender Knowledge-Eintrag aus der Datenbasis.'
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 export default KnowledgePage

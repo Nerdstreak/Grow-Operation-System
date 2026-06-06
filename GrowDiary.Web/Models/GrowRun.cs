@@ -64,6 +64,10 @@ public sealed class GrowRun
     public int MeasurementCount { get; set; }
     public string? LatestPhotoPath { get; set; }
     public Measurement? LatestMeasurement { get; set; }
+    // Latest NON-NULL reservoir values across all measurements, so a partial
+    // auto-measurement (e.g. only temp/humidity) does not blank pH/EC in summaries.
+    public double? LatestReservoirPh { get; set; }
+    public double? LatestReservoirEc { get; set; }
 
     public GrowthProfile Profile => new(HydroStyle);
 

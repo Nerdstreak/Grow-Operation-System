@@ -55,6 +55,50 @@ public sealed class SettingsApiController : ApiControllerBase
         return Ok(_repository.GetHomeAssistantSettings().ToDto());
     }
 
+    // ── Remote-access admin key (managed only from the local desktop) ──────────
+    [HttpGet("admin-key")]
+    [ProducesResponseType(typeof(AdminKeyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status403Forbidden)]
+    public ActionResult<AdminKeyDto> GetAdminKey()
+    {
+        if (!AdminAccessPolicy.IsLocalRequest(HttpContext))
+        {
+            return ForbiddenError("admin_key_local_only", "Der Admin-Key kann nur direkt am Desktop (localhost) verwaltet werden.");
+        }
+
+        var key = AdminAccessPolicy.CurrentAdminKey();
+        return Ok(new AdminKeyDto(!string.IsNullOrWhiteSpace(key), key));
+    }
+
+    [HttpPost("admin-key")]
+    [ProducesResponseType(typeof(AdminKeyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status403Forbidden)]
+    public ActionResult<AdminKeyDto> GenerateAdminKey()
+    {
+        if (!AdminAccessPolicy.IsLocalRequest(HttpContext))
+        {
+            return ForbiddenError("admin_key_local_only", "Der Admin-Key kann nur direkt am Desktop (localhost) verwaltet werden.");
+        }
+
+        var key = AdminAccessPolicy.GenerateKey();
+        AdminAccessPolicy.StoreAdminKey(key);
+        return Ok(new AdminKeyDto(true, key));
+    }
+
+    [HttpDelete("admin-key")]
+    [ProducesResponseType(typeof(AdminKeyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status403Forbidden)]
+    public ActionResult<AdminKeyDto> ClearAdminKey()
+    {
+        if (!AdminAccessPolicy.IsLocalRequest(HttpContext))
+        {
+            return ForbiddenError("admin_key_local_only", "Der Admin-Key kann nur direkt am Desktop (localhost) verwaltet werden.");
+        }
+
+        AdminAccessPolicy.StoreAdminKey(null);
+        return Ok(new AdminKeyDto(false, null));
+    }
+
     [HttpGet("tents")]
     [ProducesResponseType(typeof(IReadOnlyList<TentDto>), StatusCodes.Status200OK)]
     public ActionResult<IReadOnlyList<TentDto>> Tents([FromQuery] bool includeArchived = false)
