@@ -6,6 +6,15 @@ startet nach jedem Neustart automatisch.
 
 > Entwickler, die den Quellcode bauen wollen, finden alles unter [setup.md](setup.md).
 
+## So sieht Grow OS aus
+
+<p align="center">
+  <img src="images/live-dashboard-desktop.png" alt="Live-Dashboard am PC" width="100%">
+</p>
+<p align="center">
+  <img src="images/live-dashboard-mobile.png" alt="Live-Ansicht am Handy (PWA)" width="260">
+</p>
+
 ---
 
 ## Variante A: Raspberry Pi (empfohlen)

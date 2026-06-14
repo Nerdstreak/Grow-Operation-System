@@ -4,6 +4,10 @@ Grow Operation System ist eine kostenlose, selfhosted Grow-Management-App mit Fo
 
 Die App ist lokal-first: keine Cloud-Pflicht, kein SaaS-Modell und keine native App-Store-Abhaengigkeit. Mobile Nutzung erfolgt als PWA.
 
+<p align="center">
+  <img src="docs/images/live-dashboard-desktop.png" alt="Grow OS Live-Dashboard" width="100%">
+</p>
+
 ## Installation (fuer Nutzer)
 
 Keine Programmierkenntnisse noetig - ein Befehl genuegt. Ausfuehrliche Anleitung: [docs/install.md](docs/install.md).
