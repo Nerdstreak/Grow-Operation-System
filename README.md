@@ -4,7 +4,25 @@ Grow Operation System ist eine kostenlose, selfhosted Grow-Management-App mit Fo
 
 Die App ist lokal-first: keine Cloud-Pflicht, kein SaaS-Modell und keine native App-Store-Abhaengigkeit. Mobile Nutzung erfolgt als PWA.
 
-## Schnellstart
+## Installation (fuer Nutzer)
+
+Keine Programmierkenntnisse noetig - ein Befehl genuegt. Ausfuehrliche Anleitung: [docs/install.md](docs/install.md).
+
+**Raspberry Pi / Linux** (empfohlen):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Nerdstreak/Grow-Operation-System/main/scripts/install.sh | bash
+```
+
+**Windows-PC** (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/Nerdstreak/Grow-Operation-System/main/scripts/install.ps1 | iex
+```
+
+Danach im Browser oeffnen: `http://<geraete-ip>:5076` (am Geraet selbst `http://localhost:5076`). Grow OS startet ab dann automatisch mit.
+
+## Schnellstart (fuer Entwickler)
 
 Voraussetzungen:
 

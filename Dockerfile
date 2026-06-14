@@ -1,6 +1,10 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-bookworm-slim AS frontend-build
+# Build stages pinned to the native build platform: the frontend is static JS
+# and `dotnet publish /p:UseAppHost=false` emits CPU-agnostic IL, so we compile
+# once on the runner and only the final runtime layer is per-target-arch.
+# This keeps multi-arch (arm64/arm/v7/amd64) builds fast (no QEMU for compiles).
+FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS frontend-build
 WORKDIR /src/GrowDiary.React
 
 COPY GrowDiary.React/package*.json ./
@@ -9,7 +13,7 @@ RUN npm ci
 COPY GrowDiary.React/ ./
 RUN mkdir -p ../GrowDiary.Web/wwwroot && npm run build
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS publish
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS publish
 WORKDIR /src
 
 COPY GrowDiary.Web/GrowDiary.Web.csproj GrowDiary.Web/
