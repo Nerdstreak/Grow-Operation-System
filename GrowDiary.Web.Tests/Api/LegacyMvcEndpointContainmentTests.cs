@@ -33,10 +33,7 @@ public sealed class LegacyMvcEndpointContainmentTests : IDisposable
     [Fact]
     public void SettingsBackupDatabase_DoesNotReturnRawSqliteDatabase()
     {
-        var controller = new SettingsController(
-            new GrowRepository(_paths),
-            new TemplateRepository(_paths),
-            _paths);
+        var controller = new SettingsController(new GrowRepository(_paths));
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         var result = controller.BackupDatabase();
@@ -50,11 +47,7 @@ public sealed class LegacyMvcEndpointContainmentTests : IDisposable
     [Fact]
     public void GrowsLegacyExport_RedirectsToVersionedApiExport()
     {
-        var controller = new GrowsController(
-            new GrowRepository(_paths),
-            new TaskRepository(_paths),
-            new JournalRepository(_paths),
-            new AuditRepository(_paths));
+        var controller = new GrowsController();
 
         var result = controller.Export(42);
 

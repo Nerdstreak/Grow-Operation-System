@@ -278,7 +278,7 @@ export function LiveDashboard({
 
         <div className="ix-panel ix-feed ix-rise ix-d6" data-audit="live-camera-card">
           <h3>Kamera · {selectedTent.name}</h3>
-          <CameraScreen key={`${selectedTent.id}-${refresh}`} tent={selectedTent} refresh={refresh} />
+          <CameraScreen key={selectedTent.id} tent={selectedTent} refresh={refresh} />
         </div>
       </section>
 

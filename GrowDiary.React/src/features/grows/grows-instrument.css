@@ -33,7 +33,7 @@
 
 .ix-grows-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--ix-hair); border: 1px solid var(--ix-hair); border-radius: 11px; overflow: hidden; margin-bottom: 18px; }
 .ix-grows-kpi { background: var(--ix-panel-2); padding: 14px 16px; display: grid; gap: 6px; }
-.ix-grows-kpi span { font-family: var(--ix-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ix-faint); }
+.ix-grows-kpi span { font-family: var(--ix-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ix-faint); }
 .ix-grows-kpi strong { font-family: var(--ix-mono); font-size: 26px; font-weight: 700; line-height: 1; }
 
 .ix-grows-section { margin-bottom: 22px; }
@@ -48,7 +48,7 @@
 .ix-grow-card-head h2 { font-family: var(--ix-mono); font-size: 18px; font-weight: 700; margin-top: 3px; }
 .ix-grow-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 11px 18px; margin: 0; }
 .ix-grow-metrics > div { display: grid; gap: 2px; padding-bottom: 8px; border-bottom: 1px solid var(--ix-hair); }
-.ix-grow-metrics dt { font-family: var(--ix-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ix-faint); margin: 0; }
+.ix-grow-metrics dt { font-family: var(--ix-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ix-faint); margin: 0; }
 .ix-grow-metrics dd { font-size: 14px; font-weight: 500; margin: 0; }
 .ix-grow-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .ix-grow-card-actions .ix-btn { flex: 1 1 calc(50% - 4px); min-width: 0; }

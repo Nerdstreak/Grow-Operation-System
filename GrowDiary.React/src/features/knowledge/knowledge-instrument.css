@@ -33,10 +33,10 @@
 /* top bar: brand + search */
 .ix-kb-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 4px 18px; border-bottom: 1px solid var(--ix-hair); margin-bottom: 18px; }
 .ix-kb-brand { display: flex; flex-direction: column; gap: 2px; }
-.ix-kb-brand .kk { font-family: var(--ix-mono); font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ix-faint); }
+.ix-kb-brand .kk { font-family: var(--ix-mono); font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ix-faint); }
 .ix-kb-brand h1 { font-family: var(--ix-mono); font-size: 20px; font-weight: 700; letter-spacing: 0.02em; margin: 0; }
 .ix-kb-search { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: 1 1 280px; max-width: 460px; }
-.ix-kb-search input { width: 100%; font-family: var(--ix-mono); font-size: 13px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--ix-hair-2); background: rgba(0, 0, 0, 0.3); color: var(--ix-ink); }
+.ix-kb-search input { width: 100%; font-family: var(--ix-mono); font-size: 13px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--ix-hair-2); background: rgba(0, 0, 0, 0.3); color: var(--ix-ink); }
 .ix-kb-search input::placeholder { color: var(--ix-faint); }
 .ix-kb-search input:focus-visible { outline: 2px solid var(--ix-phos); outline-offset: 2px; }
 
@@ -51,7 +51,7 @@
 .ix-kb-cat .ix-kb-cat-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .ix-kb-cat .count { font-family: var(--ix-mono); font-size: 30px; font-weight: 700; line-height: 1; }
 .ix-kb-cat h3 { font-family: var(--ix-mono); font-size: 15px; font-weight: 700; }
-.ix-kb-cat .kk { font-family: var(--ix-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ix-faint); }
+.ix-kb-cat .kk { font-family: var(--ix-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ix-faint); }
 .ix-kb-cat p { color: var(--ix-muted); font-size: 12.5px; line-height: 1.35; }
 
 /* category browse: list + detail */
@@ -61,10 +61,10 @@
 .ix-kb-entry:hover { border-color: var(--ix-hair-2); }
 .ix-kb-entry.active { border-color: var(--ix-phos); background: rgba(82, 233, 140, 0.08); }
 .ix-kb-entry strong { font-size: 14px; font-weight: 600; }
-.ix-kb-entry span { font-family: var(--ix-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ix-faint); }
+.ix-kb-entry span { font-family: var(--ix-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ix-faint); }
 
 .ix-kb-detail { padding: 24px 26px; border: 1px solid var(--ix-hair); border-radius: 14px; background: var(--ix-panel); }
-.ix-kb-detail > .kk { font-family: var(--ix-mono); font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ix-faint); }
+.ix-kb-detail > .kk { font-family: var(--ix-mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ix-faint); }
 .ix-kb-detail h2 { font-family: var(--ix-mono); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 10px; }
 .ix-kb-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .ix-kb-lede { color: var(--ix-muted); font-size: 14.5px; line-height: 1.5; }
@@ -76,7 +76,7 @@
 .ix-kb-ul li::before { content: "▸"; position: absolute; left: 0; color: var(--ix-phos); }
 .ix-kb-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .ix-kb-fact { border: 1px solid var(--ix-hair); border-radius: 10px; padding: 10px 12px; background: var(--ix-panel-2); display: grid; gap: 3px; }
-.ix-kb-fact dt { font-family: var(--ix-mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ix-faint); }
+.ix-kb-fact dt { font-family: var(--ix-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ix-faint); }
 .ix-kb-fact dd { font-size: 15px; font-weight: 500; margin: 0; }
 .ix-kb-steps { display: grid; gap: 10px; }
 .ix-kb-step { border: 1px solid var(--ix-hair); border-left: 2px solid var(--ix-phos); border-radius: 10px; padding: 12px 14px; background: var(--ix-panel-2); }
@@ -89,18 +89,18 @@
 .ix-kb-table-wrap { overflow-x: auto; margin: -2px; padding: 2px; }
 .ix-kb-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .ix-kb-table th, .ix-kb-table td { text-align: left; padding: 7px 12px 7px 0; border-bottom: 1px solid var(--ix-hair); white-space: nowrap; }
-.ix-kb-table th { font-family: var(--ix-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ix-faint); }
+.ix-kb-table th { font-family: var(--ix-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ix-faint); }
 .ix-kb-table td { color: var(--ix-muted); }
 .ix-kb-table td:first-child, .ix-kb-table th:first-child { font-family: var(--ix-mono); color: var(--ix-phos); padding-right: 18px; }
 
 /* badges (tone) */
-.ix-kb-tag { font-family: var(--ix-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 9px; border-radius: 7px; border: 1px solid var(--ix-hair-2); color: var(--ix-muted); background: rgba(0, 0, 0, 0.25); }
+.ix-kb-tag { font-family: var(--ix-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 9px; border-radius: 7px; border: 1px solid var(--ix-hair-2); color: var(--ix-muted); background: rgba(0, 0, 0, 0.25); }
 .ix-kb-tag.ok { color: var(--ix-phos); border-color: rgba(82, 233, 140, 0.4); background: rgba(82, 233, 140, 0.1); }
 .ix-kb-tag.warn { color: var(--ix-amber); border-color: rgba(255, 194, 77, 0.4); background: rgba(255, 194, 77, 0.1); }
 .ix-kb-tag.crit { color: var(--ix-red); border-color: rgba(255, 95, 95, 0.45); background: rgba(255, 95, 95, 0.12); }
 
 .ix-kb-results { display: grid; gap: 8px; }
-.ix-kb-result-cat { font-family: var(--ix-mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ix-phos); }
+.ix-kb-result-cat { font-family: var(--ix-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ix-phos); }
 
 /* cross-reference chips (symptom → treatment → sop navigation) */
 .ix-kb-refs { display: flex; flex-wrap: wrap; gap: 8px; }

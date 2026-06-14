@@ -52,22 +52,30 @@ Nicht empfohlen:
 - direktes Port Forwarding auf `5076`
 - oeffentliche, frei erreichbare URL ohne Zugriffsschutz
 
-Es gibt aktuell keine vollstaendige eingebaute Nutzerverwaltung fuer alle Bereiche.
+### Admin-Key (eingebauter Zugriffsschutz)
+
+Einstellungs- und Produkt-APIs sind standardmaessig nur lokal (localhost) erreichbar. Fuer LAN- oder Remote-Zugriff von einem anderen Geraet (z. B. Handy):
+
+1. Auf dem Server-Rechner lokal `/settings` oeffnen und unter "Remote-Zugriff" einen Admin-Key erzeugen.
+2. Den Key kopieren und auf dem entfernten Geraet beim ersten geschuetzten Zugriff eingeben.
+3. Der Browser sendet den Key danach als Header `X-GrowOS-Admin-Key`; ohne gueltigen Key bleiben geschuetzte Bereiche gesperrt.
+
+Der Key wird serverseitig in der Umgebungsvariablen `GROWDIARY_ADMIN_KEY` gespeichert. Er ist ein einzelner gemeinsamer Schluessel und ersetzt keine vollwertige Mehrbenutzer-Verwaltung. Auch mit Admin-Key gilt: nur ueber VPN oder Reverse-Proxy mit HTTPS exponieren, nicht per nacktem Port-Forwarding.
 
 ## Release-ZIP
 
 Ein lokales Release-ZIP kann mit PowerShell erstellt werden:
 
 ```powershell
-.\scripts\publish-release.ps1 -Version "0.1.0"
+.\scripts\publish-release.ps1 -Version "1.0.0"
 ```
 
 Optionale Runtime-Beispiele:
 
 ```powershell
-.\scripts\publish-release.ps1 -Version "0.1.0" -Runtime "win-x64"
-.\scripts\publish-release.ps1 -Version "0.1.0" -Runtime "linux-x64"
-.\scripts\publish-release.ps1 -Version "0.1.0" -Runtime "linux-arm64"
+.\scripts\publish-release.ps1 -Version "1.0.0" -Runtime "win-x64"
+.\scripts\publish-release.ps1 -Version "1.0.0" -Runtime "linux-x64"
+.\scripts\publish-release.ps1 -Version "1.0.0" -Runtime "linux-arm64"
 ```
 
 Das Skript baut React, published das Backend und erzeugt ein ZIP unter `artifacts/releases`. Runtime-Daten wie `App_Data`, Datenbanken, Uploads und Secrets gehoeren nicht ins Release.
@@ -124,8 +132,8 @@ Mindestens sichern:
 Der Release-Workflow laeuft fuer Versionstags im Format `v*.*.*`, zum Beispiel:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 Der erzeugte Release ist als Draft/Prerelease zur manuellen Pruefung gedacht.

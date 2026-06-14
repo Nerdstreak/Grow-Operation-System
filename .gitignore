@@ -49,3 +49,8 @@ GrowDiary.Web/wwwroot/uploads/
 # Local audit/export packages
 _audit_packages/
 *.zip
+# IDE / editor caches
+.vs/
+.idea/
+*.suo
+*.user

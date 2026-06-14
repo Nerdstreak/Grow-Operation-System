@@ -60,6 +60,7 @@ Wichtige Seiten:
 - [Entwicklung](docs/development.md)
 - [Deployment](docs/deployment.md)
 - [Grow-Domaene](docs/grow-domain-notes.md)
-- [Codex-Workflow](docs/github-codex-workflow.md)
 
-Alte Notizen, Sprint-Zusammenfassungen und historische Patch-Hinweise wurden nicht geloescht, sondern unter `docs/archive/` abgelegt.
+## Lizenz
+
+Veroeffentlicht unter der [MIT-Lizenz](LICENSE) - frei nutzbar, anpassbar und weiterverteilbar.

@@ -13,8 +13,8 @@ SQLite laeuft eingebettet ueber `Microsoft.Data.Sqlite`. Es ist kein separater S
 ## Repository vorbereiten
 
 ```powershell
-git clone <repo-url>
-cd "Grow Operation System new"
+git clone https://github.com/Nerdstreak/Grow-Operation-System.git
+cd Grow-Operation-System
 ```
 
 Wenn bereits eine lokale Arbeitskopie existiert, reicht der Wechsel in den Repo-Root.

@@ -26,7 +26,9 @@ function LiveDashboardPage() {
   useEffect(() => {
     const controller = new AbortController()
     async function load() {
-      setLoading(true)
+      // Note: don't flip `loading` back on for background refreshes — the
+      // initial useState(true) covers first paint, and keeping it false on the
+      // 30s tick lets the dashboard update in place instead of blanking out.
       const issues: string[] = []
       const safe = async <T,>(name: string, path: string, fallback: T): Promise<T> => {
         try { return await apiFetch<T>(path, { signal: controller.signal }) }

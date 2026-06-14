@@ -19,7 +19,7 @@
 
 /* section tabs → instrument pills */
 .ix-growdetail .detail-tabs { border: 1px solid var(--ix-hair); background: rgba(10, 16, 14, 0.5); border-radius: 12px; }
-.ix-growdetail .detail-tabs .btn { font-family: var(--ix-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 9px; min-height: 38px; }
+.ix-growdetail .detail-tabs .btn { font-family: var(--ix-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 9px; min-height: 44px; }
 
 /* cards → flat instrument panels with green hairlines */
 .ix-growdetail .card { border-color: var(--ix-hair); border-radius: 14px; background: rgba(10, 16, 14, 0.72); box-shadow: none; }
