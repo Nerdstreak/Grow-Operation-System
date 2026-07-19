@@ -4,6 +4,18 @@ export interface HomeAssistantSettingsDto {
   baseUrl: string | null
   accessToken: string | null
   enabled: boolean
+  // True when Grow OS runs as a Home Assistant add-on: the connection is managed
+  // automatically, so the manual URL/token fields are hidden.
+  isManagedByAddon?: boolean
+}
+
+export interface HomeAssistantEntity {
+  entityId: string
+  friendlyName: string | null
+  state: string | null
+  unitOfMeasurement: string | null
+  deviceClass: string | null
+  domain: string
 }
 
 export interface HardwareItemDto {

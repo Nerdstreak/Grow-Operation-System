@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { HomeAssistantSettingsDto, SensorMetricType, SettingsOverviewDto, TentDto, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
+import type { HomeAssistantEntity, HomeAssistantSettingsDto, SensorMetricType, SettingsOverviewDto, TentDto, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch, V1Tabs } from '../components/v1'
 import { toNullableString } from '../components/v1-utils'
 
@@ -38,8 +38,52 @@ const definitions: EntityDefinition[] = [
   { metricType: 'UpsStatus', label: 'USV', group: 'hardware', placeholder: 'sensor.usv_status', importance: 'optional' },
 ]
 
+// Per-metric hints for the entity picker: which Home Assistant domains / device
+// classes are plausible for each sensor, so the dropdown suggests the right ones
+// first. Filters are best-effort — if nothing matches, the full list is offered.
+const suggestionFilters: Partial<Record<SensorMetricType, { domains?: string[]; deviceClass?: string }>> = {
+  AirTemperature: { domains: ['sensor'], deviceClass: 'temperature' },
+  Humidity: { domains: ['sensor'], deviceClass: 'humidity' },
+  Co2: { domains: ['sensor'], deviceClass: 'carbon_dioxide' },
+  ReservoirWaterTemp: { domains: ['sensor'], deviceClass: 'temperature' },
+  Vpd: { domains: ['sensor'] },
+  Ppfd: { domains: ['sensor'] },
+  ReservoirPh: { domains: ['sensor'] },
+  ReservoirEc: { domains: ['sensor'] },
+  ReservoirLevel: { domains: ['sensor'] },
+  ReservoirOrp: { domains: ['sensor'] },
+  ReservoirDissolvedOxygen: { domains: ['sensor'] },
+  UpsStatus: { domains: ['sensor', 'binary_sensor'] },
+  LightStatus: { domains: ['switch', 'light', 'binary_sensor', 'input_boolean'] },
+  PumpCirculation: { domains: ['switch', 'input_boolean'] },
+  PumpAir: { domains: ['switch', 'input_boolean'] },
+  Chiller: { domains: ['climate', 'switch'] },
+}
+
+function suggestionsForMetric(entities: HomeAssistantEntity[], metricType: SensorMetricType): HomeAssistantEntity[] {
+  const filter = suggestionFilters[metricType]
+  if (!filter) return entities
+  if (filter.deviceClass) {
+    const byClass = entities.filter((entity) => entity.deviceClass === filter.deviceClass)
+    if (byClass.length > 0) return byClass
+  }
+  if (filter.domains) {
+    const byDomain = entities.filter((entity) => filter.domains!.includes(entity.domain))
+    if (byDomain.length > 0) return byDomain
+  }
+  return entities
+}
+
+function entityOptionLabel(entity: HomeAssistantEntity): string {
+  const name = entity.friendlyName ?? entity.entityId
+  if (entity.state == null || entity.state === '') return name
+  const unit = entity.unitOfMeasurement ? ` ${entity.unitOfMeasurement}` : ''
+  return `${name} — ${entity.state}${unit}`
+}
+
 function HomeAssistantPage() {
   const [ha, setHa] = useState<HomeAssistantSettingsDto>({ baseUrl: '', accessToken: '', enabled: false })
+  const [entities, setEntities] = useState<HomeAssistantEntity[]>([])
   const [tents, setTents] = useState<TentDto[]>([])
   const [drafts, setDrafts] = useState<Record<number, TentMappingDraft>>({})
   const [selectedTentId, setSelectedTentId] = useState<number | null>(null)
@@ -64,6 +108,11 @@ function HomeAssistantPage() {
         setTents(sorted)
         setDrafts(Object.fromEntries(sorted.map((tent) => [tent.id, createTentDraft(tent)])))
         setSelectedTentId((current) => current ?? sorted[0]?.id ?? null)
+
+        // Best-effort: load live entities so the mapping can use a dropdown.
+        // Returns [] when Home Assistant is unreachable or not configured.
+        const entityList = await apiFetch<HomeAssistantEntity[]>('/api/home-assistant/entities', { signal: controller.signal }).catch(() => [])
+        if (!controller.signal.aborted) setEntities(entityList)
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatApiError(caught, 'Home Assistant konnte nicht geladen werden.'))
       } finally {
@@ -151,21 +200,29 @@ function HomeAssistantPage() {
       {loading ? <V1Empty title="Lade Home Assistant..." /> : (
         <>
           <V1Section title="1. Verbindung">
-            <form className="v1-ha-connect-form rc2-ha-connect-form" data-audit="ha-connection-layout" onSubmit={(event) => void saveConnection(event)}>
-              <V1Field label="Home Assistant URL" hint="Beispiel: http://homeassistant.local:8123">
-                <input value={ha.baseUrl ?? ''} onChange={(event) => setHa((current) => ({ ...current, baseUrl: event.target.value }))} placeholder="http://homeassistant.local:8123" />
-              </V1Field>
-              <V1Field label="Long-Lived Access Token">
-                <div className="v1-inline-input">
-                  <input type={showToken ? 'text' : 'password'} value={ha.accessToken ?? ''} onChange={(event) => setHa((current) => ({ ...current, accessToken: event.target.value }))} autoComplete="off" />
-                  <V1Button onClick={() => setShowToken((current) => !current)}>{showToken ? 'Verbergen' : 'Anzeigen'}</V1Button>
+            {ha.isManagedByAddon ? (
+              <V1Card tone="ok">
+                <span className="v1-card-kicker">Home Assistant</span>
+                <h2>Über Add-on verbunden</h2>
+                <p>Grow OS läuft als Home-Assistant-Add-on und ist automatisch verbunden — keine URL und kein Token nötig. Wähle unten einfach deine Sensoren aus.</p>
+              </V1Card>
+            ) : (
+              <form className="v1-ha-connect-form rc2-ha-connect-form" data-audit="ha-connection-layout" onSubmit={(event) => void saveConnection(event)}>
+                <V1Field label="Home Assistant URL" hint="Beispiel: http://homeassistant.local:8123">
+                  <input value={ha.baseUrl ?? ''} onChange={(event) => setHa((current) => ({ ...current, baseUrl: event.target.value }))} placeholder="http://homeassistant.local:8123" />
+                </V1Field>
+                <V1Field label="Long-Lived Access Token">
+                  <div className="v1-inline-input">
+                    <input type={showToken ? 'text' : 'password'} value={ha.accessToken ?? ''} onChange={(event) => setHa((current) => ({ ...current, accessToken: event.target.value }))} autoComplete="off" />
+                    <V1Button onClick={() => setShowToken((current) => !current)}>{showToken ? 'Verbergen' : 'Anzeigen'}</V1Button>
+                  </div>
+                </V1Field>
+                <div className="rc2-ha-connection-actions" data-audit="ha-connection-actions">
+                  <V1Switch label="Home Assistant aktiv" checked={ha.enabled} onChange={(checked) => setHa((current) => ({ ...current, enabled: checked }))} />
+                  <V1Button type="submit" variant="primary" disabled={saving === 'ha'} className="rc2-compact-action">{saving === 'ha' ? 'Speichert...' : 'Verbindung speichern'}</V1Button>
                 </div>
-              </V1Field>
-              <div className="rc2-ha-connection-actions" data-audit="ha-connection-actions">
-                <V1Switch label="Home Assistant aktiv" checked={ha.enabled} onChange={(checked) => setHa((current) => ({ ...current, enabled: checked }))} />
-                <V1Button type="submit" variant="primary" disabled={saving === 'ha'} className="rc2-compact-action">{saving === 'ha' ? 'Speichert...' : 'Verbindung speichern'}</V1Button>
-              </div>
-            </form>
+              </form>
+            )}
           </V1Section>
 
           {tents.length === 0 ? (
@@ -183,7 +240,14 @@ function HomeAssistantPage() {
                     <h2>{cameraStatus?.ok ? 'Snapshot OK' : selectedDraft.cameraEntityId.trim() ? 'eingetragen' : 'optional'}</h2>
                     <div className="rc2-ha-camera-field-action" data-audit="ha-camera-field-action">
                     <V1Field label="Kamera Entity">
-                      <input value={selectedDraft.cameraEntityId} onChange={(event) => updateCamera(event.target.value)} placeholder="camera.hauptzelt" />
+                      <input value={selectedDraft.cameraEntityId} onChange={(event) => updateCamera(event.target.value)} placeholder="camera.hauptzelt" list={entities.length > 0 ? 'ha-entities-camera' : undefined} />
+                      {entities.length > 0 && (
+                        <datalist id="ha-entities-camera">
+                          {entities.filter((entity) => entity.domain === 'camera').map((entity) => (
+                            <option key={entity.entityId} value={entity.entityId}>{entityOptionLabel(entity)}</option>
+                          ))}
+                        </datalist>
+                      )}
                     </V1Field>
                       <V1Button onClick={() => void testCamera()}>Kamera testen</V1Button>
                       {cameraStatus?.previewUrl && <a className="v1-button is-secondary" href={cameraStatus.previewUrl} target="_blank" rel="noreferrer">Snapshot öffnen</a>}
@@ -195,6 +259,7 @@ function HomeAssistantPage() {
                     <span className="v1-card-kicker">Mapping</span>
                     <h2>{groups.find((group) => group.key === activeGroup)?.text}</h2>
                     <p>Core-Werte beeinflussen Live-Dashboard und Systemscore stärker als optionale Technikwerte.</p>
+                    <p>{entities.length > 0 ? `${entities.length} Home-Assistant-Entitäten geladen — im Feld tippen oder aus der Liste wählen.` : 'Keine HA-Entitäten geladen — Entity-IDs manuell eintragen.'}</p>
                   </V1Card>
                 </div>
 
@@ -203,7 +268,7 @@ function HomeAssistantPage() {
                 <div className="v1-entity-list">
                   {definitions.filter((definition) => definition.group === activeGroup).map((definition) => {
                     const sensor = selectedDraft.sensors.find((item) => item.metricType === definition.metricType) ?? createSensorDraft(definition)
-                    return <EntityRow key={definition.metricType} definition={definition} sensor={sensor} onChange={(patch) => updateSensor(definition.metricType, patch)} />
+                    return <EntityRow key={definition.metricType} definition={definition} sensor={sensor} entities={entities} onChange={(patch) => updateSensor(definition.metricType, patch)} />
                   })}
                 </div>
               </V1Section>
@@ -215,7 +280,10 @@ function HomeAssistantPage() {
   )
 }
 
-function EntityRow({ definition, sensor, onChange }: { definition: EntityDefinition; sensor: SensorDraft; onChange: (patch: Partial<SensorDraft>) => void }) {
+function EntityRow({ definition, sensor, entities, onChange }: { definition: EntityDefinition; sensor: SensorDraft; entities: HomeAssistantEntity[]; onChange: (patch: Partial<SensorDraft>) => void }) {
+  const hasEntities = entities.length > 0
+  const listId = `ha-entities-${definition.metricType}`
+  const options = hasEntities ? suggestionsForMetric(entities, definition.metricType) : []
   return (
     <div className={sensor.isActive ? 'v1-entity-row active' : 'v1-entity-row'}>
       <label>
@@ -224,7 +292,19 @@ function EntityRow({ definition, sensor, onChange }: { definition: EntityDefinit
         <V1Badge tone={definition.importance === 'core' ? 'accent' : 'neutral'}>{definition.importance === 'core' ? 'Core' : 'optional'}</V1Badge>
         {definition.unit && <span>{definition.unit}</span>}
       </label>
-      <input value={sensor.haEntityId} onChange={(event) => onChange({ haEntityId: event.target.value })} placeholder={definition.placeholder} />
+      <input
+        value={sensor.haEntityId}
+        onChange={(event) => onChange({ haEntityId: event.target.value })}
+        placeholder={definition.placeholder}
+        list={hasEntities ? listId : undefined}
+      />
+      {hasEntities && (
+        <datalist id={listId}>
+          {options.map((entity) => (
+            <option key={entity.entityId} value={entity.entityId}>{entityOptionLabel(entity)}</option>
+          ))}
+        </datalist>
+      )}
     </div>
   )
 }
