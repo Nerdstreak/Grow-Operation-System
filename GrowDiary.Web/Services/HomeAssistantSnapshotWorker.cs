@@ -67,7 +67,7 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
         var haService   = scope.ServiceProvider.GetRequiredService<HomeAssistantService>();
         var lightStatus = scope.ServiceProvider.GetRequiredService<LightStatusTransitionService>();
 
-        var settings = repository.GetHomeAssistantSettings();
+        var settings = repository.GetEffectiveHomeAssistantSettings();
         if (!settings.IsConfigured) return;
 
         var tents = repository.GetTents();

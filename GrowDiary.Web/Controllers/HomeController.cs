@@ -30,7 +30,7 @@ public sealed class HomeController : Controller
     [HttpGet("/api/live/home")]
     public async Task<IActionResult> Live(CancellationToken cancellationToken)
     {
-        var settings = _repository.GetHomeAssistantSettings();
+        var settings = _repository.GetEffectiveHomeAssistantSettings();
         var tents = _repository.GetTents().Where(tent => tent.ActiveGrowCount > 0).ToList();
         var payload = new List<TentLivePayload>();
 

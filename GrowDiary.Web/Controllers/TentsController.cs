@@ -41,7 +41,7 @@ public sealed class TentsController : Controller
             return NotFound();
         }
 
-        var settings = _repository.GetHomeAssistantSettings();
+        var settings = _repository.GetEffectiveHomeAssistantSettings();
         var measurements = _repository.GetMeasurementsForTent(id);
         var states = await _homeAssistantService.GetStatesAsync(settings, tent, cancellationToken);
         var metrics = _composer.BuildTentMetrics(tent, states, measurements);
@@ -73,7 +73,7 @@ public sealed class TentsController : Controller
             return NotFound();
         }
 
-        var settings = _repository.GetHomeAssistantSettings();
+        var settings = _repository.GetEffectiveHomeAssistantSettings();
         var snapshot = await _homeAssistantService.GetCameraSnapshotAsync(settings, tent.CameraEntityId, cancellationToken);
         if (snapshot is null)
         {
@@ -96,7 +96,7 @@ public sealed class TentsController : Controller
             return NotFound();
         }
 
-        var settings = _repository.GetHomeAssistantSettings();
+        var settings = _repository.GetEffectiveHomeAssistantSettings();
         var snapshot = await _homeAssistantService.GetCameraSnapshotAsync(settings, tent.CameraEntityId, cancellationToken);
         if (snapshot is null)
         {

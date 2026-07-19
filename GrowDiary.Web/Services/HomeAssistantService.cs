@@ -48,10 +48,7 @@ public sealed class HomeAssistantService
 
         try
         {
-            var client = _httpClientFactory.CreateClient(nameof(HomeAssistantService));
-            client.BaseAddress = new Uri(NormalizeBaseUrl(settings.BaseUrl!));
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", settings.AccessToken);
-            client.Timeout = RequestTimeout;
+            var client = CreateClient(settings);
 
             var results = await Task.WhenAll(sensors.Select(sensor =>
                 FetchStateAsync(
@@ -175,10 +172,7 @@ public sealed class HomeAssistantService
 
         try
         {
-            var client = _httpClientFactory.CreateClient(nameof(HomeAssistantService));
-            client.BaseAddress = new Uri(NormalizeBaseUrl(settings.BaseUrl!));
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", settings.AccessToken);
-            client.Timeout = RequestTimeout;
+            var client = CreateClient(settings);
 
             using var response = await client.GetAsync($"/api/camera_proxy/{entityId}", cancellationToken);
             if (!response.IsSuccessStatusCode)
@@ -216,6 +210,85 @@ public sealed class HomeAssistantService
 
             return null;
         }
+    }
+
+    /// <summary>
+    /// Lists all Home Assistant entities (<c>GET /api/states</c>) so the UI can offer
+    /// a searchable sensor picker instead of asking the user to type entity IDs.
+    /// Returns an empty list when HA is unreachable or unconfigured.
+    /// </summary>
+    public async Task<IReadOnlyList<HomeAssistantEntity>> GetEntitiesAsync(
+        HomeAssistantSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        if (!settings.IsConfigured || IsCircuitOpen())
+        {
+            return Array.Empty<HomeAssistantEntity>();
+        }
+
+        try
+        {
+            var client = CreateClient(settings);
+            using var response = await client.GetAsync("/api/states", cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogDebug("Home Assistant Entity-Liste konnte nicht geladen werden: HTTP {StatusCode}.", (int)response.StatusCode);
+                return Array.Empty<HomeAssistantEntity>();
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+
+            var entities = new List<HomeAssistantEntity>();
+            foreach (var element in document.RootElement.EnumerateArray())
+            {
+                var entityId = element.TryGetProperty("entity_id", out var idEl) ? idEl.GetString() : null;
+                if (string.IsNullOrWhiteSpace(entityId))
+                {
+                    continue;
+                }
+
+                string? friendlyName = null, unit = null, deviceClass = null;
+                if (element.TryGetProperty("attributes", out var attrs))
+                {
+                    if (attrs.TryGetProperty("friendly_name", out var f)) friendlyName = f.GetString();
+                    if (attrs.TryGetProperty("unit_of_measurement", out var u)) unit = u.GetString();
+                    if (attrs.TryGetProperty("device_class", out var d)) deviceClass = d.GetString();
+                }
+
+                entities.Add(new HomeAssistantEntity
+                {
+                    EntityId = entityId,
+                    FriendlyName = friendlyName,
+                    State = element.TryGetProperty("state", out var stateEl) ? stateEl.GetString() : null,
+                    UnitOfMeasurement = unit,
+                    DeviceClass = deviceClass,
+                    Domain = entityId.Split('.', 2)[0],
+                });
+            }
+
+            ResetCircuit();
+            return entities;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return Array.Empty<HomeAssistantEntity>();
+        }
+        catch (Exception ex)
+        {
+            TryOpenCircuit();
+            _logger.LogDebug(ex, "Home Assistant Entity-Liste konnte nicht geladen werden.");
+            return Array.Empty<HomeAssistantEntity>();
+        }
+    }
+
+    private HttpClient CreateClient(HomeAssistantSettings settings)
+    {
+        var client = _httpClientFactory.CreateClient(nameof(HomeAssistantService));
+        client.BaseAddress = new Uri(NormalizeBaseUrl(settings.BaseUrl!));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", settings.AccessToken);
+        client.Timeout = RequestTimeout;
+        return client;
     }
 
     private bool IsCircuitOpen()

@@ -11,6 +11,10 @@ public static class AdminAccessPolicy
     public const string AdminKeyEnvironmentVariable = "GROWDIARY_ADMIN_KEY";
     public const string AdminKeyHeaderName = "X-GrowOS-Admin-Key";
 
+    // Home Assistant's ingress proxy sets this header on every request it forwards.
+    // Its presence means Home Assistant has already authenticated the user.
+    public const string IngressPathHeaderName = "X-Ingress-Path";
+
     // Unambiguous alphabet (no 0/o/1/l/i) for keys that are typed on a phone.
     private const string KeyAlphabet = "abcdefghkmnpqrstuvwxyz23456789";
 
@@ -80,6 +84,7 @@ public static class AdminAccessPolicy
         "/api/hardware-items",
         "/api/hydro-setups",
         "/api/journal",
+        "/api/home-assistant",
         "/api/knowledge",
         "/api/light-schedules",
         "/api/light-transitions",
@@ -137,6 +142,13 @@ public static class AdminAccessPolicy
             return true;
         }
 
+        // Requests arriving through the Home Assistant ingress proxy are already
+        // authenticated by Home Assistant, so they are trusted for admin routes.
+        if (IsIngressRequest(context))
+        {
+            return true;
+        }
+
         if (IsAdminKeyConfigured() && HasValidAdminKey(context))
         {
             return true;
@@ -144,6 +156,10 @@ public static class AdminAccessPolicy
 
         return IsRemoteAdminExplicitlyAllowed();
     }
+
+    /// <summary>True when the request is proxied through the Home Assistant ingress.</summary>
+    public static bool IsIngressRequest(HttpContext context)
+        => context.Request.Headers.ContainsKey(IngressPathHeaderName);
 
     public static bool IsRemoteAdminExplicitlyAllowed()
         => string.Equals(

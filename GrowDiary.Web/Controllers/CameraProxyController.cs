@@ -35,7 +35,7 @@ public sealed class CameraProxyController : ControllerBase
         }
 
         var entityId = tent.CameraEntityId;
-        var settings = _repository.GetHomeAssistantSettings();
+        var settings = _repository.GetEffectiveHomeAssistantSettings();
 
         // Try a fresh frame and only accept it if it is a real, valid image.
         if (settings.IsConfigured)
@@ -86,7 +86,7 @@ public sealed class CameraProxyController : ControllerBase
             return Ok(new CameraProxyStatusDto(false, "camera_missing", "Für dieses Zelt ist keine Kamera-Entity hinterlegt.", null, null));
         }
 
-        var settings = _repository.GetHomeAssistantSettings();
+        var settings = _repository.GetEffectiveHomeAssistantSettings();
         if (!settings.IsConfigured)
         {
             return Ok(new CameraProxyStatusDto(false, "ha_not_configured", "Home Assistant ist nicht vollständig konfiguriert.", tent.CameraEntityId, null));

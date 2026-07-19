@@ -509,6 +509,9 @@ public sealed class GrowRepository
     public HomeAssistantSettings GetHomeAssistantSettings()
         => _homeAssistantSettingsRepository.GetHomeAssistantSettings();
 
+    public HomeAssistantSettings GetEffectiveHomeAssistantSettings()
+        => _homeAssistantSettingsRepository.GetEffectiveHomeAssistantSettings();
+
     public void SaveHomeAssistantSettings(HomeAssistantSettings settings)
         => _homeAssistantSettingsRepository.SaveHomeAssistantSettings(settings);
 

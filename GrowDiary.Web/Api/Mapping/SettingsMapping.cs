@@ -1,4 +1,5 @@
 using GrowDiary.Web.Api.Contracts;
+using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 
 namespace GrowDiary.Web.Api.Mapping;
@@ -8,7 +9,8 @@ public static class SettingsMapping
     public static HomeAssistantSettingsDto ToDto(this HomeAssistantSettings settings) => new(
         BaseUrl: settings.BaseUrl,
         AccessToken: string.IsNullOrWhiteSpace(settings.AccessToken) ? null : "********",
-        Enabled: settings.Enabled
+        Enabled: settings.Enabled,
+        IsManagedByAddon: HomeAssistantAddon.IsRunningAsAddon
     );
 
     public static TentDto ToDto(this Tent tent) => new(

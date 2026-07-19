@@ -37,6 +37,14 @@ public sealed class HomeAssistantSettingsRepository : RepositoryBase
         return settings;
     }
 
+    /// <summary>
+    /// The connection Grow OS should actually talk to at runtime. Inside a Home
+    /// Assistant add-on the Supervisor-provided URL + token override the stored
+    /// settings, so live reads work without any manual configuration.
+    /// </summary>
+    public HomeAssistantSettings GetEffectiveHomeAssistantSettings()
+        => HomeAssistantAddon.ResolveEffective(GetHomeAssistantSettings());
+
     public void SaveHomeAssistantSettings(HomeAssistantSettings settings)
     {
         using var connection = OpenConnection();

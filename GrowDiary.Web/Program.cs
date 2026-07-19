@@ -107,6 +107,25 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// When running as a Home Assistant add-on, requests arrive through the ingress
+// proxy under a dynamic base path (e.g. /api/hassio_ingress/<token>). Home
+// Assistant already strips that prefix, so we only need to record it as PathBase
+// so any server-generated URLs point back through the ingress.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Headers.TryGetValue(AdminAccessPolicy.IngressPathHeaderName, out var ingressPath))
+    {
+        var value = ingressPath.ToString().TrimEnd('/');
+        // PathString requires a leading slash; guard against a malformed header.
+        if (value.StartsWith('/'))
+        {
+            context.Request.PathBase = new PathString(value);
+        }
+    }
+
+    await next();
+});
+
 app.Use(async (context, next) =>
 {
     if (AdminAccessPolicy.IsProtectedPath(context.Request.Path))

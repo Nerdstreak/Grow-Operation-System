@@ -1,0 +1,20 @@
+name: Grow OS
+version: "1.0.1"
+slug: grow_os
+description: Self-hosted RDWC/DWC grow management, natively integrated with Home Assistant
+url: https://github.com/Nerdstreak/Grow-Operation-System
+# The Grow OS image is published multi-arch; these are the Raspberry Pi + PC targets.
+arch:
+  - aarch64
+  - armv7
+  - amd64
+# Grow OS ships its own dotnet ENTRYPOINT, so the s6 init layer is not needed.
+init: false
+# Serve the UI inside the Home Assistant sidebar (Home Assistant handles auth).
+ingress: true
+ingress_port: 5076
+panel_icon: mdi:sprout
+panel_title: Grow OS
+# Grants the add-on a SUPERVISOR_TOKEN with access to the Home Assistant core API
+# (http://supervisor/core) — this is what makes the HA connection zero-config.
+homeassistant_api: true
