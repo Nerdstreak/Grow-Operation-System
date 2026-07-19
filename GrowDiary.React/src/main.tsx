@@ -10,6 +10,7 @@ import '@fontsource/jetbrains-mono/500.css'
 import '@fontsource/jetbrains-mono/600.css'
 import './index.css'
 import App from './App'
+import { IS_INGRESS, ROUTER_BASENAME, resolveUrl } from './base'
 
 function updateAppViewportHeight() {
   const height = window.visualViewport?.height ?? window.innerHeight
@@ -25,16 +26,18 @@ window.visualViewport?.addEventListener('scroll', updateAppViewportHeight, { pas
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={ROUTER_BASENAME}>
       <App />
     </BrowserRouter>
   </StrictMode>,
 )
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+// The service worker is skipped behind the Home Assistant ingress: its scope path
+// is dynamic (per-request token) and a PWA shell is meaningless inside the HA iframe.
+if ('serviceWorker' in navigator && import.meta.env.PROD && !IS_INGRESS) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/service-worker.js')
+      .register(resolveUrl('/service-worker.js'))
       .then((registration) => {
         console.info('Grow OS service worker registered:', registration.scope)
       })

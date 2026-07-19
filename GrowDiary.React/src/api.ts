@@ -1,3 +1,4 @@
+import { resolveUrl } from './base'
 import type { ApiError } from './types'
 
 export class ApiRequestError extends Error {
@@ -66,7 +67,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     headers.set(ADMIN_KEY_HEADER, adminKey)
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(resolveUrl(path), {
     ...init,
     headers,
   })

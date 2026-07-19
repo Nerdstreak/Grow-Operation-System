@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { resolveUrl } from '../../base'
 import type { GrowSummary, MetricPayload, RiskEventDto, TentDto } from '../../types'
 import { formatDateTime } from '../../utils'
 import { buildScore, buildSensorStatus, formatGrowHydroMedium, formatGrowStatus, formatTentType } from './live-model'
@@ -73,7 +74,7 @@ function CameraScreen({ tent, refresh }: { tent: TentDto; refresh: number }) {
     const controller = new AbortController()
     async function run() {
       try {
-        const response = await fetch(`/api/live/tents/${tent.id}/camera?t=${refresh}`, { signal: controller.signal })
+        const response = await fetch(resolveUrl(`/api/live/tents/${tent.id}/camera?t=${refresh}`), { signal: controller.signal })
         if (!response.ok) {
           if (!urlRef.current) setUnavailable(true)
           return

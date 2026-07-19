@@ -197,12 +197,31 @@ app.UseRouting();
 // API-Attribute-Routes, Kamera-Routen und Export-Endpoints
 app.MapControllers();
 
-// SPA-Fallback fuer alle non-API-Routen — index.html immer frisch (kein Stale-Shell)
+// SPA-Fallback fuer alle non-API-Routen — index.html immer frisch (kein Stale-Shell).
+// Injects a <base href> so the app's relative asset/API URLs resolve correctly both
+// at the site root ("/") and behind the Home Assistant ingress (the request PathBase).
 app.MapFallback(async context =>
 {
     context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
     context.Response.ContentType = "text/html; charset=utf-8";
-    await context.Response.SendFileAsync(Path.Combine(app.Environment.WebRootPath, "index.html"));
+
+    var html = await File.ReadAllTextAsync(Path.Combine(app.Environment.WebRootPath, "index.html"));
+    var pathBase = context.Request.PathBase.HasValue ? context.Request.PathBase.Value! : string.Empty;
+    var baseHref = string.IsNullOrEmpty(pathBase) ? "/" : pathBase + "/";
+    await context.Response.WriteAsync(InjectBaseHref(html, baseHref));
 });
+
+static string InjectBaseHref(string html, string baseHref)
+{
+    var tag = $"<base href=\"{baseHref}\" />";
+    var headIndex = html.IndexOf("<head>", StringComparison.OrdinalIgnoreCase);
+    if (headIndex < 0)
+    {
+        return html;
+    }
+
+    var insertAt = headIndex + "<head>".Length;
+    return string.Concat(html.AsSpan(0, insertAt), tag, html.AsSpan(insertAt));
+}
 
 app.Run();
