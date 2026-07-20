@@ -44,6 +44,19 @@ your own hardware. No cloud, no account, no SaaS.
   <img src="docs/images/live-dashboard-mobile.png" alt="Grow OS on mobile" width="260">
 </p>
 
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/diagnosis.png" alt="Deviation diagnosis with suggested treatments and SOPs"><br><sub><b>Diagnosis</b> — deviations mapped to symptoms with suggested treatments/SOPs</sub></td>
+    <td width="50%"><img src="docs/images/automation.png" alt="Sensor auto-measurements and camera snapshots on triggers"><br><sub><b>Automation</b> — auto-measurements & camera snapshots on triggers (e.g. 30 min after lights-on)</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/knowledge.png" alt="Searchable knowledge base"><br><sub><b>Knowledge base</b> — searchable SOPs, treatments, symptoms and target values</sub></td>
+    <td width="50%"><img src="docs/images/getting-started.png" alt="Guided onboarding"><br><sub><b>Getting started</b> — guided onboarding that surfaces every feature</sub></td>
+  </tr>
+</table>
+
 ## Install (Home Assistant add-on)
 
 **Requires Home Assistant OS or Supervised** (add-ons aren't available on Home
