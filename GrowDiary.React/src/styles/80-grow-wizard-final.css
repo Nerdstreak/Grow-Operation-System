@@ -102,6 +102,13 @@ GROW-2 · Grow Wizard final
   align-items: start;
   justify-content: space-between;
   gap: 10px;
+  /* Wrap so a long program name + a long manufacturer badge drop onto separate
+     lines instead of overlapping. */
+  flex-wrap: wrap;
+}
+
+.grow-card-topline strong {
+  flex: 1 1 auto;
 }
 
 .grow-card-topline strong {

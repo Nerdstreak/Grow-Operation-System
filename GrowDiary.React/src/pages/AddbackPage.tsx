@@ -258,7 +258,9 @@ function AddbackPage() {
 
       setLogs((current) => [created, ...current])
       setSuccess('Addback gespeichert.')
-      setStep(6)
+      // Zurück zum Start des Assistenten statt in der Speichern-Maske zu verharren;
+      // der neue Log erscheint im Kontext-Rail als "Letzter Log".
+      setStep(1)
     } catch (caught) {
       setError(caught instanceof ApiRequestError ? caught.message : 'Addback konnte nicht gespeichert werden.')
     } finally {

@@ -126,6 +126,12 @@ function HomeAssistantPage() {
   const selectedTent = useMemo(() => tents.find((tent) => tent.id === selectedTentId) ?? tents[0] ?? null, [selectedTentId, tents])
   const selectedDraft = selectedTent ? drafts[selectedTent.id] : null
   const mappedCount = useMemo(() => Object.values(drafts).reduce((sum, draft) => sum + (draft.cameraEntityId.trim() ? 1 : 0) + draft.sensors.filter((sensor) => sensor.isActive && sensor.haEntityId.trim()).length, 0), [drafts])
+  // Prefer camera.* entities but fall back to the full list so the picker is never
+  // empty when HA exposes the camera under a different domain (e.g. image.*).
+  const cameraEntities = useMemo(() => {
+    const cams = entities.filter((entity) => entity.domain === 'camera' || entity.domain === 'image')
+    return cams.length > 0 ? cams : entities
+  }, [entities])
   const coreMappedCount = selectedDraft ? selectedDraft.sensors.filter((sensor) => sensor.isActive && sensor.haEntityId.trim() && definitions.find((definition) => definition.metricType === sensor.metricType)?.importance === 'core').length : 0
 
   async function saveConnection(event: FormEvent<HTMLFormElement>) {
@@ -243,7 +249,7 @@ function HomeAssistantPage() {
                       <input value={selectedDraft.cameraEntityId} onChange={(event) => updateCamera(event.target.value)} placeholder="camera.hauptzelt" list={entities.length > 0 ? 'ha-entities-camera' : undefined} />
                       {entities.length > 0 && (
                         <datalist id="ha-entities-camera">
-                          {entities.filter((entity) => entity.domain === 'camera').map((entity) => (
+                          {cameraEntities.map((entity) => (
                             <option key={entity.entityId} value={entity.entityId}>{entityOptionLabel(entity)}</option>
                           ))}
                         </datalist>
