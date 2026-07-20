@@ -11,7 +11,7 @@ public sealed partial class HardwareRepository
         var hardware = ValidateCalibrationEvent(item);
         item.CreatedAtUtc = DateTime.UtcNow;
         item.UpdatedAtUtc = DateTime.UtcNow;
-        ApplyCalibrationDefaults(item);
+        ApplyCalibrationDefaults(item, hardware.CalibrationIntervalDays);
 
         using var connection = OpenConnection();
         using var transaction = connection.BeginTransaction();
@@ -46,9 +46,9 @@ public sealed partial class HardwareRepository
 
     public void UpdateCalibrationEvent(CalibrationEvent item)
     {
-        ValidateCalibrationEvent(item);
+        var hardware = ValidateCalibrationEvent(item);
         item.UpdatedAtUtc = DateTime.UtcNow;
-        ApplyCalibrationDefaults(item);
+        ApplyCalibrationDefaults(item, hardware.CalibrationIntervalDays);
 
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
@@ -191,7 +191,7 @@ public sealed partial class HardwareRepository
     }
 
 
-    private static void ApplyCalibrationDefaults(CalibrationEvent item)
+    private static void ApplyCalibrationDefaults(CalibrationEvent item, int? calibrationIntervalDays)
     {
         if (item.Status == CalibrationEventStatus.Planned)
         {
@@ -209,7 +209,9 @@ public sealed partial class HardwareRepository
             !item.NextDueAtUtc.HasValue &&
             item.PerformedAtUtc.HasValue)
         {
-            var intervalDays = item.CalibrationType switch
+            // A per-item calibration interval (set by the user) wins; otherwise fall
+            // back to a sensible default per calibration type.
+            var intervalDays = calibrationIntervalDays ?? item.CalibrationType switch
             {
                 CalibrationEventType.Ph => 14,
                 CalibrationEventType.Ec or CalibrationEventType.Orp or CalibrationEventType.Do => 30,

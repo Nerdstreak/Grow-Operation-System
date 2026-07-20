@@ -38,6 +38,7 @@ export interface HardwareItemDto {
   retiredAtUtc: string | null
   expectedLifespanDays: number | null
   inspectionIntervalDays: number | null
+  calibrationIntervalDays: number | null
   notes: string | null
   createdAtUtc: string
   updatedAtUtc: string
@@ -62,6 +63,7 @@ export interface CreateHardwareItemRequest {
   retiredAtUtc?: string | null
   expectedLifespanDays?: number | null
   inspectionIntervalDays?: number | null
+  calibrationIntervalDays?: number | null
   notes?: string | null
 }
 

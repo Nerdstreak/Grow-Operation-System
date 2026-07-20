@@ -21,7 +21,7 @@ public sealed partial class HardwareRepository
                 TentId, SetupId, HydroSetupId, GrowId, WearTemplateId, TentSensorId, HaEntityId,
                 Manufacturer, Model, SerialNumber,
                 InstalledAtUtc, RetiredAtUtc,
-                ExpectedLifespanDays, InspectionIntervalDays, Notes,
+                ExpectedLifespanDays, InspectionIntervalDays, CalibrationIntervalDays, Notes,
                 CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
@@ -29,7 +29,7 @@ public sealed partial class HardwareRepository
                 $tentId, $setupId, $hydroSetupId, $growId, $wearTemplateId, $tentSensorId, $haEntityId,
                 $manufacturer, $model, $serialNumber,
                 $installedAtUtc, $retiredAtUtc,
-                $expectedLifespanDays, $inspectionIntervalDays, $notes,
+                $expectedLifespanDays, $inspectionIntervalDays, $calibrationIntervalDays, $notes,
                 $createdAtUtc, $updatedAtUtc
             );
             SELECT last_insert_rowid();
@@ -68,6 +68,7 @@ public sealed partial class HardwareRepository
                 RetiredAtUtc = $retiredAtUtc,
                 ExpectedLifespanDays = $expectedLifespanDays,
                 InspectionIntervalDays = $inspectionIntervalDays,
+                CalibrationIntervalDays = $calibrationIntervalDays,
                 Notes = $notes,
                 UpdatedAtUtc = $updatedAtUtc
             WHERE Id = $id;
@@ -259,6 +260,7 @@ public sealed partial class HardwareRepository
             RetiredAtUtc = ParseStoredDateTime(reader["RetiredAtUtc"]?.ToString()),
             ExpectedLifespanDays = reader["ExpectedLifespanDays"] is DBNull or null ? null : Convert.ToInt32(reader["ExpectedLifespanDays"], CultureInfo.InvariantCulture),
             InspectionIntervalDays = reader["InspectionIntervalDays"] is DBNull or null ? null : Convert.ToInt32(reader["InspectionIntervalDays"], CultureInfo.InvariantCulture),
+            CalibrationIntervalDays = reader["CalibrationIntervalDays"] is DBNull or null ? null : Convert.ToInt32(reader["CalibrationIntervalDays"], CultureInfo.InvariantCulture),
             Notes = NullString(reader["Notes"]),
             CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
@@ -286,6 +288,7 @@ public sealed partial class HardwareRepository
         command.Parameters.AddWithValue("$retiredAtUtc", item.RetiredAtUtc.HasValue ? ToStorageUtc(item.RetiredAtUtc.Value) : DBNull.Value);
         command.Parameters.AddWithValue("$expectedLifespanDays", (object?)item.ExpectedLifespanDays ?? DBNull.Value);
         command.Parameters.AddWithValue("$inspectionIntervalDays", (object?)item.InspectionIntervalDays ?? DBNull.Value);
+        command.Parameters.AddWithValue("$calibrationIntervalDays", (object?)item.CalibrationIntervalDays ?? DBNull.Value);
         command.Parameters.AddWithValue("$notes", (object?)NormalizeOptional(item.Notes) ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(item.CreatedAtUtc));
         command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(item.UpdatedAtUtc));

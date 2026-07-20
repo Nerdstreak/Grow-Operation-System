@@ -21,6 +21,7 @@ public sealed class HardwareItem
     public DateTime? RetiredAtUtc { get; set; }
     public int? ExpectedLifespanDays { get; set; }
     public int? InspectionIntervalDays { get; set; }
+    public int? CalibrationIntervalDays { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;

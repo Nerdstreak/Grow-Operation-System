@@ -89,6 +89,7 @@ public sealed partial class DatabaseInitializer
         """;
         command.ExecuteNonQuery();
         EnsureColumn(connection, "HardwareItems", "HydroSetupId", "INTEGER NULL");
+        EnsureColumn(connection, "HardwareItems", "CalibrationIntervalDays", "INTEGER NULL");
         command.CommandText = """
             CREATE INDEX IF NOT EXISTS IX_HardwareItems_HydroSetupId ON HardwareItems(HydroSetupId);
         """;

@@ -25,6 +25,7 @@ public static class HardwareItemMapping
         RetiredAtUtc: item.RetiredAtUtc,
         ExpectedLifespanDays: item.ExpectedLifespanDays,
         InspectionIntervalDays: item.InspectionIntervalDays,
+        CalibrationIntervalDays: item.CalibrationIntervalDays,
         Notes: item.Notes,
         CreatedAtUtc: item.CreatedAtUtc,
         UpdatedAtUtc: item.UpdatedAtUtc
@@ -50,6 +51,7 @@ public static class HardwareItemMapping
         RetiredAtUtc = request.RetiredAtUtc,
         ExpectedLifespanDays = request.ExpectedLifespanDays,
         InspectionIntervalDays = request.InspectionIntervalDays,
+        CalibrationIntervalDays = request.CalibrationIntervalDays,
         Notes = NormalizeOptional(request.Notes)
     };
 
@@ -73,6 +75,7 @@ public static class HardwareItemMapping
         item.RetiredAtUtc = request.RetiredAtUtc;
         item.ExpectedLifespanDays = request.ExpectedLifespanDays;
         item.InspectionIntervalDays = request.InspectionIntervalDays;
+        item.CalibrationIntervalDays = request.CalibrationIntervalDays;
         item.Notes = NormalizeOptional(request.Notes);
     }
 

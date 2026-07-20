@@ -461,6 +461,7 @@ public sealed partial class DatabaseInitializer
                 RetiredAtUtc TEXT NULL,
                 ExpectedLifespanDays INTEGER NULL,
                 InspectionIntervalDays INTEGER NULL,
+                CalibrationIntervalDays INTEGER NULL,
                 Notes TEXT NULL,
                 CreatedAtUtc TEXT NOT NULL,
                 UpdatedAtUtc TEXT NOT NULL

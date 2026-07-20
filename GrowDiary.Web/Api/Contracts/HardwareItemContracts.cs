@@ -23,6 +23,7 @@ public sealed record HardwareItemDto(
     DateTime? RetiredAtUtc,
     int? ExpectedLifespanDays,
     int? InspectionIntervalDays,
+    int? CalibrationIntervalDays,
     string? Notes,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc
@@ -48,6 +49,7 @@ public sealed class CreateHardwareItemRequest
     public DateTime? RetiredAtUtc { get; set; }
     public int? ExpectedLifespanDays { get; set; }
     public int? InspectionIntervalDays { get; set; }
+    public int? CalibrationIntervalDays { get; set; }
     public string? Notes { get; set; }
 }
 
@@ -75,5 +77,6 @@ public sealed class UpdateHardwareItemRequest
     public DateTime? RetiredAtUtc { get; set; }
     public int? ExpectedLifespanDays { get; set; }
     public int? InspectionIntervalDays { get; set; }
+    public int? CalibrationIntervalDays { get; set; }
     public string? Notes { get; set; }
 }

@@ -17,6 +17,7 @@ type HardwareDraft = {
   manufacturer: string
   model: string
   serialNumber: string
+  calibrationIntervalDays: string
   notes: string
 }
 
@@ -111,6 +112,7 @@ function HardwarePage() {
       growId: existing?.growId ?? null,
       expectedLifespanDays: existing?.expectedLifespanDays ?? null,
       inspectionIntervalDays: existing?.inspectionIntervalDays ?? null,
+      calibrationIntervalDays: toIntOrNull(draft.calibrationIntervalDays),
     }
 
     setSaving('hardware')
@@ -157,6 +159,7 @@ function HardwarePage() {
       growId: item.growId,
       expectedLifespanDays: item.expectedLifespanDays,
       inspectionIntervalDays: item.inspectionIntervalDays,
+      calibrationIntervalDays: item.calibrationIntervalDays,
     }
     try {
       await apiFetch<HardwareItemDto>(`/api/hardware-items/${item.id}`, { method: 'PUT', body: JSON.stringify(request) })
@@ -247,6 +250,7 @@ function HardwarePage() {
                 <V1Field label="Hersteller"><input value={draft.manufacturer} onChange={(event) => setDraft((current) => ({ ...current, manufacturer: event.target.value }))} /></V1Field>
                 <V1Field label="Modell"><input value={draft.model} onChange={(event) => setDraft((current) => ({ ...current, model: event.target.value }))} /></V1Field>
                 <V1Field label="Seriennummer"><input value={draft.serialNumber} onChange={(event) => setDraft((current) => ({ ...current, serialNumber: event.target.value }))} /></V1Field>
+                <V1Field label="Kalibrieren alle (Tage)" hint="Erinnerung nach jeder Kalibrierung; leer = Standard je Typ"><input type="number" min="1" value={draft.calibrationIntervalDays} onChange={(event) => setDraft((current) => ({ ...current, calibrationIntervalDays: event.target.value }))} placeholder="z. B. 14" /></V1Field>
                 <V1Field label="Notizen" wide><textarea value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} /></V1Field>
               </div>
               <div className="ops1b-sticky-actions">
@@ -312,6 +316,7 @@ function createDraft(item?: HardwareItemDto): HardwareDraft {
     manufacturer: item?.manufacturer ?? '',
     model: item?.model ?? '',
     serialNumber: item?.serialNumber ?? '',
+    calibrationIntervalDays: item?.calibrationIntervalDays != null ? String(item.calibrationIntervalDays) : '',
     notes: item?.notes ?? '',
   }
 }
