@@ -1,62 +1,20 @@
 using System.Net;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Http;
 
 namespace GrowDiary.Web.Infrastructure;
 
+/// <summary>
+/// Gates administrative and product API routes. Grow OS runs as a Home Assistant
+/// add-on: the add-on port is ingress-only (never published to the network), so all
+/// real traffic arrives either from loopback or through the Home Assistant ingress
+/// proxy, which has already authenticated the user. Any other (direct, non-ingress
+/// remote) request to a protected route is refused as defense-in-depth.
+/// </summary>
 public static class AdminAccessPolicy
 {
-    public const string AllowRemoteAdminEnvironmentVariable = "GROWDIARY_ALLOW_REMOTE_ADMIN";
-    public const string AdminKeyEnvironmentVariable = "GROWDIARY_ADMIN_KEY";
-    public const string AdminKeyHeaderName = "X-GrowOS-Admin-Key";
-
     // Home Assistant's ingress proxy sets this header on every request it forwards.
     // Its presence means Home Assistant has already authenticated the user.
     public const string IngressPathHeaderName = "X-Ingress-Path";
-
-    // Unambiguous alphabet (no 0/o/1/l/i) for keys that are typed on a phone.
-    private const string KeyAlphabet = "abcdefghkmnpqrstuvwxyz23456789";
-
-    /// <summary>Returns the currently configured admin key (process environment), or null.</summary>
-    public static string? CurrentAdminKey()
-    {
-        var value = Environment.GetEnvironmentVariable(AdminKeyEnvironmentVariable);
-        return string.IsNullOrWhiteSpace(value) ? null : value;
-    }
-
-    /// <summary>Generates a new random, human-typeable admin key.</summary>
-    public static string GenerateKey(int length = 20)
-    {
-        var builder = new StringBuilder(length);
-        for (var i = 0; i < length; i++)
-        {
-            builder.Append(KeyAlphabet[RandomNumberGenerator.GetInt32(KeyAlphabet.Length)]);
-        }
-        return builder.ToString();
-    }
-
-    /// <summary>
-    /// Stores (or clears, when null/blank) the admin key. Applied to the current
-    /// process immediately and persisted to the Windows user environment so it
-    /// survives restarts.
-    /// </summary>
-    public static void StoreAdminKey(string? key)
-    {
-        var value = string.IsNullOrWhiteSpace(key) ? null : key.Trim();
-        Environment.SetEnvironmentVariable(AdminKeyEnvironmentVariable, value, EnvironmentVariableTarget.Process);
-        if (OperatingSystem.IsWindows())
-        {
-            try
-            {
-                Environment.SetEnvironmentVariable(AdminKeyEnvironmentVariable, value, EnvironmentVariableTarget.User);
-            }
-            catch
-            {
-                // Persistence is best-effort; the process-level value still applies for this run.
-            }
-        }
-    }
 
     private static readonly string[] ProtectedPrefixes =
     {
@@ -135,43 +93,16 @@ public static class AdminAccessPolicy
         return ProtectedLegacyCameraSuffixes.Any(suffix => value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Access is allowed for loopback requests and for requests proxied through the
+    /// Home Assistant ingress (which Home Assistant has already authenticated).
+    /// </summary>
     public static bool CanAccess(HttpContext context)
-    {
-        if (IsLocalRequest(context))
-        {
-            return true;
-        }
-
-        // Requests arriving through the Home Assistant ingress proxy are already
-        // authenticated by Home Assistant, so they are trusted for admin routes.
-        if (IsIngressRequest(context))
-        {
-            return true;
-        }
-
-        if (IsAdminKeyConfigured() && HasValidAdminKey(context))
-        {
-            return true;
-        }
-
-        return IsRemoteAdminExplicitlyAllowed();
-    }
+        => IsLocalRequest(context) || IsIngressRequest(context);
 
     /// <summary>True when the request is proxied through the Home Assistant ingress.</summary>
     public static bool IsIngressRequest(HttpContext context)
         => context.Request.Headers.ContainsKey(IngressPathHeaderName);
-
-    public static bool IsRemoteAdminExplicitlyAllowed()
-        => string.Equals(
-            Environment.GetEnvironmentVariable(AllowRemoteAdminEnvironmentVariable),
-            "true",
-            StringComparison.OrdinalIgnoreCase);
-
-    public static bool IsAdminKeyConfigured()
-        => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(AdminKeyEnvironmentVariable));
-
-    public static bool IsInsecureRemoteAdminOverrideActive()
-        => IsRemoteAdminExplicitlyAllowed() && !IsAdminKeyConfigured();
 
     public static bool IsLocalRequest(HttpContext context)
     {
@@ -184,23 +115,5 @@ public static class AdminAccessPolicy
 
         return IPAddress.IsLoopback(remoteIp)
                || (localIp is not null && remoteIp.Equals(localIp));
-    }
-
-    private static bool HasValidAdminKey(HttpContext context)
-    {
-        var expected = Environment.GetEnvironmentVariable(AdminKeyEnvironmentVariable);
-        if (string.IsNullOrWhiteSpace(expected))
-        {
-            return false;
-        }
-
-        if (!context.Request.Headers.TryGetValue(AdminKeyHeaderName, out var providedValues))
-        {
-            return false;
-        }
-
-        var provided = providedValues.FirstOrDefault();
-        return !string.IsNullOrWhiteSpace(provided)
-               && string.Equals(provided, expected, StringComparison.Ordinal);
     }
 }

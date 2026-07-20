@@ -144,7 +144,7 @@ app.Use(async (context, next) =>
                 context.Response.Body,
                 ApiErrorFactory.Forbidden(
                     "admin_access_required",
-                    "Dieser administrative Bereich ist standardmaessig nur lokal erreichbar. Fuer Remote-Adminzugriff ist ein Admin-Key oder eine bewusst gesetzte Remote-Freigabe erforderlich.",
+                    "Dieser Bereich ist nur lokal oder ueber Home Assistant (Ingress) erreichbar.",
                     context.TraceIdentifier),
                 new JsonSerializerOptions(JsonSerializerDefaults.Web));
             return;

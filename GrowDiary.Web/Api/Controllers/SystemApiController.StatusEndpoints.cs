@@ -45,7 +45,7 @@ public sealed partial class SystemApiController
                 "grow-export-validation",
                 "security-status",
                 "local-only-admin-default",
-                "admin-key-remote-guard",
+                "ingress-authenticated-access",
                 "schema-migration-status",
                 "upgrade-preflight-backup",
                 "backup-restore-plan",
@@ -83,8 +83,8 @@ public sealed partial class SystemApiController
             new("api_contract_manifest", "pass", "Das Backend liefert ein maschinenlesbares API-Manifest für Kernbereiche, Endpunkte und Produktregeln."),
             new("export_integrity", "pass", "Grow-Exports enthalten ExportId, SectionCounts und IntegrityHash."),
             new("import_validate", "pass", "Grow-Export-Dateien können serverseitig validiert werden, ohne Daten zu importieren."),
-            new("security_guardrails", "pass", "Administrative System-, Settings- und Export-Endpunkte sind standardmaessig local-only; Remote-Adminzugriff ist nur mit Admin-Key oder bewusster Override-Variable moeglich."),
-            new("security_status", "pass", "Das Backend stellt einen Security-Status fuer Remote-/Admin-Guardrails bereit."),
+            new("security_guardrails", "pass", "Administrative System-, Settings- und Export-Endpunkte sind nur lokal oder ueber den Home-Assistant-Ingress erreichbar; Home Assistant authentifiziert den Zugriff."),
+            new("security_status", "pass", "Das Backend stellt einen Security-Status fuer die local-only/Ingress-Guardrails bereit."),
             new("migration_status", "pass", "Das Backend protokolliert angewendete Schema-Migrationen und zeigt offene Migrationen an."),
             new("upgrade_preflight", "pass", "Vor einem Update kann ein Preflight mit Datenbankstatus, Migrationstatus und validiertem Backup ausgeführt werden."),
             new("restore_plan", "pass", "Backups können als Restore-Dry-Run analysiert werden, ohne Dateien zu überschreiben."),
@@ -92,12 +92,12 @@ public sealed partial class SystemApiController
             new("system_audit_events", "pass", "Kritische Backend-Operationen werden in einem System-Audit-Log protokolliert."),
             new("api_error_format", "pass", "API-Fehler verwenden ein einheitliches ApiError-Format mit Code, Message, FieldErrors, Status, TraceId und SchemaVersion."),
             new("legacy_mvc_containment", "pass", "Alte MVC-Backup-/Export-/Kamera-/Mutationsrouten umgehen die neuen Backup-, Export- und Security-Regeln nicht mehr."),
-            new("remote_product_api_guard", "pass", "Produkt-APIs sind bei Remote-Zugriff ebenfalls lokal/admin-geschuetzt; Mobile/PWA muss fuer echten Remote-Betrieb einen sicheren Zugriffskanal nutzen."),
+            new("remote_product_api_guard", "pass", "Produkt-APIs sind nur lokal oder ueber den Home-Assistant-Ingress erreichbar; externer Zugriff laeuft ueber Home Assistant (App/Web)."),
             new("restore_api", "pass", "Backups koennen nach Preflight, Safety-Backup und Integritaetscheck kontrolliert wiederhergestellt werden."),
             new("migration_engine_foundation", "pass", "Migrationen besitzen einen maschinenlesbaren Plan, Backup-Pflicht und Destructive-Guardrails als Fundament."),
             new("grow_snapshots", "pass", "Neue Grows speichern unveränderliche Zelt- und HydroSetup-Snapshots für stabile Vergleiche und Exporte."),
             new("migration_engine", "partial", "Schema-Migrationen werden protokolliert; destructive Rollbacks und echte Restore-/Rollback-Automation fehlen noch."),
-            new("auth_remote", "todo", "Für echten Remote-Betrieb fehlt noch eine App-eigene Auth-/Setup-Key-Schicht."),
+            new("auth_remote", "pass", "Als Home-Assistant-Add-on laeuft Grow OS hinter dem Ingress; Home Assistant uebernimmt Authentifizierung und Remote-Zugriff."),
             new("grow_import_execute", "pass", "Grow-Exports koennen kontrolliert als neue lokale Vergleichs-Grows importiert werden, ohne bestehende Grows, Zelte oder HydroSetups zu ueberschreiben.")
         };
 
@@ -125,7 +125,7 @@ public sealed partial class SystemApiController
                 "grow-export-validation",
                 "security-status",
                 "local-only-admin-default",
-                "admin-key-remote-guard",
+                "ingress-authenticated-access",
                 "schema-migration-status",
                 "upgrade-preflight-backup",
                 "backup-restore-plan",
@@ -143,7 +143,6 @@ public sealed partial class SystemApiController
             RemainingBeforeV1: new[]
             {
                 "destructive-migration-rollback",
-                "user-auth-session-management",
                 "release-upgrade-test-with-existing-app-data"
             });
 
@@ -165,9 +164,8 @@ public sealed partial class SystemApiController
             "Grow-Exports müssen SectionCounts und IntegrityHash tragen, bevor sie importiert werden dürfen.",
             "Import-Planung ist ein Dry-Run und schreibt keine Daten in die Datenbank.",
             "Echter Grow-Import legt neue lokale Vergleichs-Grows an und ueberschreibt keine bestehenden Grows, Zelte oder HydroSetups.",
-            "Administrative System-, Settings- und Export-Endpunkte sind lokal/admin-geschützt.",
-            "Produkt-APIs sind fuer Remote-Zugriff ebenfalls lokal/admin-geschützt.",
-            "Remote-Adminzugriff ist standardmaessig blockiert und erfordert Admin-Key oder bewusste Override-Variable.",
+            "Administrative System-, Settings- und Export-Endpunkte sind nur lokal oder ueber den Home-Assistant-Ingress erreichbar.",
+            "Produkt-APIs sind nur lokal oder ueber den Home-Assistant-Ingress erreichbar; externer Zugriff laeuft ueber Home Assistant.",
             "Upgrade-Preflight erstellt vor riskanten Updates ein validierbares Backup.",
             "Restore erfordert einen gueltigen Restore-Plan, Schema-Kompatibilitaet, Safety-Backup und Integritaetscheck.",
             "Schema-Migrationen werden in AppliedSchemaMigrations protokolliert.",
@@ -330,53 +328,24 @@ public sealed partial class SystemApiController
     [ProducesResponseType(typeof(BackendSecurityStatusDto), StatusCodes.Status200OK)]
     public ActionResult<BackendSecurityStatusDto> SecurityStatus()
     {
-        var warnings = new List<string>();
-        if (AdminAccessPolicy.IsInsecureRemoteAdminOverrideActive())
-        {
-            warnings.Add("GROWDIARY_ALLOW_REMOTE_ADMIN=true ist ohne Admin-Key aktiv. Das ist nur fuer bewusst abgeschottete Testnetze gedacht.");
-        }
-        if (!AdminAccessPolicy.IsAdminKeyConfigured())
-        {
-            warnings.Add("Kein Admin-Key konfiguriert. Remote-Adminzugriff bleibt standardmaessig blockiert; nutze VPN/Tailscale/Cloudflare Access oder setze GROWDIARY_ADMIN_KEY.");
-        }
-        if (AdminAccessPolicy.IsAdminKeyConfigured())
-        {
-            warnings.Add("Admin-Key ist konfiguriert. Fuer Internet-Freigaben trotzdem HTTPS und einen externen Zugriffsschutz verwenden.");
-        }
-        warnings.Add("Produkt-APIs sind fuer Remote-Zugriff geschuetzt. Mobile/PWA-Zugriff ausserhalb des Servers braucht Admin-Key, VPN/Tailscale oder Cloudflare Access.");
-
-        var mode = AdminAccessPolicy.IsRemoteAdminExplicitlyAllowed()
-            ? "remote-admin-override"
-            : AdminAccessPolicy.IsAdminKeyConfigured()
-                ? "remote-admin-key"
-                : "local-only";
-
         var dto = new BackendSecurityStatusDto(
             SecuritySchema: "grow-os.security.v1",
             CheckedAtUtc: DateTime.UtcNow,
-            AdminAccessMode: mode,
+            AdminAccessMode: "local-and-ingress",
             LocalOnlyAdminDefault: true,
-            RemoteAdminExplicitlyAllowed: AdminAccessPolicy.IsRemoteAdminExplicitlyAllowed(),
-            AdminKeyConfigured: AdminAccessPolicy.IsAdminKeyConfigured(),
-            AdminKeyRequiredForRemoteAdmin: !AdminAccessPolicy.IsRemoteAdminExplicitlyAllowed(),
-            InsecureRemoteAdminOverrideActive: AdminAccessPolicy.IsInsecureRemoteAdminOverrideActive(),
-            AdminKeyHeaderName: AdminAccessPolicy.AdminKeyHeaderName,
+            IngressTrusted: true,
             ProtectedRoutePrefixes: AdminAccessPolicy.ProtectedRoutePrefixes,
-            RemoteAccessWarnings: warnings,
-            RecommendedRemoteAccessModes: new[]
+            Notes: new[]
             {
-                "Lokaler Zugriff im Heimnetz",
-                "Tailscale oder VPN",
-                "Cloudflare Tunnel mit Access/Zero-Trust-Regel",
-                "Reverse Proxy mit HTTPS und externer Authentifizierung"
+                "Grow OS laeuft als Home-Assistant-Add-on hinter dem Ingress-Proxy; Home Assistant authentifiziert jeden Zugriff.",
+                "Der Add-on-Port ist nicht ins Netzwerk veroeffentlicht (ingress-only) und daher nicht direkt erreichbar.",
+                "Administrative System-, Settings- und Export-Endpunkte sind zusaetzlich nur lokal oder ueber den Ingress erreichbar."
             },
             SecretHandling: new[]
             {
                 "Home-Assistant-Token werden in API-Responses maskiert.",
                 "Backups schliessen ha-config.json, DataProtectionKeys, Uploads und Logs aus.",
-                "Grow-Exports pruefen potenzielle Secrets und tragen IntegrityHash.",
-                "Admin-Key wird nur aus Environment gelesen und nicht in API-Responses ausgegeben.",
-                "Produkt-APIs sind nicht mehr als ungeschuetzte Remote-Oberflaeche gedacht."
+                "Grow-Exports pruefen potenzielle Secrets und tragen IntegrityHash."
             });
 
         LogSystemAudit("security", "security-status-read", "Security-Status abgefragt.", true);

@@ -4,14 +4,8 @@ using Microsoft.AspNetCore.Http;
 
 namespace GrowDiary.Web.Tests.Infrastructure;
 
-public sealed class AdminAccessPolicyTests : IDisposable
+public sealed class AdminAccessPolicyTests
 {
-    public void Dispose()
-    {
-        Environment.SetEnvironmentVariable(AdminAccessPolicy.AdminKeyEnvironmentVariable, null);
-        Environment.SetEnvironmentVariable(AdminAccessPolicy.AllowRemoteAdminEnvironmentVariable, null);
-    }
-
     [Theory]
     [InlineData("/api/settings")]
     [InlineData("/api/settings/tents")]
@@ -87,7 +81,7 @@ public sealed class AdminAccessPolicyTests : IDisposable
     }
 
     [Fact]
-    public void CanAccess_RejectsRemoteRequestsWithoutAdminKeyOrOverride()
+    public void CanAccess_RejectsRemoteNonIngressRequests()
     {
         var context = CreateContext(IPAddress.Parse("203.0.113.10"), IPAddress.Parse("192.168.1.20"));
 
@@ -95,33 +89,12 @@ public sealed class AdminAccessPolicyTests : IDisposable
     }
 
     [Fact]
-    public void CanAccess_AllowsRemoteRequestsWithValidAdminKey()
+    public void CanAccess_AllowsRemoteRequestsThroughIngress()
     {
-        Environment.SetEnvironmentVariable(AdminAccessPolicy.AdminKeyEnvironmentVariable, "test-key");
         var context = CreateContext(IPAddress.Parse("203.0.113.10"), IPAddress.Parse("192.168.1.20"));
-        context.Request.Headers[AdminAccessPolicy.AdminKeyHeaderName] = "test-key";
+        context.Request.Headers[AdminAccessPolicy.IngressPathHeaderName] = "/api/hassio_ingress/token";
 
         Assert.True(AdminAccessPolicy.CanAccess(context));
-    }
-
-    [Fact]
-    public void CanAccess_RejectsRemoteRequestsWithInvalidAdminKey()
-    {
-        Environment.SetEnvironmentVariable(AdminAccessPolicy.AdminKeyEnvironmentVariable, "test-key");
-        var context = CreateContext(IPAddress.Parse("203.0.113.10"), IPAddress.Parse("192.168.1.20"));
-        context.Request.Headers[AdminAccessPolicy.AdminKeyHeaderName] = "wrong";
-
-        Assert.False(AdminAccessPolicy.CanAccess(context));
-    }
-
-    [Fact]
-    public void CanAccess_AllowsRemoteRequestsWhenExplicitOverrideIsEnabled()
-    {
-        Environment.SetEnvironmentVariable(AdminAccessPolicy.AllowRemoteAdminEnvironmentVariable, "true");
-        var context = CreateContext(IPAddress.Parse("203.0.113.10"), IPAddress.Parse("192.168.1.20"));
-
-        Assert.True(AdminAccessPolicy.CanAccess(context));
-        Assert.True(AdminAccessPolicy.IsInsecureRemoteAdminOverrideActive());
     }
 
     private static DefaultHttpContext CreateContext(IPAddress remoteIp, IPAddress localIp)

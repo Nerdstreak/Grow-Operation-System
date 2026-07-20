@@ -49,7 +49,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-integrity");
         Assert.Contains(dto.CompletedFoundations, value => value == "grow-export-validation");
         Assert.Contains(dto.CompletedFoundations, value => value == "security-status");
-        Assert.Contains(dto.CompletedFoundations, value => value == "admin-key-remote-guard");
+        Assert.Contains(dto.CompletedFoundations, value => value == "ingress-authenticated-access");
         Assert.Contains(dto.CompletedFoundations, value => value == "schema-migration-status");
         Assert.Contains(dto.CompletedFoundations, value => value == "upgrade-preflight-backup");
         Assert.Contains(dto.CompletedFoundations, value => value == "backup-restore-plan");
@@ -135,7 +135,7 @@ public sealed class SystemApiControllerTests : IDisposable
         Assert.Equal("grow-os.api-manifest.v1", dto.SchemaVersion);
         Assert.Equal("backend-core.v0.18-candidate", dto.BackendSchema);
         Assert.Contains(dto.GlobalRules, rule => rule.Contains("HydroSetup", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(dto.GlobalRules, rule => rule.Contains("Remote-Adminzugriff", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(dto.GlobalRules, rule => rule.Contains("Ingress", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.Areas, area => area.Key == "tents");
         Assert.Contains(dto.Areas, area => area.Key == "hydro-setups");
         Assert.Contains(dto.Areas, area => area.Key == "grows");
@@ -238,30 +238,22 @@ public sealed class SystemApiControllerTests : IDisposable
 
 
     [Fact]
-    public void SecurityStatus_ReturnsLocalOnlyGuardrailStateWithoutSecrets()
+    public void SecurityStatus_ReturnsLocalAndIngressGuardrailStateWithoutSecrets()
     {
-        Environment.SetEnvironmentVariable(AdminAccessPolicy.AdminKeyEnvironmentVariable, null);
-        Environment.SetEnvironmentVariable(AdminAccessPolicy.AllowRemoteAdminEnvironmentVariable, null);
-
         var result = _controller.SecurityStatus();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<BackendSecurityStatusDto>(ok.Value);
         Assert.Equal("grow-os.security.v1", dto.SecuritySchema);
-        Assert.Equal("local-only", dto.AdminAccessMode);
+        Assert.Equal("local-and-ingress", dto.AdminAccessMode);
         Assert.True(dto.LocalOnlyAdminDefault);
-        Assert.False(dto.RemoteAdminExplicitlyAllowed);
-        Assert.False(dto.AdminKeyConfigured);
-        Assert.True(dto.AdminKeyRequiredForRemoteAdmin);
-        Assert.Equal(AdminAccessPolicy.AdminKeyHeaderName, dto.AdminKeyHeaderName);
+        Assert.True(dto.IngressTrusted);
         Assert.Contains(dto.ProtectedRoutePrefixes, prefix => prefix == "/api/exports");
         Assert.Contains(dto.ProtectedRoutePrefixes, prefix => prefix == "/api/grows");
         Assert.Contains(dto.ProtectedRoutePrefixes, prefix => prefix == "/api/hydro-setups");
-        Assert.Contains(dto.RemoteAccessWarnings, warning => warning.Contains("Kein Admin-Key", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(dto.RemoteAccessWarnings, warning => warning.Contains("Produkt-APIs", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(dto.RecommendedRemoteAccessModes, mode => mode.Contains("Tailscale", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(dto.Notes, note => note.Contains("Ingress", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(dto.SecretHandling, item => item.Contains("Home-Assistant-Token", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(dto.SecretHandling, item => item.Contains("GROWDIARY_ADMIN_KEY=", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(dto.SecretHandling, item => item.Contains("Admin-Key", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

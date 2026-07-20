@@ -8,10 +8,7 @@
     "dev:lan": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "audit:install": "playwright install chromium",
-    "audit:visual": "playwright test --config=playwright.config.ts",
-    "audit:visual:headed": "playwright test --config=playwright.config.ts --headed"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
@@ -22,7 +19,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.59.1",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
