@@ -3,10 +3,10 @@ version: "1.0.4"
 slug: grow_os
 description: Self-hosted RDWC/DWC grow management, natively integrated with Home Assistant
 url: https://github.com/Nerdstreak/Grow-Operation-System
-# Prebuilt image, pulled directly by the Supervisor (the tag matches this add-on
-# version). Updates are then a clean image pull with no on-device rebuild and no
-# data loss — {arch} is substituted with the device architecture below.
-image: ghcr.io/nerdstreak/grow-operation-system-{arch}
+# Prebuilt public multi-arch image, pulled directly by the Supervisor (the tag
+# matches this add-on version; Docker resolves the right architecture). Updates are
+# a clean image pull with no on-device rebuild and no data loss.
+image: ghcr.io/nerdstreak/grow-operation-system
 # The Grow OS image is published multi-arch; these are the Raspberry Pi + PC targets.
 arch:
   - aarch64
