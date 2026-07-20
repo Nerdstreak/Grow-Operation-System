@@ -121,6 +121,10 @@ export function GrowDetailAutomationSection({
               </div>
             </div>
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 14px', cursor: 'pointer' }}>
+            <input type="checkbox" checked={autoConfigForm.captureSnapshot} onChange={(event) => onAutoConfigFormChange({ captureSnapshot: event.target.checked })} />
+            <span style={{ fontSize: 13 }}>Kamera-Snapshot speichern (bei jedem Auslösen ein Bild ins Grow-Fototagebuch)</span>
+          </label>
           <button className="btn btn-primary" disabled={saving === 'auto-config'}>{saving === 'auto-config' ? 'Speichert...' : 'Config anlegen'}</button>
         </form>
         {autoStatusError && (
@@ -144,7 +148,7 @@ export function GrowDetailAutomationSection({
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                   <div>
                     <div className="tl-title">{config.name}</div>
-                    <div className="tl-sub">{triggerKindLabels[config.triggerKind] ?? config.triggerKind} · {config.windowMinutes} min Fenster{config.delayMinutes != null ? ` · ${config.delayMinutes} min Delay` : ''}</div>
+                    <div className="tl-sub">{triggerKindLabels[config.triggerKind] ?? config.triggerKind} · {config.windowMinutes} min Fenster{config.delayMinutes != null ? ` · ${config.delayMinutes} min Delay` : ''}{config.captureSnapshot ? ' · 📷 Snapshot' : ''}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span className={`badge ${config.status === 'Enabled' ? 'badge-ok' : 'badge-neutral'}`}>{config.status}</span>

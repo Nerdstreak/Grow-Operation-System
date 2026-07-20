@@ -106,6 +106,7 @@ export const emptyAutoConfigForm = () => ({
   triggerKind: 'Manual' as AutoMeasurementTriggerKind,
   delayMinutes: '',
   windowMinutes: '20',
+  captureSnapshot: false,
 })
 
 export type AutoConfigFormState = ReturnType<typeof emptyAutoConfigForm>

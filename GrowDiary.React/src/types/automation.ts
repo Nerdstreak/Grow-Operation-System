@@ -11,6 +11,7 @@ export interface AutoMeasurementConfigDto {
   triggerKind: AutoMeasurementTriggerKind
   delayMinutes: number | null
   windowMinutes: number
+  captureSnapshot: boolean
   createdAtUtc: string
   updatedAtUtc: string
 }
@@ -23,6 +24,7 @@ export interface CreateAutoMeasurementConfigRequest {
   triggerKind: AutoMeasurementTriggerKind
   delayMinutes?: number | null
   windowMinutes: number
+  captureSnapshot?: boolean
 }
 
 export interface UpdateAutoMeasurementConfigRequest {
@@ -32,6 +34,7 @@ export interface UpdateAutoMeasurementConfigRequest {
   triggerKind: AutoMeasurementTriggerKind
   delayMinutes?: number | null
   windowMinutes: number
+  captureSnapshot?: boolean
 }
 
 export interface AutoMeasurementFieldMappingDto {

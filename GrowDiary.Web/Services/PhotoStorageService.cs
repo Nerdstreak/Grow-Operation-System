@@ -58,6 +58,33 @@ public sealed class PhotoStorageService
         }
     }
 
+    /// <summary>
+    /// Persists raw camera snapshot bytes (e.g. from an auto-measurement trigger) as a
+    /// grow photo so it shows up in the grow's photo timeline.
+    /// </summary>
+    public async Task<PhotoAsset> SaveSnapshotAsync(GrowRun grow, int? measurementId, byte[] bytes, CancellationToken cancellationToken = default)
+    {
+        var directory = Path.Combine(_paths.UploadRootPath, grow.Id.ToString());
+        Directory.CreateDirectory(directory);
+
+        var fileName = $"{DateTime.UtcNow:yyyyMMddHHmmssfff}_{Guid.NewGuid():N}.jpg";
+        await File.WriteAllBytesAsync(Path.Combine(directory, fileName), bytes, cancellationToken);
+
+        var saved = new PhotoAsset
+        {
+            GrowId = grow.Id,
+            MeasurementId = measurementId,
+            RelativePath = $"/uploads/{grow.Id}/{fileName}".Replace("\\", "/"),
+            Caption = "Auto-Snapshot",
+            Tag = PhotoTag.Overview,
+            Source = ValueOrigin.HomeAssistant,
+            TakenAtUtc = DateTime.UtcNow
+        };
+
+        _repository.AddPhoto(saved);
+        return saved;
+    }
+
     public async Task<List<PhotoAsset>> SaveMeasurementPhotosAsync(
         GrowRun grow,
         int measurementId,

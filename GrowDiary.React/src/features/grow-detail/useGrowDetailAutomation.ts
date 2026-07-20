@@ -114,6 +114,7 @@ export function useGrowDetailAutomation({
           triggerKind: autoConfigForm.triggerKind,
           delayMinutes: toNullableInteger(autoConfigForm.delayMinutes),
           windowMinutes,
+          captureSnapshot: autoConfigForm.captureSnapshot,
         }),
       })
       setAutoConfigForm(emptyAutoConfigForm())

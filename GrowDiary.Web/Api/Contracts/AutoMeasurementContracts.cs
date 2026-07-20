@@ -12,6 +12,7 @@ public sealed record AutoMeasurementConfigDto(
     AutoMeasurementTriggerKind TriggerKind,
     int? DelayMinutes,
     int WindowMinutes,
+    bool CaptureSnapshot,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc
 );
@@ -28,6 +29,7 @@ public sealed class CreateAutoMeasurementConfigRequest
     public AutoMeasurementTriggerKind TriggerKind { get; set; } = AutoMeasurementTriggerKind.Manual;
     public int? DelayMinutes { get; set; }
     public int WindowMinutes { get; set; } = 20;
+    public bool CaptureSnapshot { get; set; }
 }
 
 public sealed class UpdateAutoMeasurementConfigRequest
@@ -41,6 +43,7 @@ public sealed class UpdateAutoMeasurementConfigRequest
     public AutoMeasurementTriggerKind TriggerKind { get; set; } = AutoMeasurementTriggerKind.Manual;
     public int? DelayMinutes { get; set; }
     public int WindowMinutes { get; set; } = 20;
+    public bool CaptureSnapshot { get; set; }
 }
 
 public sealed record AutoMeasurementFieldMappingDto(

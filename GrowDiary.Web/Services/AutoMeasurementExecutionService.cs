@@ -3,6 +3,9 @@ using GrowDiary.Web.Models;
 
 namespace GrowDiary.Web.Services;
 
+/// <summary>A tent snapshot that a fired auto-measurement trigger asked to capture.</summary>
+public sealed record AutoSnapshotRequest(int GrowId, int TentId, DateTime ScheduledForUtc);
+
 public sealed class AutoMeasurementExecutionService
 {
     private static readonly DateTime MissingTentRunScheduleUtc = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -21,10 +24,10 @@ public sealed class AutoMeasurementExecutionService
         _valueGuard = valueGuard;
     }
 
-    public int ExecuteDue(DateTime nowUtc)
+    public IReadOnlyList<AutoSnapshotRequest> ExecuteDue(DateTime nowUtc)
     {
         nowUtc = nowUtc.ToUniversalTime();
-        var processed = 0;
+        var snapshotRequests = new List<AutoSnapshotRequest>();
 
         foreach (var config in _repository.GetEnabledAutoMeasurementConfigs())
         {
@@ -40,7 +43,6 @@ public sealed class AutoMeasurementExecutionService
                 if (TryCreateMissingTentRun(config) is { } missingTentRun)
                 {
                     MarkSkipped(missingTentRun, "Kein Tent fuer AutoMeasurementConfig ermittelbar.");
-                    processed++;
                 }
                 continue;
             }
@@ -82,11 +84,14 @@ public sealed class AutoMeasurementExecutionService
                 });
 
                 ProcessRun(config, grow, tentId.Value, scheduledForUtc, run);
-                processed++;
+                if (config.CaptureSnapshot)
+                {
+                    snapshotRequests.Add(new AutoSnapshotRequest(config.GrowId, tentId.Value, scheduledForUtc));
+                }
             }
         }
 
-        return processed;
+        return snapshotRequests;
     }
 
     private AutoMeasurementRun? TryCreateMissingTentRun(AutoMeasurementConfig config)

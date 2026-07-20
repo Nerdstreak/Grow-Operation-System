@@ -14,6 +14,7 @@ public static class AutoMeasurementMapping
         TriggerKind: config.TriggerKind,
         DelayMinutes: config.DelayMinutes,
         WindowMinutes: config.WindowMinutes,
+        CaptureSnapshot: config.CaptureSnapshot,
         CreatedAtUtc: config.CreatedAtUtc,
         UpdatedAtUtc: config.UpdatedAtUtc
     );
@@ -26,7 +27,8 @@ public static class AutoMeasurementMapping
         Status = request.Status,
         TriggerKind = request.TriggerKind,
         DelayMinutes = request.DelayMinutes,
-        WindowMinutes = request.WindowMinutes
+        WindowMinutes = request.WindowMinutes,
+        CaptureSnapshot = request.CaptureSnapshot
     };
 
     public static void ApplyTo(this UpdateAutoMeasurementConfigRequest request, AutoMeasurementConfig config)
@@ -37,6 +39,7 @@ public static class AutoMeasurementMapping
         config.TriggerKind = request.TriggerKind;
         config.DelayMinutes = request.DelayMinutes;
         config.WindowMinutes = request.WindowMinutes;
+        config.CaptureSnapshot = request.CaptureSnapshot;
     }
 
     public static AutoMeasurementFieldMappingDto ToDto(this AutoMeasurementFieldMapping mapping) => new(

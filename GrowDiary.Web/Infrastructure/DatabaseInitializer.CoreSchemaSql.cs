@@ -407,6 +407,7 @@ public sealed partial class DatabaseInitializer
                 TriggerKind TEXT NOT NULL DEFAULT 'Manual',
                 DelayMinutes INTEGER NULL,
                 WindowMinutes INTEGER NOT NULL DEFAULT 20,
+                CaptureSnapshot INTEGER NOT NULL DEFAULT 0,
                 CreatedAtUtc TEXT NOT NULL,
                 UpdatedAtUtc TEXT NOT NULL,
                 FOREIGN KEY (GrowId) REFERENCES Grows (Id) ON DELETE CASCADE,

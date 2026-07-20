@@ -19,11 +19,11 @@ public sealed class AutoMeasurementRepository : RepositoryBase
         using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO AutoMeasurementConfigs (
-                GrowId, TentId, Name, Status, TriggerKind, DelayMinutes, WindowMinutes,
+                GrowId, TentId, Name, Status, TriggerKind, DelayMinutes, WindowMinutes, CaptureSnapshot,
                 CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
-                $growId, $tentId, $name, $status, $triggerKind, $delayMinutes, $windowMinutes,
+                $growId, $tentId, $name, $status, $triggerKind, $delayMinutes, $windowMinutes, $captureSnapshot,
                 $createdAtUtc, $updatedAtUtc
             );
             SELECT last_insert_rowid();
@@ -47,6 +47,7 @@ public sealed class AutoMeasurementRepository : RepositoryBase
                 TriggerKind = $triggerKind,
                 DelayMinutes = $delayMinutes,
                 WindowMinutes = $windowMinutes,
+                CaptureSnapshot = $captureSnapshot,
                 UpdatedAtUtc = $updatedAtUtc
             WHERE Id = $id;
         """;
@@ -313,6 +314,7 @@ public sealed class AutoMeasurementRepository : RepositoryBase
             TriggerKind = ParseEnum(reader["TriggerKind"]?.ToString(), AutoMeasurementTriggerKind.Manual),
             DelayMinutes = reader["DelayMinutes"] is DBNull or null ? null : Convert.ToInt32(reader["DelayMinutes"], CultureInfo.InvariantCulture),
             WindowMinutes = Convert.ToInt32(reader["WindowMinutes"], CultureInfo.InvariantCulture),
+            CaptureSnapshot = reader["CaptureSnapshot"] is not DBNull and not null && Convert.ToInt32(reader["CaptureSnapshot"], CultureInfo.InvariantCulture) == 1,
             CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
@@ -359,6 +361,7 @@ public sealed class AutoMeasurementRepository : RepositoryBase
         command.Parameters.AddWithValue("$triggerKind", config.TriggerKind.ToString());
         command.Parameters.AddWithValue("$delayMinutes", (object?)config.DelayMinutes ?? DBNull.Value);
         command.Parameters.AddWithValue("$windowMinutes", config.WindowMinutes);
+        command.Parameters.AddWithValue("$captureSnapshot", config.CaptureSnapshot ? 1 : 0);
         command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(config.CreatedAtUtc));
         command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(config.UpdatedAtUtc));
     }
