@@ -73,8 +73,10 @@ gibt es keine Add-ons).
    ```
 
 3. **Grow OS** erscheint im Store → **Installieren** → **Starten**.
-4. Über die Home-Assistant-Seitenleiste öffnen (🌱). Es ist bereits mit Home Assistant
-   verbunden — wähl einfach deine Sensoren aus dem Dropdown.
+4. Auf der **Info**-Seite des Add-ons den Schalter **„In Seitenleiste anzeigen"**
+   aktivieren, damit Grow OS in der Home-Assistant-Seitenleiste erscheint (🌱).
+5. Über die Seitenleiste öffnen. Es ist bereits mit Home Assistant verbunden — wähl
+   einfach deine Sensoren aus dem Dropdown.
 
 Updates sind ein sauberer Ein-Klick-Pull aus Home Assistant; deine Daten bleiben
 erhalten.

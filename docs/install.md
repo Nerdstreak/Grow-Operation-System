@@ -37,10 +37,16 @@ https://github.com/Nerdstreak/Grow-Operation-System
 
 **Grow OS** erscheint im Store → **Installieren** → **Starten**.
 
-## Schritt 3 — Öffnen und Sensoren wählen
+## Schritt 3 — In der Seitenleiste anzeigen
 
-Grow OS erscheint in der **Seitenleiste** von Home Assistant (Symbol 🌱). Es ist
-**sofort mit Home Assistant verbunden** — keine URL, kein Token. Beim Zelt-Mapping
+Damit Grow OS in der **Seitenleiste** auftaucht, auf der **Info**-Seite des Add-ons den
+Schalter **„In Seitenleiste anzeigen"** aktivieren. Danach erscheint das Symbol 🌱 in
+der linken Leiste.
+
+## Schritt 4 — Öffnen und Sensoren wählen
+
+Grow OS ist **sofort mit Home Assistant verbunden** — keine URL, kein Token. Beim
+Zelt-Mapping
 wählst du deine Sensoren bequem aus einem **Dropdown** deiner echten HA-Entitäten
 (kein Abtippen von Entity-IDs).
 

@@ -10,7 +10,9 @@ is the simplest way to install it: one click, no separate server, no manual toke
 2. Top-right **⋮ → Repositories**, add:
    `https://github.com/Nerdstreak/Grow-Operation-System`
 3. **Grow OS** appears in the store — click **Install**, then **Start**.
-4. Open it from the Home Assistant sidebar (🌱 Grow OS).
+4. On this add-on's **Info** page, enable **"Show in sidebar"** so Grow OS appears in
+   the Home Assistant sidebar (🌱 Grow OS).
+5. Open it from the sidebar.
 
 ## What "native integration" means here
 

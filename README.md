@@ -72,8 +72,10 @@ Assistant Container/Core).
    ```
 
 3. **Grow OS** appears in the store → **Install** → **Start**.
-4. Open it from the Home Assistant sidebar (🌱). It's already connected to Home
-   Assistant — just pick your sensors from the dropdown.
+4. On the add-on's **Info** page, enable **"Show in sidebar"** so Grow OS appears in
+   the Home Assistant sidebar (🌱).
+5. Open it from the sidebar. It's already connected to Home Assistant — just pick your
+   sensors from the dropdown.
 
 Updates are a clean, one-click pull from Home Assistant; your data is preserved.
 
