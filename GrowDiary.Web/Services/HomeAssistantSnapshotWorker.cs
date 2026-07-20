@@ -134,8 +134,7 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
                 settings, tent.CameraEntityId, cancellationToken);
             if (snapshot is not null)
             {
-                var dir = Path.Combine(
-                    _paths.ContentRootPath, "App_Data", "snapshots", tent.Id.ToString());
+                var dir = Path.Combine(_paths.SnapshotsPath, tent.Id.ToString());
                 Directory.CreateDirectory(dir);
                 var filePath = Path.Combine(dir, $"{today:yyyy-MM-dd}.jpg");
                 await File.WriteAllBytesAsync(filePath, snapshot.Value.Bytes, cancellationToken);

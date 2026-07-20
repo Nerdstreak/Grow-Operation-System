@@ -28,10 +28,9 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options 
 builder.Services.AddHttpClient();
 
 var paths = new AppPaths(builder.Environment.ContentRootPath);
-var dataProtectionKeyPath = Path.Combine(paths.ContentRootPath, "App_Data", "DataProtectionKeys");
-Directory.CreateDirectory(dataProtectionKeyPath);
+Directory.CreateDirectory(paths.DataProtectionKeysPath);
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath))
+    .PersistKeysToFileSystem(new DirectoryInfo(paths.DataProtectionKeysPath))
     .SetApplicationName("GrowDiary.Web");
 builder.Services.AddSingleton(paths);
 builder.Services.AddSingleton<DatabaseInitializer>();
@@ -192,6 +191,16 @@ app.UseStaticFiles(new StaticFileOptions
         }
     }
 });
+
+// Grow photos / uploads live under the persistent data root (outside wwwroot) so they
+// survive updates and are captured by Home Assistant backups. Serve them at /uploads.
+Directory.CreateDirectory(paths.UploadRootPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(paths.UploadRootPath),
+    RequestPath = "/uploads"
+});
+
 app.UseRouting();
 
 // API-Attribute-Routes, Kamera-Routen und Export-Endpoints

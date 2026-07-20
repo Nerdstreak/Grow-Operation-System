@@ -27,6 +27,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
 ENV ASPNETCORE_URLS=http://0.0.0.0:5076
+# All mutable data (db, uploads, photos, snapshots, keys) lives under the persistent
+# /data volume so it survives updates and is captured by Home Assistant backups.
+ENV GROWDIARY_DATA_PATH=/data
 ENV GROWDIARY_DB_PATH=/data/grow-diary.db
 
 EXPOSE 5076

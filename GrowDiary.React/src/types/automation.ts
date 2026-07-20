@@ -318,11 +318,6 @@ export interface SettingsOverviewDto {
   tents: TentDto[]
 }
 
-export interface AdminKeyDto {
-  configured: boolean
-  key: string | null
-}
-
 export interface MetricPayload {
   key: string
   label: string

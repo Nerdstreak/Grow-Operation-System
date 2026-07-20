@@ -4,7 +4,6 @@ import AddbackHubPage from './pages/AddbackHubPage'
 import AddbackPage from './pages/AddbackPage'
 import AnalysisPage from './pages/AnalysisPage'
 import ArchivePage from './pages/ArchivePage'
-import DeviceConnectPage from './pages/DeviceConnectPage'
 import GrowDetailPage from './pages/GrowDetailPage'
 import GrowsPage from './pages/GrowsPage'
 import GrowSetupPage from './pages/GrowSetupPage'
@@ -22,8 +21,6 @@ import ReleasePage from './pages/ReleasePage'
 import SettingsPage from './pages/SettingsPage'
 import TentDetailPage from './pages/TentDetailPage'
 import TentsPage from './pages/TentsPage'
-import AdminKeyGate from './components/AdminKeyGate'
-import { openAdminKeyDialog } from './api'
 import './rc2-overrides.css'
 import './styles/redesign-shell.css'
 import './styles/redesign-primitives.css'
@@ -93,7 +90,7 @@ function App() {
           <div className="v1-brand-mark">●</div>
           <div>
             <strong>Grow OS</strong>
-            <span>Local-first RDWC</span>
+            <span>RDWC/DWC · Home Assistant</span>
           </div>
         </div>
         <nav className="v1-nav-group" aria-label="Core">
@@ -104,10 +101,6 @@ function App() {
           <span>Mehr</span>
           {desktopMoreNav.map((item) => <NavItem key={item.to} {...item} />)}
         </nav>
-        <div className="v1-nav-foot">
-          <button type="button" className="v1-nav-remote" onClick={openAdminKeyDialog}>Remote-Zugriff</button>
-          <span>Selfhost · HA · Offline-first</span>
-        </div>
       </aside>
 
       <header className="v1-mobile-topbar" data-audit="mobile-header">
@@ -137,9 +130,6 @@ function App() {
               </div>
             </section>
           ))}
-          <button type="button" className="v1-mobile-more-remote" onClick={() => { setMobileMoreOpen(false); openAdminKeyDialog() }}>
-            Remote-Zugriff (Admin-Key)
-          </button>
         </div>
       )}
 
@@ -166,7 +156,6 @@ function App() {
           <Route path="/hydro/new" element={<HydroPage />} />
           <Route path="/hydro/:setupId" element={<HydroDetailPage />} />
           <Route path="/home-assistant" element={<HomeAssistantPage />} />
-          <Route path="/connect" element={<DeviceConnectPage />} />
           <Route path="/hardware" element={<HardwarePage />} />
           <Route path="/wissen" element={<KnowledgePage />} />
           <Route path="/release" element={<ReleasePage />} />
@@ -185,7 +174,6 @@ function App() {
         ))}
       </nav>
 
-      <AdminKeyGate />
     </div>
   )
 }
@@ -201,7 +189,6 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/hydro')) return 'Hydro'
   if (pathname.startsWith('/action') || pathname.startsWith('/aufgaben')) return 'Aufgaben'
   if (pathname.startsWith('/home-assistant')) return 'Home Assistant'
-  if (pathname.startsWith('/connect')) return 'Gerät verbinden'
   if (pathname.startsWith('/grows/new')) return 'Grow starten'
   if (pathname.startsWith('/messung') || pathname.startsWith('/messungen')) return 'Messung'
   if (pathname.startsWith('/grows')) return 'Grows'
