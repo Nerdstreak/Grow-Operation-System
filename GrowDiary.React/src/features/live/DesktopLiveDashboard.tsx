@@ -66,42 +66,42 @@ function CameraScreen({ tent }: { tent: TentDto }) {
   const [src, setSrc] = useState<string | null>(null)
   const [meta, setMeta] = useState<{ capturedAt: string | null; live: boolean } | null>(null)
   const [unavailable, setUnavailable] = useState(false)
-  const [tick, setTick] = useState(0)
   const urlRef = useRef<string | null>(null)
 
-  // Near-live: refresh the camera frame ~once per second, independent of the 30s
-  // sensor-data refresh, so the feed feels like a live stream.
+  // Near-live: schedule the next frame ~1s after the previous one *completes*, so a
+  // slow (cold-start) camera never has its in-flight request aborted by a fixed timer
+  // — it just refreshes a little less often instead of never showing an image.
   useEffect(() => {
     if (!tent.cameraEntityId) return
-    const id = window.setInterval(() => setTick((value) => value + 1), 1000)
-    return () => window.clearInterval(id)
-  }, [tent.cameraEntityId])
+    let active = true
+    let timer: number | undefined
 
-  useEffect(() => {
-    if (!tent.cameraEntityId) return
-    const controller = new AbortController()
-    async function run() {
+    async function loop() {
       try {
-        const response = await fetch(resolveUrl(`/api/live/tents/${tent.id}/camera?t=${tick}`), { signal: controller.signal })
-        if (!response.ok) {
-          if (!urlRef.current) setUnavailable(true)
-          return
+        const response = await fetch(resolveUrl(`/api/live/tents/${tent.id}/camera?t=${Date.now()}`))
+        if (!active) return
+        if (response.ok) {
+          const blob = await response.blob()
+          if (!active) return
+          const next = URL.createObjectURL(blob)
+          if (urlRef.current) URL.revokeObjectURL(urlRef.current)
+          urlRef.current = next
+          setSrc(next)
+          setMeta({ capturedAt: response.headers.get('X-Camera-Captured-At'), live: response.headers.get('X-Camera-Live') !== 'false' })
+          setUnavailable(false)
+        } else if (!urlRef.current) {
+          setUnavailable(true)
         }
-        const blob = await response.blob()
-        if (controller.signal.aborted) return
-        const next = URL.createObjectURL(blob)
-        if (urlRef.current) URL.revokeObjectURL(urlRef.current)
-        urlRef.current = next
-        setSrc(next)
-        setMeta({ capturedAt: response.headers.get('X-Camera-Captured-At'), live: response.headers.get('X-Camera-Live') !== 'false' })
-        setUnavailable(false)
       } catch {
-        if (!urlRef.current) setUnavailable(true)
+        if (active && !urlRef.current) setUnavailable(true)
+      } finally {
+        if (active) timer = window.setTimeout(loop, 1000)
       }
     }
-    void run()
-    return () => controller.abort()
-  }, [tent.id, tent.cameraEntityId, tick])
+
+    void loop()
+    return () => { active = false; if (timer !== undefined) window.clearTimeout(timer) }
+  }, [tent.id, tent.cameraEntityId])
 
   useEffect(() => () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current) }, [])
 
