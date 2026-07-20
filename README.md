@@ -1,5 +1,7 @@
 # Grow OS — the RDWC/DWC grow add-on for Home Assistant
 
+**English** · [Deutsch](README.de.md)
+
 **Turn your Home Assistant sensors into a real grow-management cockpit.** Grow OS is a
 free, local-first Home Assistant add-on for hydroponic (RDWC/DWC) growers: a live
 instrument dashboard, grow documentation, SOPs, hardware & maintenance tracking,
