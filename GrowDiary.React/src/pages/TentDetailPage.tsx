@@ -4,6 +4,7 @@ import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary, HydroSetupDto, MetricPayload, PlantInstanceDto, SetupDto, TentDto, TentLivePayload } from '../types'
 import { V1Alert, V1Badge, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { PlantActions } from '../features/plants/PlantActions'
+import { resolveUrl } from '../base'
 
 const tentMetricDefinitions = [
   ['temperature', 'Temp', '°C'],
@@ -120,7 +121,7 @@ function TentDetailPage() {
         </V1Card>
 
         {live?.cameraUrl ? (
-          <div className="v1-camera-card rc2-camera-card"><img src={live.cameraUrl} alt={`Livebild ${tent.name}`} className="ready" /><div className="v1-camera-label"><strong>{tent.name}</strong><span>Kamera</span></div></div>
+          <div className="v1-camera-card rc2-camera-card"><img src={resolveUrl(live.cameraUrl)} alt={`Livebild ${tent.name}`} className="ready" /><div className="v1-camera-label"><strong>{tent.name}</strong><span>Kamera</span></div></div>
         ) : (
           <V1Card className="v1-camera-empty is-compact"><span className="v1-card-kicker">Kamera</span><h2>Nicht eingerichtet</h2><p>{tent.cameraEntityId ?? 'Kamera-Entity fehlt im HA-Mapping.'}</p><V1LinkButton to="/home-assistant">HA-Mapping</V1LinkButton></V1Card>
         )}

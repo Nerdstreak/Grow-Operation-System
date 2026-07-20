@@ -5,6 +5,7 @@ import { apiFetch, ApiRequestError } from '../api'
 import type { HomeAssistantEntity, HomeAssistantSettingsDto, SensorMetricType, SettingsOverviewDto, TentDto, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch, V1Tabs } from '../components/v1'
 import { toNullableString } from '../components/v1-utils'
+import { resolveUrl } from '../base'
 
 type GroupKey = 'tent' | 'reservoir' | 'hardware'
 type SensorDraft = { metricType: SensorMetricType; haEntityId: string; displayLabel: string; isActive: boolean }
@@ -256,10 +257,10 @@ function HomeAssistantPage() {
                       )}
                     </V1Field>
                       <V1Button onClick={() => void testCamera()}>Kamera testen</V1Button>
-                      {cameraStatus?.previewUrl && <a className="v1-button is-secondary" href={cameraStatus.previewUrl} target="_blank" rel="noreferrer">Snapshot öffnen</a>}
+                      {cameraStatus?.previewUrl && <a className="v1-button is-secondary" href={resolveUrl(cameraStatus.previewUrl)} target="_blank" rel="noreferrer">Snapshot öffnen</a>}
                     </div>
                     {cameraStatus && <p>{cameraStatus.message}</p>}
-                    {cameraStatus?.previewUrl && <img className="rc2-camera-preview" src={cameraStatus.previewUrl} alt="Kamera Vorschau" />}
+                    {cameraStatus?.previewUrl && <img className="rc2-camera-preview" src={resolveUrl(cameraStatus.previewUrl)} alt="Kamera Vorschau" />}
                   </V1Card>
                   <V1Card>
                     <span className="v1-card-kicker">Mapping</span>
