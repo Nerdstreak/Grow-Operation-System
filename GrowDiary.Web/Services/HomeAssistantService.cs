@@ -109,7 +109,7 @@ public sealed class HomeAssistantService
     {
         try
         {
-            using var response = await client.GetAsync($"/api/states/{entityId}", cancellationToken);
+            using var response = await client.GetAsync($"api/states/{entityId}", cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogDebug(
@@ -174,7 +174,7 @@ public sealed class HomeAssistantService
         {
             var client = CreateClient(settings);
 
-            using var response = await client.GetAsync($"/api/camera_proxy/{entityId}", cancellationToken);
+            using var response = await client.GetAsync($"api/camera_proxy/{entityId}", cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogDebug(
@@ -229,7 +229,7 @@ public sealed class HomeAssistantService
         try
         {
             var client = CreateClient(settings);
-            using var response = await client.GetAsync("/api/states", cancellationToken);
+            using var response = await client.GetAsync("api/states", cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogDebug("Home Assistant Entity-Liste konnte nicht geladen werden: HTTP {StatusCode}.", (int)response.StatusCode);
@@ -285,7 +285,10 @@ public sealed class HomeAssistantService
     private HttpClient CreateClient(HomeAssistantSettings settings)
     {
         var client = _httpClientFactory.CreateClient(nameof(HomeAssistantService));
-        client.BaseAddress = new Uri(NormalizeBaseUrl(settings.BaseUrl!));
+        // Trailing slash + relative request paths (no leading slash) so a base with a
+        // path segment survives — e.g. the add-on's http://supervisor/core, where a
+        // leading-slash path would otherwise drop "/core" and hit the wrong endpoint.
+        client.BaseAddress = new Uri(NormalizeBaseUrl(settings.BaseUrl!) + "/");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", settings.AccessToken);
         client.Timeout = RequestTimeout;
         return client;
