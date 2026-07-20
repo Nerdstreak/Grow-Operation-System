@@ -47,7 +47,6 @@ const desktopMoreNav = [
   { to: '/zelte', label: 'Zelte', end: false },
   { to: '/hydro', label: 'Hydro', end: true },
   { to: '/home-assistant', label: 'Home Assistant', end: true },
-  { to: '/connect', label: 'Gerät verbinden', end: true },
   { to: '/hardware', label: 'Sensoren', end: true },
   { to: '/wissen', label: 'Wissen', end: true },
   { to: '/analyse', label: 'Vergleich', end: true },
@@ -70,7 +69,6 @@ const mobileMoreGroups = [
     audit: 'mobile-more-group-integration',
     items: [
       { to: '/home-assistant', label: 'Home Assistant', end: true },
-      { to: '/connect', label: 'Gerät verbinden', end: true },
     ],
   },
   {

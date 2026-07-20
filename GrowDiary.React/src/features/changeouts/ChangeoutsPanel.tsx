@@ -110,12 +110,16 @@ export function ChangeoutsPanel({ growId, growName }: { growId: number; growName
         <V1Card className="changeouts-form-card">
           <form onSubmit={submit} className="changeouts-form" data-audit="changeout-form">
             <V1Field label="Art">
-              <select value={form.kind} onChange={(event) => patch({ kind: event.target.value as ChangeoutKind })}>
+              <select value={form.kind} onChange={(event) => {
+                const kind = event.target.value as ChangeoutKind
+                // A full change is 100% by definition — fix the share and lock the field.
+                patch({ kind, percentChanged: kind === 'Full' ? '100' : form.percentChanged })
+              }}>
                 <option value="Partial">Teilwechsel</option>
                 <option value="Full">Komplettwechsel</option>
               </select>
             </V1Field>
-            <V1Field label="Anteil (%)"><input inputMode="decimal" value={form.percentChanged} onChange={(event) => patch({ percentChanged: event.target.value })} placeholder="z. B. 50" /></V1Field>
+            <V1Field label="Anteil (%)"><input inputMode="decimal" value={form.percentChanged} onChange={(event) => patch({ percentChanged: event.target.value })} placeholder="z. B. 50" disabled={form.kind === 'Full'} /></V1Field>
             <V1Field label="Menge (L)"><input inputMode="decimal" value={form.volumeChangedLiters} onChange={(event) => patch({ volumeChangedLiters: event.target.value })} placeholder="z. B. 40" /></V1Field>
             <V1Field label="EC vorher"><input inputMode="decimal" value={form.ecBefore} onChange={(event) => patch({ ecBefore: event.target.value })} placeholder="mS/cm" /></V1Field>
             <V1Field label="EC nachher"><input inputMode="decimal" value={form.ecAfter} onChange={(event) => patch({ ecAfter: event.target.value })} placeholder="mS/cm" /></V1Field>
