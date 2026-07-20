@@ -10,15 +10,36 @@ Die App ist lokal-first: keine Cloud-Pflicht, kein SaaS-Modell und keine native 
 
 ## Installation (fuer Nutzer)
 
-Keine Programmierkenntnisse noetig - ein Befehl genuegt. Ausfuehrliche Anleitung: [docs/install.md](docs/install.md).
+Keine Programmierkenntnisse noetig. Ausfuehrliche Anleitung: [docs/install.md](docs/install.md).
 
-**Raspberry Pi / Linux** (empfohlen):
+### Empfohlen: als Home Assistant Add-on
+
+Grow OS bezieht seine Sensordaten aus Home Assistant - deshalb ist das Add-on der
+einfachste Weg: ein Klick, keine URL, kein Token. Voraussetzung ist eine
+**Home Assistant OS**- (oder Supervised-)Installation.
+
+1. In Home Assistant: **Einstellungen -> Add-ons -> Add-on-Store**
+2. Oben rechts **... -> Repositories**, dieses Repository hinzufuegen:
+
+   ```
+   https://github.com/Nerdstreak/Grow-Operation-System
+   ```
+
+3. **Grow OS** installieren und starten - es erscheint in der HA-Seitenleiste und ist
+   automatisch mit Home Assistant verbunden. Sensoren waehlst du per Dropdown aus.
+
+### Alternativ: eigenstaendig (Pi / Windows)
+
+Fuer den Betrieb neben einer bestehenden Home-Assistant-Instanz (Verbindung wird dann
+einmalig ueber URL + Token eingerichtet).
+
+**Raspberry Pi / Linux:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Nerdstreak/Grow-Operation-System/main/scripts/install.sh | bash
 ```
 
-**Windows-PC** (PowerShell):
+**Windows-PC (PowerShell):**
 
 ```powershell
 irm https://raw.githubusercontent.com/Nerdstreak/Grow-Operation-System/main/scripts/install.ps1 | iex

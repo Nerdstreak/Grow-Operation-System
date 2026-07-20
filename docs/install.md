@@ -17,8 +17,40 @@ startet nach jedem Neustart automatisch.
 
 ---
 
-## Variante A: Raspberry Pi (empfohlen)
+## Variante A: Home Assistant Add-on (empfohlen)
 
+Der einfachste Weg. Grow OS bezieht seine Sensordaten aus Home Assistant, deshalb
+laeuft es am rundesten direkt **als Add-on** in Home Assistant: ein Klick, keine URL
+und kein Token noetig - die Verbindung entsteht automatisch.
+
+**Voraussetzung:** Home Assistant OS oder Supervised (bei Home Assistant
+Container/Core gibt es keine Add-ons).
+
+### Schritt 1 - Repository hinzufuegen
+In Home Assistant: **Einstellungen -> Add-ons -> Add-on-Store**, oben rechts
+**... -> Repositories**, und diese Adresse einfuegen:
+
+```
+https://github.com/Nerdstreak/Grow-Operation-System
+```
+
+### Schritt 2 - Installieren und starten
+**Grow OS** erscheint im Store -> **Installieren** (der erste Aufbau dauert ein paar
+Minuten) -> **Starten**.
+
+### Schritt 3 - Oeffnen
+Grow OS erscheint in der **Seitenleiste** von Home Assistant (Symbol 🌱). Es ist
+sofort verbunden - deine Sensoren waehlst du beim Zelt-Mapping bequem aus einem
+Dropdown (kein Abtippen von Entity-IDs noetig).
+
+> Home Assistant verwaltet Updates und sichert die Grow-OS-Daten in seinen eigenen
+> Backups automatisch mit.
+
+---
+
+## Variante B: Raspberry Pi (eigenstaendig)
+
+Fuer den Betrieb neben einer bestehenden Home-Assistant-Instanz.
 Ideal: Raspberry Pi 4 oder 5 mit **Raspberry Pi OS (64-bit)**. Ein Pi 3 funktioniert auch.
 
 ### Schritt 1 - Mit dem Pi verbinden
@@ -57,7 +89,7 @@ die neueste Version.
 
 ---
 
-## Variante B: Windows-PC
+## Variante C: Windows-PC (eigenstaendig)
 
 ### Schritt 1 - PowerShell oeffnen
 Start-Menue -> "PowerShell" eintippen -> **Windows PowerShell** anklicken.
@@ -78,9 +110,10 @@ Windows. Zum manuellen Start gibt es die Verknuepfung **"Grow OS"** auf dem Desk
 
 ---
 
-## Home Assistant verbinden (optional, empfohlen)
+## Home Assistant verbinden (nur bei Variante B/C)
 
-Grow OS laeuft auch ohne Home Assistant, der volle Nutzen entsteht aber mit Sensordaten.
+Beim **Add-on (Variante A)** entsteht die Verbindung automatisch - dieser Schritt
+entfaellt komplett. Fuer die eigenstaendigen Varianten richtest du sie einmalig ein:
 
 1. In Grow OS oben auf **Einstellungen** gehen.
 2. **Home Assistant Base URL** eintragen, z. B. `http://homeassistant.local:8123`.
@@ -89,6 +122,8 @@ Grow OS laeuft auch ohne Home Assistant, der volle Nutzen entsteht aber mit Sens
 4. Zelte anlegen und Sensoren zuordnen.
 
 Wichtig: Der Rechner/Pi mit Grow OS muss Home Assistant im Netzwerk erreichen koennen.
+Grow OS bezieht praktisch alle Live-Werte aus Home Assistant - ohne diese Verbindung
+bleiben Dashboard und Auswertungen leer.
 
 ---
 
@@ -104,6 +139,8 @@ stehen unter [deployment.md](deployment.md).
 
 - **Seite laedt nicht?** Pruefe, ob du im selben WLAN/Netzwerk bist wie der Pi/PC, und
   ob die IP-Adresse stimmt.
+- **Add-on:** Logs im Add-on-Tab **Protokoll** ansehen; nach Aenderungen **Neu starten**.
+  Dropdown leer? Dann pruefe, ob deine Sensoren in Home Assistant sichtbar sind.
 - **Raspberry Pi:** Logs ansehen mit `cd ~/grow-os && docker compose logs -f`.
 - **Neustart der App (Pi):** `cd ~/grow-os && docker compose restart`.
 - Fragen oder Fehler bitte als [GitHub Issue](https://github.com/Nerdstreak/Grow-Operation-System/issues) melden.
