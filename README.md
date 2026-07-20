@@ -1,109 +1,76 @@
-# Grow Operation System
+# Grow OS — the RDWC/DWC grow add-on for Home Assistant
 
-Grow Operation System ist eine kostenlose, selfhosted Grow-Management-App mit Fokus auf RDWC/DWC, Home Assistant Sensordaten, Grow-Dokumentation, SOPs, Hardware, Wartung und Risiko-Tracking.
-
-Die App ist lokal-first: keine Cloud-Pflicht, kein SaaS-Modell und keine native App-Store-Abhaengigkeit. Mobile Nutzung erfolgt als PWA.
+**Turn your Home Assistant sensors into a real grow-management cockpit.** Grow OS is a
+free, local-first Home Assistant add-on for hydroponic (RDWC/DWC) growers: a live
+instrument dashboard, grow documentation, SOPs, hardware & maintenance tracking,
+sensor-driven diagnosis, and risk alerts — all running inside Home Assistant, all on
+your own hardware. No cloud, no account, no SaaS.
 
 <p align="center">
-  <img src="docs/images/live-dashboard-desktop.png" alt="Grow OS Live-Dashboard" width="100%">
+  <img src="docs/images/live-dashboard-desktop.png" alt="Grow OS live dashboard" width="100%">
 </p>
 
-## Installation (fuer Nutzer)
+## Why Grow OS
 
-Keine Programmierkenntnisse noetig. Ausfuehrliche Anleitung: [docs/install.md](docs/install.md).
+- **Home Assistant native.** It reads your existing HA entities, so *any* sensor HA
+  supports works — pH, EC, water temp, DO, ORP, CO₂, PPFD, tent climate, cameras. No
+  proprietary hardware.
+- **Built for recirculating hydro (RDWC/DWC).** Reservoir, addback, water changes,
+  targets per phase, and a diagnosis engine that maps deviations to symptoms and
+  recommended treatments/SOPs.
+- **One-click install, zero config.** As an add-on it connects to Home Assistant
+  automatically — no URL, no token. Pick your sensors from a dropdown of your real
+  entities.
+- **Local-first.** Your data stays on your device and is included in Home Assistant's
+  backups. Nothing leaves your network.
 
-### Empfohlen: als Home Assistant Add-on
+## Features
 
-Grow OS bezieht seine Sensordaten aus Home Assistant - deshalb ist das Add-on der
-einfachste Weg: ein Klick, keine URL, kein Token. Voraussetzung ist eine
-**Home Assistant OS**- (oder Supervised-)Installation.
+- 📊 **Live instrument dashboard** — climate, VPD, reservoir, light status and a
+  system score at a glance, with a near-live tent camera.
+- 💧 **Addback & water-change assistant** — measure, target, dose, re-check; nothing
+  blind.
+- 🧪 **Auto-measurements** — capture sensor readings (and camera snapshots) on a
+  trigger, e.g. *30 min after lights-on*.
+- 🩺 **Diagnosis & risk tracking** — deviations become symptoms with likely causes and
+  linked treatments/SOPs; power/pump/DO emergencies get guided recovery SOPs.
+- 📚 **Knowledge base** — searchable guides, SOPs, treatments, symptoms, pathogens,
+  target values and nutrient programs.
+- 🔧 **Hardware & maintenance** — lifespan, inspection and per-sensor calibration
+  reminders.
+- 📱 **Mobile-friendly** — works right inside the Home Assistant app.
 
-1. In Home Assistant: **Einstellungen -> Add-ons -> Add-on-Store**
-2. Oben rechts **... -> Repositories**, dieses Repository hinzufuegen:
+<p align="center">
+  <img src="docs/images/live-dashboard-mobile.png" alt="Grow OS on mobile" width="260">
+</p>
+
+## Install (Home Assistant add-on)
+
+**Requires Home Assistant OS or Supervised** (add-ons aren't available on Home
+Assistant Container/Core).
+
+1. In Home Assistant: **Settings → Add-ons → Add-on Store**.
+2. Top-right **⋮ → Repositories**, and add:
 
    ```
    https://github.com/Nerdstreak/Grow-Operation-System
    ```
 
-3. **Grow OS** installieren und starten - es erscheint in der HA-Seitenleiste und ist
-   automatisch mit Home Assistant verbunden. Sensoren waehlst du per Dropdown aus.
+3. **Grow OS** appears in the store → **Install** → **Start**.
+4. Open it from the Home Assistant sidebar (🌱). It's already connected to Home
+   Assistant — just pick your sensors from the dropdown.
 
-### Alternativ: eigenstaendig (Pi / Windows)
+Updates are a clean, one-click pull from Home Assistant; your data is preserved.
 
-Fuer den Betrieb neben einer bestehenden Home-Assistant-Instanz (Verbindung wird dann
-einmalig ueber URL + Token eingerichtet).
+## Documentation
 
-**Raspberry Pi / Linux:**
+The docs live under [docs/](docs/) (currently in German):
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Nerdstreak/Grow-Operation-System/main/scripts/install.sh | bash
-```
+- [Installation](docs/install.md)
+- [Architecture](docs/architecture.md)
+- [Grow domain notes](docs/grow-domain-notes.md)
+- [Development](docs/development.md)
 
-**Windows-PC (PowerShell):**
+## License
 
-```powershell
-irm https://raw.githubusercontent.com/Nerdstreak/Grow-Operation-System/main/scripts/install.ps1 | iex
-```
-
-Danach im Browser oeffnen: `http://<geraete-ip>:5076` (am Geraet selbst `http://localhost:5076`). Grow OS startet ab dann automatisch mit.
-
-## Schnellstart (fuer Entwickler)
-
-Voraussetzungen:
-
-- .NET SDK 8
-- Node.js und npm
-- Git
-- optional, aber empfohlen: Home Assistant
-
-Backend starten:
-
-```powershell
-dotnet run --project GrowDiary.Web/GrowDiary.Web.csproj
-```
-
-Frontend im Entwicklungsmodus starten:
-
-```powershell
-cd GrowDiary.React
-npm install
-npm run dev
-```
-
-Frontend fuer Production bauen:
-
-```powershell
-cd GrowDiary.React
-npm run build
-```
-
-Backend-Tests:
-
-```powershell
-dotnet test GrowDiary.Web.Tests/GrowDiary.Web.Tests.csproj -v:minimal
-```
-
-## Wichtige URLs
-
-- Backend / Production App: `http://localhost:5076`
-- LAN-Zugriff: `http://<server-ip>:5076`
-- Frontend Dev Server: `http://127.0.0.1:5173`
-- Mobile Action Hub: `/action`
-- Live Dashboard: `/live`
-- Einstellungen: `/settings`
-
-## Dokumentation
-
-Der zentrale Einstieg liegt unter [docs/README.md](docs/README.md).
-
-Wichtige Seiten:
-
-- [Setup](docs/setup.md)
-- [Architektur](docs/architecture.md)
-- [Entwicklung](docs/development.md)
-- [Deployment](docs/deployment.md)
-- [Grow-Domaene](docs/grow-domain-notes.md)
-
-## Lizenz
-
-Veroeffentlicht unter der [MIT-Lizenz](LICENSE) - frei nutzbar, anpassbar und weiterverteilbar.
+Released under the [MIT License](LICENSE) — free to use, modify and redistribute.
