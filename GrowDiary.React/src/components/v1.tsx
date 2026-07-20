@@ -162,7 +162,10 @@ export function V1Wizard({ steps, currentStep, onStep }: { steps: string[]; curr
       className="v1-wizard-steps"
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(92px, 1fr))',
+        // Wider min so the step labels never get clipped: on a narrow container
+        // (e.g. inside the Home Assistant ingress iframe) the row wraps cleanly to
+        // a second line instead of truncating "System" to "Syst…".
+        gridTemplateColumns: 'repeat(auto-fit, minmax(118px, 1fr))',
         gap: 8,
         width: '100%',
         maxWidth: '100%',
