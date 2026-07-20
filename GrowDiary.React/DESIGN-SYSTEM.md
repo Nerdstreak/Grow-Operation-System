@@ -4,7 +4,7 @@
 > Redesign mit dem `frontend-design`-Skill. Beschreibt **Ist-Zustand**, nicht Soll.
 
 ## 1. Was die App ist
-Local-first Operations-System für RDWC-/Hydro-Cannabis-Grows (Selfhost, Home-Assistant-Integration, Offline-first PWA). Single-Page-React-App (React 19, Vite 8, react-router 7), die vom ASP.NET-Backend aus `wwwroot` ausgeliefert wird. Dünner API-Client (`src/api.ts` → `apiFetch`), Aufrufe inline in Seiten/Hooks.
+Local-first Operations-System für RDWC-/Hydro-Cannabis-Grows, ausgeliefert als Home-Assistant-Add-on (native HA-Integration). Single-Page-React-App (React 19, Vite 8, react-router 7), die vom ASP.NET-Backend aus `wwwroot` ausgeliefert wird. Dünner API-Client (`src/api.ts` → `apiFetch`), Aufrufe inline in Seiten/Hooks.
 
 ## 2. App-Shell & Navigation (`src/App.tsx`)
 Drei Navigations-Oberflächen, ein gemeinsamer Frame (`v1-app-shell`):
@@ -12,7 +12,7 @@ Drei Navigations-Oberflächen, ein gemeinsamer Frame (`v1-app-shell`):
 - **Mobile-Topbar** (`v1-mobile-topbar`) + ausklappbares „Mehr"-Panel (gruppiert: Setup / Integration / Wissen & System).
 - **Mobile-Bottom-Nav** (`v1-bottom-nav`): 4 Primär-Ziele (Live, Addback, Messung, Grows).
 
-Primärnavigation (Core): **Live · Addback · Messung · Grows**. Sekundär: Aufgaben, Zelte, Hydro, Home Assistant, Gerät verbinden, Sensoren, Wissen, Vergleich, Archiv, Einstellungen.
+Primärnavigation (Core): **Live · Addback · Messung · Grows**. Sekundär: Aufgaben, Zelte, Hydro, Home Assistant, Sensoren, Wissen, Vergleich, Archiv, Einstellungen.
 
 ## 3. Routen & Seiten (22 Seiten)
 Priorisiert nach Redesign-Aufwand.

@@ -2,7 +2,11 @@
 
 ## Status
 
-Akzeptiert
+Teilweise abgeloest. Die Grundentscheidung (lokale Web-App statt nativer App-Store-App)
+gilt weiter. Die Verteilung erfolgt inzwischen ausschliesslich als Home-Assistant-Add-on:
+kein eigenstaendiger Selfhost-Betrieb, kein eigener Remote-Zugriff und keine PWA-Installation
+mehr — Grow OS laeuft in Home Assistant und wird ueber dessen Oberflaeche (inkl. Mobil-App)
+erreicht. Die folgenden Abschnitte sind der historische Original-Kontext.
 
 ## Kontext
 
