@@ -178,9 +178,10 @@ export function LiveDashboard({
         {TopBar}
         <div className="ix-empty-state ix-panel ix-rise ix-d1">
           <h2>Noch kein aktiver Grow</h2>
-          <p>Lege einen Grow an oder richte zuerst ein Zelt ein.</p>
+          <p>Neu hier? Die „Erste Schritte" führen dich durch Setup und Funktionen.</p>
           <div className="ix-empty-actions">
-            <Link className="ix-btn pri" to="/grows/new">Grow anlegen</Link>
+            <Link className="ix-btn pri" to="/start">Erste Schritte</Link>
+            <Link className="ix-btn" to="/grows/new">Grow anlegen</Link>
             <Link className="ix-btn" to="/zelte">Zelt anlegen</Link>
           </div>
         </div>

@@ -4,6 +4,7 @@ import AddbackHubPage from './pages/AddbackHubPage'
 import AddbackPage from './pages/AddbackPage'
 import AnalysisPage from './pages/AnalysisPage'
 import ArchivePage from './pages/ArchivePage'
+import GettingStartedPage from './pages/GettingStartedPage'
 import GrowDetailPage from './pages/GrowDetailPage'
 import GrowsPage from './pages/GrowsPage'
 import GrowSetupPage from './pages/GrowSetupPage'
@@ -40,6 +41,7 @@ const mobilePrimaryNav = [
 ]
 
 const desktopMoreNav = [
+  { to: '/start', label: 'Erste Schritte', end: true },
   { to: '/aufgaben', label: 'Aufgaben', end: true },
   { to: '/zelte', label: 'Zelte', end: false },
   { to: '/hydro', label: 'Hydro', end: true },
@@ -72,6 +74,7 @@ const mobileMoreGroups = [
     label: 'Wissen & System',
     audit: 'mobile-more-group-system',
     items: [
+      { to: '/start', label: 'Erste Schritte', end: true },
       { to: '/wissen', label: 'Wissen', end: true },
       { to: '/settings', label: 'Einstellungen', end: true },
     ],
@@ -162,6 +165,7 @@ function App() {
           <Route path="/analyse" element={<AnalysisPage />} />
           <Route path="/archiv" element={<ArchivePage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/start" element={<GettingStartedPage />} />
           <Route path="/einstellungen" element={<Navigate to="/settings" replace />} />
         </Routes>
       </main>
@@ -198,6 +202,7 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/analyse')) return 'Vergleich'
   if (pathname.startsWith('/archiv')) return 'Archiv'
   if (pathname.startsWith('/settings') || pathname.startsWith('/einstellungen')) return 'Einstellungen'
+  if (pathname.startsWith('/start')) return 'Erste Schritte'
   return 'Grow OS'
 }
 
