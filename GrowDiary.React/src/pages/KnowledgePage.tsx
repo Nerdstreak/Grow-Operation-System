@@ -32,6 +32,7 @@ type Entry = {
   key: string
   title: string
   subtitle: string
+  preview: string
   search: string
   refId?: string
   topic?: Topic
@@ -179,6 +180,23 @@ function getTitle(record: KnowledgeRecord, fallback: unknown): string {
 }
 function getRecordTag(record: KnowledgeRecord): string {
   return asStr(record.type) ?? asStr(record.category) ?? asStr(record.systemType) ?? asStr(record.riskLevel) ?? asStr(record.manufacturer) ?? ''
+}
+// A short human-readable preview line for list entries — the first descriptive
+// field, or the longest plain string, so the list shows content instead of only a
+// title + cryptic tag.
+function getPreview(record: KnowledgeRecord): string {
+  const candidates = ['summary', 'description', 'intro', 'context', 'goal', 'overview', 'note', 'notes', 'method', 'standard']
+  for (const key of candidates) {
+    const value = asStr(record[key])
+    if (value && value.length > 4) return value
+  }
+  let best = ''
+  for (const [key, value] of Object.entries(record)) {
+    if (['name', 'title', 'id', 'key', 'type', 'category'].includes(key)) continue
+    const str = asStr(value)
+    if (str && str.length > best.length) best = str
+  }
+  return best
 }
 
 const KEY_LABELS: Record<string, string> = {
@@ -506,6 +524,7 @@ function KnowledgePage() {
           refId: getId(rec),
           title: getTitle(rec, raw),
           subtitle: getRecordTag(rec),
+          preview: getPreview(rec),
           search: `${getTitle(rec, raw)} ${JSON.stringify(raw)}`.toLowerCase(),
           record: rec,
         }
@@ -519,6 +538,7 @@ function KnowledgePage() {
         key: `grundlagen-${t.id}`,
         title: t.title,
         subtitle: t.kicker,
+        preview: t.intro,
         search: [t.title, t.kicker, t.intro, ...t.keywords, ...t.sections.map((s) => `${s.title} ${s.text}`)].join(' ').toLowerCase(),
         topic: t,
       })),
@@ -549,16 +569,28 @@ function KnowledgePage() {
   const q = query.trim().toLowerCase()
   const searchResults = useMemo(() => {
     if (!q) return []
-    const out: Array<{ cat: Category; entry: Entry }> = []
+    // Rank by match quality so exact/title hits come first and body-only matches
+    // (via the serialized record) rank lowest — "calmag" should surface the CalMag
+    // entries before an SOP that merely references them.
+    const scored: Array<{ cat: Category; entry: Entry; score: number }> = []
     for (const cat of categories) {
       for (const entry of cat.entries) {
-        if (entry.search.includes(q)) out.push({ cat, entry })
+        const title = entry.title.toLowerCase()
+        let score = 0
+        if (title === q) score = 100
+        else if (title.startsWith(q)) score = 80
+        else if (title.includes(q)) score = 60
+        else if (entry.subtitle.toLowerCase().includes(q)) score = 40
+        else if (entry.preview.toLowerCase().includes(q)) score = 30
+        else if (entry.search.includes(q)) score = 15
+        if (score > 0) scored.push({ cat, entry, score })
       }
     }
-    return out.slice(0, 60)
+    scored.sort((a, b) => b.score - a.score || a.entry.title.localeCompare(b.entry.title))
+    return scored.slice(0, 60)
   }, [q, categories])
 
-  const currentCategory = categories.find((c) => c.id === categoryId) ?? null
+  const currentCategory = categories.find((c) => c.id === categoryId) ?? categories[0] ?? null
   const entries = currentCategory?.entries ?? []
   const selectedEntry = entries.find((e) => e.key === entryKey) ?? entries[0] ?? null
 
@@ -582,12 +614,6 @@ function KnowledgePage() {
     const hit = refIndex.get(id)
     if (hit) openTarget(hit)
   }
-  function backToOverview() {
-    setCategoryId(null)
-    setEntryKey(null)
-    setDetailOpen(false)
-  }
-
   let body: ReactNode
   if (loading) {
     body = <div className="ix-kb-empty"><h2>Lade Wissensbasis…</h2></div>
@@ -603,37 +629,41 @@ function KnowledgePage() {
               <button key={`${cat.id}-${entry.key}`} type="button" className="ix-kb-entry" onClick={() => openTarget({ catId: cat.id, entryKey: entry.key, title: entry.title })}>
                 <span className="ix-kb-result-cat">{cat.label}{entry.subtitle ? ` · ${entry.subtitle}` : ''}</span>
                 <strong>{entry.title}</strong>
+                {entry.preview && <span className="ix-kb-entry-preview">{entry.preview}</span>}
               </button>
             ))}
           </div>
         )}
       </>
     )
-  } else if (!currentCategory) {
-    body = (
-      <div className="ix-kb-cats">
-        {categories.map((cat) => (
-          <button key={cat.id} type="button" className="ix-kb-cat" onClick={() => openCategory(cat.id)}>
-            <div className="ix-kb-cat-top">
-              <h3>{cat.label}</h3>
-              <span className="count">{cat.entries.length}</span>
-            </div>
-            <span className="kk">{cat.kicker}</span>
-            <p>{cat.desc}</p>
-          </button>
-        ))}
-      </div>
-    )
   } else {
     body = (
       <>
-        <div className="ix-kb-backrow"><button type="button" className="ix-kb-back" onClick={backToOverview}>← Alle Kategorien</button></div>
+        <div className="ix-kb-tabs" role="tablist">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              role="tab"
+              aria-selected={cat.id === currentCategory?.id}
+              className={cat.id === currentCategory?.id ? 'ix-kb-tab active' : 'ix-kb-tab'}
+              onClick={() => openCategory(cat.id)}
+            >
+              <strong>{cat.label}</strong>
+              <span className="count">{cat.entries.length}</span>
+            </button>
+          ))}
+        </div>
+        {currentCategory?.desc && <p className="ix-kb-cat-desc">{currentCategory.desc}</p>}
         <div className={detailOpen ? 'ix-kb-browse entry-open' : 'ix-kb-browse'}>
           <div className="ix-kb-list">
             {entries.map((e) => (
               <button key={e.key} type="button" className={e.key === selectedEntry?.key ? 'ix-kb-entry active' : 'ix-kb-entry'} onClick={() => openEntry(e.key)}>
-                <strong>{e.title}</strong>
-                {e.subtitle && <span>{e.subtitle}</span>}
+                <span className="ix-kb-entry-top">
+                  <strong>{e.title}</strong>
+                  {e.subtitle && <span className="ix-kb-entry-tag">{e.subtitle}</span>}
+                </span>
+                {e.preview && <span className="ix-kb-entry-preview">{e.preview}</span>}
               </button>
             ))}
             {entries.length === 0 && <div className="ix-kb-empty"><p>Keine Einträge in dieser Kategorie.</p></div>}
