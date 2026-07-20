@@ -265,7 +265,7 @@ export function LiveDashboard({
             <div className="ix-empty-line">Keine offenen Risiken für diesen Grow-Kontext.</div>
           ) : (
             risksForContext.slice(0, 5).map((risk) => (
-              <Link key={risk.id} className={`ix-alert ${risk.severity === 'Critical' ? 'crit' : 'warn'}`} to={risk.growId ? `/grows/${risk.growId}` : '/aufgaben'}>
+              <Link key={risk.id} className={`ix-alert ${risk.severity === 'Critical' ? 'crit' : 'warn'}`} to={risk.growId ? `/grows/${risk.growId}?section=diagnosis` : '/aufgaben'}>
                 <div className="sev" />
                 <div>
                   <div className="ttl">{risk.title}</div>

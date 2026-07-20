@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import '../features/grow-detail/growdetail-instrument.css'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { formatDate, formatDateTime } from '../utils'
 import { GrowDetailAutomationSection } from '../features/grow-detail/GrowDetailAutomationSection'
 import { GrowDetailDiagnosisSection } from '../features/grow-detail/GrowDetailDiagnosisSection'
@@ -26,7 +26,10 @@ function GrowDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
-  const [activeSection, setActiveSection] = useState<GrowDetailSection>('overview')
+  const [searchParams] = useSearchParams()
+  // Allow deep-linking to a section, e.g. /grows/42?section=diagnosis from the live page.
+  const initialSection = detailSections.find((section) => section.key === searchParams.get('section'))?.key ?? 'overview'
+  const [activeSection, setActiveSection] = useState<GrowDetailSection>(initialSection)
   const {
     bundle,
     loading,
