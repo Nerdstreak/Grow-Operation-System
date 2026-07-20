@@ -60,3 +60,12 @@
   color: var(--ix-muted);
   max-width: 64ch;
 }
+
+/* The automation config reuses .meas-input, which is styled as a large monospace
+   measurement field — wrong for these name/status/trigger inputs. Restore the app's
+   normal input font here (the real measurement entry pages keep the mono style). */
+.ix-growdetail .meas-input {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+}
