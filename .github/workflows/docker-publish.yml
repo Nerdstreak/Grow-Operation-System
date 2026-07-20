@@ -58,3 +58,53 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # --- Home Assistant add-on images -------------------------------------
+      # The add-on references image: ghcr.io/<repo>-{arch}:<version>, so the
+      # Supervisor pulls a prebuilt image directly (no on-device build). Updates
+      # are then a clean image pull instead of a rebuild against a cached base —
+      # no reinstall, and the /data volume is preserved.
+      - name: Resolve add-on version + lowercase image base
+        id: addon
+        run: |
+          echo "version=$(grep -E '^version:' grow-os/config.yaml | sed -E 's/.*"(.*)".*/\1/')" >> "$GITHUB_OUTPUT"
+          echo "base=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Build add-on image (aarch64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ steps.addon.outputs.base }}-aarch64:${{ steps.addon.outputs.version }}
+            ${{ steps.addon.outputs.base }}-aarch64:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build add-on image (armv7)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm/v7
+          push: true
+          tags: |
+            ${{ steps.addon.outputs.base }}-armv7:${{ steps.addon.outputs.version }}
+            ${{ steps.addon.outputs.base }}-armv7:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build add-on image (amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.addon.outputs.base }}-amd64:${{ steps.addon.outputs.version }}
+            ${{ steps.addon.outputs.base }}-amd64:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

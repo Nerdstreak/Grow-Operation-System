@@ -31,6 +31,7 @@ Home Assistant backup first if you want to keep it.
 
 ## Notes
 
-- First install builds the image on the device, so it can take a few minutes.
+- Install and updates pull a prebuilt image (no on-device build), so they are quick
+  and updates never require a reinstall — your data on `/data` is preserved.
 - Requires a Home Assistant OS or Supervised installation (add-ons are not
   available on Home Assistant Container or Core installs).
