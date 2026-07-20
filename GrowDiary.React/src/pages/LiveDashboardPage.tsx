@@ -96,7 +96,6 @@ function LiveDashboardPage() {
       risksForContext={risksForContext}
       issues={state.issues}
       lastUpdated={lastUpdated}
-      refresh={refresh}
       onRefresh={() => setRefresh((current) => current + 1)}
     />
   )

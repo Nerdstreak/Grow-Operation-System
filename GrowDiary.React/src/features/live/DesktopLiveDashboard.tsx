@@ -23,7 +23,6 @@ type DesktopLiveDashboardProps = {
   risksForContext: RiskEventDto[]
   issues: string[]
   lastUpdated: number | null
-  refresh: number
   onRefresh: () => void
 }
 
@@ -63,18 +62,27 @@ function formatClock(value: number | string | null): string {
 // Fetches the proxied camera frame as a blob so it can read the capture-time and
 // live/stale headers, and keeps the previous frame on a failed refresh so the
 // grow is never blank once a valid image has been seen.
-function CameraScreen({ tent, refresh }: { tent: TentDto; refresh: number }) {
+function CameraScreen({ tent }: { tent: TentDto }) {
   const [src, setSrc] = useState<string | null>(null)
   const [meta, setMeta] = useState<{ capturedAt: string | null; live: boolean } | null>(null)
   const [unavailable, setUnavailable] = useState(false)
+  const [tick, setTick] = useState(0)
   const urlRef = useRef<string | null>(null)
+
+  // Near-live: refresh the camera frame ~once per second, independent of the 30s
+  // sensor-data refresh, so the feed feels like a live stream.
+  useEffect(() => {
+    if (!tent.cameraEntityId) return
+    const id = window.setInterval(() => setTick((value) => value + 1), 1000)
+    return () => window.clearInterval(id)
+  }, [tent.cameraEntityId])
 
   useEffect(() => {
     if (!tent.cameraEntityId) return
     const controller = new AbortController()
     async function run() {
       try {
-        const response = await fetch(resolveUrl(`/api/live/tents/${tent.id}/camera?t=${refresh}`), { signal: controller.signal })
+        const response = await fetch(resolveUrl(`/api/live/tents/${tent.id}/camera?t=${tick}`), { signal: controller.signal })
         if (!response.ok) {
           if (!urlRef.current) setUnavailable(true)
           return
@@ -93,7 +101,7 @@ function CameraScreen({ tent, refresh }: { tent: TentDto; refresh: number }) {
     }
     void run()
     return () => controller.abort()
-  }, [tent.id, tent.cameraEntityId, refresh])
+  }, [tent.id, tent.cameraEntityId, tick])
 
   useEffect(() => () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current) }, [])
 
@@ -128,7 +136,6 @@ export function LiveDashboard({
   risksForContext,
   issues,
   lastUpdated,
-  refresh,
   onRefresh,
 }: DesktopLiveDashboardProps) {
   const [arc, setArc] = useState(0)
@@ -279,7 +286,7 @@ export function LiveDashboard({
 
         <div className="ix-panel ix-feed ix-rise ix-d6" data-audit="live-camera-card">
           <h3>Kamera · {selectedTent.name}</h3>
-          <CameraScreen key={selectedTent.id} tent={selectedTent} refresh={refresh} />
+          <CameraScreen key={selectedTent.id} tent={selectedTent} />
         </div>
       </section>
 
