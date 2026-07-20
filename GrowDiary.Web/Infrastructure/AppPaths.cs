@@ -25,12 +25,6 @@ public sealed class AppPaths
         KnowledgeDataPath = Path.Combine(DataRootPath, "knowledge");
 
         KnowledgeDefaultsPath = Path.Combine(contentRootPath, "wwwroot", "knowledge-defaults");
-
-        LegacyProjectDatabasePath = Path.Combine(contentRootPath, "App_Data", "legacy-grow-diary.db");
-        LegacyWpfDatabasePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Grow_Diary",
-            "grow.db");
     }
 
     public string ContentRootPath { get; }
@@ -44,6 +38,4 @@ public sealed class AppPaths
     public string DataProtectionKeysPath { get; }
     public string KnowledgeDefaultsPath { get; }
     public string KnowledgeDataPath { get; }
-    public string LegacyProjectDatabasePath { get; }
-    public string LegacyWpfDatabasePath { get; }
 }
