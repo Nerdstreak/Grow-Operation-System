@@ -181,11 +181,10 @@ app.UseStaticFiles(new StaticFileOptions
     OnPrepareResponse = ctx =>
     {
         var name = ctx.File.Name;
-        // index.html / offline.html and the service worker must always revalidate,
-        // otherwise mobile clients keep loading a stale shell that points at old asset
-        // hashes (hashed /assets/* files stay immutably cacheable).
-        if (name.EndsWith(".html", StringComparison.OrdinalIgnoreCase) ||
-            name.Equals("service-worker.js", StringComparison.OrdinalIgnoreCase))
+        // index.html must always revalidate, otherwise clients keep loading a stale
+        // shell that points at old asset hashes (hashed /assets/* files stay immutably
+        // cacheable).
+        if (name.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
         {
             ctx.Context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
         }

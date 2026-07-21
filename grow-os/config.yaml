@@ -1,7 +1,7 @@
 name: Grow OS
 version: "1.0.13"
 slug: grow_os
-description: Self-hosted RDWC/DWC grow management, natively integrated with Home Assistant
+description: RDWC/DWC grow management, natively integrated with Home Assistant
 url: https://github.com/Nerdstreak/Grow-Operation-System
 # Prebuilt public multi-arch image, pulled directly by the Supervisor (the tag
 # matches this add-on version; Docker resolves the right architecture). Updates are

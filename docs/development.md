@@ -71,7 +71,7 @@ Nicht committen:
 - Snapshots, Fotos und Uploads
 - echte Logs mit privaten Daten
 
-Remote-Zugriff nur bewusst ueber VPN/Tailscale oder Reverse Proxy mit HTTPS und vorgeschalteter Auth einrichten. `GROWDIARY_ALLOW_REMOTE_ADMIN=true` ersetzt keine vollstaendige Authentifizierung.
+Grow OS laeuft als Home-Assistant-Add-on hinter dem Ingress-Proxy; Home Assistant uebernimmt Authentifizierung und Remote-Zugriff (Web/App). Der Add-on-Port ist ingress-only und wird nicht ins Netzwerk veroeffentlicht.
 
 ## Offene Punkte
 

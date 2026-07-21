@@ -263,7 +263,7 @@ public sealed partial class SystemApiController
                     Endpoint("GET", "/api/system/release-readiness", "Release-Readiness prüfen.", true),
                     Endpoint("GET", "/api/system/database-status", "Datenbankstatus und Pflichtschema prüfen.", true),
                     Endpoint("GET", "/api/system/api-manifest", "Maschinenlesbares API-Manifest laden.", true),
-                    Endpoint("GET", "/api/system/security-status", "Security-Status und Remote-Admin-Guardrails laden.", true),
+                    Endpoint("GET", "/api/system/security-status", "Security-Status und local-only/Ingress-Guardrails laden.", true),
                     Endpoint("GET", "/api/system/audit-events", "System-Audit-Events fuer kritische Backend-Operationen laden.", true),
                     Endpoint("GET", "/api/system/error-contract", "Einheitlichen API-Fehlervertrag laden.", true),
                     Endpoint("GET", "/api/system/migration-status", "Schema-Migrationen und offene Migrationen prüfen.", true),
@@ -316,7 +316,7 @@ public sealed partial class SystemApiController
                 "Validierungsfehler verwenden fieldErrors als Feldname-zu-Fehlerliste Dictionary.",
                 "status und traceId werden gesetzt, wenn der Fehler über die Backend-Helper erzeugt wird.",
                 "Controller sollen BadRequestError, NotFoundError, ConflictError, ForbiddenError oder ValidationError verwenden.",
-                "Remote-Admin-Blockaden und unerwartete Fehler verwenden dasselbe ApiError-Format."
+                "Blockierte Zugriffe und unerwartete Fehler verwenden dasselbe ApiError-Format."
             });
 
         LogSystemAudit("system", "error-contract-read", "API-Error-Contract abgefragt.", true);

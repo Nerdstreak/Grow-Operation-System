@@ -81,7 +81,7 @@ Pro Zelt kann eine Kamera-Entity aus Home Assistant konfiguriert werden. Snapsho
 
 ## Offene fachliche Punkte
 
-- Auth-/Remote-Admin-Konzept fuer sicheren Fernzugriff.
+- Feineres Rollen-/Rechtekonzept innerhalb der App (Auth/Remote laeuft ueber Home Assistant).
 - Upload-/Foto-Speicher langfristig konsolidieren.
 - SensorTrustScore und bessere Kalibrierungsintervalle.
 - Home Assistant Auto-Detection fuer RiskEvents.

@@ -21,9 +21,6 @@ run.*.log
 RDWC Wissen/
 GrowDiary.Web/wwwroot/docs/
 GrowDiary.Web/wwwroot/icons/
-GrowDiary.Web/wwwroot/manifest.webmanifest
-GrowDiary.Web/wwwroot/offline.html
-GrowDiary.Web/wwwroot/service-worker.js
 .claude/settings.local.json
 docs/superpowers/plans/
 artifacts/
