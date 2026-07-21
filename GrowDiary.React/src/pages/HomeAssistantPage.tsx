@@ -193,12 +193,12 @@ function HomeAssistantPage() {
   }
 
   return (
-    <V1Page eyebrow="Home Assistant" title="HA einrichten" subtitle="Verbindung speichern, Zelt wählen, Kamera testen und Sensoren mappen.">
+    <V1Page eyebrow="Home Assistant" title="HA einrichten" subtitle={ha.isManagedByAddon ? 'Zelt wählen, Kamera testen und Sensoren mappen — verbunden ist Grow OS übers Add-on automatisch.' : 'Verbindung speichern, Zelt wählen, Kamera testen und Sensoren mappen.'}>
       {error && <V1Alert message={error} tone="warn" />}
       {message && <V1Alert message={message} tone="ok" />}
 
       <section className="v1-kpi-grid">
-        <V1Card tone={ha.enabled ? 'ok' : 'warn'}><span className="v1-card-kicker">Verbindung</span><h2>{ha.enabled ? 'aktiv' : 'inaktiv'}</h2><p>{ha.baseUrl || 'URL offen'}</p></V1Card>
+        <V1Card tone={ha.isManagedByAddon || ha.enabled ? 'ok' : 'warn'}><span className="v1-card-kicker">Verbindung</span><h2>{ha.isManagedByAddon || ha.enabled ? 'aktiv' : 'inaktiv'}</h2><p>{ha.isManagedByAddon ? 'Über Add-on' : (ha.baseUrl || 'URL offen')}</p></V1Card>
         <V1Card><span className="v1-card-kicker">Entitäten</span><h2>{mappedCount}</h2><p>gesamt gemappt</p></V1Card>
         <V1Card><span className="v1-card-kicker">Kernwerte</span><h2>{coreMappedCount}</h2><p>im ausgewählten Zelt</p></V1Card>
         <V1Card><span className="v1-card-kicker">Zelte</span><h2>{tents.length}</h2><p>verfügbar</p></V1Card>

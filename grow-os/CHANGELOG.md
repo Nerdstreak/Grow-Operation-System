@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.17
+
+- Fixed — the Home Assistant page no longer shows the connection as "inactive" when
+  running as an add-on. As an add-on the connection is automatic (Supervisor token), so
+  the status card now reads "active · via add-on".
+
 ## 1.0.16
 
 - New — threshold alerts with push notifications. Under **Alarme** you can set a min/max
