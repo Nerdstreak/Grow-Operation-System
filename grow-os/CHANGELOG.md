@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.18
+
+- Improved — the sidebar navigation now reads clearly as clickable: a pointer cursor on
+  hover, a distinct green hover highlight with an outline, and brighter idle text so the
+  menu items no longer look like static labels.
+
 ## 1.0.17
 
 - Fixed — the Home Assistant page no longer shows the connection as "inactive" when

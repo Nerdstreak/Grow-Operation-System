@@ -23,8 +23,8 @@
 .v1-brand span { color: var(--ix-faint); }
 .v1-brand-mark { background: var(--ix-phos); box-shadow: 0 0 14px rgba(82, 233, 140, 0.55); color: #04140a; border: 0; }
 .v1-nav-group > span { font-family: var(--ix-mono); letter-spacing: 0.24em; color: var(--ix-faint); }
-.v1-nav-item { color: var(--ix-muted); border-radius: 10px; }
-.v1-nav-item:hover { color: var(--ix-ink); background: rgba(255, 255, 255, 0.03); }
+.v1-nav-item { color: rgba(233, 244, 238, 0.74); border-radius: 10px; cursor: pointer; }
+.v1-nav-item:hover { color: var(--ix-ink); background: rgba(67, 212, 90, 0.14); box-shadow: inset 0 0 0 1px rgba(67, 212, 90, 0.22); }
 .v1-nav-item.active { color: #04140a; background: var(--ix-phos); font-weight: 600; }
 .v1-nav-foot { color: var(--ix-faint); font-family: var(--ix-mono); letter-spacing: 0.08em; }
 
@@ -34,10 +34,10 @@
 .v1-mobile-more-button { font-family: var(--ix-mono); letter-spacing: 0.06em; color: var(--ix-ink); border: 1px solid var(--ix-hair-2); background: rgba(255, 255, 255, 0.02); }
 .v1-mobile-more-panel { background: var(--ix-bg); border-bottom: 1px solid var(--ix-hair); }
 .v1-mobile-more-group h2 { font-family: var(--ix-mono); color: var(--ix-faint); letter-spacing: 0.14em; }
-.v1-more-tile { color: var(--ix-muted); border: 1px solid var(--ix-hair); }
+.v1-more-tile { color: var(--ix-muted); border: 1px solid var(--ix-hair); cursor: pointer; }
 .v1-more-tile.active { color: #04140a; background: var(--ix-phos); border-color: var(--ix-phos); }
 .v1-bottom-nav { background: rgba(4, 7, 10, 0.93); border-top: 1px solid var(--ix-hair); }
-.v1-bottom-item { color: var(--ix-muted); }
+.v1-bottom-item { color: var(--ix-muted); cursor: pointer; }
 /* active item sits on a phosphor pill (base sets background: var(--v1-green)) →
    keep dark text for contrast, NOT green-on-green */
 .v1-bottom-item.active { color: #04140a; }
