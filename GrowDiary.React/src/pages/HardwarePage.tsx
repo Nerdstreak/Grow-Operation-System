@@ -13,7 +13,6 @@ type HardwareDraft = {
   criticality: HardwareItemCriticality
   tentId: string
   hydroSetupId: string
-  haEntityId: string
   manufacturer: string
   model: string
   serialNumber: string
@@ -100,7 +99,9 @@ function HardwarePage() {
       tentId: toIntOrNull(draft.tentId),
       setupId: null,
       hydroSetupId: toIntOrNull(draft.hydroSetupId),
-      haEntityId: nullable(draft.haEntityId),
+      // Entity mapping lives solely on the Home Assistant page (per-tent metric → entity);
+      // hardware items are physical inventory only, so this stays null.
+      haEntityId: null,
       manufacturer: nullable(draft.manufacturer),
       model: nullable(draft.model),
       serialNumber: nullable(draft.serialNumber),
@@ -124,7 +125,7 @@ function HardwarePage() {
         setMessage('Sensor gespeichert.')
       } else {
         await apiFetch<HardwareItemDto>('/api/hardware-items', { method: 'POST', body: JSON.stringify(request) })
-        setMessage('Hardware angelegt. Entity-Verknüpfung erfolgt separat im Home-Assistant-Mapping.')
+        setMessage('Hardware angelegt. Live-Werte verbindest du im Tab „Home Assistant" am Zelt.')
       }
       setEditingId(null)
       setDraft(createDraft())
@@ -246,7 +247,6 @@ function HardwarePage() {
                 <V1Field label="Kritikalität"><select value={draft.criticality} onChange={(event) => setDraft((current) => ({ ...current, criticality: event.target.value as HardwareItemCriticality }))}>{criticalityOptions.map((item) => <option key={item} value={item}>{formatSeverityLabel(item)}</option>)}</select></V1Field>
                 <V1Field label="Zelt"><select value={draft.tentId} onChange={(event) => setDraft((current) => ({ ...current, tentId: event.target.value, hydroSetupId: '' }))}><option value="">Kein Zelt</option>{tents.map((tent) => <option key={tent.id} value={tent.id}>{tent.name}</option>)}</select></V1Field>
                 <V1Field label="Hydro-Setup"><select value={draft.hydroSetupId} onChange={(event) => setDraft((current) => ({ ...current, hydroSetupId: event.target.value }))}><option value="">Kein Hydro-Setup</option>{hydroSetups.filter((setup) => !draft.tentId || String(setup.tentId) === draft.tentId).map((setup) => <option key={setup.id} value={setup.id}>{setup.name}</option>)}</select></V1Field>
-                <V1Field label="HA Entity"><input value={draft.haEntityId} onChange={(event) => setDraft((current) => ({ ...current, haEntityId: event.target.value }))} placeholder="sensor.rdwc_ph" /></V1Field>
                 <V1Field label="Hersteller"><input value={draft.manufacturer} onChange={(event) => setDraft((current) => ({ ...current, manufacturer: event.target.value }))} /></V1Field>
                 <V1Field label="Modell"><input value={draft.model} onChange={(event) => setDraft((current) => ({ ...current, model: event.target.value }))} /></V1Field>
                 <V1Field label="Seriennummer"><input value={draft.serialNumber} onChange={(event) => setDraft((current) => ({ ...current, serialNumber: event.target.value }))} /></V1Field>
@@ -289,7 +289,6 @@ function HardwareCard({ item, saving, onStatus, onEdit, onDelete }: { item: Hard
     <V1Card tone={tone}>
       <div className="v1-card-title-row"><div><span className="v1-card-kicker">{item.category}</span><h2>{item.name}</h2></div><V1Badge tone={tone}>{item.status}</V1Badge></div>
       <p>{item.manufacturer ?? 'Hersteller offen'} {item.model ?? ''}</p>
-      <p>{item.haEntityId ? `HA: ${item.haEntityId}` : 'HA-Entity im HA-Mapping verknüpfen.'}</p>
       <div className="v1-action-row">
         <V1Button onClick={() => onEdit(item)}>Bearbeiten</V1Button>
         <V1Button disabled={saving} onClick={() => void onStatus(item, item.status === 'Offline' ? 'Active' : 'Offline')}>{item.status === 'Offline' ? 'Aktivieren' : 'Offline setzen'}</V1Button>
@@ -312,7 +311,6 @@ function createDraft(item?: HardwareItemDto): HardwareDraft {
     criticality: item?.criticality ?? 'High',
     tentId: item?.tentId ? String(item.tentId) : '',
     hydroSetupId: item?.hydroSetupId ? String(item.hydroSetupId) : '',
-    haEntityId: item?.haEntityId ?? '',
     manufacturer: item?.manufacturer ?? '',
     model: item?.model ?? '',
     serialNumber: item?.serialNumber ?? '',

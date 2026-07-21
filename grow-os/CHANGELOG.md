@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.20
+
+- Simplified — removed the confusing "HA Entity" field from the Sensors (hardware) form. It
+  never actually connected anything: live values come only from the per-tent mapping on the
+  Home Assistant page. Sensors are now purely physical inventory (name, type, tent,
+  calibration, maintenance); entities are mapped in exactly one place — the Home Assistant tab.
+
 ## 1.0.19
 
 - Fixed (major) — mapped RDWC/DWC reservoir sensors (pH, EC, water temp, ORP, DO, water
