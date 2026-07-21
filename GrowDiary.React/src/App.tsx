@@ -3,6 +3,7 @@ import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import AddbackHubPage from './pages/AddbackHubPage'
 import AddbackPage from './pages/AddbackPage'
 import AlertsPage from './pages/AlertsPage'
+import NotificationsPage from './pages/NotificationsPage'
 import AnalysisPage from './pages/AnalysisPage'
 import ArchivePage from './pages/ArchivePage'
 import GettingStartedPage from './pages/GettingStartedPage'
@@ -47,7 +48,8 @@ const desktopMoreNav = [
   { to: '/zelte', label: 'Zelte', end: false },
   { to: '/hydro', label: 'Hydro', end: true },
   { to: '/home-assistant', label: 'Home Assistant', end: true },
-  { to: '/alarme', label: 'Alarme', end: true },
+  { to: '/benachrichtigungen', label: 'Benachrichtigungen', end: true },
+  { to: '/alarme', label: 'Grenzwerte', end: true },
   { to: '/hardware', label: 'Sensoren', end: true },
   { to: '/wissen', label: 'Wissen', end: true },
   { to: '/analyse', label: 'Vergleich', end: true },
@@ -70,7 +72,8 @@ const mobileMoreGroups = [
     audit: 'mobile-more-group-integration',
     items: [
       { to: '/home-assistant', label: 'Home Assistant', end: true },
-      { to: '/alarme', label: 'Alarme', end: true },
+      { to: '/benachrichtigungen', label: 'Benachrichtigungen', end: true },
+      { to: '/alarme', label: 'Grenzwerte', end: true },
     ],
   },
   {
@@ -163,6 +166,7 @@ function App() {
           <Route path="/hydro/:setupId" element={<HydroDetailPage />} />
           <Route path="/home-assistant" element={<HomeAssistantPage />} />
           <Route path="/alarme" element={<AlertsPage />} />
+          <Route path="/benachrichtigungen" element={<NotificationsPage />} />
           <Route path="/hardware" element={<HardwarePage />} />
           <Route path="/wissen" element={<KnowledgePage />} />
           <Route path="/release" element={<ReleasePage />} />
@@ -197,7 +201,8 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/hydro')) return 'Hydro'
   if (pathname.startsWith('/action') || pathname.startsWith('/aufgaben')) return 'Aufgaben'
   if (pathname.startsWith('/home-assistant')) return 'Home Assistant'
-  if (pathname.startsWith('/alarme')) return 'Alarme'
+  if (pathname.startsWith('/benachrichtigungen')) return 'Benachrichtigungen'
+  if (pathname.startsWith('/alarme')) return 'Grenzwerte'
   if (pathname.startsWith('/grows/new')) return 'Grow starten'
   if (pathname.startsWith('/messung') || pathname.startsWith('/messungen')) return 'Messung'
   if (pathname.startsWith('/grows')) return 'Grows'

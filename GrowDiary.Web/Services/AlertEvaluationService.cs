@@ -12,16 +12,16 @@ namespace GrowDiary.Web.Services;
 public sealed class AlertEvaluationService
 {
     private readonly AlertRuleRepository _rules;
-    private readonly HomeAssistantService _homeAssistant;
+    private readonly NotificationService _notifications;
     private readonly ILogger<AlertEvaluationService> _logger;
 
     public AlertEvaluationService(
         AlertRuleRepository rules,
-        HomeAssistantService homeAssistant,
+        NotificationService notifications,
         ILogger<AlertEvaluationService> logger)
     {
         _rules = rules;
-        _homeAssistant = homeAssistant;
+        _notifications = notifications;
         _logger = logger;
     }
 
@@ -59,7 +59,6 @@ public sealed class AlertEvaluationService
     public async Task EvaluateAsync(
         Tent tent,
         IReadOnlyDictionary<string, HomeAssistantState> states,
-        HomeAssistantSettings settings,
         CancellationToken cancellationToken = default)
     {
         var rules = _rules.GetEnabledForTent(tent.Id);
@@ -71,11 +70,6 @@ public sealed class AlertEvaluationService
         var nowUtc = DateTime.UtcNow;
         foreach (var rule in rules)
         {
-            if (string.IsNullOrWhiteSpace(rule.NotifyService))
-            {
-                continue;
-            }
-
             if (!states.TryGetValue(rule.MetricKey, out var state) || state.NumericValue is not { } value)
             {
                 continue;
@@ -87,8 +81,8 @@ public sealed class AlertEvaluationService
             {
                 if (decision.SendBreach)
                 {
-                    var sent = await _homeAssistant.SendNotificationAsync(
-                        settings, rule.NotifyService, BuildTitle(tent), BuildBreachMessage(rule, value, decision.NewState), cancellationToken);
+                    var sent = await _notifications.SendAsync(
+                        NotificationCategory.Threshold, BuildTitle(tent), BuildBreachMessage(rule, value, decision.NewState), cancellationToken);
                     _rules.UpdateState(rule.Id, decision.NewState, sent ? nowUtc : rule.LastNotifiedUtc);
                     if (sent)
                     {
@@ -97,8 +91,8 @@ public sealed class AlertEvaluationService
                 }
                 else if (decision.SendRecovery)
                 {
-                    await _homeAssistant.SendNotificationAsync(
-                        settings, rule.NotifyService, BuildTitle(tent), BuildRecoveryMessage(rule, value), cancellationToken);
+                    await _notifications.SendAsync(
+                        NotificationCategory.Threshold, BuildTitle(tent), BuildRecoveryMessage(rule, value), cancellationToken);
                     _rules.UpdateState(rule.Id, decision.NewState, rule.LastNotifiedUtc);
                 }
                 else if (!string.Equals(rule.LastState, decision.NewState, StringComparison.Ordinal))

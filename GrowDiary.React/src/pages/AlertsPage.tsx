@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { TentDto } from '../types'
 import type { AlertRuleDto, TentAlertRulesDto } from '../types/alert'
@@ -43,13 +44,10 @@ function errorMessage(caught: unknown, fallback: string): string {
 function AlertsPage() {
   const [tents, setTents] = useState<TentDto[]>([])
   const [selectedTentId, setSelectedTentId] = useState<number | null>(null)
-  const [notifyOptions, setNotifyOptions] = useState<string[]>([])
-  const [notifyService, setNotifyService] = useState('')
   const [cooldown, setCooldown] = useState('30')
   const [rows, setRows] = useState<Rows>(emptyRows())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [testing, setTesting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -63,8 +61,6 @@ function AlertsPage() {
         const sorted = [...tentList].sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name))
         setTents(sorted)
         setSelectedTentId((current) => current ?? sorted[0]?.id ?? null)
-        const services = await apiFetch<string[]>('/api/alerts/notify-services', { signal: controller.signal }).catch(() => [])
-        if (!controller.signal.aborted) setNotifyOptions(services)
       } catch (caught) {
         if (!controller.signal.aborted) setError(errorMessage(caught, 'Zelte konnten nicht geladen werden.'))
       } finally {
@@ -91,12 +87,9 @@ function AlertsPage() {
         }
         setRows(next)
         const first = dto.rules[0]
-        if (first) {
-          setNotifyService(first.notifyService)
-          setCooldown(String(first.cooldownMinutes))
-        }
+        if (first) setCooldown(String(first.cooldownMinutes))
       } catch (caught) {
-        if (!controller.signal.aborted) setError(errorMessage(caught, 'Alarme konnten nicht geladen werden.'))
+        if (!controller.signal.aborted) setError(errorMessage(caught, 'Grenzwerte konnten nicht geladen werden.'))
       }
     }
     void loadRules(selectedTentId)
@@ -114,10 +107,6 @@ function AlertsPage() {
 
   async function save() {
     if (selectedTentId == null) return
-    if (activeRules.length > 0 && notifyService.trim() === '') {
-      setError('Bitte zuerst einen Push-Dienst wählen (z. B. deine Home-Assistant-App).')
-      return
-    }
     setSaving(true)
     setError(null)
     setMessage(null)
@@ -127,7 +116,7 @@ function AlertsPage() {
         metricKey: metric.key,
         minValue: parseNumber(rows[metric.key].min),
         maxValue: parseNumber(rows[metric.key].max),
-        notifyService: notifyService.trim(),
+        notifyService: '',
         enabled: true,
         cooldownMinutes,
       })),
@@ -137,7 +126,7 @@ function AlertsPage() {
         method: 'PUT',
         body: JSON.stringify(payload),
       })
-      setMessage(activeRules.length === 0 ? 'Alle Alarme für dieses Zelt entfernt.' : `${activeRules.length} Alarm(e) gespeichert.`)
+      setMessage(activeRules.length === 0 ? 'Alle Grenzwerte für dieses Zelt entfernt.' : `${activeRules.length} Grenzwert(e) gespeichert.`)
     } catch (caught) {
       setError(errorMessage(caught, 'Speichern fehlgeschlagen.'))
     } finally {
@@ -145,34 +134,13 @@ function AlertsPage() {
     }
   }
 
-  async function sendTest() {
-    if (notifyService.trim() === '') {
-      setError('Bitte zuerst einen Push-Dienst wählen.')
-      return
-    }
-    setTesting(true)
-    setError(null)
-    setMessage(null)
-    try {
-      const result = await apiFetch<{ ok: boolean }>('/api/alerts/test', {
-        method: 'POST',
-        body: JSON.stringify({ notifyService: notifyService.trim() }),
-      })
-      setMessage(result.ok ? 'Test-Benachrichtigung gesendet — schau auf dein Handy.' : 'Home Assistant hat die Test-Nachricht nicht angenommen. Stimmt der Dienstname?')
-    } catch (caught) {
-      setError(errorMessage(caught, 'Test fehlgeschlagen.'))
-    } finally {
-      setTesting(false)
-    }
-  }
-
   if (loading) {
-    return <V1Page eyebrow="Integration" title="Alarme & Push"><V1Card>Lädt…</V1Card></V1Page>
+    return <V1Page eyebrow="Integration" title="Grenzwerte"><V1Card>Lädt…</V1Card></V1Page>
   }
 
   if (tents.length === 0) {
     return (
-      <V1Page eyebrow="Integration" title="Alarme & Push">
+      <V1Page eyebrow="Integration" title="Grenzwerte">
         <V1Empty title="Noch kein Zelt" text="Lege zuerst ein Zelt an und mappe deine Sensoren, dann kannst du hier Grenzwerte setzen." />
       </V1Page>
     )
@@ -181,9 +149,12 @@ function AlertsPage() {
   return (
     <V1Page
       eyebrow="Integration"
-      title="Alarme & Push"
-      subtitle="Setze Grenzwerte pro Sensor. Grow OS schickt dir über Home Assistant eine Push-Nachricht aufs Handy, sobald ein Wert über- oder unterschritten wird."
+      title="Grenzwerte"
+      subtitle="Lege pro Sensor fest, ab wann ein Wert zu hoch oder zu niedrig ist. Grow OS schickt dir dann eine Push-Nachricht."
     >
+      <V1Alert tone="neutral" message="Dein Push-Handy, Ruhezeiten und welche Kategorien du bekommst, stellst du unter Benachrichtigungen ein." />
+      <p style={{ marginTop: -6 }}><Link to="/benachrichtigungen">→ Zu den Benachrichtigungen</Link></p>
+
       {tents.length > 1 && (
         <V1Tabs
           label="Zelt"
@@ -196,39 +167,20 @@ function AlertsPage() {
       {error && <V1Alert message={error} tone="critical" />}
       {message && <V1Alert message={message} tone="ok" />}
 
-      <V1Section title="Benachrichtigung">
-        <V1Card>
-          <V1Field label="Push-Dienst" hint="Deine Home-Assistant-App auf dem Handy, z. B. notify.mobile_app_pixel. Erscheint automatisch, wenn die App in HA angemeldet ist.">
-            <input
-              list="notify-services"
-              value={notifyService}
-              onChange={(event) => setNotifyService(event.target.value)}
-              placeholder="notify.mobile_app_dein_handy"
-            />
-            <datalist id="notify-services">
-              {notifyOptions.map((service) => <option key={service} value={service} />)}
-            </datalist>
-          </V1Field>
-          <V1Field label="Ruhepause (Minuten)" hint="Mindestabstand zwischen wiederholten Meldungen desselben Alarms.">
-            <input inputMode="numeric" value={cooldown} onChange={(event) => setCooldown(event.target.value)} placeholder="30" />
-          </V1Field>
-          <div style={{ marginTop: 12 }}>
-            <V1Button variant="secondary" onClick={() => void sendTest()} disabled={testing}>
-              {testing ? 'Sende…' : 'Test-Push senden'}
-            </V1Button>
-          </div>
-        </V1Card>
-      </V1Section>
-
       <V1Section
         title="Grenzwerte"
         action={<V1Button variant="primary" onClick={() => void save()} disabled={saving}>{saving ? 'Speichert…' : 'Speichern'}</V1Button>}
       >
         <div style={{ display: 'grid', gap: 12 }}>
+          <V1Card>
+            <V1Field label="Ruhepause (Minuten)" hint="Mindestabstand zwischen wiederholten Meldungen desselben Grenzwerts.">
+              <input inputMode="numeric" value={cooldown} onChange={(event) => setCooldown(event.target.value)} placeholder="30" />
+            </V1Field>
+          </V1Card>
           {ALERT_METRICS.map((metric) => {
             const row = rows[metric.key]
             return (
-              <V1Card key={metric.key} tone={row.enabled ? 'neutral' : 'neutral'}>
+              <V1Card key={metric.key}>
                 <V1Switch
                   label={`${metric.label}${metric.unit ? ` · ${metric.unit}` : ''}`}
                   checked={row.enabled}

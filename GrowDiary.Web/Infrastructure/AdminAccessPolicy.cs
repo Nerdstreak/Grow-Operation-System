@@ -37,6 +37,7 @@ public static class AdminAccessPolicy
     private static readonly string[] ProtectedProductApiPrefixes =
     {
         "/api/alerts",
+        "/api/notifications",
         "/api/auto-measurements",
         "/api/calibration-events",
         "/api/grows",

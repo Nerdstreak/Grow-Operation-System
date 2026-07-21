@@ -13,6 +13,10 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
     private readonly Dictionary<int, DateOnly> _lastCameraCaptureDateByTent = new();
     private DateOnly? _lastAggregationDateLocal;
 
+    // Sensor-Ausfall (In-Memory, Edge-getriggert) + Kalibrier-Erinnerung (einmal täglich)
+    private readonly SensorOfflineTracker _offlineTracker = new();
+    private DateOnly? _lastCalibrationCheckDateLocal;
+
     public HomeAssistantSnapshotWorker(
         IServiceProvider serviceProvider,
         ILogger<HomeAssistantSnapshotWorker> logger,
@@ -48,6 +52,13 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
                 _lastAggregationDateLocal = today;
             }
 
+            // Kalibrier-/Wartungs-Erinnerung: einmal täglich am Vormittag (nicht mitten in der Nacht).
+            if (now.Hour >= 8 && _lastCalibrationCheckDateLocal != today)
+            {
+                await RunCalibrationReminderAsync(stoppingToken);
+                _lastCalibrationCheckDateLocal = today;
+            }
+
             try
             {
                 await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
@@ -67,6 +78,7 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
         var haService   = scope.ServiceProvider.GetRequiredService<HomeAssistantService>();
         var lightStatus = scope.ServiceProvider.GetRequiredService<LightStatusTransitionService>();
         var alertEval   = scope.ServiceProvider.GetRequiredService<AlertEvaluationService>();
+        var notifications = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
         var settings = repository.GetEffectiveHomeAssistantSettings();
         if (!settings.IsConfigured) return;
@@ -99,7 +111,10 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
                 }
 
                 // Grenzwert-Alarme: aktuelle Werte gegen die Regeln prüfen und ggf. HA-Push auslösen.
-                await alertEval.EvaluateAsync(tent, states, settings, cancellationToken);
+                await alertEval.EvaluateAsync(tent, states, cancellationToken);
+
+                // Sensor-Ausfall: gemappte Sensoren, die keine Werte mehr liefern, melden.
+                await EvaluateSensorOfflineAsync(notifications, tent, states, cancellationToken);
 
                 await TryCaptureCamera(haService, settings, tent, cancellationToken);
             }
@@ -153,6 +168,58 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
         {
             _logger.LogWarning(ex,
                 "Kamera-Snapshot fehlgeschlagen für Zelt {TentId}", tent.Id);
+        }
+    }
+
+    private async Task EvaluateSensorOfflineAsync(
+        NotificationService notifications,
+        Tent tent,
+        Dictionary<string, HomeAssistantState> states,
+        CancellationToken cancellationToken)
+    {
+        // No states at all means Home Assistant itself is unreachable, not that every sensor
+        // died — skip so an HA outage does not raise an alarm for every mapped sensor.
+        if (states.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var sensor in tent.Sensors.Where(s => s.IsActive && !string.IsNullOrWhiteSpace(s.HaEntityId)))
+        {
+            var key = TentSensorMetricKeyMap.Resolve(sensor.MetricType);
+            var offline = !states.TryGetValue(key, out var state)
+                || string.IsNullOrWhiteSpace(state.State)
+                || state.State.Equals("unavailable", StringComparison.OrdinalIgnoreCase)
+                || state.State.Equals("unknown", StringComparison.OrdinalIgnoreCase);
+
+            var name = string.IsNullOrWhiteSpace(sensor.DisplayLabel) ? sensor.HaEntityId : sensor.DisplayLabel;
+            var transition = _offlineTracker.Observe($"{tent.Id}:{key}", offline);
+            switch (transition)
+            {
+                case SensorOfflineTracker.Transition.WentOffline:
+                    await notifications.SendAsync(NotificationCategory.SensorOffline, $"🌱 Grow OS · {tent.Name}", $"Sensor liefert keine Werte mehr: {name}.", cancellationToken);
+                    break;
+                case SensorOfflineTracker.Transition.CameOnline:
+                    await notifications.SendAsync(NotificationCategory.SensorOffline, $"🌱 Grow OS · {tent.Name}", $"Sensor liefert wieder Werte: {name}.", cancellationToken);
+                    break;
+            }
+        }
+    }
+
+    private async Task RunCalibrationReminderAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var reminder = scope.ServiceProvider.GetRequiredService<CalibrationReminderService>();
+        try
+        {
+            await reminder.CheckAndNotifyAsync(DateTime.UtcNow, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Kalibrier-Erinnerung fehlgeschlagen.");
         }
     }
 

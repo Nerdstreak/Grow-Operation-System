@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.21
+
+- New — **Notification Center** (Benachrichtigungen): one place to pick your phone once, set
+  quiet hours, and choose what Grow OS pushes you. All notifications now share this single
+  device and quiet-hours setting.
+- New — **calibration-due push**: a daily reminder when a sensor calibration is due.
+- New — **sensor-offline push**: get notified when a mapped sensor stops reporting values
+  (and again when it recovers), with a short delay so a brief hiccup doesn't false-alarm.
+- The threshold page is now called **Grenzwerte** and only sets min/max per sensor — the
+  phone and categories moved to the Notification Center. (Set your phone there once.)
+
 ## 1.0.20
 
 - Simplified — removed the confusing "HA Entity" field from the Sensors (hardware) form. It

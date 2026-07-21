@@ -62,9 +62,10 @@ public sealed class AlertsApiController : ControllerBase
             return NotFound();
         }
 
+        // The notify target is configured centrally (Notification Center), so a rule only needs
+        // a metric and at least one bound. NotifyService is kept for schema compatibility.
         var rules = (request.Rules ?? Array.Empty<AlertRuleDto>())
-            .Where(dto => !string.IsNullOrWhiteSpace(dto.NotifyService)
-                          && !string.IsNullOrWhiteSpace(dto.MetricKey)
+            .Where(dto => !string.IsNullOrWhiteSpace(dto.MetricKey)
                           && (dto.MinValue.HasValue || dto.MaxValue.HasValue))
             .Select(dto => new TentAlertRule
             {
@@ -72,7 +73,7 @@ public sealed class AlertsApiController : ControllerBase
                 MetricKey = dto.MetricKey.Trim(),
                 MinValue = dto.MinValue,
                 MaxValue = dto.MaxValue,
-                NotifyService = dto.NotifyService.Trim(),
+                NotifyService = dto.NotifyService?.Trim() ?? string.Empty,
                 Enabled = dto.Enabled,
                 CooldownMinutes = dto.CooldownMinutes <= 0 ? 30 : dto.CooldownMinutes,
             })
