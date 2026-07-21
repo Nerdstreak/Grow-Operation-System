@@ -217,7 +217,7 @@ function HardwarePage() {
         <V1Card tone={plannedMaintenance.length + plannedCalibration.length > 0 ? 'warn' : 'ok'}><span className="v1-card-kicker">Pflege</span><h2>{plannedMaintenance.length + plannedCalibration.length}</h2><p>Wartung/Kalibrierung fällig</p></V1Card>
       </section>
 
-      <V1Tabs<Tab> label="Sensoren Bereich" active={tab} onChange={setTab} items={[{ value: 'status', label: 'Status', meta: `${sensors.length} Sensoren` }, { value: 'inventory', label: 'Inventar', meta: `${hardware.length} Geräte`, audit: 'hardware-inventory-tab' }, { value: 'maintenance', label: 'Wartung', meta: `${plannedMaintenance.length + plannedCalibration.length} offen` }, { value: 'mapping', label: 'Mapping', meta: 'HA getrennt' }]} />
+      <V1Tabs<Tab> label="Sensoren Bereich" active={tab} onChange={setTab} items={[{ value: 'status', label: 'Status', meta: `${sensors.length} Sensoren` }, { value: 'inventory', label: 'Inventar', meta: `${hardware.length} Geräte`, audit: 'hardware-inventory-tab' }, { value: 'maintenance', label: 'Wartung', meta: `${plannedMaintenance.length + plannedCalibration.length} offen` }, { value: 'mapping', label: 'Mapping', meta: 'im HA-Setup' }]} />
 
       {loading ? <V1Empty title="Lade Sensoren..." /> : tab === 'status' ? (
         <V1Section title="Sensorstatus">
@@ -272,10 +272,10 @@ function HardwarePage() {
       ) : (
         <V1Section title="Home-Assistant-Mapping">
           <V1Card>
-            <span className="v1-card-kicker">Getrennte Zuständigkeit</span>
-            <h2>Inventar ist nicht Entity-Mapping</h2>
-            <p>Sensoren werden hier als Hardware geführt. Die konkrete Home-Assistant-Entity wird im HA-Mapping am Zelt gepflegt.</p>
-            <div className="v1-action-row"><V1LinkButton to="/home-assistant" variant="primary">Entity im HA-Mapping verknüpfen</V1LinkButton></div>
+            <span className="v1-card-kicker">Sensor-Zuordnung</span>
+            <h2>Live-Werte kommen aus dem Home-Assistant-Mapping</h2>
+            <p>Diese Seite führt deine Sensoren als Hardware — für Inventar und Wartung. Welche Home-Assistant-Entity welchen Messwert liefert, stellst du im Tab „Home Assistant" am Zelt ein. (Die HA-Verbindung selbst ist im Add-on immer aktiv.)</p>
+            <div className="v1-action-row"><V1LinkButton to="/home-assistant" variant="primary">Zum Home-Assistant-Mapping</V1LinkButton></div>
           </V1Card>
         </V1Section>
       )}

@@ -70,19 +70,24 @@ public sealed class GrowDashboardComposer
 
         var hasActiveHydro = tent.ActiveGrows.Any(g => g.IrrigationType == IrrigationType.ActiveHydro);
 
-        if (hasActiveHydro || measurements.Any(m => m.ReservoirPh.HasValue))
+        // A reservoir metric is shown when its sensor is mapped and Home Assistant returns a
+        // live value (states.ContainsKey), OR there is an active hydro grow, OR a past
+        // measurement recorded it. Keying on the mapped sensor is essential: without it, freshly
+        // mapped pH/EC/water-temp sensors stayed blank on the live dashboard until a grow was
+        // flagged active-hydro or a manual measurement existed.
+        if (hasActiveHydro || states.ContainsKey("reservoir-ph") || measurements.Any(m => m.ReservoirPh.HasValue))
             cards.Add(Build("pH", "reservoir-ph", m => m?.ReservoirPh));
 
-        if (hasActiveHydro || measurements.Any(m => m.ReservoirEc.HasValue))
+        if (hasActiveHydro || states.ContainsKey("reservoir-ec") || measurements.Any(m => m.ReservoirEc.HasValue))
             cards.Add(Build("EC", "reservoir-ec", m => m?.ReservoirEc, explicitUnit: "mS/cm"));
 
-        if (hasActiveHydro || measurements.Any(m => m.OrpMv.HasValue))
+        if (hasActiveHydro || states.ContainsKey("orp") || measurements.Any(m => m.OrpMv.HasValue))
             cards.Add(Build("ORP", "orp", m => m?.OrpMv, explicitUnit: "mV"));
 
-        if (hasActiveHydro || measurements.Any(m => m.DissolvedOxygenMgL.HasValue))
+        if (hasActiveHydro || states.ContainsKey("dissolved-oxygen") || measurements.Any(m => m.DissolvedOxygenMgL.HasValue))
             cards.Add(Build("DO", "dissolved-oxygen", m => m?.DissolvedOxygenMgL, explicitUnit: "mg/L"));
 
-        if (measurements.Any(m => m.ReservoirLevelLiters.HasValue || m.ReservoirLevelCm.HasValue))
+        if (states.ContainsKey("reservoir-level") || measurements.Any(m => m.ReservoirLevelLiters.HasValue || m.ReservoirLevelCm.HasValue))
         {
             states.TryGetValue("reservoir-level", out var levelState);
             cards.Add(new MetricCard
@@ -100,7 +105,7 @@ public sealed class GrowDashboardComposer
             });
         }
 
-        if (hasActiveHydro || measurements.Any(m => m.ReservoirWaterTempC.HasValue))
+        if (hasActiveHydro || states.ContainsKey("reservoir-temp") || measurements.Any(m => m.ReservoirWaterTempC.HasValue))
             cards.Add(Build("Wassertemp.", "reservoir-temp", m => m?.ReservoirWaterTempC, explicitUnit: "°C"));
 
         return cards;

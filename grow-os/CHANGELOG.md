@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.19
+
+- Fixed (major) — mapped RDWC/DWC reservoir sensors (pH, EC, water temp, ORP, DO, water
+  level) now show their live values on the dashboard as soon as they are mapped, even
+  before the grow has any measurements. Previously the reservoir tiles stayed blank ("—")
+  unless the grow was recognized as active-hydro or a manual measurement already existed.
+- Clearer wording on the Sensors page: the mapping hint no longer reads "HA getrennt"
+  (which looked like a lost connection) — it now explains that entities are mapped under
+  the Home Assistant tab, and that the add-on connection itself is always active.
+
 ## 1.0.18
 
 - Improved — the sidebar navigation now reads clearly as clickable: a pointer cursor on
