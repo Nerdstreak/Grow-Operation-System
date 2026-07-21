@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.27
+
+- Refined — you can no longer manually create a "fixed sensor": those appear
+  automatically from the Home Assistant mapping, so the add form only offers handheld
+  meter and equipment. When editing a synced sensor, its kind is shown read-only. Also
+  shortened the "Art" helper text.
+
 ## 1.0.26
 
 - New — hardware now has an explicit **device kind**: fixed sensor (HA-mapped, live

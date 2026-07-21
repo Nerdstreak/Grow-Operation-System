@@ -24,10 +24,11 @@ type HardwareDraft = {
 const criticalityOptions: HardwareItemCriticality[] = ['Low', 'Medium', 'High', 'Critical']
 const statusOptions: HardwareItemStatus[] = ['Active', 'Offline', 'MaintenanceDue', 'Retired']
 
+// Only manually creatable kinds. Fixed sensors are never created here — they appear
+// automatically from the Home Assistant mapping.
 const deviceKindOptions: Array<{ value: HardwareDeviceKind; label: string }> = [
   { value: 'HandheldMeter', label: 'Messgerät (mobil, ohne HA)' },
   { value: 'Equipment', label: 'Gerät (Pumpe, Chiller, USV …)' },
-  { value: 'FixedSensor', label: 'Fester Sensor (über HA-Mapping)' },
 ]
 
 function deviceKindLabel(kind: HardwareDeviceKind | null | undefined): string | null {
@@ -259,11 +260,17 @@ function HardwarePage() {
             <form className="ops1b-form" data-audit="hardware-edit-form" onSubmit={(event) => void saveHardware(event)}>
               <div className="ops1b-form-grid">
                 <V1Field label="Name" wide><input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} placeholder="pH Sonde Hauptzelt" /></V1Field>
-                <V1Field label="Art" hint="Bestimmt, was erwartet wird: Messgeräte werden kalibriert (kein HA-Mapping), Geräte gewartet, feste Sensoren kommen automatisch aus dem HA-Mapping.">
-                  <select value={draft.deviceKind} onChange={(event) => setDraft((current) => ({ ...current, deviceKind: event.target.value as HardwareDeviceKind }))}>
-                    {deviceKindOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </select>
-                </V1Field>
+                {draft.deviceKind === 'FixedSensor' ? (
+                  <V1Field label="Art" hint="Kommt aus dem HA-Mapping.">
+                    <input value="Fester Sensor" readOnly disabled />
+                  </V1Field>
+                ) : (
+                  <V1Field label="Art" hint="Messgeräte werden kalibriert, Geräte gewartet.">
+                    <select value={draft.deviceKind} onChange={(event) => setDraft((current) => ({ ...current, deviceKind: event.target.value as HardwareDeviceKind }))}>
+                      {deviceKindOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </V1Field>
+                )}
                 <V1Field label="Kategorie"><input value={draft.category} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Sensor / Pumpe / Chiller" /></V1Field>
                 <V1Field label="Status"><select value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as HardwareItemStatus }))}>{statusOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></V1Field>
                 <V1Field label="Kritikalität"><select value={draft.criticality} onChange={(event) => setDraft((current) => ({ ...current, criticality: event.target.value as HardwareItemCriticality }))}>{criticalityOptions.map((item) => <option key={item} value={item}>{formatSeverityLabel(item)}</option>)}</select></V1Field>
