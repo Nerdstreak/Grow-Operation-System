@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.24
+
+- Fixed — the clock in the live dashboard's LIVE chip now ticks in real time. It used to
+  show the last data-refresh timestamp (moving only every 30 seconds), which looked like a
+  hanging clock. If the data itself ever goes stale (e.g. Home Assistant briefly down),
+  the chip now says so explicitly ("Daten vor X min").
+
 ## 1.0.23
 
 - New — **mapped entities become sensors automatically**. Map an entity on the Home

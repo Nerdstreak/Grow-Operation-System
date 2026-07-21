@@ -144,6 +144,18 @@ export function LiveDashboard({
     return () => window.clearTimeout(handle)
   }, [score.value])
 
+  // Real ticking clock for the LIVE chip. It used to show the last data-refresh
+  // timestamp, which only moved with the 30s poll and looked like a hanging clock.
+  const [clockNow, setClockNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setClockNow(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  // Honest staleness hint: only when the data really is old (e.g. HA briefly down).
+  const dataAgeMs = lastUpdated ? clockNow - lastUpdated : null
+  const staleMinutes = dataAgeMs !== null && dataAgeMs > 120_000 ? Math.floor(dataAgeMs / 60_000) : null
+
   const TopBar = (
     <div className="ix-top ix-rise">
       <div className="ix-brand"><span className="dot" /><b>GROW OS</b></div>
@@ -159,7 +171,7 @@ export function LiveDashboard({
           </button>
         ))}
       </div>
-      <div className="ix-livechip"><span className="rec" />LIVE{lastUpdated ? ` · ${formatClock(lastUpdated)}` : ''}</div>
+      <div className="ix-livechip"><span className="rec" />LIVE · {formatClock(clockNow)}{staleMinutes !== null ? ` · Daten vor ${staleMinutes} min` : ''}</div>
     </div>
   )
 
