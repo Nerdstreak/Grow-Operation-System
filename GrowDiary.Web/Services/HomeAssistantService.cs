@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using GrowDiary.Web.Models;
@@ -280,6 +281,118 @@ public sealed class HomeAssistantService
             _logger.LogDebug(ex, "Home Assistant Entity-Liste konnte nicht geladen werden.");
             return Array.Empty<HomeAssistantEntity>();
         }
+    }
+
+    /// <summary>
+    /// Calls a Home Assistant notify service (e.g. <c>notify.mobile_app_pixel</c>) to push a
+    /// message to the user's device. Returns false when HA is unreachable or the call fails.
+    /// </summary>
+    public async Task<bool> SendNotificationAsync(
+        HomeAssistantSettings settings,
+        string notifyService,
+        string title,
+        string message,
+        CancellationToken cancellationToken = default)
+    {
+        if (!settings.IsConfigured || string.IsNullOrWhiteSpace(notifyService))
+        {
+            return false;
+        }
+
+        var (domain, service) = SplitService(notifyService);
+        try
+        {
+            var client = CreateClient(settings);
+            var payload = JsonSerializer.Serialize(new { title, message });
+            using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+            using var response = await client.PostAsync($"api/services/{domain}/{service}", content, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogDebug(
+                    "Home Assistant notify {Service} schlug fehl: HTTP {StatusCode}.",
+                    notifyService,
+                    (int)response.StatusCode);
+                return false;
+            }
+
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Home Assistant notify {Service} schlug fehl.", notifyService);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Lists the available Home Assistant notify services (<c>GET /api/services</c>, domain
+    /// <c>notify</c>) as fully-qualified ids like <c>notify.mobile_app_pixel</c>, so the UI can
+    /// offer a dropdown. Returns an empty list when HA is unreachable.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> GetNotifyServicesAsync(
+        HomeAssistantSettings settings,
+        CancellationToken cancellationToken = default)
+    {
+        if (!settings.IsConfigured || IsCircuitOpen())
+        {
+            return Array.Empty<string>();
+        }
+
+        try
+        {
+            var client = CreateClient(settings);
+            using var response = await client.GetAsync("api/services", cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return Array.Empty<string>();
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+
+            var services = new List<string>();
+            foreach (var element in document.RootElement.EnumerateArray())
+            {
+                if (!element.TryGetProperty("domain", out var domainEl)
+                    || !string.Equals(domainEl.GetString(), "notify", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (element.TryGetProperty("services", out var servicesEl) && servicesEl.ValueKind == JsonValueKind.Object)
+                {
+                    foreach (var service in servicesEl.EnumerateObject())
+                    {
+                        services.Add($"notify.{service.Name}");
+                    }
+                }
+            }
+
+            ResetCircuit();
+            return services.OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToList();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return Array.Empty<string>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Home Assistant notify-Services konnten nicht geladen werden.");
+            return Array.Empty<string>();
+        }
+    }
+
+    private static (string Domain, string Service) SplitService(string value)
+    {
+        var trimmed = value.Trim();
+        var separator = trimmed.IndexOf('.');
+        return separator > 0
+            ? (trimmed[..separator], trimmed[(separator + 1)..])
+            : ("notify", trimmed);
     }
 
     private HttpClient CreateClient(HomeAssistantSettings settings)

@@ -625,6 +625,23 @@ public sealed partial class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS IX_RiskEvents_TentSensorId ON RiskEvents(TentSensorId);
             CREATE INDEX IF NOT EXISTS IX_RiskEvents_DedupeKey_Status ON RiskEvents(DedupeKey, Status);
             CREATE INDEX IF NOT EXISTS IX_RiskEvents_StartedAtUtc ON RiskEvents(StartedAtUtc);
+
+            CREATE TABLE IF NOT EXISTS TentAlertRules (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                TentId INTEGER NOT NULL,
+                MetricKey TEXT NOT NULL,
+                MinValue REAL NULL,
+                MaxValue REAL NULL,
+                NotifyService TEXT NOT NULL,
+                Enabled INTEGER NOT NULL DEFAULT 1,
+                CooldownMinutes INTEGER NOT NULL DEFAULT 30,
+                LastState TEXT NULL,
+                LastNotifiedUtc TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (TentId) REFERENCES Tents(Id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS IX_TentAlertRules_TentId ON TentAlertRules(TentId);
         """;
 
     private const string GrowIndexSql = """

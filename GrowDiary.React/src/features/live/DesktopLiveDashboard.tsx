@@ -253,12 +253,15 @@ export function LiveDashboard({
           </div>
         </div>
 
-        {hasHydroGrow && (
+        {(hasHydroGrow || hydroMetrics.some((metric) => metric.value && metric.value !== '–')) && (
           <div className="ix-panel ix-cluster ix-rise ix-d4" data-audit="live-hydro-card">
             <div className="ix-cluster-head"><div className="t"><span className="ix-kick">Sektion 02</span><h3>Reservoir</h3></div></div>
             <div className="ix-grid-3">
               {hydroMetrics.map((metric) => <Metric key={metric.key} metric={metric} />)}
             </div>
+            {!hasHydroGrow && (
+              <p className="ix-empty-line">Live-Werte deiner Reservoir-Sensoren. Für Zielwert-Abgleich, Addback und Diagnose <Link to="/grows/new">einen DWC/RDWC-Grow anlegen</Link>.</p>
+            )}
           </div>
         )}
       </section>

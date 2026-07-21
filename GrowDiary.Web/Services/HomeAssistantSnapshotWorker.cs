@@ -66,6 +66,7 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
         var sensorRepo  = scope.ServiceProvider.GetRequiredService<SensorReadingRepository>();
         var haService   = scope.ServiceProvider.GetRequiredService<HomeAssistantService>();
         var lightStatus = scope.ServiceProvider.GetRequiredService<LightStatusTransitionService>();
+        var alertEval   = scope.ServiceProvider.GetRequiredService<AlertEvaluationService>();
 
         var settings = repository.GetEffectiveHomeAssistantSettings();
         if (!settings.IsConfigured) return;
@@ -96,6 +97,9 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
                 {
                     lightStatus.Process(tent.Id, lightState, capturedAt);
                 }
+
+                // Grenzwert-Alarme: aktuelle Werte gegen die Regeln prüfen und ggf. HA-Push auslösen.
+                await alertEval.EvaluateAsync(tent, states, settings, cancellationToken);
 
                 await TryCaptureCamera(haService, settings, tent, cancellationToken);
             }

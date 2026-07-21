@@ -74,6 +74,8 @@ builder.Services.AddSingleton<PhotoStorageService>();
 builder.Services.AddSingleton<GrowDashboardComposer>();
 builder.Services.AddScoped<SensorReadingRepository>();
 builder.Services.AddScoped<AutoMeasurementExecutionService>();
+builder.Services.AddScoped<AlertRuleRepository>();
+builder.Services.AddScoped<AlertEvaluationService>();
 builder.Services.AddHostedService<HomeAssistantSnapshotWorker>();
 builder.Services.AddHostedService<AutoMeasurementWorker>();
 

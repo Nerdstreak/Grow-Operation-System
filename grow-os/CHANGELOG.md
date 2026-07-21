@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.16
+
+- New — threshold alerts with push notifications. Under **Alarme** you can set a min/max
+  per sensor (pH, EC, water temp, ORP, DO, air temp, humidity, VPD, CO₂). Grow OS sends a
+  push to your phone through Home Assistant when a value goes out of range — pick your HA
+  notify service from a dropdown and send a test push. Edge-triggered with a cooldown so
+  you are not spammed.
+- Fixed — the Reservoir section on the live dashboard now shows your reservoir sensor
+  values as soon as they are mapped (RDWC/DWC group), even before a grow is running, with
+  a hint that grow-specific targets and addback need a DWC/RDWC grow.
+
 ## 1.0.15
 
 - Fixed: live sensor values could suddenly blank out (showing "—") and only came
