@@ -77,6 +77,7 @@ builder.Services.AddScoped<AutoMeasurementExecutionService>();
 builder.Services.AddScoped<AlertRuleRepository>();
 builder.Services.AddScoped<AlertEvaluationService>();
 builder.Services.AddSingleton<NotificationSettingsRepository>();
+builder.Services.AddSingleton<TentSensorHardwareSyncService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<CalibrationReminderService>();
 builder.Services.AddHostedService<HomeAssistantSnapshotWorker>();

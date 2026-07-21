@@ -95,7 +95,10 @@ function LiveDashboardPage() {
   const primaryGrow = growsForTent[0] ?? null
   const score = buildScore(live?.metrics ?? [], selectedTent)
   const climateMetrics = mapMetrics(live?.metrics ?? [], climateMetricKeys)
+  // The cm water-level slot only renders when its sensor actually reports — most
+  // setups measure either liters OR centimeters, so no permanent empty tile.
   const hydroMetrics = mapMetrics(live?.metrics ?? [], hydroMetricKeys)
+    .filter((metric) => metric.key !== 'reservoir-level-cm' || (metric.value && metric.value !== '–'))
   const lightMetric = findMetric(live?.metrics ?? [], ['light-cycle', 'ppfd'])
   const sensorStatus = buildSensorStatus(live, state.issues)
   const hasHydroGrow = primaryGrow ? primaryGrow.hydroStyle === 'DWC' || primaryGrow.hydroStyle === 'RDWC' : false

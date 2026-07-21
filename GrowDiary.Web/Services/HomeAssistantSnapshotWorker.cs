@@ -250,6 +250,7 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
                     "reservoir-ec",
                     "reservoir-temp",
                     "reservoir-level",
+                    "reservoir-level-cm",
                     "co2",
                     "ppfd",
                     "orp",

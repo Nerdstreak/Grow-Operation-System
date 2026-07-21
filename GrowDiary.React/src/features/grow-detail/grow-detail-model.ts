@@ -50,7 +50,7 @@ export const defaultMetricKeyByField: Record<AutoMeasurementField, string> = {
   ReservoirEc: 'reservoir-ec',
   ReservoirWaterTempC: 'reservoir-temp',
   ReservoirLevelLiters: 'reservoir-level',
-  ReservoirLevelCm: 'reservoir-level',
+  ReservoirLevelCm: 'reservoir-level-cm',
   DissolvedOxygenMgL: 'dissolved-oxygen',
   OrpMv: 'orp',
   PpfdMol: 'ppfd',

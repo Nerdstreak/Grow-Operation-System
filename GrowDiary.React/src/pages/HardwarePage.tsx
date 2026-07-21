@@ -99,9 +99,9 @@ function HardwarePage() {
       tentId: toIntOrNull(draft.tentId),
       setupId: null,
       hydroSetupId: toIntOrNull(draft.hydroSetupId),
-      // Entity mapping lives solely on the Home Assistant page (per-tent metric → entity);
-      // hardware items are physical inventory only, so this stays null.
-      haEntityId: null,
+      // Entity mapping lives on the Home Assistant page; the sync writes it onto the
+      // item. Preserve the synced value here — a form edit must not clear it.
+      haEntityId: existing?.haEntityId ?? null,
       manufacturer: nullable(draft.manufacturer),
       model: nullable(draft.model),
       serialNumber: nullable(draft.serialNumber),
@@ -273,8 +273,8 @@ function HardwarePage() {
         <V1Section title="Home-Assistant-Mapping">
           <V1Card>
             <span className="v1-card-kicker">Sensor-Zuordnung</span>
-            <h2>Live-Werte kommen aus dem Home-Assistant-Mapping</h2>
-            <p>Diese Seite führt deine Sensoren als Hardware — für Inventar und Wartung. Welche Home-Assistant-Entity welchen Messwert liefert, stellst du im Tab „Home Assistant" am Zelt ein. (Die HA-Verbindung selbst ist im Add-on immer aktiv.)</p>
+            <h2>Gemappte Entities erscheinen hier automatisch</h2>
+            <p>Sobald du im Tab „Home Assistant" eine Entity zuordnest (z. B. deine pH-Sonde), legt Grow OS den Sensor hier automatisch als Hardware an — inklusive Kalibrier-Intervall, das du pro Sensor anpassen kannst. Die Kalibrier-Erinnerung läuft dann über die Benachrichtigungen.</p>
             <div className="v1-action-row"><V1LinkButton to="/home-assistant" variant="primary">Zum Home-Assistant-Mapping</V1LinkButton></div>
           </V1Card>
         </V1Section>
@@ -289,6 +289,7 @@ function HardwareCard({ item, saving, onStatus, onEdit, onDelete }: { item: Hard
     <V1Card tone={tone}>
       <div className="v1-card-title-row"><div><span className="v1-card-kicker">{item.category}</span><h2>{item.name}</h2></div><V1Badge tone={tone}>{item.status}</V1Badge></div>
       <p>{item.manufacturer ?? 'Hersteller offen'} {item.model ?? ''}</p>
+      {item.haEntityId && <p>HA: {item.haEntityId}</p>}
       <div className="v1-action-row">
         <V1Button onClick={() => onEdit(item)}>Bearbeiten</V1Button>
         <V1Button disabled={saving} onClick={() => void onStatus(item, item.status === 'Offline' ? 'Active' : 'Offline')}>{item.status === 'Offline' ? 'Aktivieren' : 'Offline setzen'}</V1Button>

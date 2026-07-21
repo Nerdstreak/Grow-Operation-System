@@ -144,7 +144,7 @@ function SettingsPage() {
           <section className="v1-kpi-grid rc2-admin-kpis">
             <V1Card><span className="v1-card-kicker">Zelte</span><h2>{settings?.tents.length ?? 0}</h2><p>Systemräume</p></V1Card>
             <V1Card><span className="v1-card-kicker">Grows</span><h2>{grows.length}</h2><p>aktiv/geplant</p></V1Card>
-            <V1Card tone={settings?.homeAssistant.enabled ? 'ok' : 'warn'}><span className="v1-card-kicker">HA</span><h2>{settings?.homeAssistant.enabled ? 'aktiv' : 'aus'}</h2><p>{settings?.homeAssistant.baseUrl || 'keine URL'}</p></V1Card>
+            <V1Card tone={settings?.homeAssistant.isManagedByAddon || settings?.homeAssistant.enabled ? 'ok' : 'warn'}><span className="v1-card-kicker">HA</span><h2>{settings?.homeAssistant.isManagedByAddon || settings?.homeAssistant.enabled ? 'aktiv' : 'aus'}</h2><p>{settings?.homeAssistant.isManagedByAddon ? 'Über Add-on' : (settings?.homeAssistant.baseUrl || 'nicht verbunden')}</p></V1Card>
             <V1Card><span className="v1-card-kicker">Backup</span><h2>ZIP</h2><p>DB + Knowledge</p></V1Card>
           </section>
 

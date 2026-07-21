@@ -19,6 +19,7 @@ public static class TentSensorMetricKeyMap
             SensorMetricType.ReservoirDissolvedOxygen => "dissolved-oxygen",
             SensorMetricType.ReservoirWaterTemp => "reservoir-temp",
             SensorMetricType.ReservoirLevel => "reservoir-level",
+            SensorMetricType.ReservoirLevelCm => "reservoir-level-cm",
             SensorMetricType.PumpCirculation => "pump-circulation",
             SensorMetricType.PumpAir => "pump-air",
             SensorMetricType.Chiller => "chiller",

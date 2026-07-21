@@ -18,6 +18,7 @@ public static class HardwareItemMapping
         WearTemplateId: item.WearTemplateId,
         TentSensorId: item.TentSensorId,
         HaEntityId: item.HaEntityId,
+        MetricType: item.MetricType,
         Manufacturer: item.Manufacturer,
         Model: item.Model,
         SerialNumber: item.SerialNumber,

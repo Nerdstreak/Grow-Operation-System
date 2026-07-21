@@ -23,7 +23,8 @@ export const hydroMetricKeys = [
   ['orp', 'ORP', 'mV'],
   ['dissolved-oxygen', 'DO', 'mg/L'],
   ['reservoir-temp', 'Wassertemp.', '°C'],
-  ['reservoir-level', 'Wasserstand', null],
+  ['reservoir-level', 'Wasserstand', 'L'],
+  ['reservoir-level-cm', 'Wasserstand', 'cm'],
 ] as const
 
 export function mapMetrics(items: MetricPayload[], definitions: readonly (readonly [string, string, string | null])[]): MetricPayload[] {

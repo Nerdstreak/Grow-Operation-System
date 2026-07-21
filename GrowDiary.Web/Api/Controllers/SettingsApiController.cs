@@ -2,6 +2,7 @@ using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Api.Mapping;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GrowDiary.Web.Api.Controllers;
@@ -12,10 +13,12 @@ namespace GrowDiary.Web.Api.Controllers;
 public sealed class SettingsApiController : ApiControllerBase
 {
     private readonly GrowRepository _repository;
+    private readonly TentSensorHardwareSyncService _sensorHardwareSync;
 
-    public SettingsApiController(GrowRepository repository)
+    public SettingsApiController(GrowRepository repository, TentSensorHardwareSyncService sensorHardwareSync)
     {
         _repository = repository;
+        _sensorHardwareSync = sensorHardwareSync;
     }
 
     [HttpGet("")]
@@ -95,6 +98,7 @@ public sealed class SettingsApiController : ApiControllerBase
         {
             _repository.ReplaceTentSensors(created.Id, request.ToSensors(created.Id));
             created = _repository.GetTent(created.Id)!;
+            _sensorHardwareSync.SyncForTent(created);
         }
 
         return CreatedAtAction(nameof(Tent), new { id = created.Id }, created.ToDto());
@@ -135,7 +139,13 @@ public sealed class SettingsApiController : ApiControllerBase
             _repository.ReplaceTentSensors(id, request.ToSensors(id));
         }
 
-        return Ok(_repository.GetTent(id)!.ToDto());
+        var saved = _repository.GetTent(id)!;
+        if (request.Sensors is not null)
+        {
+            _sensorHardwareSync.SyncForTent(saved);
+        }
+
+        return Ok(saved.ToDto());
     }
 
 

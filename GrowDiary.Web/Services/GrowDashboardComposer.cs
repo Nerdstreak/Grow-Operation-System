@@ -87,7 +87,9 @@ public sealed class GrowDashboardComposer
         if (hasActiveHydro || states.ContainsKey("dissolved-oxygen") || measurements.Any(m => m.DissolvedOxygenMgL.HasValue))
             cards.Add(Build("DO", "dissolved-oxygen", m => m?.DissolvedOxygenMgL, explicitUnit: "mg/L"));
 
-        if (states.ContainsKey("reservoir-level") || measurements.Any(m => m.ReservoirLevelLiters.HasValue || m.ReservoirLevelCm.HasValue))
+        // Water level can be measured in liters (scale/flow) or centimeters (distance
+        // sensor) — two separate mapping slots so units are always unambiguous.
+        if (states.ContainsKey("reservoir-level") || measurements.Any(m => m.ReservoirLevelLiters.HasValue))
         {
             states.TryGetValue("reservoir-level", out var levelState);
             cards.Add(new MetricCard
@@ -96,12 +98,30 @@ public sealed class GrowDashboardComposer
                 Label = "Wasserstand",
                 Value = levelState is not null
                     ? levelState.NumericValue?.ToString("0.0") ?? levelState.State
-                    : latest?.ReservoirLevelLiters?.ToString("0.0") ?? latest?.ReservoirLevelCm?.ToString("0.0") ?? "–",
-                Unit = levelState?.UnitOfMeasurement ?? (latest?.ReservoirLevelLiters.HasValue == true ? "L" : "cm"),
+                    : latest?.ReservoirLevelLiters?.ToString("0.0") ?? "–",
+                Unit = levelState?.UnitOfMeasurement ?? "L",
                 Tone = "info",
                 Hint = levelState is not null
                     ? levelState.FriendlyName
-                    : latest?.ReservoirLevelLiters.HasValue == true || latest?.ReservoirLevelCm.HasValue == true ? "Letzte Messung" : null
+                    : latest?.ReservoirLevelLiters.HasValue == true ? "Letzte Messung" : null
+            });
+        }
+
+        if (states.ContainsKey("reservoir-level-cm") || measurements.Any(m => m.ReservoirLevelCm.HasValue))
+        {
+            states.TryGetValue("reservoir-level-cm", out var levelCmState);
+            cards.Add(new MetricCard
+            {
+                Key = "reservoir-level-cm",
+                Label = "Wasserstand",
+                Value = levelCmState is not null
+                    ? levelCmState.NumericValue?.ToString("0.0") ?? levelCmState.State
+                    : latest?.ReservoirLevelCm?.ToString("0.0") ?? "–",
+                Unit = levelCmState?.UnitOfMeasurement ?? "cm",
+                Tone = "info",
+                Hint = levelCmState is not null
+                    ? levelCmState.FriendlyName
+                    : latest?.ReservoirLevelCm.HasValue == true ? "Letzte Messung" : null
             });
         }
 

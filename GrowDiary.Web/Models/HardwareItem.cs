@@ -14,6 +14,13 @@ public sealed class HardwareItem
     public string? WearTemplateId { get; set; }
     public int? TentSensorId { get; set; }
     public string? HaEntityId { get; set; }
+
+    /// <summary>
+    /// The tent metric this item was auto-created for by the HA-mapping sync. Stable link
+    /// key per tent (TentSensor ids are regenerated on every mapping save, so they cannot
+    /// anchor the relationship). Null for manually created hardware.
+    /// </summary>
+    public SensorMetricType? MetricType { get; set; }
     public string? Manufacturer { get; set; }
     public string? Model { get; set; }
     public string? SerialNumber { get; set; }

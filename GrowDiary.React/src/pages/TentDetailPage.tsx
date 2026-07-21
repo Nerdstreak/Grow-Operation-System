@@ -19,7 +19,8 @@ const hydroMetricDefinitions = [
   ['reservoir-ph', 'pH', null],
   ['reservoir-ec', 'EC', 'mS/cm'],
   ['reservoir-temp', 'Wasser', '°C'],
-  ['reservoir-level', 'Level', 'L/cm'],
+  ['reservoir-level', 'Level', 'L'],
+  ['reservoir-level-cm', 'Level', 'cm'],
   ['orp', 'ORP', 'mV'],
   ['dissolved-oxygen', 'DO', 'mg/L'],
 ] as const

@@ -31,6 +31,7 @@ export interface HardwareItemDto {
   wearTemplateId: string | null
   tentSensorId: number | null
   haEntityId: string | null
+  metricType?: string | null
   manufacturer: string | null
   model: string | null
   serialNumber: string | null

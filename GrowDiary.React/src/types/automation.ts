@@ -157,6 +157,7 @@ export type SensorMetricType =
   | 'ReservoirDissolvedOxygen'
   | 'ReservoirWaterTemp'
   | 'ReservoirLevel'
+  | 'ReservoirLevelCm'
   | 'PumpCirculation'
   | 'PumpAir'
   | 'Chiller'

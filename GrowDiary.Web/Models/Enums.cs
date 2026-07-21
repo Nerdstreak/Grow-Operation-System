@@ -456,6 +456,7 @@ public enum SensorMetricType
     ReservoirDissolvedOxygen,
     ReservoirWaterTemp,
     ReservoirLevel,
+    ReservoirLevelCm,
     PumpCirculation,
     PumpAir,
     Chiller,

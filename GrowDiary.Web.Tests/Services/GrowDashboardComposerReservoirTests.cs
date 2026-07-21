@@ -54,6 +54,21 @@ public sealed class GrowDashboardComposerReservoirTests
     }
 
     [Fact]
+    public void WaterLevel_LitersAndCm_AreSeparateCardsWithTheirOwnUnit()
+    {
+        var states = new Dictionary<string, HomeAssistantState>
+        {
+            ["reservoir-level"] = State(82.0),
+            ["reservoir-level-cm"] = State(24.5),
+        };
+
+        var cards = Composer.BuildTentMetrics(TentWithoutActiveHydro(), states, new List<Measurement>());
+
+        Assert.Contains(cards, card => card.Key == "reservoir-level" && card.Unit == "L");
+        Assert.Contains(cards, card => card.Key == "reservoir-level-cm" && card.Unit == "cm");
+    }
+
+    [Fact]
     public void ActiveHydroGrow_ShowsReservoir_EvenWithoutMappedState()
     {
         var tent = new Tent

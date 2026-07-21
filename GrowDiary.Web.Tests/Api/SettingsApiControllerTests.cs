@@ -21,7 +21,11 @@ public sealed class SettingsApiControllerTests : IDisposable
         _paths = new AppPaths(Path.GetTempPath());
         GrowDiary.Web.Tests.TestDatabase.InitializeWithDefaultTent(_paths);
         _repository = new GrowRepository(_paths);
-        _controller = new SettingsApiController(_repository);
+        _controller = new SettingsApiController(
+            _repository,
+            new GrowDiary.Web.Services.TentSensorHardwareSyncService(
+                new HardwareRepository(_paths),
+                NullLogger<GrowDiary.Web.Services.TentSensorHardwareSyncService>.Instance));
     }
 
     public void Dispose()

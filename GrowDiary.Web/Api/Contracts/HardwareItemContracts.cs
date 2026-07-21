@@ -16,6 +16,7 @@ public sealed record HardwareItemDto(
     string? WearTemplateId,
     int? TentSensorId,
     string? HaEntityId,
+    SensorMetricType? MetricType,
     string? Manufacturer,
     string? Model,
     string? SerialNumber,

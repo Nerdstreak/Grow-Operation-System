@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.23
+
+- New — **mapped entities become sensors automatically**. Map an entity on the Home
+  Assistant page (e.g. your pH probe) and it appears under **Sensoren** as tracked
+  hardware — with a sensible calibration interval per type (pH 14 days, EC/ORP/DO 30)
+  and the calibration cycle armed, so the calibration push reminder works from day one.
+  Your edits (name, interval) survive re-saving the mapping; unmapping keeps the item.
+- New — **water level in liters or centimeters**: two separate mapping slots
+  ("Wasserstand (Liter)" and "Wasserstand (cm)"), correct units on the live dashboard
+  and threshold alerts for both.
+- Fixed — the Settings page no longer claims "HA aus · keine URL" when running as an
+  add-on; it now shows "aktiv · Über Add-on".
+
 ## 1.0.22
 
 - Fixed — a threshold breach that starts during quiet hours (or while Home Assistant is
