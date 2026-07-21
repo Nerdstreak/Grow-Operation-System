@@ -442,6 +442,18 @@ public enum LightSource
     HomeAssistant
 }
 
+/// <summary>
+/// What kind of physical device a hardware item is. Drives which expectations apply:
+/// fixed sensors are HA-mapped (live values), handheld meters are calibrated but never
+/// mapped, equipment (pumps, chillers, UPS) only gets maintenance.
+/// </summary>
+public enum HardwareDeviceKind
+{
+    FixedSensor,
+    HandheldMeter,
+    Equipment
+}
+
 public enum SensorMetricType
 {
     AirTemperature,

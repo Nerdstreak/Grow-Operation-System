@@ -17,6 +17,7 @@ public sealed record HardwareItemDto(
     int? TentSensorId,
     string? HaEntityId,
     SensorMetricType? MetricType,
+    HardwareDeviceKind? DeviceKind,
     string? Manufacturer,
     string? Model,
     string? SerialNumber,
@@ -43,6 +44,7 @@ public sealed class CreateHardwareItemRequest
     public string? WearTemplateId { get; set; }
     public int? TentSensorId { get; set; }
     public string? HaEntityId { get; set; }
+    public HardwareDeviceKind? DeviceKind { get; set; }
     public string? Manufacturer { get; set; }
     public string? Model { get; set; }
     public string? SerialNumber { get; set; }
@@ -71,6 +73,7 @@ public sealed class UpdateHardwareItemRequest
     public string? WearTemplateId { get; set; }
     public int? TentSensorId { get; set; }
     public string? HaEntityId { get; set; }
+    public HardwareDeviceKind? DeviceKind { get; set; }
     public string? Manufacturer { get; set; }
     public string? Model { get; set; }
     public string? SerialNumber { get; set; }

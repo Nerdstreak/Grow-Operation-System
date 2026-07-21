@@ -59,6 +59,7 @@ public sealed class TentSensorHardwareSyncTests : IDisposable
         Assert.Equal("sensor.bluelab_guardian_ph", item.HaEntityId);
         Assert.Equal(14, item.CalibrationIntervalDays);
         Assert.Equal(HardwareItemCriticality.High, item.Criticality);
+        Assert.Equal(HardwareDeviceKind.FixedSensor, item.DeviceKind);
 
         // Calibration cycle is armed: a planned event due in ~14 days exists, so the
         // daily calibration push reminder fires without a first manual calibration.

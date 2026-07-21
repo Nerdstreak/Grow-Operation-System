@@ -18,7 +18,7 @@ public sealed partial class HardwareRepository
         command.CommandText = """
             INSERT INTO HardwareItems (
                 Name, Category, Status, Criticality,
-                TentId, SetupId, HydroSetupId, GrowId, WearTemplateId, TentSensorId, HaEntityId, SensorMetricType,
+                TentId, SetupId, HydroSetupId, GrowId, WearTemplateId, TentSensorId, HaEntityId, SensorMetricType, DeviceKind,
                 Manufacturer, Model, SerialNumber,
                 InstalledAtUtc, RetiredAtUtc,
                 ExpectedLifespanDays, InspectionIntervalDays, CalibrationIntervalDays, Notes,
@@ -26,7 +26,7 @@ public sealed partial class HardwareRepository
             )
             VALUES (
                 $name, $category, $status, $criticality,
-                $tentId, $setupId, $hydroSetupId, $growId, $wearTemplateId, $tentSensorId, $haEntityId, $sensorMetricType,
+                $tentId, $setupId, $hydroSetupId, $growId, $wearTemplateId, $tentSensorId, $haEntityId, $sensorMetricType, $deviceKind,
                 $manufacturer, $model, $serialNumber,
                 $installedAtUtc, $retiredAtUtc,
                 $expectedLifespanDays, $inspectionIntervalDays, $calibrationIntervalDays, $notes,
@@ -62,6 +62,7 @@ public sealed partial class HardwareRepository
                 TentSensorId = $tentSensorId,
                 HaEntityId = $haEntityId,
                 SensorMetricType = $sensorMetricType,
+                DeviceKind = $deviceKind,
                 Manufacturer = $manufacturer,
                 Model = $model,
                 SerialNumber = $serialNumber,
@@ -255,6 +256,7 @@ public sealed partial class HardwareRepository
             TentSensorId = reader["TentSensorId"] is DBNull or null ? null : Convert.ToInt32(reader["TentSensorId"], CultureInfo.InvariantCulture),
             HaEntityId = NullString(reader["HaEntityId"]),
             MetricType = HasColumn(reader, "SensorMetricType") && Enum.TryParse<SensorMetricType>(NullString(reader["SensorMetricType"]), out var metricType) ? metricType : null,
+            DeviceKind = HasColumn(reader, "DeviceKind") && Enum.TryParse<HardwareDeviceKind>(NullString(reader["DeviceKind"]), out var deviceKind) ? deviceKind : null,
             Manufacturer = NullString(reader["Manufacturer"]),
             Model = NullString(reader["Model"]),
             SerialNumber = NullString(reader["SerialNumber"]),
@@ -284,6 +286,7 @@ public sealed partial class HardwareRepository
         command.Parameters.AddWithValue("$tentSensorId", (object?)item.TentSensorId ?? DBNull.Value);
         command.Parameters.AddWithValue("$haEntityId", (object?)NormalizeOptional(item.HaEntityId) ?? DBNull.Value);
         command.Parameters.AddWithValue("$sensorMetricType", (object?)item.MetricType?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$deviceKind", (object?)item.DeviceKind?.ToString() ?? DBNull.Value);
         command.Parameters.AddWithValue("$manufacturer", (object?)NormalizeOptional(item.Manufacturer) ?? DBNull.Value);
         command.Parameters.AddWithValue("$model", (object?)NormalizeOptional(item.Model) ?? DBNull.Value);
         command.Parameters.AddWithValue("$serialNumber", (object?)NormalizeOptional(item.SerialNumber) ?? DBNull.Value);

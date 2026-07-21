@@ -18,6 +18,10 @@ export interface HomeAssistantEntity {
   domain: string
 }
 
+// Device class: fixed HA-mapped sensor, handheld meter (calibrated, never mapped),
+// or equipment like pumps/chillers (maintenance only).
+export type HardwareDeviceKind = 'FixedSensor' | 'HandheldMeter' | 'Equipment'
+
 export interface HardwareItemDto {
   id: number
   name: string
@@ -32,6 +36,7 @@ export interface HardwareItemDto {
   tentSensorId: number | null
   haEntityId: string | null
   metricType?: string | null
+  deviceKind?: HardwareDeviceKind | null
   manufacturer: string | null
   model: string | null
   serialNumber: string | null
@@ -57,6 +62,7 @@ export interface CreateHardwareItemRequest {
   wearTemplateId?: string | null
   tentSensorId?: number | null
   haEntityId?: string | null
+  deviceKind?: HardwareDeviceKind | null
   manufacturer?: string | null
   model?: string | null
   serialNumber?: string | null

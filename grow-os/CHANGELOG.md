@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.26
+
+- New — hardware now has an explicit **device kind**: fixed sensor (HA-mapped, live
+  values), handheld meter (e.g. a BlueLab pen — calibrated, never mapped), or equipment
+  (pump, chiller, UPS — maintenance only). Pick it in the hardware form; the kind shows
+  on each card.
+- Fixed — handheld meters and equipment no longer get a bogus "Mapping prüfen" warning
+  on the Aufgaben page. Mapping warnings only apply to fixed sensors without an entity,
+  and the HA card no longer warns when your setup simply has no fixed sensors.
+
 ## 1.0.25
 
 - Improved — clickable elements now read as clickable on **every** page, consistently:

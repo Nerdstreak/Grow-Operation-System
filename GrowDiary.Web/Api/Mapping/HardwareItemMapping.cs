@@ -19,6 +19,7 @@ public static class HardwareItemMapping
         TentSensorId: item.TentSensorId,
         HaEntityId: item.HaEntityId,
         MetricType: item.MetricType,
+        DeviceKind: item.DeviceKind,
         Manufacturer: item.Manufacturer,
         Model: item.Model,
         SerialNumber: item.SerialNumber,
@@ -45,6 +46,7 @@ public static class HardwareItemMapping
         WearTemplateId = NormalizeOptional(request.WearTemplateId),
         TentSensorId = request.TentSensorId,
         HaEntityId = NormalizeOptional(request.HaEntityId),
+        DeviceKind = request.DeviceKind,
         Manufacturer = NormalizeOptional(request.Manufacturer),
         Model = NormalizeOptional(request.Model),
         SerialNumber = NormalizeOptional(request.SerialNumber),
@@ -69,6 +71,7 @@ public static class HardwareItemMapping
         item.WearTemplateId = NormalizeOptional(request.WearTemplateId);
         item.TentSensorId = request.TentSensorId;
         item.HaEntityId = NormalizeOptional(request.HaEntityId);
+        item.DeviceKind = request.DeviceKind ?? item.DeviceKind;
         item.Manufacturer = NormalizeOptional(request.Manufacturer);
         item.Model = NormalizeOptional(request.Model);
         item.SerialNumber = NormalizeOptional(request.SerialNumber);

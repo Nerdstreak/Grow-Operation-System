@@ -162,15 +162,22 @@ function buildRows(state: ActionState): ActionRow[] {
   ].sort((a, b) => a.rank - b.rank || a.title.localeCompare(b.title)).slice(0, 16)
 }
 
+// A "mapping missing" warning only makes sense for FIXED sensors that are supposed to
+// deliver live values via Home Assistant. Handheld meters (e.g. a BlueLab pen) and
+// equipment (pumps, chillers) are never mapped — nagging them was wrong.
+function isMappingExpected(item: HardwareItemDto) {
+  return item.deviceKind === 'FixedSensor'
+}
+
 function buildHardwareRows(state: ActionState): ActionRow[] {
   return state.hardware
-    .filter((item) => item.status === 'Offline' || item.status === 'MaintenanceDue' || (isSensorLike(item) && !item.haEntityId))
+    .filter((item) => item.status === 'Offline' || item.status === 'MaintenanceDue' || (isMappingExpected(item) && !item.haEntityId))
     .map((item) => ({
       id: `hardware-${item.id}`,
       title: item.name,
       context: item.growId ? getGrowName(state.grows, item.growId) : item.hydroSetupId ? `Hydro #${item.hydroSetupId}` : item.tentId ? `Zelt #${item.tentId}` : 'Hardware',
       priority: item.status === 'Offline' || item.criticality === 'Critical' ? 'Critical' : 'Warning',
-      action: item.status === 'Offline' ? 'Offline prüfen' : item.haEntityId ? 'Wartung prüfen' : 'Mapping prüfen',
+      action: item.status === 'Offline' ? 'Offline prüfen' : isMappingExpected(item) && !item.haEntityId ? 'Mapping prüfen' : 'Wartung prüfen',
       to: '/hardware',
       tone: item.status === 'Offline' || item.criticality === 'Critical' ? 'critical' as const : 'warning' as const,
       rank: item.status === 'Offline' ? 10 : 45,
@@ -180,6 +187,7 @@ function buildHardwareRows(state: ActionState): ActionRow[] {
 function buildActionCards(state: ActionState, primaryGrow: GrowSummary | undefined) {
   const activeSensors = state.hardware.filter((item) => isSensorLike(item) && item.status === 'Active').length
   const mappedHardware = state.hardware.filter((item) => item.haEntityId).length
+  const unmappedFixedSensors = state.hardware.filter((item) => isMappingExpected(item) && !item.haEntityId).length
   const dueSensorWork = state.maintenance.length + state.calibration.length
 
   return [
@@ -221,11 +229,15 @@ function buildActionCards(state: ActionState, primaryGrow: GrowSummary | undefin
       kicker: 'Home Assistant',
       title: 'HA-Mapping prüfen',
       description: 'Hardware-Entities in Home Assistant prüfen.',
-      status: mappedHardware > 0 ? `${mappedHardware} Hardware-Entities verknüpft.` : 'Mapping noch offen oder unvollständig.',
+      status: unmappedFixedSensors > 0
+        ? `${unmappedFixedSensors} fester Sensor(en) ohne Entity.`
+        : mappedHardware > 0
+          ? `${mappedHardware} Hardware-Entities verknüpft.`
+          : 'Keine festen Sensoren gemappt — optional.',
       to: '/home-assistant',
       cta: 'HA einrichten',
       primary: false,
-      tone: mappedHardware > 0 ? 'neutral' as const : 'warn' as const,
+      tone: unmappedFixedSensors > 0 ? 'warn' as const : 'neutral' as const,
     },
   ]
 }
@@ -233,6 +245,8 @@ function buildActionCards(state: ActionState, primaryGrow: GrowSummary | undefin
 function getGrowName(grows: GrowSummary[], id: number | null) { return id == null ? 'Grow offen' : grows.find((grow) => grow.id === id)?.name ?? `Grow #${id}` }
 function getHardwareName(items: HardwareItemDto[], id: number | null) { return id == null ? 'Hardware offen' : items.find((item) => item.id === id)?.name ?? `Hardware #${id}` }
 function isSensorLike(item: HardwareItemDto) {
+  if (item.deviceKind === 'FixedSensor' || item.deviceKind === 'HandheldMeter') return true
+  if (item.deviceKind === 'Equipment') return false
   const text = `${item.name} ${item.category}`.toLowerCase()
   return ['sensor', 'sonde', 'probe', 'ph', 'ec', 'orp', 'do', 'temperatur', 'level'].some((term) => text.includes(term))
 }

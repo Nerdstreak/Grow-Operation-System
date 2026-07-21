@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CalibrationEventDto, CreateHardwareItemRequest, HardwareItemCriticality, HardwareItemDto, HardwareItemStatus, HydroSetupDto, MaintenanceEventDto, TentDto, UpdateHardwareItemRequest } from '../types'
+import type { CalibrationEventDto, CreateHardwareItemRequest, HardwareDeviceKind, HardwareItemCriticality, HardwareItemDto, HardwareItemStatus, HydroSetupDto, MaintenanceEventDto, TentDto, UpdateHardwareItemRequest } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Tabs } from '../components/v1'
 import { formatSeverityLabel } from '../utils'
 
@@ -9,6 +9,7 @@ type Tab = 'status' | 'inventory' | 'maintenance' | 'mapping'
 type HardwareDraft = {
   name: string
   category: string
+  deviceKind: HardwareDeviceKind
   status: HardwareItemStatus
   criticality: HardwareItemCriticality
   tentId: string
@@ -22,6 +23,21 @@ type HardwareDraft = {
 
 const criticalityOptions: HardwareItemCriticality[] = ['Low', 'Medium', 'High', 'Critical']
 const statusOptions: HardwareItemStatus[] = ['Active', 'Offline', 'MaintenanceDue', 'Retired']
+
+const deviceKindOptions: Array<{ value: HardwareDeviceKind; label: string }> = [
+  { value: 'HandheldMeter', label: 'Messgerät (mobil, ohne HA)' },
+  { value: 'Equipment', label: 'Gerät (Pumpe, Chiller, USV …)' },
+  { value: 'FixedSensor', label: 'Fester Sensor (über HA-Mapping)' },
+]
+
+function deviceKindLabel(kind: HardwareDeviceKind | null | undefined): string | null {
+  switch (kind) {
+    case 'FixedSensor': return 'HA-Sensor'
+    case 'HandheldMeter': return 'Messgerät'
+    case 'Equipment': return 'Gerät'
+    default: return null
+  }
+}
 
 function HardwarePage() {
   const [hardware, setHardware] = useState<HardwareItemDto[]>([])
@@ -102,6 +118,7 @@ function HardwarePage() {
       // Entity mapping lives on the Home Assistant page; the sync writes it onto the
       // item. Preserve the synced value here — a form edit must not clear it.
       haEntityId: existing?.haEntityId ?? null,
+      deviceKind: draft.deviceKind,
       manufacturer: nullable(draft.manufacturer),
       model: nullable(draft.model),
       serialNumber: nullable(draft.serialNumber),
@@ -242,6 +259,11 @@ function HardwarePage() {
             <form className="ops1b-form" data-audit="hardware-edit-form" onSubmit={(event) => void saveHardware(event)}>
               <div className="ops1b-form-grid">
                 <V1Field label="Name" wide><input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} placeholder="pH Sonde Hauptzelt" /></V1Field>
+                <V1Field label="Art" hint="Bestimmt, was erwartet wird: Messgeräte werden kalibriert (kein HA-Mapping), Geräte gewartet, feste Sensoren kommen automatisch aus dem HA-Mapping.">
+                  <select value={draft.deviceKind} onChange={(event) => setDraft((current) => ({ ...current, deviceKind: event.target.value as HardwareDeviceKind }))}>
+                    {deviceKindOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </V1Field>
                 <V1Field label="Kategorie"><input value={draft.category} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Sensor / Pumpe / Chiller" /></V1Field>
                 <V1Field label="Status"><select value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as HardwareItemStatus }))}>{statusOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></V1Field>
                 <V1Field label="Kritikalität"><select value={draft.criticality} onChange={(event) => setDraft((current) => ({ ...current, criticality: event.target.value as HardwareItemCriticality }))}>{criticalityOptions.map((item) => <option key={item} value={item}>{formatSeverityLabel(item)}</option>)}</select></V1Field>
@@ -287,7 +309,7 @@ function HardwareCard({ item, saving, onStatus, onEdit, onDelete }: { item: Hard
   const tone = item.status === 'Active' ? 'ok' : item.status === 'MaintenanceDue' ? 'warn' : 'critical'
   return (
     <V1Card tone={tone}>
-      <div className="v1-card-title-row"><div><span className="v1-card-kicker">{item.category}</span><h2>{item.name}</h2></div><V1Badge tone={tone}>{item.status}</V1Badge></div>
+      <div className="v1-card-title-row"><div><span className="v1-card-kicker">{deviceKindLabel(item.deviceKind) ?? item.category}</span><h2>{item.name}</h2></div><V1Badge tone={tone}>{item.status}</V1Badge></div>
       <p>{item.manufacturer ?? 'Hersteller offen'} {item.model ?? ''}</p>
       {item.haEntityId && <p>HA: {item.haEntityId}</p>}
       <div className="v1-action-row">
@@ -304,10 +326,18 @@ function EventCard({ title, meta }: { title: string; meta: string }) {
   return <V1Card tone="warn"><span className="v1-card-kicker">Fällig</span><h2>{title}</h2><p>{meta}</p></V1Card>
 }
 
+function inferDeviceKind(item?: HardwareItemDto): HardwareDeviceKind {
+  if (item?.deviceKind) return item.deviceKind
+  if (item?.haEntityId || item?.metricType) return 'FixedSensor'
+  if (item && isSensorLike(item)) return 'HandheldMeter'
+  return item ? 'Equipment' : 'HandheldMeter'
+}
+
 function createDraft(item?: HardwareItemDto): HardwareDraft {
   return {
     name: item?.name ?? '',
     category: item?.category ?? 'Sensor',
+    deviceKind: inferDeviceKind(item),
     status: item?.status ?? 'Active',
     criticality: item?.criticality ?? 'High',
     tentId: item?.tentId ? String(item.tentId) : '',
@@ -321,6 +351,9 @@ function createDraft(item?: HardwareItemDto): HardwareDraft {
 }
 
 function isSensorLike(item: HardwareItemDto) {
+  // Explicit device kind wins; keyword matching is only the legacy fallback.
+  if (item.deviceKind === 'FixedSensor' || item.deviceKind === 'HandheldMeter') return true
+  if (item.deviceKind === 'Equipment') return false
   const text = `${item.name} ${item.category}`.toLowerCase()
   return ['sensor', 'sonde', 'probe', 'ph', 'ec', 'orp', 'do', 'temperatur', 'level'].some((term) => text.includes(term))
 }

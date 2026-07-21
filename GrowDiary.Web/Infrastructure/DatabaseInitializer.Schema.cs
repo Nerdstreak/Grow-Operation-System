@@ -91,6 +91,7 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "HardwareItems", "HydroSetupId", "INTEGER NULL");
         EnsureColumn(connection, "HardwareItems", "CalibrationIntervalDays", "INTEGER NULL");
         EnsureColumn(connection, "HardwareItems", "SensorMetricType", "TEXT NULL");
+        EnsureColumn(connection, "HardwareItems", "DeviceKind", "TEXT NULL");
         EnsureColumn(connection, "AutoMeasurementConfigs", "CaptureSnapshot", "INTEGER NOT NULL DEFAULT 0");
         command.CommandText = """
             CREATE INDEX IF NOT EXISTS IX_HardwareItems_HydroSetupId ON HardwareItems(HydroSetupId);

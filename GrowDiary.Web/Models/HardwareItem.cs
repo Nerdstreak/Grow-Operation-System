@@ -21,6 +21,13 @@ public sealed class HardwareItem
     /// anchor the relationship). Null for manually created hardware.
     /// </summary>
     public SensorMetricType? MetricType { get; set; }
+
+    /// <summary>
+    /// Device class: fixed HA-mapped sensor, handheld meter, or equipment. Null for
+    /// legacy rows — consumers infer a sensible kind (mapped → fixed sensor, otherwise
+    /// no mapping expectations are applied).
+    /// </summary>
+    public HardwareDeviceKind? DeviceKind { get; set; }
     public string? Manufacturer { get; set; }
     public string? Model { get; set; }
     public string? SerialNumber { get; set; }

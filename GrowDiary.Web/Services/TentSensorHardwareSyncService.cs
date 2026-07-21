@@ -97,6 +97,7 @@ public sealed class TentSensorHardwareSyncService
                 TentSensorId = sensor.Id,
                 HaEntityId = sensor.HaEntityId,
                 MetricType = sensor.MetricType,
+                DeviceKind = HardwareDeviceKind.FixedSensor,
                 CalibrationIntervalDays = calibrationDays,
                 InstalledAtUtc = DateTime.UtcNow,
                 Notes = "Automatisch aus dem Home-Assistant-Mapping angelegt.",
