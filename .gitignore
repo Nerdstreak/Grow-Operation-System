@@ -53,3 +53,6 @@ _audit_packages/
 # Claude Code local tooling (config/skills/agents) — local-only, not part of the project
 .agents/
 .claude/
+
+# Local go-to-market drafts — not part of the public product repo
+LAUNCH-KIT.md
