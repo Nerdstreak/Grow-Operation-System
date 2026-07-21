@@ -65,6 +65,10 @@ auf deiner eigenen Hardware. Keine Cloud, kein Account, kein SaaS.
 **Voraussetzung: Home Assistant OS oder Supervised** (bei Home Assistant Container/Core
 gibt es keine Add-ons).
 
+> 🍓 **Ganz von vorne?** Wenn du noch kein Home Assistant hast, führt dich die
+> [Schritt-für-Schritt-Anleitung: Raspberry Pi von Grund auf](docs/pi-setup.md) von der
+> leeren SD-Karte bis Grow OS läuft — ganz ohne Vorwissen.
+
 1. In Home Assistant: **Einstellungen → Add-ons → Add-on-Store**.
 2. Oben rechts **⋮ → Repositories**, und hinzufügen:
 
@@ -85,6 +89,7 @@ erhalten.
 
 Die Doku liegt unter [docs/](docs/):
 
+- [Raspberry Pi von Grund auf einrichten](docs/pi-setup.md)
 - [Installation](docs/install.md)
 - [Architektur](docs/architecture.md)
 - [Grow-Domäne](docs/grow-domain-notes.md)

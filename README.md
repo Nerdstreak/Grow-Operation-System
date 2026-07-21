@@ -64,6 +64,10 @@ your own hardware. No cloud, no account, no SaaS.
 **Requires Home Assistant OS or Supervised** (add-ons aren't available on Home
 Assistant Container/Core).
 
+> 🍓 **Starting from scratch?** If you don't have Home Assistant yet, the
+> [step-by-step Raspberry Pi guide](docs/pi-setup.md) (German) takes you from a blank
+> SD card to Grow OS running — no prior experience needed.
+
 1. In Home Assistant: **Settings → Add-ons → Add-on Store**.
 2. Top-right **⋮ → Repositories**, and add:
 
@@ -83,6 +87,7 @@ Updates are a clean, one-click pull from Home Assistant; your data is preserved.
 
 The docs live under [docs/](docs/) (currently in German):
 
+- [Set up a Raspberry Pi from scratch](docs/pi-setup.md)
 - [Installation](docs/install.md)
 - [Architecture](docs/architecture.md)
 - [Grow domain notes](docs/grow-domain-notes.md)
