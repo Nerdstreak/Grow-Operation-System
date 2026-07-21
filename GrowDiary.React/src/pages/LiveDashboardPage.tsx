@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { apiFetch } from '../api'
 import type { GrowSummary, RiskEventDto, TentDto, TentLivePayload } from '../types'
 import { LiveDashboard } from '../features/live/DesktopLiveDashboard'
@@ -23,32 +23,58 @@ function LiveDashboardPage() {
   const [refresh, setRefresh] = useState(0)
   const [lastUpdated, setLastUpdated] = useState<number | null>(null)
 
+  // Mirror the latest committed state so a background refresh can fall back to the
+  // last good data instead of blanking out when a request fails transiently.
+  const stateRef = useRef(state)
+  useEffect(() => { stateRef.current = state }, [state])
+
   useEffect(() => {
     const controller = new AbortController()
     async function load() {
       // Note: don't flip `loading` back on for background refreshes — the
       // initial useState(true) covers first paint, and keeping it false on the
       // 30s tick lets the dashboard update in place instead of blanking out.
+      const previous = stateRef.current
       const issues: string[] = []
-      const safe = async <T,>(name: string, path: string, fallback: T): Promise<T> => {
-        try { return await apiFetch<T>(path, { signal: controller.signal }) }
-        catch (caught) { if (!controller.signal.aborted) issues.push(`${name}: ${formatApiError(caught, 'nicht erreichbar')}`); return fallback }
+      // Report whether the call succeeded so a transient failure keeps the last
+      // good value instead of overwriting it with an empty fallback (which made
+      // sensor values vanish until the page was re-opened).
+      const attempt = async <T,>(name: string, path: string): Promise<{ ok: boolean; value: T | null }> => {
+        try { return { ok: true, value: await apiFetch<T>(path, { signal: controller.signal }) } }
+        catch (caught) {
+          if (!controller.signal.aborted) issues.push(`${name}: ${formatApiError(caught, 'nicht erreichbar')}`)
+          return { ok: false, value: null }
+        }
       }
 
-      const [tents, grows, risks] = await Promise.all([
-        safe<TentDto[]>('Zelte', '/api/settings/tents', []),
-        safe<GrowSummary[]>('Grows', '/api/grows?archived=false', []),
-        safe<RiskEventDto[]>('Risiken', '/api/risk-events?openOnly=true', []),
+      const [tentsResult, growsResult, risksResult] = await Promise.all([
+        attempt<TentDto[]>('Zelte', '/api/settings/tents'),
+        attempt<GrowSummary[]>('Grows', '/api/grows?archived=false'),
+        attempt<RiskEventDto[]>('Risiken', '/api/risk-events?openOnly=true'),
       ])
 
-      const sorted = [...tents].sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name))
+      const sorted = tentsResult.ok
+        ? [...(tentsResult.value ?? [])].sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name))
+        : previous.tents
+      const grows = growsResult.ok ? (growsResult.value ?? []) : previous.grows
+      const risks = risksResult.ok ? (risksResult.value ?? []) : previous.risks
+
       const livePairs = await Promise.all(sorted.map(async (tent) => {
         try { return [tent.id, await apiFetch<TentLivePayload>(`/api/live/tents/${tent.id}`, { signal: controller.signal })] as const }
         catch { return [tent.id, null] as const }
       }))
 
       if (controller.signal.aborted) return
-      setState({ tents: sorted, grows, risks, liveByTentId: Object.fromEntries(livePairs.filter((pair): pair is readonly [number, TentLivePayload] => pair[1] !== null)), issues })
+      // Merge into the previous live map so a tent whose refresh failed keeps its
+      // last good payload instead of dropping to empty. Only keep entries for
+      // tents that still exist.
+      const freshLive = Object.fromEntries(livePairs.filter((pair): pair is readonly [number, TentLivePayload] => pair[1] !== null))
+      const liveByTentId: Record<number, TentLivePayload> = {}
+      for (const tent of sorted) {
+        const merged = freshLive[tent.id] ?? previous.liveByTentId[tent.id]
+        if (merged) liveByTentId[tent.id] = merged
+      }
+      setState({ tents: sorted, grows, risks, liveByTentId, issues })
       setSelectedTentId((current) => current ?? chooseInitialTent(sorted, grows))
       setLoading(false)
       setLastUpdated(Date.now())
