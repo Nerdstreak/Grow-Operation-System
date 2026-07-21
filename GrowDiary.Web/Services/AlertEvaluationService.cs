@@ -83,11 +83,14 @@ public sealed class AlertEvaluationService
                 {
                     var sent = await _notifications.SendAsync(
                         NotificationCategory.Threshold, BuildTitle(tent), BuildBreachMessage(rule, value, decision.NewState), cancellationToken);
-                    _rules.UpdateState(rule.Id, decision.NewState, sent ? nowUtc : rule.LastNotifiedUtc);
                     if (sent)
                     {
+                        _rules.UpdateState(rule.Id, decision.NewState, nowUtc);
                         _logger.LogInformation("Alarm gesendet: Zelt {TentId}, {MetricKey} = {Value}.", tent.Id, rule.MetricKey, value);
                     }
+                    // Not sent (quiet hours, notifications unconfigured, or HA unreachable):
+                    // keep the previous state so the breach is retried on the next poll and
+                    // fires once sending becomes possible, instead of being swallowed silently.
                 }
                 else if (decision.SendRecovery)
                 {

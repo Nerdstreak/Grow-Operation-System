@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.22
+
+- Fixed — a threshold breach that starts during quiet hours (or while Home Assistant is
+  briefly unreachable) is no longer silently swallowed: Grow OS now retries and delivers
+  the push as soon as sending is possible again.
+- Internal — major test expansion: Home Assistant HTTP behavior is now covered with faked
+  HA responses (entity parsing, supervisor URL, circuit breaker, notify payloads) plus
+  full-loop alert/notification behavior tests (548 tests total).
+
 ## 1.0.21
 
 - New — **Notification Center** (Benachrichtigungen): one place to pick your phone once, set
