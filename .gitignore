@@ -21,7 +21,6 @@ run.*.log
 RDWC Wissen/
 GrowDiary.Web/wwwroot/docs/
 GrowDiary.Web/wwwroot/icons/
-.claude/settings.local.json
 docs/superpowers/plans/
 artifacts/
 backups/dev-reset/
@@ -51,7 +50,6 @@ _audit_packages/
 .idea/
 *.suo
 *.user
-# Claude Code local tooling (skills/agents) — not part of the project
+# Claude Code local tooling (config/skills/agents) — local-only, not part of the project
 .agents/
-.claude/skills/
-.claude/settings.local.json
+.claude/
