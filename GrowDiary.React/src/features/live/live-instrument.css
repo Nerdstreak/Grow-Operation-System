@@ -52,6 +52,7 @@
 @keyframes ix-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .ix-tents { display: flex; gap: 6px; flex-wrap: wrap; }
 .ix-tent { font-family: var(--ix-mono); font-size: 11px; letter-spacing: 0.12em; min-height: 44px; display: inline-flex; align-items: center; padding: 8px 15px; border: 1px solid var(--ix-hair); border-radius: 999px; color: var(--ix-muted); background: rgba(255, 255, 255, 0.012); cursor: pointer; transition: 0.2s; }
+.ix-tent:hover:not(.on) { color: var(--ix-ink); border-color: var(--ix-phos); background: rgba(82, 233, 140, 0.08); }
 .ix-tent.on { color: #04140a; background: var(--ix-phos); border-color: var(--ix-phos); font-weight: 600; }
 .ix-tent:not(.on):hover { border-color: var(--ix-hair-2); color: var(--ix-ink); }
 .ix-livechip { margin-left: auto; display: flex; align-items: center; gap: 8px; font-family: var(--ix-mono); font-size: 11px; letter-spacing: 0.2em; color: var(--ix-muted); }
@@ -121,7 +122,8 @@
 .ix-alerts { padding: 18px 20px 20px; }
 .ix-alerts-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .ix-alerts-head h3 { font-size: 16px; }
-.ix-alert { display: grid; grid-template-columns: auto 1fr auto; gap: 13px; align-items: center; padding: 13px 4px; border-top: 1px solid var(--ix-hair); width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; cursor: pointer; color: inherit; font: inherit; }
+.ix-alert { display: grid; grid-template-columns: auto 1fr auto; gap: 13px; align-items: center; padding: 13px 4px; border-top: 1px solid var(--ix-hair); width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; cursor: pointer; color: inherit; font: inherit; transition: background 140ms ease; }
+.ix-alert:hover { background: rgba(82, 233, 140, 0.05); }
 .ix-alert:first-of-type { border-top: 0; }
 .ix-alert .sev { width: 3px; align-self: stretch; border-radius: 3px; min-height: 30px; }
 .ix-alert.crit .sev { background: var(--ix-red); } .ix-alert.warn .sev { background: var(--ix-amber); } .ix-alert.ok .sev { background: var(--ix-phos); }

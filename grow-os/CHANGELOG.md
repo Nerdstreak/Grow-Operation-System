@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.25
+
+- Improved — clickable elements now read as clickable on **every** page, consistently:
+  a global pointer-cursor rule for all buttons/tabs/switches (browsers don't do this by
+  default), plus matching green hover highlights for buttons, tabs, switches, tent chips
+  and clickable risk rows — the same affordance the sidebar navigation got earlier.
+
 ## 1.0.24
 
 - Fixed — the clock in the live dashboard's LIVE chip now ticks in real time. It used to

@@ -58,6 +58,13 @@ a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
 
+/* Interaktive Elemente lesen sich auf JEDER Seite als klickbar: Browser geben
+   nativen Buttons standardmäßig KEINEN Pointer-Cursor — hier global gesetzt,
+   damit kein Button/Tab/Schalter je wieder wie statischer Text wirkt. */
+button:not(:disabled), [role="button"], select, summary { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+.v1-switch, .v1-switch input { cursor: pointer; }
+
 input[type="checkbox"] {
   width: 22px;
   height: 22px;
