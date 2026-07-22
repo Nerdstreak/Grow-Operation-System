@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.41
+
+- Changed — the **grow pages (Automatik, Diagnose, Journal & Fotos, SOPs) now match the
+  rest of the app**. They used a different, smaller header, and the grow switcher was
+  broken on desktop (cut-off dropdown) and missing entirely on mobile. They now use the
+  standard page header with a clean grow switcher that works on phone and desktop.
+
 ## 1.0.40
 
 - Fixed — **double scrollbar**. Making the sidebar scrollable added a second full-size

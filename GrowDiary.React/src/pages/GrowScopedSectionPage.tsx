@@ -1,34 +1,31 @@
 import '../features/grow-detail/growdetail-instrument.css'
-import { GrowScopeHeader } from '../features/grow-scope/GrowScopeHeader'
+import { V1Page, V1Card, V1Alert, V1Empty } from '../components/v1'
+import { GrowScopePicker } from '../features/grow-scope/GrowScopePicker'
 import { GrowWorkspace } from '../features/grow-scope/GrowWorkspace'
 import { useSelectedGrow } from '../features/grow-scope/useSelectedGrow'
 import type { GrowDetailSection } from '../features/grow-detail/grow-detail-model'
 
 // A top-level, single-purpose page for one grow section (measurements, diagnosis,
-// journal, SOPs, automation). Picks the grow up top; no drilling into a grow first.
-export function GrowScopedSectionPage({ title, section, intro }: { title: string; section: GrowDetailSection; intro?: string }) {
+// journal, SOPs). V1 chrome with the grow switcher in the header action — works on
+// desktop and mobile; no drilling into a grow first.
+export function GrowScopedSectionPage({ title, section, eyebrow = 'Grow', intro }: { title: string; section: GrowDetailSection; eyebrow?: string; intro?: string }) {
   const { grows, growId, setGrowId, loading, error } = useSelectedGrow()
 
   return (
-    <>
-      <GrowScopeHeader title={title} grows={grows} growId={growId} onChange={setGrowId} />
-      <div className="page-scroll">
-        {error && (
-          <div className="alert-bar" style={{ marginBottom: 14, borderRadius: 'var(--radius)' }}>
-            <div className="alert-dot" />
-            <strong>Fehler</strong>
-            <span>{error}</span>
-          </div>
-        )}
-        {intro && <p className="text-muted" style={{ margin: '0 0 14px', fontSize: 13 }}>{intro}</p>}
-        {loading ? (
-          <div className="empty-hint">Lade Grows…</div>
-        ) : grows.length === 0 ? (
-          <div className="empty-hint">Kein aktiver Grow. Lege zuerst einen Grow an, dann erscheint er hier.</div>
-        ) : growId ? (
-          <GrowWorkspace growId={growId} section={section} />
-        ) : null}
-      </div>
-    </>
+    <V1Page
+      eyebrow={eyebrow}
+      title={title}
+      subtitle={intro}
+      action={<GrowScopePicker grows={grows} growId={growId} onChange={setGrowId} />}
+    >
+      {error && <V1Alert message={error} tone="critical" />}
+      {loading ? (
+        <V1Card>Lädt…</V1Card>
+      ) : grows.length === 0 ? (
+        <V1Empty title="Kein aktiver Grow" text="Lege zuerst einen Grow an, dann erscheint er hier." />
+      ) : growId ? (
+        <GrowWorkspace growId={growId} section={section} />
+      ) : null}
+    </V1Page>
   )
 }

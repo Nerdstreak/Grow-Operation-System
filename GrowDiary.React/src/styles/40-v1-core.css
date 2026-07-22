@@ -156,6 +156,11 @@ input, select, textarea { min-width: 0; }
 .v1-field.is-wide, .is-wide { grid-column: 1 / -1; }
 .v1-field > span { color: var(--v1-muted); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.07em; }
 .v1-field input, .v1-field select, .v1-field textarea, .v1-inline-input input, .v1-entity-row input[type="text"], .v1-entity-row > input { width: 100%; min-height: 44px; border-radius: 13px; border: 1px solid var(--v1-line); background: #010703; color: var(--v1-text); padding: 0 12px; }
+
+.v1-scope-picker { display: inline-flex; align-items: center; gap: 8px; }
+.v1-scope-picker > span { color: var(--v1-soft); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; }
+.v1-scope-picker select { min-height: 44px; max-width: 220px; border-radius: 13px; border: 1px solid var(--v1-line); background: #010703; color: var(--v1-text); padding: 0 12px; }
+@media (max-width: 720px) { .v1-scope-picker { width: 100%; } .v1-scope-picker select { flex: 1; max-width: none; } }
 .v1-field textarea { padding: 12px; resize: vertical; }
 .v1-field small { color: var(--v1-soft); font-size: 12px; }
 .v1-form-divider { grid-column: 1 / -1; color: var(--v1-soft); font-size: 12px; font-weight: 900; letter-spacing: 0.16em; text-transform: uppercase; padding-top: 6px; }

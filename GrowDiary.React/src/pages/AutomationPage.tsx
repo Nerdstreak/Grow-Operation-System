@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
-import '../features/grow-detail/growdetail-instrument.css'
 import { apiFetch } from '../api'
 import type { AutoMeasurementConfigDto, AutoMeasurementFieldMappingUpsertRequest, AutoMeasurementTriggerKind } from '../types'
 import { autoMeasurementFields, defaultMetricKeyByField } from '../features/grow-detail/grow-detail-model'
-import { GrowScopeHeader } from '../features/grow-scope/GrowScopeHeader'
+import { GrowScopePicker } from '../features/grow-scope/GrowScopePicker'
 import { useSelectedGrow } from '../features/grow-scope/useSelectedGrow'
-import { V1Switch } from '../components/v1'
+import { V1Page, V1Card, V1Alert, V1Empty, V1Switch } from '../components/v1'
 
 type Template = {
   triggerKind: Extract<AutoMeasurementTriggerKind, 'LightOnDelay' | 'LightOffDelay'>
@@ -158,66 +157,51 @@ function AutomationPage() {
   }
 
   return (
-    <>
-      <GrowScopeHeader title="Automatik" grows={grows} growId={growId} onChange={setGrowId} />
-      <div className="page-scroll">
-        {(error || growsError) && (
-          <div className="alert-bar" style={{ marginBottom: 14, borderRadius: 'var(--radius)' }}>
-            <div className="alert-dot" />
-            <strong>Fehler</strong>
-            <span>{error ?? growsError}</span>
-          </div>
-        )}
-        {notice && (
-          <div className="alert-bar" style={{ marginBottom: 14, borderRadius: 'var(--radius)', background: 'var(--green-bg)', borderColor: 'var(--green)' }}>
-            <div className="alert-dot" style={{ background: 'var(--green)' }} />
-            <strong style={{ color: 'var(--green)' }}>Info</strong>
-            <span>{notice}</span>
-          </div>
-        )}
+    <V1Page
+      eyebrow="Automatik & Regeln"
+      title="Automatik"
+      subtitle="Schalte eine Automatik an, fertig. Sie erfasst automatisch die Werte deiner in Home Assistant zugeordneten Sensoren — du musst nichts auswählen. Voraussetzung: dein Licht ist in Home Assistant als Status hinterlegt."
+      action={<GrowScopePicker grows={grows} growId={growId} onChange={setGrowId} />}
+    >
+      {(error || growsError) && <V1Alert message={(error ?? growsError) as string} tone="critical" />}
+      {notice && <V1Alert message={notice} tone="ok" />}
 
-        <p className="text-muted" style={{ margin: '0 0 14px', fontSize: 13 }}>
-          Schalte eine Automatik an, fertig. Sie erfasst automatisch die Werte deiner in Home Assistant zugeordneten
-          Sensoren — du musst nichts auswählen. Voraussetzung: dein Licht ist in Home Assistant als Status hinterlegt.
-        </p>
-
-        {growsLoading ? (
-          <div className="empty-hint">Lade Grows…</div>
-        ) : grows.length === 0 ? (
-          <div className="empty-hint">Kein aktiver Grow. Lege zuerst einen Grow an, dann kannst du hier Automatiken schalten.</div>
-        ) : (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {TEMPLATES.map((template) => {
-              const config = configFor(template)
-              const enabled = config?.status === 'Enabled'
-              return (
-                <div key={template.triggerKind} className="card" style={{ padding: '16px 20px' }}>
-                  <V1Switch
-                    label={template.title}
-                    checked={enabled}
-                    onChange={(checked) => void setTemplateEnabled(template, checked)}
-                    hint={template.description}
-                  />
-                  {busy === template.triggerKind && <p className="text-muted" style={{ margin: '10px 0 0', fontSize: 13 }}>Speichert…</p>}
-                </div>
-              )
-            })}
-
-            {anyEnabled && (
-              <div className="card" style={{ padding: '16px 20px' }}>
+      {growsLoading ? (
+        <V1Card>Lädt…</V1Card>
+      ) : grows.length === 0 ? (
+        <V1Empty title="Kein aktiver Grow" text="Lege zuerst einen Grow an, dann kannst du hier Automatiken schalten." />
+      ) : (
+        <div style={{ display: 'grid', gap: 12 }}>
+          {TEMPLATES.map((template) => {
+            const config = configFor(template)
+            const enabled = config?.status === 'Enabled'
+            return (
+              <V1Card key={template.triggerKind}>
                 <V1Switch
-                  label="Kamera-Snapshot ins Journal"
-                  checked={snapshotOn}
-                  onChange={(checked) => void setSnapshotAll(checked)}
-                  hint="Legt bei jeder automatischen Messung ein Kamerabild im Foto-Tagebuch dieses Grows ab — gilt für alle aktiven Automatiken."
+                  label={template.title}
+                  checked={enabled}
+                  onChange={(checked) => void setTemplateEnabled(template, checked)}
+                  hint={template.description}
                 />
-                {busy === 'snapshot' && <p className="text-muted" style={{ margin: '10px 0 0', fontSize: 13 }}>Speichert…</p>}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </>
+                {busy === template.triggerKind && <p className="rc2-measurement-note" style={{ margin: '10px 0 0' }}>Speichert…</p>}
+              </V1Card>
+            )
+          })}
+
+          {anyEnabled && (
+            <V1Card>
+              <V1Switch
+                label="Kamera-Snapshot ins Journal"
+                checked={snapshotOn}
+                onChange={(checked) => void setSnapshotAll(checked)}
+                hint="Legt bei jeder automatischen Messung ein Kamerabild im Foto-Tagebuch dieses Grows ab — gilt für alle aktiven Automatiken."
+              />
+              {busy === 'snapshot' && <p className="rc2-measurement-note" style={{ margin: '10px 0 0' }}>Speichert…</p>}
+            </V1Card>
+          )}
+        </div>
+      )}
+    </V1Page>
   )
 }
 
