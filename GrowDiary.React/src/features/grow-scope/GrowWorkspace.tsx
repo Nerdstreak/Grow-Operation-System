@@ -5,6 +5,7 @@ import { GrowDetailDiagnosisSection } from '../grow-detail/GrowDetailDiagnosisSe
 import { GrowDetailJournalPanel } from '../grow-detail/GrowDetailJournalPanel'
 import { GrowDetailMeasurementsSection } from '../grow-detail/GrowDetailMeasurementsSection'
 import { GrowDetailSopSection } from '../grow-detail/GrowDetailSopSection'
+import { SopCatalog } from '../grow-detail/SopCatalog'
 import { useGrowDetailBundle } from '../grow-detail/useGrowDetailBundle'
 import { useGrowDetailMutations } from '../grow-detail/useGrowDetailMutations'
 import { useGrowDetailResources } from '../grow-detail/useGrowDetailResources'
@@ -48,6 +49,7 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
   } = useGrowDetailResources({ growId })
 
   const openTasks = useMemo(() => bundle.tasks.filter((task) => task.status === 'Open'), [bundle.tasks])
+  const activeSopIds = useMemo(() => new Set(sopInstances.filter((sop) => sop.status === 'Active').map((sop) => sop.sopId)), [sopInstances])
   const closedTasks = useMemo(() => bundle.tasks.filter((task) => task.status !== 'Open'), [bundle.tasks])
   const selectedMeasurement = useMemo(
     () => bundle.measurements.find((measurement) => measurement.id === selectedMeasurementId) ?? null,
@@ -157,6 +159,10 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
           onStartRecommendedSop={(recommendation) => void startRecommendedSop(recommendation)}
           onRiskChanged={(message) => { setNotice(message); void loadRiskEvents() }}
         />
+      )}
+
+      {section === 'sops' && (
+        <SopCatalog growId={growId} activeSopIds={activeSopIds} onStarted={(message) => { setNotice(message); void loadSopInstances() }} />
       )}
 
       {section === 'sops' && (

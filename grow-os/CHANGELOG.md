@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.45
+
+- New — **start a routine yourself**. The SOPs page now has a catalog of the built-in
+  routines (weekly water change, system cleaning, root-rot treatment, flip to flower,
+  harvest flush, …) with a "Starten" button each — so you can run an SOP whenever you
+  want, not only when a risk happens to recommend one. Routines already running are
+  marked "Läuft".
+
 ## 1.0.44
 
 - Simplified — the **Diagnose page** was three overlapping cards full of internal terms
