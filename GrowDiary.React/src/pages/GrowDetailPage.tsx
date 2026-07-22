@@ -1,123 +1,46 @@
 import { useEffect, useMemo, useState } from 'react'
 import '../features/grow-detail/growdetail-instrument.css'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { formatDate, formatDateTime } from '../utils'
-import { GrowDetailAutomationSection } from '../features/grow-detail/GrowDetailAutomationSection'
-import { GrowDetailDiagnosisSection } from '../features/grow-detail/GrowDetailDiagnosisSection'
-import { GrowDetailJournalPanel } from '../features/grow-detail/GrowDetailJournalPanel'
-import { GrowDetailMeasurementsSection } from '../features/grow-detail/GrowDetailMeasurementsSection'
 import { GrowDetailOverviewHero } from '../features/grow-detail/GrowDetailOverviewHero'
-import { GrowDetailSopSection } from '../features/grow-detail/GrowDetailSopSection'
-import { useGrowDetailAutomation } from '../features/grow-detail/useGrowDetailAutomation'
 import { useGrowDetailBundle } from '../features/grow-detail/useGrowDetailBundle'
 import { useGrowDetailMutations } from '../features/grow-detail/useGrowDetailMutations'
-import { useGrowDetailResources } from '../features/grow-detail/useGrowDetailResources'
 import {
-  detailSections,
   formatGrowHydroMedium,
   formatGrowRuntime,
   formatGrowStatus,
-  type GrowDetailSection,
 } from '../features/grow-detail/grow-detail-model'
 
+const noop = async () => {}
+
+// The grow's own page does exactly one thing: show this grow's overview. The former
+// tabs (measurements, diagnosis, journal, SOPs, automation) are now their own
+// top-level pages with a grow switcher — reached from the nav or the quick links
+// below, pre-selected to this grow. No drilling into a grow to find features.
 function GrowDetailPage() {
   const { growId } = useParams()
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
-  const [searchParams] = useSearchParams()
-  // Allow deep-linking to a section, e.g. /grows/42?section=diagnosis from the live page.
-  const initialSection = detailSections.find((section) => section.key === searchParams.get('section'))?.key ?? 'overview'
-  const [activeSection, setActiveSection] = useState<GrowDetailSection>(initialSection)
-  const {
-    bundle,
-    loading,
-    photoLoading,
-    photos,
-    selectedMeasurementId,
-    handleMeasurementSelection,
-    loadBundle,
-    loadPhotos,
-  } = useGrowDetailBundle({ growId, setError })
-  const {
-    deviationError,
-    deviations,
-    loadDeviations,
-    loadRiskEvents,
-    loadSopInstances,
-    loadTreatmentRecommendations,
-    riskEventError,
-    riskEvents,
-    setSopStepNotesById,
-    sopInstanceError,
-    sopInstances,
-    sopStepNotesById,
-    sopStepsByInstanceId,
-    treatmentRecommendationError,
-    treatmentRecommendations,
-  } = useGrowDetailResources({ growId })
-  const {
-    autoConfigForm,
-    autoConfigs,
-    autoLoading,
-    autoMappingsByConfigId,
-    autoRunsByConfigId,
-    autoStatusByConfigId,
-    autoStatusError,
-    mappingDraftsByConfigId,
-    addMappingDraft,
-    createLightPreset,
-    handleAutoConfigSubmit,
-    loadAutoMeasurements,
-    removeMappingDraft,
-    saveMappingDrafts,
-    setAutoConfigForm,
-    updateMappingDraft,
-  } = useGrowDetailAutomation({
-    growId,
-    grow: bundle.grow,
-    setError,
-    setNotice,
-    setSaving,
-  })
+  const { bundle, loading, loadBundle } = useGrowDetailBundle({ growId, setError })
   const openTasks = useMemo(() => bundle.tasks.filter((task) => task.status === 'Open'), [bundle.tasks])
-  const closedTasks = useMemo(() => bundle.tasks.filter((task) => task.status !== 'Open'), [bundle.tasks])
-  const selectedMeasurement = useMemo(
-    () => bundle.measurements.find((measurement) => measurement.id === selectedMeasurementId) ?? null,
-    [bundle.measurements, selectedMeasurementId],
-  )
   const {
-    journalForm,
-    measurementForm,
-    photoForm,
-    taskForm,
     archiveGrow,
     deleteGrow,
     handleGrowAction,
-    handleJournalSubmit,
-    handleMeasurementSubmit,
-    handlePhotoSubmit,
-    handleTaskSubmit,
-    setJournalForm,
-    setMeasurementForm,
-    setPhotoForm,
-    setTaskForm,
-    startRecommendedSop,
-    updateSopStep,
-    updateTaskStatus,
   } = useGrowDetailMutations({
     growId,
     grow: bundle.grow,
     saving,
-    selectedMeasurement,
-    sopStepNotesById,
+    selectedMeasurement: null,
+    sopStepNotesById: {},
     navigate,
     loadBundle,
-    loadDeviations,
-    loadPhotos,
-    loadSopInstances,
-    loadTreatmentRecommendations,
+    loadDeviations: noop,
+    loadPhotos: noop,
+    loadSopInstances: noop,
+    loadTreatmentRecommendations: noop,
     setError,
     setNotice,
     setSaving,
@@ -127,17 +50,12 @@ function GrowDetailPage() {
     const controller = new AbortController()
     const handle = window.setTimeout(() => {
       void loadBundle(controller.signal)
-      void loadAutoMeasurements(controller.signal)
-      void loadDeviations(controller.signal)
-      void loadTreatmentRecommendations(controller.signal)
-      void loadSopInstances(controller.signal)
-      void loadRiskEvents(controller.signal)
     }, 0)
     return () => {
       window.clearTimeout(handle)
       controller.abort()
     }
-  }, [loadAutoMeasurements, loadBundle, loadDeviations, loadTreatmentRecommendations, loadSopInstances, loadRiskEvents])
+  }, [loadBundle])
 
   if (loading) {
     return (
@@ -161,6 +79,7 @@ function GrowDetailPage() {
 
   const grow = bundle.grow
   const latest = grow.latestMeasurement
+  const scope = `?growId=${grow.id}`
   const canConfirmGermination = grow.startMaterial === 'Seed' && !grow.germinatedAt
   const canConfirmRooting = grow.startMaterial === 'Clone' && !grow.rootedAt
   const canFlipToFlower = grow.seedType !== 'Autoflower' && !grow.flipDate
@@ -221,155 +140,26 @@ function GrowDetailPage() {
             <div><dt>Messungen</dt><dd>{bundle.measurements.length}</dd></div>
           </dl>
           <div className="grow-detail-mobile-links">
+            <Link className="btn" to={`/messungen${scope}`}>Messungen</Link>
+            <Link className="btn" to={`/diagnose${scope}`}>Diagnose</Link>
+            <Link className="btn" to={`/journal${scope}`}>Journal &amp; Fotos</Link>
+            <Link className="btn" to={`/sops${scope}`}>SOPs</Link>
+            <Link className="btn" to={`/automatik${scope}`}>Automatik</Link>
             <Link className="btn" to={`/grows/${grow.id}/addback`}>Addback</Link>
-            <Link className="btn" to="/messung">Messung</Link>
-            <Link className="btn" to={`/analyse?leftGrowId=${grow.id}`}>Vergleichen</Link>
-          </div>
-          <div className="grow-management-actions grow-detail-mobile-actions" data-audit="grow-detail-actions">
-            <Link className="btn btn-primary" to={`/grows/${grow.id}/setup`}>Bearbeiten</Link>
-            <button type="button" className="btn" disabled={Boolean(saving) || !canArchiveGrow} onClick={() => void archiveGrow()}>
-              {saving === 'grow-archive' ? 'Beendet...' : canArchiveGrow ? 'Beenden' : 'Beendet'}
-            </button>
-            <button type="button" className="btn" disabled={Boolean(saving)} onClick={() => void deleteGrow()}>
-              {saving === 'grow-delete' ? 'Löscht...' : 'Löschen'}
-            </button>
           </div>
         </section>
 
-        <div className="section-tabs detail-tabs" style={{ marginBottom: 18 }}>
-          {detailSections.map((section) => (
-            <button
-              key={section.key}
-              type="button"
-              className={`btn ${activeSection === section.key ? 'btn-primary' : ''}`}
-              onClick={() => setActiveSection(section.key)}
-            >
-              {section.label}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ display: activeSection === 'overview' ? undefined : 'none' }}>
-          <GrowDetailOverviewHero
-            grow={grow}
-            latest={latest}
-            measurementCount={bundle.measurements.length}
-            openTaskCount={openTasks.length}
-            saving={saving}
-            canConfirmGermination={canConfirmGermination}
-            canConfirmRooting={canConfirmRooting}
-            canFlipToFlower={canFlipToFlower}
-            onGrowAction={(action) => void handleGrowAction(action)}
-          />
-        </div>
-
-        <GrowDetailDiagnosisSection
-          activeSection={activeSection}
-          deviations={deviations}
-          deviationError={deviationError}
-          treatmentRecommendations={treatmentRecommendations}
-          treatmentRecommendationError={treatmentRecommendationError}
-          riskEvents={riskEvents}
-          riskEventError={riskEventError}
+        <GrowDetailOverviewHero
+          grow={grow}
+          latest={latest}
+          measurementCount={bundle.measurements.length}
+          openTaskCount={openTasks.length}
           saving={saving}
-          onStartRecommendedSop={(recommendation) => void startRecommendedSop(recommendation)}
-          onRiskChanged={(message) => { setNotice(message); void loadRiskEvents() }}
+          canConfirmGermination={canConfirmGermination}
+          canConfirmRooting={canConfirmRooting}
+          canFlipToFlower={canFlipToFlower}
+          onGrowAction={(action) => void handleGrowAction(action)}
         />
-
-        <GrowDetailSopSection
-          activeSection={activeSection}
-          sopInstances={sopInstances}
-          sopStepsByInstanceId={sopStepsByInstanceId}
-          sopStepNotesById={sopStepNotesById}
-          sopInstanceError={sopInstanceError}
-          saving={saving}
-          onNoteChange={(stepId, notes) => setSopStepNotesById((current) => ({ ...current, [stepId]: notes }))}
-          onUpdateStep={(step, status) => void updateSopStep(step, status)}
-        />
-
-        <div className="detail-layout" style={{ display: activeSection === 'overview' || activeSection === 'diagnosis' || activeSection === 'sops' ? 'none' : undefined }}>
-          <div>
-            <GrowDetailMeasurementsSection
-              activeSection={activeSection}
-              measurements={bundle.measurements}
-              selectedMeasurementId={selectedMeasurementId}
-              measurementForm={measurementForm}
-              saving={saving}
-              onSelectMeasurement={(measurementId) => void handleMeasurementSelection(measurementId)}
-              onMeasurementFormChange={(patch) => setMeasurementForm((current) => ({ ...current, ...patch }))}
-              onSubmit={handleMeasurementSubmit}
-            />
-
-            <div className="section-label" style={{ display: activeSection === 'journal' ? undefined : 'none' }}>Journal</div>
-            <div className="card" style={{ marginBottom: 14, display: activeSection === 'journal' ? undefined : 'none' }}>
-              <div className="card-header">
-                <span className="card-title">Einträge</span>
-                <span className="text-muted" style={{ fontSize: 13 }}>{bundle.journal.length}</span>
-              </div>
-              {bundle.journal.length === 0 ? (
-                <div className="empty-hint">Noch keine Journal-Einträge.</div>
-              ) : (
-                bundle.journal.map((entry) => (
-                  <div key={entry.id} className="timeline-item" style={{ padding: '12px 16px' }}>
-                    <div className="tl-dot-col">
-                      <div className="tl-dot journal" />
-                      <div className="tl-line" />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="tl-title">{entry.title ?? entry.entryType}</div>
-                      {entry.body && <div className="tl-sub">{entry.body}</div>}
-                    </div>
-                    <div className="tl-time">{formatDateTime(entry.occurredAtUtc)}</div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <GrowDetailAutomationSection
-              activeSection={activeSection}
-              autoConfigs={autoConfigs}
-              autoConfigForm={autoConfigForm}
-              autoStatusByConfigId={autoStatusByConfigId}
-              autoMappingsByConfigId={autoMappingsByConfigId}
-              autoRunsByConfigId={autoRunsByConfigId}
-              mappingDraftsByConfigId={mappingDraftsByConfigId}
-              autoStatusError={autoStatusError}
-              autoLoading={autoLoading}
-              saving={saving}
-              onAutoConfigFormChange={(patch) => setAutoConfigForm((current) => ({ ...current, ...patch }))}
-              onAutoConfigSubmit={handleAutoConfigSubmit}
-              onAddMappingDraft={addMappingDraft}
-              onUpdateMappingDraft={updateMappingDraft}
-              onRemoveMappingDraft={removeMappingDraft}
-              onSaveMappingDrafts={(configId) => void saveMappingDrafts(configId)}
-              onCreateLightPreset={() => void createLightPreset()}
-            />
-          </div>
-
-          {activeSection === 'journal' && (
-            <GrowDetailJournalPanel
-              grow={grow}
-              openTasks={openTasks}
-              closedTasks={closedTasks}
-              measurements={bundle.measurements}
-              photos={photos}
-              selectedMeasurementId={selectedMeasurementId}
-              journalForm={journalForm}
-              taskForm={taskForm}
-              photoForm={photoForm}
-              photoLoading={photoLoading}
-              saving={saving}
-              onTaskStatusChange={(taskId, status) => void updateTaskStatus(taskId, status)}
-              onJournalFormChange={(patch) => setJournalForm((current) => ({ ...current, ...patch }))}
-              onTaskFormChange={(patch) => setTaskForm((current) => ({ ...current, ...patch }))}
-              onPhotoFormChange={(patch) => setPhotoForm((current) => ({ ...current, ...patch }))}
-              onMeasurementSelection={(measurementId) => void handleMeasurementSelection(measurementId)}
-              onJournalSubmit={handleJournalSubmit}
-              onTaskSubmit={handleTaskSubmit}
-              onPhotoSubmit={handlePhotoSubmit}
-            />
-          )}
-        </div>
       </div>
     </div>
   )

@@ -4,7 +4,7 @@ import AddbackHubPage from './pages/AddbackHubPage'
 import AddbackPage from './pages/AddbackPage'
 import AlertsPage from './pages/AlertsPage'
 import NotificationsPage from './pages/NotificationsPage'
-import AutomationOverviewPage from './pages/AutomationOverviewPage'
+import { GrowScopedSectionPage } from './pages/GrowScopedSectionPage'
 import AnalysisPage from './pages/AnalysisPage'
 import ArchivePage from './pages/ArchivePage'
 import GettingStartedPage from './pages/GettingStartedPage'
@@ -42,15 +42,20 @@ const navGroups: NavGroup[] = [
     { to: '/addback', label: 'Addback', end: true },
     { to: '/aufgaben', label: 'Aufgaben', end: true },
   ] },
-  { id: 'grows', label: 'Meine Grows', defaultOpen: true, items: [
-    { to: '/grows', label: 'Grows', end: false },
-    { to: '/analyse', label: 'Vergleich', end: true },
-    { to: '/archiv', label: 'Archiv', end: true },
+  { id: 'history', label: 'Verlauf & Daten', defaultOpen: true, items: [
+    { to: '/messungen', label: 'Messungen', end: true },
+    { to: '/diagnose', label: 'Diagnose', end: true },
+    { to: '/journal', label: 'Journal & Fotos', end: true },
   ] },
   { id: 'rules', label: 'Automatik & Regeln', defaultOpen: true, items: [
     { to: '/automatik', label: 'Automatik', end: true },
     { to: '/alarme', label: 'Grenzwerte', end: true },
     { to: '/benachrichtigungen', label: 'Benachrichtigungen', end: true },
+  ] },
+  { id: 'grows', label: 'Meine Grows', defaultOpen: true, items: [
+    { to: '/grows', label: 'Grows', end: false },
+    { to: '/analyse', label: 'Vergleich', end: true },
+    { to: '/archiv', label: 'Archiv', end: true },
   ] },
   { id: 'setup', label: 'Einrichten', defaultOpen: false, items: [
     { to: '/zelte', label: 'Zelte', end: false },
@@ -58,7 +63,8 @@ const navGroups: NavGroup[] = [
     { to: '/hardware', label: 'Sensoren', end: true },
     { to: '/home-assistant', label: 'Home Assistant', end: true },
   ] },
-  { id: 'system', label: 'Lernen & System', defaultOpen: false, items: [
+  { id: 'system', label: 'Wissen', defaultOpen: false, items: [
+    { to: '/sops', label: 'SOPs', end: true },
     { to: '/wissen', label: 'Wissen', end: true },
     { to: '/start', label: 'Erste Schritte', end: true },
     { to: '/settings', label: 'Einstellungen', end: true },
@@ -179,7 +185,11 @@ function App() {
           <Route path="/home-assistant" element={<HomeAssistantPage />} />
           <Route path="/alarme" element={<AlertsPage />} />
           <Route path="/benachrichtigungen" element={<NotificationsPage />} />
-          <Route path="/automatik" element={<AutomationOverviewPage />} />
+          <Route path="/automatik" element={<GrowScopedSectionPage title="Automatik" section="automation" intro="Auto-Messungen erfassen Sensorwerte automatisch per Trigger (z. B. 30 Min nach Licht AN) — sie greifen, sobald deine HA-Entitäten zugeordnet sind." />} />
+          <Route path="/messungen" element={<GrowScopedSectionPage title="Messungen" section="measurements" />} />
+          <Route path="/diagnose" element={<GrowScopedSectionPage title="Diagnose" section="diagnosis" />} />
+          <Route path="/journal" element={<GrowScopedSectionPage title="Journal & Fotos" section="journal" />} />
+          <Route path="/sops" element={<GrowScopedSectionPage title="SOPs" section="sops" />} />
           <Route path="/hardware" element={<HardwarePage />} />
           <Route path="/wissen" element={<KnowledgePage />} />
           <Route path="/release" element={<ReleasePage />} />
@@ -216,6 +226,10 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/home-assistant')) return 'Home Assistant'
   if (pathname.startsWith('/benachrichtigungen')) return 'Benachrichtigungen'
   if (pathname.startsWith('/automatik')) return 'Automatik'
+  if (pathname.startsWith('/messungen')) return 'Messungen'
+  if (pathname.startsWith('/diagnose')) return 'Diagnose'
+  if (pathname.startsWith('/journal')) return 'Journal & Fotos'
+  if (pathname.startsWith('/sops')) return 'SOPs'
   if (pathname.startsWith('/alarme')) return 'Grenzwerte'
   if (pathname.startsWith('/grows/new')) return 'Grow starten'
   if (pathname.startsWith('/messung') || pathname.startsWith('/messungen')) return 'Messung'

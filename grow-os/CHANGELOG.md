@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.35
+
+- Changed (big) — **features are no longer hidden inside a grow**. The six tabs that
+  used to live inside a grow (Messungen, Diagnose, Journal & Fotos, SOPs,
+  Automatisierung) are now their own top-level pages, each doing one thing, each with
+  a grow switcher up top — so you see and use them right away without opening a grow
+  first. New sidebar grouping: Täglich · Verlauf & Daten · Automatik & Regeln · Meine
+  Grows · Einrichten · Wissen. Automatik is now fully editable on its own page (create
+  the 30-min light preset, add configs, edit field mappings, enable/disable) instead
+  of only being reachable inside a grow. Opening a grow now shows a clean overview
+  only, with quick links to that grow's pages.
+- Internal — Playwright end-to-end smoke tests now load every route and fail the build
+  if a page crashes while rendering; CI also runs eslint and the e2e suite.
+
 ## 1.0.34
 
 - New — **Automatik overview page**. A new "Automatik" entry under "Automatik & Regeln"
