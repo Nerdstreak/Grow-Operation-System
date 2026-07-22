@@ -28,69 +28,74 @@ import './rc2-overrides.css'
 import './styles/redesign-shell.css'
 import './styles/redesign-primitives.css'
 
-const coreNav = [
-  { to: '/', label: 'Live', end: true },
-  { to: '/addback', label: 'Addback', end: true },
-  { to: '/messung', label: 'Messung', end: true },
-  { to: '/grows', label: 'Grows', end: false },
+type NavLeaf = { to: string; label: string; end: boolean }
+type NavGroup = { id: string; label: string; defaultOpen: boolean; items: NavLeaf[] }
+
+// Single source for both the desktop sidebar and the mobile "Mehr" panel, grouped by
+// what the user wants to do rather than by feature. The first group is the daily
+// core loop (also the mobile bottom nav); the rest are collapsible.
+const navGroups: NavGroup[] = [
+  { id: 'daily', label: 'Täglich', defaultOpen: true, items: [
+    { to: '/', label: 'Live', end: true },
+    { to: '/messung', label: 'Messung', end: true },
+    { to: '/addback', label: 'Addback', end: true },
+    { to: '/aufgaben', label: 'Aufgaben', end: true },
+  ] },
+  { id: 'grows', label: 'Meine Grows', defaultOpen: true, items: [
+    { to: '/grows', label: 'Grows', end: false },
+    { to: '/analyse', label: 'Vergleich', end: true },
+    { to: '/archiv', label: 'Archiv', end: true },
+  ] },
+  { id: 'rules', label: 'Automatik & Regeln', defaultOpen: true, items: [
+    { to: '/alarme', label: 'Grenzwerte', end: true },
+    { to: '/benachrichtigungen', label: 'Benachrichtigungen', end: true },
+  ] },
+  { id: 'setup', label: 'Einrichten', defaultOpen: false, items: [
+    { to: '/zelte', label: 'Zelte', end: false },
+    { to: '/hydro', label: 'Hydro', end: true },
+    { to: '/hardware', label: 'Sensoren', end: true },
+    { to: '/home-assistant', label: 'Home Assistant', end: true },
+  ] },
+  { id: 'system', label: 'Lernen & System', defaultOpen: false, items: [
+    { to: '/wissen', label: 'Wissen', end: true },
+    { to: '/start', label: 'Erste Schritte', end: true },
+    { to: '/settings', label: 'Einstellungen', end: true },
+  ] },
 ]
 
-const mobilePrimaryNav = [
-  { to: '/', label: 'Live', end: true },
-  { to: '/addback', label: 'Addback', end: true },
-  { to: '/messung', label: 'Messung', end: true },
-  { to: '/grows', label: 'Grows', end: false },
-]
+const mobilePrimaryNav = navGroups[0].items
+const NAV_STORAGE_KEY = 'growos.navGroups'
 
-const desktopMoreNav = [
-  { to: '/start', label: 'Erste Schritte', end: true },
-  { to: '/aufgaben', label: 'Aufgaben', end: true },
-  { to: '/zelte', label: 'Zelte', end: false },
-  { to: '/hydro', label: 'Hydro', end: true },
-  { to: '/home-assistant', label: 'Home Assistant', end: true },
-  { to: '/benachrichtigungen', label: 'Benachrichtigungen', end: true },
-  { to: '/alarme', label: 'Grenzwerte', end: true },
-  { to: '/hardware', label: 'Sensoren', end: true },
-  { to: '/wissen', label: 'Wissen', end: true },
-  { to: '/analyse', label: 'Vergleich', end: true },
-  { to: '/archiv', label: 'Archiv', end: true },
-  { to: '/settings', label: 'Einstellungen', end: true },
-]
+function defaultOpenGroups(): Record<string, boolean> {
+  return Object.fromEntries(navGroups.map((group) => [group.id, group.defaultOpen]))
+}
 
-const mobileMoreGroups = [
-  {
-    label: 'Setup',
-    audit: 'mobile-more-group-setup',
-    items: [
-      { to: '/zelte', label: 'Zelte', end: false },
-      { to: '/hydro', label: 'Hydro', end: true },
-      { to: '/hardware', label: 'Sensoren', end: true },
-    ],
-  },
-  {
-    label: 'Integration',
-    audit: 'mobile-more-group-integration',
-    items: [
-      { to: '/home-assistant', label: 'Home Assistant', end: true },
-      { to: '/benachrichtigungen', label: 'Benachrichtigungen', end: true },
-      { to: '/alarme', label: 'Grenzwerte', end: true },
-    ],
-  },
-  {
-    label: 'Wissen & System',
-    audit: 'mobile-more-group-system',
-    items: [
-      { to: '/start', label: 'Erste Schritte', end: true },
-      { to: '/wissen', label: 'Wissen', end: true },
-      { to: '/settings', label: 'Einstellungen', end: true },
-    ],
-  },
-]
+function isNavLeafActive(item: NavLeaf, pathname: string): boolean {
+  return item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`)
+}
 
 function App() {
   const location = useLocation()
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem(NAV_STORAGE_KEY)
+      if (stored) return { ...defaultOpenGroups(), ...(JSON.parse(stored) as Record<string, boolean>) }
+    } catch { /* ignore corrupt/absent storage */ }
+    return defaultOpenGroups()
+  })
   const title = getCurrentTitle(location.pathname)
+  // The group containing the current page stays open regardless of collapse state,
+  // so the active page never hides.
+  const activeGroupId = navGroups.find((group) => group.items.some((item) => isNavLeafActive(item, location.pathname)))?.id
+
+  function toggleGroup(id: string) {
+    setOpenGroups((current) => {
+      const next = { ...current, [id]: !(current[id] ?? true) }
+      try { localStorage.setItem(NAV_STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+  }
 
   return (
     <div className="v1-app-shell rc2-shell" data-audit="mobile-shell">
@@ -102,14 +107,19 @@ function App() {
             <span>RDWC/DWC · Home Assistant</span>
           </div>
         </div>
-        <nav className="v1-nav-group" aria-label="Core">
-          <span>Core</span>
-          {coreNav.map((item) => <NavItem key={item.to} {...item} />)}
-        </nav>
-        <nav className="v1-nav-group" aria-label="Mehr">
-          <span>Mehr</span>
-          {desktopMoreNav.map((item) => <NavItem key={item.to} {...item} />)}
-        </nav>
+        {navGroups.map((group) => {
+          const open = group.id === activeGroupId || (openGroups[group.id] ?? group.defaultOpen)
+          return (
+            <nav key={group.id} className={open ? 'v1-nav-group' : 'v1-nav-group collapsed'} aria-label={group.label}>
+              <button type="button" className="v1-nav-group-head" onClick={() => toggleGroup(group.id)} aria-expanded={open}>
+                <span className="v1-nav-group-label">{group.label}</span>
+                <span className="v1-nav-group-count">{group.items.length}</span>
+                <span className="v1-nav-group-chev" aria-hidden="true" />
+              </button>
+              {open && group.items.map((item) => <NavItem key={item.to} {...item} />)}
+            </nav>
+          )
+        })}
       </aside>
 
       <header className="v1-mobile-topbar" data-audit="mobile-header">
@@ -127,8 +137,8 @@ function App() {
 
       {mobileMoreOpen && (
         <div className="v1-mobile-more-panel" data-audit="mobile-more-menu">
-          {mobileMoreGroups.map((group) => (
-            <section key={group.label} className="v1-mobile-more-group" data-audit={group.audit}>
+          {navGroups.slice(1).map((group) => (
+            <section key={group.id} className="v1-mobile-more-group" data-audit={`mobile-more-group-${group.id}`}>
               <h2>{group.label}</h2>
               <div className="v1-mobile-more-grid">
                 {group.items.map((item) => (

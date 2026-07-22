@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.28
+
+- New — the sidebar is reorganised into **collapsible groups** by what you want to do:
+  Täglich · Meine Grows · Automatik & Regeln · Einrichten · Lernen & System. Each group
+  opens and closes and remembers its state, and the group of the current page always stays
+  open — so you can slim the menu down to just what you use. Grenzwerte and Benachrichtigungen
+  now live together under "Automatik & Regeln".
+
 ## 1.0.27
 
 - Refined — you can no longer manually create a "fixed sensor": those appear
