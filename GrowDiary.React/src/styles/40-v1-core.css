@@ -18,7 +18,11 @@
 }
 
 html, body, #root { min-height: 100%; background: var(--v1-bg); color: var(--v1-text); }
-body { overflow-x: hidden; }
+/* `clip` (not `hidden`) stops sideways scroll WITHOUT forcing overflow-y to `auto`.
+   With `hidden`, body became an internal vertical scroll container, which inside the
+   Home Assistant ingress iframe produced a second scrollbar next to the iframe's own.
+   Letting the document scroll naturally leaves exactly one scrollbar. */
+body { overflow-x: clip; }
 button, input, select, textarea { font: inherit; }
 input, select, textarea { min-width: 0; }
 

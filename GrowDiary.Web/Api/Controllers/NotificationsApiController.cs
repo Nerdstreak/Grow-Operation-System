@@ -14,15 +14,21 @@ public sealed class NotificationsApiController : ControllerBase
     private readonly NotificationSettingsRepository _settingsRepo;
     private readonly GrowRepository _repository;
     private readonly HomeAssistantService _homeAssistant;
+    private readonly HardwareRepository _hardware;
+    private readonly NotificationService _notifications;
 
     public NotificationsApiController(
         NotificationSettingsRepository settingsRepo,
         GrowRepository repository,
-        HomeAssistantService homeAssistant)
+        HomeAssistantService homeAssistant,
+        HardwareRepository hardware,
+        NotificationService notifications)
     {
         _settingsRepo = settingsRepo;
         _repository = repository;
         _homeAssistant = homeAssistant;
+        _hardware = hardware;
+        _notifications = notifications;
     }
 
     [HttpGet("settings")]
@@ -82,6 +88,60 @@ public sealed class NotificationsApiController : ControllerBase
             settings, service, "🌱 Grow OS", "Test-Benachrichtigung — deine Push-Nachrichten sind richtig eingerichtet.", cancellationToken);
 
         return Ok(new { ok = sent });
+    }
+
+    /// <summary>
+    /// Runs the real calibration-reminder path now and reports the outcome, so the user can
+    /// verify sensor reminders actually reach the phone — and understand why one didn't
+    /// (no phone saved, category off, quiet hours, or nothing due).
+    /// </summary>
+    [HttpPost("test-calibration")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> TestCalibration(CancellationToken cancellationToken)
+    {
+        var settings = _settingsRepo.GetNotificationSettings();
+        var configured = settings.IsConfigured;
+        var categoryEnabled = settings.IsCategoryEnabled(NotificationCategory.Calibration);
+        var quietNow = settings.IsQuietHour(DateTime.Now.Hour);
+        var due = _hardware.GetDueCalibrationEvents(DateTime.UtcNow)
+            .Where(e => e.Status == CalibrationEventStatus.Planned)
+            .ToList();
+
+        bool sent = false;
+        string message;
+        if (!configured)
+        {
+            message = "Kein Push-Handy gespeichert. Trag oben deinen Push-Dienst ein und speichere — sonst kommt keine Erinnerung an.";
+        }
+        else if (!categoryEnabled)
+        {
+            message = "„Kalibrierung fällig“ ist ausgeschaltet. Schalte es unten ein, damit Erinnerungen rausgehen.";
+        }
+        else if (quietNow)
+        {
+            message = "Gerade ist Ruhezeit — jetzt würde keine Erinnerung gesendet. Deine Einrichtung ist aber in Ordnung.";
+        }
+        else
+        {
+            var body = CalibrationReminderService.BuildDueMessage(due)
+                ?? "Test: So sieht eine Kalibrierungs-Erinnerung aus. Aktuell ist nichts fällig.";
+            sent = await _notifications.SendAsync(NotificationCategory.Calibration, "🌱 Grow OS · Kalibrierung", body, cancellationToken);
+            message = sent
+                ? (due.Count > 0
+                    ? $"{due.Count} Kalibrierung(en) fällig — Erinnerung ans Handy gesendet."
+                    : "Test-Erinnerung ans Handy gesendet — Push funktioniert.")
+                : "Einrichtung sieht ok aus, aber Home Assistant hat den Push nicht angenommen. Stimmt der Dienstname?";
+        }
+
+        return Ok(new
+        {
+            ok = sent,
+            configured,
+            categoryEnabled,
+            quietNow,
+            dueCount = due.Count,
+            message,
+        });
     }
 
     private static int? NormalizeHour(int? hour) => hour is >= 0 and <= 23 ? hour : null;

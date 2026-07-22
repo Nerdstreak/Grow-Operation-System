@@ -46,6 +46,7 @@ function NotificationsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
+  const [testingCal, setTestingCal] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -122,6 +123,25 @@ function NotificationsPage() {
       setError(errorMessage(caught, 'Test fehlgeschlagen.'))
     } finally {
       setTesting(false)
+    }
+  }
+
+  async function testCalibration() {
+    setTestingCal(true)
+    setError(null)
+    setMessage(null)
+    try {
+      await persist()
+      const result = await apiFetch<{ ok: boolean; configured: boolean; categoryEnabled: boolean; message: string }>(
+        '/api/notifications/test-calibration',
+        { method: 'POST', body: JSON.stringify({}) },
+      )
+      if (result.configured && result.categoryEnabled) setMessage(result.message)
+      else setError(result.message)
+    } catch (caught) {
+      setError(errorMessage(caught, 'Test der Kalibrierungs-Erinnerung fehlgeschlagen.'))
+    } finally {
+      setTestingCal(false)
     }
   }
 
@@ -204,6 +224,12 @@ function NotificationsPage() {
           </V1Card>
           <V1Card>
             <V1Switch label="Kalibrierung fällig" hint="Erinnerung, wenn eine Sensor-Kalibrierung ansteht." checked={settings.calibration} onChange={(checked) => patch({ calibration: checked })} />
+            <div style={{ marginTop: 10 }}>
+              <V1Button variant="secondary" onClick={() => void testCalibration()} disabled={testingCal}>
+                {testingCal ? 'Testet…' : 'Test-Erinnerung senden'}
+              </V1Button>
+              <p className="rc2-measurement-note" style={{ margin: '8px 0 0' }}>Prüft jetzt die echte Kalibrier-Erinnerung und sagt dir, ob (und warum nicht) sie ankommt.</p>
+            </div>
           </V1Card>
           <V1Card>
             <V1Switch label="Sensor ausgefallen" hint="Wenn ein gemappter Sensor keine Werte mehr liefert." checked={settings.sensorOffline} onChange={(checked) => patch({ sensorOffline: checked })} />

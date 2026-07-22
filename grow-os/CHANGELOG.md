@@ -1,6 +1,18 @@
 # Changelog
 
-## 1.0.41
+## 1.0.42
+
+- Fixed (real) — the **double scrollbar**, this time at the root. A global
+  `overflow-x: hidden` on the body turned it into an internal vertical scroll container,
+  which inside the Home Assistant ingress iframe showed up as a second scrollbar next to
+  the iframe's own. Switched to `overflow-x: clip` so the document scrolls naturally —
+  one scrollbar.
+- New — **test your calibration reminder**. On the Notification Center, the "Kalibrierung
+  fällig" card has a "Test-Erinnerung senden" button that runs the real reminder path now
+  and tells you the result: it either sends the push to your phone, or explains why it
+  wouldn't (no phone saved, category off, quiet hours, or nothing due). If you set up a
+  daily calibration and got no reminder, this shows you why — most likely the phone was
+  never saved before the fix in 1.0.40.
 
 - Changed — the **grow pages (Automatik, Diagnose, Journal & Fotos, SOPs) now match the
   rest of the app**. They used a different, smaller header, and the grow switcher was
