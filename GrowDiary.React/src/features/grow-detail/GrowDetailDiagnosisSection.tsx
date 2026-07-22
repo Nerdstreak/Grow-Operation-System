@@ -16,6 +16,12 @@ type GrowDetailDiagnosisSectionProps = {
   onRiskChanged: (notice: string) => void
 }
 
+const severityBadge = (severity: string) =>
+  severity === 'Critical' ? 'badge-warn' : severity === 'Warning' ? 'badge-neutral' : 'badge-ok'
+
+// Diagnose in one clear shape: "what needs doing" (risks, with their actions) up top,
+// then a quiet, plain-language list of the underlying odd readings and tips. No more
+// three parallel cards full of internal jargon (deviations/symptomId/confidence).
 export function GrowDetailDiagnosisSection({
   activeSection,
   deviations,
@@ -29,19 +35,22 @@ export function GrowDetailDiagnosisSection({
   onRiskChanged,
 }: GrowDetailDiagnosisSectionProps) {
   const isVisible = activeSection === 'diagnosis'
+  // Only recommendations that actually offer a next step (an SOP) — the rest is noise here.
+  const actionableRecommendations = (treatmentRecommendations?.recommendations ?? []).filter((recommendation) => recommendation.sopId)
+  const hasDetails = deviations.length > 0 || actionableRecommendations.length > 0
 
   return (
-    <>
-      <div className="section-label" style={{ display: isVisible ? undefined : 'none' }}>Risiken</div>
-      <div className="card" style={{ marginBottom: 14, display: isVisible ? undefined : 'none' }}>
+    <div style={{ display: isVisible ? 'grid' : 'none', gap: 14 }}>
+      <div className="section-label">Handlungsbedarf</div>
+      <div className="card">
         <div className="card-header">
-          <span className="card-title">Offene Risiken</span>
+          <span className="card-title">Was ist los</span>
           <span className="text-muted" style={{ fontSize: 13 }}>{riskEvents.length}</span>
         </div>
         {riskEventError ? (
           <div className="empty-hint" style={{ color: 'var(--red)' }}>{riskEventError}</div>
         ) : riskEvents.length === 0 ? (
-          <div className="empty-hint">Keine offenen Risiken für diesen Grow.</div>
+          <div className="empty-hint">Alles im grünen Bereich — aktuell kein Handlungsbedarf.</div>
         ) : (
           <div className="rc-risk-action-grid" style={{ padding: 14 }} data-audit="grow-risk-actions">
             {riskEvents.map((risk) => (
@@ -51,81 +60,49 @@ export function GrowDetailDiagnosisSection({
         )}
       </div>
 
-      <div className="section-label" style={{ display: isVisible ? undefined : 'none' }}>Deviations</div>
-      <div className="card" style={{ marginBottom: 14, display: isVisible ? undefined : 'none' }}>
-        <div className="card-header">
-          <span className="card-title">Hydro-Abweichungen</span>
-          <span className="text-muted" style={{ fontSize: 13 }}>{deviations.length}</span>
-        </div>
-        {deviationError ? (
-          <div className="empty-hint" style={{ color: 'var(--red)' }}>{deviationError}</div>
-        ) : deviations.length === 0 ? (
-          <div className="empty-hint">Keine strukturierten Hydro-Deviations erkannt.</div>
-        ) : (
-          <div className="grow-deviation-list" data-audit="grow-deviation-list">
-            {deviations.map((deviation) => (
-              <div key={deviation.stableKey} className={`grow-deviation-card ${deviation.severity.toLowerCase()}`} data-audit="grow-deviation-row">
-                <span className={`badge ${deviation.severity === 'Critical' ? 'badge-warn' : deviation.severity === 'Warning' ? 'badge-neutral' : 'badge-ok'}`}>{formatSeverityLabel(deviation.severity)}</span>
-                <div className="grow-deviation-main">
-                  <div className="tl-title">{deviation.metric}</div>
-                  <div className="tl-sub">{deviation.source} · Folge {deviation.consecutiveCount}</div>
-                </div>
-                <div className="grow-deviation-values">
-                  <span>Ist {formatDeviationValue(deviation.actualValue, deviation.unit)}</span>
-                  {formatDeviationTarget(deviation) && <span>Ziel {formatDeviationTarget(deviation)}</span>}
-                </div>
-                <div className="grow-deviation-copy">
-                  <p>{deviation.message}</p>
-                  {deviation.recommendationHint && <small>{deviation.recommendationHint}</small>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="section-label" style={{ display: isVisible ? undefined : 'none' }}>Treatment-Empfehlungen</div>
-      <div className="card" style={{ marginBottom: 14, display: isVisible ? undefined : 'none' }}>
-        <div className="card-header">
-          <span className="card-title">Knowledge-Vorschläge</span>
-          <span className="text-muted" style={{ fontSize: 13 }}>{treatmentRecommendations?.recommendations.length ?? 0}</span>
-        </div>
-        {treatmentRecommendationError ? (
-          <div className="empty-hint" style={{ color: 'var(--red)' }}>{treatmentRecommendationError}</div>
-        ) : !treatmentRecommendations || treatmentRecommendations.recommendations.length === 0 ? (
-          <div className="empty-hint">Keine Treatment- oder SOP-Empfehlungen für die aktuellen Deviations.</div>
-        ) : (
-          <div style={{ display: 'grid' }}>
-            {treatmentRecommendations.recommendations.map((recommendation) => (
-              <div key={recommendation.stableKey} style={{ display: 'grid', gridTemplateColumns: '120px minmax(180px, 1fr) minmax(0, 2fr)', gap: 10, alignItems: 'start', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
-                <div style={{ display: 'grid', gap: 6 }}>
-                  <span className={`badge ${recommendation.confidence === 'High' ? 'badge-warn' : recommendation.confidence === 'Medium' ? 'badge-neutral' : 'badge-ok'}`}>{formatSeverityLabel(recommendation.confidence)}</span>
-                  <span className="tl-sub">{formatSeverityLabel(recommendation.severity)}</span>
-                </div>
-                <div>
-                  <div className="tl-title">{recommendation.treatmentName ?? recommendation.sopTitle ?? recommendation.metric}</div>
-                  <div className="tl-sub">
-                    {recommendation.treatmentId ?? recommendation.sopId ?? recommendation.symptomId ?? 'Diagnosehinweis'}
+      {hasDetails && (
+        <>
+          <div className="section-label">Auffällige Werte &amp; Tipps</div>
+          <div className="card">
+            {(deviationError || treatmentRecommendationError) && (
+              <div className="empty-hint" style={{ color: 'var(--red)' }}>{deviationError ?? treatmentRecommendationError}</div>
+            )}
+            <div className="grow-deviation-list" data-audit="grow-deviation-list">
+              {deviations.map((deviation) => (
+                <div key={deviation.stableKey} className={`grow-deviation-card ${deviation.severity.toLowerCase()}`} data-audit="grow-deviation-row">
+                  <span className={`badge ${severityBadge(deviation.severity)}`}>{formatSeverityLabel(deviation.severity)}</span>
+                  <div className="grow-deviation-main">
+                    <div className="tl-title">{deviation.metric}</div>
+                    <div className="tl-sub">
+                      Ist {formatDeviationValue(deviation.actualValue, deviation.unit)}
+                      {formatDeviationTarget(deviation) ? ` · Ziel ${formatDeviationTarget(deviation)}` : ''}
+                    </div>
+                  </div>
+                  <div className="grow-deviation-copy">
+                    <p>{deviation.message}</p>
+                    {deviation.recommendationHint && <small>Tipp: {deviation.recommendationHint}</small>}
                   </div>
                 </div>
-                <div className="tl-sub" style={{ display: 'grid', gap: 5 }}>
-                  <span>{recommendation.reason}</span>
-                  {recommendation.safetyNotes.length > 0 && <span>Hinweise: {recommendation.safetyNotes.join(' | ')}</span>}
-                  {recommendation.conflictTreatmentIds.length > 0 && <span>Konflikte: {recommendation.conflictTreatmentIds.join(', ')}</span>}
-                  {recommendation.hardwareRequirements.length > 0 && <span>Hardware: {recommendation.hardwareRequirements.join(', ')}</span>}
-                  {recommendation.sopId && (
-                    <div>
-                      <button type="button" className="btn" disabled={saving === `start-sop-${recommendation.stableKey}`} onClick={() => onStartRecommendedSop(recommendation)}>
-                        {saving === `start-sop-${recommendation.stableKey}` ? 'Startet...' : 'SOP starten'}
-                      </button>
-                    </div>
-                  )}
+              ))}
+
+              {actionableRecommendations.map((recommendation) => (
+                <div key={recommendation.stableKey} className="grow-deviation-card" data-audit="grow-recommendation-row" style={{ alignItems: 'center' }}>
+                  <span className="badge badge-neutral">Empfehlung</span>
+                  <div className="grow-deviation-main">
+                    <div className="tl-title">{recommendation.treatmentName ?? recommendation.sopTitle ?? recommendation.metric}</div>
+                    <div className="tl-sub">{recommendation.reason}</div>
+                  </div>
+                  <div className="grow-deviation-copy">
+                    <button type="button" className="btn btn-primary" disabled={saving === `start-sop-${recommendation.stableKey}`} onClick={() => onStartRecommendedSop(recommendation)}>
+                      {saving === `start-sop-${recommendation.stableKey}` ? 'Startet…' : 'SOP starten'}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        )}
-      </div>
-    </>
+        </>
+      )}
+    </div>
   )
 }

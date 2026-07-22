@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.44
+
+- Simplified — the **Diagnose page** was three overlapping cards full of internal terms
+  (deviations, symptom ids, confidence levels). It's now one clear shape: "Handlungsbedarf"
+  up top — what's actually wrong, each with its actions (acknowledge, resolve, start an
+  SOP) — and below it a quiet, plain-language "Auffällige Werte & Tipps" list of the
+  underlying readings and suggestions. Nothing lost, just far less noise.
+
 ## 1.0.43
 
 - New — **pick which camera** for a measurement snapshot. When a tent has several cameras
