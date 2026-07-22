@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.34
+
+- New — **Automatik overview page**. A new "Automatik" entry under "Automatik & Regeln"
+  surfaces features that used to be buried: all your auto-measurements across every grow
+  (with their trigger, e.g. "30 min after lights-on") and every sensor's calibration
+  interval — each with a link straight to where you edit it. Nothing hidden in a grow tab
+  anymore.
+
 ## 1.0.33
 
 - New — **daily digest push**. In the Notification Center you can enable a once-a-day

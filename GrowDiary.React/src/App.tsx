@@ -4,6 +4,7 @@ import AddbackHubPage from './pages/AddbackHubPage'
 import AddbackPage from './pages/AddbackPage'
 import AlertsPage from './pages/AlertsPage'
 import NotificationsPage from './pages/NotificationsPage'
+import AutomationOverviewPage from './pages/AutomationOverviewPage'
 import AnalysisPage from './pages/AnalysisPage'
 import ArchivePage from './pages/ArchivePage'
 import GettingStartedPage from './pages/GettingStartedPage'
@@ -47,6 +48,7 @@ const navGroups: NavGroup[] = [
     { to: '/archiv', label: 'Archiv', end: true },
   ] },
   { id: 'rules', label: 'Automatik & Regeln', defaultOpen: true, items: [
+    { to: '/automatik', label: 'Automatik', end: true },
     { to: '/alarme', label: 'Grenzwerte', end: true },
     { to: '/benachrichtigungen', label: 'Benachrichtigungen', end: true },
   ] },
@@ -177,6 +179,7 @@ function App() {
           <Route path="/home-assistant" element={<HomeAssistantPage />} />
           <Route path="/alarme" element={<AlertsPage />} />
           <Route path="/benachrichtigungen" element={<NotificationsPage />} />
+          <Route path="/automatik" element={<AutomationOverviewPage />} />
           <Route path="/hardware" element={<HardwarePage />} />
           <Route path="/wissen" element={<KnowledgePage />} />
           <Route path="/release" element={<ReleasePage />} />
@@ -212,6 +215,7 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/action') || pathname.startsWith('/aufgaben')) return 'Aufgaben'
   if (pathname.startsWith('/home-assistant')) return 'Home Assistant'
   if (pathname.startsWith('/benachrichtigungen')) return 'Benachrichtigungen'
+  if (pathname.startsWith('/automatik')) return 'Automatik'
   if (pathname.startsWith('/alarme')) return 'Grenzwerte'
   if (pathname.startsWith('/grows/new')) return 'Grow starten'
   if (pathname.startsWith('/messung') || pathname.startsWith('/messungen')) return 'Messung'
