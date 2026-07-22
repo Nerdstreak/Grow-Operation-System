@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowStage, GrowSummary, HydroStyle, MeasurementDto, MeasurementUpsertPayload, PhotoTag, TentLivePayload, ValueOrigin } from '../types'
+import { resolveUrl } from '../base'
+import type { GrowStage, GrowSummary, HydroStyle, MeasurementDto, MeasurementUpsertPayload, PhotoTag, TentDto, TentLivePayload, ValueOrigin } from '../types'
 import FileInput from '../components/FileInput'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch } from '../components/v1'
 import { toLocalInputValue } from '../utils'
@@ -116,6 +117,9 @@ function ManualMeasurementPage() {
   const [message, setMessage] = useState<string | null>(null)
   const [prefilled, setPrefilled] = useState(false)
   const [livePulling, setLivePulling] = useState(false)
+  const [cameras, setCameras] = useState<string[]>([])
+  const [snapshotCam, setSnapshotCam] = useState('')
+  const [snapshotting, setSnapshotting] = useState(false)
 
   // Fetches the tent's current live values and writes the mappable ones into the draft.
   // Returns whether any live value was available at all.
@@ -182,6 +186,45 @@ function ManualMeasurementPage() {
     })()
     return () => controller.abort()
   }, [tentId, pullLive])
+
+  // Load the tent's cameras so a snapshot can be attached to the measurement.
+  useEffect(() => {
+    const controller = new AbortController()
+    void (async () => {
+      if (tentId == null) {
+        setCameras([])
+        setSnapshotCam('')
+        return
+      }
+      try {
+        const tent = await apiFetch<TentDto>(`/api/settings/tents/${tentId}`, { signal: controller.signal })
+        if (controller.signal.aborted) return
+        const list = tent.cameras ?? []
+        setCameras(list)
+        setSnapshotCam(list[0] ?? '')
+      } catch { /* ignore */ }
+    })()
+    return () => controller.abort()
+  }, [tentId])
+
+  async function captureSnapshot() {
+    if (tentId == null || snapshotCam === '') return
+    setSnapshotting(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const response = await fetch(resolveUrl(`/api/live/tents/${tentId}/camera?entity=${encodeURIComponent(snapshotCam)}&t=${Date.now()}`))
+      if (!response.ok) throw new Error('Kamera nicht erreichbar')
+      const blob = await response.blob()
+      const file = new File([blob], `snapshot-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' })
+      setPhotoDraft((current) => ({ ...current, files: [...current.files, file] }))
+      setMessage('Kamera-Snapshot hinzugefügt.')
+    } catch {
+      setError('Snapshot konnte nicht aufgenommen werden — ist die Kamera in Home Assistant erreichbar?')
+    } finally {
+      setSnapshotting(false)
+    }
+  }
 
   async function refreshFromLive() {
     if (tentId == null) return
@@ -334,6 +377,20 @@ function ManualMeasurementPage() {
             <div data-audit="measurement-section-photo">
               <V1Section title="Foto">
               <div className="rc2-measurement-extra rc2-measurement-photo">
+                {cameras.length > 0 && (
+                  <V1Field label="Kamera-Snapshot" wide hint="Nimmt ein Foto vom aktuellen Kamerabild und hängt es an.">
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {cameras.length > 1 && (
+                        <select value={snapshotCam} onChange={(event) => setSnapshotCam(event.target.value)}>
+                          {cameras.map((camera, index) => <option key={camera} value={camera}>{`Kamera ${index + 1}`}</option>)}
+                        </select>
+                      )}
+                      <V1Button variant="secondary" onClick={() => void captureSnapshot()} disabled={snapshotting}>
+                        {snapshotting ? 'Nimmt auf…' : 'Snapshot aufnehmen'}
+                      </V1Button>
+                    </div>
+                  </V1Field>
+                )}
                 <V1Field label="Foto-Tag">
                   <select value={photoDraft.tag} onChange={(event) => setPhotoDraft((current) => ({ ...current, tag: event.target.value as PhotoTag }))}>
                     {photoTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}

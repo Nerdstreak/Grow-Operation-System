@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.32
+
+- New — **attach a camera snapshot to a measurement**. On the measurement page you can pick
+  one of the tent's cameras and take a snapshot of the current image with one click; it's
+  attached as a photo and saved with the measurement.
+
 ## 1.0.31
 
 - New — **multiple cameras per tent**. Map several camera entities to a tent (e.g. one per
