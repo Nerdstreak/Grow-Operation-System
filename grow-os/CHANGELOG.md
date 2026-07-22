@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.43
+
+- New — **pick which camera** for a measurement snapshot. When a tent has several cameras
+  you now choose which one to snapshot from (with readable names derived from the entity,
+  e.g. "Hauptzelt"), and with a single camera it shows which one it uses.
+- Changed — **the harvest no longer vanishes**. Your yield now shows up in the Archive
+  (dry weight and rating per grow, plus a total-yield figure), and the harvest page has a
+  "Speichern & Grow abschließen" button that saves the harvest and moves the grow to the
+  archive in one step — closing the grow's lifecycle instead of leaving it running.
+
 ## 1.0.42
 
 - Fixed (real) — the **double scrollbar**, this time at the root. A global

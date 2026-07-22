@@ -22,7 +22,7 @@ function HarvestPage() {
   const [harvest, setHarvest] = useState<HarvestDto | null>(null)
   const [form, setForm] = useState<HarvestFormState | null>(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [saving, setSaving] = useState<'save' | 'complete' | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -58,11 +58,11 @@ function HarvestPage() {
     return () => controller.abort()
   }, [growId])
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function save(complete: boolean) {
     if (!growId || !form) return
 
-    setSaving(true)
+    setSaving(complete ? 'complete' : 'save')
+    setError(null)
     try {
       await apiFetch<HarvestDto>(`/api/grows/${growId}/harvest`, {
         method: 'PUT',
@@ -78,12 +78,24 @@ function HarvestPage() {
           nugStructure: trimToNull(form.nugStructure),
         }),
       })
-      navigate(`/grows/${growId}`)
+      // Closing the loop: finishing the harvest completes the grow and moves it to the
+      // archive (idempotent server-side — only Planning/Running grows change).
+      if (complete) {
+        await apiFetch(`/api/grows/${growId}/archive`, { method: 'POST' })
+        navigate('/archiv')
+      } else {
+        navigate(`/grows/${growId}`)
+      }
     } catch (caught) {
       setError(caught instanceof ApiRequestError ? caught.message : 'Ernte konnte nicht gespeichert werden.')
     } finally {
-      setSaving(false)
+      setSaving(null)
     }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void save(false)
   }
 
   return (
@@ -164,9 +176,10 @@ function HarvestPage() {
                 <textarea rows={3} value={form.effectNotes} onChange={(event) => setForm((current) => current ? { ...current, effectNotes: event.target.value } : current)} />
               </label>
 
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                 <Link className="btn" to={growId ? `/grows/${growId}` : '/'}>Abbrechen</Link>
-                <button className="btn btn-primary" disabled={saving}>{saving ? 'Speichert…' : 'Ernte speichern'}</button>
+                <button type="submit" className="btn" disabled={saving !== null}>{saving === 'save' ? 'Speichert…' : 'Ernte speichern'}</button>
+                <button type="button" className="btn btn-primary" disabled={saving !== null} onClick={() => void save(true)}>{saving === 'complete' ? 'Schließt ab…' : 'Speichern & Grow abschließen'}</button>
               </div>
             </form>
           </div>

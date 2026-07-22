@@ -1,11 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowSummary } from '../types'
-import { formatDate } from '../utils'
+import type { GrowSummary, HarvestDto } from '../types'
+import { formatDate, formatNumber } from '../utils'
+
+// One-line yield summary for an archived grow, so the harvest a user carefully filled
+// in is actually visible again instead of vanishing after saving.
+function yieldLine(harvest: HarvestDto | undefined): string | null {
+  if (!harvest) return null
+  const parts: string[] = []
+  if (harvest.dryWeightG != null) parts.push(`${formatNumber(harvest.dryWeightG, 0)} g trocken`)
+  else if (harvest.wetWeightG != null) parts.push(`${formatNumber(harvest.wetWeightG, 0)} g frisch`)
+  if (harvest.rating != null) parts.push(`★ ${formatNumber(harvest.rating, 0)}/10`)
+  return parts.length > 0 ? parts.join(' · ') : null
+}
 
 function ArchivePage() {
   const [grows, setGrows] = useState<GrowSummary[]>([])
+  const [harvestByGrow, setHarvestByGrow] = useState<Map<number, HarvestDto>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -17,7 +29,15 @@ function ArchivePage() {
       setError(null)
       try {
         const data = await apiFetch<GrowSummary[]>('/api/grows?archived=true', { signal: controller.signal })
+        if (controller.signal.aborted) return
         setGrows(data)
+        const harvests = await Promise.all(data.map((grow) =>
+          apiFetch<HarvestDto>(`/api/grows/${grow.id}/harvest`, { signal: controller.signal }).catch(() => null),
+        ))
+        if (controller.signal.aborted) return
+        const map = new Map<number, HarvestDto>()
+        data.forEach((grow, index) => { const harvest = harvests[index]; if (harvest) map.set(grow.id, harvest) })
+        setHarvestByGrow(map)
       } catch (caught) {
         if (controller.signal.aborted) return
         setError(caught instanceof ApiRequestError ? caught.message : 'Archiv konnte nicht geladen werden.')
@@ -29,6 +49,11 @@ function ArchivePage() {
     void load()
     return () => controller.abort()
   }, [])
+
+  const totalDryWeight = useMemo(
+    () => [...harvestByGrow.values()].reduce((sum, harvest) => sum + (harvest.dryWeightG ?? 0), 0),
+    [harvestByGrow],
+  )
 
   return (
     <>
@@ -49,6 +74,7 @@ function ArchivePage() {
           <div className="stat-chip"><strong>{grows.length}</strong>Archivierte Runs</div>
           <div className="stat-chip"><strong>{grows.filter((grow) => grow.status === 'Completed').length}</strong>Abgeschlossen</div>
           <div className="stat-chip"><strong>{grows.filter((grow) => grow.status === 'Aborted').length}</strong>Abgebrochen</div>
+          {totalDryWeight > 0 && <div className="stat-chip"><strong>{formatNumber(totalDryWeight, 0)} g</strong>Gesamt-Ertrag (trocken)</div>}
         </div>
 
         <div className="data-table">
@@ -73,6 +99,9 @@ function ArchivePage() {
                     {grow.strain ?? '–'}
                     {grow.breeder ? ` · ${grow.breeder}` : ''}
                   </div>
+                  {yieldLine(harvestByGrow.get(grow.id)) && (
+                    <div className="row-sub" style={{ color: 'var(--green)' }}>{yieldLine(harvestByGrow.get(grow.id))}</div>
+                  )}
                 </div>
                 <div className="row-muted">{grow.tentName ?? '–'}</div>
                 <div>

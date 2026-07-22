@@ -424,12 +424,14 @@ function ManualMeasurementPage() {
               <V1Section title="Foto">
               <div className="rc2-measurement-extra rc2-measurement-photo">
                 {cameras.length > 0 && (
-                  <V1Field label="Kamera-Snapshot" wide hint="Nimmt ein Foto vom aktuellen Kamerabild und hängt es an.">
+                  <V1Field label="Kamera-Snapshot" wide hint="Wähle die Kamera und nimm ein Foto vom aktuellen Kamerabild — es wird angehängt.">
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                      {cameras.length > 1 && (
-                        <select value={snapshotCam} onChange={(event) => setSnapshotCam(event.target.value)}>
-                          {cameras.map((camera, index) => <option key={camera} value={camera}>{`Kamera ${index + 1}`}</option>)}
+                      {cameras.length > 1 ? (
+                        <select value={snapshotCam} onChange={(event) => setSnapshotCam(event.target.value)} aria-label="Kamera wählen" style={{ minWidth: 180 }}>
+                          {cameras.map((camera, index) => <option key={camera} value={camera}>{cameraLabel(camera, index)}</option>)}
                         </select>
+                      ) : (
+                        <span className="rc2-measurement-note">Kamera: {cameraLabel(cameras[0], 0)}</span>
                       )}
                       <V1Button variant="secondary" onClick={() => void captureSnapshot()} disabled={snapshotting}>
                         {snapshotting ? 'Nimmt auf…' : 'Snapshot aufnehmen'}
@@ -609,6 +611,13 @@ function isHydroStyle(style: HydroStyle | null | undefined) {
 
 function formatGrowHydroMedium(grow: GrowSummary) {
   return grow.hydroSetupName ?? (grow.hydroStyle === 'None' ? 'kein Hydro-Setup' : grow.hydroStyle)
+}
+
+// A readable name for a camera entity, e.g. "camera.hauptzelt" → "Hauptzelt".
+function cameraLabel(entity: string, index: number): string {
+  const short = entity.replace(/^(camera|image)\./i, '').replace(/[_-]+/g, ' ').trim()
+  if (!short) return `Kamera ${index + 1}`
+  return short.charAt(0).toUpperCase() + short.slice(1)
 }
 
 function calculateVpd(temperatureValue: string, humidityValue: string) {
