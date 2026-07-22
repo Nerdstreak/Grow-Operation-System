@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.46
+
+- New — **set the light cycle per tent**. The tent page now has a "Lichtzyklus" section
+  where you enter when the light goes on and off; it shows the resulting photoperiod
+  (e.g. 18/6, 12/12). This is the precondition the light-based automations ("30 min after
+  lights on/off") trigger on — previously it only lived in Home Assistant, now it's
+  visible and editable in Grow OS.
+
 ## 1.0.45
 
 - New — **start a routine yourself**. The SOPs page now has a catalog of the built-in

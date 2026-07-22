@@ -4,6 +4,7 @@ import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary, HydroSetupDto, MetricPayload, PlantInstanceDto, SetupDto, TentDto, TentLivePayload } from '../types'
 import { V1Alert, V1Badge, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { PlantActions } from '../features/plants/PlantActions'
+import { LightScheduleSection } from '../features/tents/LightScheduleSection'
 import { resolveUrl } from '../base'
 
 const tentMetricDefinitions = [
@@ -132,6 +133,8 @@ function TentDetailPage() {
         <V1Section title="Zeltwerte"><div className="v1-metric-grid compact">{mapMetrics(live?.metrics ?? [], tentMetricDefinitions).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div></V1Section>
         <V1Section title="Reservoir"><div className="v1-metric-grid compact">{mapMetrics(live?.metrics ?? [], hydroMetricDefinitions).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div></V1Section>
       </div>
+
+      <LightScheduleSection tentId={tent.id} />
 
       <V1Section title="Hydro-Systeme" action={<V1LinkButton to="/hydro/new">Hydro anlegen</V1LinkButton>}>
         {activeHydroSetups.length === 0 ? <V1Empty title="Kein aktives Hydro-Setup" text="DWC/RDWC-Systeme werden separat angelegt und dann dem Zelt zugeordnet." /> : <div className="v1-card-grid v1-card-grid-compact">{activeHydroSetups.map((setup) => <HydroSetupCard key={setup.id} setup={setup} />)}</div>}
