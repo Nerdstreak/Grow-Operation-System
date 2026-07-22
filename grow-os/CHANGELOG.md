@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.47
+
+- Improved — the **Archive page** now uses the same clean look as the rest of the app
+  (big header, stat cards, list rows) instead of the old table style, and shows each
+  grow's yield inline plus a total-yield figure.
+- Fixed — errors on the **Grows page** are shown as a proper banner instead of a bare
+  line of red text, matching how the rest of the app surfaces errors.
+
 ## 1.0.46
 
 - New — **set the light cycle per tent**. The tent page now has a "Lichtzyklus" section

@@ -80,8 +80,8 @@ function GrowsPage() {
         <Link className="ix-btn pri" to="/grows/new" style={{ marginLeft: 'auto' }}>Neuen Grow anlegen</Link>
       </div>
 
-      {error && <div className="ix-empty-line" style={{ color: 'var(--ix-red)' }}>{error}</div>}
-      {notice && <div className="ix-empty-line" style={{ color: 'var(--ix-phos)' }}>{notice}</div>}
+      {error && <div className="ix-note-bar crit" role="alert">{error}</div>}
+      {notice && <div className="ix-note-bar ok" role="status">{notice}</div>}
 
       <section className="ix-grows-kpis ix-rise ix-d1">
         <div className="ix-grows-kpi"><span>Aktiv</span><strong>{activeGrows.filter((grow) => grow.status === 'Running').length}</strong></div>

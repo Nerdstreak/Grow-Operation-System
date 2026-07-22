@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary, HarvestDto } from '../types'
 import { formatDate, formatNumber } from '../utils'
+import { V1Page, V1Alert, V1Empty, V1Stat, V1Badge } from '../components/v1'
 
 // One-line yield summary for an archived grow, so the harvest a user carefully filled
 // in is actually visible again instead of vanishing after saving.
@@ -56,70 +57,35 @@ function ArchivePage() {
   )
 
   return (
-    <>
-      <div className="topbar">
-        <span className="topbar-title">Archiv</span>
-      </div>
+    <V1Page eyebrow="Grows" title="Archiv" subtitle="Abgeschlossene und abgebrochene Grows — mit Ertrag.">
+      {error && <V1Alert message={error} tone="warn" />}
 
-      <div className="page-scroll">
-        {error && (
-          <div className="alert-bar" style={{ marginBottom: 14 }}>
-            <div className="alert-dot" />
-            <strong>Fehler</strong>
-            <span>{error}</span>
-          </div>
-        )}
+      <section className="v1-kpi-grid">
+        <V1Stat label="Archivierte Runs" value={grows.length} />
+        <V1Stat label="Abgeschlossen" value={grows.filter((grow) => grow.status === 'Completed').length} />
+        <V1Stat label="Abgebrochen" value={grows.filter((grow) => grow.status === 'Aborted').length} />
+        {totalDryWeight > 0 && <V1Stat label="Gesamt-Ertrag" value={formatNumber(totalDryWeight, 0)} unit="g trocken" />}
+      </section>
 
-        <div className="stats-row">
-          <div className="stat-chip"><strong>{grows.length}</strong>Archivierte Runs</div>
-          <div className="stat-chip"><strong>{grows.filter((grow) => grow.status === 'Completed').length}</strong>Abgeschlossen</div>
-          <div className="stat-chip"><strong>{grows.filter((grow) => grow.status === 'Aborted').length}</strong>Abgebrochen</div>
-          {totalDryWeight > 0 && <div className="stat-chip"><strong>{formatNumber(totalDryWeight, 0)} g</strong>Gesamt-Ertrag (trocken)</div>}
+      {loading ? (
+        <V1Empty title="Lade Archiv…" />
+      ) : grows.length === 0 ? (
+        <V1Empty title="Noch keine archivierten Grows" text="Abgeschlossene Grows erscheinen hier — samt Ertrag." />
+      ) : (
+        <div className="v1-list">
+          {grows.map((grow) => (
+            <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row">
+              <div>
+                <strong>{grow.name}</strong>
+                <span>{[grow.strain ?? '–', grow.breeder, yieldLine(harvestByGrow.get(grow.id))].filter(Boolean).join(' · ')}</span>
+              </div>
+              <em>{grow.tentName ?? 'ohne Zelt'}{grow.endDate ? ` · ${formatDate(grow.endDate)}` : ''}</em>
+              <V1Badge tone={grow.status === 'Completed' ? 'ok' : 'neutral'}>{grow.status === 'Completed' ? 'Abgeschlossen' : 'Abgebrochen'}</V1Badge>
+            </Link>
+          ))}
         </div>
-
-        <div className="data-table">
-          <div className="data-table-header grows-cols">
-            <span>Name</span>
-            <span>Zelt</span>
-            <span>Status</span>
-            <span>Zeitraum</span>
-            <span></span>
-          </div>
-
-          {loading ? (
-            <div className="empty-hint">Lade Archiv...</div>
-          ) : grows.length === 0 ? (
-            <div className="empty-hint">Noch keine archivierten Grows.</div>
-          ) : (
-            grows.map((grow) => (
-              <Link key={grow.id} to={`/grows/${grow.id}`} className="data-row grows-cols" style={{ textDecoration: 'none' }}>
-                <div>
-                  <div className="row-name">{grow.name}</div>
-                  <div className="row-sub">
-                    {grow.strain ?? '–'}
-                    {grow.breeder ? ` · ${grow.breeder}` : ''}
-                  </div>
-                  {yieldLine(harvestByGrow.get(grow.id)) && (
-                    <div className="row-sub" style={{ color: 'var(--green)' }}>{yieldLine(harvestByGrow.get(grow.id))}</div>
-                  )}
-                </div>
-                <div className="row-muted">{grow.tentName ?? '–'}</div>
-                <div>
-                  <span className={`badge ${grow.status === 'Completed' ? 'badge-ok' : 'badge-neutral'}`}>
-                    {grow.status === 'Completed' ? 'Abgeschlossen' : 'Abgebrochen'}
-                  </span>
-                </div>
-                <div className="row-muted">
-                  {formatDate(grow.startDate)}
-                  {grow.endDate ? ` – ${formatDate(grow.endDate)}` : ''}
-                </div>
-                <div className="row-muted">→</div>
-              </Link>
-            ))
-          )}
-        </div>
-      </div>
-    </>
+      )}
+    </V1Page>
   )
 }
 
