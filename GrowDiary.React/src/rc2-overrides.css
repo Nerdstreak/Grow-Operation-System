@@ -717,7 +717,10 @@ html,
 #root,
 .v1-app-shell {
   max-width: 100%;
-  overflow-x: hidden;
+  /* clip (not hidden) prevents sideways scroll WITHOUT turning overflow-y into an
+     implicit `auto` — that implicit scroll container was the "window-in-window" that
+     clipped the bottom of long pages (e.g. the observation section) in Firefox. */
+  overflow-x: clip;
 }
 
 .rc-file-input {

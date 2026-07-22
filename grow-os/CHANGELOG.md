@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.29
+
+- Fixed — long pages (e.g. the observation section on the measurement page) were cut off
+  in Firefox and only scrolled when you click-dragged. A global `overflow-x: hidden` was
+  turning into an implicit vertical scroll container ("window in window"); switched it to
+  `overflow-x: clip` so the page scrolls normally.
+
 ## 1.0.28
 
 - New — the sidebar is reorganised into **collapsible groups** by what you want to do:
