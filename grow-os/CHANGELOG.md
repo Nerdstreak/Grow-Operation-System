@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.38
+
+- Simplified (big) — **Automatik is now just switches**. The old page asked you to build
+  configs with metric keys, aggregations, and field mappings — things a grower should
+  never have to touch. It's gone. Now you pick a grow and flip on ready-made templates:
+  "Messung 30 Min nach Licht AN" and "…nach Licht AUS". The measurement automatically
+  captures whatever sensors you've mapped in Home Assistant — no entities to choose. Each
+  active template has one extra switch, "Kamera-Snapshot ins Journal", which drops a camera
+  image into that grow's photo diary on every automatic measurement.
+
 ## 1.0.37
 
 - Changed — **lifecycle confirmations now live on the measurement page**. Confirming

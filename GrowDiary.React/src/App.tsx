@@ -5,6 +5,7 @@ import AddbackPage from './pages/AddbackPage'
 import AlertsPage from './pages/AlertsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import { GrowScopedSectionPage } from './pages/GrowScopedSectionPage'
+import AutomationPage from './pages/AutomationPage'
 import AnalysisPage from './pages/AnalysisPage'
 import ArchivePage from './pages/ArchivePage'
 import GettingStartedPage from './pages/GettingStartedPage'
@@ -184,7 +185,7 @@ function App() {
           <Route path="/home-assistant" element={<HomeAssistantPage />} />
           <Route path="/alarme" element={<AlertsPage />} />
           <Route path="/benachrichtigungen" element={<NotificationsPage />} />
-          <Route path="/automatik" element={<GrowScopedSectionPage title="Automatik" section="automation" intro="Auto-Messungen erfassen Sensorwerte automatisch per Trigger (z. B. 30 Min nach Licht AN) — sie greifen, sobald deine HA-Entitäten zugeordnet sind." />} />
+          <Route path="/automatik" element={<AutomationPage />} />
           <Route path="/messungen" element={<GrowScopedSectionPage title="Messungen" section="measurements" />} />
           <Route path="/diagnose" element={<GrowScopedSectionPage title="Diagnose" section="diagnosis" />} />
           <Route path="/journal" element={<GrowScopedSectionPage title="Journal & Fotos" section="journal" />} />

@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDateTime } from '../../utils'
-import { GrowDetailAutomationSection } from '../grow-detail/GrowDetailAutomationSection'
 import { GrowDetailDiagnosisSection } from '../grow-detail/GrowDetailDiagnosisSection'
 import { GrowDetailJournalPanel } from '../grow-detail/GrowDetailJournalPanel'
 import { GrowDetailMeasurementsSection } from '../grow-detail/GrowDetailMeasurementsSection'
 import { GrowDetailSopSection } from '../grow-detail/GrowDetailSopSection'
-import { useGrowDetailAutomation } from '../grow-detail/useGrowDetailAutomation'
 import { useGrowDetailBundle } from '../grow-detail/useGrowDetailBundle'
 import { useGrowDetailMutations } from '../grow-detail/useGrowDetailMutations'
 import { useGrowDetailResources } from '../grow-detail/useGrowDetailResources'
@@ -48,24 +46,6 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
     treatmentRecommendationError,
     treatmentRecommendations,
   } = useGrowDetailResources({ growId })
-  const {
-    autoConfigForm,
-    autoConfigs,
-    autoLoading,
-    autoMappingsByConfigId,
-    autoRunsByConfigId,
-    autoStatusByConfigId,
-    autoStatusError,
-    mappingDraftsByConfigId,
-    addMappingDraft,
-    createLightPreset,
-    handleAutoConfigSubmit,
-    loadAutoMeasurements,
-    removeMappingDraft,
-    saveMappingDrafts,
-    setAutoConfigForm,
-    updateMappingDraft,
-  } = useGrowDetailAutomation({ growId, grow: bundle.grow, setError, setNotice, setSaving })
 
   const openTasks = useMemo(() => bundle.tasks.filter((task) => task.status === 'Open'), [bundle.tasks])
   const closedTasks = useMemo(() => bundle.tasks.filter((task) => task.status !== 'Open'), [bundle.tasks])
@@ -111,7 +91,6 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
     const controller = new AbortController()
     const handle = window.setTimeout(() => {
       void loadBundle(controller.signal)
-      if (section === 'automation') void loadAutoMeasurements(controller.signal)
       if (section === 'diagnosis') {
         void loadDeviations(controller.signal)
         void loadTreatmentRecommendations(controller.signal)
@@ -123,7 +102,7 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
       window.clearTimeout(handle)
       controller.abort()
     }
-  }, [growId, section, loadBundle, loadAutoMeasurements, loadDeviations, loadTreatmentRecommendations, loadRiskEvents, loadSopInstances])
+  }, [growId, section, loadBundle, loadDeviations, loadTreatmentRecommendations, loadRiskEvents, loadSopInstances])
 
   if (loading) {
     return <div className="empty-hint">Lade Daten…</div>
@@ -190,28 +169,6 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
           saving={saving}
           onNoteChange={(stepId, notes) => setSopStepNotesById((current) => ({ ...current, [stepId]: notes }))}
           onUpdateStep={(step, status) => void updateSopStep(step, status)}
-        />
-      )}
-
-      {section === 'automation' && (
-        <GrowDetailAutomationSection
-          activeSection="automation"
-          autoConfigs={autoConfigs}
-          autoConfigForm={autoConfigForm}
-          autoStatusByConfigId={autoStatusByConfigId}
-          autoMappingsByConfigId={autoMappingsByConfigId}
-          autoRunsByConfigId={autoRunsByConfigId}
-          mappingDraftsByConfigId={mappingDraftsByConfigId}
-          autoStatusError={autoStatusError}
-          autoLoading={autoLoading}
-          saving={saving}
-          onAutoConfigFormChange={(patch) => setAutoConfigForm((current) => ({ ...current, ...patch }))}
-          onAutoConfigSubmit={handleAutoConfigSubmit}
-          onAddMappingDraft={addMappingDraft}
-          onUpdateMappingDraft={updateMappingDraft}
-          onRemoveMappingDraft={removeMappingDraft}
-          onSaveMappingDrafts={(configId) => void saveMappingDrafts(configId)}
-          onCreateLightPreset={() => void createLightPreset()}
         />
       )}
 
