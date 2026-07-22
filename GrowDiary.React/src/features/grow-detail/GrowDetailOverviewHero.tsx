@@ -3,18 +3,15 @@ import type { GrowDetail, MeasurementDto } from '../../types'
 import { formatNumber } from '../../utils'
 import { formatGrowHydroMedium } from './grow-detail-model'
 
-type GrowAction = 'germination' | 'rooting' | 'flip'
+// Harvest only makes sense once the plant is in bloom or later, so the Ernte action
+// on the overview appears only then — otherwise it's hidden to keep the page clean.
+const HARVEST_READY_STAGES: ReadonlySet<string> = new Set(['Flower', 'Finish', 'Dry'])
 
 type GrowDetailOverviewHeroProps = {
   grow: GrowDetail
   latest: MeasurementDto | null
   measurementCount: number
   openTaskCount: number
-  saving: string | null
-  canConfirmGermination: boolean
-  canConfirmRooting: boolean
-  canFlipToFlower: boolean
-  onGrowAction: (action: GrowAction) => void
 }
 
 export function GrowDetailOverviewHero({
@@ -22,12 +19,9 @@ export function GrowDetailOverviewHero({
   latest,
   measurementCount,
   openTaskCount,
-  saving,
-  canConfirmGermination,
-  canConfirmRooting,
-  canFlipToFlower,
-  onGrowAction,
 }: GrowDetailOverviewHeroProps) {
+  const currentStage: string | null = latest?.stage ?? grow.entryPoint ?? null
+  const canHarvest = currentStage != null && HARVEST_READY_STAGES.has(currentStage)
   return (
     <div className="grow-hero">
       <div className="grow-hero-title">{grow.name}</div>
@@ -60,24 +54,9 @@ export function GrowDetailOverviewHero({
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 14 }}>
         <Link className="btn" to={`/grows/${grow.id}/addback`}>Addback</Link>
-        <Link className="btn" to={`/grows/${grow.id}/harvest`}>Harvest</Link>
+        {canHarvest && <Link className="btn" to={`/grows/${grow.id}/harvest`}>Ernte</Link>}
         <Link className="btn" to={`/analyse?leftGrowId=${grow.id}`}>Vergleichen</Link>
         <a className="btn" href={`/grows/${grow.id}/export`}>Export</a>
-        {canConfirmGermination && (
-          <button type="button" className="btn" disabled={saving === 'action-germination'} onClick={() => onGrowAction('germination')}>
-            {saving === 'action-germination' ? 'Bestätigt...' : 'Keimung bestätigen'}
-          </button>
-        )}
-        {canConfirmRooting && (
-          <button type="button" className="btn" disabled={saving === 'action-rooting'} onClick={() => onGrowAction('rooting')}>
-            {saving === 'action-rooting' ? 'Bestätigt...' : 'Bewurzelung bestätigen'}
-          </button>
-        )}
-        {canFlipToFlower && (
-          <button type="button" className="btn" disabled={saving === 'action-flip'} onClick={() => onGrowAction('flip')}>
-            {saving === 'action-flip' ? 'Trägt ein...' : 'Flip zu 12/12'}
-          </button>
-        )}
       </div>
     </div>
   )

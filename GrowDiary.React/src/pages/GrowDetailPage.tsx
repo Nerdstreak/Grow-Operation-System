@@ -28,7 +28,6 @@ function GrowDetailPage() {
   const {
     archiveGrow,
     deleteGrow,
-    handleGrowAction,
   } = useGrowDetailMutations({
     growId,
     grow: bundle.grow,
@@ -80,9 +79,6 @@ function GrowDetailPage() {
   const grow = bundle.grow
   const latest = grow.latestMeasurement
   const scope = `?growId=${grow.id}`
-  const canConfirmGermination = grow.startMaterial === 'Seed' && !grow.germinatedAt
-  const canConfirmRooting = grow.startMaterial === 'Clone' && !grow.rootedAt
-  const canFlipToFlower = grow.seedType !== 'Autoflower' && !grow.flipDate
   const canArchiveGrow = grow.status === 'Planning' || grow.status === 'Running'
 
   return (
@@ -154,11 +150,6 @@ function GrowDetailPage() {
           latest={latest}
           measurementCount={bundle.measurements.length}
           openTaskCount={openTasks.length}
-          saving={saving}
-          canConfirmGermination={canConfirmGermination}
-          canConfirmRooting={canConfirmRooting}
-          canFlipToFlower={canFlipToFlower}
-          onGrowAction={(action) => void handleGrowAction(action)}
         />
       </div>
     </div>

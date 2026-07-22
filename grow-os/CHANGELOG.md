@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.37
+
+- Changed — **lifecycle confirmations now live on the measurement page**. Confirming
+  germination, rooting, or the flip to 12/12 is something you do when you check the
+  plant, so those buttons moved into the measurement page's context card (shown only
+  when they apply to the selected grow). The grow overview no longer carries them.
+- Changed — **Harvest only shows when the grow is ready**. The Ernte action on the grow
+  overview now appears only once the grow is in Flower, Finish, or Dry — otherwise it's
+  hidden. Export stays on the overview.
+
 ## 1.0.36
 
 - Fixed — removed the duplicate "Messungen" entry from the sidebar. Recording a

@@ -120,6 +120,7 @@ function ManualMeasurementPage() {
   const [cameras, setCameras] = useState<string[]>([])
   const [snapshotCam, setSnapshotCam] = useState('')
   const [snapshotting, setSnapshotting] = useState(false)
+  const [growActionSaving, setGrowActionSaving] = useState<string | null>(null)
 
   // Fetches the tent's current live values and writes the mappable ones into the draft.
   // Returns whether any live value was available at all.
@@ -173,6 +174,12 @@ function ManualMeasurementPage() {
   const solutionFields = isHydroGrow ? reservoirFields : soilSolutionFields
   const tentId = selectedGrow?.tentId ?? null
 
+  // Lifecycle confirmations belong here, at measurement time — confirming germination,
+  // rooting, or the flip to 12/12 is an observation you make when you check the plant.
+  const canConfirmGermination = selectedGrow?.startMaterial === 'Seed' && !selectedGrow?.germinatedAt
+  const canConfirmRooting = selectedGrow?.startMaterial === 'Clone' && !selectedGrow?.rootedAt
+  const canFlipToFlower = selectedGrow != null && selectedGrow.seedType !== 'Autoflower' && !selectedGrow.flipDate
+
   // Pre-fill the mappable fields from Home Assistant when the tent context appears or
   // changes. Best-effort: silently skipped if HA is unreachable.
   useEffect(() => {
@@ -223,6 +230,25 @@ function ManualMeasurementPage() {
       setError('Snapshot konnte nicht aufgenommen werden — ist die Kamera in Home Assistant erreichbar?')
     } finally {
       setSnapshotting(false)
+    }
+  }
+
+  async function confirmGrowAction(action: 'germination' | 'rooting' | 'flip') {
+    if (!selectedGrowId) return
+    const route = action === 'germination' ? 'confirm-germination' : action === 'rooting' ? 'confirm-rooting' : 'flip-to-flower'
+    setGrowActionSaving(action)
+    setError(null)
+    setMessage(null)
+    try {
+      const result = await apiFetch<{ message: string }>(`/api/grows/${selectedGrowId}/actions/${route}`, { method: 'POST' })
+      setMessage(result.message)
+      // Re-pull grows so the just-confirmed step drops off (germinatedAt/rootedAt/flipDate set).
+      const data = await apiFetch<GrowSummary[]>('/api/grows?archived=false')
+      setGrows(data.filter((grow) => grow.status === 'Running' || grow.status === 'Planning'))
+    } catch (caught) {
+      setError(formatApiError(caught, 'Aktion konnte nicht ausgeführt werden.'))
+    } finally {
+      setGrowActionSaving(null)
     }
   }
 
@@ -325,6 +351,26 @@ function ManualMeasurementPage() {
                 </select>
               </V1Field>
               <V1Badge tone={filledCount > 0 ? 'ok' : 'neutral'}>{filledCount} Werte</V1Badge>
+              {(canConfirmGermination || canConfirmRooting || canFlipToFlower) && (
+                <div className="rc2-measurement-live" style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+                  <span className="v1-card-kicker">Phase bestätigen</span>
+                  {canConfirmGermination && (
+                    <V1Button variant="secondary" onClick={() => void confirmGrowAction('germination')} disabled={growActionSaving !== null}>
+                      {growActionSaving === 'germination' ? 'Bestätigt…' : 'Keimung bestätigen'}
+                    </V1Button>
+                  )}
+                  {canConfirmRooting && (
+                    <V1Button variant="secondary" onClick={() => void confirmGrowAction('rooting')} disabled={growActionSaving !== null}>
+                      {growActionSaving === 'rooting' ? 'Bestätigt…' : 'Bewurzelung bestätigen'}
+                    </V1Button>
+                  )}
+                  {canFlipToFlower && (
+                    <V1Button variant="secondary" onClick={() => void confirmGrowAction('flip')} disabled={growActionSaving !== null}>
+                      {growActionSaving === 'flip' ? 'Trägt ein…' : 'Flip zu 12/12'}
+                    </V1Button>
+                  )}
+                </div>
+              )}
               {tentId != null && (
                 <div className="rc2-measurement-live" style={{ marginTop: 12, display: 'grid', gap: 8 }}>
                   {prefilled && <p className="rc2-measurement-note">Aus Home Assistant vorbefüllt — anpassbar.</p>}
