@@ -9,7 +9,7 @@ import { resolveUrl } from '../base'
 
 type GroupKey = 'tent' | 'reservoir' | 'hardware'
 type SensorDraft = { metricType: SensorMetricType; haEntityId: string; displayLabel: string; isActive: boolean }
-type TentMappingDraft = { cameraEntityId: string; sensors: SensorDraft[] }
+type TentMappingDraft = { cameras: string[]; sensors: SensorDraft[] }
 type EntityDefinition = { metricType: SensorMetricType; label: string; group: GroupKey; placeholder: string; importance: 'core' | 'optional'; unit?: string }
 type SavingState = 'ha' | `tent-${number}` | null
 type CameraStatus = { ok: boolean; status: string; message: string; cameraEntityId: string | null; previewUrl: string | null }
@@ -128,7 +128,7 @@ function HomeAssistantPage() {
 
   const selectedTent = useMemo(() => tents.find((tent) => tent.id === selectedTentId) ?? tents[0] ?? null, [selectedTentId, tents])
   const selectedDraft = selectedTent ? drafts[selectedTent.id] : null
-  const mappedCount = useMemo(() => Object.values(drafts).reduce((sum, draft) => sum + (draft.cameraEntityId.trim() ? 1 : 0) + draft.sensors.filter((sensor) => sensor.isActive && sensor.haEntityId.trim()).length, 0), [drafts])
+  const mappedCount = useMemo(() => Object.values(drafts).reduce((sum, draft) => sum + draft.cameras.filter((camera) => camera.trim()).length + draft.sensors.filter((sensor) => sensor.isActive && sensor.haEntityId.trim()).length, 0), [drafts])
   // Prefer camera.* entities but fall back to the full list so the picker is never
   // empty when HA exposes the camera under a different domain (e.g. image.*).
   const cameraEntities = useMemo(() => {
@@ -179,15 +179,19 @@ function HomeAssistantPage() {
       const status = await apiFetch<CameraStatus>(`/api/camera/tents/${selectedTent.id}/status`)
       setCameraStatus(status)
     } catch (caught) {
-      setCameraStatus({ ok: false, status: 'request_failed', message: formatApiError(caught, 'Kamera-Test fehlgeschlagen.'), cameraEntityId: selectedDraft?.cameraEntityId ?? null, previewUrl: null })
+      setCameraStatus({ ok: false, status: 'request_failed', message: formatApiError(caught, 'Kamera-Test fehlgeschlagen.'), cameraEntityId: selectedDraft?.cameras[0] ?? null, previewUrl: null })
     }
   }
 
-  function updateCamera(value: string) {
+  function mutateCameras(mutate: (cameras: string[]) => string[]) {
     if (!selectedTent) return
-    setDrafts((current) => ({ ...current, [selectedTent.id]: { ...current[selectedTent.id], cameraEntityId: value } }))
+    setDrafts((current) => ({ ...current, [selectedTent.id]: { ...current[selectedTent.id], cameras: mutate(current[selectedTent.id].cameras) } }))
     setCameraStatus(null)
   }
+
+  const addCamera = () => mutateCameras((cameras) => [...cameras, ''])
+  const updateCameraAt = (index: number, value: string) => mutateCameras((cameras) => cameras.map((camera, i) => (i === index ? value : camera)))
+  const removeCameraAt = (index: number) => mutateCameras((cameras) => cameras.filter((_, i) => i !== index))
 
   function updateSensor(metricType: SensorMetricType, patch: Partial<SensorDraft>) {
     if (!selectedTent) return
@@ -246,10 +250,18 @@ function HomeAssistantPage() {
                 <div className="v1-card-grid">
                   <V1Card tone={cameraStatus?.ok ? 'ok' : cameraStatus ? 'warn' : 'neutral'}>
                     <span className="v1-card-kicker">Kamera</span>
-                    <h2>{cameraStatus?.ok ? 'Snapshot OK' : selectedDraft.cameraEntityId.trim() ? 'eingetragen' : 'optional'}</h2>
+                    <h2>{cameraStatus?.ok ? 'Snapshot OK' : selectedDraft.cameras.length > 0 ? `${selectedDraft.cameras.length} Kamera(s)` : 'optional'}</h2>
+                    <p className="rc2-measurement-note">Mehrere Kameras möglich (z. B. eine pro Pflanze) — im Live-Dashboard umschaltbar.</p>
                     <div className="rc2-ha-camera-field-action" data-audit="ha-camera-field-action">
-                    <V1Field label="Kamera Entity">
-                      <input value={selectedDraft.cameraEntityId} onChange={(event) => updateCamera(event.target.value)} placeholder="camera.hauptzelt" list={entities.length > 0 ? 'ha-entities-camera' : undefined} />
+                    <div style={{ display: 'grid', gap: 8, width: '100%' }}>
+                      {selectedDraft.cameras.map((camera, index) => (
+                        <V1Field key={index} label={`Kamera ${index + 1}`}>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <input value={camera} onChange={(event) => updateCameraAt(index, event.target.value)} placeholder="camera.hauptzelt" list={entities.length > 0 ? 'ha-entities-camera' : undefined} style={{ flex: 1 }} />
+                            <V1Button variant="ghost" onClick={() => removeCameraAt(index)}>Entfernen</V1Button>
+                          </div>
+                        </V1Field>
+                      ))}
                       {entities.length > 0 && (
                         <datalist id="ha-entities-camera">
                           {cameraEntities.map((entity) => (
@@ -257,7 +269,8 @@ function HomeAssistantPage() {
                           ))}
                         </datalist>
                       )}
-                    </V1Field>
+                      <V1Button variant="secondary" onClick={addCamera}>Kamera hinzufügen</V1Button>
+                    </div>
                       <V1Button onClick={() => void testCamera()}>Kamera testen</V1Button>
                       {cameraStatus?.previewUrl && <a className="v1-button is-secondary" href={resolveUrl(cameraStatus.previewUrl)} target="_blank" rel="noreferrer">Snapshot öffnen</a>}
                     </div>
@@ -323,7 +336,7 @@ function scoreTent(tent: TentDto) {
 }
 
 function createTentDraft(tent: TentDto): TentMappingDraft {
-  return { cameraEntityId: tent.cameraEntityId ?? '', sensors: definitions.map((definition) => {
+  return { cameras: tent.cameras && tent.cameras.length > 0 ? [...tent.cameras] : (tent.cameraEntityId ? [tent.cameraEntityId] : []), sensors: definitions.map((definition) => {
     const existing = tent.sensors.find((sensor) => sensor.metricType === definition.metricType)
     return { metricType: definition.metricType, haEntityId: existing?.haEntityId ?? '', displayLabel: existing?.displayLabel ?? definition.label, isActive: existing?.isActive ?? false }
   }) }
@@ -335,7 +348,7 @@ function createSensorDraft(definition: EntityDefinition): SensorDraft {
 
 function toUpdateTentRequest(tent: TentDto, draft: TentMappingDraft): UpdateTentRequest {
   const sensors: UpdateTentSensorRequest[] = draft.sensors.map((sensor) => ({ id: tent.sensors.find((existing) => existing.metricType === sensor.metricType)?.id ?? 0, metricType: sensor.metricType, haEntityId: toNullableString(sensor.haEntityId), displayLabel: toNullableString(sensor.displayLabel), isActive: sensor.isActive && sensor.haEntityId.trim().length > 0 }))
-  return { name: tent.name, status: tent.status, kind: tent.kind, tentType: tent.tentType, notes: tent.notes, displayOrder: tent.displayOrder, accentColor: tent.accentColor, widthCm: tent.widthCm, depthCm: tent.depthCm, tentHeightCm: tent.tentHeightCm, lightType: tent.lightType, lightWatt: tent.lightWatt, lightController: tent.lightController, lightControllerEntityId: tent.lightControllerEntityId, exhaustFanCount: tent.exhaustFanCount, exhaustM3h: tent.exhaustM3h, circulationFanCount: tent.circulationFanCount, hvacController: tent.hvacController, hvacControllerEntityId: tent.hvacControllerEntityId, co2Available: tent.co2Available, cameraEntityId: toNullableString(draft.cameraEntityId), sensors }
+  return { name: tent.name, status: tent.status, kind: tent.kind, tentType: tent.tentType, notes: tent.notes, displayOrder: tent.displayOrder, accentColor: tent.accentColor, widthCm: tent.widthCm, depthCm: tent.depthCm, tentHeightCm: tent.tentHeightCm, lightType: tent.lightType, lightWatt: tent.lightWatt, lightController: tent.lightController, lightControllerEntityId: tent.lightControllerEntityId, exhaustFanCount: tent.exhaustFanCount, exhaustM3h: tent.exhaustM3h, circulationFanCount: tent.circulationFanCount, hvacController: tent.hvacController, hvacControllerEntityId: tent.hvacControllerEntityId, co2Available: tent.co2Available, cameraEntityId: null, cameras: draft.cameras.map((camera) => camera.trim()).filter((camera) => camera.length > 0), sensors }
 }
 
 function formatTentSize(tent: TentDto) {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.31
+
+- New — **multiple cameras per tent**. Map several camera entities to a tent (e.g. one per
+  plant) on the Home Assistant page, then switch between them right on the live dashboard
+  with the ‹ 1/3 › control on the camera view. Existing single-camera setups keep working
+  unchanged.
+
 ## 1.0.30
 
 - New — a new measurement is now **pre-filled from Home Assistant**. When you open the

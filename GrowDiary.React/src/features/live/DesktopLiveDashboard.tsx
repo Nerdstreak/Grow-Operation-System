@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { resolveUrl } from '../../base'
 import type { GrowSummary, MetricPayload, RiskEventDto, TentDto } from '../../types'
@@ -63,22 +64,25 @@ function formatClock(value: number | string | null): string {
 // live/stale headers, and keeps the previous frame on a failed refresh so the
 // grow is never blank once a valid image has been seen.
 function CameraScreen({ tent }: { tent: TentDto }) {
+  const cameras = tent.cameras && tent.cameras.length > 0 ? tent.cameras : (tent.cameraEntityId ? [tent.cameraEntityId] : [])
+  const [activeCam, setActiveCam] = useState(0)
   const [src, setSrc] = useState<string | null>(null)
   const [meta, setMeta] = useState<{ capturedAt: string | null; live: boolean } | null>(null)
   const [unavailable, setUnavailable] = useState(false)
   const urlRef = useRef<string | null>(null)
+  const currentCamera = cameras[activeCam] ?? cameras[0]
 
   // Near-live: schedule the next frame ~1s after the previous one *completes*, so a
   // slow (cold-start) camera never has its in-flight request aborted by a fixed timer
   // — it just refreshes a little less often instead of never showing an image.
   useEffect(() => {
-    if (!tent.cameraEntityId) return
+    if (!currentCamera) return
     let active = true
     let timer: number | undefined
 
     async function loop() {
       try {
-        const response = await fetch(resolveUrl(`/api/live/tents/${tent.id}/camera?t=${Date.now()}`))
+        const response = await fetch(resolveUrl(`/api/live/tents/${tent.id}/camera?entity=${encodeURIComponent(currentCamera)}&t=${Date.now()}`))
         if (!active) return
         if (response.ok) {
           const blob = await response.blob()
@@ -101,19 +105,29 @@ function CameraScreen({ tent }: { tent: TentDto }) {
 
     void loop()
     return () => { active = false; if (timer !== undefined) window.clearTimeout(timer) }
-  }, [tent.id, tent.cameraEntityId])
+  }, [tent.id, currentCamera])
 
   useEffect(() => () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current) }, [])
 
-  if (!tent.cameraEntityId) {
+  const btn: CSSProperties = { background: 'none', border: 0, color: '#fff', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 6px' }
+  const switcher = cameras.length > 1 ? (
+    <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4, alignItems: 'center', background: 'rgba(0,0,0,0.5)', borderRadius: 8, padding: '2px 4px', zIndex: 3 }}>
+      <button type="button" style={btn} aria-label="Vorherige Kamera" onClick={() => setActiveCam((i) => (i - 1 + cameras.length) % cameras.length)}>‹</button>
+      <span style={{ color: '#fff', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>{activeCam + 1}/{cameras.length}</span>
+      <button type="button" style={btn} aria-label="Nächste Kamera" onClick={() => setActiveCam((i) => (i + 1) % cameras.length)}>›</button>
+    </div>
+  ) : null
+
+  if (cameras.length === 0) {
     return <div className="ix-screen"><div className="ico">⬡</div><div className="l">Kein Stream gemappt</div></div>
   }
   if (!src && unavailable) {
-    return <div className="ix-screen"><div className="ico">⬡</div><div className="l">Kamera nicht erreichbar</div></div>
+    return <div className="ix-screen" style={{ position: 'relative' }}><div className="ico">⬡</div><div className="l">Kamera nicht erreichbar</div>{switcher}</div>
   }
   return (
     <div className="ix-screen ix-screen-cam">
       {src && <img src={src} alt={`Kamera ${tent.name}`} />}
+      {switcher}
       {meta && <div className={`ix-cam-stamp${meta.live ? '' : ' stale'}`} data-audit="camera-stamp">{meta.live ? '● LIVE' : '○ veraltet'} · {formatClock(meta.capturedAt)}</div>}
     </div>
   )

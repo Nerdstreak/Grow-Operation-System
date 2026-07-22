@@ -1,4 +1,5 @@
 using GrowDiary.Web.Infrastructure;
+using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,7 +22,7 @@ public sealed class CameraProxyController : ControllerBase
 
     [HttpGet("live/tents/{tentId:int}/camera")]
     [HttpGet("camera/tents/{tentId:int}")]
-    public async Task<IActionResult> GetTentCamera(int tentId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetTentCamera(int tentId, [FromQuery] string? entity, CancellationToken cancellationToken)
     {
         var tent = _repository.GetTent(tentId);
         if (tent is null)
@@ -29,12 +30,17 @@ public sealed class CameraProxyController : ControllerBase
             return NotFound(new CameraProxyStatusDto(false, "tent_not_found", "Zelt wurde nicht gefunden.", null, null));
         }
 
-        if (string.IsNullOrWhiteSpace(tent.CameraEntityId))
+        var cameras = TentCameraList.Parse(tent.CameraEntityIds, tent.CameraEntityId);
+        if (cameras.Count == 0)
         {
             return NotFound(new CameraProxyStatusDto(false, "camera_missing", "Für dieses Zelt ist keine Kamera-Entity hinterlegt.", null, null));
         }
 
-        var entityId = tent.CameraEntityId;
+        // A ?entity= switch is honoured only if it belongs to this tent — never proxy an
+        // arbitrary entity the caller names.
+        var entityId = !string.IsNullOrWhiteSpace(entity) && cameras.Contains(entity, StringComparer.OrdinalIgnoreCase)
+            ? entity
+            : cameras[0];
         var settings = _repository.GetEffectiveHomeAssistantSettings();
 
         // Try a fresh frame and only accept it if it is a real, valid image.

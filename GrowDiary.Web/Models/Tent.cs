@@ -25,6 +25,13 @@ public sealed class Tent
     public string? HvacControllerEntityId { get; set; }
     public bool Co2Available { get; set; }
     public string? CameraEntityId { get; set; }
+
+    /// <summary>
+    /// All camera entities for this tent, newline-separated (a tent can have several — e.g.
+    /// one per plant). <see cref="CameraEntityId"/> mirrors the first one for backward
+    /// compatibility (snapshot automation, camera-proxy default).
+    /// </summary>
+    public string? CameraEntityIds { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 

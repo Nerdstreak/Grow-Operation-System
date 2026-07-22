@@ -133,6 +133,18 @@ public sealed class SettingsApiController : ApiControllerBase
             tentToSave.Status = existing.Status;
         }
 
+        if (request.Cameras is not null)
+        {
+            var (cameraIds, firstCamera) = TentCameraList.Serialize(request.Cameras);
+            tentToSave.CameraEntityIds = cameraIds;
+            tentToSave.CameraEntityId = firstCamera;
+        }
+        else
+        {
+            // No camera list in the request → keep the existing cameras.
+            tentToSave.CameraEntityIds = existing.CameraEntityIds;
+        }
+
         _repository.UpdateTent(tentToSave);
         if (request.Sensors is not null)
         {

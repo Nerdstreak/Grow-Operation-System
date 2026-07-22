@@ -198,6 +198,7 @@ export interface TentDto {
   hvacControllerEntityId: string | null
   co2Available: boolean
   cameraEntityId: string | null
+  cameras: string[]
   activeGrowCount: number
   archivedGrowCount: number
   activeSetupCount: number
@@ -235,6 +236,7 @@ export interface UpdateTentRequest {
   hvacControllerEntityId: string | null
   co2Available: boolean
   cameraEntityId: string | null
+  cameras?: string[]
   sensors: UpdateTentSensorRequest[]
 }
 
@@ -260,6 +262,7 @@ export interface CreateTentRequest {
   hvacControllerEntityId: string | null
   co2Available: boolean
   cameraEntityId: string | null
+  cameras?: string[]
   sensors: UpdateTentSensorRequest[]
 }
 

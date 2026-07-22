@@ -27,7 +27,8 @@ public sealed record TentDto(
     int ArchivedGrowCount,
     int ActiveSetupCount,
     int ArchivedSetupCount,
-    IReadOnlyList<TentSensorDto> Sensors
+    IReadOnlyList<TentSensorDto> Sensors,
+    IReadOnlyList<string> Cameras
 );
 
 public sealed record TentSensorDto(

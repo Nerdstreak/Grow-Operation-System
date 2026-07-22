@@ -42,6 +42,7 @@ public static class SettingsMapping
         ArchivedSetupCount: tent.ArchivedSetupCount,
         Sensors: tent.Sensors.Select(s => new TentSensorDto(
             s.Id, s.TentId, s.MetricType.ToString(), s.HaEntityId, s.DisplayLabel, s.IsActive
-        )).ToList()
+        )).ToList(),
+        Cameras: TentCameraList.Parse(tent.CameraEntityIds, tent.CameraEntityId)
     );
 }
