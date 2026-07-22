@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.39
+
+- Fixed — the **sidebar now scrolls**. With every menu group expanded it could run past
+  the bottom of the screen and the lowest entries were unreachable; it scrolls now.
+- Fixed — on the **Notifications page your phone is actually saved**. The only Save
+  button was buried at the bottom in an unrelated section, so entering a push service
+  and tapping "Test" never saved it. There's now a Save button at the top, and "Test-Push"
+  saves first before sending.
+- Fixed — **Automatik showed "Kamera-Snapshot ins Journal" twice** (once per active
+  template). It's a single switch now that applies to all active automations.
+
 ## 1.0.38
 
 - Simplified (big) — **Automatik is now just switches**. The old page asked you to build

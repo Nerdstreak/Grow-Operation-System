@@ -37,6 +37,11 @@ input, select, textarea { min-width: 0; }
   display: flex;
   flex-direction: column;
   z-index: 20;
+  /* When every group is expanded the menu can exceed the viewport — let it scroll
+     instead of hiding the bottom entries. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
 }
 
 .v1-brand { display: flex; align-items: center; gap: 12px; padding: 6px 4px 18px; border-bottom: 1px solid var(--v1-line); }

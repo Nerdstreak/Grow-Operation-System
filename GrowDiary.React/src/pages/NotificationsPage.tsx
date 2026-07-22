@@ -75,19 +75,24 @@ function NotificationsPage() {
     setSettings((current) => ({ ...current, ...next }))
   }
 
-  async function save() {
-    setSaving(true)
-    setError(null)
-    setMessage(null)
+  async function persist(): Promise<boolean> {
     const payload: NotificationSettingsDto = {
       ...settings,
       notifyService: settings.notifyService?.trim() || null,
       quietHoursStartHour: parseHour(quietStart),
       quietHoursEndHour: parseHour(quietEnd),
     }
+    const saved = await apiFetch<NotificationSettingsDto>('/api/notifications/settings', { method: 'PUT', body: JSON.stringify(payload) })
+    setSettings({ ...saved, notifyService: saved.notifyService ?? '' })
+    return true
+  }
+
+  async function save() {
+    setSaving(true)
+    setError(null)
+    setMessage(null)
     try {
-      const saved = await apiFetch<NotificationSettingsDto>('/api/notifications/settings', { method: 'PUT', body: JSON.stringify(payload) })
-      setSettings({ ...saved, notifyService: saved.notifyService ?? '' })
+      await persist()
       setMessage('Gespeichert.')
     } catch (caught) {
       setError(errorMessage(caught, 'Speichern fehlgeschlagen.'))
@@ -105,11 +110,14 @@ function NotificationsPage() {
     setError(null)
     setMessage(null)
     try {
+      // Save first, so testing the phone also stores it — otherwise a user who only
+      // enters a phone and taps "Test" would leave without it ever being saved.
+      await persist()
       const result = await apiFetch<{ ok: boolean }>('/api/notifications/test', {
         method: 'POST',
         body: JSON.stringify({ notifyService: settings.notifyService?.trim() }),
       })
-      setMessage(result.ok ? 'Test-Benachrichtigung gesendet — schau auf dein Handy.' : 'Home Assistant hat die Test-Nachricht nicht angenommen. Stimmt der Dienstname?')
+      setMessage(result.ok ? 'Gespeichert. Test-Benachrichtigung gesendet — schau auf dein Handy.' : 'Gespeichert. Home Assistant hat die Test-Nachricht aber nicht angenommen — stimmt der Dienstname?')
     } catch (caught) {
       setError(errorMessage(caught, 'Test fehlgeschlagen.'))
     } finally {
@@ -126,6 +134,7 @@ function NotificationsPage() {
       eyebrow="Integration"
       title="Benachrichtigungen"
       subtitle="Ein Ort für alle Push-Nachrichten: wähle einmal dein Handy, lege Ruhezeiten fest und entscheide, worüber Grow OS dich über Home Assistant erinnert."
+      action={<V1Button variant="primary" onClick={() => void save()} disabled={saving}>{saving ? 'Speichert…' : 'Speichern'}</V1Button>}
     >
       {error && <V1Alert message={error} tone="critical" />}
       {message && <V1Alert message={message} tone="ok" />}
@@ -187,7 +196,7 @@ function NotificationsPage() {
         </V1Card>
       </V1Section>
 
-      <V1Section title="Wofür wirst du benachrichtigt?" action={<V1Button variant="primary" onClick={() => void save()} disabled={saving}>{saving ? 'Speichert…' : 'Speichern'}</V1Button>}>
+      <V1Section title="Wofür wirst du benachrichtigt?">
         <div style={{ display: 'grid', gap: 12 }}>
           <V1Card>
             <V1Switch label="Grenzwerte" hint="Wenn ein Messwert über oder unter deine Grenze läuft (pH, EC …)." checked={settings.thresholds} onChange={(checked) => patch({ thresholds: checked })} />

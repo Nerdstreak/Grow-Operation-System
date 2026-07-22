@@ -74,6 +74,9 @@ function AutomationPage() {
   }, [growId, reloadKey])
 
   const configFor = (template: Template) => configs.find((config) => config.triggerKind === template.triggerKind) ?? null
+  const enabledConfigs = configs.filter((config) => config.status === 'Enabled')
+  const anyEnabled = enabledConfigs.length > 0
+  const snapshotOn = anyEnabled && enabledConfigs.every((config) => config.captureSnapshot)
 
   async function setTemplateEnabled(template: Template, enabled: boolean) {
     if (!growId) return
@@ -125,23 +128,27 @@ function AutomationPage() {
     }
   }
 
-  async function setSnapshot(config: AutoMeasurementConfigDto, capture: boolean) {
+  // One snapshot setting for the grow's automation — applied to every active template,
+  // so the user sees a single switch, not one per template.
+  async function setSnapshotAll(capture: boolean) {
     setError(null)
     setNotice(null)
-    setBusy(`snapshot-${config.id}`)
+    setBusy('snapshot')
     try {
-      await apiFetch(`/api/auto-measurements/configs/${config.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          tentId: config.tentId,
-          name: config.name,
-          status: config.status,
-          triggerKind: config.triggerKind,
-          delayMinutes: config.delayMinutes,
-          windowMinutes: config.windowMinutes,
-          captureSnapshot: capture,
-        }),
-      })
+      for (const config of enabledConfigs) {
+        await apiFetch(`/api/auto-measurements/configs/${config.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            tentId: config.tentId,
+            name: config.name,
+            status: config.status,
+            triggerKind: config.triggerKind,
+            delayMinutes: config.delayMinutes,
+            windowMinutes: config.windowMinutes,
+            captureSnapshot: capture,
+          }),
+        })
+      }
       reload()
     } catch (caught) {
       setError(errorMessage(caught, 'Snapshot-Einstellung konnte nicht gespeichert werden.'))
@@ -191,20 +198,22 @@ function AutomationPage() {
                     onChange={(checked) => void setTemplateEnabled(template, checked)}
                     hint={template.description}
                   />
-                  {enabled && config && (
-                    <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                      <V1Switch
-                        label="Kamera-Snapshot ins Journal"
-                        checked={config.captureSnapshot}
-                        onChange={(checked) => void setSnapshot(config, checked)}
-                        hint="Legt bei jeder automatischen Messung ein Kamerabild im Foto-Tagebuch dieses Grows ab."
-                      />
-                    </div>
-                  )}
                   {busy === template.triggerKind && <p className="text-muted" style={{ margin: '10px 0 0', fontSize: 13 }}>Speichert…</p>}
                 </div>
               )
             })}
+
+            {anyEnabled && (
+              <div className="card" style={{ padding: '16px 20px' }}>
+                <V1Switch
+                  label="Kamera-Snapshot ins Journal"
+                  checked={snapshotOn}
+                  onChange={(checked) => void setSnapshotAll(checked)}
+                  hint="Legt bei jeder automatischen Messung ein Kamerabild im Foto-Tagebuch dieses Grows ab — gilt für alle aktiven Automatiken."
+                />
+                {busy === 'snapshot' && <p className="text-muted" style={{ margin: '10px 0 0', fontSize: 13 }}>Speichert…</p>}
+              </div>
+            )}
           </div>
         )}
       </div>
