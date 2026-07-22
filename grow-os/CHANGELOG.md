@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.36
+
+- Fixed — removed the duplicate "Messungen" entry from the sidebar. Recording a
+  measurement lives under Täglich → Messung; a grow's measurement history is still
+  reachable from that grow's overview.
+
 ## 1.0.35
 
 - Changed (big) — **features are no longer hidden inside a grow**. The six tabs that

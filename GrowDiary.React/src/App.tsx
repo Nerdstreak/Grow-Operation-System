@@ -43,7 +43,6 @@ const navGroups: NavGroup[] = [
     { to: '/aufgaben', label: 'Aufgaben', end: true },
   ] },
   { id: 'history', label: 'Verlauf & Daten', defaultOpen: true, items: [
-    { to: '/messungen', label: 'Messungen', end: true },
     { to: '/diagnose', label: 'Diagnose', end: true },
     { to: '/journal', label: 'Journal & Fotos', end: true },
   ] },
