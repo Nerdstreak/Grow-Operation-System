@@ -38,11 +38,18 @@ input, select, textarea { min-width: 0; }
   flex-direction: column;
   z-index: 20;
   /* When every group is expanded the menu can exceed the viewport — let it scroll
-     instead of hiding the bottom entries. */
+     instead of hiding the bottom entries. A thin, subtle scrollbar so it doesn't read
+     as a second heavy bar next to the page scrollbar. */
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 140, 125, 0.35) transparent;
 }
+.v1-desktop-nav::-webkit-scrollbar { width: 6px; }
+.v1-desktop-nav::-webkit-scrollbar-track { background: transparent; }
+.v1-desktop-nav::-webkit-scrollbar-thumb { background: rgba(120, 140, 125, 0.3); border-radius: 3px; }
+.v1-desktop-nav::-webkit-scrollbar-thumb:hover { background: rgba(120, 140, 125, 0.5); }
 
 .v1-brand { display: flex; align-items: center; gap: 12px; padding: 6px 4px 18px; border-bottom: 1px solid var(--v1-line); }
 .v1-brand.compact { padding: 0; border: 0; }
@@ -69,7 +76,8 @@ input, select, textarea { min-width: 0; }
   box-shadow: 0 14px 40px rgba(0,0,0,0.28);
 }
 
-.v1-hero { min-height: 112px; padding: 24px 26px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.v1-hero { min-height: 112px; padding: 24px 26px; display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.v1-hero-action { margin-top: 6px; }
 .v1-eyebrow, .v1-card-kicker { color: var(--v1-muted); font-size: 11px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; }
 .v1-hero h1 { margin: 6px 0 0; font-size: clamp(42px, 6vw, 72px); line-height: 0.95; letter-spacing: -0.065em; }
 .v1-hero p { color: var(--v1-muted); margin: 10px 0 0; max-width: 56ch; }

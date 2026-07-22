@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.40
+
+- Fixed — **double scrollbar**. Making the sidebar scrollable added a second full-size
+  scrollbar next to the page's, which looked wrong and made scrolling feel broken. The
+  sidebar now has a thin, subtle scrollbar so there's one clear page scrollbar again.
+- Fixed — **measurement snapshots are now visible**. After "Snapshot aufnehmen" (or
+  picking photos) you now see thumbnails of the attached images, each removable with an
+  ×, instead of only a filename.
+- Fixed — the **camera mapping on the Home Assistant page** was cramped into a half-width
+  column; it now spans the full width with a clean row of actions.
+- Fixed — the **Save button on the Notifications page** sat too low; page headers now
+  align their action button to the top.
+- Fixed — task and SOP rows on the **Aufgaben** page pointed at the old grow tabs; they
+  now open the Journal / SOPs page for that grow.
+
 ## 1.0.39
 
 - Fixed — the **sidebar now scrolls**. With every menu group expanded it could run past

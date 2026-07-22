@@ -247,17 +247,16 @@ function HomeAssistantPage() {
               </V1Section>
 
               <V1Section title={`3. ${selectedTent.name} mappen`} action={<V1Button variant="primary" disabled={saving === `tent-${selectedTent.id}`} onClick={() => void saveSelectedTent()}>{saving === `tent-${selectedTent.id}` ? 'Speichert...' : 'Mapping speichern'}</V1Button>}>
-                <div className="v1-card-grid">
+                <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
                   <V1Card tone={cameraStatus?.ok ? 'ok' : cameraStatus ? 'warn' : 'neutral'}>
                     <span className="v1-card-kicker">Kamera</span>
                     <h2>{cameraStatus?.ok ? 'Snapshot OK' : selectedDraft.cameras.length > 0 ? `${selectedDraft.cameras.length} Kamera(s)` : 'optional'}</h2>
                     <p className="rc2-measurement-note">Mehrere Kameras möglich (z. B. eine pro Pflanze) — im Live-Dashboard umschaltbar.</p>
-                    <div className="rc2-ha-camera-field-action" data-audit="ha-camera-field-action">
-                    <div style={{ display: 'grid', gap: 8, width: '100%' }}>
+                    <div style={{ display: 'grid', gap: 10, width: '100%', marginTop: 8 }} data-audit="ha-camera-field-action">
                       {selectedDraft.cameras.map((camera, index) => (
                         <V1Field key={index} label={`Kamera ${index + 1}`}>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <input value={camera} onChange={(event) => updateCameraAt(index, event.target.value)} placeholder="camera.hauptzelt" list={entities.length > 0 ? 'ha-entities-camera' : undefined} style={{ flex: 1 }} />
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            <input value={camera} onChange={(event) => updateCameraAt(index, event.target.value)} placeholder="camera.hauptzelt" list={entities.length > 0 ? 'ha-entities-camera' : undefined} style={{ flex: '1 1 220px', minWidth: 0 }} />
                             <V1Button variant="ghost" onClick={() => removeCameraAt(index)}>Entfernen</V1Button>
                           </div>
                         </V1Field>
@@ -269,10 +268,11 @@ function HomeAssistantPage() {
                           ))}
                         </datalist>
                       )}
-                      <V1Button variant="secondary" onClick={addCamera}>Kamera hinzufügen</V1Button>
-                    </div>
-                      <V1Button onClick={() => void testCamera()}>Kamera testen</V1Button>
-                      {cameraStatus?.previewUrl && <a className="v1-button is-secondary" href={resolveUrl(cameraStatus.previewUrl)} target="_blank" rel="noreferrer">Snapshot öffnen</a>}
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <V1Button variant="secondary" onClick={addCamera}>Kamera hinzufügen</V1Button>
+                        <V1Button onClick={() => void testCamera()}>Kamera testen</V1Button>
+                        {cameraStatus?.previewUrl && <a className="v1-button is-secondary" href={resolveUrl(cameraStatus.previewUrl)} target="_blank" rel="noreferrer">Snapshot öffnen</a>}
+                      </div>
                     </div>
                     {cameraStatus && <p>{cameraStatus.message}</p>}
                     {cameraStatus?.previewUrl && <img className="rc2-camera-preview" src={resolveUrl(cameraStatus.previewUrl)} alt="Kamera Vorschau" />}

@@ -448,6 +448,10 @@ function ManualMeasurementPage() {
                 <V1Field label="Fotos" wide>
                   <FileInput accept="image/png,image/jpeg,image/webp" label="Foto auswählen" multiple fileNames={photoDraft.files.map((file) => file.name)} onFiles={(files) => setPhotoDraft((current) => ({ ...current, files }))} />
                   <small>Optional, ein oder mehrere Bilder.</small>
+                  <PhotoThumbs
+                    files={photoDraft.files}
+                    onRemove={(index) => setPhotoDraft((current) => ({ ...current, files: current.files.filter((_, i) => i !== index) }))}
+                  />
                 </V1Field>
               </div>
               </V1Section>
@@ -461,6 +465,31 @@ function ManualMeasurementPage() {
         </form>
       )}
     </V1Page>
+  )
+}
+
+// Thumbnails of the photos/snapshots attached to this measurement, so a captured
+// snapshot is actually visible (and removable) before saving.
+function PhotoThumbs({ files, onRemove }: { files: File[]; onRemove: (index: number) => void }) {
+  const urls = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files])
+  useEffect(() => () => urls.forEach((url) => URL.revokeObjectURL(url)), [urls])
+  if (files.length === 0) return null
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+      {urls.map((url, index) => (
+        <div key={index} style={{ position: 'relative', width: 84, height: 84 }}>
+          <img src={url} alt={files[index]?.name ?? 'Foto'} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, border: '1px solid var(--v1-line)' }} />
+          <button
+            type="button"
+            onClick={() => onRemove(index)}
+            aria-label="Foto entfernen"
+            style={{ position: 'absolute', top: -7, right: -7, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.72)', color: 'white', cursor: 'pointer', fontSize: 14, lineHeight: '22px', padding: 0 }}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+    </div>
   )
 }
 
