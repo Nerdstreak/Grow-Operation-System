@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.30
+
+- New — a new measurement is now **pre-filled from Home Assistant**. When you open the
+  measurement page, the mapped sensor values (pH, EC, water temp, DO, ORP, level, climate)
+  are filled in automatically from the tent's live values — you only correct what you need.
+  An "Aus Home Assistant übernehmen" button re-pulls the current values on demand.
+
 ## 1.0.29
 
 - Fixed — long pages (e.g. the observation section on the measurement page) were cut off

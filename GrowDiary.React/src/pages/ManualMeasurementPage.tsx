@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowStage, GrowSummary, HydroStyle, MeasurementDto, MeasurementUpsertPayload, PhotoTag, ValueOrigin } from '../types'
+import type { GrowStage, GrowSummary, HydroStyle, MeasurementDto, MeasurementUpsertPayload, PhotoTag, TentLivePayload, ValueOrigin } from '../types'
 import FileInput from '../components/FileInput'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch } from '../components/v1'
 import { toLocalInputValue } from '../utils'
@@ -82,6 +82,28 @@ const observationFields: FieldDefinition[] = [
   { key: 'heightCm', label: 'Höhe', unit: 'cm' },
 ]
 
+// Live Home Assistant metric keys → measurement draft fields, so a new measurement
+// starts pre-filled from the sensors that are already mapped.
+const LIVE_TO_DRAFT: Partial<Record<string, NumericKey>> = {
+  'reservoir-ph': 'reservoirPh',
+  'reservoir-ec': 'reservoirEc',
+  'reservoir-temp': 'reservoirWaterTempC',
+  'reservoir-level': 'reservoirLevelLiters',
+  'reservoir-level-cm': 'reservoirLevelCm',
+  'orp': 'orpMv',
+  'dissolved-oxygen': 'dissolvedOxygenMgL',
+  'temperature': 'airTemperatureC',
+  'humidity': 'humidityPercent',
+  'co2': 'co2Ppm',
+  'ppfd': 'ppfdMol',
+}
+
+function normalizeLiveValue(value: string): string | null {
+  const cleaned = value.trim().replace(',', '.')
+  if (cleaned === '' || cleaned === '–' || cleaned === '-') return null
+  return Number.isFinite(Number(cleaned)) ? cleaned : null
+}
+
 function ManualMeasurementPage() {
   const navigate = useNavigate()
   const [grows, setGrows] = useState<GrowSummary[]>([])
@@ -92,6 +114,28 @@ function ManualMeasurementPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [prefilled, setPrefilled] = useState(false)
+  const [livePulling, setLivePulling] = useState(false)
+
+  // Fetches the tent's current live values and writes the mappable ones into the draft.
+  // Returns whether any live value was available at all.
+  const pullLive = useCallback(async (tentId: number, overwrite: boolean, signal?: AbortSignal): Promise<boolean> => {
+    const live = await apiFetch<TentLivePayload>(`/api/live/tents/${tentId}`, signal ? { signal } : undefined)
+    const mappable = live.metrics.some((metric) => LIVE_TO_DRAFT[metric.key] && normalizeLiveValue(metric.value) != null)
+    setDraft((current) => {
+      const next = { ...current }
+      for (const metric of live.metrics) {
+        const field = LIVE_TO_DRAFT[metric.key]
+        if (!field) continue
+        const value = normalizeLiveValue(metric.value)
+        if (value == null) continue
+        if (!overwrite && next[field].trim() !== '') continue
+        next[field] = value
+      }
+      return next
+    })
+    return mappable
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -123,6 +167,36 @@ function ManualMeasurementPage() {
   const vpd = useMemo(() => calculateVpd(draft.airTemperatureC, draft.humidityPercent), [draft.airTemperatureC, draft.humidityPercent])
   const isHydroGrow = isHydroStyle(selectedGrow?.hydroStyle)
   const solutionFields = isHydroGrow ? reservoirFields : soilSolutionFields
+  const tentId = selectedGrow?.tentId ?? null
+
+  // Pre-fill the mappable fields from Home Assistant when the tent context appears or
+  // changes. Best-effort: silently skipped if HA is unreachable.
+  useEffect(() => {
+    if (tentId == null) return
+    const controller = new AbortController()
+    void (async () => {
+      try {
+        const any = await pullLive(tentId, true, controller.signal)
+        if (!controller.signal.aborted && any) setPrefilled(true)
+      } catch { /* HA offline or no live values — leave fields empty */ }
+    })()
+    return () => controller.abort()
+  }, [tentId, pullLive])
+
+  async function refreshFromLive() {
+    if (tentId == null) return
+    setLivePulling(true)
+    setError(null)
+    try {
+      const any = await pullLive(tentId, true)
+      setPrefilled(any)
+      if (!any) setMessage('Keine Live-Werte in Home Assistant gefunden.')
+    } catch {
+      setError('Live-Werte konnten nicht geladen werden.')
+    } finally {
+      setLivePulling(false)
+    }
+  }
 
   function patch(patchValue: Partial<MeasurementDraft>) {
     setDraft((current) => ({ ...current, ...patchValue }))
@@ -208,6 +282,14 @@ function ManualMeasurementPage() {
                 </select>
               </V1Field>
               <V1Badge tone={filledCount > 0 ? 'ok' : 'neutral'}>{filledCount} Werte</V1Badge>
+              {tentId != null && (
+                <div className="rc2-measurement-live" style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+                  {prefilled && <p className="rc2-measurement-note">Aus Home Assistant vorbefüllt — anpassbar.</p>}
+                  <V1Button variant="secondary" onClick={() => void refreshFromLive()} disabled={livePulling}>
+                    {livePulling ? 'Lädt…' : 'Aus Home Assistant übernehmen'}
+                  </V1Button>
+                </div>
+              )}
             </V1Card>
           </aside>
 
