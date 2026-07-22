@@ -20,6 +20,13 @@ public sealed class NotificationSettings
     public bool SensorOffline { get; set; } = true;
     public bool Risks { get; set; } = true;
 
+    /// <summary>A once-a-day summary push ("system is up, here are the values"). Opt-in.</summary>
+    public bool DailyDigest { get; set; }
+    public int DigestHour { get; set; } = 6;
+    public int DigestMinute { get; set; }
+    /// <summary>False = short "all OK / N issues" summary; true = full values per tent.</summary>
+    public bool DigestDetailed { get; set; }
+
     public bool IsConfigured => !string.IsNullOrWhiteSpace(NotifyService);
 
     public bool IsCategoryEnabled(NotificationCategory category) => category switch

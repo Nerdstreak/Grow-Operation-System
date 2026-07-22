@@ -28,6 +28,14 @@ const DEFAULT_SETTINGS: NotificationSettingsDto = {
   maintenance: true,
   sensorOffline: true,
   risks: true,
+  dailyDigest: false,
+  digestHour: 6,
+  digestMinute: 0,
+  digestDetailed: false,
+}
+
+function pad2(value: number): string {
+  return value.toString().padStart(2, '0')
 }
 
 function NotificationsPage() {
@@ -150,6 +158,32 @@ function NotificationsPage() {
             <V1Field label="Von (Uhr)"><input inputMode="numeric" value={quietStart} onChange={(event) => setQuietStart(event.target.value)} placeholder="z. B. 22" /></V1Field>
             <V1Field label="Bis (Uhr)"><input inputMode="numeric" value={quietEnd} onChange={(event) => setQuietEnd(event.target.value)} placeholder="z. B. 7" /></V1Field>
           </div>
+        </V1Card>
+      </V1Section>
+
+      <V1Section title="Täglicher Überblick">
+        <V1Card>
+          <V1Switch label="Täglicher Überblick" hint="Eine Push-Nachricht pro Tag: System läuft, hier die Werte." checked={settings.dailyDigest} onChange={(checked) => patch({ dailyDigest: checked })} />
+          {settings.dailyDigest && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+              <V1Field label="Uhrzeit">
+                <input
+                  type="time"
+                  value={`${pad2(settings.digestHour)}:${pad2(settings.digestMinute)}`}
+                  onChange={(event) => {
+                    const [hour, minute] = event.target.value.split(':').map(Number)
+                    if (Number.isInteger(hour) && Number.isInteger(minute)) patch({ digestHour: hour, digestMinute: minute })
+                  }}
+                />
+              </V1Field>
+              <V1Field label="Format">
+                <select value={settings.digestDetailed ? 'detailed' : 'summary'} onChange={(event) => patch({ digestDetailed: event.target.value === 'detailed' })}>
+                  <option value="summary">Kurz (Alles OK / Hinweise)</option>
+                  <option value="detailed">Ausführlich (alle Werte)</option>
+                </select>
+              </V1Field>
+            </div>
+          )}
         </V1Card>
       </V1Section>
 

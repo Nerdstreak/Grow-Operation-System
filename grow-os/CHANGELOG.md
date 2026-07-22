@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.33
+
+- New — **daily digest push**. In the Notification Center you can enable a once-a-day
+  summary at a time you choose (e.g. 5:30) — so first thing in the morning you know the
+  system is up and how the values look. Pick the format: short ("all OK / N issues") or
+  detailed (the key values per tent). The digest is delivered even during quiet hours,
+  since you chose the time deliberately.
+
 ## 1.0.32
 
 - New — **attach a camera snapshot to a measurement**. On the measurement page you can pick

@@ -8,6 +8,10 @@ public sealed record NotificationSettingsDto(
     bool Calibration,
     bool Maintenance,
     bool SensorOffline,
-    bool Risks);
+    bool Risks,
+    bool DailyDigest,
+    int DigestHour,
+    int DigestMinute,
+    bool DigestDetailed);
 
 public sealed record NotificationTestRequest(string? NotifyService);

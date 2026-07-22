@@ -80,6 +80,7 @@ builder.Services.AddSingleton<NotificationSettingsRepository>();
 builder.Services.AddSingleton<TentSensorHardwareSyncService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<CalibrationReminderService>();
+builder.Services.AddScoped<DigestService>();
 builder.Services.AddHostedService<HomeAssistantSnapshotWorker>();
 builder.Services.AddHostedService<AutoMeasurementWorker>();
 

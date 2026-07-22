@@ -44,6 +44,10 @@ public sealed class NotificationsApiController : ControllerBase
             Maintenance = request.Maintenance,
             SensorOffline = request.SensorOffline,
             Risks = request.Risks,
+            DailyDigest = request.DailyDigest,
+            DigestHour = request.DigestHour is >= 0 and <= 23 ? request.DigestHour : 6,
+            DigestMinute = request.DigestMinute is >= 0 and <= 59 ? request.DigestMinute : 0,
+            DigestDetailed = request.DigestDetailed,
         };
 
         _settingsRepo.SaveNotificationSettings(settings);
@@ -90,5 +94,9 @@ public sealed class NotificationsApiController : ControllerBase
         settings.Calibration,
         settings.Maintenance,
         settings.SensorOffline,
-        settings.Risks);
+        settings.Risks,
+        settings.DailyDigest,
+        settings.DigestHour,
+        settings.DigestMinute,
+        settings.DigestDetailed);
 }

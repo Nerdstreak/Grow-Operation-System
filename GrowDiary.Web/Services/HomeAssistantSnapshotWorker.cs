@@ -16,6 +16,7 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
     // Sensor-Ausfall (In-Memory, Edge-getriggert) + Kalibrier-Erinnerung (einmal täglich)
     private readonly SensorOfflineTracker _offlineTracker = new();
     private DateOnly? _lastCalibrationCheckDateLocal;
+    private DateOnly? _lastDigestDateLocal;
 
     public HomeAssistantSnapshotWorker(
         IServiceProvider serviceProvider,
@@ -57,6 +58,12 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
             {
                 await RunCalibrationReminderAsync(stoppingToken);
                 _lastCalibrationCheckDateLocal = today;
+            }
+
+            // Täglicher Digest zur eingestellten Uhrzeit.
+            if (_lastDigestDateLocal != today)
+            {
+                await RunDigestIfDueAsync(now, today, stoppingToken);
             }
 
             try
@@ -203,6 +210,36 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
                     await notifications.SendAsync(NotificationCategory.SensorOffline, $"🌱 Grow OS · {tent.Name}", $"Sensor liefert wieder Werte: {name}.", cancellationToken);
                     break;
             }
+        }
+    }
+
+    private async Task RunDigestIfDueAsync(DateTime now, DateOnly today, CancellationToken cancellationToken)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var settings = scope.ServiceProvider.GetRequiredService<NotificationSettingsRepository>().GetNotificationSettings();
+        if (!settings.DailyDigest)
+        {
+            return;
+        }
+
+        // Fire on the first poll in the digest hour at/after the chosen minute — so a late
+        // start (after the window) simply skips today rather than sending a stale digest.
+        if (now.Hour != settings.DigestHour || now.Minute < settings.DigestMinute)
+        {
+            return;
+        }
+
+        _lastDigestDateLocal = today; // mark done even on failure — no retry-storm the same day
+        try
+        {
+            await scope.ServiceProvider.GetRequiredService<DigestService>().BuildAndSendAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Tagesüberblick fehlgeschlagen.");
         }
     }
 

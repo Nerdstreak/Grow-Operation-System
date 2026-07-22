@@ -18,6 +18,10 @@ public sealed class NotificationSettingsRepository : RepositoryBase
     private const string MaintenanceKey = "notify:maintenance";
     private const string SensorOfflineKey = "notify:sensorOffline";
     private const string RisksKey = "notify:risks";
+    private const string DailyDigestKey = "notify:dailyDigest";
+    private const string DigestHourKey = "notify:digestHour";
+    private const string DigestMinuteKey = "notify:digestMinute";
+    private const string DigestDetailedKey = "notify:digestDetailed";
 
     public NotificationSettings GetNotificationSettings()
     {
@@ -41,6 +45,10 @@ public sealed class NotificationSettingsRepository : RepositoryBase
                 case MaintenanceKey: settings.Maintenance = ParseBool(value, true); break;
                 case SensorOfflineKey: settings.SensorOffline = ParseBool(value, true); break;
                 case RisksKey: settings.Risks = ParseBool(value, true); break;
+                case DailyDigestKey: settings.DailyDigest = ParseBool(value, false); break;
+                case DigestHourKey: settings.DigestHour = ParseHour(value) ?? 6; break;
+                case DigestMinuteKey: settings.DigestMinute = ParseMinute(value) ?? 0; break;
+                case DigestDetailedKey: settings.DigestDetailed = ParseBool(value, false); break;
             }
         }
 
@@ -58,10 +66,17 @@ public sealed class NotificationSettingsRepository : RepositoryBase
         Upsert(connection, MaintenanceKey, settings.Maintenance ? "1" : "0");
         Upsert(connection, SensorOfflineKey, settings.SensorOffline ? "1" : "0");
         Upsert(connection, RisksKey, settings.Risks ? "1" : "0");
+        Upsert(connection, DailyDigestKey, settings.DailyDigest ? "1" : "0");
+        Upsert(connection, DigestHourKey, settings.DigestHour.ToString(CultureInfo.InvariantCulture));
+        Upsert(connection, DigestMinuteKey, settings.DigestMinute.ToString(CultureInfo.InvariantCulture));
+        Upsert(connection, DigestDetailedKey, settings.DigestDetailed ? "1" : "0");
     }
 
     private static int? ParseHour(string? value)
         => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var hour) && hour is >= 0 and <= 23 ? hour : null;
+
+    private static int? ParseMinute(string? value)
+        => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var minute) && minute is >= 0 and <= 59 ? minute : null;
 
     private static bool ParseBool(string? value, bool fallback)
         => string.IsNullOrWhiteSpace(value) ? fallback : value is "1" or "true" or "True";

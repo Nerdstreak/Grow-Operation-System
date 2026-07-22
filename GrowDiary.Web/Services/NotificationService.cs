@@ -50,4 +50,20 @@ public sealed class NotificationService
 
         return sent;
     }
+
+    /// <summary>
+    /// Sends the daily digest. Unlike <see cref="SendAsync"/> this ignores quiet hours —
+    /// the user picks the digest time deliberately, so it must arrive even at, say, 5:30.
+    /// </summary>
+    public async Task<bool> SendDigestAsync(string title, string message, CancellationToken cancellationToken = default)
+    {
+        var settings = _settingsRepo.GetNotificationSettings();
+        if (!settings.IsConfigured)
+        {
+            return false;
+        }
+
+        var haSettings = _growRepository.GetEffectiveHomeAssistantSettings();
+        return await _homeAssistant.SendNotificationAsync(haSettings, settings.NotifyService!, title, message, cancellationToken);
+    }
 }
