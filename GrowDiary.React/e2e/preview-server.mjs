@@ -10,6 +10,7 @@ import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const PORT = Number(process.argv[2] ?? 4173)
+const API_PROXY = process.env.GROW_OS_API_PROXY ?? null
 const ROOT = fileURLToPath(new URL('../../GrowDiary.Web/wwwroot', import.meta.url))
 
 const TYPES = {
@@ -42,8 +43,25 @@ async function serveIndex(res) {
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://localhost:${PORT}`)
-    // /api/* has no backend under the smoke suite — answer 502 like a down upstream.
     if (url.pathname.startsWith('/api/')) {
+      // Opt-in: point at a running backend to eyeball real data through the same
+      // <base href> the add-on serves. Without it, behave like a down upstream (502),
+      // which is what the backend-less smoke suite expects.
+      if (API_PROXY) {
+        const upstream = await fetch(new URL(req.url, API_PROXY), {
+          method: req.method,
+          headers: { ...req.headers, host: new URL(API_PROXY).host },
+          body: ['GET', 'HEAD'].includes(req.method ?? 'GET') ? undefined : req,
+          duplex: 'half',
+        }).catch(() => null)
+        if (!upstream) {
+          res.writeHead(502).end('upstream unreachable')
+          return
+        }
+        res.writeHead(upstream.status, { 'Content-Type': upstream.headers.get('content-type') ?? 'application/json' })
+        res.end(Buffer.from(await upstream.arrayBuffer()))
+        return
+      }
       res.writeHead(502).end('backend not running under smoke test')
       return
     }

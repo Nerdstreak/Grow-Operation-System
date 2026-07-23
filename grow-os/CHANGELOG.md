@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.48
+
+- Fixed — opening a grow on a **desktop** now shows the "Zu diesem Grow" links
+  (Messungen · Diagnose · Journal & Fotos · SOPs · Automatik, each pre-selected to that
+  grow). They were inside a mobile-only block, so on desktop there was no way to get
+  from a grow to its own pages.
+
 ## 1.0.47
 
 - Improved — the **Archive page** now uses the same clean look as the rest of the app

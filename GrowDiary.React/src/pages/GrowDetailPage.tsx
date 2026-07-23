@@ -135,14 +135,6 @@ function GrowDetailPage() {
             <div><dt>Letzte Messung</dt><dd>{grow.latestMeasurement ? formatDateTime(grow.latestMeasurement.takenAt) : '–'}</dd></div>
             <div><dt>Messungen</dt><dd>{bundle.measurements.length}</dd></div>
           </dl>
-          <div className="grow-detail-mobile-links">
-            <Link className="btn" to={`/messungen${scope}`}>Messungen</Link>
-            <Link className="btn" to={`/diagnose${scope}`}>Diagnose</Link>
-            <Link className="btn" to={`/journal${scope}`}>Journal &amp; Fotos</Link>
-            <Link className="btn" to={`/sops${scope}`}>SOPs</Link>
-            <Link className="btn" to={`/automatik${scope}`}>Automatik</Link>
-            <Link className="btn" to={`/grows/${grow.id}/addback`}>Addback</Link>
-          </div>
         </section>
 
         <GrowDetailOverviewHero
@@ -151,6 +143,17 @@ function GrowDetailPage() {
           measurementCount={bundle.measurements.length}
           openTaskCount={openTasks.length}
         />
+
+        {/* Jump into this grow's own pages, pre-selected. Lives outside the mobile-only
+            summary so it is reachable on desktop too. */}
+        <div className="section-label" style={{ marginTop: 18 }}>Zu diesem Grow</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Link className="btn" to={`/messungen${scope}`}>Messungen</Link>
+          <Link className="btn" to={`/diagnose${scope}`}>Diagnose</Link>
+          <Link className="btn" to={`/journal${scope}`}>Journal &amp; Fotos</Link>
+          <Link className="btn" to={`/sops${scope}`}>SOPs</Link>
+          <Link className="btn" to={`/automatik${scope}`}>Automatik</Link>
+        </div>
       </div>
     </div>
   )
