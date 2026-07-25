@@ -174,6 +174,8 @@ export function LiveDashboard({
   }
 
   const activeLayout = editing ? draftLayout : layout
+  const hasCameraTiles = (activeLayout?.sections ?? []).some((section) =>
+    section.tiles.some((tile) => tile.kind === 'Camera' && tile.entityId))
 
   async function saveLayout() {
     if (!draftLayout || !selectedTent) return
@@ -323,6 +325,7 @@ export function LiveDashboard({
           onReset={() => void resetLayout()}
           onClose={() => setEditing(false)}
           saving={savingLayout}
+          tentCameras={selectedTent.cameras ?? (selectedTent.cameraEntityId ? [selectedTent.cameraEntityId] : [])}
         />
       )}
 
@@ -370,10 +373,14 @@ export function LiveDashboard({
           )}
         </div>
 
-        <div className="ix-panel ix-feed ix-rise ix-d6" data-audit="live-camera-card">
-          <h3>Kamera · {selectedTent.name}</h3>
-          <CameraScreen key={selectedTent.id} tent={selectedTent} />
-        </div>
+        {/* The single-camera panel steps aside once the user has placed camera tiles
+            themselves — otherwise the same feed would be on screen twice. */}
+        {!hasCameraTiles && (
+          <div className="ix-panel ix-feed ix-rise ix-d6" data-audit="live-camera-card">
+            <h3>Kamera · {selectedTent.name}</h3>
+            <CameraScreen key={selectedTent.id} tent={selectedTent} />
+          </div>
+        )}
       </section>
 
       <div className="ix-rise ix-d6">

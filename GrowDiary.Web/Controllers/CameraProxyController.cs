@@ -37,10 +37,27 @@ public sealed class CameraProxyController : ControllerBase
         }
 
         // A ?entity= switch is honoured only if it belongs to this tent — never proxy an
-        // arbitrary entity the caller names.
-        var entityId = !string.IsNullOrWhiteSpace(entity) && cameras.Contains(entity, StringComparer.OrdinalIgnoreCase)
-            ? entity
-            : cameras[0];
+        // arbitrary entity the caller names. Naming one we don't know is an error rather
+        // than a reason to substitute: serving camera one under camera three's caption
+        // looks like a working feature and hides the mistake.
+        string entityId;
+        if (string.IsNullOrWhiteSpace(entity))
+        {
+            entityId = cameras[0];
+        }
+        else if (cameras.Contains(entity, StringComparer.OrdinalIgnoreCase))
+        {
+            entityId = entity;
+        }
+        else
+        {
+            return NotFound(new CameraProxyStatusDto(
+                false,
+                "camera_not_in_tent",
+                "Diese Kamera ist dem Zelt nicht zugeordnet. Trage sie in den Zelt-Einstellungen ein.",
+                entity,
+                null));
+        }
         var settings = _repository.GetEffectiveHomeAssistantSettings();
 
         // Try a fresh frame and only accept it if it is a real, valid image.

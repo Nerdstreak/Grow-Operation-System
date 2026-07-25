@@ -62,6 +62,55 @@ public sealed class DashboardLayoutRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void CameraTilesAndTheirWidth_SurviveTheRoundTrip()
+    {
+        // A tent with three cameras should be able to show all three at once, each as
+        // wide as the user made it.
+        _repository.Save(new DashboardLayout
+        {
+            TentId = 1,
+            Sections =
+            [
+                new DashboardSection
+                {
+                    Title = "Kameras",
+                    Tiles =
+                    [
+                        new DashboardTile { Id = "c1", Kind = DashboardTileKind.Camera, EntityId = "camera.links", Label = "Links", Span = 2 },
+                        new DashboardTile { Id = "c2", Kind = DashboardTileKind.Camera, EntityId = "camera.mitte", Label = "Mitte" },
+                        new DashboardTile { Id = "c3", Kind = DashboardTileKind.Camera, EntityId = "camera.rechts", Label = "Rechts" },
+                    ],
+                },
+            ],
+        });
+
+        var tiles = Assert.Single(_repository.Get(1).Sections).Tiles;
+
+        Assert.Equal(3, tiles.Count);
+        Assert.All(tiles, tile => Assert.Equal(DashboardTileKind.Camera, tile.Kind));
+        Assert.Equal(["camera.links", "camera.mitte", "camera.rechts"], tiles.Select(tile => tile.EntityId));
+        Assert.Equal(2, tiles[0].Span);
+        Assert.Equal(1, tiles[1].Span);
+    }
+
+    [Fact]
+    public void SectionOrder_IsPreservedAsSaved()
+    {
+        // The order is the arrangement — if it drifted, moving a section would do nothing.
+        _repository.Save(new DashboardLayout
+        {
+            TentId = 1,
+            Sections =
+            [
+                new DashboardSection { Id = "b", Title = "Zweiter", Tiles = [new DashboardTile { MetricKey = "humidity" }] },
+                new DashboardSection { Id = "a", Title = "Erster", Tiles = [new DashboardTile { MetricKey = "temperature" }] },
+            ],
+        });
+
+        Assert.Equal(["Zweiter", "Erster"], _repository.Get(1).Sections.Select(section => section.Title));
+    }
+
+    [Fact]
     public void Reset_FallsBackToTheBuiltInLayout()
     {
         _repository.Save(new DashboardLayout

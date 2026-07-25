@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiFetch } from '../../api'
 
+export type DashboardTileKind = 'Metric' | 'Entity' | 'Camera'
+
 export type DashboardTile = {
   id: string
-  kind: 'Metric' | 'Entity'
+  kind: DashboardTileKind
   metricKey: string | null
   entityId: string | null
   label: string | null
   unit: string | null
+  /** Columns the tile occupies, 1–3. Cameras default to 2. */
+  span: number
 }
 
 export type DashboardSection = { id: string; title: string; tiles: DashboardTile[] }

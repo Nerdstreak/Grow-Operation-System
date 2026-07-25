@@ -227,7 +227,24 @@
 .ix-tile-drag { position: relative; cursor: grab; }
 .ix-tile-drag:active { cursor: grabbing; }
 .ix-tile-drag::after { content: ''; position: absolute; inset: 0; border: 1px dashed var(--ix-hair-2); pointer-events: none; }
-/* Make room for the remove button so it never sits on the caption. */
-.ix-tile-drag .ix-m { padding-left: 36px; }
-.ix-tile-remove { position: absolute; top: 6px; left: 6px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(0,0,0,0.7); color: #fff; cursor: pointer; font-size: 14px; line-height: 22px; padding: 0; }
+/* Make room for the tile toolbar so it never sits on the caption. */
+.ix-tile-drag .ix-m { padding-left: 84px; }
+.ix-tile-tools { position: absolute; top: 6px; left: 6px; z-index: 2; display: flex; gap: 4px; }
+.ix-tile-tools button { width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(0,0,0,0.7); color: #fff; cursor: pointer; font-size: 14px; line-height: 22px; padding: 0; }
+.ix-tile-tools button:disabled { opacity: 0.35; cursor: default; }
 .ix-tile-dropzone { display: grid; place-items: center; min-height: 94px; color: var(--ix-faint); font-size: 12px; border: 1px dashed var(--ix-hair-2); background: var(--ix-panel-2); }
+
+/* Sections are reorderable too — by drag, and by button so it works on a touchscreen. */
+.ix-section-editing { cursor: grab; }
+.ix-section-editing:active { cursor: grabbing; }
+.ix-section-tools { display: flex; gap: 6px; align-items: center; }
+
+/* --- Camera tiles --- */
+.ix-cam-tile { position: relative; margin: 0; background: var(--ix-panel-2); border: 1px solid var(--ix-hair); overflow: hidden; display: grid; }
+.ix-cam-tile img { display: block; width: 100%; height: 100%; min-height: 140px; object-fit: cover; background: #000; }
+.ix-cam-tile figcaption {
+  position: absolute; inset-inline: 0; bottom: 0; padding: 6px 10px;
+  font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase;
+  color: #fff; background: linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0));
+}
+.ix-cam-tile-fallback { display: grid; place-items: center; min-height: 140px; padding: 12px; text-align: center; color: var(--ix-faint); font-size: 12px; }

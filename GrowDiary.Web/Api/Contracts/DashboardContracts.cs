@@ -6,7 +6,8 @@ public sealed record DashboardTileDto(
     string? MetricKey,
     string? EntityId,
     string? Label,
-    string? Unit);
+    string? Unit,
+    int? Span = 1);
 
 public sealed record DashboardSectionDto(
     string? Id,

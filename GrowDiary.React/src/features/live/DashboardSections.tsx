@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { MetricPayload } from '../../types'
 import type { DashboardLayout, DashboardSection, EntityValue } from './useTentDashboard'
 import { resolveTile } from './dashboard-tile-model'
+import { DashboardCameraTile } from './DashboardCameraTile'
 
 type Props = {
   layout: DashboardLayout
@@ -22,14 +23,22 @@ function move<T>(items: T[], from: number, to: number): T[] {
 }
 
 /**
- * The dashboard's metric sections, driven by the tent's saved layout instead of fixed
- * code. In edit mode tiles can be dragged between and within sections, renamed or removed.
+ * The dashboard's sections, driven by the tent's saved layout instead of fixed code. In
+ * edit mode both the sections and the tiles inside them can be rearranged, resized,
+ * renamed or removed.
+ *
+ * Ordering is offered as buttons as well as drag-and-drop: HTML5 dragging does nothing on
+ * a touchscreen, and the dashboard is read on phones more than anywhere else.
  */
 export function DashboardSections({ layout, metricsByKey, entityValues, editing, onChange, renderTile }: Props) {
   const [dragged, setDragged] = useState<{ sectionId: string; index: number } | null>(null)
+  const [draggedSection, setDraggedSection] = useState<number | null>(null)
 
   const updateSection = (sectionId: string, update: (section: DashboardSection) => DashboardSection) =>
     onChange({ ...layout, sections: layout.sections.map((section) => (section.id === sectionId ? update(section) : section)) })
+
+  const moveSection = (from: number, to: number) =>
+    onChange({ ...layout, sections: move(layout.sections, from, to) })
 
   function dropOn(sectionId: string, index: number) {
     if (!dragged) return
@@ -59,7 +68,25 @@ export function DashboardSections({ layout, metricsByKey, entityValues, editing,
   return (
     <>
       {layout.sections.map((section, sectionIndex) => (
-        <div key={section.id} className="ix-panel ix-cluster ix-rise ix-d3" data-audit={`live-section-${section.id}`}>
+        <div
+          key={section.id}
+          className={`ix-panel ix-cluster ix-rise ix-d3${editing ? ' ix-section-editing' : ''}`}
+          data-audit={`live-section-${section.id}`}
+          draggable={editing}
+          onDragStart={(event) => {
+            if (!editing) return
+            // Only the section header starts a section drag; tiles have their own handler.
+            if ((event.target as HTMLElement).closest('.ix-grid-3')) return
+            setDraggedSection(sectionIndex)
+          }}
+          onDragOver={(event) => { if (editing && draggedSection != null) event.preventDefault() }}
+          onDrop={(event) => {
+            if (draggedSection == null) return
+            event.preventDefault()
+            moveSection(draggedSection, sectionIndex)
+            setDraggedSection(null)
+          }}
+        >
           <div className="ix-cluster-head">
             <div className="t">
               <span className="ix-kick">Sektion {String(sectionIndex + 1).padStart(2, '0')}</span>
@@ -75,34 +102,89 @@ export function DashboardSections({ layout, metricsByKey, entityValues, editing,
               )}
             </div>
             {editing && (
-              <button type="button" className="ix-btn" onClick={() => onChange({ ...layout, sections: layout.sections.filter((item) => item.id !== section.id) })}>
-                Bereich entfernen
-              </button>
+              <div className="ix-section-tools">
+                <button
+                  type="button"
+                  className="ix-btn"
+                  aria-label={`${section.title} nach oben`}
+                  disabled={sectionIndex === 0}
+                  onClick={() => moveSection(sectionIndex, sectionIndex - 1)}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="ix-btn"
+                  aria-label={`${section.title} nach unten`}
+                  disabled={sectionIndex === layout.sections.length - 1}
+                  onClick={() => moveSection(sectionIndex, sectionIndex + 1)}
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  className="ix-btn"
+                  onClick={() => onChange({ ...layout, sections: layout.sections.filter((item) => item.id !== section.id) })}
+                >
+                  Bereich entfernen
+                </button>
+              </div>
             )}
           </div>
 
           <div className="ix-grid-3">
             {section.tiles.map((tile, index) => {
-              const metric = resolveTile(tile, metricsByKey, entityValues)
+              const span = Math.min(Math.max(tile.span ?? 1, 1), 3)
+              const isCamera = tile.kind === 'Camera' && tile.entityId
+              const metric = isCamera ? null : resolveTile(tile, metricsByKey, entityValues)
               return (
                 <div
                   key={tile.id}
-                  className={editing ? 'ix-tile-drag' : undefined}
+                  className={`ix-tile-slot${editing ? ' ix-tile-drag' : ''}`}
+                  style={{ gridColumn: `span ${span}` }}
                   draggable={editing}
-                  onDragStart={() => setDragged({ sectionId: section.id, index })}
-                  onDragOver={(event) => { if (editing) event.preventDefault() }}
-                  onDrop={(event) => { event.preventDefault(); dropOn(section.id, index) }}
+                  onDragStart={(event) => { event.stopPropagation(); setDragged({ sectionId: section.id, index }) }}
+                  onDragOver={(event) => { if (editing && dragged) event.preventDefault() }}
+                  onDrop={(event) => { event.preventDefault(); event.stopPropagation(); dropOn(section.id, index) }}
                 >
-                  {renderTile(metric, tile.kind === 'Metric' ? (tile.metricKey ?? tile.id) : tile.id)}
+                  {isCamera ? (
+                    <DashboardCameraTile tentId={layout.tentId} entityId={tile.entityId!} label={tile.label} />
+                  ) : (
+                    renderTile(metric!, tile.kind === 'Metric' ? (tile.metricKey ?? tile.id) : tile.id)
+                  )}
                   {editing && (
-                    <button
-                      type="button"
-                      className="ix-tile-remove"
-                      aria-label={`${metric.label} entfernen`}
-                      onClick={() => updateSection(section.id, (current) => ({ ...current, tiles: current.tiles.filter((item) => item.id !== tile.id) }))}
-                    >
-                      ×
-                    </button>
+                    <div className="ix-tile-tools">
+                      <button
+                        type="button"
+                        aria-label="Schmaler"
+                        disabled={span === 1}
+                        onClick={() => updateSection(section.id, (current) => ({
+                          ...current,
+                          tiles: current.tiles.map((item) => (item.id === tile.id ? { ...item, span: span - 1 } : item)),
+                        }))}
+                      >
+                        −
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Breiter"
+                        disabled={span === 3}
+                        onClick={() => updateSection(section.id, (current) => ({
+                          ...current,
+                          tiles: current.tiles.map((item) => (item.id === tile.id ? { ...item, span: span + 1 } : item)),
+                        }))}
+                      >
+                        +
+                      </button>
+                      <button
+                        type="button"
+                        className="ix-tile-remove"
+                        aria-label={`${tile.label ?? metric?.label ?? 'Kachel'} entfernen`}
+                        onClick={() => updateSection(section.id, (current) => ({ ...current, tiles: current.tiles.filter((item) => item.id !== tile.id) }))}
+                      >
+                        ×
+                      </button>
+                    </div>
                   )}
                 </div>
               )
@@ -111,7 +193,7 @@ export function DashboardSections({ layout, metricsByKey, entityValues, editing,
               <div
                 className="ix-tile-dropzone"
                 onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => { event.preventDefault(); dropOn(section.id, section.tiles.length) }}
+                onDrop={(event) => { event.preventDefault(); event.stopPropagation(); dropOn(section.id, section.tiles.length) }}
               >
                 hierher ziehen
               </div>

@@ -66,13 +66,14 @@ public sealed class DashboardApiController : ApiControllerBase
                         .Select(tile => new DashboardTile
                         {
                             Id = string.IsNullOrWhiteSpace(tile.Id) ? Guid.NewGuid().ToString("N")[..8] : tile.Id,
-                            Kind = string.Equals(tile.Kind, nameof(DashboardTileKind.Entity), StringComparison.OrdinalIgnoreCase)
-                                ? DashboardTileKind.Entity
+                            Kind = Enum.TryParse<DashboardTileKind>(tile.Kind, ignoreCase: true, out var kind)
+                                ? kind
                                 : DashboardTileKind.Metric,
                             MetricKey = string.IsNullOrWhiteSpace(tile.MetricKey) ? null : tile.MetricKey.Trim(),
                             EntityId = string.IsNullOrWhiteSpace(tile.EntityId) ? null : tile.EntityId.Trim(),
                             Label = string.IsNullOrWhiteSpace(tile.Label) ? null : tile.Label.Trim(),
                             Unit = string.IsNullOrWhiteSpace(tile.Unit) ? null : tile.Unit.Trim(),
+                            Span = Math.Clamp(tile.Span ?? 1, 1, 3),
                         })
                         .ToList(),
                 })
@@ -133,6 +134,6 @@ public sealed class DashboardApiController : ApiControllerBase
             section.Id,
             section.Title,
             section.Tiles.Select(tile => new DashboardTileDto(
-                tile.Id, tile.Kind.ToString(), tile.MetricKey, tile.EntityId, tile.Label, tile.Unit)).ToList()
+                tile.Id, tile.Kind.ToString(), tile.MetricKey, tile.EntityId, tile.Label, tile.Unit, tile.Span)).ToList()
         )).ToList());
 }

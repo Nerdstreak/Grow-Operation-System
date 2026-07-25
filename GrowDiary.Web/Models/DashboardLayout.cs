@@ -8,7 +8,9 @@ public enum DashboardTileKind
     /// <summary>One of Grow OS's own metric keys (temperature, reservoir-ph, …).</summary>
     Metric,
     /// <summary>Any Home Assistant entity — including ones Grow OS knows nothing about.</summary>
-    Entity
+    Entity,
+    /// <summary>A camera entity, shown as a refreshing still image.</summary>
+    Camera
 }
 
 public sealed class DashboardTile
@@ -27,6 +29,12 @@ public sealed class DashboardTile
 
     /// <summary>Overrides the unit reported by Home Assistant.</summary>
     public string? Unit { get; set; }
+
+    /// <summary>
+    /// How many of the three grid columns the tile occupies. A value tile is fine at 1;
+    /// a camera needs the room.
+    /// </summary>
+    public int Span { get; set; } = 1;
 }
 
 public sealed class DashboardSection

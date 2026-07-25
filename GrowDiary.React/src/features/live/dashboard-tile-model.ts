@@ -6,6 +6,12 @@ function placeholder(key: string, label: string, unit: string | null): MetricPay
   return { key, label, value: '–', unit, tone: 'muted', hint: null }
 }
 
+/** A readable name for a camera entity, e.g. "camera.hauptzelt" → "Hauptzelt". */
+export function cameraTileLabel(entityId: string): string {
+  const short = entityId.replace(/^(camera|image)\./i, '').replace(/[_-]+/g, ' ').trim()
+  return short ? short.charAt(0).toUpperCase() + short.slice(1) : 'Kamera'
+}
+
 /** Derives a readable caption from an entity id when the user hasn't set one. */
 export function entityLabel(tile: DashboardTile, value: EntityValue | undefined): string {
   if (tile.label) return tile.label
