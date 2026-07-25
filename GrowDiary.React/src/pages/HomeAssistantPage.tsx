@@ -93,6 +93,7 @@ function HomeAssistantPage() {
   const [activeGroup, setActiveGroup] = useState<GroupKey>('tent')
   const [showToken, setShowToken] = useState(false)
   const [cameraStatus, setCameraStatus] = useState<CameraStatus | null>(null)
+  const [previewNonce, setPreviewNonce] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<SavingState>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -171,16 +172,13 @@ function HomeAssistantPage() {
     }
   }
 
-  async function testCamera() {
+  // Load a fresh snapshot for EVERY mapped camera (not just the first). Bumping the nonce
+  // re-requests each per-camera preview below with a cache-busting timestamp.
+  function testCamera() {
     if (!selectedTent) return
-    setCameraStatus(null)
     setError(null)
-    try {
-      const status = await apiFetch<CameraStatus>(`/api/camera/tents/${selectedTent.id}/status`)
-      setCameraStatus(status)
-    } catch (caught) {
-      setCameraStatus({ ok: false, status: 'request_failed', message: formatApiError(caught, 'Kamera-Test fehlgeschlagen.'), cameraEntityId: selectedDraft?.cameras[0] ?? null, previewUrl: null })
-    }
+    setCameraStatus(null)
+    setPreviewNonce(Date.now())
   }
 
   function mutateCameras(mutate: (cameras: string[]) => string[]) {
@@ -270,12 +268,25 @@ function HomeAssistantPage() {
                       )}
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <V1Button variant="secondary" onClick={addCamera}>Kamera hinzufügen</V1Button>
-                        <V1Button onClick={() => void testCamera()}>Kamera testen</V1Button>
-                        {cameraStatus?.previewUrl && <a className="v1-button is-secondary" href={resolveUrl(cameraStatus.previewUrl)} target="_blank" rel="noreferrer">Snapshot öffnen</a>}
+                        <V1Button onClick={() => testCamera()}>Alle Kameras testen</V1Button>
                       </div>
                     </div>
-                    {cameraStatus && <p>{cameraStatus.message}</p>}
-                    {cameraStatus?.previewUrl && <img className="rc2-camera-preview" src={resolveUrl(cameraStatus.previewUrl)} alt="Kamera Vorschau" />}
+                    {previewNonce > 0 && (() => {
+                      const saved = (selectedTent.cameras ?? []).filter((camera) => camera.trim())
+                      const previewCameras = saved.length > 0 ? saved : selectedDraft.cameras.map((camera) => camera.trim()).filter(Boolean)
+                      return previewCameras.length === 0 ? (
+                        <p className="rc2-measurement-note">Trag zuerst mindestens eine Kamera ein.</p>
+                      ) : (
+                        <>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginTop: 4 }}>
+                            {previewCameras.map((camera, index) => (
+                              <CameraPreview key={`${camera}-${previewNonce}`} tentId={selectedTent.id} entity={camera} index={index} nonce={previewNonce} />
+                            ))}
+                          </div>
+                          {saved.length === 0 && <p className="rc2-measurement-note">Neu hinzugefügte Kameras erst nach „Mapping speichern" testbar.</p>}
+                        </>
+                      )
+                    })()}
                   </V1Card>
                   <V1Card>
                     <span className="v1-card-kicker">Mapping</span>
@@ -357,6 +368,34 @@ function formatTentSize(tent: TentDto) {
 
 function formatApiError(caught: unknown, fallback: string) {
   return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback
+}
+
+function cameraLabel(entity: string, index: number): string {
+  const short = entity.replace(/^(camera|image)\./i, '').replace(/[_-]+/g, ' ').trim()
+  return short ? `Kamera ${index + 1} · ${short}` : `Kamera ${index + 1}`
+}
+
+// A live snapshot for one specific camera entity, with its own loading/error state so a
+// broken camera doesn't hide the others. Used to test every mapped camera at once.
+function CameraPreview({ tentId, entity, index, nonce }: { tentId: number; entity: string; index: number; nonce: number }) {
+  const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading')
+  const label = cameraLabel(entity, index)
+  return (
+    <figure style={{ margin: 0, display: 'grid', gap: 6 }}>
+      <div style={{ position: 'relative', aspectRatio: '16 / 9', background: '#010703', border: '1px solid var(--v1-line)', borderRadius: 12, overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
+        <img
+          src={resolveUrl(`/api/live/tents/${tentId}/camera?entity=${encodeURIComponent(entity)}&t=${nonce}`)}
+          alt={label}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: state === 'ok' ? 'block' : 'none' }}
+          onLoad={() => setState('ok')}
+          onError={() => setState('error')}
+        />
+        {state === 'loading' && <span className="rc2-measurement-note">Lädt…</span>}
+        {state === 'error' && <span className="rc2-measurement-note" style={{ padding: 8, textAlign: 'center' }}>Kein Bild — in Home Assistant erreichbar?</span>}
+      </div>
+      <figcaption className="rc2-measurement-note">{label}</figcaption>
+    </figure>
+  )
 }
 
 export default HomeAssistantPage

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.50
+
+- Fixed — **"Alle Kameras testen" now shows every camera**, not just the first. On the
+  Home Assistant page a snapshot preview appears for each mapped camera (with readable
+  labels), each with its own state so a broken one doesn't hide the others.
+- Fixed — the grow's name **no longer shows twice** on the grow page (removed the small
+  duplicate in the top bar; the big title stays).
+
 ## 1.0.49
 
 - Fixed (major) — **threshold alerts now repeat reliably**. They were edge-triggered:

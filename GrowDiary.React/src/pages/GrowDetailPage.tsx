@@ -86,7 +86,6 @@ function GrowDetailPage() {
       <div className="topbar">
         <div className="topbar-left">
           <Link className="btn" to="/grows">Zurück</Link>
-          <span className="topbar-title">{grow.name}</span>
         </div>
         <div className="topbar-right">
           <span className={`badge ${grow.status === 'Running' ? 'badge-ok' : grow.status === 'Planning' ? 'badge-warn' : 'badge-neutral'}`}>{grow.status}</span>
