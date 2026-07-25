@@ -50,14 +50,37 @@ public sealed class AlertEvaluationServiceTests
     }
 
     [Fact]
-    public void ContinuousBreach_DoesNotRepeat()
+    public void ContinuousBreach_WithinCooldown_DoesNotRepeat()
     {
-        // Already in the "Below" state and notified recently -> no repeat.
+        // Already in the "Below" state and notified recently (within cooldown) -> stays quiet.
         var decision = AlertEvaluationService.Decide(
             Rule(5.5, 6.5, lastState: AlertEvaluationService.Below, lastNotified: Now.AddMinutes(-5)), 5.0, Now);
 
         Assert.Equal(AlertEvaluationService.Below, decision.NewState);
         Assert.False(decision.SendBreach);
+    }
+
+    [Fact]
+    public void ContinuousBreach_AfterCooldown_Repeats()
+    {
+        // Level-triggered: still Below and last notified longer ago than the cooldown ->
+        // repeat the reminder (this is the fix — it used to go silent forever).
+        var decision = AlertEvaluationService.Decide(
+            Rule(5.5, 6.5, lastState: AlertEvaluationService.Below, lastNotified: Now.AddMinutes(-31), cooldown: 30), 5.0, Now);
+
+        Assert.Equal(AlertEvaluationService.Below, decision.NewState);
+        Assert.True(decision.SendBreach);
+    }
+
+    [Fact]
+    public void FreshRule_OutOfRange_FiresImmediately()
+    {
+        // A just-saved rule has no notify state, so a value already out of range pushes at
+        // once (used for the immediate push when thresholds are saved).
+        var decision = AlertEvaluationService.Decide(Rule(5.5, 6.5), 5.0, Now);
+
+        Assert.Equal(AlertEvaluationService.Below, decision.NewState);
+        Assert.True(decision.SendBreach);
     }
 
     [Fact]

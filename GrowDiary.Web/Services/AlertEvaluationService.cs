@@ -6,8 +6,9 @@ namespace GrowDiary.Web.Services;
 
 /// <summary>
 /// Evaluates a tent's alert rules against its current live sensor values and pushes a
-/// Home Assistant notification when a threshold is crossed. Edge-triggered with a cooldown
-/// so a value that stays out of range (or flaps around the limit) does not spam the user.
+/// Home Assistant notification when a threshold is crossed. Level-triggered: while a value
+/// stays out of range it re-notifies every CooldownMinutes (the repeat interval), so a
+/// persistent breach keeps reminding instead of firing once and going silent.
 /// </summary>
 public sealed class AlertEvaluationService
 {
@@ -49,11 +50,13 @@ public sealed class AlertEvaluationService
             return new AlertDecision(InRange, SendBreach: false, SendRecovery: recovered);
         }
 
-        var changed = !string.Equals(rule.LastState, breach, StringComparison.Ordinal);
+        // Level-triggered: send on the first breach and then again every CooldownMinutes
+        // while it stays out of range. CooldownMinutes is the repeat interval — a fresh
+        // rule (LastNotifiedUtc == null) fires immediately, e.g. right after saving.
         var cooledDown = rule.LastNotifiedUtc is null
             || (nowUtc - rule.LastNotifiedUtc.Value) >= TimeSpan.FromMinutes(Math.Max(1, rule.CooldownMinutes));
 
-        return new AlertDecision(breach, SendBreach: changed && cooledDown, SendRecovery: false);
+        return new AlertDecision(breach, SendBreach: cooledDown, SendRecovery: false);
     }
 
     public async Task EvaluateAsync(

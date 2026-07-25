@@ -84,7 +84,6 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
         var sensorRepo  = scope.ServiceProvider.GetRequiredService<SensorReadingRepository>();
         var haService   = scope.ServiceProvider.GetRequiredService<HomeAssistantService>();
         var lightStatus = scope.ServiceProvider.GetRequiredService<LightStatusTransitionService>();
-        var alertEval   = scope.ServiceProvider.GetRequiredService<AlertEvaluationService>();
         var notifications = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
         var settings = repository.GetEffectiveHomeAssistantSettings();
@@ -117,8 +116,8 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
                     lightStatus.Process(tent.Id, lightState, capturedAt);
                 }
 
-                // Grenzwert-Alarme: aktuelle Werte gegen die Regeln prüfen und ggf. HA-Push auslösen.
-                await alertEval.EvaluateAsync(tent, states, cancellationToken);
+                // Grenzwert-Alarme laufen jetzt im dedizierten AlertWatchWorker (jede Minute),
+                // damit Minuten-Intervalle greifen — hier nicht mehr doppelt auswerten.
 
                 // Sensor-Ausfall: gemappte Sensoren, die keine Werte mehr liefern, melden.
                 await EvaluateSensorOfflineAsync(notifications, tent, states, cancellationToken);

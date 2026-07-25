@@ -82,6 +82,7 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<CalibrationReminderService>();
 builder.Services.AddScoped<DigestService>();
 builder.Services.AddHostedService<HomeAssistantSnapshotWorker>();
+builder.Services.AddHostedService<AlertWatchWorker>();
 builder.Services.AddHostedService<AutoMeasurementWorker>();
 
 var defaultUrls = builder.Configuration["Hosting:DefaultUrls"];

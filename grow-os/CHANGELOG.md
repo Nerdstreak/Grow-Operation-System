@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.49
+
+- Fixed (major) — **threshold alerts now repeat reliably**. They were edge-triggered:
+  you got one push when a value first crossed the limit and then silence, even while it
+  stayed out of range — and the check only ran every 5 minutes, so per-minute settings
+  did nothing. Now alerts are level-triggered: while a value stays out of range Grow OS
+  re-notifies every "Erneut erinnern alle N Minuten", checked once a minute by a
+  dedicated watcher.
+- New — **immediate push when you save a threshold**. If the current value is already out
+  of range when you save, you get the alert right away instead of waiting for the interval.
+
 ## 1.0.48
 
 - Fixed — opening a grow on a **desktop** now shows the "Zu diesem Grow" links

@@ -175,7 +175,7 @@ function AlertsPage() {
       >
         <div style={{ display: 'grid', gap: 12 }}>
           <V1Card>
-            <V1Field label="Ruhepause (Minuten)" hint="Mindestabstand zwischen wiederholten Meldungen desselben Grenzwerts.">
+            <V1Field label="Erneut erinnern alle (Minuten)" hint="Solange der Wert außerhalb liegt, erinnert Grow OS in diesem Takt erneut (frühestens jede Minute). Beim Speichern kommt sofort eine Meldung, wenn schon außerhalb.">
               <input inputMode="numeric" value={cooldown} onChange={(event) => setCooldown(event.target.value)} placeholder="30" />
             </V1Field>
           </V1Card>
