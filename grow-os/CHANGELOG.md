@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.7.0
+
+- New — **the watchdog now notices slow failures.** It used to spot only that monitoring
+  itself had stopped. It now also reports a value drifting the same direction day after day
+  (even while it stays inside its band), consumption collapsing — the plant telling you it
+  stopped drinking — consumption doubling, which usually means a leak, and a water change
+  that never happened. Each finding names the growplan rule behind it. One message per
+  finding, not one per check, and a restart doesn't replay what was already reported.
+  Deterministic: no model, no API key, works on every install.
+- New — **search.** One box in the sidebar, Ctrl+K from anywhere, and in the "Mehr" panel on
+  a phone. It finds pages, grows, tents, systems, strains, SOPs and knowledge entries — and
+  it knows the words you'd actually reach for: "kamera" finds Zelte, "mangel" finds Diagnose.
+- Fixed — **things were hidden.** Eight of twenty-three destinations sat in groups that were
+  collapsed on first visit, including everything a new install needs: Zelte, Hydro, Sensoren,
+  Home Assistant. And Einstellungen lived under a group called "Wissen". Regrouped.
+- New — **cameras on the dashboard** (from 1.6.1): a tent with three of them shows all three
+  at once, tiles carry a width, and sections can be reordered by drag or by arrow buttons —
+  dragging does nothing on a touchscreen.
+- New — groundwork for an optional AI assistant: connect Claude, OpenAI or a local model,
+  see exactly what would be sent before anything is, and have every claim checked against
+  the documents it cites. Nothing is switched on unless you set it up, and the app is fully
+  usable without it.
+
 ## 1.6.2
 
 - Fixed — some knowledge entries in 1.6.1 linked to source PDFs that aren't part of the
