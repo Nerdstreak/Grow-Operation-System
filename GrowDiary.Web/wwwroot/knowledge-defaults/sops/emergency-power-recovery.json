@@ -4,7 +4,10 @@
   "name": "Notfall-Recovery nach Stromausfall",
   "type": "Linear",
   "estimatedDurationMinutes": 20,
-  "applicableSetups": ["RDWC", "DWC"],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
   "triggers": [
     {
       "type": "Symptom",
@@ -14,7 +17,9 @@
         "do-critical-recent"
       ]
     },
-    { "type": "UserInitiated" }
+    {
+      "type": "UserInitiated"
+    }
   ],
   "requiredMaterials": [
     "pH/EC/ORP/DO-Messgeräte",
@@ -38,7 +43,13 @@
       "title": "Sofort-Messung",
       "stepType": "Measurement",
       "description": "Alle Werte sofort aufnehmen. Wurzel-Foto für Vorher-Vergleich machen.",
-      "expectedInputs": ["ph", "ec", "orp", "do", "waterTemp"],
+      "expectedInputs": [
+        "ph",
+        "ec",
+        "orp",
+        "do",
+        "waterTemp"
+      ],
       "photoRequired": false,
       "photoRecommended": true
     },
@@ -67,7 +78,9 @@
       "title": "Wassertemperatur kontrollieren",
       "stepType": "Confirmation",
       "description": "Wassertemperatur über 22°C? Dann aktiv kühlen (Chiller-Neustart oder Eisbeutel-Notfallkühlung).",
-      "expectedInputs": ["waterTemp"],
+      "expectedInputs": [
+        "waterTemp"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     },
@@ -77,7 +90,9 @@
       "title": "ORP wiederherstellen",
       "stepType": "Action",
       "description": "ORP unter 300 mV? HOCl zugeben bis ORP 350–450 mV erreicht (Treatment: hocl-orp-boost-standard).",
-      "expectedInputs": ["orp"],
+      "expectedInputs": [
+        "orp"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     },
@@ -105,7 +120,7 @@
       "type": "UserDocument",
       "title": "Häufige Anfängerfehler im RDWC-System",
       "reference": "Stromausfall und fehlende Notfallsysteme",
-      "url": null,
+      "url": "/docs/common-mistakes-rdwc.pdf",
       "credibility": "High"
     },
     {

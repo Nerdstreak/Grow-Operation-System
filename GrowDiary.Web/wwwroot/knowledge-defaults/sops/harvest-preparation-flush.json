@@ -5,10 +5,17 @@
   "type": "MultiDay",
   "durationDays": 7,
   "estimatedDurationMinutes": 12,
-  "applicableSetups": ["RDWC", "DWC"],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
   "triggers": [
-    { "type": "UserInitiated" },
-    { "type": "PhaseTransition" }
+    {
+      "type": "UserInitiated"
+    },
+    {
+      "type": "PhaseTransition"
+    }
   ],
   "requiredMaterials": [
     "Lupe oder USB-Mikroskop für Trichom-Inspektion",
@@ -23,7 +30,11 @@
       "title": "Tag 0 — Trichom-Inspektion",
       "stepType": "Photo",
       "description": "Mikroskop- oder Lupen-Foto der Trichome aufnehmen. Anteil klar/milchig/bernstein schätzen.",
-      "expectedInputs": ["trichomeClearPercent", "trichomeMilkyPercent", "trichomeAmberPercent"],
+      "expectedInputs": [
+        "trichomeClearPercent",
+        "trichomeMilkyPercent",
+        "trichomeAmberPercent"
+      ],
       "photoRequired": true,
       "photoRecommended": true
     },
@@ -60,7 +71,9 @@
       "title": "Tag 1 — pH leicht absenken",
       "stepType": "Action",
       "description": "pH auf 5,6–5,8 senken. Leicht saures Milieu fördert die letzte Reifephase.",
-      "expectedInputs": ["ph"],
+      "expectedInputs": [
+        "ph"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     },
@@ -88,7 +101,10 @@
       "title": "Erntefreigabe-Check",
       "stepType": "Confirmation",
       "description": "Trichome 75% milchig + 25% bernstein erreicht? Wenn ja → SOP beenden, Pflanze ist erntereif. Wenn nein → Flush um 1–3 Tage verlängern.",
-      "expectedInputs": ["trichomeMilkyPercent", "trichomeAmberPercent"],
+      "expectedInputs": [
+        "trichomeMilkyPercent",
+        "trichomeAmberPercent"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     }
@@ -98,7 +114,7 @@
       "type": "UserDocument",
       "title": "RDWC Growplan Athena Blended Rev.01",
       "reference": "Punkt 12: Flush 4–10 Tage",
-      "url": null,
+      "url": "/docs/athena-blended-rev01-de.pdf",
       "credibility": "High"
     }
   ]

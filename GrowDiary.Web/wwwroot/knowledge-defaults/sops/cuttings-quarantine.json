@@ -5,9 +5,13 @@
   "type": "MultiDay",
   "durationDays": 7,
   "estimatedDurationMinutes": 25,
-  "applicableSetups": ["Quarantine"],
+  "applicableSetups": [
+    "Quarantine"
+  ],
   "triggers": [
-    { "type": "UserInitiated" }
+    {
+      "type": "UserInitiated"
+    }
   ],
   "requiredMaterials": [
     "HOCl-Lösung 750 ppm",
@@ -72,7 +76,11 @@
       "title": "Tag 1 — Stecklinge in Quarantänebehälter",
       "stepType": "Action",
       "description": "Stecklinge in vorbereiteten Quarantänebehälter einsetzen. Erste Lösung: pH 5,8–6,0 / EC 0,4–0,6 / DO > 6 mg/L / HOCl 2 ml/L. Kein Dünger.",
-      "expectedInputs": ["ph", "ec", "do"],
+      "expectedInputs": [
+        "ph",
+        "ec",
+        "do"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     },
@@ -136,7 +144,7 @@
       "type": "UserDocument",
       "title": "SOP-RDWC-CAN-C1: Behandlung und Quarantäne von Stecklingen",
       "reference": "Komplette SOP Phasen 1–4",
-      "url": null,
+      "url": "/docs/sop-quarantine-cuttings-rev01.pdf",
       "credibility": "High"
     }
   ]

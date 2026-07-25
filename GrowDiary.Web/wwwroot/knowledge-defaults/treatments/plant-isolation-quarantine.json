@@ -26,8 +26,18 @@
   ],
   "conflicts": [],
   "phaseFilter": {
-    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower"],
-    "blocked": ["Finish", "Dry", "Cure"],
+    "allowed": [
+      "Seedling",
+      "Clone",
+      "Veg",
+      "Transition",
+      "Flower"
+    ],
+    "blocked": [
+      "Finish",
+      "Dry",
+      "Cure"
+    ],
     "blockAfterFlowerWeek": null
   },
   "hardwareRequirements": [
@@ -38,7 +48,7 @@
       "type": "SOP",
       "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
       "reference": "Pflanzen-Isolation bei akutem Befall",
-      "url": null,
+      "url": "/docs/sop-root-rot-treatment-de.pdf",
       "credibility": "High"
     }
   ],

@@ -104,7 +104,7 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
     {
         var grow = CreateHydroGrow();
         var m = CreateMeasurement(GrowStage.Veg);
-        // Veg-Max = 6.1; Critical ab PhMax + 0.3 = 6.4 → 6.3 ist Warning
+        // Handlungsbereich ist 5.8–6.2 (Growplan), Critical erst ab 6.5 → 6.3 ist Warning.
         m.ReservoirPh = 6.3;
 
         var result = _svc.Analyze(grow, new List<Measurement> { m });
@@ -114,8 +114,10 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
         Assert.Equal("hydro.ph", dev.StableKey);
         Assert.Equal("pH", dev.Unit);
         Assert.Equal(6.3, dev.ActualValue);
-        Assert.Equal(6.0, dev.TargetMin);
-        Assert.Equal(6.1, dev.TargetMax);
+        Assert.Equal(5.8, dev.TargetMin);
+        Assert.Equal(6.2, dev.TargetMax);
+        // Das Anmischziel bleibt sichtbar, damit die Empfehlung brauchbar bleibt.
+        Assert.Contains("6,0", dev.RecommendationHint ?? string.Empty);
         Assert.False(string.IsNullOrWhiteSpace(dev.Message));
         Assert.Contains(m.Id, dev.SourceMeasurementIds);
         Assert.Equal(DeviationSource.Manual, dev.Source);
@@ -169,6 +171,68 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
         var result = _svc.Analyze(grow, new List<Measurement> { m });
 
         Assert.DoesNotContain(result, d => d.Metric == DeviationMetric.Ph);
+    }
+
+    [Theory]
+    [InlineData(5.85)]
+    [InlineData(6.1)]
+    [InlineData(6.2)]
+    public void Ph_DriftetInnerhalbDerKomfortzone_MahntNicht(double ph)
+    {
+        // Regression: der Growplan sagt ausdruecklich, den pH zwischen 5.8 und 6.2 in Ruhe
+        // zu lassen (ab der 4. Bluetewoche bewusst). Frueher gab es hier eine Warnung samt
+        // "pH-Down pruefen" — also genau den Rat, den die Quelle verbietet.
+        var grow = CreateHydroGrow();
+        var m = CreateMeasurement(GrowStage.Veg);
+        m.ReservoirPh = ph;
+
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
+
+        Assert.DoesNotContain(result, d => d.Metric == DeviationMetric.Ph);
+    }
+
+    [Fact]
+    public void Ph_InFinish_TieferAnmischzielBleibtErlaubt()
+    {
+        // Finish mischt bewusst auf 5.6–5.8 an — das darf keine Abweichung ausloesen.
+        var grow = CreateHydroGrow();
+        var m = CreateMeasurement(GrowStage.Finish);
+        m.ReservoirPh = 5.65;
+        m.ReservoirEc = 1.3;
+
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
+
+        Assert.DoesNotContain(result, d => d.Metric == DeviationMetric.Ph);
+    }
+
+    [Fact]
+    public void Ppfd_OhneCo2_UeberDerObergrenze_Warnt()
+    {
+        // Growplan: die hohen PPFD-Ziele setzen CO2 voraus; ohne CO2 sind 800–900 Schluss.
+        var grow = CreateHydroGrow();
+        var m = CreateMeasurement(GrowStage.Veg);
+        m.PpfdMol = 1000;
+        m.Co2Ppm = 450;
+
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
+
+        var dev = Assert.Single(result, d => d.Metric == DeviationMetric.Ppfd);
+        Assert.Equal(DeviationSeverity.Warning, dev.Severity);
+        Assert.Equal("hydro.ppfd-no-co2", dev.StableKey);
+        Assert.Contains("50er", dev.RecommendationHint ?? string.Empty);
+    }
+
+    [Fact]
+    public void Ppfd_MitCo2_BleibtErlaubt()
+    {
+        var grow = CreateHydroGrow();
+        var m = CreateMeasurement(GrowStage.Veg);
+        m.PpfdMol = 1000;
+        m.Co2Ppm = 1200;
+
+        var result = _svc.Analyze(grow, new List<Measurement> { m });
+
+        Assert.DoesNotContain(result, d => d.StableKey == "hydro.ppfd-no-co2");
     }
 
     [Fact]

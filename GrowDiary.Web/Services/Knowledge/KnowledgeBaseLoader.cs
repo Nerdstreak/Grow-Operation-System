@@ -62,33 +62,142 @@ public sealed class KnowledgeBaseLoader
             _setpoints.Count, _pathogens.Count, _symptoms.Count, _wearTemplates.Count);
     }
 
+    /// <summary>
+    /// Keeps the on-disk knowledge base in step with the shipped defaults. Without this a
+    /// correction to a setpoint or a new SOP would only ever reach fresh installs, because
+    /// the defaults used to be copied only when the folder was completely empty.
+    /// <para>
+    /// A manifest records the hash of what we last shipped for each file, so a file the user
+    /// edited themselves is recognised and left alone. Files the user added are never removed.
+    /// </para>
+    /// </summary>
     private void EnsureKnowledgeDirectory()
     {
         var knowledgeDataPath = _paths.KnowledgeDataPath;
         Directory.CreateDirectory(knowledgeDataPath);
 
-        var hasContent = Directory
-            .EnumerateFiles(knowledgeDataPath, "*.json", SearchOption.AllDirectories)
-            .Any();
-
-        if (!hasContent)
+        var defaultsPath = _paths.KnowledgeDefaultsPath;
+        if (!Directory.Exists(defaultsPath))
         {
-            var defaultsPath = _paths.KnowledgeDefaultsPath;
-            if (Directory.Exists(defaultsPath))
+            _logger.LogWarning("Knowledge-Defaults-Verzeichnis nicht gefunden: {Path}", defaultsPath);
+            return;
+        }
+
+        var manifestPath = Path.Combine(knowledgeDataPath, ".shipped-defaults.json");
+        var manifest = LoadShippedManifest(manifestPath);
+        int added = 0, updated = 0, keptUserEdit = 0, backedUp = 0;
+
+        foreach (var sourceFile in Directory.EnumerateFiles(defaultsPath, "*.json", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(defaultsPath, sourceFile);
+            var destFile = Path.Combine(knowledgeDataPath, relativePath);
+            var shippedHash = HashFile(sourceFile);
+
+            if (!File.Exists(destFile))
             {
-                foreach (var sourceFile in Directory.EnumerateFiles(defaultsPath, "*.json", SearchOption.AllDirectories))
-                {
-                    var relativePath = Path.GetRelativePath(defaultsPath, sourceFile);
-                    var destFile = Path.Combine(knowledgeDataPath, relativePath);
-                    Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
-                    File.Copy(sourceFile, destFile, overwrite: false);
-                }
-                _logger.LogInformation("Knowledge-Base-Defaults nach {Path} kopiert.", knowledgeDataPath);
+                Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
+                File.Copy(sourceFile, destFile);
+                manifest[relativePath] = shippedHash;
+                added++;
+                continue;
             }
-            else
+
+            var currentHash = HashFile(destFile);
+            if (currentHash == shippedHash)
             {
-                _logger.LogWarning("Knowledge-Defaults-Verzeichnis nicht gefunden: {Path}", defaultsPath);
+                manifest[relativePath] = shippedHash;
+                continue;
             }
+
+            // Known to be our previous version → safe to update. Anything else is the user's.
+            if (manifest.TryGetValue(relativePath, out var lastShipped) && lastShipped != currentHash)
+            {
+                keptUserEdit++;
+                continue;
+            }
+
+            if (!manifest.ContainsKey(relativePath))
+            {
+                // First sync on an older install: we cannot prove the file is untouched, so
+                // keep a copy of it next to the original before refreshing.
+                File.Copy(destFile, destFile + ".user-backup", overwrite: true);
+                backedUp++;
+            }
+
+            File.Copy(sourceFile, destFile, overwrite: true);
+            manifest[relativePath] = shippedHash;
+            updated++;
+        }
+
+        SaveShippedManifest(manifestPath, manifest);
+
+        if (added > 0 || updated > 0 || keptUserEdit > 0)
+        {
+            _logger.LogInformation(
+                "Knowledge-Base abgeglichen: {Added} neu, {Updated} aktualisiert, {Kept} eigene Anpassungen behalten.",
+                added, updated, keptUserEdit);
+        }
+
+        if (backedUp > 0)
+        {
+            _logger.LogInformation(
+                "{Count} Datei(en) konnten nicht als unveraendert nachgewiesen werden; der bisherige Stand liegt daneben als *.user-backup.",
+                backedUp);
+        }
+    }
+
+    /// <summary>
+    /// Hashes a knowledge file by its <em>content</em>, not its bytes: the JSON is re-serialised
+    /// canonically first, so a difference in indentation or line endings never counts as a change.
+    /// </summary>
+    private static readonly string NewLine = ((char)10).ToString();
+
+    private static string HashFile(string path)
+    {
+        var raw = File.ReadAllText(path);
+        string canonical;
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(raw);
+            canonical = System.Text.Json.JsonSerializer.Serialize(document.RootElement);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            // Not valid JSON — fall back to comparing the text with normalised line endings.
+            canonical = raw.ReplaceLineEndings(NewLine);
+        }
+
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(canonical)));
+    }
+
+    private Dictionary<string, string> LoadShippedManifest(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path))
+                   ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Knowledge-Manifest unlesbar — wird neu aufgebaut.");
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    private void SaveShippedManifest(string path, Dictionary<string, string> manifest)
+    {
+        try
+        {
+            File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(manifest));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Knowledge-Manifest konnte nicht geschrieben werden.");
         }
     }
 

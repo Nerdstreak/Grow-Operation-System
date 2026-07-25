@@ -32,8 +32,18 @@
     }
   ],
   "phaseFilter": {
-    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower", "Finish"],
-    "blocked": ["Dry", "Cure"],
+    "allowed": [
+      "Seedling",
+      "Clone",
+      "Veg",
+      "Transition",
+      "Flower",
+      "Finish"
+    ],
+    "blocked": [
+      "Dry",
+      "Cure"
+    ],
     "blockAfterFlowerWeek": null
   },
   "hardwareRequirements": [
@@ -44,7 +54,7 @@
       "type": "SOP",
       "title": "SOP-RDWC-CAN-N1: pH- & Nährstoff-Stabilisierung",
       "reference": "pH-Korrektur schrittweise nach unten",
-      "url": null,
+      "url": "/docs/sop-ph-nutrient-stabilization.pdf",
       "credibility": "High"
     }
   ],

@@ -48,8 +48,18 @@
     }
   ],
   "phaseFilter": {
-    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower"],
-    "blocked": ["Finish", "Dry", "Cure"],
+    "allowed": [
+      "Seedling",
+      "Clone",
+      "Veg",
+      "Transition",
+      "Flower"
+    ],
+    "blocked": [
+      "Finish",
+      "Dry",
+      "Cure"
+    ],
     "blockAfterFlowerWeek": 5
   },
   "hardwareRequirements": [],
@@ -58,7 +68,7 @@
       "type": "SOP",
       "title": "SOP-RDWC-CAN-C1: Behandlung und Quarantäne von Stecklingen",
       "reference": "Abschnitt 5.2: Silikat-Anwendung bei Stresssymptomen",
-      "url": null,
+      "url": "/docs/sop-quarantine-cuttings-rev01.pdf",
       "credibility": "High"
     },
     {

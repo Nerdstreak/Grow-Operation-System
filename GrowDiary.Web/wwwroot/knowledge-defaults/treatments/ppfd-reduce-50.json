@@ -32,8 +32,18 @@
     }
   ],
   "phaseFilter": {
-    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower", "Finish"],
-    "blocked": ["Dry", "Cure"],
+    "allowed": [
+      "Seedling",
+      "Clone",
+      "Veg",
+      "Transition",
+      "Flower",
+      "Finish"
+    ],
+    "blocked": [
+      "Dry",
+      "Cure"
+    ],
     "blockAfterFlowerWeek": null
   },
   "hardwareRequirements": [
@@ -44,7 +54,7 @@
       "type": "GrowPlan",
       "title": "RDWC Growplan by SKX - Athena Blended Rev.01",
       "reference": "Punkt 11c: Lichtintensität bei Stress reduzieren",
-      "url": null,
+      "url": "/docs/athena-blended-rev01-de.pdf",
       "credibility": "High"
     }
   ],

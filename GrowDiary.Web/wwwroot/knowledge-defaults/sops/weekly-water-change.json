@@ -4,7 +4,10 @@
   "name": "Wöchentlicher Wasserwechsel",
   "type": "Recurring",
   "estimatedDurationMinutes": 75,
-  "applicableSetups": ["RDWC", "DWC"],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
   "triggers": [
     {
       "type": "Schedule",
@@ -27,7 +30,13 @@
       "title": "Baseline-Messung vor Wechsel",
       "stepType": "Measurement",
       "description": "Aktuelle Werte dokumentieren bevor die Lösung abgelassen wird.",
-      "expectedInputs": ["ph", "ec", "orp", "do", "waterTemp"],
+      "expectedInputs": [
+        "ph",
+        "ec",
+        "orp",
+        "do",
+        "waterTemp"
+      ],
       "photoRequired": false,
       "photoRecommended": true
     },
@@ -93,7 +102,13 @@
       "title": "Final-Messung nach Wechsel",
       "stepType": "Measurement",
       "description": "Alle Werte messen. Sollten den Sollwerten entsprechen. Dieser Messeintrag markiert ein Lösungswechsel-Event.",
-      "expectedInputs": ["ph", "ec", "orp", "do", "waterTemp"],
+      "expectedInputs": [
+        "ph",
+        "ec",
+        "orp",
+        "do",
+        "waterTemp"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     }
@@ -103,14 +118,14 @@
       "type": "UserDocument",
       "title": "RDWC Growplan Athena Blended Rev.01",
       "reference": "Punkt 7: Wöchentliche Wasserwechsel",
-      "url": null,
+      "url": "/docs/athena-blended-rev01-de.pdf",
       "credibility": "High"
     },
     {
       "type": "UserDocument",
       "title": "SOP-RDWC-CAN-N1: pH- und Nährstoff-Stabilisierung",
       "reference": "Wasserwechsel-Routine",
-      "url": null,
+      "url": "/docs/sop-ph-nutrient-stabilization.pdf",
       "credibility": "High"
     }
   ]

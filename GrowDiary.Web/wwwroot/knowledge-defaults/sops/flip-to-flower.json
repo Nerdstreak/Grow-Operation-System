@@ -4,10 +4,17 @@
   "name": "Flip: Wechsel auf Blüte (12/12)",
   "type": "Linear",
   "estimatedDurationMinutes": 30,
-  "applicableSetups": ["RDWC", "DWC"],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
   "triggers": [
-    { "type": "UserInitiated" },
-    { "type": "PhaseTransition" }
+    {
+      "type": "UserInitiated"
+    },
+    {
+      "type": "PhaseTransition"
+    }
   ],
   "requiredMaterials": [
     "Zugriff auf Lichtsteuerung (z.B. AC Infinity Pro 69 oder Timer)",
@@ -29,7 +36,12 @@
       "title": "Letzte Veg-Messung dokumentieren",
       "stepType": "Measurement",
       "description": "Abschlussmessung der Veg-Phase als Referenz speichern.",
-      "expectedInputs": ["ph", "ec", "orp", "do"],
+      "expectedInputs": [
+        "ph",
+        "ec",
+        "orp",
+        "do"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     },
@@ -84,14 +96,14 @@
       "type": "UserDocument",
       "title": "Workshop Lehrmaterial — VPD und Phasen-Übergänge",
       "reference": "Phasenwechsel Veg → Stretch",
-      "url": null,
+      "url": "/docs/workshop-vpd-rdwc.pdf",
       "credibility": "High"
     },
     {
       "type": "UserDocument",
       "title": "RDWC Growplan Athena Blended Rev.01",
       "reference": "Phasenwechsel Veg → Stretch",
-      "url": null,
+      "url": "/docs/athena-blended-rev01-de.pdf",
       "credibility": "High"
     }
   ]

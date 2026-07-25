@@ -42,8 +42,18 @@
     }
   ],
   "phaseFilter": {
-    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower"],
-    "blocked": ["Finish", "Dry", "Cure"],
+    "allowed": [
+      "Seedling",
+      "Clone",
+      "Veg",
+      "Transition",
+      "Flower"
+    ],
+    "blocked": [
+      "Finish",
+      "Dry",
+      "Cure"
+    ],
     "blockAfterFlowerWeek": null
   },
   "hardwareRequirements": [],
@@ -52,7 +62,7 @@
       "type": "SOP",
       "title": "SOP-RDWC-CAN-C1: Behandlung und Quarantäne von Stecklingen",
       "reference": "Abschnitt 5.1: Fulvosäure bei Stresszuständen",
-      "url": null,
+      "url": "/docs/sop-quarantine-cuttings-rev01.pdf",
       "credibility": "High"
     }
   ],

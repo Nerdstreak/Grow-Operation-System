@@ -31,8 +31,18 @@
     }
   ],
   "phaseFilter": {
-    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower"],
-    "blocked": ["Finish", "Dry", "Cure"],
+    "allowed": [
+      "Seedling",
+      "Clone",
+      "Veg",
+      "Transition",
+      "Flower"
+    ],
+    "blocked": [
+      "Finish",
+      "Dry",
+      "Cure"
+    ],
     "blockAfterFlowerWeek": 6
   },
   "hardwareRequirements": [],
@@ -41,7 +51,7 @@
       "type": "GrowPlan",
       "title": "RDWC Growplan by SKX - Canna Aqua Rev.01",
       "reference": "Punkt 5: CalMag Blattdüngung Canna-Linie",
-      "url": null,
+      "url": "/docs/canna-aqua-rev01.pdf",
       "credibility": "High"
     }
   ],

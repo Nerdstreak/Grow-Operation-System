@@ -32,8 +32,18 @@
     }
   ],
   "phaseFilter": {
-    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower", "Finish"],
-    "blocked": ["Dry", "Cure"],
+    "allowed": [
+      "Seedling",
+      "Clone",
+      "Veg",
+      "Transition",
+      "Flower",
+      "Finish"
+    ],
+    "blocked": [
+      "Dry",
+      "Cure"
+    ],
     "blockAfterFlowerWeek": null
   },
   "hardwareRequirements": [
@@ -44,7 +54,7 @@
       "type": "Document",
       "title": "Manueller Addback in Hydroponik - Präzise & Logisch Erklärt",
       "reference": "Punkt 2B: RO-Top-Off bei EC-Anstieg",
-      "url": null,
+      "url": "/docs/manual-addback-hydroponik.pdf",
       "credibility": "High"
     }
   ],

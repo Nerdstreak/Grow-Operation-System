@@ -4,6 +4,16 @@ namespace GrowDiary.Web.Services;
 
 public sealed class DeviationAnalyzerService
 {
+    // RDWC growplan: hold the pH between these and let it drift; correct only outside the
+    // critical bounds. Stage setpoints stay the mixing target.
+    private const double PhComfortMin = 5.8;
+    private const double PhComfortMax = 6.2;
+    private const double PhCriticalMin = 5.5;
+    private const double PhCriticalMax = 6.5;
+
+    // Without CO2 enrichment the growplan caps light here; its higher PPFD targets assume CO2.
+    private const double PpfdCeilingWithoutCo2 = 900;
+    private const double Co2EnrichmentFrom = 800;
     private const int MaxConsecutiveLookback = 10;
 
     private readonly TargetValueService _targetValues;
@@ -55,34 +65,37 @@ public sealed class DeviationAnalyzerService
             return;
         }
 
-        var outsideTarget = targets is not null && (actual < targets.PhMin || actual > targets.PhMax);
-        var critical = actual < 5.5 || actual > 6.5;
-        if (!outsideTarget && !critical)
+        // The stage value is what you mix TO — it is not a threshold to chase. The RDWC
+        // growplan is explicit: inside the comfort zone the pH may drift on its own (from
+        // flower week 4 deliberately so), and you only intervene once it leaves it. Warning
+        // on every small drift produced noise and advised the opposite of the plan.
+        var actionMin = Math.Min(targets?.PhMin ?? PhComfortMin, PhComfortMin);
+        var actionMax = Math.Max(targets?.PhMax ?? PhComfortMax, PhComfortMax);
+        var critical = actual < PhCriticalMin || actual > PhCriticalMax;
+        var actionable = actual < actionMin || actual > actionMax;
+        if (!actionable && !critical)
         {
             return;
         }
 
-        var targetMin = targets?.PhMin;
-        var targetMax = targets?.PhMax;
-        var predicate = targets is not null
-            ? new Func<double, bool>(value => value < targets.PhMin || value > targets.PhMax)
-            : value => value < 5.5 || value > 6.5;
+        var predicate = new Func<double, bool>(value => value < actionMin || value > actionMax || value < PhCriticalMin || value > PhCriticalMax);
         var participants = Consecutive(sorted, measurement => measurement.ReservoirPh, predicate);
-        var tooHigh = actual > (targetMax ?? 6.5);
+        var tooHigh = actual > actionMax;
+        var mixHint = targets is not null ? $" Anmischen auf {targets.PhMin:0.0}-{targets.PhMax:0.0}." : string.Empty;
 
         result.Add(CreateDeviation(
             grow,
             "hydro.ph",
             DeviationMetric.Ph,
             actual,
-            targetMin,
-            targetMax,
+            actionMin,
+            actionMax,
             "pH",
             critical ? DeviationSeverity.Critical : DeviationSeverity.Warning,
             tooHigh
-                ? $"Reservoir-pH {actual:0.00} liegt ueber dem Zielbereich."
-                : $"Reservoir-pH {actual:0.00} liegt unter dem Zielbereich.",
-            tooHigh ? "pH-Down pruefen." : "pH-Up pruefen.",
+                ? $"Reservoir-pH {actual:0.00} liegt ueber dem Handlungsbereich {actionMin:0.0}-{actionMax:0.0}."
+                : $"Reservoir-pH {actual:0.00} liegt unter dem Handlungsbereich {actionMin:0.0}-{actionMax:0.0}.",
+            (tooHigh ? "pH-Down pruefen." : "pH-Up pruefen.") + mixHint,
             tooHigh ? "ph-too-high" : "ph-too-low",
             participants));
     }
@@ -236,9 +249,36 @@ public sealed class DeviationAnalyzerService
         }
 
         var critical = actual > 1500;
-        var warning = targets is not null && actual > targets.PpfdMax * 1.2;
-        if (!critical && !warning)
+        var overTarget = targets is not null && actual > targets.PpfdMax * 1.2;
+
+        // The plan's PPFD targets assume CO2 enrichment. If a reading shows there is none,
+        // the ceiling is far lower — more light then means stress, not growth. That case
+        // gets its own message because the advice is different and more concrete.
+        var measuredCo2 = sorted[0].Co2Ppm;
+        var withoutCo2 = measuredCo2 is { } co2 && co2 < Co2EnrichmentFrom;
+        var overCeiling = withoutCo2 && actual > PpfdCeilingWithoutCo2;
+
+        if (!critical && !overTarget && !overCeiling)
         {
+            return;
+        }
+
+        if (overCeiling && !critical)
+        {
+            var ceilingParticipants = Consecutive(sorted, measurement => measurement.PpfdMol, value => value > PpfdCeilingWithoutCo2);
+            result.Add(CreateDeviation(
+                grow,
+                "hydro.ppfd-no-co2",
+                DeviationMetric.Ppfd,
+                actual,
+                targets?.PpfdMin,
+                PpfdCeilingWithoutCo2,
+                "umol/m2/s",
+                DeviationSeverity.Warning,
+                $"PPFD {actual:0} bei nur {measuredCo2:0} ppm CO2 — ohne CO2-Anreicherung sind 800-900 die Obergrenze.",
+                "Licht in 50er-Schritten senken oder CO2 anheben. Mindestabstand Lampe-Spitzen 30 cm.",
+                "led-bleaching-mild",
+                ceilingParticipants));
             return;
         }
 

@@ -32,8 +32,18 @@
     }
   ],
   "phaseFilter": {
-    "allowed": ["Seedling", "Clone", "Veg", "Transition", "Flower"],
-    "blocked": ["Finish", "Dry", "Cure"],
+    "allowed": [
+      "Seedling",
+      "Clone",
+      "Veg",
+      "Transition",
+      "Flower"
+    ],
+    "blocked": [
+      "Finish",
+      "Dry",
+      "Cure"
+    ],
     "blockAfterFlowerWeek": 6
   },
   "hardwareRequirements": [],
@@ -42,7 +52,7 @@
       "type": "GrowPlan",
       "title": "RDWC Growplan by SKX - Athena Blended Rev.01",
       "reference": "Punkt 5: CalMag Blattdüngung — Routine-Dosis",
-      "url": null,
+      "url": "/docs/athena-blended-rev01-de.pdf",
       "credibility": "High"
     }
   ],

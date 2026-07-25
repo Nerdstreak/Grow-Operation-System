@@ -5,7 +5,10 @@
   "type": "MultiDay",
   "durationDays": 14,
   "estimatedDurationMinutes": 45,
-  "applicableSetups": ["RDWC", "DWC"],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
   "triggers": [
     {
       "type": "Symptom",
@@ -16,7 +19,9 @@
         "foul-water-smell"
       ]
     },
-    { "type": "UserInitiated" }
+    {
+      "type": "UserInitiated"
+    }
   ],
   "requiredMaterials": [
     "Sterile Schere",
@@ -43,7 +48,13 @@
       "title": "Tag 0 — Initial-Messung",
       "stepType": "Measurement",
       "description": "Baseline-Messung. DO < 4 mg/L bestätigt oft Wurzelfäule. Wassertemperatur > 22°C weist auf Pythium-Risiko hin.",
-      "expectedInputs": ["ph", "ec", "orp", "do", "waterTemp"],
+      "expectedInputs": [
+        "ph",
+        "ec",
+        "orp",
+        "do",
+        "waterTemp"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     },
@@ -99,7 +110,12 @@
       "title": "Tag 2 — Messung",
       "stepType": "Measurement",
       "description": "Tageswerte aufnehmen.",
-      "expectedInputs": ["ph", "ec", "orp", "do"],
+      "expectedInputs": [
+        "ph",
+        "ec",
+        "orp",
+        "do"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     },
@@ -154,7 +170,12 @@
       "title": "Tag 8–14 — Reduzierte Inspektion und Final-Check",
       "stepType": "Measurement",
       "description": "Alle 2–3 Tage Wurzel-Sichtcheck. Bei DO und ORP über 7 Tage stabil → SOP beenden. Bei Rückfall SOP neu starten.",
-      "expectedInputs": ["ph", "ec", "orp", "do"],
+      "expectedInputs": [
+        "ph",
+        "ec",
+        "orp",
+        "do"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     }
@@ -164,7 +185,7 @@
       "type": "UserDocument",
       "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
       "reference": "Komplette Behandlung 14 Tage",
-      "url": null,
+      "url": "/docs/sop-root-rot-treatment-de.pdf",
       "credibility": "High"
     }
   ]
