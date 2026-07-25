@@ -55,6 +55,7 @@ builder.Services.AddSingleton<SystemAuditRepository>();
 builder.Services.AddSingleton<TemplateRepository>();
 builder.Services.AddSingleton<HarvestRepository>();
 builder.Services.AddSingleton<PhenoRepository>();
+builder.Services.AddSingleton<DashboardLayoutRepository>();
 builder.Services.AddSingleton<KnowledgeBaseLoader>();
 builder.Services.AddSingleton<CultivationKnowledgeService>();
 builder.Services.AddSingleton<TargetValueService>();

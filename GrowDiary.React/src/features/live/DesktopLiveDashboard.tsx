@@ -2,11 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { resolveUrl } from '../../base'
+import { apiFetch } from '../../api'
 import type { GrowSummary, MetricPayload, RiskEventDto, TentDto } from '../../types'
 import { formatDateTime } from '../../utils'
 import { buildScore, buildSensorStatus, formatGrowHydroMedium, formatGrowStatus, formatTentType } from './live-model'
 import { Sparkline, type HistoryPoint } from '../../components/SensorChart'
 import { useTentSparklines } from './useTentSparklines'
+import { useTentDashboard, type DashboardLayout } from './useTentDashboard'
+import { DashboardSections } from './DashboardSections'
+import { DashboardEditorBar } from './DashboardEditorBar'
 import './live-instrument.css'
 
 type DesktopLiveDashboardProps = {
@@ -158,6 +162,38 @@ export function LiveDashboard({
   onRefresh,
 }: DesktopLiveDashboardProps) {
   const trends = useTentSparklines(selectedTent?.id ?? null)
+  const { layout, entityValues, reload: reloadLayout } = useTentDashboard(selectedTent?.id ?? null)
+  const [editing, setEditing] = useState(false)
+  const [draftLayout, setDraftLayout] = useState<DashboardLayout | null>(null)
+  const [savingLayout, setSavingLayout] = useState(false)
+
+  // Every metric the live payload knows, addressable by key so a layout tile can find it.
+  const metricsByKey = new Map<string, MetricPayload>()
+  for (const metric of [...climateMetrics, ...hydroMetrics, ...(lightMetric ? [lightMetric] : [])]) {
+    metricsByKey.set(metric.key, metric)
+  }
+
+  const activeLayout = editing ? draftLayout : layout
+
+  async function saveLayout() {
+    if (!draftLayout || !selectedTent) return
+    setSavingLayout(true)
+    try {
+      await apiFetch(`/api/tents/${selectedTent.id}/dashboard`, { method: 'PUT', body: JSON.stringify(draftLayout) })
+      setEditing(false)
+      reloadLayout()
+    } finally {
+      setSavingLayout(false)
+    }
+  }
+
+  async function resetLayout() {
+    if (!selectedTent) return
+    await apiFetch(`/api/tents/${selectedTent.id}/dashboard`, { method: 'DELETE' })
+    setEditing(false)
+    reloadLayout()
+  }
+
   const [arc, setArc] = useState(0)
   useEffect(() => {
     const handle = window.setTimeout(() => setArc(score.value), 80)
@@ -272,28 +308,42 @@ export function LiveDashboard({
             <Link className="ix-btn pri" to="/messung">Messung erfassen</Link>
             {hasHydroGrow && <Link className="ix-btn" to={`/grows/${primaryGrow.id}/addback`}>Addback starten</Link>}
             <button type="button" className="ix-btn" onClick={onRefresh}>Aktualisieren</button>
+            {layout && !editing && (
+              <button type="button" className="ix-btn" onClick={() => { setDraftLayout(layout); setEditing(true) }}>Dashboard anpassen</button>
+            )}
           </div>
         </div>
       </section>
 
-      <section className="ix-clusters">
-        <div className="ix-panel ix-cluster ix-rise ix-d3" data-audit="live-climate-card">
-          <div className="ix-cluster-head"><div className="t"><span className="ix-kick">Sektion 01</span><h3>Klima</h3></div></div>
-          <div className="ix-grid-3">
-            {climateMetrics.map((metric) => <Metric key={metric.key} metric={metric} trend={trends.get(metric.key)} />)}
-            {lightMetric && <Metric metric={{ ...lightMetric, label: lightMetric.key === 'ppfd' ? 'PPFD' : 'Licht' }} trend={trends.get(lightMetric.key)} />}
-          </div>
-        </div>
+      {editing && draftLayout && (
+        <DashboardEditorBar
+          layout={draftLayout}
+          onChange={setDraftLayout}
+          onSave={() => void saveLayout()}
+          onReset={() => void resetLayout()}
+          onClose={() => setEditing(false)}
+          saving={savingLayout}
+        />
+      )}
 
-        {(hasHydroGrow || hydroMetrics.some((metric) => metric.value && metric.value !== '–')) && (
-          <div className="ix-panel ix-cluster ix-rise ix-d4" data-audit="live-hydro-card">
-            <div className="ix-cluster-head"><div className="t"><span className="ix-kick">Sektion 02</span><h3>Reservoir</h3></div></div>
+      <section className="ix-clusters">
+        {activeLayout ? (
+          <DashboardSections
+            layout={activeLayout}
+            metricsByKey={metricsByKey}
+            entityValues={entityValues}
+            trends={trends}
+            editing={editing}
+            onChange={setDraftLayout}
+            renderTile={(metric, trendKey) => <Metric metric={metric} trend={trends.get(trendKey)} />}
+          />
+        ) : (
+          <div className="ix-panel ix-cluster ix-rise ix-d3" data-audit="live-climate-card">
+            <div className="ix-cluster-head"><div className="t"><span className="ix-kick">Sektion 01</span><h3>Klima</h3></div></div>
             <div className="ix-grid-3">
-              {hydroMetrics.map((metric) => <Metric key={metric.key} metric={metric} trend={trends.get(metric.key)} />)}
+              {climateMetrics.map((metric) => <Metric key={metric.key} metric={metric} trend={trends.get(metric.key)} />)}
+              {lightMetric && <Metric metric={{ ...lightMetric, label: lightMetric.key === 'ppfd' ? 'PPFD' : 'Licht' }} trend={trends.get(lightMetric.key)} />}
             </div>
-            {!hasHydroGrow && (
-              <p className="ix-empty-line">Live-Werte deiner Reservoir-Sensoren. Für Zielwert-Abgleich, Addback und Diagnose <Link to="/grows/new">einen DWC/RDWC-Grow anlegen</Link>.</p>
-            )}
           </div>
         )}
       </section>

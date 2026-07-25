@@ -218,3 +218,16 @@
 .ix-m.warn .spark { color: var(--ix-amber); }
 .ix-m.crit .spark { color: var(--ix-red); }
 .ix-m.muted .spark { color: var(--ix-faint); }
+
+/* --- Modular dashboard: edit mode --- */
+.ix-dash-editor { padding: 14px 16px; margin-bottom: 16px; display: grid; gap: 10px; }
+.ix-dash-editor-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ix-dash-editor-hint { color: var(--ix-faint); font-size: 12px; }
+.ix-section-title-input { background: transparent; border: 1px solid var(--ix-hair); border-radius: 8px; color: inherit; font: inherit; font-size: 16px; padding: 4px 8px; }
+.ix-tile-drag { position: relative; cursor: grab; }
+.ix-tile-drag:active { cursor: grabbing; }
+.ix-tile-drag::after { content: ''; position: absolute; inset: 0; border: 1px dashed var(--ix-hair-2); pointer-events: none; }
+/* Make room for the remove button so it never sits on the caption. */
+.ix-tile-drag .ix-m { padding-left: 36px; }
+.ix-tile-remove { position: absolute; top: 6px; left: 6px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(0,0,0,0.7); color: #fff; cursor: pointer; font-size: 14px; line-height: 22px; padding: 0; }
+.ix-tile-dropzone { display: grid; place-items: center; min-height: 94px; color: var(--ix-faint); font-size: 12px; border: 1px dashed var(--ix-hair-2); background: var(--ix-panel-2); }

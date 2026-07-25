@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.6.0
+
+- New — **build your own live dashboard**. "Dashboard anpassen" on the live screen turns the
+  value sections into something you arrange: drag tiles to reorder them or move them between
+  sections, remove what you don't need, rename a section or create new ones — saved per tent.
+  "Auf Standard zurücksetzen" always brings the built-in arrangement back.
+- New — **your own sensors on the dashboard**. Any Home Assistant entity can become a tile,
+  including ones Grow OS knows nothing about — a UV clarifier, a pump, a switch. Non-numeric
+  states (on/off) are shown as they are. Give it your own caption and unit if you like.
+
 ## 1.5.0
 
 - New — **Pheno Hunt**. Compare the siblings from one batch of seed and pick the keeper.
