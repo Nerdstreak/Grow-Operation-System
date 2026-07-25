@@ -24,7 +24,7 @@ public sealed class AiRequestFactoryTests
     {
         Provider = AiProvider.Anthropic,
         BaseUrl = baseUrl,
-        Model = "claude-sonnet-4-5",
+        Model = "claude-sonnet-5",
         ApiKey = "sk-ant-test",
         Enabled = true,
     };

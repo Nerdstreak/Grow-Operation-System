@@ -5,6 +5,7 @@ import AddbackPage from './pages/AddbackPage'
 import AlertsPage from './pages/AlertsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import AiAssistantPage from './pages/AiAssistantPage'
+import { AppSearch, type SearchablePage } from './components/AppSearch'
 import { GrowScopedSectionPage } from './pages/GrowScopedSectionPage'
 import AutomationPage from './pages/AutomationPage'
 import AnalysisPage from './pages/AnalysisPage'
@@ -63,22 +64,65 @@ const navGroups: NavGroup[] = [
     { to: '/analyse', label: 'Vergleich', end: true },
     { to: '/archiv', label: 'Archiv', end: true },
   ] },
-  { id: 'setup', label: 'Einrichten', defaultOpen: false, items: [
+  // Open by default: this is where everything lives that a new install needs, and it was
+  // folded away — so the answer to "where do I add my tent" was hidden behind a chevron.
+  { id: 'setup', label: 'Einrichten', defaultOpen: true, items: [
     { to: '/zelte', label: 'Zelte', end: false },
     { to: '/hydro', label: 'Hydro', end: true },
     { to: '/hardware', label: 'Sensoren', end: true },
     { to: '/home-assistant', label: 'Home Assistant', end: true },
+    { to: '/start', label: 'Erste Schritte', end: true },
   ] },
-  { id: 'system', label: 'Wissen', defaultOpen: false, items: [
+  { id: 'knowledge', label: 'Nachschlagen', defaultOpen: false, items: [
     { to: '/sops', label: 'SOPs', end: true },
     { to: '/wissen', label: 'Wissen', end: true },
-    { to: '/start', label: 'Erste Schritte', end: true },
+  ] },
+  // Settings used to sit under a group called "Wissen", where nobody would think to look.
+  { id: 'system', label: 'System', defaultOpen: false, items: [
     { to: '/settings', label: 'Einstellungen', end: true },
   ] },
 ]
 
+// Every destination, plus the words people reach for when they don't know ours. Someone
+// looking for "Kamera" should not have to know it lives under Zelte.
+const SEARCH_KEYWORDS: Record<string, string> = {
+  '/': 'dashboard übersicht start kacheln sensoren live',
+  '/messung': 'messen werte eintragen ph ec orp snapshot keimung',
+  '/addback': 'nachfüllen nährstoffe dünger giessen',
+  '/aufgaben': 'todo checkliste sop routine wasserwechsel',
+  '/diagnose': 'problem mangel fehler abweichung risiko krankheit',
+  '/journal': 'tagebuch notizen fotos bilder verlauf',
+  '/automatik': 'automation regeln zeitplan licht snapshot',
+  '/alarme': 'grenzwerte schwellen warnung push alarm',
+  '/benachrichtigungen': 'push handy telefon melden ruhezeiten',
+  '/assistent': 'ki ai chat claude openai gpt modell',
+  '/grows': 'pflanzen anbau lauf run',
+  '/sorten': 'strain genetik sativa indica züchter',
+  '/phenohunt': 'pheno auswahl keeper bewertung selektion',
+  '/analyse': 'vergleich statistik auswertung charts',
+  '/archiv': 'abgeschlossen alte ernte vergangen',
+  '/zelte': 'tent kamera lichtzyklus raum klima',
+  '/hydro': 'rdwc dwc reservoir system pumpe',
+  '/hardware': 'sensor geräte technik equipment kalibrierung',
+  '/home-assistant': 'ha entitäten verbindung integration',
+  '/start': 'einrichten erste schritte anleitung hilfe onboarding',
+  '/sops': 'anleitung ablauf prozedur checkliste',
+  '/wissen': 'nachschlagen regeln growplan quellen doku',
+  '/settings': 'einstellungen konfiguration optionen',
+}
+
+const searchablePages: SearchablePage[] = navGroups.flatMap((group) =>
+  group.items.map((item) => ({
+    label: item.label,
+    route: item.to,
+    keywords: `${group.label} ${SEARCH_KEYWORDS[item.to] ?? ''}`,
+  })))
+
 const mobilePrimaryNav = navGroups[0].items
-const NAV_STORAGE_KEY = 'growos.navGroups'
+// Versioned: toggling any group persists the state of *all* of them, so an existing user
+// would keep "Einrichten" folded away forever. Losing one collapse preference once is the
+// cheaper mistake.
+const NAV_STORAGE_KEY = 'growos.navGroups.v2'
 
 function defaultOpenGroups(): Record<string, boolean> {
   return Object.fromEntries(navGroups.map((group) => [group.id, group.defaultOpen]))
@@ -121,6 +165,7 @@ function App() {
             <span>RDWC/DWC · Home Assistant</span>
           </div>
         </div>
+        <AppSearch pages={searchablePages} />
         {navGroups.map((group) => {
           const open = group.id === activeGroupId || (openGroups[group.id] ?? group.defaultOpen)
           return (
@@ -151,6 +196,8 @@ function App() {
 
       {mobileMoreOpen && (
         <div className="v1-mobile-more-panel" data-audit="mobile-more-menu">
+          {/* On a phone there is no Ctrl+K, so the box has to be visible where the menu is. */}
+          <AppSearch pages={searchablePages} />
           {navGroups.slice(1).map((group) => (
             <section key={group.id} className="v1-mobile-more-group" data-audit={`mobile-more-group-${group.id}`}>
               <h2>{group.label}</h2>

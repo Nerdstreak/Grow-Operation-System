@@ -33,7 +33,7 @@ const PRESETS: Array<{
     label: 'Claude (Anthropic)',
     provider: 'Anthropic',
     baseUrl: '',
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-5',
     note: 'Schlüssel von console.anthropic.com. Die Adresse ist fest, du brauchst sie nicht.',
     needsKey: true,
   },
