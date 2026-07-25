@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.52
+
+- Fixed — on **mobile**, a grow's name showed twice on its page (once in the summary
+  card, once in the KPI card below). The KPI card no longer repeats the name.
+
 ## 1.0.51
 
 - Improved — the **diagnosis, SOPs, journal and measurement views now match the rest of

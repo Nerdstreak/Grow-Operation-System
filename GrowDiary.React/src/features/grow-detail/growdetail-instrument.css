@@ -87,3 +87,10 @@
 .v1-page .btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.05); }
 .v1-page .btn-primary { background: var(--v1-green); border-color: var(--v1-green); color: #001905; }
 .v1-page .meas-input, .v1-page .field input, .v1-page .field textarea, .v1-page .field select { border-radius: 12px; border: 1px solid var(--v1-line); background: #010703; color: var(--v1-text); }
+
+/* On mobile the grow name is already shown in the mobile summary card, so hide the
+   hero's title/subtitle (keep its KPI grid) to avoid showing the name twice. */
+@media (max-width: 767px) {
+  .grow-hero-title, .grow-hero-sub { display: none; }
+  .grow-hero .grow-kpis { margin-top: 0; }
+}
