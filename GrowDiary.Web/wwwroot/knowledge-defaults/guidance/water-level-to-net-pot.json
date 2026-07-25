@@ -1,16 +1,14 @@
 {
   "schemaVersion": "1.0",
   "id": "water-level-to-net-pot",
-  "title": "Ohne Substrat muss das Wasser den Netztopfboden berühren",
-  "rule": "Beim substratfreien Einsatz wird der Wasserpegel bis an den Netztopfboden aufgefüllt. Liegt er darunter, haben die Wurzeln keinen Kontakt: der Wurzelstart verzögert sich, es bilden sich wenige, verkrüppelte Wurzeln, die Pflanze gerät unter Stress. Ohne Einsatzmedium ist kein Top-Feeding möglich, der direkte Wasserbezug ist zwingend.",
-  "commonMistake": "Den Pegel „sicherheitshalber“ tiefer zu halten. Ohne Substrat gibt es dann gar keine Feuchtequelle.",
+  "title": "Der Wasserpegel wandert: erst an den Netztopf, dann darunter",
+  "rule": "Beim substratfreien Start wird bis an den Netztopfboden aufgefüllt — ohne diesen Kontakt beginnt keine Wurzel. Sobald die Wurzeln nach unten gewachsen sind, läuft das System dagegen mit einem Pegel von 3–4 cm UNTER dem Netztopf, der den Topf ausdrücklich nicht mehr berührt.",
+  "rationale": "Der Luftraum zwischen Pegel und Netztopf ist kein Versehen: dort tauschen die oberen Wurzeln Sauerstoff aus. Dauerhaft bis an den Topf gefüllt nimmt man ihn weg.",
+  "commonMistake": "Den Startpegel als Dauerzustand zu behalten — oder umgekehrt von Anfang an 3–4 cm Abstand zu lassen, sodass die Stecklinge nie ans Wasser kommen.",
   "metrics": [
     "reservoirLevel"
   ],
-  "stages": [
-    "Clone",
-    "Seedling"
-  ],
+  "stages": [],
   "applicableSetups": [
     "RDWC",
     "DWC"
@@ -19,7 +17,13 @@
     {
       "type": "UserDocument",
       "title": "Workshop Lehrmaterial (SKX-RDWC)",
-      "reference": "Abschnitt: Direkter Einsatz im RDWC, substratfrei",
+      "reference": "Abschnitt: Direkter Einsatz im RDWC (substratfrei)",
+      "credibility": "High"
+    },
+    {
+      "type": "UserDocument",
+      "title": "Workshop Lehrmaterial (SKX-RDWC)",
+      "reference": "Abschnitt: RDWC-System — Wasserfluss / Flow, Querschnitt",
       "credibility": "High"
     }
   ]

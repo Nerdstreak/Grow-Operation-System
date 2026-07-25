@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0",
+  "id": "water-flow-moderate",
+  "title": "Der Wasserfluss soll moderat sein, nicht stark",
+  "rule": "Starken, gleichmäßigen Flow vermeiden — er erzeugt Wurzelstress. Moderate Bewegung ist ideal. Die kontinuierliche Zirkulation sorgt für gleichmäßige Nährstoffverteilung, Sauerstoffversorgung der Wurzeln und Temperaturausgleich im System.",
+  "rationale": "Zirkulation ist Mittel zum Zweck, nicht Selbstzweck. Mehr Durchsatz verteilt nicht besser, sondern zerrt an den Wurzeln.",
+  "commonMistake": "Die Pumpe größer zu wählen als nötig, in der Annahme, mehr Umwälzung sei grundsätzlich besser.",
+  "metrics": [
+    "do",
+    "watertemp"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "Workshop Lehrmaterial (SKX-RDWC)",
+      "reference": "Abschnitt: RDWC-System — Wasserfluss / Flow",
+      "credibility": "High"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0",
+  "id": "flow-system-checkpoints",
+  "title": "Vier Dinge entscheiden über den Kreislauf",
+  "rule": "Im Blick behalten: Wasserstand im Tank, Pumpenleistung, Sauerstoffgehalt und die Sauberkeit der Leitungen. Der Aufbau ist ein zentraler Zulauf vom Tank über ein T-Stück und ein Rücklaufrohr, das die Nährlösung aus allen Pots einsammelt und zurückführt.",
+  "rationale": "Fällt eines davon aus, merkt man es zuerst am Sauerstoff und am ORP — nicht am Pegel. Verstopfte Leitungen sind dabei die unauffälligste Ursache.",
+  "metrics": [
+    "do",
+    "orp",
+    "reservoirLevel"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "Workshop Lehrmaterial (SKX-RDWC)",
+      "reference": "Abschnitt: RDWC-Systemübersicht",
+      "credibility": "High"
+    }
+  ]
+}
