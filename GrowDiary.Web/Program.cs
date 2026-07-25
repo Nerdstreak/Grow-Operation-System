@@ -83,6 +83,8 @@ builder.Services.AddScoped<WatchdogService>();
 builder.Services.AddScoped<AlertEvaluationService>();
 builder.Services.AddSingleton<NotificationSettingsRepository>();
 builder.Services.AddSingleton<AiSettingsRepository>();
+builder.Services.AddSingleton<AppSettingsRepository>();
+builder.Services.AddScoped<TrendWatchRunner>();
 builder.Services.AddSingleton<AiClient>();
 builder.Services.AddSingleton<AiContextBuilder>();
 builder.Services.AddSingleton<TentSensorHardwareSyncService>();

@@ -55,6 +55,11 @@ public sealed class AlertWatchWorker : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var watchdog = scope.ServiceProvider.GetRequiredService<WatchdogService>();
         await watchdog.CheckAndNotifyAsync(DateTime.UtcNow, cancellationToken);
+
+        // The trend guard looks at days, so a minute tick is far more often than needed —
+        // but it is edge-triggered, so re-checking costs a query and sends nothing.
+        var trends = scope.ServiceProvider.GetRequiredService<TrendWatchRunner>();
+        await trends.RunAsync(DateTime.Now, cancellationToken);
     }
 
     private async Task EvaluateAllTentsAsync(CancellationToken cancellationToken)

@@ -86,7 +86,7 @@ public sealed class AiContextBuilder
         // Oldest first: a trend reads naturally that way, and the trend is usually the point.
         foreach (var measurement in measurements.Take(MeasurementsToInclude).AsEnumerable().Reverse())
         {
-            var parts = new List<string> { measurement.TakenAt.ToString("dd.MM. HH:mm", CultureInfo.GetCultureInfo("de-DE")) };
+            var parts = new List<string> { measurement.TakenAt.ToString("dd.MM. HH:mm", AppCulture.German) };
             Add(parts, "pH", measurement.ReservoirPh, "0.00");
             Add(parts, "EC", measurement.ReservoirEc, "0.00");
             Add(parts, "ORP", measurement.OrpMv, "0", "mV");
@@ -111,7 +111,7 @@ public sealed class AiContextBuilder
                 return;
             }
 
-            var text = number.ToString(format, CultureInfo.GetCultureInfo("de-DE"));
+            var text = number.ToString(format, AppCulture.German);
             parts.Add(unit is null ? $"{label} {text}" : $"{label} {text} {unit}");
         }
     }
@@ -136,7 +136,7 @@ public sealed class AiContextBuilder
             return;
         }
 
-        var de = CultureInfo.GetCultureInfo("de-DE");
+        var de = AppCulture.German;
         var body =
             $"pH {target.PhMin.ToString("0.0", de)}–{target.PhMax.ToString("0.0", de)} · " +
             $"EC {target.EcMin.ToString("0.0", de)}–{target.EcMax.ToString("0.0", de)} mS/cm · " +

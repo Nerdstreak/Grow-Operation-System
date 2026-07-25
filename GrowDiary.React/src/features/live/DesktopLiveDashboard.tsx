@@ -9,6 +9,7 @@ import { buildScore, buildSensorStatus, formatGrowHydroMedium, formatGrowStatus,
 import { Sparkline, type HistoryPoint } from '../../components/SensorChart'
 import { useTentSparklines } from './useTentSparklines'
 import { useTentDashboard, type DashboardLayout } from './useTentDashboard'
+import { TrendWatchPanel } from './TrendWatchPanel'
 import { DashboardSections } from './DashboardSections'
 import { DashboardEditorBar } from './DashboardEditorBar'
 import './live-instrument.css'
@@ -372,6 +373,8 @@ export function LiveDashboard({
             ))
           )}
         </div>
+
+        <TrendWatchPanel growId={primaryGrow?.id ?? null} />
 
         {/* The single-camera panel steps aside once the user has placed camera tiles
             themselves — otherwise the same feed would be on screen twice. */}

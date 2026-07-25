@@ -6,10 +6,12 @@ public sealed class DeviationAnalyzerService
 {
     // RDWC growplan: hold the pH between these and let it drift; correct only outside the
     // critical bounds. Stage setpoints stay the mixing target.
-    private const double PhComfortMin = 5.8;
-    private const double PhComfortMax = 6.2;
-    private const double PhCriticalMin = 5.5;
-    private const double PhCriticalMax = 6.5;
+    // Public because the trend guard has to judge pH by the same rule. Keeping a second
+    // copy is how the "chase the pH" mistake would quietly come back in another file.
+    public const double PhComfortMin = 5.8;
+    public const double PhComfortMax = 6.2;
+    public const double PhCriticalMin = 5.5;
+    public const double PhCriticalMax = 6.5;
 
     // Without CO2 enrichment the growplan caps light here; its higher PPFD targets assume CO2.
     private const double PpfdCeilingWithoutCo2 = 900;
