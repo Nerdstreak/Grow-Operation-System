@@ -50,6 +50,7 @@ public sealed class NotificationsApiController : ControllerBase
             Maintenance = request.Maintenance,
             SensorOffline = request.SensorOffline,
             Risks = request.Risks,
+            SystemWatch = request.SystemWatch,
             DailyDigest = request.DailyDigest,
             DigestHour = request.DigestHour is >= 0 and <= 23 ? request.DigestHour : 6,
             DigestMinute = request.DigestMinute is >= 0 and <= 59 ? request.DigestMinute : 0,
@@ -144,6 +145,44 @@ public sealed class NotificationsApiController : ControllerBase
         });
     }
 
+    /// <summary>Current watchdog verdict — is the monitoring itself alive?</summary>
+    [HttpGet("watchdog")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult Watchdog([FromServices] WatchdogService watchdog)
+    {
+        var verdict = watchdog.Inspect(DateTime.UtcNow);
+        return Ok(new { code = verdict.Code, headline = verdict.Headline, detail = verdict.Detail, isProblem = verdict.IsProblem });
+    }
+
+    /// <summary>Sends the current watchdog state to the phone, so the path can be proven.</summary>
+    [HttpPost("watchdog/test")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> WatchdogTest([FromServices] WatchdogService watchdog, CancellationToken cancellationToken)
+    {
+        var verdict = watchdog.Inspect(DateTime.UtcNow);
+        var settings = _settingsRepo.GetNotificationSettings();
+        if (!settings.IsConfigured)
+        {
+            return Ok(new { ok = false, code = verdict.Code, message = "Kein Push-Handy gespeichert. Trag oben deinen Push-Dienst ein und speichere." });
+        }
+
+        if (!settings.IsCategoryEnabled(NotificationCategory.System))
+        {
+            return Ok(new { ok = false, code = verdict.Code, message = "Systemüberwachung ist ausgeschaltet — schalte sie unten ein." });
+        }
+
+        var sent = await _notifications.SendAsync(
+            NotificationCategory.System, "🌱 Grow OS · Systemtest", $"{verdict.Headline}: {verdict.Detail}", cancellationToken);
+        return Ok(new
+        {
+            ok = sent,
+            code = verdict.Code,
+            message = sent
+                ? $"Gesendet — auf dem Handy steht: „{verdict.Headline}“."
+                : "Home Assistant hat die Nachricht nicht angenommen. Stimmt der Dienstname?",
+        });
+    }
+
     private static int? NormalizeHour(int? hour) => hour is >= 0 and <= 23 ? hour : null;
 
     private static NotificationSettingsDto ToDto(NotificationSettings settings) => new(
@@ -155,6 +194,7 @@ public sealed class NotificationsApiController : ControllerBase
         settings.Maintenance,
         settings.SensorOffline,
         settings.Risks,
+        settings.SystemWatch,
         settings.DailyDigest,
         settings.DigestHour,
         settings.DigestMinute,

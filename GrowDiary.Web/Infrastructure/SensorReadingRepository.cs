@@ -58,6 +58,21 @@ public sealed class SensorReadingRepository
         return GetReadings(tentId, metricKey, from, to);
     }
 
+    /// <summary>When the tent last delivered any sensor value at all — the watchdog's pulse.</summary>
+    public DateTime? GetNewestReadingUtc(int tentId)
+    {
+        using var connection = OpenConnection();
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT MAX(CapturedAtUtc) FROM TentSensorReadings WHERE TentId = $tentId;";
+        cmd.Parameters.AddWithValue("$tentId", tentId);
+        var result = cmd.ExecuteScalar();
+        return result is null || result is DBNull
+            ? null
+            : DateTime.TryParse(result.ToString(), null, System.Globalization.DateTimeStyles.RoundtripKind, out var parsed)
+                ? parsed.ToUniversalTime()
+                : null;
+    }
+
     public void DeleteOlderThan(DateTime cutoffUtc)
     {
         using var connection = OpenConnection();

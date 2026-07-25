@@ -9,6 +9,7 @@ public sealed record NotificationSettingsDto(
     bool Maintenance,
     bool SensorOffline,
     bool Risks,
+    bool SystemWatch,
     bool DailyDigest,
     int DigestHour,
     int DigestMinute,

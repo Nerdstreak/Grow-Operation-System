@@ -85,8 +85,12 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
         var haService   = scope.ServiceProvider.GetRequiredService<HomeAssistantService>();
         var lightStatus = scope.ServiceProvider.GetRequiredService<LightStatusTransitionService>();
         var notifications = scope.ServiceProvider.GetRequiredService<NotificationService>();
+        var heartbeat   = scope.ServiceProvider.GetRequiredService<SystemHeartbeat>();
 
         var settings = repository.GetEffectiveHomeAssistantSettings();
+        // The worker is alive either way — record the round even when HA is unconfigured,
+        // so the watchdog does not mistake "nothing to do" for "stalled".
+        heartbeat.MarkSnapshotRun(DateTime.UtcNow);
         if (!settings.IsConfigured) return;
 
         var tents = repository.GetTents();
@@ -96,6 +100,7 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
             {
                 var states      = await haService.GetStatesAsync(settings, tent, cancellationToken);
                 var capturedAt  = DateTime.UtcNow;
+                heartbeat.MarkHomeAssistantSuccess(capturedAt);
 
                 foreach (var (key, state) in states)
                 {
@@ -130,6 +135,7 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
             }
             catch (Exception ex)
             {
+                heartbeat.MarkHomeAssistantFailure(ex.GetType().Name);
                 _logger.LogWarning(ex,
                     "Reading-Capture fehlgeschlagen für Zelt {TentId}", tent.Id);
             }

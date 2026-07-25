@@ -75,6 +75,8 @@ builder.Services.AddSingleton<GrowDashboardComposer>();
 builder.Services.AddScoped<SensorReadingRepository>();
 builder.Services.AddScoped<AutoMeasurementExecutionService>();
 builder.Services.AddScoped<AlertRuleRepository>();
+builder.Services.AddSingleton<SystemHeartbeat>();
+builder.Services.AddScoped<WatchdogService>();
 builder.Services.AddScoped<AlertEvaluationService>();
 builder.Services.AddSingleton<NotificationSettingsRepository>();
 builder.Services.AddSingleton<TentSensorHardwareSyncService>();

@@ -33,6 +33,7 @@ public sealed class AlertWatchWorker : BackgroundService
             try
             {
                 await EvaluateAllTentsAsync(stoppingToken);
+                await RunWatchdogAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -46,6 +47,14 @@ public sealed class AlertWatchWorker : BackgroundService
             try { await Task.Delay(Interval, stoppingToken); }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
         }
+    }
+
+    /// <summary>The dead-man's switch rides along on the same minute tick.</summary>
+    private async Task RunWatchdogAsync(CancellationToken cancellationToken)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var watchdog = scope.ServiceProvider.GetRequiredService<WatchdogService>();
+        await watchdog.CheckAndNotifyAsync(DateTime.UtcNow, cancellationToken);
     }
 
     private async Task EvaluateAllTentsAsync(CancellationToken cancellationToken)

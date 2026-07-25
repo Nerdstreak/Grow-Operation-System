@@ -28,6 +28,7 @@ const DEFAULT_SETTINGS: NotificationSettingsDto = {
   maintenance: true,
   sensorOffline: true,
   risks: true,
+  systemWatch: true,
   dailyDigest: false,
   digestHour: 6,
   digestMinute: 0,
@@ -47,6 +48,8 @@ function NotificationsPage() {
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testingCal, setTestingCal] = useState(false)
+  const [testingWatchdog, setTestingWatchdog] = useState(false)
+  const [watchdog, setWatchdog] = useState<{ headline: string; detail: string; isProblem: boolean } | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -62,6 +65,8 @@ function NotificationsPage() {
         setQuietEnd(hourToInput(dto.quietHoursEndHour))
         const services = await apiFetch<string[]>('/api/notifications/notify-services', { signal: controller.signal }).catch(() => [])
         if (!controller.signal.aborted) setNotifyOptions(services)
+        const status = await apiFetch<{ headline: string; detail: string; isProblem: boolean }>('/api/notifications/watchdog', { signal: controller.signal }).catch(() => null)
+        if (!controller.signal.aborted && status) setWatchdog(status)
       } catch (caught) {
         if (!controller.signal.aborted) setError(errorMessage(caught, 'Einstellungen konnten nicht geladen werden.'))
       } finally {
@@ -142,6 +147,24 @@ function NotificationsPage() {
       setError(errorMessage(caught, 'Test der Kalibrierungs-Erinnerung fehlgeschlagen.'))
     } finally {
       setTestingCal(false)
+    }
+  }
+
+  async function testWatchdog() {
+    setTestingWatchdog(true)
+    setError(null)
+    setMessage(null)
+    try {
+      await persist()
+      const result = await apiFetch<{ ok: boolean; message: string }>('/api/notifications/watchdog/test', { method: 'POST', body: JSON.stringify({}) })
+      if (result.ok) setMessage(result.message)
+      else setError(result.message)
+      const status = await apiFetch<{ headline: string; detail: string; isProblem: boolean }>('/api/notifications/watchdog').catch(() => null)
+      if (status) setWatchdog(status)
+    } catch (caught) {
+      setError(errorMessage(caught, 'Systemtest fehlgeschlagen.'))
+    } finally {
+      setTestingWatchdog(false)
     }
   }
 
@@ -229,6 +252,19 @@ function NotificationsPage() {
                 {testingCal ? 'Testet…' : 'Test-Erinnerung senden'}
               </V1Button>
               <p className="rc2-measurement-note" style={{ margin: '8px 0 0' }}>Prüft jetzt die echte Kalibrier-Erinnerung und sagt dir, ob (und warum nicht) sie ankommt.</p>
+            </div>
+          </V1Card>
+          <V1Card tone={watchdog?.isProblem ? 'warn' : 'neutral'}>
+            <V1Switch label="Systemüberwachung" hint="Meldet, wenn die Überwachung selbst schweigt — keine neuen Messwerte, Home Assistant nicht erreichbar oder Grow OS steht." checked={settings.systemWatch} onChange={(checked) => patch({ systemWatch: checked })} />
+            {watchdog && (
+              <p className="rc2-measurement-note" style={{ margin: '10px 0 0' }}>
+                <strong style={{ color: watchdog.isProblem ? 'var(--v1-text)' : 'var(--v1-green)' }}>{watchdog.headline}</strong> — {watchdog.detail}
+              </p>
+            )}
+            <div style={{ marginTop: 10 }}>
+              <V1Button variant="secondary" onClick={() => void testWatchdog()} disabled={testingWatchdog}>
+                {testingWatchdog ? 'Testet…' : 'Systemtest senden'}
+              </V1Button>
             </div>
           </V1Card>
           <V1Card>

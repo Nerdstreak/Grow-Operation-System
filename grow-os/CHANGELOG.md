@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0
+
+- New — **Watchdog: Grow OS now tells you when the monitoring itself goes quiet.** A normal
+  alert says "this value is wrong"; the watchdog says "I can't see anything right now" —
+  the case where silence used to be ambiguous. Every minute it checks whether the
+  background worker is still running, whether Home Assistant is answering, and whether
+  fresh sensor values are actually arriving. If one of those stops it sends a single clear
+  push (and one when it recovers) — never a repeated complaint.
+- New — the Notification Center shows the **current system state in plain words** ("Alles
+  wach — letzte Sensordaten vor 3 Minuten") and has a "Systemtest senden" button that
+  pushes that state to your phone, so you can prove the path works.
+
 ## 1.2.0
 
 - New — **leaf temperature offset for VPD**. What a plant actually feels is leaf VPD, and

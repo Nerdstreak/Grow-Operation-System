@@ -7,6 +7,7 @@ export type NotificationSettingsDto = {
   maintenance: boolean
   sensorOffline: boolean
   risks: boolean
+  systemWatch: boolean
   dailyDigest: boolean
   digestHour: number
   digestMinute: number
