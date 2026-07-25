@@ -8,6 +8,15 @@ on:
     tags:
       - "v*.*.*"
   workflow_dispatch:
+    inputs:
+      version:
+        description: >-
+          Tag to publish, e.g. 1.8.3. Leave empty to read grow-os/config.yaml.
+          Pass it explicitly to build the image BEFORE bumping config.yaml — Home Assistant
+          offers an update the moment that file lands on main, so bumping it first opens a
+          window in which the store advertises a version whose image does not exist yet.
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -36,10 +45,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Read add-on version
+      - name: Resolve add-on version
         id: addonver
         run: |
-          V=$(grep -E '^version:' grow-os/config.yaml | sed -E 's/[^0-9.]//g')
+          set -euo pipefail
+          V="${{ inputs.version }}"
+          if [ -z "$V" ]; then
+            V=$(grep -E '^version:' grow-os/config.yaml | sed -E 's/[^0-9.]//g')
+            echo "Version aus config.yaml: $V"
+          else
+            echo "Version aus Eingabe: $V"
+          fi
+          if ! printf '%s' "$V" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Ungueltige Version '$V' — erwartet wird z. B. 1.8.3."
+            exit 1
+          fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
 
       # The add-on version tag (type=raw below) lets the Home Assistant add-on pull
