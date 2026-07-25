@@ -286,3 +286,11 @@ input, select, textarea { min-width: 0; }
   .v1-stat strong { font-size: 28px; }
   .v1-card h2 { font-size: 23px; }
 }
+
+/* The verbatim payload on the AI page: shown so the transparency claim is checkable,
+   which only works if long lines wrap instead of running off the side. */
+.v1-pre {
+  margin: 12px 0 0; padding: 12px 14px; max-height: 420px; overflow: auto;
+  border: 1px solid var(--v1-line); border-radius: 12px; background: rgba(0,0,0,0.25);
+  font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+}

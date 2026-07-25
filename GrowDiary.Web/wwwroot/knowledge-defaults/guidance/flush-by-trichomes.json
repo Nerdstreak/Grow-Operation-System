@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0",
+  "id": "flush-by-trichomes",
+  "title": "Flush nach Reifegrad, nicht nach Kalender",
+  "rule": "Der Flush dauert 4–10 Tage, abhängig vom Reifegrad: Trichome zu 20–25 % trüb, Stigmen zu 75 %.",
+  "commonMistake": "Ein fester Flush-Zeitraum nach Kalender ignoriert, dass Sorten unterschiedlich schnell reifen.",
+  "metrics": [
+    "ec"
+  ],
+  "stages": [
+    "Finish"
+  ],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "R/DWC Growplan by SKX-RDWC Rev.01",
+      "credibility": "High",
+      "reference": "Punkt 12: Flush"
+    }
+  ]
+}

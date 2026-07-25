@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ppfd-requires-co2",
+  "title": "PPFD-Ziele gelten nur mit CO₂",
+  "rule": "Die angegebenen PPFD-Werte setzen CO₂-Zufuhr voraus. Ohne CO₂ sollten 800–900 PPFD nicht überschritten werden. Der Mindestabstand zwischen Lampe und Pflanzenspitzen beträgt 30 cm. Bei sichtbarem Lichtstress in Schritten von 50 PPFD reduzieren und die Reaktion beobachten.",
+  "rationale": "Ohne zusätzliches CO₂ ist die Photosynthese begrenzt; mehr Licht erzeugt dann Stress statt Ertrag.",
+  "commonMistake": "PPFD-Tabellen werden oft ohne den CO₂-Vorbehalt weitergegeben, sodass ohne Anreicherung viel zu hell gefahren wird.",
+  "metrics": [
+    "ppfd",
+    "co2"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "R/DWC Growplan by SKX-RDWC Rev.01",
+      "credibility": "High",
+      "reference": "Punkt 11: Lichtintensität (PPFD)"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "weekly-water-change",
+  "title": "Wöchentlicher Wasserwechsel ist Pflicht",
+  "rule": "Die Nährlösung wird einmal pro Woche komplett gewechselt.",
+  "rationale": "Der Wechsel verhindert die Ansammlung überschüssiger Salze und Antagonismen, setzt den EC-Wert zurück und hält das System hygienisch.",
+  "commonMistake": "Nur nachfüllen statt wechseln spart Aufwand, führt aber genau zu den Blockaden und Keimlasten, die man später als Mangel oder Wurzelfäule diagnostiziert.",
+  "metrics": [
+    "ec"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "R/DWC Growplan by SKX-RDWC Rev.01",
+      "credibility": "High",
+      "reference": "Punkt 7: Wöchentliche Wasserwechsel"
+    }
+  ]
+}

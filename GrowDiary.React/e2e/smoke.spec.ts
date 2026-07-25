@@ -22,6 +22,7 @@ const ROUTES: { path: string; name: string }[] = [
   { path: '/sops', name: 'SOPs' },
   { path: '/alarme', name: 'Grenzwerte' },
   { path: '/benachrichtigungen', name: 'Benachrichtigungen' },
+  { path: '/assistent', name: 'KI-Assistent' },
   { path: '/zelte', name: 'Zelte' },
   { path: '/zelte/1', name: 'Zelt-Detail' },
   { path: '/hydro', name: 'Hydro' },

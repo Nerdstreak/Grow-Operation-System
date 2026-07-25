@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "id": "co2-needs-warmth",
+  "title": "Hohes CO₂ nur bei höherer Temperatur",
+  "rule": "CO₂-Werte über 1000 ppm nur bei angepassten Temperaturen zwischen 26 und 30 °C anwenden.",
+  "rationale": "Ohne die passende Temperatur kann die Pflanze das angebotene CO₂ nicht umsetzen; die Anreicherung verpufft.",
+  "metrics": [
+    "co2",
+    "temperature"
+  ],
+  "stages": [
+    "Transition",
+    "Flower"
+  ],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "R/DWC Growplan by SKX-RDWC Rev.01",
+      "credibility": "High",
+      "reference": "Punkt 10: CO₂ und Lichtintensität"
+    }
+  ]
+}

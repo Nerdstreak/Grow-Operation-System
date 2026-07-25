@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Services;
+using GrowDiary.Web.Services.Ai;
 using GrowDiary.Web.Services.Knowledge;
 using Microsoft.AspNetCore.DataProtection;
 
@@ -81,6 +82,9 @@ builder.Services.AddSingleton<SystemHeartbeat>();
 builder.Services.AddScoped<WatchdogService>();
 builder.Services.AddScoped<AlertEvaluationService>();
 builder.Services.AddSingleton<NotificationSettingsRepository>();
+builder.Services.AddSingleton<AiSettingsRepository>();
+builder.Services.AddSingleton<AiClient>();
+builder.Services.AddSingleton<AiContextBuilder>();
 builder.Services.AddSingleton<TentSensorHardwareSyncService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<CalibrationReminderService>();

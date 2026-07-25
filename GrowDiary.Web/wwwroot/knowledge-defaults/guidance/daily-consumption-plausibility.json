@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "daily-consumption-plausibility",
+  "title": "Tagesverbrauch als Plausibilitätsprüfung",
+  "rule": "Richtwerte je Quadratmeter und Tag: unter 500 ml beim Sämling, dann 1 L, 2 L, 3–4 L im Verlauf, 5–7 L in der Hochblüte, danach wieder darunter.",
+  "rationale": "Weicht der gemessene Verbrauch stark ab, stimmt etwas nicht — zu wenig deutet auf Wurzelprobleme oder Blockaden, zu viel auf ein Leck.",
+  "metrics": [
+    "consumption"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "R/DWC Growplan by SKX-RDWC Rev.01",
+      "credibility": "High",
+      "reference": "Tabelle: Daily Consumption & Addback per m²"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ph-drift-band",
+  "title": "pH im Band treiben lassen, nicht nachregeln",
+  "rule": "Der pH-Wert wird im Bereich 5,8–6,2 gehalten und darf darin von selbst schwanken. Eine Korrektur ist nur nötig, wenn er darunter (<5,5) oder darüber (>6,5) driftet. Ab der 4. Blütewoche ausdrücklich nicht mehr nachregeln.",
+  "rationale": "Die Pflanze beeinflusst die unmittelbare Rhizosphäre selbst über Botenstoffe, um an Nährstoffe zu kommen. Ständiges Gegenregeln arbeitet gegen diesen Mechanismus und erzeugt Schwankungen, die größer sind als die, die man bekämpfen wollte.",
+  "commonMistake": "Verbreiteter Rat ist, den pH täglich auf einen festen Punkt (oft 5,8) zurückzustellen. Im RDWC ist das falsch und schadet mehr, als es nützt.",
+  "metrics": [
+    "ph"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "R/DWC Growplan by SKX-RDWC Rev.01",
+      "credibility": "High",
+      "reference": "Punkt 6: pH-Management"
+    }
+  ]
+}

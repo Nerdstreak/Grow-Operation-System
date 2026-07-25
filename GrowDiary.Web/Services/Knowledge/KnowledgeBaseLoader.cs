@@ -25,6 +25,7 @@ public sealed class KnowledgeBaseLoader
     private IReadOnlyList<PathogenDefinition> _pathogens = Array.Empty<PathogenDefinition>();
     private IReadOnlyList<SymptomDefinition> _symptoms = Array.Empty<SymptomDefinition>();
     private IReadOnlyList<WearTemplateDefinition> _wearTemplates = Array.Empty<WearTemplateDefinition>();
+    private IReadOnlyList<GuidanceDefinition> _guidance = Array.Empty<GuidanceDefinition>();
 
     public IReadOnlyList<TreatmentDefinition> Treatments => _treatments;
     public IReadOnlyList<SopDefinition> Sops => _sops;
@@ -33,6 +34,7 @@ public sealed class KnowledgeBaseLoader
     public IReadOnlyList<PathogenDefinition> Pathogens => _pathogens;
     public IReadOnlyList<SymptomDefinition> Symptoms => _symptoms;
     public IReadOnlyList<WearTemplateDefinition> WearTemplates => _wearTemplates;
+    public IReadOnlyList<GuidanceDefinition> Guidance => _guidance;
 
     public KnowledgeBaseLoader(AppPaths paths, ILogger<KnowledgeBaseLoader> logger)
     {
@@ -55,11 +57,12 @@ public sealed class KnowledgeBaseLoader
         _pathogens = LoadCategory<PathogenDefinition>("pathogens");
         _symptoms = LoadCategory<SymptomDefinition>("symptoms");
         _wearTemplates = LoadCategory<WearTemplateDefinition>("wear");
+        _guidance = LoadCategory<GuidanceDefinition>("guidance");
 
         _logger.LogInformation(
-            "Knowledge-Base geladen: {TC} Treatments, {SC} SOPs, {NC} Programme, {SetC} Setpoints, {PC} Pathogens, {SymC} Symptoms, {WC} Wear-Templates",
+            "Knowledge-Base geladen: {TC} Treatments, {SC} SOPs, {NC} Programme, {SetC} Setpoints, {PC} Pathogens, {SymC} Symptoms, {WC} Wear-Templates, {GC} Regeln",
             _treatments.Count, _sops.Count, _nutrientPrograms.Count,
-            _setpoints.Count, _pathogens.Count, _symptoms.Count, _wearTemplates.Count);
+            _setpoints.Count, _pathogens.Count, _symptoms.Count, _wearTemplates.Count, _guidance.Count);
     }
 
     /// <summary>

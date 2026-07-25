@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "orp-rises-with-stage",
+  "title": "ORP steigt über den Verlauf",
+  "rule": "Der ORP-Zielbereich steigt mit der Phase: 300–400 mV in der Vegetation, 400–450 mV in der Blüte, bis 500 mV in der Spätblüte.",
+  "rationale": "Ein höherer ORP-Wert hält die Wurzelzone in der ertragreichsten Phase keimarm, in der die Belastung am größten ist.",
+  "metrics": [
+    "orp"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "R/DWC Growplan by SKX-RDWC Rev.01",
+      "credibility": "High",
+      "reference": "Tabelle: ORP (mV) je Phase"
+    }
+  ]
+}

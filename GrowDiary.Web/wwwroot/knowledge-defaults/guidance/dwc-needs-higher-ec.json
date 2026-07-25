@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "id": "dwc-needs-higher-ec",
+  "title": "DWC braucht höhere EC als RDWC",
+  "rule": "DWC-Systeme brauchen 30–70 % höhere EC-Werte als RDWC. Mit +30 % starten und bei Mangelerscheinungen in 20-%-Schritten steigern (50 %, 70 %, 90 %).",
+  "metrics": [
+    "ec"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "R/DWC Growplan by SKX-RDWC Rev.01",
+      "credibility": "High",
+      "reference": "Punkt 1: DWC-Systeme"
+    }
+  ]
+}

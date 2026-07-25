@@ -4,6 +4,7 @@ import AddbackHubPage from './pages/AddbackHubPage'
 import AddbackPage from './pages/AddbackPage'
 import AlertsPage from './pages/AlertsPage'
 import NotificationsPage from './pages/NotificationsPage'
+import AiAssistantPage from './pages/AiAssistantPage'
 import { GrowScopedSectionPage } from './pages/GrowScopedSectionPage'
 import AutomationPage from './pages/AutomationPage'
 import AnalysisPage from './pages/AnalysisPage'
@@ -53,6 +54,7 @@ const navGroups: NavGroup[] = [
     { to: '/automatik', label: 'Automatik', end: true },
     { to: '/alarme', label: 'Grenzwerte', end: true },
     { to: '/benachrichtigungen', label: 'Benachrichtigungen', end: true },
+    { to: '/assistent', label: 'KI-Assistent', end: true },
   ] },
   { id: 'grows', label: 'Meine Grows', defaultOpen: true, items: [
     { to: '/grows', label: 'Grows', end: false },
@@ -191,6 +193,7 @@ function App() {
           <Route path="/home-assistant" element={<HomeAssistantPage />} />
           <Route path="/alarme" element={<AlertsPage />} />
           <Route path="/benachrichtigungen" element={<NotificationsPage />} />
+          <Route path="/assistent" element={<AiAssistantPage />} />
           <Route path="/automatik" element={<AutomationPage />} />
           <Route path="/messungen" element={<GrowScopedSectionPage title="Messungen" section="measurements" />} />
           <Route path="/diagnose" element={<GrowScopedSectionPage title="Diagnose" section="diagnosis" />} />
@@ -231,6 +234,7 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/action') || pathname.startsWith('/aufgaben')) return 'Aufgaben'
   if (pathname.startsWith('/home-assistant')) return 'Home Assistant'
   if (pathname.startsWith('/benachrichtigungen')) return 'Benachrichtigungen'
+  if (pathname.startsWith('/assistent')) return 'KI-Assistent'
   if (pathname.startsWith('/automatik')) return 'Automatik'
   if (pathname.startsWith('/messungen')) return 'Messungen'
   if (pathname.startsWith('/diagnose')) return 'Diagnose'

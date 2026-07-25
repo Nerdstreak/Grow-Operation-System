@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "id": "strain-ec-preference",
+  "title": "EC nach Genetik anpassen",
+  "rule": "Sativa-dominante Sorten bevorzugen 1,0–1,4 mS/cm, Indica-dominante vertragen 1,4–1,8 mS/cm, Haze-Hybride liegen bei 1,2–1,6 mS/cm.",
+  "rationale": "Der Nährstoffbedarf unterscheidet sich deutlich; ein pauschaler Zielwert über- oder unterversorgt je nach Genetik.",
+  "metrics": [
+    "ec"
+  ],
+  "stages": [
+    "Transition",
+    "Flower"
+  ],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "R/DWC Growplan by SKX-RDWC Rev.01",
+      "credibility": "High",
+      "reference": "Punkt 9: Spezifische Anforderungen der Strains"
+    }
+  ]
+}

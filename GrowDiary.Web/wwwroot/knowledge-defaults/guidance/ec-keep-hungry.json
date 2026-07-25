@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ec-keep-hungry",
+  "title": "Pflanzen hungrig halten",
+  "rule": "Ein täglicher EC-Abfall von etwa 0,05–0,1 ist gewollt: er zeigt, dass die Pflanze frisst. Beim manuellen Addback gilt: liegt die EC höher als am Vortag, mit 0,1 weniger EC anmischen; liegt sie niedriger, mit 0,1 mehr.",
+  "rationale": "Ein konstant hoher EC-Wert bedeutet, dass mehr Salz im System ist, als die Pflanze aufnimmt. Das führt zu Antagonismen und Blockaden statt zu mehr Wachstum.",
+  "commonMistake": "Ein fallender EC-Wert wird oft als Mangel gelesen und mit Nachdüngen beantwortet. Das kehrt genau den Effekt um, den man haben will.",
+  "metrics": [
+    "ec"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "R/DWC Growplan by SKX-RDWC Rev.01",
+      "credibility": "High",
+      "reference": "Punkt 8: Manueller Addback"
+    }
+  ]
+}
