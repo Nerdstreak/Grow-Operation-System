@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.8.3
+
+- Fixed — **the add-on log was 99 % noise.** Every call to Home Assistant produced four lines,
+  once a minute, around the clock — 4,968 of 5,000 lines in a real log, with the 32 lines
+  that meant something buried underneath and a Raspberry Pi writing the rest to its SD card
+  all day. Warnings and errors still show; the chatter is gone.
+- Fixed — **an update could be offered before its image existed.** Home Assistant reads the
+  version straight from the repository, so it announced a new release the moment that file
+  changed, while the image was still building — a few minutes in which pressing Update gave
+  a bare "unknown error". The image is now published and verified first, and only then is
+  the version announced.
+
 ## 1.8.2
 
 - New — seven rules recovered from the workshop material, which turned out to be almost
