@@ -11,6 +11,7 @@ const ROUTES: { path: string; name: string }[] = [
   { path: '/aufgaben', name: 'Aufgaben' },
   { path: '/grows', name: 'Grows' },
   { path: '/grows/1', name: 'Grow-Detail' },
+  { path: '/sorten', name: 'Sorten' },
   { path: '/analyse', name: 'Vergleich' },
   { path: '/archiv', name: 'Archiv' },
   { path: '/automatik', name: 'Automatik' },

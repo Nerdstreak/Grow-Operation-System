@@ -34,6 +34,40 @@ public sealed class StrainPlantApiControllerTests : IDisposable
         try { File.Delete(_dbPath + "-wal"); } catch { }
     }
 
+    [Theory]
+    [InlineData(-0.1)]  // likes it more humid — a legitimate negative shift
+    [InlineData(0)]
+    [InlineData(0.15)]
+    public void StrainApi_AcceptsVpdPreferenceShiftBelowOrAtZero(double shift)
+    {
+        // Regression: the shift used to be validated like a multiplier (> 0), so a strain
+        // preferring higher humidity could not be saved at all.
+        var result = _strainsController.Create(new CreateStrainRequest
+        {
+            Name = $"Shift {shift}",
+            VpdPreferenceShift = shift,
+        });
+
+        var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+        Assert.Equal(shift, Assert.IsType<StrainDto>(created.Value).VpdPreferenceShift);
+    }
+
+    [Fact]
+    public void StrainApi_RejectsImplausibleVpdShift()
+    {
+        var result = _strainsController.Create(new CreateStrainRequest { Name = "Unsinn", VpdPreferenceShift = 2 });
+
+        Assert.IsNotType<CreatedAtActionResult>(result.Result);
+    }
+
+    [Fact]
+    public void StrainApi_RejectsNonPositiveMultipliers()
+    {
+        var result = _strainsController.Create(new CreateStrainRequest { Name = "Unsinn", StretchFactor = 0 });
+
+        Assert.IsNotType<CreatedAtActionResult>(result.Result);
+    }
+
     [Fact]
     public void StrainApi_CreatesAndUpdatesStrain()
     {

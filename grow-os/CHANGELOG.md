@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0
+
+- New — **strain library**. A new "Sorten" page under Meine Grows is your own genetics
+  catalogue: name, breeder, indica/sativa/hybrid, flowering weeks, free notes — plus the
+  traits that actually change how you grow a plant: feeding appetite, stretch, and
+  preferred VPD. (The backend for this existed but had no screen at all.)
+- Fixed — a strain that prefers **higher humidity could not be saved**: the VPD preference
+  is a shift in kPa, so negative values are perfectly normal, but it was being validated
+  like a multiplier that must stay above zero.
+
 ## 1.3.0
 
 - New — **Watchdog: Grow OS now tells you when the monitoring itself goes quiet.** A normal

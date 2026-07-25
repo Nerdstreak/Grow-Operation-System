@@ -11,6 +11,7 @@ import ArchivePage from './pages/ArchivePage'
 import GettingStartedPage from './pages/GettingStartedPage'
 import GrowDetailPage from './pages/GrowDetailPage'
 import GrowsPage from './pages/GrowsPage'
+import StrainsPage from './pages/StrainsPage'
 import GrowSetupPage from './pages/GrowSetupPage'
 import HardwarePage from './pages/HardwarePage'
 import HarvestPage from './pages/HarvestPage'
@@ -54,6 +55,7 @@ const navGroups: NavGroup[] = [
   ] },
   { id: 'grows', label: 'Meine Grows', defaultOpen: true, items: [
     { to: '/grows', label: 'Grows', end: false },
+    { to: '/sorten', label: 'Sorten', end: true },
     { to: '/analyse', label: 'Vergleich', end: true },
     { to: '/archiv', label: 'Archiv', end: true },
   ] },
@@ -168,6 +170,7 @@ function App() {
           <Route path="/aufgaben" element={<MobileActionPage />} />
           <Route path="/action" element={<Navigate to="/aufgaben" replace />} />
           <Route path="/grows" element={<GrowsPage />} />
+          <Route path="/sorten" element={<StrainsPage />} />
           <Route path="/grows/new" element={<GrowSetupPage />} />
           <Route path="/messung" element={<ManualMeasurementPage />} />
           <Route path="/messungen/new" element={<Navigate to="/messung" replace />} />
@@ -233,6 +236,7 @@ function getCurrentTitle(pathname: string) {
   if (pathname.startsWith('/alarme')) return 'Grenzwerte'
   if (pathname.startsWith('/grows/new')) return 'Grow starten'
   if (pathname.startsWith('/messung') || pathname.startsWith('/messungen')) return 'Messung'
+  if (pathname.startsWith('/sorten')) return 'Sorten'
   if (pathname.startsWith('/grows')) return 'Grows'
   if (pathname.startsWith('/hardware')) return 'Sensoren'
   if (pathname.startsWith('/wissen')) return 'Wissen'

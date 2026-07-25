@@ -43,7 +43,7 @@ public sealed class StrainsApiController : ApiControllerBase
             return ValidationError();
         }
 
-        ValidateStrain(request.Name, request.FlowerWeeksMin, request.FlowerWeeksMax, request.NutrientDemandFactor, request.StretchFactor, request.VpdPreferenceShift);
+        ValidateStrain(request.Name, request.FlowerWeeksMin, request.FlowerWeeksMax, request.VpdPreferenceShift, request.NutrientDemandFactor, request.StretchFactor);
         if (!ModelState.IsValid)
         {
             return ValidationError();
@@ -70,7 +70,7 @@ public sealed class StrainsApiController : ApiControllerBase
             return NotFoundError("strain_not_found", $"Strain mit Id {id} existiert nicht.");
         }
 
-        ValidateStrain(request.Name, request.FlowerWeeksMin, request.FlowerWeeksMax, request.NutrientDemandFactor, request.StretchFactor, request.VpdPreferenceShift);
+        ValidateStrain(request.Name, request.FlowerWeeksMin, request.FlowerWeeksMax, request.VpdPreferenceShift, request.NutrientDemandFactor, request.StretchFactor);
         if (!ModelState.IsValid)
         {
             return ValidationError();
@@ -81,7 +81,12 @@ public sealed class StrainsApiController : ApiControllerBase
         return Ok(_repository.GetStrain(id)!.ToDto());
     }
 
-    private void ValidateStrain(string name, int? flowerWeeksMin, int? flowerWeeksMax, params double?[] factors)
+    /// <summary>
+    /// Multiplicative traits (feeding appetite, stretch) scale a baseline, so they must be
+    /// above zero. The VPD preference is a <em>shift</em> in kPa — a strain that likes it
+    /// more humid legitimately sits below zero, so it is validated as a range instead.
+    /// </summary>
+    private void ValidateStrain(string name, int? flowerWeeksMin, int? flowerWeeksMax, double? vpdPreferenceShift, params double?[] multipliers)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -93,9 +98,16 @@ public sealed class StrainsApiController : ApiControllerBase
             ModelState.AddModelError(nameof(CreateStrainRequest.FlowerWeeksMin), "FlowerWeeksMin darf nicht groesser als FlowerWeeksMax sein.");
         }
 
-        if (factors.Any(factor => factor.HasValue && factor.Value <= 0))
+        if (multipliers.Any(factor => factor.HasValue && factor.Value <= 0))
         {
-            ModelState.AddModelError("Factors", "Genetik-Faktoren muessen groesser als 0 sein.");
+            ModelState.AddModelError("Factors", "Naehrstoffbedarf und Streckung muessen groesser als 0 sein.");
+        }
+
+        if (vpdPreferenceShift is { } shift && Math.Abs(shift) > 1)
+        {
+            ModelState.AddModelError(
+                nameof(CreateStrainRequest.VpdPreferenceShift),
+                "VPD-Vorliebe ist eine Verschiebung in kPa und sollte zwischen -1 und +1 liegen.");
         }
     }
 }
