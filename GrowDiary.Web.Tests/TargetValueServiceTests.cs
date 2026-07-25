@@ -130,12 +130,17 @@ public sealed class TargetValueServiceTests : IDisposable
     }
 
     [Fact]
-    public void RDWC_Finish_ECMaxGroesserGleichFlowerECMax()
+    public void RDWC_Finish_FaehrtDieECHerunter()
     {
+        // Diese Zusicherung war umgekehrt ("Finish >= Flower") und hat damit einen
+        // Widerspruch zum Growplan festgeschrieben: die EC-Reihe des Plans endet auf
+        // 1,1 und 0,4. Wer korrekt flusht, bekam deshalb eine Abweichungsmeldung.
         var flower = _svc.GetTargets(HydroStyle.RDWC, GrowStage.Flower)!;
         var finish = _svc.GetTargets(HydroStyle.RDWC, GrowStage.Finish)!;
 
-        Assert.True(finish.EcMax >= flower.EcMax);
+        Assert.True(finish.EcMin < flower.EcMin,
+            $"Finish soll unter Flower starten, war {finish.EcMin} vs {flower.EcMin}.");
+        Assert.True(finish.EcMin <= 0.5, "Der Flush muss bis mindestens 0,5 mS/cm hinunter erlaubt sein.");
     }
 
     [Fact]

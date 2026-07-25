@@ -15,6 +15,20 @@ public sealed class DeviationAnalyzerService
 
     // Without CO2 enrichment the growplan caps light here; its higher PPFD targets assume CO2.
     private const double PpfdCeilingWithoutCo2 = 900;
+
+    // SOP-RDWC-CAN-N1, Abschnitt 2.2: unter 6,5 mg/L gilt als erhoehte mikrobiologische
+    // Aktivitaet und ist ein Handlungsauslöser. SOP-RDWC-CAN-S1, 2.2: unter 6 mg/L gilt
+    // Wurzelfaeule als bestaetigt. Vorher stand hier pauschal 6 bzw. 4.
+    private const double DoActionThreshold = 6.5;
+    private const double DoInfestationThreshold = 6.0;
+
+    // SOP-RDWC-CAN-N1, Abschnitt 2.1: 0,1–0,4 pH-Punkte pro Tag sind eine normale
+    // Schwankung, ab 0,5 innerhalb von 12–24 h ist es ein kritischer Drift mit
+    // Sofortmassnahmen. Der reine Absolutwert verraet das nicht — er kann die ganze Zeit
+    // im Band bleiben.
+    private const double PhDriftCritical = 0.5;
+    private const double PhDriftLight = 0.2;
+    private const int PhDriftWindowHours = 24;
     private const double Co2EnrichmentFrom = 800;
     private const int MaxConsecutiveLookback = 10;
 
@@ -50,6 +64,7 @@ public sealed class DeviationAnalyzerService
 
         CheckPh(grow, sorted, targets, deviations);
         CheckEc(grow, sorted, targets, deviations);
+        CheckPhDriftRate(grow, sorted, deviations);
         CheckOrp(grow, sorted, deviations);
         CheckWaterTemp(grow, sorted, deviations);
         CheckDissolvedOxygen(grow, sorted, deviations);
@@ -187,26 +202,82 @@ public sealed class DeviationAnalyzerService
             participants));
     }
 
-    private static void CheckDissolvedOxygen(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
+    /// <summary>
+    /// The rate of change, which the absolute value hides completely.
+    ///
+    /// SOP-RDWC-CAN-N1 §2.1 separates a normal swing from a real drift by speed, not by
+    /// position: 0,1–0,4 points a day is the plant feeding, 0,5 or more within 12–24 h is
+    /// chemical or microbial instability and calls for immediate checks. A jump from 5,8 to
+    /// 6,3 overnight never leaves the comfort band, so nothing else in this class notices it.
+    /// </summary>
+    private static void CheckPhDriftRate(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
     {
-        sorted = sorted.Where(measurement => measurement.DissolvedOxygenMgL.HasValue).ToList();
-        if (sorted.Count == 0 || sorted[0].DissolvedOxygenMgL is not { } actual || actual >= 6)
+        sorted = sorted.Where(measurement => measurement.ReservoirPh.HasValue).ToList();
+        if (sorted.Count < 2
+            || sorted[0].ReservoirPh is not { } latest
+            || sorted[1].ReservoirPh is not { } previous)
         {
             return;
         }
 
-        var participants = Consecutive(sorted, measurement => measurement.DissolvedOxygenMgL, value => value < 6);
+        var hours = (sorted[0].TakenAt - sorted[1].TakenAt).TotalHours;
+        if (hours <= 0 || hours > PhDriftWindowHours)
+        {
+            return;
+        }
+
+        var delta = latest - previous;
+        var magnitude = Math.Abs(delta);
+        if (magnitude < PhDriftLight)
+        {
+            return;
+        }
+
+        var direction = delta > 0 ? "gestiegen" : "gefallen";
+        var critical = magnitude >= PhDriftCritical;
+
+        result.Add(CreateDeviation(
+            grow,
+            "hydro.ph-drift",
+            DeviationMetric.Ph,
+            latest,
+            PhComfortMin,
+            PhComfortMax,
+            "pH",
+            critical ? DeviationSeverity.Critical : DeviationSeverity.Info,
+            $"pH ist in {hours:0} h um {magnitude:0.00} Punkte {direction}.",
+            critical
+                ? "Kritischer pH-Drift (SOP-N1): Wurzeln, Wasserprobe, ORP und DO pruefen. "
+                  + "Bei Befund NSL ablassen, System mit HOCl spuelen und mit pH 5,8-6,0 / ORP > 400 mV neu aufsetzen."
+                : "Leichter Drift (SOP-N1): nur um 0,1-0,2 schrittweise nachregeln und Temperatur, "
+                  + "Verdunstung sowie Pflanzenaktivitaet gegenpruefen.",
+            critical ? "ph-drift-critical" : null,
+            new[] { sorted[0], sorted[1] }));
+    }
+
+    private static void CheckDissolvedOxygen(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
+    {
+        sorted = sorted.Where(measurement => measurement.DissolvedOxygenMgL.HasValue).ToList();
+        if (sorted.Count == 0 || sorted[0].DissolvedOxygenMgL is not { } actual || actual >= DoActionThreshold)
+        {
+            return;
+        }
+
+        var participants = Consecutive(sorted, measurement => measurement.DissolvedOxygenMgL, value => value < DoActionThreshold);
+        var critical = actual < DoInfestationThreshold;
         result.Add(CreateDeviation(
             grow,
             "hydro.do",
             DeviationMetric.DissolvedOxygen,
             actual,
-            6,
+            DoActionThreshold,
             null,
             "mg/L",
-            actual < 4 ? DeviationSeverity.Critical : DeviationSeverity.Warning,
+            critical ? DeviationSeverity.Critical : DeviationSeverity.Warning,
             $"Geloester Sauerstoff liegt bei {actual:0.0} mg/L.",
-            "Belueftung, Umwaelzung und Wassertemperatur pruefen.",
+            critical
+                ? "Unter 6 mg/L gilt Wurzelfaeule als bestaetigt (SOP-S1). Wurzeln pruefen, Belueftung und Wassertemperatur sofort kontrollieren."
+                : "Unter 6,5 mg/L deutet auf erhoehte mikrobiologische Aktivitaet (SOP-N1). Belueftung, Umwaelzung und Wassertemperatur pruefen.",
             "do-critical",
             participants));
     }

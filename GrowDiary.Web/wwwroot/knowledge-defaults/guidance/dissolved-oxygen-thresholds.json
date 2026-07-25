@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0",
+  "id": "dissolved-oxygen-thresholds",
+  "title": "Sauerstoff: 7,5 mg/L ist normal, unter 6,5 wird es mikrobiell",
+  "rule": "Im gesunden System bleibt der DO-Wert stets über 7,5 mg/L. Unter 6,5 mg/L liegt erhöhte mikrobiologische Aktivität vor. Unter 6 mg/L gilt Wurzelfäule als bestätigt. 100 % Sättigung sind 8–9 mg/L bei 20 °C, mit HOCl/H₂O₂ 9–10 mg/L.",
+  "rationale": "Sauerstoffmangel ist die Hauptursache für Wurzelfäule, zusammen mit Wassertemperaturen über 22 °C.",
+  "metrics": [
+    "do"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-N1: pH- & Nährstoff-Stabilisierung",
+      "reference": "Abschnitt 2.2",
+      "credibility": "High"
+    },
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
+      "reference": "Abschnitt 2.2: Bestätigung",
+      "credibility": "High"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ph-light-drift-response",
+  "title": "Bei leichtem Drift nur in kleinen Schritten korrigieren",
+  "rule": "Bei 0,2–0,4 pH in 24 h vorsichtig nachregeln — jeweils nur um 0,1–0,2 und schrittweise. Zusätzlich prüfen, ob sich Temperatur, Verdunstung oder Pflanzenaktivität verändert haben.",
+  "commonMistake": "In einem Zug auf den Zielwert zurückzuziehen. Das erzeugt eine Gegenbewegung, die größer ist als die ursprüngliche Abweichung.",
+  "metrics": [
+    "ph"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-N1: pH- & Nährstoff-Stabilisierung",
+      "reference": "Abschnitt 2.2: Maßnahmen bei leichter Drift",
+      "credibility": "High"
+    }
+  ]
+}

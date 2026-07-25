@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "orp-optimal-band",
+  "title": "ORP: 350–450 mV ist optimal, über 500 wird es schädlich",
+  "rule": "Ein ORP-Wert zwischen 350 und 450 mV gilt im RDWC als optimal; in der Praxis korreliert 380–420 mV mit sauberem, desinfiziertem Wasser. Unter 300 mV wird es anaerob mit Risiko für Biofilm und Pathogene. Über 500 mV wirkt die Lösung zu stark oxidativ und kann Wurzeln sowie mineralische Verbindungen schädigen. Der Wert ist alle 2–3 Tage per HOCl nachzujustieren.",
+  "rationale": "ORP misst nicht die Menge des Desinfektionsmittels, sondern die Oxidationsbalance — zu wenig lässt Keime wachsen, zu viel greift die Wurzeln an.",
+  "metrics": [
+    "orp"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-N1: pH- & Nährstoff-Stabilisierung",
+      "reference": "Abschnitt zu ORP-Werten",
+      "credibility": "High"
+    }
+  ]
+}

@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.7.1
+
+Checking the code against the source SOPs — rather than only against the knowledge files —
+turned up four places where Grow OS contradicted the documents it is built on.
+
+- New — **pH drift is now judged by speed, not just by position.** SOP-N1 separates a normal
+  swing (0.1-0.4 a day, the plant feeding) from a real drift (0.5 or more within 12-24 h,
+  which points at instability, biofilm or precipitation). Grow OS only ever looked at the
+  absolute value, so a jump from 5.8 to 6.3 overnight — which never leaves the target band —
+  went unmentioned. It is now reported with the SOP's own list of immediate checks.
+- Fixed — **dissolved oxygen was flagged too late.** SOP-N1 calls for action below
+  6.5 mg/L; Grow OS stayed silent until 6.0. That is exactly the range where root rot starts
+  while nothing looks wrong. Below 6.0 now counts as confirmed, per SOP-S1.
+- Fixed — **flushing was reported as a mistake.** The growplan ends at EC 0.4, but the Finish
+  setpoint said 1.1-1.6 — the peak of flower. Anyone following the plan down was told their
+  value was out of range. Finish is now 0.4-1.1.
+- Fixed — two numbers for the DWC multiplier (1.3 vs 1.35) and a third hard-coded copy of the
+  pH thresholds. Both now come from one place.
+- New — eight rules from the SOPs added to the knowledge base, each citing its document and
+  section, so every recommendation can be traced back to where it is written down.
+
 ## 1.7.0
 
 - New — **the watchdog now notices slow failures.** It used to spot only that monitoring

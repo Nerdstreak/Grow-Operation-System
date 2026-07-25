@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ph-drift-rate",
+  "title": "pH-Drift erkennt man an der Geschwindigkeit, nicht am Wert",
+  "rule": "Eine normale Schwankung bewegt sich um 0,1–0,4 pH-Punkte pro Tag. Ein kritischer Drift sind 0,5 Punkte oder mehr innerhalb von 12–24 Stunden — unabhängig davon, ob der Wert dabei im Band 5,8–6,2 bleibt.",
+  "rationale": "Eine leichte Absenkung bei stabiler EC zeigt aktive Nährstoffaufnahme. Ein schneller Sprung deutet dagegen auf chemische Instabilität, Biofilm, CO₂-Eintrag oder oxidativen Abbau hin — also auf eine Ursache, die sich verschlimmert, wenn man nur den pH nachregelt.",
+  "commonMistake": "Nur den Absolutwert zu betrachten. Ein Sprung von 5,8 auf 6,3 über Nacht verlässt den Zielbereich nie und fällt bei reiner Grenzwertprüfung nicht auf.",
+  "metrics": [
+    "ph"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-N1: pH- & Nährstoff-Stabilisierung",
+      "reference": "Abschnitt 2.1: Unterschied normale Schwankung / pH-Drift",
+      "credibility": "High"
+    }
+  ]
+}

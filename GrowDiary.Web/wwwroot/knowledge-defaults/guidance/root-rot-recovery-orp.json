@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "root-rot-recovery-orp",
+  "title": "Nach der Wurzelfäule-Behandlung ORP eine Woche höher fahren",
+  "rule": "In der ersten Woche nach der Behandlung den ORP-Wert auf mindestens 450 mV halten, danach auf 400 mV absenken. Das System nach dem Spülen mit HOCl auf mindestens 400 mV einstellen und die Sauerstoffsättigung bei 6–8 mg/L halten.",
+  "metrics": [
+    "orp",
+    "do"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
+      "reference": "Abschnitt 6: Systemreinigung und Nachsorge",
+      "credibility": "High"
+    }
+  ]
+}

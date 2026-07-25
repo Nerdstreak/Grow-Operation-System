@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0",
+  "id": "root-rot-triage",
+  "title": "Wurzelfäule: befallene und nicht befallene Pflanzen getrennt behandeln",
+  "rule": "Stark betroffene Pflanzen zuerst beschneiden (tote, braune, schleimige Wurzeln entfernen), dann aktiv behandeln: Spülbad 1 mit HOCl bei ORP 750 mV, anschließend Spülbad 2 mit frischem RO-Wasser für 180 Sekunden. Weniger oder nicht befallene Pflanzen erhalten dieselbe Abfolge, aber nur 1–2 Minuten Spülzeit. Nach jeder Pflanze Schere, Gestell und Arbeitsfläche desinfizieren. Jede behandelte Pflanze kommt in einen separaten Quarantänebehälter.",
+  "rationale": "Ohne Trennung verschleppt man Erreger von den befallenen auf die gesunden Pflanzen — und die Desinfektion zwischen den Pflanzen ist genau dafür da.",
+  "commonMistake": "Alle Pflanzen im selben Bad zu behandeln oder ohne Zwischendesinfektion zu arbeiten.",
+  "metrics": [
+    "do",
+    "orp"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
+      "reference": "Abschnitte 4 und 5: Sofortmaßnahmen und Wurzelbehandlung",
+      "credibility": "High"
+    }
+  ]
+}

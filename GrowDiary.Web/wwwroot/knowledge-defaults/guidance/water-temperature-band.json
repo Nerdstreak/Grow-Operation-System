@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0",
+  "id": "water-temperature-band",
+  "title": "Wassertemperatur: 19–20 °C ist das Ziel",
+  "rule": "Optimal sind 19–20 °C. Über 21–22 °C sinkt die Sauerstoffsättigung und chemische Prozesse beschleunigen sich. Unter 18 °C wird die Nährstoffaufnahme gehemmt.",
+  "rationale": "Wurzelfäule entsteht hauptsächlich durch Sauerstoffmangel und Wassertemperaturen über 22 °C — beides hängt direkt zusammen.",
+  "metrics": [
+    "watertemp"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-N1: pH- & Nährstoff-Stabilisierung",
+      "reference": "Abschnitt Wassertemperatur",
+      "credibility": "High"
+    },
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-S1: Behandlung von Wurzelfäule",
+      "reference": "Abschnitt 1: Entstehung",
+      "credibility": "High"
+    }
+  ]
+}

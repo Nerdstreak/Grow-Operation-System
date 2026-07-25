@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ph-drift-response",
+  "title": "Sofortmaßnahmen bei starkem pH-Drift",
+  "rule": "Bei über 0,5 pH in 24 h: Wurzeln auf Fäule, Schleim und Geruch prüfen, Wasserprobe auf Trübung und Partikel ansehen, ORP messen (unter 300 mV = Keimaktivität), DO messen (unter 6,5 mg/L = mikrobiologische Aktivität), Wasserfilter kontrollieren. Bei Befund Nährlösung ablassen, System mit HOCl (300–500 ppm) oder H₂O₂ spülen und mit pH 5,8–6,0 sowie ORP über 400 mV neu aufsetzen. Gegebenenfalls 2–3 Tage wiederholen.",
+  "rationale": "Der Drift ist das Symptom. Ohne Ursachenprüfung regelt man gegen einen Prozess an, der weiterläuft.",
+  "metrics": [
+    "ph",
+    "orp",
+    "do"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-N1: pH- & Nährstoff-Stabilisierung",
+      "reference": "Abschnitt 2.2: Wann und wie man eingreifen sollte",
+      "credibility": "High"
+    }
+  ]
+}

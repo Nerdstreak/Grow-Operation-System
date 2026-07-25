@@ -148,13 +148,16 @@ public sealed class RecommendationEngine
 
         if (current.ReservoirPh is { } ph)
         {
-            if (ph < 5.5 || ph > 6.5)
+            // Dieselben Konstanten wie im Abweichungs-Analyzer und im Trend-Wächter. Vorher
+            // standen die Zahlen hier ein drittes Mal als Literale — genau so überlebt ein
+            // Fix an einer Stelle den nächsten an der anderen nicht.
+            if (ph < DeviationAnalyzerService.PhCriticalMin || ph > DeviationAnalyzerService.PhCriticalMax)
             {
                 cards.Add(Critical(
                     "pH außerhalb der Sicherheitszone",
                     $"Der Reservoir-pH liegt bei {ph:0.00}. In RDWC gilt 5,8–6,2 als Arbeitsbereich; unter 5,5 oder über 6,5 solltest du korrigieren und das System auf Ursache prüfen."));
             }
-            else if (ph < 5.8 || ph > 6.2)
+            else if (ph < DeviationAnalyzerService.PhComfortMin || ph > DeviationAnalyzerService.PhComfortMax)
             {
                 var note = current.Stage is GrowStage.Flower or GrowStage.Finish
                     ? "In der späten Blüte darf der pH etwas natürlicher arbeiten, solange er in der Safe-Zone bleibt."
@@ -694,7 +697,9 @@ public sealed class RecommendationEngine
                 break;
         }
 
-        var factor = grow.HydroStyle == HydroStyle.DWC ? 1.35 : 1.00;
+        // Growplan Punkt 1 nennt +30 % als Startwert für DWC. Hier stand 1.35 ohne Beleg,
+        // während TargetValueService mit 1.3 rechnete — zwei Zahlen für dieselbe Regel.
+        var factor = grow.HydroStyle == HydroStyle.DWC ? TargetValueService.DwcEcMultiplier : 1.00;
         return (Math.Round(min * factor, 2), Math.Round(max * factor, 2), label + (grow.HydroStyle == HydroStyle.DWC ? " in DWC" : " in RDWC"));
     }
 

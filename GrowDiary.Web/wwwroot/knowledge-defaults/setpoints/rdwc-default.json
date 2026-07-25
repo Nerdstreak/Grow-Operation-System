@@ -88,8 +88,8 @@
     "Finish": {
       "phMin": 5.6,
       "phMax": 5.8,
-      "ecMin": 1.1,
-      "ecMax": 1.6,
+      "ecMin": 0.4,
+      "ecMax": 1.1,
       "orpMin": 450,
       "orpMax": 500,
       "waterTempDayC": 18,
