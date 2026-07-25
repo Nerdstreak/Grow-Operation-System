@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "operating-volume-matters",
+  "title": "Addback immer auf das echte Systemvolumen rechnen",
+  "rule": "Das Betriebsvolumen liegt bei etwa 40,1 L je 49,2-L-Modul und 18,9 L je 30,3-L-Modul. Wer beim Addback das Gesamtvolumen des Systems nicht einrechnet, erzeugt falsche Konzentrationen.",
+  "rationale": "Der Rechenweg ist eine Verdünnung: dieselbe Nährstoffmenge ergibt in einem größeren System eine andere EC.",
+  "metrics": [
+    "ec"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "RDWC Recirculating Deep Water Culture Procedure (Metric)",
+      "reference": "Abschnitt RDWC Operating Volume",
+      "credibility": "High"
+    }
+  ]
+}

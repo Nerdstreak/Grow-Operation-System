@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "addback-part-limit",
+  "title": "Höchstens 500 ml je Komponente pro Addback-Behälter",
+  "rule": "Nie mehr als 500 ml einer einzelnen Komponente durch einen Addback-Behälter geben. Wird mehr gebraucht, auf mehrere Behälter aufteilen. Nährstoffe niemals direkt in den Control Bucket kippen — sie gehören durch den Addback-Behälter.",
+  "rationale": "Zu hohe Konzentration einer Komponente in einem Behälter führt zu Ausfällungen, bevor sich die Lösung im System verteilt.",
+  "metrics": [
+    "ec"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "RDWC Recirculating Deep Water Culture Procedure (Metric)",
+      "reference": "Abschnitt RDWC Addbacks",
+      "credibility": "High"
+    }
+  ]
+}

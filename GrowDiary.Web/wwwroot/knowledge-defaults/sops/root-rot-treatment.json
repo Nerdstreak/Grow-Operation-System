@@ -4,7 +4,7 @@
   "name": "Wurzelfäule-Behandlung (14 Tage)",
   "type": "MultiDay",
   "durationDays": 14,
-  "estimatedDurationMinutes": 45,
+  "estimatedDurationMinutes": 240,
   "applicableSetups": [
     "RDWC",
     "DWC"
@@ -36,18 +36,18 @@
     {
       "id": "s1",
       "order": 1,
-      "title": "Tag 0 — Symptom-Dokumentation",
+      "title": "Tag 0 — Symptome dokumentieren",
       "stepType": "Photo",
-      "description": "Wurzeln fotografieren (durch oder unter dem Netztopf). Farbe, Schleim und Geruch dokumentieren.",
+      "description": "Wurzeln fotografieren (durch oder unter dem Netztopf). Farbe, Schleim und Geruch festhalten. Fauliger Geruch weist auf anaerobe Verhältnisse hin, frische Bohnensprossen auf ein gesundes System.",
       "photoRequired": true,
       "photoRecommended": true
     },
     {
       "id": "s2",
       "order": 2,
-      "title": "Tag 0 — Initial-Messung",
+      "title": "Tag 0 — Befund bestätigen",
       "stepType": "Measurement",
-      "description": "Baseline-Messung. DO < 4 mg/L bestätigt oft Wurzelfäule. Wassertemperatur > 22°C weist auf Pythium-Risiko hin.",
+      "description": "Baseline-Messung. Laut SOP-S1 gilt Wurzelfäule ab DO unter 6 mg/L als bestätigt; Wassertemperatur über 22 °C weist auf Pythium-Risiko hin. Optimal sind 6–8 mg/L.",
       "expectedInputs": [
         "ph",
         "ec",
@@ -61,55 +61,141 @@
     {
       "id": "s3",
       "order": 3,
-      "title": "Tag 1 — Pflanze isolieren",
-      "stepType": "Action",
-      "description": "Befallene Pflanze in vorbereiteten Quarantänebehälter mit belüfteter Lösung umsetzen.",
+      "title": "Tag 0 — Befallsgrad je Pflanze einstufen",
+      "stepType": "Confirmation",
+      "description": "Jede Pflanze einzeln beurteilen: braune, schleimige, faulig riechende Wurzeln bedeuten starken Befall und damit die aktive Behandlung. Weiße, feste Wurzeln bedeuten die passive Behandlung. Die Einstufung bestimmt den weiteren Ablauf.",
       "photoRequired": false,
-      "photoRecommended": false
+      "photoRecommended": false,
+      "repeatFor": "plant"
     },
     {
       "id": "s4",
       "order": 4,
-      "title": "Tag 1 — Sterile Wurzelpflege",
-      "stepType": "Action",
-      "description": "Braune, schleimige Wurzelabschnitte mit steriler Schere abschneiden. Saubere Wurzelenden nicht beschädigen.",
+      "title": "Tag 1 — Spülbehälter und Sprühflasche ansetzen",
+      "stepType": "Measurement",
+      "description": "Spülbehälter Nr. 1 mit frischem RO-Wasser (0,0 mS, pH 6,0, 20 °C) füllen und mit HOCl auf ORP 750 mV bringen, um Pathogene abzutöten. Spülbehälter Nr. 2 mit reinem RO-Wasser füllen. Sprühflasche für Arbeitsflächen, Gestelle und Werkzeug auf ORP 500 mV ansetzen.",
+      "expectedInputs": [
+        "orp"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     },
     {
       "id": "s5",
       "order": 5,
-      "title": "Tag 1 — HOCl-Bad",
+      "title": "Tag 1 — Pflanze entnehmen und fixieren",
       "stepType": "Action",
-      "description": "Verbleibende Wurzeln 5–10 Min in HOCl-Lösung (300–500 ppm) baden.",
-      "waitMinutes": 8,
+      "description": "Pflanze samt Deckel vorsichtig aus dem RDWC-System nehmen und auf einem stabilen Gestell fixieren, sodass beide Hände frei sind.",
       "photoRequired": false,
-      "photoRecommended": false
+      "photoRecommended": false,
+      "repeatFor": "plant"
     },
     {
       "id": "s6",
       "order": 6,
-      "title": "Tag 1 — Hauptsystem H2O2-Behandlung",
+      "title": "Tag 1 — Faule Wurzeln entfernen",
       "stepType": "Action",
-      "description": "H2O2 12% → 1 ml/L im Hauptsystem. Nur bei akutem Befall — H2O2 schädigt Wurzelhärchen. Treatment: h2o2-do-emergency.",
+      "description": "Tote, faulige Wurzeln (braun, schleimig, fauliger Geruch) mit steriler Schere abschneiden. Gesunde, weiße Wurzelenden nicht beschädigen.",
       "photoRequired": false,
-      "photoRecommended": false
+      "photoRecommended": false,
+      "condition": {
+        "key": "severity",
+        "prompt": "Wie stark ist die Pflanze befallen? (SOP-S1 trennt passive und aktive Behandlung)",
+        "equals": [
+          "severe"
+        ]
+      },
+      "repeatFor": "plant"
     },
     {
       "id": "s7",
       "order": 7,
-      "title": "Tag 2 — Wurzelinspektion",
-      "stepType": "Photo",
-      "description": "Sind weiße neue Wurzelspitzen sichtbar? Dokumentieren für Vergleich.",
+      "title": "Tag 1 — Werkzeug und Arbeitsfläche desinfizieren",
+      "stepType": "Action",
+      "description": "Nach JEDER Pflanze Schere, Gestell, Arbeitsfläche und Handschuhe mit der Sprühflasche (ORP 500 mV) desinfizieren. Dieser Schritt verhindert, dass der Erreger von Pflanze zu Pflanze wandert.",
       "photoRequired": false,
-      "photoRecommended": true
+      "photoRecommended": false,
+      "repeatFor": "plant"
     },
     {
       "id": "s8",
       "order": 8,
-      "title": "Tag 2 — Messung",
+      "title": "Tag 1 — Spülbad 1: HOCl",
+      "stepType": "Action",
+      "description": "Wurzeln im Spülbehälter Nr. 1 (HOCl, ORP 750 mV) durch Auf-, Ab- und Schwenkbewegungen spülen.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "repeatFor": "plant"
+    },
+    {
+      "id": "s9",
+      "order": 9,
+      "title": "Tag 1 — Spülbad 2: passiv, 1–2 Minuten",
+      "stepType": "Action",
+      "description": "Wurzeln anschließend im Spülbehälter Nr. 2 mit frischem RO-Wasser für 1–2 Minuten klarspülen. Kürzere Spülzeit, weil weniger Gewebe behandelt wurde.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "condition": {
+        "key": "severity",
+        "prompt": "Wie stark ist die Pflanze befallen? (SOP-S1 trennt passive und aktive Behandlung)",
+        "equals": [
+          "light"
+        ]
+      },
+      "repeatFor": "plant"
+    },
+    {
+      "id": "s10",
+      "order": 10,
+      "title": "Tag 1 — Spülbad 2: aktiv, 180 Sekunden",
+      "stepType": "Action",
+      "description": "Wurzeln anschließend im Spülbehälter Nr. 2 mit frischem RO-Wasser für 180 Sekunden klarspülen. Längere Spülzeit, weil geschnittene Wurzelenden offen liegen.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "condition": {
+        "key": "severity",
+        "prompt": "Wie stark ist die Pflanze befallen? (SOP-S1 trennt passive und aktive Behandlung)",
+        "equals": [
+          "severe"
+        ]
+      },
+      "repeatFor": "plant"
+    },
+    {
+      "id": "s11",
+      "order": 11,
+      "title": "Tag 1 — In Quarantänebehälter setzen",
+      "stepType": "Action",
+      "description": "Behandelte Pflanze in einen separaten Quarantänebehälter mit frischer, belüfteter Nährlösung setzen.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "repeatFor": "plant"
+    },
+    {
+      "id": "s12",
+      "order": 12,
+      "title": "Tag 1 — Spülbäder prüfen",
+      "stepType": "Confirmation",
+      "description": "Lösungen in beiden Spülbehältern austauschen, sobald sie sichtbar verunreinigt sind (Schleim, Wurzelreste, Trübung).",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s13",
+      "order": 13,
+      "title": "Tag 1 — Systemreinigung ohne Abbau",
+      "stepType": "SubSop",
+      "description": "Grobe Verunreinigungen entfernen, zugängliche Oberflächen desinfizieren, Leitungen auf Verstopfungen und Schäden prüfen, Reservoir entleeren und das System reinigen.",
+      "subSopId": "system-cleaning-deep",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "s14",
+      "order": 14,
+      "title": "Tag 1 — System neu aufsetzen",
       "stepType": "Measurement",
-      "description": "Tageswerte aufnehmen.",
+      "description": "Frische Nährlösung ansetzen und mit HOCl auf mindestens 400 mV bringen. Sauerstoffsättigung auf 6–8 mg/L kontrollieren.",
       "expectedInputs": [
         "ph",
         "ec",
@@ -120,59 +206,44 @@
       "photoRecommended": false
     },
     {
-      "id": "s9",
-      "order": 9,
-      "title": "Tag 2 — ORP-Boost",
-      "stepType": "Action",
-      "description": "HOCl im Hauptsystem auf ORP 500 mV halten. Kein Dünger, nur RO + HOCl.",
+      "id": "s15",
+      "order": 15,
+      "title": "Tag 2 — Wurzelinspektion",
+      "stepType": "Photo",
+      "description": "Wurzeln erneut fotografieren und mit Tag 0 vergleichen. Neue weiße Wurzelspitzen sind das erste Erfolgszeichen.",
+      "photoRequired": true,
+      "photoRecommended": true,
+      "repeatFor": "plant"
+    },
+    {
+      "id": "s16",
+      "order": 16,
+      "title": "Tag 2–7 — ORP erhöht halten",
+      "stepType": "Measurement",
+      "description": "In der ersten Woche den ORP-Wert auf mindestens 450 mV halten. Achtung: über 500 mV wird die Lösung zu stark oxidativ und schädigt die Wurzeln — ORP-Schock sieht aus wie ein Nährstoffmangel.",
+      "expectedInputs": [
+        "orp",
+        "do"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     },
     {
-      "id": "s10",
-      "order": 10,
+      "id": "s17",
+      "order": 17,
       "title": "Tag 3 — Erfolgs-Check",
       "stepType": "Confirmation",
-      "description": "Weiße neue Wurzeln sichtbar? Ja → weiter mit Schritt 11. Nein → SOP von vorne oder Pflanzenverlust akzeptieren.",
+      "description": "Wurzelbild, Geruch, DO und ORP bewerten. Ohne Besserung die Behandlung 2–3 Tage wiederholen.",
       "photoRequired": false,
       "photoRecommended": false
     },
     {
-      "id": "s11",
-      "order": 11,
-      "title": "Tag 3 — Schwache Nährstofflösung",
-      "stepType": "Action",
-      "description": "50% der normalen NSL ansetzen. Mischreihenfolge einhalten (mixing-order-rdwc-ro mit halben Dosen).",
-      "photoRequired": false,
-      "photoRecommended": false
-    },
-    {
-      "id": "s12",
-      "order": 12,
-      "title": "Tag 3 — Enzympräparat hinzufügen",
-      "stepType": "Action",
-      "description": "Cannazym oder Sensizym nach Herstellerdosis zugeben. Enzyme bauen abgestorbenes Wurzelmaterial ab.",
-      "photoRequired": false,
-      "photoRecommended": false
-    },
-    {
-      "id": "s13",
-      "order": 13,
-      "title": "Tag 4–7 — Tägliche Inspektion",
-      "stepType": "Photo",
-      "description": "Täglichen Wurzelfortschritt fotografisch dokumentieren. EC schrittweise in 0,2er-Schritten auf Normalwert erhöhen.",
-      "photoRequired": false,
-      "photoRecommended": true
-    },
-    {
-      "id": "s14",
-      "order": 14,
-      "title": "Tag 8–14 — Reduzierte Inspektion und Final-Check",
+      "id": "s18",
+      "order": 18,
+      "title": "Tag 8–14 — ORP auf Normalwert senken",
       "stepType": "Measurement",
-      "description": "Alle 2–3 Tage Wurzel-Sichtcheck. Bei DO und ORP über 7 Tage stabil → SOP beenden. Bei Rückfall SOP neu starten.",
+      "description": "Nach der ersten Woche den ORP-Wert auf 400 mV absenken und den Verlauf beobachten. Abschluss-Check von Wurzelbild, DO und Geruch.",
       "expectedInputs": [
-        "ph",
-        "ec",
         "orp",
         "do"
       ],

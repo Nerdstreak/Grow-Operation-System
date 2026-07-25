@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ec-feathering-up",
+  "title": "EC über die Woche anheben, nicht in einem Schritt",
+  "rule": "Die EC wird über die Woche schrittweise per Addback angehoben, während RO-Wasser den Füllstand hält. Der Zielwert wird angesteuert, nicht auf einmal gesetzt.",
+  "rationale": "Das System verdünnt sich durch das Nachfüllen laufend selbst. Ein einzelner großer Addback überschießt und fällt danach wieder ab.",
+  "metrics": [
+    "ec"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "RDWC Recirculating Deep Water Culture Procedure (Metric)",
+      "reference": "Abschnitt RDWC Addbacks: EC feathering up",
+      "credibility": "High"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "smell-as-diagnosis",
+  "title": "Der Geruch verrät den Zustand des Wassers",
+  "rule": "Fauliger Geruch bedeutet anaerobe Verhältnisse — zu niedriger ORP, Pathogene wachsen. Nach frischen Bohnensprossen riecht ein gesundes System. Chlorgeruch bedeutet ORP-Schock, also zu stark oxidiert.",
+  "rationale": "Der Geruch reagiert schneller als die meisten Messgeräte und braucht keines. Er trennt die beiden Fehlerrichtungen sofort voneinander, die auf dem Blatt gleich aussehen.",
+  "metrics": [
+    "orp",
+    "do"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "RDWC Recirculating Deep Water Culture Procedure (Metric)",
+      "reference": "Abschnitt ORP: Anaerobic / Safe / ORP Shock",
+      "credibility": "High"
+    }
+  ]
+}

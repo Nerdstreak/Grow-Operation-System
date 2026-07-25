@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0",
+  "id": "orp-shock-looks-like-deficiency",
+  "title": "ORP-Schock sieht aus wie ein Nährstoffmangel",
+  "rule": "Zu viel HOCl erzeugt eine stark oxidierte Umgebung, die die Nährstoffaufnahme herabsetzt. Das zeigt sich als Vergilben oder trockenes, krustiges Laub — also genau wie ein Mangel. RDWC braucht deutlich niedrigere ORP-Werte als andere Anbaumethoden, weil Kontaktzeit und Substratvolumen viel größer sind.",
+  "rationale": "Hypochlorige Säure ist für Pflanzengewebe unschädlich. Das Problem ist nicht Giftigkeit, sondern das Oxidationsniveau der Lösung.",
+  "commonMistake": "Das Vergilben als Unterversorgung zu lesen und nachzudüngen. Das verschlimmert es, weil die Aufnahme blockiert ist und nicht das Angebot fehlt. Erst ORP messen.",
+  "metrics": [
+    "orp",
+    "ec"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "RDWC Recirculating Deep Water Culture Procedure (Metric)",
+      "reference": "Abschnitt ORP Shock",
+      "credibility": "High"
+    }
+  ]
+}

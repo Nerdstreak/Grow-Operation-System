@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.7.2
+
+- New — **procedures can branch and repeat.** The source SOPs are not flat lists: root-rot
+  treatment handles a badly affected plant differently from a healthy one, and the block that
+  matters most — rinse, then disinfect the shears and the surface — runs once per plant,
+  because that disinfection is what stops the pathogen travelling. Steps can now carry a
+  condition and repeat per plant, so the app can follow the document instead of summarising it.
+- Changed — **root-rot treatment now follows SOP-S1 step by step**: eighteen steps instead of
+  fourteen, split into the passive path (no cutting, 1–2 minutes in the second bath) and the
+  active one (cut first, then 180 seconds), with the ORP levels the SOP specifies for each
+  bath, the spray bottle and the refilled system.
+- Fixed — that procedure claimed root rot was confirmed below **4 mg/L** of dissolved oxygen.
+  SOP-S1 says **6 mg/L**.
+- New — six rules from the RDWC Procedure, including two that are easy to get backwards:
+  **ORP shock looks exactly like a nutrient deficiency** (yellowing, dry foliage — feeding it
+  makes it worse), and **the smell tells you which way you're wrong** — putrid means anaerobic,
+  fresh bean sprouts means healthy, chlorine means over-oxidised.
+
 ## 1.7.1
 
 Checking the code against the source SOPs — rather than only against the knowledge files —

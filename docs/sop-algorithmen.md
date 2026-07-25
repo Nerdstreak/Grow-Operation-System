@@ -22,13 +22,15 @@ Ordner `RDWC Wissen/` (gitignored, bleibt lokal). Für die Analyse extrahiert:
 | **Häufige Anfängerfehler & Risikomanagement** | — | `wear/`-Katalog, Wartungserinnerungen |
 | **RDWC MESSPROTOKOLL.xlsx** | — | Messgrößen der Messmaske |
 | **VPD-Rechner (Ben Green)** | — | `VpdCalculator` |
-| RDWC Procedure (Metric), Workshop-Lehrmaterial | 36k / 94 MB | **noch nicht ausgewertet** |
+| **RDWC Procedure (Metric)** — Tony Buckets Partnership | 36k | 6 Regeln, siehe unten |
+| Workshop-Lehrmaterial, Easy Grow Guide | 94 MB / 13 MB | noch offen |
 
-Die App hat heute **10 SOPs mit 91 Schritten** und **18 Regel-Einträge**.
+Die App hat **10 SOPs** und **24 Regel-Einträge**. SOP-S1 ist seit 1.7.2 originalgetreu
+abgebildet (18 Schritte, davon 3 verzweigt und 9 je Pflanze).
 
 ---
 
-# Teil 1 — Regelverstöße (behoben in 1.7.1)
+# Teil 1 — Regelverstöße (behoben)
 
 Diese Punkte wichen belegbar von den Dokumenten ab. Alle mit Test abgesichert.
 
@@ -160,9 +162,25 @@ Kaliumsilikat (0,5 ml/L) und Freigabe-Check.
 | §4.4 tägliche Kontrolle | Kein eigener wiederkehrender Schritt |
 | §4.5 Quarantänedauer-Kriterien | Dauer steht im Titel, die Entscheidungskriterien fehlen |
 
+## RDWC Procedure (Metric) — geprüft
+
+Zweite, ergänzende Quelle (Tony Buckets Partnership). Sechs Regeln daraus ergänzt:
+
+| Regel | Warum sie zählt |
+|---|---|
+| **ORP-Schock sieht aus wie ein Nährstoffmangel** | Vergilbtes, krustiges Laub. Wer das als Mangel liest und nachdüngt, verschlimmert es — die Aufnahme ist blockiert, nicht das Angebot zu klein. Erst ORP messen. |
+| **Der Geruch als Diagnose** | Faulig = anaerob, frische Bohnensprossen = gesund, Chlor = ORP-Schock. Trennt die beiden Fehlerrichtungen ohne Messgerät. |
+| Höchstens **500 ml je Komponente** pro Addback-Behälter | Sonst Ausfällungen, bevor sich die Lösung verteilt. Nährstoffe nie direkt in den Control Bucket. |
+| Addback-Behälter zu 90 % füllen, einzeln zugeben, **zwischen jedem rühren** | Ohne Rühren reagieren die Konzentrate miteinander. |
+| Betriebsvolumen einrechnen | ~40,1 L je 49,2-L-Modul. Ohne das stimmt die Konzentration nicht. |
+| **EC über die Woche anheben**, nicht in einem Schritt | Das System verdünnt sich durch Top-off laufend selbst. |
+
+Der `AddbackCalculator` rechnet korrekt auf das Systemvolumen — die Warnung der Procedure
+greift dort also nicht. Die 500-ml-Regel und die Rührvorgabe betreffen den physischen
+Mischvorgang und gehören in eine Addback-SOP, die noch fehlt.
+
 ## Noch nicht ausgewertet
 
-- **RDWC Procedure (Metric)** — 36k Zeichen extrahiert, noch nicht gegen die App geprüft
 - **Workshop Lehrmaterial** — 94 MB, überwiegend Folien
 - **Easy Grow Guide** — Textextraktion leer (reines Bilddokument, bräuchte OCR)
 
@@ -181,14 +199,28 @@ eine `condition` tragen und wird übersprungen, wenn sie nicht zutrifft.
 **2. Schleife über Objekte.** „Für jede Pflanze: entnehmen, spülen, desinfizieren" ist in
 SOP-S1 und C1 der Kern. Ohne das bleibt es eine Textanweisung statt eines abhakbaren Ablaufs.
 
-Vorgeschlagene Reihenfolge:
+Umgesetzt (1.7.1):
 
-1. **`condition` an Schritten** — kleinster Eingriff, löst SOP-C1 §2 (Substrattyp) sofort
-2. **Schleifenschritte über Pflanzen** — macht S1 und C1 wirklich ausführbar
-3. **SOP-S1 originalgetreu nachziehen** — Triage passiv/aktiv, ORP-Werte je Bad
-4. **SOP-C1 §2 und §3 ergänzen** — Substratträger und 3-Bad-Methode
-5. **Musterdiagnose nach SOP-N1 §2.1** — fünf Merkmale zusammen bewerten statt einzeln
-6. **RDWC Procedure auswerten** und einarbeiten
+1. ✅ **`condition` an Schritten** — `SopStepCondition` mit Schlüssel, erlaubten Werten und Frage
+2. ✅ **`repeatFor`** — ein Schritt wiederholt sich je Pflanze, Eimer, Modul oder Steckling
+3. ✅ **`SopStepPlanner`** — beantwortet „welche Schritte gelten für diesen Durchlauf" und
+   nummeriert Wiederholungen („Pflanze 3 von 6"). Eine **unbeantwortete Frage behält alle
+   Schritte** — eine Behandlung stillschweigend zu kürzen wäre die schlimmere Fehlerart.
+4. ✅ **SOP-S1 originalgetreu** — 18 Schritte statt 14, davon 3 nach Befallsgrad verzweigt
+   und 9 je Pflanze. Enthält jetzt die Zwischendesinfektion nach jeder Pflanze (§4.4), die
+   Spülbad-Werte (ORP 750 mV / Sprühflasche 500 mV / System min. 400 mV) und die
+   unterschiedlichen Spülzeiten (1–2 min passiv, 180 s aktiv).
+5. ✅ Nebenbefund korrigiert: Der Schritt „Initial-Messung" nannte **DO < 4 mg/L** als
+   Bestätigung — SOP-S1 §2.2 sagt **< 6 mg/L**.
+
+Offen:
+
+6. **SOP-C1 §2 und §3 ergänzen** — Substratträger (Steinwolle, EasyPlugz, Jiffies) und die
+   3-Bad-Methode. Das Schrittmodell kann es jetzt, die Daten fehlen noch.
+7. **Addback-SOP** aus der RDWC Procedure — 90 % füllen, einzeln zugeben, rühren, 500-ml-Grenze
+8. **Musterdiagnose nach SOP-N1 §2.1** — fünf Merkmale zusammen bewerten statt einzeln
+9. **Oberfläche** — der Planer wird noch nirgends aufgerufen; die SOP-Seite zeigt weiterhin
+   die flache Liste. Das ist der nächste sichtbare Schritt.
 
 Erst danach lohnt der Assistent: Er soll die SOPs *erklären* und *anstoßen*, nicht sie
 ersetzen. Solange der Ablauf selbst unvollständig ist, hätte er nichts Verlässliches, worauf

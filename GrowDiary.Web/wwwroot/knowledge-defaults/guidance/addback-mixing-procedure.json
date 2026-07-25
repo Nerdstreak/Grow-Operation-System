@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "addback-mixing-procedure",
+  "title": "Addback: füllen, einzeln zugeben, zwischen jedem rühren",
+  "rule": "Addback-Behälter (18,9 L) zu 90 % mit RO-Wasser füllen — bei kleinen Addbacks zu 50 %. Die Komponenten einzeln und in der Mischreihenfolge zugeben und zwischen jeder Komponente rühren.",
+  "commonMistake": "Alle Komponenten zusammen einzufüllen. Ohne Rühren zwischen den Schritten reagieren die Konzentrate miteinander, statt sich zu verteilen.",
+  "metrics": [
+    "ec"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "RDWC Recirculating Deep Water Culture Procedure (Metric)",
+      "reference": "Abschnitt Addback Procedure",
+      "credibility": "High"
+    }
+  ]
+}
