@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.8.4
+
+- New — **VPD is finally checked against its target.** A target band per stage has been in
+  the reference data all along, and nothing read it: the value was calculated, charted and
+  put on tiles, but never compared to anything. Grow OS now says when the leaf VPD leaves
+  its band — and when it is *below* it, says why that matters here: RDWC transpires two to
+  two and a half times as much as soil and wants the upper end, so a low VPD is holding the
+  plant back rather than protecting it. Check the airflow at leaf level before reaching for
+  temperature or humidity.
+
 ## 1.8.3
 
 - Fixed — **the add-on log was 99 % noise.** Every call to Home Assistant produced four lines,
