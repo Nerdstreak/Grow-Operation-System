@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+- New — **the live tiles now show a real 24-hour curve**. Each sensor tile on the live
+  dashboard draws the last day's trend where a fixed decorative bar used to sit, in the
+  tile's own colour — so the day/night rhythm and any drift are visible at a glance.
+  Tiles without recorded history are unchanged.
+
 ## 1.1.0
 
 - New — **your sensor history is finally visible**. Grow OS has been recording every

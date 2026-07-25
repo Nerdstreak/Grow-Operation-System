@@ -164,8 +164,11 @@ export function Sparkline({ points, width = 120, height = 30 }: { points: Histor
   if (!path) return null
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} aria-hidden="true" style={{ display: 'block', opacity: 0.85 }}>
-      <path d={path} fill="none" stroke="var(--v1-green)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true"
+      style={{ display: 'block', width: '100%', height, opacity: 0.9 }}>
+      {/* non-scaling-stroke keeps the line crisp when the viewBox is stretched to fit */}
+      <path d={path} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"
+        strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
   )
 }

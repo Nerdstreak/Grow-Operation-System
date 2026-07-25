@@ -5,6 +5,8 @@ import { resolveUrl } from '../../base'
 import type { GrowSummary, MetricPayload, RiskEventDto, TentDto } from '../../types'
 import { formatDateTime } from '../../utils'
 import { buildScore, buildSensorStatus, formatGrowHydroMedium, formatGrowStatus, formatTentType } from './live-model'
+import { Sparkline, type HistoryPoint } from '../../components/SensorChart'
+import { useTentSparklines } from './useTentSparklines'
 import './live-instrument.css'
 
 type DesktopLiveDashboardProps = {
@@ -42,13 +44,16 @@ function metricClass(metric: MetricPayload) {
   return 'ix-m ok'
 }
 
-function Metric({ metric }: { metric: MetricPayload }) {
+function Metric({ metric, trend }: { metric: MetricPayload; trend?: HistoryPoint[] }) {
   return (
     <div className={metricClass(metric)}>
       <span className="pip" />
       <div className="lab">{metric.label}</div>
       <div className="val">{metric.value}{metric.unit && <u>{metric.unit}</u>}</div>
-      <div className="bar"><i /></div>
+      {/* The real last-24h curve where a fixed-width decorative bar used to sit. */}
+      {trend && trend.length > 1
+        ? <div className="spark" title="Verlauf 24 h"><Sparkline points={trend} height={22} /></div>
+        : <div className="bar"><i /></div>}
     </div>
   )
 }
@@ -152,6 +157,7 @@ export function LiveDashboard({
   lastUpdated,
   onRefresh,
 }: DesktopLiveDashboardProps) {
+  const trends = useTentSparklines(selectedTent?.id ?? null)
   const [arc, setArc] = useState(0)
   useEffect(() => {
     const handle = window.setTimeout(() => setArc(score.value), 80)
@@ -274,8 +280,8 @@ export function LiveDashboard({
         <div className="ix-panel ix-cluster ix-rise ix-d3" data-audit="live-climate-card">
           <div className="ix-cluster-head"><div className="t"><span className="ix-kick">Sektion 01</span><h3>Klima</h3></div></div>
           <div className="ix-grid-3">
-            {climateMetrics.map((metric) => <Metric key={metric.key} metric={metric} />)}
-            {lightMetric && <Metric metric={{ ...lightMetric, label: lightMetric.key === 'ppfd' ? 'PPFD' : 'Licht' }} />}
+            {climateMetrics.map((metric) => <Metric key={metric.key} metric={metric} trend={trends.get(metric.key)} />)}
+            {lightMetric && <Metric metric={{ ...lightMetric, label: lightMetric.key === 'ppfd' ? 'PPFD' : 'Licht' }} trend={trends.get(lightMetric.key)} />}
           </div>
         </div>
 
@@ -283,7 +289,7 @@ export function LiveDashboard({
           <div className="ix-panel ix-cluster ix-rise ix-d4" data-audit="live-hydro-card">
             <div className="ix-cluster-head"><div className="t"><span className="ix-kick">Sektion 02</span><h3>Reservoir</h3></div></div>
             <div className="ix-grid-3">
-              {hydroMetrics.map((metric) => <Metric key={metric.key} metric={metric} />)}
+              {hydroMetrics.map((metric) => <Metric key={metric.key} metric={metric} trend={trends.get(metric.key)} />)}
             </div>
             {!hasHydroGrow && (
               <p className="ix-empty-line">Live-Werte deiner Reservoir-Sensoren. Für Zielwert-Abgleich, Addback und Diagnose <Link to="/grows/new">einen DWC/RDWC-Grow anlegen</Link>.</p>
