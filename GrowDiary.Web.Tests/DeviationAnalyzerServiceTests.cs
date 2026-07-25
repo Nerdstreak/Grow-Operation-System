@@ -116,8 +116,10 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
         Assert.Equal(6.3, dev.ActualValue);
         Assert.Equal(5.8, dev.TargetMin);
         Assert.Equal(6.2, dev.TargetMax);
-        // Das Anmischziel bleibt sichtbar, damit die Empfehlung brauchbar bleibt.
-        Assert.Contains("6,0", dev.RecommendationHint ?? string.Empty);
+        // Das Anmischziel bleibt sichtbar, damit die Empfehlung brauchbar bleibt. Das
+        // Dezimaltrennzeichen haengt an der Kultur des Hosts (Komma hier, Punkt auf dem
+        // CI-Runner) und darf deshalb nicht mitgeprueft werden.
+        Assert.Contains($"{6.0:0.0}-{6.1:0.0}", dev.RecommendationHint ?? string.Empty);
         Assert.False(string.IsNullOrWhiteSpace(dev.Message));
         Assert.Contains(m.Id, dev.SourceMeasurementIds);
         Assert.Equal(DeviationSource.Manual, dev.Source);

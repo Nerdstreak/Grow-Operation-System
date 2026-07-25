@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.2
+
+- Fixed — some knowledge entries in 1.6.1 linked to source PDFs that aren't part of the
+  image, so the link led nowhere. The source is still named — document title and section —
+  it just isn't a link any more where the document isn't shipped.
+
 ## 1.6.1
 
 - New — **cameras on the dashboard**. A camera can now be a tile, so a tent with three of
