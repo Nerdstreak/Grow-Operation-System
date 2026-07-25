@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "biofilm-is-the-starting-point",
+  "title": "Biofilm ist der Ausgangspunkt jedes RDWC-Problems",
+  "rule": "Die Wurzeln liegen dauerhaft in der Nährlösung, es gibt kein Puffersystem wie in Erde, und jede Kontamination wirkt sofort im ganzen Kreislauf. Biofilm bildet sich unsichtbar an Leitungen, Tankwänden, Pumpen, Luftsteinen und Wurzeloberflächen. Folge: der Sauerstoffverbrauch steigt, der ORP sinkt, Pathogene bekommen Raum.",
+  "rationale": "Deshalb ist Hygiene im RDWC keine Kür. Ein sinkender ORP bei steigendem Sauerstoffverbrauch ist das Frühzeichen, lange bevor man an der Wurzel etwas sieht.",
+  "metrics": [
+    "orp",
+    "do"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "Workshop Lehrmaterial (SKX-RDWC)",
+      "reference": "Abschnitt 5: Hygiene, Sterilität und Pathogenkontrolle im RDWC",
+      "credibility": "High"
+    }
+  ]
+}

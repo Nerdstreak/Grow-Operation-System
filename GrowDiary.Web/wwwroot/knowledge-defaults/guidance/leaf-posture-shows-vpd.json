@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "leaf-posture-shows-vpd",
+  "title": "Die Blattstellung zeigt, ob das VPD passt",
+  "rule": "Der VPD-Sweetspot lässt sich an der Blattstellung ablesen. Drei Zustände: zu wenig Transpiration bei zu niedrigem VPD, der optimale Bereich, und zu viel Transpiration bei zu hohem VPD. Die genaue Gradzuordnung steht als Grafik im Workshop-Material.",
+  "rationale": "Die Pflanze zeigt das Ergebnis, das Messgerät nur die Bedingung. Bei abweichender Blattstellung lohnt der Blick auf Luftstrom und Blatttemperatur, bevor man an Temperatur oder Feuchte dreht.",
+  "metrics": [
+    "vpd"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "Workshop Lehrmaterial (SKX-RDWC)",
+      "reference": "Abschnitt 7.3: VPD-Sweetspot erkennen anhand der Blattstellung",
+      "credibility": "High"
+    }
+  ]
+}

@@ -191,13 +191,33 @@ neue Punkte:
 | pH Veg 6,0–6,2 / Blüte 5,6–6,0, EC-Konsum 0,05–0,10, Ziel-EC 1,4–1,5 | deckt sich mit Growplan und Wissensbasis ✓ |
 | Wassertemperatur-Zonen 19–20 / 18–21 / 21–23 / >24 °C | deckt sich mit `RecommendationEngine` ✓ |
 
-## Nicht auswertbar ohne OCR
+## Per OCR nachgeholt
 
-- **Easy Grow Guide** (5 Seiten) — reines Bilddokument, Textextraktion liefert null Zeichen.
-- **Workshop-VPD-Tabellen** — die eigentlichen Zahlen der RDWC-Empfehlung stehen als Grafik.
+Tesseract 5.4 installiert (`winget install UB-Mannheim.TesseractOCR`), deutsches Sprachmodell
+in den Scratchpad gelegt und mit `deu+eng` erkannt. Der Workshop ging damit von 1.300 auf
+**38.000 Zeichen** — der Großteil des Materials steckte in Grafiken.
 
-Beides bräuchte Tesseract auf dem Rechner (`pytesseract` allein reicht nicht, das Binary
-fehlt). Bis dahin bleiben die RDWC-VPD-Zielwerte die aus dem Growplan.
+**Sieben neue Regeln daraus:**
+
+| Fund | Warum er zählt |
+|---|---|
+| **Transpirationsrate je System**: Erde 1,0× · Kokos 1,25× · Steinwolle 1,5× · Aero 1,75× · DWC 1,75–2,0× · **RDWC 2,0–2,5×** | Daraus folgt: RDWC **braucht leicht höhere VPD-Werte** als die Standardempfehlung, sonst bremst man die Transpiration aus. Das war die Zahl, die vorher nur als Bild vorlag. |
+| **Luftstrom auf Blattniveau**: Standard 60–90 m/min, **RDWC 90–120 m/min** (+10–15 %) | VPD hängt stark am Luftstrom — er bricht die feuchte Grenzschicht am Blatt. Ein Parameter, den die App gar nicht kennt. |
+| **Bestandsgefälle**: oben ~26,0 °C, Mitte ~24,5 °C, unten ~23,0 °C | Wo der Sensor hängt, entscheidet über das berechnete VPD. Ein einzelner Wert beschreibt das Zelt nicht. |
+| **Blattstellung zeigt den VPD-Sweetspot** | Sensorfreie Gegenprobe, wie der Geruch beim Wasser. Die Gradzuordnung bleibt Grafik. |
+| **Wasserpegel bis zum Netztopfboden** (substratfrei) | Darunter kein Wurzelkontakt: verzögerter Start, verkrüppelte Wurzeln, hohe Ausfallrate. |
+| **Top-Feeding in drei Phasen** (Tag 1–3 stützen, 4–7 reduzieren, ab 7 nur bei Bedarf) | Zu langes Top-Feeding hält die Steinwolle nass und verzögert genau das Wurzelwachstum, das man will. |
+| **Biofilm ist der Ausgangspunkt jedes RDWC-Problems** | Sauerstoffverbrauch steigt, ORP sinkt — das Frühzeichen, lange bevor an der Wurzel etwas sichtbar ist. |
+
+## Easy Grow Guide — bewusst nicht übernommen
+
+Der Guide wurde per OCR gelesen (4.700 Zeichen) und ist **Erdanbau mit einer fremden
+Produktlinie**: 11-L-Töpfe, Canna Terra, Leitungswasser, Pre-Mix, Depotwirkung im Substrat.
+Null Treffer für RDWC, DWC, Hydro, Reservoir oder Netztopf; 19 für Erd-Begriffe.
+
+Seine Zahlen wären hier **aktiv schädlich** — er nennt für die Spätblüte pH 6,5–6,8, was im
+RDWC über der kritischen Grenze liegt. Genau die Verwechslung, gegen die das Workshop-Material
+selbst warnt („eine VPD-Tabelle aus dem Erdanbau überträgt sich nicht"). Nicht eingepflegt.
 
 ---
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.8.2
+
+- New — seven rules recovered from the workshop material, which turned out to be almost
+  entirely graphics. Among them: **RDWC transpires two to two-and-a-half times as much as
+  soil** and therefore wants slightly *higher* VPD than the usual recommendation, not lower;
+  **airflow at leaf level** belongs to VPD (90–120 m/min for RDWC, about 10–15 % more than
+  other systems) because it breaks the moist layer on the leaf; the canopy runs a gradient of
+  roughly 26 / 24.5 / 23 °C top to bottom, so where the sensor hangs decides the number; and
+  biofilm is where every RDWC problem starts — rising oxygen consumption with falling ORP is
+  the early sign, long before anything shows on the roots.
+
 ## 1.8.1
 
 - Changed — **a new tent now computes leaf VPD, not air VPD.** The leaf sits about 2 °C below

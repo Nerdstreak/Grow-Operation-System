@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "canopy-temperature-layers",
+  "title": "Ein Temperaturwert beschreibt das Zelt nicht",
+  "rule": "Im Bestand entsteht ein Gefälle: oberer Bereich rund 26,0 °C im direkten Licht, mittlerer rund 24,5 °C im diffusen, unterer rund 23,0 °C im schwachen Licht. Wo der Sensor hängt, entscheidet über den abgelesenen Wert und damit über das berechnete VPD.",
+  "commonMistake": "Einen einzelnen Sensor irgendwo im Zelt als „die“ Zelttemperatur zu nehmen und das VPD für alle Blattebenen daraus zu berechnen.",
+  "metrics": [
+    "temperature",
+    "vpd"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "Workshop Lehrmaterial (SKX-RDWC)",
+      "reference": "Abschnitt 7.5: Durchschnittliche Blatttemperatur ermitteln",
+      "credibility": "High"
+    }
+  ]
+}

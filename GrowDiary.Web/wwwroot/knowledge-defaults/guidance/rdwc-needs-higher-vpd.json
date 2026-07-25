@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "rdwc-needs-higher-vpd",
+  "title": "RDWC braucht leicht höhere VPD-Werte als die Standardempfehlung",
+  "rule": "Die Transpirationsrate hängt am System. Relativ zu Erde (1,0×): Kokos 1,25×, Steinwolle 1,5×, Aeroponik 1,75×, DWC 1,75–2,0× und RDWC 2,0–2,5×. Weil RDWC das größte Wurzelvolumen und die stabilsten Bedingungen hat, verträgt und braucht es leicht höhere VPD-Werte als üblich empfohlen — sonst bremst man die Transpiration aus.",
+  "rationale": "Höhere Transpiration trägt mehr Nährstoff. Ein VPD, das für Erde passt, hält ein RDWC unter seinen Möglichkeiten.",
+  "commonMistake": "Eine VPD-Tabelle aus dem Erdanbau zu übernehmen und sich zu wundern, warum das System träge wirkt.",
+  "metrics": [
+    "vpd"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "Workshop Lehrmaterial (SKX-RDWC)",
+      "reference": "Abschnitt 7.1: Transpirationsraten nach System",
+      "credibility": "High"
+    }
+  ]
+}

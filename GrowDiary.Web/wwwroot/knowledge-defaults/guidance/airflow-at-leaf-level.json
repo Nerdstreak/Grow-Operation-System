@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "airflow-at-leaf-level",
+  "title": "Luftstrom auf Blattniveau gehört zum VPD dazu",
+  "rule": "VPD hängt nicht nur an Temperatur und Luftfeuchte, sondern stark am Luftstrom: er bricht die feuchte Grenzschicht am Blatt auf. Empfohlen auf Blattniveau sind 60–90 m/min (1,0–1,5 m/s) für die meisten Systeme und 90–120 m/min (1,5–2,0 m/s) für RDWC — also etwa 10–15 % mehr.",
+  "rationale": "Ohne Luftbewegung steht am Blatt eine gesättigte Schicht, in der das gemessene VPD des Raums nicht mehr gilt.",
+  "metrics": [
+    "vpd",
+    "humidity"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "Workshop Lehrmaterial (SKX-RDWC)",
+      "reference": "Abschnitt 7.4: VPD im Indoor — alle Faktoren zählen",
+      "credibility": "High"
+    }
+  ]
+}
