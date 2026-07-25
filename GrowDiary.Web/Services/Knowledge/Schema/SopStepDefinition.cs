@@ -46,6 +46,30 @@ public sealed class SopStepDefinition
     public SopStepCondition? Condition { get; set; }
 
     /// <summary>
+    /// Further conditions that must <em>all</em> hold alongside <see cref="Condition"/>.
+    ///
+    /// One key is not always enough: decontaminating the substrate carrier depends both on
+    /// which agent was chosen and on there being a carrier at all, so a bare-root cutting
+    /// must not be told to dip a plug it doesn't have.
+    /// </summary>
+    [JsonPropertyName("conditions")]
+    public List<SopStepCondition>? Conditions { get; set; }
+
+    /// <summary>Every condition on this step, however it was written.</summary>
+    public IEnumerable<SopStepCondition> AllConditions()
+    {
+        if (Condition is not null)
+        {
+            yield return Condition;
+        }
+
+        foreach (var extra in Conditions ?? [])
+        {
+            yield return extra;
+        }
+    }
+
+    /// <summary>
     /// What this step is repeated for, e.g. "plant". Null means it runs once.
     ///
     /// "For every plant: lift out, rinse, then disinfect the shears and the surface" is the

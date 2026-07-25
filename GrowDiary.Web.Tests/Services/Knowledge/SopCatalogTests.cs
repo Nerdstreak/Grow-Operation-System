@@ -172,9 +172,15 @@ public sealed class SopCatalogTests : IDisposable
     }
 
     [Fact]
-    public void KnowledgeBaseLoader_LoadsAllTenSops()
+    public void KnowledgeBaseLoader_LoadsTheSopCatalog()
     {
-        Assert.Equal(10, _loader.Sops.Count);
+        // Keine feste Zahl: der Katalog soll wachsen. Geprueft wird, dass die tragenden
+        // SOPs geladen sind — eine Zahl haette hier nur den naechsten Zuwachs blockiert.
+        Assert.True(_loader.Sops.Count >= 11, $"Erwartet mindestens 11 SOPs, geladen: {_loader.Sops.Count}.");
+        foreach (var required in new[] { "root-rot-treatment", "cuttings-quarantine", "nutrient-addback", "weekly-water-change" })
+        {
+            Assert.Contains(_loader.Sops, sop => sop.Id == required);
+        }
     }
 
     [Fact]

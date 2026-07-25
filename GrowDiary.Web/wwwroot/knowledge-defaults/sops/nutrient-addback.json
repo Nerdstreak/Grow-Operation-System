@@ -1,0 +1,201 @@
+{
+  "schemaVersion": "1.0",
+  "id": "nutrient-addback",
+  "name": "Nährstoff-Addback",
+  "type": "Linear",
+  "estimatedDurationMinutes": 30,
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "triggers": [
+    {
+      "type": "Deviation",
+      "stableKey": "hydro.ec"
+    }
+  ],
+  "requiredMaterials": [
+    "Addback-Behälter 18,9 L (mehrere, falls eine Komponente über 500 ml liegt)",
+    "RO-/VE-Wasser",
+    "Nährstoffkomponenten des Programms",
+    "pH- und EC-Messgerät",
+    "Rührwerkzeug"
+  ],
+  "steps": [
+    {
+      "id": "a1",
+      "order": 1,
+      "title": "Ist-Zustand messen",
+      "stepType": "Measurement",
+      "description": "EC und pH im System messen sowie den Füllstand. Der Addback rechnet auf das echte Betriebsvolumen — etwa 40,1 L je 49,2-L-Modul und 18,9 L je 30,3-L-Modul. Wer das Gesamtvolumen nicht einrechnet, erzeugt falsche Konzentrationen.",
+      "expectedInputs": [
+        "ph",
+        "ec",
+        "reservoirLevel"
+      ],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "a2",
+      "order": 2,
+      "title": "Ziel-EC bestimmen",
+      "stepType": "Confirmation",
+      "description": "Woche und Ziel-EC aus dem Growplan ablesen. Die EC wird über die Woche schrittweise angehoben, nicht in einem Zug — das System verdünnt sich durch das Nachfüllen laufend selbst, ein einzelner großer Addback überschießt.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "a3",
+      "order": 3,
+      "title": "Mengen berechnen",
+      "stepType": "Confirmation",
+      "description": "Nährstoffmengen aus Ziel-EC, Ist-EC und Betriebsvolumen bestimmen. Wichtig: höchstens 500 ml je einzelner Komponente pro Addback-Behälter. Wird mehr gebraucht, auf mehrere Behälter aufteilen.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "a4",
+      "order": 4,
+      "title": "Addback-Behälter füllen",
+      "stepType": "Action",
+      "description": "18,9-L-Behälter zu 90 % mit RO-Wasser füllen. Bei kleinen Addbacks reichen 50 %.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "a5",
+      "order": 5,
+      "title": "pH auf 6,0 eichen",
+      "stepType": "Measurement",
+      "description": "Vor der ersten Komponente den pH des Anmischwassers auf 6,0 einstellen.",
+      "expectedInputs": [
+        "ph"
+      ],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "a6",
+      "order": 6,
+      "title": "Kaliumsilikat zuerst",
+      "stepType": "Action",
+      "description": "Bei RO-/VE-Wasser das Kaliumsilikat als erste Komponente zugeben und danach kurz stehen lassen, damit es sich vollständig löst.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "condition": {
+        "key": "waterSource",
+        "prompt": "Womit mischst du an? (bestimmt die Mischreihenfolge)",
+        "equals": [
+          "ro"
+        ]
+      }
+    },
+    {
+      "id": "a7",
+      "order": 7,
+      "title": "CalMag zuerst",
+      "stepType": "Action",
+      "description": "Bei Weichwasser das CalMag als erste Komponente zugeben, weil das Ausgangswasser bereits Calcium und Magnesium mitbringt.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "condition": {
+        "key": "waterSource",
+        "prompt": "Womit mischst du an? (bestimmt die Mischreihenfolge)",
+        "equals": [
+          "soft"
+        ]
+      }
+    },
+    {
+      "id": "a8",
+      "order": 8,
+      "title": "Hauptkomponenten einzeln zugeben",
+      "stepType": "Action",
+      "description": "Die Hauptkomponenten nacheinander in der Mischreihenfolge zugeben — niemals zusammen. Zwischen jeder Komponente rühren, sonst reagieren die Konzentrate miteinander, statt sich zu verteilen.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "a9",
+      "order": 9,
+      "title": "pH nach den Hauptkomponenten korrigieren",
+      "stepType": "Measurement",
+      "description": "pH prüfen und wieder auf 6,0 einstellen.",
+      "expectedInputs": [
+        "ph"
+      ],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "a10",
+      "order": 10,
+      "title": "Restliche Komponenten zugeben",
+      "stepType": "Action",
+      "description": "CalMag beziehungsweise Kaliumsilikat als letzte Komponente zugeben — je nachdem, welche am Anfang stand. Wieder zwischen den Zugaben rühren.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "a11",
+      "order": 11,
+      "title": "EC der Addback-Lösung prüfen",
+      "stepType": "Measurement",
+      "description": "EC im Addback-Behälter messen. Sie muss deutlich über der Ziel-EC des Systems liegen, sonst verdünnt der Addback statt anzuheben.",
+      "expectedInputs": [
+        "ec",
+        "ph"
+      ],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "a12",
+      "order": 12,
+      "title": "Über den Addback-Anschluss einbringen",
+      "stepType": "Action",
+      "description": "Die fertige Lösung über den Addback-Anschluss ins System geben. Nährstoffe niemals direkt in den Control Bucket kippen. Athena Cleanse darf in Portionen von höchstens 500 ml direkt in den Control Bucket.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "a13",
+      "order": 13,
+      "title": "Durchmischen lassen",
+      "stepType": "Wait",
+      "description": "Umlauf laufen lassen, bis sich die Lösung im gesamten System verteilt hat.",
+      "waitMinutes": 30,
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "a14",
+      "order": 14,
+      "title": "Endkontrolle",
+      "stepType": "Measurement",
+      "description": "EC, pH und ORP nach der Durchmischung messen und mit dem Ziel abgleichen. Ein täglicher EC-Abfall von 0,05–0,1 bis zum nächsten Tag ist gewollt — er zeigt, dass die Pflanze frisst.",
+      "expectedInputs": [
+        "ph",
+        "ec",
+        "orp"
+      ],
+      "photoRequired": false,
+      "photoRecommended": false
+    }
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "RDWC Recirculating Deep Water Culture Procedure (Metric)",
+      "reference": "Abschnitte RDWC Addbacks und Operating Volume",
+      "credibility": "High"
+    },
+    {
+      "type": "UserDocument",
+      "title": "SOP-RDWC-CAN-N1: pH- & Nährstoff-Stabilisierung",
+      "reference": "Mischreihenfolge",
+      "credibility": "High"
+    }
+  ]
+}

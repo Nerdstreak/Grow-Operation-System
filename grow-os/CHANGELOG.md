@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.8.0
+
+- New — **the nutrient solution is diagnosed as a pattern, not a value.** SOP-N1 lays out a
+  table and asks you to read five signals together, because a falling pH with stable EC and
+  good oxygen is a plant feeding, while the *same* falling pH with rising EC and low oxygen
+  is biofilm. Grow OS checked each of those separately and could never reach that
+  conclusion. The Diagnose page now shows the whole table at once — and the two rows no
+  sensor covers, the look and the smell of the water, are listed as checks for you rather
+  than quietly dropped.
+- Changed — **cuttings quarantine now follows SOP-C1**: the three-bath method as three
+  separate baths per cutting, the substrate carrier handled properly (rockwool, EasyPlug,
+  Jiffy — or none at all, in which case the whole section is skipped), the choice between
+  HOCl and H₂O₂, the drying phase, and the release criteria.
+- New — **an addback procedure**, which was missing entirely: fill to 90 %, add one
+  component at a time in mixing order, stir between each, never more than 500 ml of any one
+  part per container, and never straight into the control bucket.
+- Changed — a step can now depend on more than one answer. Decontaminating a substrate plug
+  needs both the agent and there being a plug; with a single condition, bare-root cuttings
+  were told to dip something they don't have.
+
 ## 1.7.3
 
 - New — **starting a routine now asks what it needs to know.** Root-rot treatment wants to

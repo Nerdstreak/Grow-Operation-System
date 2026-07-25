@@ -93,13 +93,13 @@ public sealed class KnowledgeApiControllerTests : IDisposable
     }
 
     [Fact]
-    public void GetSops_Returns10Items()
+    public void GetSops_ReturnsTheCatalog()
     {
         var result = _controller.GetSops();
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var items = Assert.IsAssignableFrom<IReadOnlyList<SopDefinition>>(ok.Value);
-        Assert.Equal(10, items.Count);
+        Assert.True(items.Count >= 11, $"Erwartet mindestens 11 SOPs, geliefert: {items.Count}.");
     }
 
     [Fact]

@@ -7,3 +7,17 @@ public sealed record TrendFindingDto(
     string Headline,
     string Detail,
     string? GuidanceId);
+
+/// <summary>One row of the SOP's diagnostic table, as the data reads it.</summary>
+public sealed record StabilitySignalDto(string Key, string Label, string Verdict, string Observation);
+
+/// <summary>
+/// SOP-N1 §2.1 applied to the recent readings: the five signals together, plus the checks
+/// no sensor can make.
+/// </summary>
+public sealed record StabilityAssessmentDto(
+    string Overall,
+    string Headline,
+    string Detail,
+    IReadOnlyList<StabilitySignalDto> Signals,
+    IReadOnlyList<string> VisualChecks);

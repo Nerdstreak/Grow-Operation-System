@@ -4,7 +4,7 @@
   "name": "Stecklingsquarantäne (7–21 Tage)",
   "type": "MultiDay",
   "durationDays": 7,
-  "estimatedDurationMinutes": 25,
+  "estimatedDurationMinutes": 180,
   "applicableSetups": [
     "Quarantine"
   ],
@@ -26,115 +26,297 @@
   ],
   "steps": [
     {
-      "id": "s1",
+      "id": "c1",
       "order": 1,
-      "title": "Tag 0 — Materialien bereitstellen",
-      "stepType": "Action",
-      "description": "Alle Materialien vorbereiten. Quarantänebehälter und Werkzeuge desinfizieren.",
-      "photoRequired": false,
-      "photoRecommended": false
+      "title": "Tag 0 — Wareneingang prüfen",
+      "stepType": "Photo",
+      "description": "Stecklinge fotografieren und auf Schädlingsbefall, Eier, Verfärbungen, Welke und Geruch prüfen. Herkunft und Sorte dokumentieren.",
+      "photoRequired": true,
+      "photoRecommended": true
     },
     {
-      "id": "s2",
+      "id": "c2",
       "order": 2,
-      "title": "Tag 0 — Arbeitsbereich desinfizieren",
-      "stepType": "Action",
-      "description": "Arbeitsfläche mit HOCl oder Alkohol desinfizieren. Schutzkleidung (Handschuhe) anlegen.",
-      "photoRequired": false,
-      "photoRecommended": false
-    },
-    {
-      "id": "s3",
-      "order": 3,
-      "title": "Tag 1 — Wurzelwäsche",
-      "stepType": "Action",
-      "description": "Wurzeln der eingehenden Stecklinge mit RO-Wasser + HOCl 750 ppm waschen. Erde/Substrat-Reste entfernen.",
-      "photoRequired": false,
-      "photoRecommended": false
-    },
-    {
-      "id": "s4",
-      "order": 4,
-      "title": "Tag 1 — IPM-Behandlung",
-      "stepType": "Action",
-      "description": "Stecklinge mit IPM-Produkt (Athena IPM oder Neemöl-Lösung) besprühen. Ober- und Unterseite der Blätter benetzen.",
-      "photoRequired": false,
-      "photoRecommended": false
-    },
-    {
-      "id": "s5",
-      "order": 5,
-      "title": "Tag 1 — Wurzelstimulator anwenden",
-      "stepType": "Action",
-      "description": "Clonex oder Rhizopon auf Schnittstellen auftragen. Alternativ: Aloe-vera-Gel.",
-      "photoRequired": false,
-      "photoRecommended": false
-    },
-    {
-      "id": "s6",
-      "order": 6,
-      "title": "Tag 1 — Stecklinge in Quarantänebehälter",
-      "stepType": "Action",
-      "description": "Stecklinge in vorbereiteten Quarantänebehälter einsetzen. Erste Lösung: pH 5,8–6,0 / EC 0,4–0,6 / DO > 6 mg/L / HOCl 2 ml/L. Kein Dünger.",
+      "title": "Tag 0 — Arbeitsbereich und Bäder vorbereiten",
+      "stepType": "Measurement",
+      "description": "Arbeitsfläche desinfizieren. Drei Bäder ansetzen: Bad 1 Insektizid (Athena IPM 3 ml/L oder Neemöl 1,5 ml/L mit 10 ml/L Kaliseife), Bad 2 HOCl 2 ml/L bei 750 ppm mit pH 5,8–6,0 und ORP über 450 mV, Bad 3 reines RO-Wasser mit pH 6,0 bei 20–22 °C.",
       "expectedInputs": [
         "ph",
-        "ec",
-        "do"
+        "orp"
       ],
       "photoRequired": false,
       "photoRecommended": false
     },
     {
-      "id": "s7",
-      "order": 7,
-      "title": "Tag 2–3 — Klima einrichten",
+      "id": "c3",
+      "order": 3,
+      "title": "Tag 0 — Staunässe entfernen",
       "stepType": "Action",
-      "description": "Temperatur 20–22°C, relative Luftfeuchtigkeit 80–85%, Licht 18/6 bei 80–120 PPFD.",
+      "description": "Substrat vorsichtig abtropfen lassen oder sanft ausdrücken — nicht quetschen. Lose Fasern und Substratreste entfernen.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "condition": {
+        "key": "substrate",
+        "prompt": "Auf welchem Substratträger sitzen die Stecklinge? (§2 behandelt sie unterschiedlich)",
+        "equals": [
+          "rockwool",
+          "easyplug",
+          "jiffy"
+        ]
+      },
+      "repeatFor": "cutting"
+    },
+    {
+      "id": "c4",
+      "order": 4,
+      "title": "Tag 0 — Substrat spülen",
+      "stepType": "Action",
+      "description": "Substratträger mit pH-angepasstem RO-Wasser (5,8–6,0) durchspülen.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "condition": {
+        "key": "substrate",
+        "prompt": "Auf welchem Substratträger sitzen die Stecklinge? (§2 behandelt sie unterschiedlich)",
+        "equals": [
+          "rockwool",
+          "easyplug",
+          "jiffy"
+        ]
+      },
+      "repeatFor": "cutting"
+    },
+    {
+      "id": "c5",
+      "order": 5,
+      "title": "Tag 0 — Substrat dekontaminieren: HOCl",
+      "stepType": "Action",
+      "description": "Substrat vollständig in HOCl-Lösung tauchen: 2 ml/L bei 750 ppm, pH 5,8–6,0, ORP über 400 mV. Einwirkzeit 3–5 Minuten.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "condition": {
+        "key": "decontamination",
+        "prompt": "Welche Dekontamination? H₂O₂ nur bei Verdacht auf Schimmel oder Fäulnisgeruch (§2.4)",
+        "equals": [
+          "hocl"
+        ]
+      },
+      "conditions": [
+        {
+          "key": "substrate",
+          "prompt": "Auf welchem Substratträger sitzen die Stecklinge? (§2 behandelt sie unterschiedlich)",
+          "equals": [
+            "rockwool",
+            "easyplug",
+            "jiffy"
+          ]
+        }
+      ],
+      "repeatFor": "cutting"
+    },
+    {
+      "id": "c6",
+      "order": 6,
+      "title": "Tag 0 — Substrat dekontaminieren: H₂O₂",
+      "stepType": "Action",
+      "description": "Nur bei Verdacht auf Schimmel oder Biofilm: 1–2 ml/L H₂O₂ (11,9–12 %) bei 20–22 °C, höchstens 2 Minuten — bei Schaumbildung sofort abbrechen. H₂O₂ kann mikroskopische Wurzelspitzen schädigen. Anschließend sehr gründlich mit RO-Wasser (pH 5,8) spülen.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "condition": {
+        "key": "decontamination",
+        "prompt": "Welche Dekontamination? H₂O₂ nur bei Verdacht auf Schimmel oder Fäulnisgeruch (§2.4)",
+        "equals": [
+          "h2o2"
+        ]
+      },
+      "conditions": [
+        {
+          "key": "substrate",
+          "prompt": "Auf welchem Substratträger sitzen die Stecklinge? (§2 behandelt sie unterschiedlich)",
+          "equals": [
+            "rockwool",
+            "easyplug",
+            "jiffy"
+          ]
+        }
+      ],
+      "repeatFor": "cutting"
+    },
+    {
+      "id": "c7",
+      "order": 7,
+      "title": "Tag 0 — Jiffy sanft auspressen",
+      "stepType": "Action",
+      "description": "Jiffies vertragen leichten Druck und halten sonst Staunässe. Nur sanft ausdrücken, niemals quetschen.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "condition": {
+        "key": "substrate",
+        "prompt": "Auf welchem Substratträger sitzen die Stecklinge? (§2 behandelt sie unterschiedlich)",
+        "equals": [
+          "jiffy"
+        ]
+      },
+      "repeatFor": "cutting"
+    },
+    {
+      "id": "c8",
+      "order": 8,
+      "title": "Tag 0 — Substrat abtropfen lassen",
+      "stepType": "Wait",
+      "description": "Substrat nur leicht feucht halten, kein stehendes Wasser. Auf perforierter Fläche oder Gitter 1–2 Stunden abtropfen lassen, erst danach in den Quarantänebehälter.",
+      "waitMinutes": 90,
+      "photoRequired": false,
+      "photoRecommended": false,
+      "condition": {
+        "key": "substrate",
+        "prompt": "Auf welchem Substratträger sitzen die Stecklinge? (§2 behandelt sie unterschiedlich)",
+        "equals": [
+          "rockwool",
+          "easyplug",
+          "jiffy"
+        ]
+      }
+    },
+    {
+      "id": "c9",
+      "order": 9,
+      "title": "Tag 0 — Ohne Substratträger: direkt zum Waschprotokoll",
+      "stepType": "Confirmation",
+      "description": "Wurzelnackte Stecklinge, etwa aus einem DWC- oder Aeroponik-Cloner, brauchen keine Substratbehandlung. Abschnitt 2 entfällt, es geht direkt mit der 3-Bad-Methode weiter.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "condition": {
+        "key": "substrate",
+        "prompt": "Auf welchem Substratträger sitzen die Stecklinge? (§2 behandelt sie unterschiedlich)",
+        "equals": [
+          "none"
+        ]
+      }
+    },
+    {
+      "id": "c10",
+      "order": 10,
+      "title": "Tag 0 — Bad 1: Insektizid und mechanische Reinigung",
+      "stepType": "Action",
+      "description": "Steckling 2–3 Minuten eintauchen, dabei Stängel und Blätter sanft schwenken. Entfernt sichtbare Rückstände, Insekteneier, Sporen und Larven. Überschuss leicht abschütteln, ohne die Pflanze zu beschädigen.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "repeatFor": "cutting"
+    },
+    {
+      "id": "c11",
+      "order": 11,
+      "title": "Tag 0 — Bad 2: Desinfektion",
+      "stepType": "Action",
+      "description": "Steckling 3–5 Minuten in die HOCl-Lösung tauchen. Kein aktives Schwenken nötig. Lösung erneuern, sobald sie trüb wird.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "repeatFor": "cutting"
+    },
+    {
+      "id": "c12",
+      "order": 12,
+      "title": "Tag 0 — Bad 3: Neutrale Spülung",
+      "stepType": "Action",
+      "description": "Steckling 1–2 Minuten sanft in RO-Wasser (pH 6,0, 20–22 °C) tauchen, um Ölfilme und Reaktionsrückstände zu entfernen. Danach auf steriler Fläche abtropfen lassen.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "repeatFor": "cutting"
+    },
+    {
+      "id": "c13",
+      "order": 13,
+      "title": "Tag 0 — In Quarantänebehälter setzen",
+      "stepType": "Action",
+      "description": "Jeden Steckling einzeln in einen isolierten Behälter von mindestens 0,5–1 L setzen, mit Luftstein für DO über 6 mg/L.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "repeatFor": "cutting"
+    },
+    {
+      "id": "c14",
+      "order": 14,
+      "title": "Tag 0 — Quarantänelösung ansetzen",
+      "stepType": "Measurement",
+      "description": "In den ersten 2–3 Tagen ohne Dünger und Additive. pH 5,8–6,0, EC 0,4–0,6 mS/cm (höchstens 0,8 bei bereits bewurzelten Klonen), Wassertemperatur 20–22 °C stabil, DO über 6 mg/L, ORP 350–450 mV bei HOCl-Einsatz.",
+      "expectedInputs": [
+        "ph",
+        "ec",
+        "waterTemp",
+        "do",
+        "orp"
+      ],
       "photoRequired": false,
       "photoRecommended": false
     },
     {
-      "id": "s8",
-      "order": 8,
+      "id": "c15",
+      "order": 15,
+      "title": "Tag 0 — Klima einstellen",
+      "stepType": "Action",
+      "description": "20–22 °C konstant, Luftfeuchte zu Beginn 80–85 %, Licht 18/6 bei niedrigen 80–120 PPFD.",
+      "expectedInputs": [
+        "temperature",
+        "humidity",
+        "ppfd"
+      ],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "c16",
+      "order": 16,
+      "title": "Tag 1–7 — Tägliche Sichtkontrolle",
+      "stepType": "Confirmation",
+      "description": "Blätter: keine neuen Verfärbungen, kein Welken, keine Eipunkte. Wurzeln: weiß, faserig, geruchlos. Mit Handschuhen prüfen, Pflanzen nicht direkt berühren. Medienfeuchte und Temperatur kontrollieren.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "c17",
+      "order": 17,
+      "title": "Tag 2 — Lösung vollständig erneuern",
+      "stepType": "Action",
+      "description": "Nährlösung alle 48 Stunden komplett wechseln — nicht nachfüllen. HOCl (2 ml/L) separat dosieren, nie mit Düngern kombinieren. Keine organischen Zusätze oder EM-Produkte.",
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "c18",
+      "order": 18,
+      "title": "Tag 3–14 — Luftfeuchte schrittweise senken",
+      "stepType": "Action",
+      "description": "Von 80–85 % schrittweise auf 65 % absenken, damit die Stecklinge die Transpiration wieder aufnehmen.",
+      "expectedInputs": [
+        "humidity"
+      ],
+      "photoRequired": false,
+      "photoRecommended": false
+    },
+    {
+      "id": "c19",
+      "order": 19,
       "title": "Tag 3 — Fulvosäure zugeben",
       "stepType": "Action",
-      "description": "Fulvosäure 1 ml/L zur Lösung geben. Fördert Zellregeneration und Nährstoffaufnahme.",
+      "description": "Fulvosäure 1 ml/L dosieren, pH auf 5,8–6,0 nachstellen.",
       "photoRequired": false,
       "photoRecommended": false
     },
     {
-      "id": "s9",
-      "order": 9,
+      "id": "c20",
+      "order": 20,
       "title": "Tag 3 — Kaliumsilikat zugeben",
       "stepType": "Action",
-      "description": "Kaliumsilikat 0,5 ml/L — mindestens 6–12 Stunden nach Fulvosäure zugeben. Nicht direkt kombinieren.",
+      "description": "Kaliumsilikat 0,3–0,5 ml/L — mindestens 6 Stunden getrennt von der Fulvosäure dosieren, sonst reagieren beide miteinander. pH danach erneut prüfen.",
       "photoRequired": false,
       "photoRecommended": false
     },
     {
-      "id": "s10",
-      "order": 10,
-      "title": "Tag 3–7 — Lösung alle 48h wechseln",
-      "stepType": "Action",
-      "description": "Lösung alle 48 Stunden vollständig erneuern. pH 5,8–6,0 halten. Tägliche Sichtkontrolle auf Schimmel, Verfärbungen und Wurzelwachstum.",
-      "photoRequired": false,
-      "photoRecommended": true
-    },
-    {
-      "id": "s11",
-      "order": 11,
-      "title": "Tag 7–14 — Klima schrittweise anpassen",
-      "stepType": "Action",
-      "description": "RH schrittweise von 80% auf 65% senken. Lichtintensität von 80 auf 120 PPFD erhöhen. EC erhöhen (0,6 → 1,0) wenn Wurzelwachstum gut.",
-      "photoRequired": false,
-      "photoRecommended": false
-    },
-    {
-      "id": "s12",
-      "order": 12,
+      "id": "c21",
+      "order": 21,
       "title": "Tag 7+ — Freigabe-Check",
       "stepType": "Confirmation",
-      "description": "Erfolgskriterien: (a) Weiße faserige Wurzeln vorhanden? (b) Keine Verfärbungen an Blättern? (c) Mindestdauer 7 Tage erreicht? Bei Ja → Pflanze bereit für Hauptsystem. Bei Nein → bis Tag 14 verlängern.",
+      "description": "Mindestens 7 volle Tage. Bei empfindlicher Genetik bis 14 Tage, nach einem Rückfall während der Quarantäne bis 21 Tage. Freigabe erst bei vollständiger Wurzelbildung: weiße, faserige Wurzeln ohne Geruch und ohne Auffälligkeit am Blatt.",
       "photoRequired": false,
       "photoRecommended": true
     }

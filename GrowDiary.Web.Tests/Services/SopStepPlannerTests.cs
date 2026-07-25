@@ -155,6 +155,66 @@ public sealed class SopStepPlannerTests : IDisposable
         Assert.Equal(orders.OrderBy(order => order), orders);
     }
 
+    private SopDefinition Quarantine() =>
+        Assert.Single(_loader.Sops, sop => sop.Id == "cuttings-quarantine");
+
+    [Fact]
+    public void BareRootCuttings_SkipTheWholeSubstrateSection()
+    {
+        // SOP-C1 §2 is about the carrier. A cutting from a DWC cloner has none, so telling
+        // someone to dip a plug they don't have is worse than saying nothing.
+        var planned = SopStepPlanner.Plan(
+            Quarantine(),
+            new Dictionary<string, string> { ["substrate"] = "none", ["decontamination"] = "hocl" });
+        var titles = planned.Select(step => step.Step.Title).ToList();
+
+        Assert.DoesNotContain(titles, title => title.Contains("Substrat spülen"));
+        Assert.DoesNotContain(titles, title => title.Contains("Substrat dekontaminieren"));
+        Assert.DoesNotContain(titles, title => title.Contains("Jiffy"));
+        Assert.Contains(titles, title => title.Contains("Bad 1"));
+    }
+
+    [Fact]
+    public void TheDecontaminationNeedsBothAnswers_NotJustTheAgent()
+    {
+        // Two conditions on one step: the agent AND there being a carrier at all. With a
+        // single key the HOCl dip would have shown up for bare-root cuttings.
+        var withCarrier = SopStepPlanner.Plan(
+            Quarantine(),
+            new Dictionary<string, string> { ["substrate"] = "rockwool", ["decontamination"] = "hocl" });
+
+        Assert.Contains(withCarrier, step => step.Step.Title.Contains("dekontaminieren: HOCl"));
+        Assert.DoesNotContain(withCarrier, step => step.Step.Title.Contains("dekontaminieren: H₂O₂"));
+    }
+
+    [Fact]
+    public void OnlyJiffiesGetPressedOut()
+    {
+        var jiffy = SopStepPlanner.Plan(Quarantine(), new Dictionary<string, string> { ["substrate"] = "jiffy" });
+        var rockwool = SopStepPlanner.Plan(Quarantine(), new Dictionary<string, string> { ["substrate"] = "rockwool" });
+
+        Assert.Contains(jiffy, step => step.Step.Title.Contains("Jiffy sanft auspressen"));
+        Assert.DoesNotContain(rockwool, step => step.Step.Title.Contains("Jiffy sanft auspressen"));
+    }
+
+    [Fact]
+    public void TheThreeBathMethod_RunsAsABlockPerCutting()
+    {
+        // SOP-C1 §3: bath 1, 2, 3 in order for one cutting, then the next — not all of
+        // bath 1 first, which would put a treated cutting back into a used insecticide bath.
+        var planned = SopStepPlanner.Plan(
+            Quarantine(),
+            new Dictionary<string, string> { ["substrate"] = "none" },
+            new Dictionary<string, int> { ["cutting"] = 2 });
+
+        var titles = planned.Select(step => $"{step.Subject}|{step.Step.Title}").ToList();
+        var firstThird = titles.FindIndex(t => t.StartsWith("Steckling 1 von 2") && t.Contains("Bad 3"));
+        var secondFirst = titles.FindIndex(t => t.StartsWith("Steckling 2 von 2") && t.Contains("Bad 1"));
+
+        Assert.True(firstThird >= 0 && secondFirst > firstThird,
+            "Steckling 1 muss alle drei Bäder durchlaufen haben, bevor Steckling 2 beginnt.");
+    }
+
     public void Dispose()
     {
         try { Directory.Delete(_tempRoot, recursive: true); } catch { /* temp dir */ }

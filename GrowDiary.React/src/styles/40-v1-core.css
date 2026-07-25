@@ -334,3 +334,26 @@ input, select, textarea { min-width: 0; }
   background: rgba(255,255,255,0.03); color: inherit; font: inherit; font-size: 14px;
 }
 .sop-setup-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+
+/* --- Solution stability: the SOP's diagnostic table read across all rows --- */
+.stability-head { padding: 14px 16px; border-bottom: 1px solid var(--v1-line); }
+.stability-head strong { display: block; font-size: 15px; margin-bottom: 4px; }
+.stability-head p { margin: 0; font-size: 13px; color: var(--v1-muted); }
+.stability-head.instability strong { color: var(--v1-warn, #f5c84b); }
+.stability-head.normal strong { color: var(--v1-ok, #6ee7b7); }
+.stability-signals { list-style: none; margin: 0; padding: 0; }
+.stability-signals li {
+  display: grid; grid-template-columns: 22px 150px 1fr; gap: 10px; align-items: baseline;
+  padding: 10px 16px; border-bottom: 1px solid var(--v1-line); font-size: 13px;
+}
+.stability-signals .mark { font-weight: 700; text-align: center; }
+.stability-signals li.normal .mark { color: var(--v1-ok, #6ee7b7); }
+.stability-signals li.instability .mark { color: var(--v1-warn, #f5c84b); }
+.stability-signals li.unknown .mark { color: var(--v1-muted); }
+.stability-signals .obs { color: var(--v1-muted); }
+.stability-visual { padding: 12px 16px; font-size: 13px; }
+.stability-visual ul { margin: 6px 0 0; padding-left: 18px; color: var(--v1-muted); display: grid; gap: 4px; }
+@media (max-width: 640px) {
+  .stability-signals li { grid-template-columns: 22px 1fr; }
+  .stability-signals .obs { grid-column: 2; }
+}

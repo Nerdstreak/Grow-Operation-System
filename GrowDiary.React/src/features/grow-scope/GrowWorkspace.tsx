@@ -6,6 +6,7 @@ import { GrowDetailJournalPanel } from '../grow-detail/GrowDetailJournalPanel'
 import { GrowDetailMeasurementsSection } from '../grow-detail/GrowDetailMeasurementsSection'
 import { GrowDetailSopSection } from '../grow-detail/GrowDetailSopSection'
 import { SopCatalog } from '../grow-detail/SopCatalog'
+import { SolutionStabilityPanel } from '../grow-detail/SolutionStabilityPanel'
 import { useGrowDetailBundle } from '../grow-detail/useGrowDetailBundle'
 import { useGrowDetailMutations } from '../grow-detail/useGrowDetailMutations'
 import { useGrowDetailResources } from '../grow-detail/useGrowDetailResources'
@@ -145,6 +146,8 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
           onSubmit={handleMeasurementSubmit}
         />
       )}
+
+      {section === 'diagnosis' && <SolutionStabilityPanel growId={growId} />}
 
       {section === 'diagnosis' && (
         <GrowDetailDiagnosisSection

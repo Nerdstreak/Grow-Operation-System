@@ -37,12 +37,12 @@ public static class SopStepPlanner
     public static IReadOnlyList<SopChoice> RequiredChoices(SopDefinition sop)
     {
         return sop.Steps
-            .Where(step => step.Condition is not null)
-            .GroupBy(step => step.Condition!.Key, StringComparer.OrdinalIgnoreCase)
+            .SelectMany(step => step.AllConditions())
+            .GroupBy(condition => condition.Key, StringComparer.OrdinalIgnoreCase)
             .Select(group => new SopChoice(
                 group.Key,
-                group.Select(step => step.Condition!.Prompt).FirstOrDefault(p => !string.IsNullOrWhiteSpace(p)),
-                group.SelectMany(step => step.Condition!.EqualsAny)
+                group.Select(condition => condition.Prompt).FirstOrDefault(p => !string.IsNullOrWhiteSpace(p)),
+                group.SelectMany(condition => condition.EqualsAny)
                      .Distinct(StringComparer.OrdinalIgnoreCase)
                      .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
                      .ToList()))
@@ -110,19 +110,28 @@ public static class SopStepPlanner
 
     private static bool Applies(SopStepDefinition step, IReadOnlyDictionary<string, string>? answers)
     {
-        if (step.Condition is not { } condition || condition.EqualsAny.Count == 0)
+        // Every condition has to hold: one key is not always enough to decide.
+        foreach (var condition in step.AllConditions())
         {
-            return true;
+            if (condition.EqualsAny.Count == 0)
+            {
+                continue;
+            }
+
+            // Unanswered means "keep it". Dropping a step because a question was skipped
+            // would silently shorten a treatment, which is the worst way to be wrong here.
+            if (answers is null || !answers.TryGetValue(condition.Key, out var answer))
+            {
+                continue;
+            }
+
+            if (!condition.EqualsAny.Contains(answer, StringComparer.OrdinalIgnoreCase))
+            {
+                return false;
+            }
         }
 
-        // Unanswered means "keep it". Dropping a step because a question was skipped would
-        // silently shorten a treatment procedure, which is the worst way to be wrong here.
-        if (answers is null || !answers.TryGetValue(condition.Key, out var answer))
-        {
-            return true;
-        }
-
-        return condition.EqualsAny.Contains(answer, StringComparer.OrdinalIgnoreCase);
+        return true;
     }
 
     private static int RepeatCount(string subject, IReadOnlyDictionary<string, int>? repeatCounts)
