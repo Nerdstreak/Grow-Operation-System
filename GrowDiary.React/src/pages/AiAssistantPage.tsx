@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { apiFetch } from '../api'
 import { V1Page, V1Section, V1Card, V1Field, V1Switch, V1Button, V1Alert, V1Badge, V1Empty } from '../components/v1'
 
+type AiProvider = 'OpenAiCompatible' | 'Anthropic'
+
 type AiSettings = {
+  provider: AiProvider
   baseUrl: string | null
   model: string | null
   enabled: boolean
@@ -11,6 +14,57 @@ type AiSettings = {
   isLocalEndpoint: boolean
   isConfigured: boolean
 }
+
+/**
+ * The three ways people actually connect a model. Picking one fills in the address and a
+ * sensible model, so the common case is: choose, paste key, save.
+ */
+const PRESETS: Array<{
+  key: string
+  label: string
+  provider: AiProvider
+  baseUrl: string
+  model: string
+  note: string
+  needsKey: boolean
+}> = [
+  {
+    key: 'anthropic',
+    label: 'Claude (Anthropic)',
+    provider: 'Anthropic',
+    baseUrl: '',
+    model: 'claude-sonnet-4-5',
+    note: 'Schlüssel von console.anthropic.com. Die Adresse ist fest, du brauchst sie nicht.',
+    needsKey: true,
+  },
+  {
+    key: 'openai',
+    label: 'OpenAI',
+    provider: 'OpenAiCompatible',
+    baseUrl: 'https://api.openai.com/v1',
+    model: 'gpt-4o-mini',
+    note: 'Schlüssel von platform.openai.com.',
+    needsKey: true,
+  },
+  {
+    key: 'local',
+    label: 'Lokal (Ollama / LM Studio)',
+    provider: 'OpenAiCompatible',
+    baseUrl: 'http://localhost:11434/v1',
+    model: 'llama3.1',
+    note: 'Nichts verlässt dein Netzwerk. Braucht keinen Schlüssel — dafür einen Rechner, der das Modell trägt.',
+    needsKey: false,
+  },
+  {
+    key: 'custom',
+    label: 'Anderer Dienst',
+    provider: 'OpenAiCompatible',
+    baseUrl: '',
+    model: '',
+    note: 'Alles, was die OpenAI-Schnittstelle spricht — OpenRouter, vLLM, ein eigener Server.',
+    needsKey: false,
+  },
+]
 
 type KnowledgeItem = {
   id: string
@@ -37,12 +91,22 @@ type GrowOption = { id: number; name: string }
 
 type TestResult = { ok: boolean; errorCode: string | null; message: string | null; reply: string | null }
 
+/** Which preset a stored connection came from, so reopening the page shows the right one. */
+function matchPreset(settings: AiSettings): string {
+  if (settings.provider === 'Anthropic') return 'anthropic'
+  const url = (settings.baseUrl ?? '').toLowerCase()
+  if (url.includes('api.openai.com')) return 'openai'
+  if (settings.isLocalEndpoint) return 'local'
+  return url === '' ? 'anthropic' : 'custom'
+}
+
 /**
  * Setting up the assistant, and — the part that matters — showing exactly what would be
  * sent before anything is.
  */
 export function AiAssistantPage() {
   const [settings, setSettings] = useState<AiSettings | null>(null)
+  const [presetKey, setPresetKey] = useState('anthropic')
   const [baseUrl, setBaseUrl] = useState('')
   const [model, setModel] = useState('')
   const [apiKey, setApiKey] = useState('')
@@ -67,7 +131,18 @@ export function AiAssistantPage() {
     setEnabled(data.enabled)
     setAllowPhotos(data.allowPhotos)
     setApiKey('')
+    setPresetKey(matchPreset(data))
   }, [])
+
+  function choosePreset(key: string) {
+    setPresetKey(key)
+    const preset = PRESETS.find((item) => item.key === key)
+    if (!preset || key === 'custom') return
+    setBaseUrl(preset.baseUrl)
+    setModel(preset.model)
+  }
+
+  const preset = PRESETS.find((item) => item.key === presetKey) ?? PRESETS[0]
 
   useEffect(() => {
     const controller = new AbortController()
@@ -113,7 +188,14 @@ export function AiAssistantPage() {
       // back from the server, so it cannot be sent in again.
       const data = await apiFetch<AiSettings>('/api/ai/settings', {
         method: 'PUT',
-        body: JSON.stringify({ baseUrl, model, enabled, allowPhotos, apiKey: apiKey === '' ? null : apiKey }),
+        body: JSON.stringify({
+          provider: preset.provider,
+          baseUrl,
+          model,
+          enabled,
+          allowPhotos,
+          apiKey: apiKey === '' ? null : apiKey,
+        }),
       })
       applySettings(data)
       setMessage('Gespeichert.')
@@ -153,24 +235,35 @@ export function AiAssistantPage() {
       <V1Section title="Modell verbinden">
         <V1Card>
           <p className="v1-muted">
-            Grow OS spricht mit jedem Dienst, der die OpenAI-Schnittstelle versteht — den bekannten Anbietern
-            ebenso wie einem lokalen Ollama oder LM Studio. Ohne Eintrag bleibt der Assistent aus und die
-            App voll nutzbar.
+            Ohne Eintrag bleibt der Assistent aus und die App voll nutzbar. Es fallen Kosten beim
+            gewählten Anbieter an — für den täglichen Betrieb üblicherweise Cent- bis niedrige
+            Eurobeträge im Monat; lokal läuft es kostenlos.
           </p>
 
-          <V1Field label="Adresse" hint="z. B. https://api.openai.com/v1 — oder http://localhost:11434/v1 für lokal">
-            <input value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="http://localhost:11434/v1" />
+          <V1Field label="Anbieter" hint={preset.note}>
+            <select value={presetKey} onChange={(event) => choosePreset(event.target.value)}>
+              {PRESETS.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
+            </select>
           </V1Field>
 
-          <V1Field label="Modell" hint="z. B. gpt-4o-mini, claude-sonnet-4-5 oder llama3.1">
-            <input value={model} onChange={(event) => setModel(event.target.value)} placeholder="gpt-4o-mini" />
+          {/* Anthropic has exactly one address, so asking for it would only invite typos. */}
+          {preset.provider !== 'Anthropic' && (
+            <V1Field label="Adresse" hint="Endet auf /v1 — den Rest ergänzt Grow OS.">
+              <input value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="http://localhost:11434/v1" />
+            </V1Field>
+          )}
+
+          <V1Field label="Modell" hint={`Vorbelegt: ${preset.model || '—'}. Jedes Modell des Anbieters ist möglich.`}>
+            <input value={model} onChange={(event) => setModel(event.target.value)} placeholder={preset.model} />
           </V1Field>
 
           <V1Field
             label="Schlüssel"
             hint={settings?.hasApiKey
               ? 'Ein Schlüssel ist hinterlegt. Leer lassen behält ihn — er wird nie zurückgegeben.'
-              : 'Lokale Dienste brauchen meist keinen.'}
+              : preset.needsKey
+                ? 'Wird gebraucht.'
+                : 'Lokale Dienste brauchen meist keinen.'}
           >
             <input
               type="password"

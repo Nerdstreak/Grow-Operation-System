@@ -46,6 +46,9 @@ public sealed class AiApiController : ApiControllerBase
 
         var settings = new AiSettings
         {
+            Provider = Enum.TryParse<AiProvider>(request.Provider, ignoreCase: true, out var provider)
+                ? provider
+                : AiProvider.OpenAiCompatible,
             BaseUrl = request.BaseUrl,
             Model = request.Model,
             Enabled = request.Enabled,
@@ -76,10 +79,19 @@ public sealed class AiApiController : ApiControllerBase
         var settings = _settings.GetAiSettings();
         var asked = string.IsNullOrWhiteSpace(question) ? "(deine Frage)" : question;
 
+        // The address the request would really go to, not what happens to be stored: with
+        // Anthropic the field is empty because there is only one endpoint, and naming no
+        // destination on a privacy panel would be worse than useless.
+        var endpoint = settings.IsConfigured
+            ? (settings.Provider == AiProvider.Anthropic
+                ? AiRequestFactory.AnthropicUri(settings.BaseUrl).ToString()
+                : AiRequestFactory.OpenAiUri(settings.BaseUrl!).ToString())
+            : null;
+
         return Ok(new AiSendPreviewDto(
             GrowId: growId,
             WouldLeaveTheHouse: settings.IsConfigured && !settings.IsLocalEndpoint,
-            Endpoint: settings.BaseUrl,
+            Endpoint: endpoint,
             GrowFacts: context.GrowFacts,
             Measurements: context.Measurements,
             OpenDeviations: context.OpenDeviations,
@@ -158,6 +170,7 @@ public sealed class AiApiController : ApiControllerBase
 
     private static AiSettings Clone(AiSettings settings) => new()
     {
+        Provider = settings.Provider,
         BaseUrl = settings.BaseUrl,
         ApiKey = settings.ApiKey,
         Model = settings.Model,
@@ -166,6 +179,7 @@ public sealed class AiApiController : ApiControllerBase
     };
 
     private static AiSettingsDto ToDto(AiSettings settings) => new(
+        settings.Provider.ToString(),
         settings.BaseUrl,
         settings.Model,
         settings.Enabled,

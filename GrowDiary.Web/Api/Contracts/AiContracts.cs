@@ -5,6 +5,7 @@ namespace GrowDiary.Web.Api.Contracts;
 /// stored — so it cannot leak through the API it was saved with.
 /// </summary>
 public sealed record AiSettingsDto(
+    string Provider,
     string? BaseUrl,
     string? Model,
     bool Enabled,
@@ -15,6 +16,7 @@ public sealed record AiSettingsDto(
 
 /// <param name="ApiKey">Null leaves the stored key untouched; an empty string clears it.</param>
 public sealed record AiSettingsRequest(
+    string? Provider,
     string? BaseUrl,
     string? Model,
     bool Enabled,

@@ -14,6 +14,7 @@ public sealed class AiSettingsRepository : RepositoryBase
     private const string ModelKey = "ai:model";
     private const string EnabledKey = "ai:enabled";
     private const string AllowPhotosKey = "ai:allowPhotos";
+    private const string ProviderKey = "ai:provider";
 
     public AiSettings GetAiSettings()
     {
@@ -34,6 +35,11 @@ public sealed class AiSettingsRepository : RepositoryBase
                 case ModelKey: settings.Model = Blank(value); break;
                 case EnabledKey: settings.Enabled = ParseBool(value); break;
                 case AllowPhotosKey: settings.AllowPhotos = ParseBool(value); break;
+                case ProviderKey:
+                    settings.Provider = Enum.TryParse<AiProvider>(value, ignoreCase: true, out var provider)
+                        ? provider
+                        : AiProvider.OpenAiCompatible;
+                    break;
             }
         }
 
@@ -52,6 +58,7 @@ public sealed class AiSettingsRepository : RepositoryBase
         Upsert(connection, ModelKey, Trim(settings.Model));
         Upsert(connection, EnabledKey, settings.Enabled ? "1" : "0");
         Upsert(connection, AllowPhotosKey, settings.AllowPhotos ? "1" : "0");
+        Upsert(connection, ProviderKey, settings.Provider.ToString());
 
         if (replaceApiKey)
         {
