@@ -136,6 +136,42 @@ public sealed partial class DatabaseInitializer
                 UpdatedAtUtc TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS PhenoEvaluations (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                PlantInstanceId INTEGER NOT NULL UNIQUE,
+                VigorScore INTEGER NULL,
+                InternodeSpacing TEXT NOT NULL DEFAULT 'Unknown',
+                BranchingScore INTEGER NULL,
+                LeafToBudScore INTEGER NULL,
+                HeightAtFlipCm REAL NULL,
+                TrainingMethods TEXT NULL,
+                TrainingResponseScore INTEGER NULL,
+                StressToleranceScore INTEGER NULL,
+                PestResistanceScore INTEGER NULL,
+                FloweringDays INTEGER NULL,
+                HeightAtHarvestCm REAL NULL,
+                WetYieldG REAL NULL,
+                DryYieldG REAL NULL,
+                BudDensityScore INTEGER NULL,
+                ResinScore INTEGER NULL,
+                TrimEaseScore INTEGER NULL,
+                AromaScore INTEGER NULL,
+                AromaNotes TEXT NULL,
+                FlavorScore INTEGER NULL,
+                EffectScore INTEGER NULL,
+                EffectNotes TEXT NULL,
+                ThcPercent REAL NULL,
+                CbdPercent REAL NULL,
+                TerpeneNotes TEXT NULL,
+                ManualOverallScore REAL NULL,
+                IsKeeper INTEGER NOT NULL DEFAULT 0,
+                ConfirmedInSecondRun INTEGER NOT NULL DEFAULT 0,
+                Notes TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (PlantInstanceId) REFERENCES PlantInstances (Id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS PlantInstances (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 StrainId INTEGER NULL,

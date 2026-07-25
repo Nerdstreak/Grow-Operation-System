@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.5.0
+
+- New — **Pheno Hunt**. Compare the siblings from one batch of seed and pick the keeper.
+  Each plant gets a score sheet that fills up as the run goes: structure and vigour while
+  growing, which training it got (LST, topping, supercropping, lollipopping …) and how it
+  took it, stress and pest resilience, then flowering days, stretch, yield, bud density and
+  resin at harvest, and finally aroma, flavour, effect and THC after the cure. Everything
+  optional — an unrated trait simply doesn't count.
+- New — **the ranking follows your goals**. You set once what matters (yield, quality,
+  potency, resilience, structure) and Grow OS ranks the plants accordingly, showing the
+  breakdown per plant so the number is explainable. Yield and THC are scored against the
+  other plants of the same hunt, because those numbers only mean something in comparison.
+  You can always override a plant's score by hand, mark a keeper, and note when a pheno was
+  confirmed in a second run.
+
 ## 1.4.0
 
 - New — **strain library**. A new "Sorten" page under Meine Grows is your own genetics
