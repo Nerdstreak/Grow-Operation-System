@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
 using GrowDiary.Web.Services.Knowledge.Schema;
 using Microsoft.Data.Sqlite;
 
@@ -18,7 +19,9 @@ public sealed class SopRepository : RepositoryBase
         SopStartSource source,
         string? sourceRecommendationKey,
         string? treatmentRecommendationStableKey,
-        string? notes)
+        string? notes,
+        IReadOnlyDictionary<string, string>? answers = null,
+        IReadOnlyDictionary<string, int>? repeatCounts = null)
     {
         var now = DateTime.UtcNow;
 
@@ -32,12 +35,15 @@ public sealed class SopRepository : RepositoryBase
                 ? now.AddDays(recurrenceIntervalDays.Value)
                 : null;
 
-        var orderedStepDefs = sopDefinition.Steps.OrderBy(s => s.Order).ToList();
+        // The plan, not the raw list: conditions drop the steps that don't apply to this
+        // run, and a repeated block becomes one entry per plant so it can be ticked off
+        // individually — which is the whole point of the disinfection between plants.
+        var plannedSteps = SopStepPlanner.Plan(sopDefinition, answers, repeatCounts);
         DateTime? nextStepDue = null;
-        for (var i = 0; i < orderedStepDefs.Count; i++)
+        for (var i = 0; i < plannedSteps.Count; i++)
         {
-            DateTime? stepDue = orderedStepDefs[i].WaitMinutes.HasValue
-                ? now.AddMinutes(orderedStepDefs[i].WaitMinutes!.Value)
+            DateTime? stepDue = plannedSteps[i].Step.WaitMinutes.HasValue
+                ? now.AddMinutes(plannedSteps[i].Step.WaitMinutes!.Value)
                 : i == 0 ? now : null;
             if (stepDue.HasValue && (nextStepDue is null || stepDue.Value < nextStepDue.Value))
                 nextStepDue = stepDue;
@@ -107,9 +113,10 @@ public sealed class SopRepository : RepositoryBase
             instance.Id = Convert.ToInt32((long)insertCommand.ExecuteScalar()!);
         }
 
-        for (var idx = 0; idx < orderedStepDefs.Count; idx++)
+        for (var idx = 0; idx < plannedSteps.Count; idx++)
         {
-            var stepDefinition = orderedStepDefs[idx];
+            var planned = plannedSteps[idx];
+            var stepDefinition = planned.Step;
 
             DateTime? stepDueAt;
             DateTime? stepAvailableAt;
@@ -127,9 +134,12 @@ public sealed class SopRepository : RepositoryBase
             var step = new SopStepInstance
             {
                 SopInstanceId = instance.Id,
-                StepId = stepDefinition.Id,
-                Order = stepDefinition.Order,
-                Title = stepDefinition.Title,
+                // Repeated steps share a definition id, so the occurrence is appended to
+                // keep each one addressable on its own.
+                StepId = planned.IsRepeated ? $"{stepDefinition.Id}#{planned.Occurrence}" : stepDefinition.Id,
+                // Re-sequenced: repetitions would otherwise all carry the same order.
+                Order = idx + 1,
+                Title = planned.Subject is null ? stepDefinition.Title : $"{stepDefinition.Title} — {planned.Subject}",
                 Description = NormalizeOptional(stepDefinition.Description),
                 StepType = stepDefinition.StepType,
                 Status = SopStepInstanceStatus.Pending,

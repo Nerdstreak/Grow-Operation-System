@@ -219,8 +219,15 @@ Offen:
    3-Bad-Methode. Das Schrittmodell kann es jetzt, die Daten fehlen noch.
 7. **Addback-SOP** aus der RDWC Procedure — 90 % füllen, einzeln zugeben, rühren, 500-ml-Grenze
 8. **Musterdiagnose nach SOP-N1 §2.1** — fünf Merkmale zusammen bewerten statt einzeln
-9. **Oberfläche** — der Planer wird noch nirgends aufgerufen; die SOP-Seite zeigt weiterhin
-   die flache Liste. Das ist der nächste sichtbare Schritt.
+9. ✅ **Oberfläche (1.7.3)** — der SOP-Katalog holt vor dem Start die Fragen der SOP ab und
+   zeigt sie inline. Beim Start werden nur die zutreffenden Schritte angelegt, je Pflanze
+   durchnummeriert.
+
+**Wichtige Korrektur beim Bauen:** Die erste Fassung des Planers hat *je Schritt* wiederholt —
+erst alle Pflanzen entnehmen, dann alle schneiden, dann alle desinfizieren. Damit wäre die
+Zwischendesinfektion wirkungslos gewesen, also genau die Maßnahme, die die Verschleppung
+verhindert. Der Planer wiederholt jetzt den **Block**: Pflanze 1 komplett bis in die
+Quarantäne, dann Pflanze 2. Aufgefallen ist das erst beim Durchlauf am laufenden System.
 
 Erst danach lohnt der Assistent: Er soll die SOPs *erklären* und *anstoßen*, nicht sie
 ersetzen. Solange der Ablauf selbst unvollständig ist, hätte er nichts Verlässliches, worauf

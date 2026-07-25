@@ -2,6 +2,7 @@ using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Api.Mapping;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
 using GrowDiary.Web.Services.Knowledge;
 using Microsoft.AspNetCore.Mvc;
 
@@ -100,6 +101,36 @@ public sealed class SopInstancesApiController : ApiControllerBase
         }
     }
 
+    /// <summary>
+    /// What the SOP needs to know before it can be planned — the branches it takes and the
+    /// things it repeats for. Asked up front rather than half-way through, because finding
+    /// out mid-treatment that a different path applied is exactly what a procedure is meant
+    /// to prevent.
+    /// </summary>
+    [HttpGet("plan-questions/{sopId}")]
+    [ProducesResponseType(typeof(SopPlanQuestionsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<SopPlanQuestionsDto> PlanQuestions(string sopId)
+    {
+        var sop = _knowledgeBase.Sops.FirstOrDefault(item => string.Equals(item.Id, sopId, StringComparison.OrdinalIgnoreCase));
+        if (sop is null)
+        {
+            return NotFoundError("sop_not_found", $"SOP mit Id '{sopId}' existiert nicht.");
+        }
+
+        var choices = SopStepPlanner.RequiredChoices(sop)
+            .Select(choice => new SopChoiceDto(choice.Key, choice.Prompt, choice.Options))
+            .ToList();
+
+        var subjects = sop.Steps
+            .Where(step => !string.IsNullOrWhiteSpace(step.RepeatFor))
+            .Select(step => step.RepeatFor!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return Ok(new SopPlanQuestionsDto(sop.Id, choices, subjects));
+    }
+
     [HttpPost("start")]
     [ProducesResponseType(typeof(SopInstanceDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
@@ -140,7 +171,9 @@ public sealed class SopInstancesApiController : ApiControllerBase
                 request.Source,
                 request.SourceRecommendationKey,
                 request.TreatmentRecommendationStableKey,
-                request.Notes);
+                request.Notes,
+                request.Answers,
+                request.RepeatCounts);
 
             CreateReminderTasksForSteps(instance);
 

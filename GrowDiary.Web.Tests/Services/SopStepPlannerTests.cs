@@ -83,6 +83,35 @@ public sealed class SopStepPlannerTests : IDisposable
     }
 
     [Fact]
+    public void EachPlantIsWorkedThroughCompletely_BeforeTheNextOneIsTouched()
+    {
+        // The block repeats, not the individual step. Lifting all six plants out first and
+        // disinfecting afterwards would carry the pathogen straight across the batch — the
+        // one thing SOP-S1 exists to prevent. A first version grouped by step and produced
+        // exactly that, which only showed up when the steps were read in order.
+        var planned = SopStepPlanner.Plan(
+            RootRot(),
+            new Dictionary<string, string> { ["severity"] = "severe" },
+            new Dictionary<string, int> { ["plant"] = 3 });
+
+        // The SOP has several repeat blocks (triage, treatment, follow-up inspection), each
+        // cycling through the plants, so the subject legitimately returns to "1 von 3" more
+        // than once. What must hold is the order inside a block.
+        var titles = planned.Select(step => $"{step.Subject}|{step.Step.Title}").ToList();
+        var firstDisinfect = titles.FindIndex(t => t.StartsWith("Pflanze 1 von 3") && t.Contains("desinfizieren"));
+        var secondLift = titles.FindIndex(t => t.StartsWith("Pflanze 2 von 3") && t.Contains("entnehmen"));
+
+        Assert.True(firstDisinfect >= 0 && secondLift > firstDisinfect,
+            "Die Zwischendesinfektion muss vor der nächsten Pflanze liegen.");
+
+        // Plant 1 is finished — right through to the quarantine container — before plant 2
+        // is lifted out at all.
+        var firstQuarantine = titles.FindIndex(t => t.StartsWith("Pflanze 1 von 3") && t.Contains("Quarantänebehälter"));
+        Assert.True(firstQuarantine >= 0 && secondLift > firstQuarantine,
+            "Pflanze 1 muss vollständig behandelt sein, bevor Pflanze 2 angefasst wird.");
+    }
+
+    [Fact]
     public void StepsThatDoNotRepeat_StayASingleOccurrence()
     {
         var planned = SopStepPlanner.Plan(

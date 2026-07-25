@@ -63,24 +63,46 @@ public static class SopStepPlanner
         IReadOnlyDictionary<string, string>? answers = null,
         IReadOnlyDictionary<string, int>? repeatCounts = null)
     {
+        var applicable = sop.Steps
+            .OrderBy(step => step.Order)
+            .Where(step => Applies(step, answers))
+            .ToList();
+
         var planned = new List<PlannedSopStep>();
 
-        foreach (var step in sop.Steps.OrderBy(step => step.Order))
+        // Consecutive steps sharing a subject form one block, and the *block* repeats — not
+        // the individual step. SOP-S1 works one plant through from lifting it out to putting
+        // it in quarantine, disinfecting before the next; doing all the lifting first and all
+        // the disinfecting afterwards would carry the pathogen straight across the batch,
+        // which is the one thing the procedure exists to stop.
+        for (var index = 0; index < applicable.Count;)
         {
-            if (!Applies(step, answers))
+            var subject = applicable[index].RepeatFor;
+            if (string.IsNullOrWhiteSpace(subject))
             {
+                planned.Add(new PlannedSopStep(applicable[index], 1, 1, null));
+                index++;
                 continue;
             }
 
-            var count = RepeatCount(step, repeatCounts);
+            var blockEnd = index;
+            while (blockEnd < applicable.Count
+                   && string.Equals(applicable[blockEnd].RepeatFor, subject, StringComparison.OrdinalIgnoreCase))
+            {
+                blockEnd++;
+            }
+
+            var count = RepeatCount(subject!, repeatCounts);
             for (var occurrence = 1; occurrence <= count; occurrence++)
             {
-                planned.Add(new PlannedSopStep(
-                    step,
-                    occurrence,
-                    count,
-                    count > 1 ? $"{SubjectLabel(step.RepeatFor!)} {occurrence} von {count}" : null));
+                var label = count > 1 ? $"{SubjectLabel(subject!)} {occurrence} von {count}" : null;
+                for (var step = index; step < blockEnd; step++)
+                {
+                    planned.Add(new PlannedSopStep(applicable[step], occurrence, count, label));
+                }
             }
+
+            index = blockEnd;
         }
 
         return planned;
@@ -103,12 +125,9 @@ public static class SopStepPlanner
         return condition.EqualsAny.Contains(answer, StringComparer.OrdinalIgnoreCase);
     }
 
-    private static int RepeatCount(SopStepDefinition step, IReadOnlyDictionary<string, int>? repeatCounts)
+    private static int RepeatCount(string subject, IReadOnlyDictionary<string, int>? repeatCounts)
     {
-        if (string.IsNullOrWhiteSpace(step.RepeatFor)
-            || repeatCounts is null
-            || !repeatCounts.TryGetValue(step.RepeatFor, out var count)
-            || count <= 0)
+        if (repeatCounts is null || !repeatCounts.TryGetValue(subject, out var count) || count <= 0)
         {
             return 1;
         }

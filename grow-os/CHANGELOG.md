@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.7.3
+
+- New — **starting a routine now asks what it needs to know.** Root-rot treatment wants to
+  know how badly the plants are affected and how many there are, and it asks before you
+  start rather than half-way through — finding out mid-treatment that a different path
+  applied is the thing a written procedure exists to prevent.
+- Changed — the steps you get are the steps that apply. A lightly affected plant skips the
+  root cut and gets the short rinse; a badly affected one gets the cut and the long one. And
+  the treatment is laid out **one plant at a time**: plant 1 goes from lifting out all the
+  way to the quarantine container, including disinfecting the shears, before plant 2 is
+  touched at all. That order is the whole point — it is what stops the pathogen crossing to
+  the next plant.
+
 ## 1.7.2
 
 - New — **procedures can branch and repeat.** The source SOPs are not flat lists: root-rot

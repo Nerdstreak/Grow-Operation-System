@@ -61,7 +61,27 @@ public sealed class StartSopInstanceRequest
     public string? SourceRecommendationKey { get; set; }
     public string? TreatmentRecommendationStableKey { get; set; }
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// Answers to the SOP's branching questions, e.g. <c>{"severity": "severe"}</c>.
+    /// Missing answers keep every step rather than dropping one.
+    /// </summary>
+    public Dictionary<string, string>? Answers { get; set; }
+
+    /// <summary>
+    /// How often a repeated block runs, e.g. <c>{"plant": 6}</c>. Absent means once.
+    /// </summary>
+    public Dictionary<string, int>? RepeatCounts { get; set; }
 }
+
+/// <summary>What has to be known before an SOP can be planned.</summary>
+public sealed record SopChoiceDto(string Key, string? Prompt, IReadOnlyList<string> Options);
+
+/// <summary>The questions and repeat subjects of one SOP, so the UI can ask up front.</summary>
+public sealed record SopPlanQuestionsDto(
+    string SopId,
+    IReadOnlyList<SopChoiceDto> Choices,
+    IReadOnlyList<string> RepeatSubjects);
 
 public sealed class UpdateSopStepInstanceRequest
 {

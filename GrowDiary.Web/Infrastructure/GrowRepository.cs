@@ -370,8 +370,12 @@ public sealed class GrowRepository
         SopStartSource source,
         string? sourceRecommendationKey,
         string? treatmentRecommendationStableKey,
-        string? notes)
-        => _sopRepository.StartSopInstance(growId, sopDefinition, source, sourceRecommendationKey, treatmentRecommendationStableKey, notes);
+        string? notes,
+        IReadOnlyDictionary<string, string>? answers = null,
+        IReadOnlyDictionary<string, int>? repeatCounts = null)
+        => _sopRepository.StartSopInstance(
+            growId, sopDefinition, source, sourceRecommendationKey,
+            treatmentRecommendationStableKey, notes, answers, repeatCounts);
 
     public SopInstance? GetSopInstance(int id)
         => _sopRepository.GetSopInstance(id);
