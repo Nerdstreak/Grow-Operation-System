@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.51
+
+- Improved — the **diagnosis, SOPs, journal and measurement views now match the rest of
+  the app**. Those grow pages still used the older, denser card style; they now use the
+  same surfaces, badges, buttons and typography as everything else.
+
 ## 1.0.50
 
 - Fixed — **"Alle Kameras testen" now shows every camera**, not just the first. On the
