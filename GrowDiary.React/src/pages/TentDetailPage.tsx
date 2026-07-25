@@ -5,6 +5,7 @@ import type { GrowSummary, HydroSetupDto, MetricPayload, PlantInstanceDto, Setup
 import { V1Alert, V1Badge, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { PlantActions } from '../features/plants/PlantActions'
 import { LightScheduleSection } from '../features/tents/LightScheduleSection'
+import { TentHistorySection } from '../features/tents/TentHistorySection'
 import { resolveUrl } from '../base'
 
 const tentMetricDefinitions = [
@@ -133,6 +134,8 @@ function TentDetailPage() {
         <V1Section title="Zeltwerte"><div className="v1-metric-grid compact">{mapMetrics(live?.metrics ?? [], tentMetricDefinitions).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div></V1Section>
         <V1Section title="Reservoir"><div className="v1-metric-grid compact">{mapMetrics(live?.metrics ?? [], hydroMetricDefinitions).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div></V1Section>
       </div>
+
+      <TentHistorySection tentId={tent.id} />
 
       <LightScheduleSection tentId={tent.id} />
 

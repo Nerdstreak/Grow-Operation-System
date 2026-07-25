@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0
+
+- New — **your sensor history is finally visible**. Grow OS has been recording every
+  mapped sensor every 5 minutes and condensing it into daily statistics each night — but
+  there was no way to look at it. The tent page now has a **Verlauf** section with a curve
+  per metric (pH, EC, water temp, air temp, humidity, VPD) over 7, 14 or 30 days. Each
+  curve shows the daily median as a line, the day's min/max as a band, and — if you've set
+  thresholds for that tent — your target range behind it, so "am I inside my limits?" is
+  answered at a glance.
+
 ## 1.0.52
 
 - Fixed — on **mobile**, a grow's name showed twice on its page (once in the summary
