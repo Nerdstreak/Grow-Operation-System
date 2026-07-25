@@ -121,6 +121,8 @@ function ManualMeasurementPage() {
   const [snapshotCam, setSnapshotCam] = useState('')
   const [snapshotting, setSnapshotting] = useState(false)
   const [growActionSaving, setGrowActionSaving] = useState<string | null>(null)
+  // How many °C the leaf sits below air temperature — configured on the tent, used for VPD.
+  const [leafOffset, setLeafOffset] = useState(0)
 
   // Fetches the tent's current live values and writes the mappable ones into the draft.
   // Returns whether any live value was available at all.
@@ -169,7 +171,7 @@ function ManualMeasurementPage() {
 
   const selectedGrow = useMemo(() => grows.find((grow) => grow.id === selectedGrowId) ?? null, [grows, selectedGrowId])
   const filledCount = useMemo(() => countFilled(draft), [draft])
-  const vpd = useMemo(() => calculateVpd(draft.airTemperatureC, draft.humidityPercent), [draft.airTemperatureC, draft.humidityPercent])
+  const vpd = useMemo(() => calculateVpd(draft.airTemperatureC, draft.humidityPercent, leafOffset), [draft.airTemperatureC, draft.humidityPercent, leafOffset])
   const isHydroGrow = isHydroStyle(selectedGrow?.hydroStyle)
   const solutionFields = isHydroGrow ? reservoirFields : soilSolutionFields
   const tentId = selectedGrow?.tentId ?? null
@@ -201,6 +203,7 @@ function ManualMeasurementPage() {
       if (tentId == null) {
         setCameras([])
         setSnapshotCam('')
+        setLeafOffset(0)
         return
       }
       try {
@@ -209,6 +212,7 @@ function ManualMeasurementPage() {
         const list = tent.cameras ?? []
         setCameras(list)
         setSnapshotCam(list[0] ?? '')
+        setLeafOffset(tent.leafTempOffsetC ?? 0)
       } catch { /* ignore */ }
     })()
     return () => controller.abort()
@@ -387,7 +391,7 @@ function ManualMeasurementPage() {
               <V1Section title="Klima">
                 <FieldGrid fields={climateFields} draft={draft} patch={patch}>
                   <div className="rc2-measurement-derived" data-audit="measurement-vpd">
-                    <span>VPD</span>
+                    <span>VPD{leafOffset > 0 ? ` · Blatt −${leafOffset} °C` : ''}</span>
                     <strong>{vpd ?? '–'}<em>kPa</em></strong>
                   </div>
                 </FieldGrid>
@@ -620,12 +624,19 @@ function cameraLabel(entity: string, index: number): string {
   return short.charAt(0).toUpperCase() + short.slice(1)
 }
 
-function calculateVpd(temperatureValue: string, humidityValue: string) {
+// Leaf VPD: the deficit is measured against the (cooler) leaf surface, while the actual
+// vapour pressure comes from the air. leafOffsetC = 0 gives plain air VPD.
+function saturationKpa(temperatureC: number) {
+  return 0.6108 * Math.exp((17.27 * temperatureC) / (temperatureC + 237.3))
+}
+
+function calculateVpd(temperatureValue: string, humidityValue: string, leafOffsetC = 0) {
   const temperature = parseNullableNumber(temperatureValue)
   const humidity = parseNullableNumber(humidityValue)
   if (temperature == null || humidity == null || humidity < 0 || humidity > 100) return null
-  const saturationKpa = 0.6108 * Math.exp((17.27 * temperature) / (temperature + 237.3))
-  return (saturationKpa * (1 - humidity / 100)).toFixed(2)
+  const actual = saturationKpa(temperature) * (humidity / 100)
+  const leaf = saturationKpa(temperature - leafOffsetC)
+  return Math.max(0, leaf - actual).toFixed(2)
 }
 
 function parseNullableNumber(value: string) {

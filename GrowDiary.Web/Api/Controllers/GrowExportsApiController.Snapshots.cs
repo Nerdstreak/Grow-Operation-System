@@ -54,7 +54,8 @@ public sealed partial class GrowExportsApiController
                 HaEntityId: sensor.HaEntityId,
                 DisplayLabel: sensor.DisplayLabel,
                 IsActive: sensor.IsActive)).ToList(),
-            Cameras: TentCameraList.Parse(null, snapshot.CameraEntityId));
+            Cameras: TentCameraList.Parse(null, snapshot.CameraEntityId),
+            LeafTempOffsetC: 0);
     }
 
 

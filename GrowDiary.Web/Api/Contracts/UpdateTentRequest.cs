@@ -24,6 +24,9 @@ public sealed class CreateTentRequest
     public bool Co2Available { get; set; }
     public string? CameraEntityId { get; set; }
     public List<string>? Cameras { get; set; }
+
+    /// <summary>°C the leaf sits below air temperature (leaf VPD). Null keeps the stored value.</summary>
+    public double? LeafTempOffsetC { get; set; }
     public List<UpdateTentSensorRequest>? Sensors { get; set; }
 }
 
@@ -51,6 +54,9 @@ public sealed class UpdateTentRequest
     public bool Co2Available { get; set; }
     public string? CameraEntityId { get; set; }
     public List<string>? Cameras { get; set; }
+
+    /// <summary>°C the leaf sits below air temperature (leaf VPD). Null keeps the stored value.</summary>
+    public double? LeafTempOffsetC { get; set; }
     public List<UpdateTentSensorRequest>? Sensors { get; set; }
 }
 

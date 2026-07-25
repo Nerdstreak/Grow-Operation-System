@@ -199,6 +199,7 @@ export interface TentDto {
   co2Available: boolean
   cameraEntityId: string | null
   cameras: string[]
+  leafTempOffsetC: number
   activeGrowCount: number
   archivedGrowCount: number
   activeSetupCount: number
@@ -237,6 +238,7 @@ export interface UpdateTentRequest {
   co2Available: boolean
   cameraEntityId: string | null
   cameras?: string[]
+  leafTempOffsetC?: number
   sensors: UpdateTentSensorRequest[]
 }
 
@@ -263,6 +265,7 @@ export interface CreateTentRequest {
   co2Available: boolean
   cameraEntityId: string | null
   cameras?: string[]
+  leafTempOffsetC?: number
   sensors: UpdateTentSensorRequest[]
 }
 

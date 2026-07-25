@@ -28,7 +28,8 @@ public sealed record TentDto(
     int ActiveSetupCount,
     int ArchivedSetupCount,
     IReadOnlyList<TentSensorDto> Sensors,
-    IReadOnlyList<string> Cameras
+    IReadOnlyList<string> Cameras,
+    double LeafTempOffsetC
 );
 
 public sealed record TentSensorDto(

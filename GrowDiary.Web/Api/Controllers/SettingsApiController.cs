@@ -145,6 +145,12 @@ public sealed class SettingsApiController : ApiControllerBase
             tentToSave.CameraEntityIds = existing.CameraEntityIds;
         }
 
+        // Leaf-temperature offset: only replaced when the request actually carries one, so
+        // a partial update (e.g. the HA mapping form) never resets it.
+        tentToSave.LeafTempOffsetC = request.LeafTempOffsetC is { } offset
+            ? Math.Clamp(offset, 0, 10)
+            : existing.LeafTempOffsetC;
+
         _repository.UpdateTent(tentToSave);
         if (request.Sensors is not null)
         {

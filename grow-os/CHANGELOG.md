@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0
+
+- New — **leaf temperature offset for VPD**. What a plant actually feels is leaf VPD, and
+  leaves sit 1-3 °C below air temperature (more under LED, which has no infrared). You can
+  now set that offset per tent ("Blatt kühler als Luft"), and both the live dashboard and
+  the measurement page use it — the measurement page even shows which offset it applied.
+  Left at 0 you get the plain air VPD as before.
+- Improved — when no VPD sensor is mapped, the calculated value now comes from the **live**
+  temperature and humidity instead of the last stored measurement, which could be days old.
+- Fixed — the status gauge's glow was **clipped into a square** by its own SVG bounds; it
+  now fades out as a full circle.
+
 ## 1.1.1
 
 - New — **the live tiles now show a real 24-hour curve**. Each sensor tile on the live

@@ -32,6 +32,9 @@ public sealed class Tent
     /// compatibility (snapshot automation, camera-proxy default).
     /// </summary>
     public string? CameraEntityIds { get; set; }
+
+    /// <summary>How many °C the leaf sits below air temperature — used for leaf VPD (0 = plain air VPD).</summary>
+    public double LeafTempOffsetC { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 

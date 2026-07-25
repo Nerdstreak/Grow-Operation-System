@@ -99,6 +99,7 @@ public sealed partial class DatabaseInitializer
         command.ExecuteNonQuery();
         EnsureColumn(connection, "Tents", "Status", "TEXT NOT NULL DEFAULT 'Active'");
         EnsureColumn(connection, "Tents", "CameraEntityIds", "TEXT NULL");
+        EnsureColumn(connection, "Tents", "LeafTempOffsetC", "REAL NOT NULL DEFAULT 0");
         EnsureColumn(connection, "GrowSystems", "TentId", "INTEGER NULL");
         EnsureColumn(connection, "GrowSystems", "Status", "TEXT NOT NULL DEFAULT 'Active'");
         EnsureColumn(connection, "GrowSystems", "LayoutType", "TEXT NOT NULL DEFAULT 'SingleBucket'");

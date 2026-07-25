@@ -89,14 +89,14 @@ public sealed class TentRepository : RepositoryBase
                 WidthCm, DepthCm, TentHeightCm, LightType, LightWatt,
                 LightController, LightControllerEntityId, ExhaustFanCount, ExhaustM3h,
                 CirculationFanCount, HvacController, HvacControllerEntityId,
-                Co2Available, CameraEntityId, CameraEntityIds, CreatedAtUtc, UpdatedAtUtc
+                Co2Available, CameraEntityId, CameraEntityIds, LeafTempOffsetC, CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
                 $name, $kind, $tentType, $status, $notes, $displayOrder, $accentColor,
                 $widthCm, $depthCm, $tentHeightCm, $lightType, $lightWatt,
                 $lightController, $lightControllerEntityId, $exhaustFanCount, $exhaustM3h,
                 $circulationFanCount, $hvacController, $hvacControllerEntityId,
-                $co2Available, $cameraEntityId, $cameraEntityIds, datetime('now'), datetime('now')
+                $co2Available, $cameraEntityId, $cameraEntityIds, $leafTempOffsetC, datetime('now'), datetime('now')
             );
             SELECT last_insert_rowid();
         """;
@@ -141,6 +141,7 @@ public sealed class TentRepository : RepositoryBase
                 Co2Available = $co2Available,
                 CameraEntityId = $cameraEntityId,
                 CameraEntityIds = $cameraEntityIds,
+                LeafTempOffsetC = $leafTempOffsetC,
                 UpdatedAtUtc = datetime('now')
             WHERE Id = $id;
         """;
@@ -477,6 +478,7 @@ public sealed class TentRepository : RepositoryBase
             Co2Available = reader["Co2Available"] is not DBNull and not null && Convert.ToInt32(reader["Co2Available"], CultureInfo.InvariantCulture) == 1,
             CameraEntityId = NullString(reader["CameraEntityId"]),
             CameraEntityIds = HasColumn(reader, "CameraEntityIds") ? NullString(reader["CameraEntityIds"]) : null,
+            LeafTempOffsetC = HasColumn(reader, "LeafTempOffsetC") ? Convert.ToDouble(reader["LeafTempOffsetC"] is DBNull ? 0d : reader["LeafTempOffsetC"]) : 0d,
             ActiveGrowCount = reader["ActiveGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ActiveGrowCount"], CultureInfo.InvariantCulture),
             ArchivedGrowCount = reader["ArchivedGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ArchivedGrowCount"], CultureInfo.InvariantCulture),
             ActiveSetupCount = reader["ActiveSetupCount"] is DBNull ? 0 : Convert.ToInt32(reader["ActiveSetupCount"], CultureInfo.InvariantCulture),
@@ -536,6 +538,7 @@ public sealed class TentRepository : RepositoryBase
         command.Parameters.AddWithValue("$co2Available", tent.Co2Available ? 1 : 0);
         command.Parameters.AddWithValue("$cameraEntityId", (object?)tent.CameraEntityId ?? DBNull.Value);
         command.Parameters.AddWithValue("$cameraEntityIds", (object?)tent.CameraEntityIds ?? DBNull.Value);
+        command.Parameters.AddWithValue("$leafTempOffsetC", tent.LeafTempOffsetC);
     }
 
     private static void AddTentSensorParameters(SqliteCommand command, TentSensor sensor)

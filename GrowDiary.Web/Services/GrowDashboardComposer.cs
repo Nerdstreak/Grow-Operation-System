@@ -60,7 +60,7 @@ public sealed class GrowDashboardComposer
         {
             Build("Temperatur", "temperature", m => m?.AirTemperatureC, explicitUnit: "°C"),
             Build("Luftfeuchte", "humidity", m => m?.HumidityPercent, explicitUnit: "%"),
-            Build("VPD", "vpd", m => CalculateVpd(m?.AirTemperatureC, m?.HumidityPercent), tone: "accent", explicitUnit: "kPa"),
+            BuildVpdMetric(tent, states, latest),
             BuildLightCycleMetric(tent, states),
             BuildPpfdMetric(tent, states, latest)
         };
@@ -486,13 +486,47 @@ public sealed class GrowDashboardComposer
         };
     }
 
-    private static double? CalculateVpd(double? temperatureC, double? humidityPercent)
+    /// <summary>
+    /// VPD is either read from a mapped entity, or derived. When deriving, prefer the LIVE
+    /// temperature/humidity over the last stored measurement (which could be days old), and
+    /// apply the tent's leaf-temperature offset so the number reflects leaf VPD.
+    /// </summary>
+    private static MetricCard BuildVpdMetric(Tent tent, Dictionary<string, HomeAssistantState> states, Measurement? latest)
     {
-        if (!temperatureC.HasValue || !humidityPercent.HasValue || humidityPercent.Value < 0 || humidityPercent.Value > 100)
-            return null;
+        if (states.TryGetValue("vpd", out var mapped))
+        {
+            return new MetricCard
+            {
+                Key = "vpd",
+                Label = "VPD",
+                Value = mapped.NumericValue.HasValue ? FormatMetricValue("vpd", mapped.NumericValue.Value) : mapped.State,
+                Unit = "kPa",
+                Tone = "accent",
+                Hint = mapped.FriendlyName
+            };
+        }
 
-        var saturationKpa = 0.6108 * Math.Exp((17.27 * temperatureC.Value) / (temperatureC.Value + 237.3));
-        return saturationKpa * (1 - humidityPercent.Value / 100);
+        var liveTemp = states.TryGetValue("temperature", out var t) ? t.NumericValue : null;
+        var liveHumidity = states.TryGetValue("humidity", out var h) ? h.NumericValue : null;
+        var fromLive = liveTemp.HasValue && liveHumidity.HasValue;
+
+        var value = VpdCalculator.Calculate(
+            fromLive ? liveTemp : latest?.AirTemperatureC,
+            fromLive ? liveHumidity : latest?.HumidityPercent,
+            tent.LeafTempOffsetC);
+
+        var offsetHint = tent.LeafTempOffsetC > 0 ? $", Blatt −{tent.LeafTempOffsetC:0.#} °C" : string.Empty;
+        return new MetricCard
+        {
+            Key = "vpd",
+            Label = "VPD",
+            Value = value.HasValue ? FormatMetricValue("vpd", value.Value) : "–",
+            Unit = "kPa",
+            Tone = "accent",
+            Hint = value.HasValue
+                ? (fromLive ? $"Berechnet aus Live-Werten{offsetHint}" : $"Berechnet aus letzter Messung{offsetHint}")
+                : "Temperatur und Luftfeuchte fehlen"
+        };
     }
 
     private static string? ResolveLightCycle(Tent tent)
