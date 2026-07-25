@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.6.1
+
+- New — **cameras on the dashboard**. A camera can now be a tile, so a tent with three of
+  them shows all three at once instead of paging through one at a time. Tiles carry a width
+  as well (− / +), and cameras start two columns wide. The separate camera panel steps aside
+  once you've placed your own camera tiles.
+- New — **sections can be moved**. Drag a section, or use ↑ ↓ — dragging does nothing on a
+  touchscreen, and the dashboard is mostly read on a phone.
+- Fixed — asking the camera proxy for an entity that isn't assigned to the tent used to
+  quietly serve the tent's *first* camera instead. It looked like a working feature while
+  showing the wrong tent; it now says the camera isn't assigned.
+- Changed — **pH is no longer nagged over normal drift**. The growplan says to let pH swing
+  freely between 5.8 and 6.2 and only correct below 5.5 or above 6.5. Grow OS did the
+  opposite: it warned as soon as the value left the narrow per-stage band and suggested
+  pH-Down. Your mixing target is still shown as a hint.
+- New — **a warning when the light is too strong for the CO₂ you have**. The PPFD targets
+  assume CO₂ enrichment. Without it, 800–900 is the ceiling, so above 900 PPFD with CO₂
+  under 800 ppm Grow OS now says so — reduce in steps of 50, keep 30 cm to the tips.
+- Fixed — ORP targets sat at 300–400 for every stage. They now follow the plan: 400–450 in
+  flower, 450–500 in finish.
+- Fixed — **knowledge updates never reached existing installations.** The reference data was
+  copied once on first start and then left alone forever, so corrections like the ones above
+  only ever reached new installs. Grow OS now compares against what it last shipped: its own
+  files are refreshed, anything you edited yourself is left alone. Files older than this
+  mechanism are backed up next to the original as `*.user-backup` before being refreshed.
+
 ## 1.6.0
 
 - New — **build your own live dashboard**. "Dashboard anpassen" on the live screen turns the
