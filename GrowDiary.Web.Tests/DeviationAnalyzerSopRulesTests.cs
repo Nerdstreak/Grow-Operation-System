@@ -151,6 +151,66 @@ public sealed class DeviationAnalyzerSopRulesTests : IDisposable
             d => d.StableKey == "hydro.do");
     }
 
+    // --- VPD: the setpoints carried a band per stage that nothing ever read ---
+
+    [Fact]
+    public void VpdBelowItsBand_IsReported_WithTheRdwcReasoning()
+    {
+        // Flower targets 1,0–1,2 kPa. 24 °C at 75 % RH with a 2 °C leaf offset lands well
+        // under that — which for RDWC means the plant is being held back, not protected.
+        var measurement = At(DateTime.Now);
+        measurement.AirTemperatureC = 24.0;
+        measurement.HumidityPercent = 75.0;
+
+        var deviation = Assert.Single(
+            _service.Analyze(Grow(), new List<Measurement> { measurement }),
+            d => d.StableKey == "hydro.vpd");
+
+        Assert.Contains("unter", deviation.Message);
+        Assert.Contains("Luftstrom", deviation.RecommendationHint ?? string.Empty);
+        Assert.Contains("90-120", deviation.RecommendationHint ?? string.Empty);
+    }
+
+    [Fact]
+    public void VpdInsideItsBand_IsSilent()
+    {
+        // 26 °C at 55 % RH with a 2 °C leaf offset gives 1,14 kPa — inside Flower's 1,0–1,2.
+        var measurement = At(DateTime.Now);
+        measurement.AirTemperatureC = 26.0;
+        measurement.HumidityPercent = 55.0;
+
+        var deviations = _service.Analyze(Grow(), new List<Measurement> { measurement });
+        var vpd = deviations.FirstOrDefault(d => d.StableKey == "hydro.vpd");
+
+        Assert.True(vpd is null,
+            $"Erwartet keine VPD-Abweichung, kam aber: {vpd?.Message}");
+    }
+
+    [Fact]
+    public void VpdIsJudgedAsLeafVpd_NotAirVpd()
+    {
+        // The two are genuinely different numbers, and every RDWC recommendation is written
+        // for the leaf one: 26 °C at 55 % RH is 1,14 kPa at the leaf — comfortably inside
+        // Flower's band — but 1,51 kPa measured against air alone, which would be flagged.
+        var measurement = At(DateTime.Now);
+        measurement.AirTemperatureC = 26.0;
+        measurement.HumidityPercent = 55.0;
+
+        var asLeaf = _service.Analyze(Grow(), new List<Measurement> { measurement }, leafTempOffsetC: 2.0);
+        var asAir = _service.Analyze(Grow(), new List<Measurement> { measurement }, leafTempOffsetC: 0.0);
+
+        Assert.DoesNotContain(asLeaf, d => d.StableKey == "hydro.vpd");
+        Assert.Contains(asAir, d => d.StableKey == "hydro.vpd");
+    }
+
+    [Fact]
+    public void WithoutTemperatureOrHumidity_NoVpdIsInvented()
+    {
+        var deviations = _service.Analyze(Grow(), new List<Measurement> { At(DateTime.Now, ph: 6.0) });
+
+        Assert.DoesNotContain(deviations, d => d.StableKey == "hydro.vpd");
+    }
+
     // --- Growplan: the flush ends at EC 0,4 ---
 
     [Fact]

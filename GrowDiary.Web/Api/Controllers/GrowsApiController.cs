@@ -75,7 +75,7 @@ public sealed class GrowsApiController : ApiControllerBase
         }
 
         var measurements = _repository.GetMeasurementsForGrow(growId);
-        return Ok(_deviationAnalyzer.Analyze(grow, measurements).ToList());
+        return Ok(_deviationAnalyzer.Analyze(grow, measurements, LeafOffsetFor(grow)).ToList());
     }
 
     [HttpGet("{growId:int}/treatment-recommendations")]
@@ -90,7 +90,7 @@ public sealed class GrowsApiController : ApiControllerBase
         }
 
         var measurements = _repository.GetMeasurementsForGrow(growId);
-        var deviations = _deviationAnalyzer.Analyze(grow, measurements);
+        var deviations = _deviationAnalyzer.Analyze(grow, measurements, LeafOffsetFor(grow));
         return Ok(_treatmentRecommender.Recommend(grow, deviations));
     }
 
@@ -420,6 +420,15 @@ public sealed class GrowsApiController : ApiControllerBase
         var total = potVolume + hydroSetup.ReservoirLiters.GetValueOrDefault();
         return total > 0 ? total : null;
     }
+
+    /// <summary>
+    /// The tent's leaf offset, so VPD is judged as leaf VPD. Falls back to the documented
+    /// RDWC value when the grow has no tent assigned.
+    /// </summary>
+    private double LeafOffsetFor(GrowRun grow) =>
+        grow.TentId is { } tentId && _repository.GetTent(tentId) is { } tent
+            ? tent.LeafTempOffsetC
+            : Tent.DefaultLeafTempOffsetC;
 
     private static string FormatLiters(double value)
         => value.ToString("0.##", CultureInfo.InvariantCulture);

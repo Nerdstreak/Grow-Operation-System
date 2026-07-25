@@ -39,7 +39,15 @@ public sealed class DeviationAnalyzerService
         _targetValues = targetValues;
     }
 
-    public IReadOnlyList<GrowDeviation> Analyze(GrowRun grow, IReadOnlyList<Measurement> recentMeasurements)
+    /// <param name="leafTempOffsetC">
+    /// The tent's leaf offset. Defaults to the documented RDWC value so a caller without a
+    /// tent at hand still gets leaf VPD rather than air VPD — the two are different numbers
+    /// and every RDWC recommendation is written for the former.
+    /// </param>
+    public IReadOnlyList<GrowDeviation> Analyze(
+        GrowRun grow,
+        IReadOnlyList<Measurement> recentMeasurements,
+        double leafTempOffsetC = Tent.DefaultLeafTempOffsetC)
     {
         if (grow.IrrigationType != IrrigationType.ActiveHydro || !grow.Profile.IsHydro)
         {
@@ -68,6 +76,7 @@ public sealed class DeviationAnalyzerService
         CheckOrp(grow, sorted, deviations);
         CheckWaterTemp(grow, sorted, deviations);
         CheckDissolvedOxygen(grow, sorted, deviations);
+        CheckVpd(grow, sorted, targets, leafTempOffsetC, deviations);
         CheckPpfd(grow, sorted, targets, deviations);
         CheckCo2(grow, sorted, deviations);
 
@@ -253,6 +262,78 @@ public sealed class DeviationAnalyzerService
                   + "Verdunstung sowie Pflanzenaktivitaet gegenpruefen.",
             critical ? "ph-drift-critical" : null,
             new[] { sorted[0], sorted[1] }));
+    }
+
+    /// <summary>
+    /// VPD against its stage target.
+    ///
+    /// The setpoints have carried a VPD band per stage all along and nothing ever read it:
+    /// the value was calculated, charted and put on tiles, but never compared to anything.
+    /// It is also the one figure the workshop material spends a whole chapter on, so leaving
+    /// it unevaluated meant the app knew the target and stayed silent about missing it.
+    ///
+    /// Computed from air temperature and humidity with the tent's leaf offset — leaf VPD,
+    /// which is what the RDWC recommendations are written for.
+    /// </summary>
+    private static void CheckVpd(
+        GrowRun grow,
+        List<Measurement> sorted,
+        HydroTargetValues? targets,
+        double leafTempOffsetC,
+        List<GrowDeviation> result)
+    {
+        if (targets is null)
+        {
+            return;
+        }
+
+        var withVpd = sorted
+            .Select(measurement => (measurement, vpd: VpdCalculator.Calculate(
+                measurement.AirTemperatureC, measurement.HumidityPercent, leafTempOffsetC)))
+            .Where(entry => entry.vpd is not null)
+            .ToList();
+
+        if (withVpd.Count == 0 || withVpd[0].vpd is not { } actual)
+        {
+            return;
+        }
+
+        var below = actual < targets.VpdMin;
+        var above = actual > targets.VpdMax;
+        if (!below && !above)
+        {
+            return;
+        }
+
+        // Far outside is a different conversation from slightly outside: 0,3 kPa off is
+        // worth a look, twice that is stressing the plant either way.
+        var distance = below ? targets.VpdMin - actual : actual - targets.VpdMax;
+        var severity = distance >= 0.4 ? DeviationSeverity.Warning : DeviationSeverity.Info;
+
+        var hint = below
+            // The workshop is explicit that RDWC transpires far more than soil and wants the
+            // upper end — so a low VPD is holding the plant back, not protecting it.
+            ? "RDWC transpiriert 2-2,5x so stark wie Erde und vertraegt eher das obere Ende des Bands. "
+              + "Zu niedriges VPD bremst Naehrstofftransport. Luftstrom auf Blattniveau pruefen "
+              + "(RDWC 90-120 m/min) und die Blattstellung ansehen."
+            : "Zu hohes VPD treibt die Transpiration ueber das, was die Wurzeln liefern koennen. "
+              + "Vor dem Nachregeln von Temperatur und Feuchte den Luftstrom pruefen — er "
+              + "verschiebt das VPD am Blatt.";
+
+        result.Add(CreateDeviation(
+            grow,
+            "hydro.vpd",
+            DeviationMetric.Vpd,
+            Math.Round(actual, 2),
+            targets.VpdMin,
+            targets.VpdMax,
+            "kPa",
+            severity,
+            $"Blatt-VPD {actual:0.00} kPa liegt {(below ? "unter" : "ueber")} dem Zielbereich "
+            + $"{targets.VpdMin:0.0}-{targets.VpdMax:0.0}.",
+            hint,
+            null,
+            new[] { withVpd[0].measurement }));
     }
 
     private static void CheckDissolvedOxygen(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
