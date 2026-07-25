@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "rdwc-transpires-differently",
+  "title": "RDWC transpiriert anders als Erde — VPD-Empfehlungen sind nicht übertragbar",
+  "rule": "Bei gleichen Bedingungen unterscheidet sich die Transpirationsrate zwischen Erde und RDWC deutlich. Das Workshop-Material führt deshalb zwei getrennte VPD-Empfehlungen: eine reguläre und eine eigene für DWC/RDWC.",
+  "rationale": "Die Wurzeln stehen dauerhaft im Wasser und haben keine Trocknungsphase. Eine VPD-Tabelle aus dem Erdanbau unterschätzt daher, was die Pflanze im RDWC leistet.",
+  "commonMistake": "Eine VPD-Tabelle aus dem Erdanbau eins zu eins zu übernehmen.",
+  "metrics": [
+    "vpd"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "Workshop Lehrmaterial (SKX-RDWC)",
+      "reference": "Abschnitt 7.1: Transpirationsraten nach System",
+      "credibility": "High"
+    }
+  ]
+}

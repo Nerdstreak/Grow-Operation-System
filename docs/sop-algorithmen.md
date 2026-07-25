@@ -179,10 +179,25 @@ Der `AddbackCalculator` rechnet korrekt auf das Systemvolumen — die Warnung de
 greift dort also nicht. Die 500-ml-Regel und die Rührvorgabe betreffen den physischen
 Mischvorgang und gehören in eine Addback-SOP, die noch fehlt.
 
-## Noch nicht ausgewertet
+## Workshop Lehrmaterial — geprüft
 
-- **Workshop Lehrmaterial** — 94 MB, überwiegend Folien
-- **Easy Grow Guide** — Textextraktion leer (reines Bilddokument, bräuchte OCR)
+19 Folien, fast vollständig Bild. Der lesbare Text bestätigt Vorhandenes und liefert zwei
+neue Punkte:
+
+| Fund | Konsequenz |
+|---|---|
+| **Blatttemperatur mit −2 °C Offset** | Der Standard für neue Zelte stand auf **0**, rechnete also reines Luft-VPD. Zwei Quellen nennen −2 °C (Workshop + Ben-Green-Rechner mit Luft 28 / Blatt 26). Standard jetzt 2,0 °C. Bestehende Zelte bleiben unverändert — 0 könnte eine bewusste Wahl gewesen sein. |
+| **RDWC transpiriert anders als Erde** | Das Material führt **zwei getrennte VPD-Empfehlungen**: eine reguläre und eine für DWC/RDWC. Als Regel erfasst; **die Zahlen selbst liegen in den Bildern** und sind ohne OCR nicht auslesbar. |
+| pH Veg 6,0–6,2 / Blüte 5,6–6,0, EC-Konsum 0,05–0,10, Ziel-EC 1,4–1,5 | deckt sich mit Growplan und Wissensbasis ✓ |
+| Wassertemperatur-Zonen 19–20 / 18–21 / 21–23 / >24 °C | deckt sich mit `RecommendationEngine` ✓ |
+
+## Nicht auswertbar ohne OCR
+
+- **Easy Grow Guide** (5 Seiten) — reines Bilddokument, Textextraktion liefert null Zeichen.
+- **Workshop-VPD-Tabellen** — die eigentlichen Zahlen der RDWC-Empfehlung stehen als Grafik.
+
+Beides bräuchte Tesseract auf dem Rechner (`pytesseract` allein reicht nicht, das Binary
+fehlt). Bis dahin bleiben die RDWC-VPD-Zielwerte die aus dem Growplan.
 
 ---
 

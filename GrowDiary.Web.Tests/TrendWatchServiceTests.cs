@@ -196,6 +196,42 @@ public sealed class TrendWatchServiceTests
     }
 
     [Fact]
+    public void OrpNotCheckedForDays_IsReported_BecauseItDecaysWhileItWorks()
+    {
+        // SOP-N1: top up with HOCl every 2–3 days. It is a consumable, not a setting — the
+        // moment it is forgotten the reservoir turns anaerobic without a value moving that day.
+        var measurements = new List<Measurement>
+        {
+            new() { TakenAt = Now.Date.AddDays(-6).AddHours(9), OrpMv = 420 },
+        };
+
+        var finding = Assert.Single(TrendWatchService.Evaluate(measurements, null, Now), f => f.Code == "trend.orp.topup-due");
+
+        Assert.Equal(TrendSeverity.Warning, finding.Severity);
+        Assert.Equal("orp-optimal-band", finding.GuidanceId);
+    }
+
+    [Fact]
+    public void OrpCheckedYesterday_IsFine()
+    {
+        var measurements = new List<Measurement>
+        {
+            new() { TakenAt = Now.Date.AddDays(-1).AddHours(9), OrpMv = 430 },
+        };
+
+        Assert.DoesNotContain(TrendWatchService.Evaluate(measurements, null, Now), f => f.Code.StartsWith("trend.orp"));
+    }
+
+    [Fact]
+    public void SomeoneWhoNeverMeasuresOrp_IsNotNagged()
+    {
+        // Reminding about a value the user doesn't collect is noise, not a reminder.
+        var measurements = Series((3, 6.0, null), (2, 6.0, null), (1, 6.0, null), (0, 6.0, null));
+
+        Assert.DoesNotContain(TrendWatchService.Evaluate(measurements, null, Now), f => f.Code.StartsWith("trend.orp"));
+    }
+
+    [Fact]
     public void NoMeasurementsAtAll_ProducesNothing()
     {
         Assert.Empty(TrendWatchService.Evaluate([], Targets, Now));

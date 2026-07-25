@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "water-temperature-zones",
+  "title": "Wassertemperatur in vier Zonen",
+  "rule": "19–20 °C ist der Zielbereich, 18–21 °C noch gut, 21–23 °C wird riskant, über 24 °C ist kritisch.",
+  "rationale": "Mit steigender Temperatur sinkt die Sauerstoffsättigung — und Sauerstoffmangel ist die Hauptursache für Wurzelfäule.",
+  "metrics": [
+    "watertemp",
+    "do"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "Workshop Lehrmaterial (SKX-RDWC)",
+      "reference": "Abschnitt 5: Wassertemperatur",
+      "credibility": "High"
+    }
+  ]
+}

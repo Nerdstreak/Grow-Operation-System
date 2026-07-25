@@ -43,6 +43,10 @@ public sealed class TrendWatchService
     public const int WaterChangeDueDays = 7;
     public const int WaterChangeOverdueDays = 10;
 
+    /// <summary>SOP-N1: HOCl top-up every 2–3 days; 4 is already past the window.</summary>
+    public const int OrpTopUpDueDays = 3;
+    public const int OrpTopUpOverdueDays = 5;
+
     private static readonly System.Globalization.CultureInfo De = AppCulture.German;
 
     /// <summary>
@@ -75,6 +79,7 @@ public sealed class TrendWatchService
 
         AddWaterChange(findings, measurements, now);
         AddConsumption(findings, window);
+        AddOrpTopUp(findings, measurements, now);
 
         return findings;
     }
@@ -175,6 +180,42 @@ public sealed class TrendWatchService
             $"Der letzte dokumentierte Wechsel war am {lastChange.TakenAt.ToString("dd.MM.", De)}. "
             + "Der Growplan sieht wöchentlich vor.",
             "weekly-water-change"));
+    }
+
+    /// <summary>
+    /// SOP-N1: the ORP has to be brought back up with HOCl every two to three days. It is
+    /// a consumable, not a setting — it decays as it does its job, and the moment it is
+    /// forgotten is the moment the reservoir turns anaerobic without a single value moving
+    /// out of range that day.
+    /// </summary>
+    private static void AddOrpTopUp(List<TrendFinding> findings, IReadOnlyList<Measurement> measurements, DateTime now)
+    {
+        var lastOrp = measurements
+            .Where(measurement => measurement.OrpMv is not null)
+            .OrderByDescending(measurement => measurement.TakenAt)
+            .FirstOrDefault();
+
+        // Never measured means the user isn't tracking ORP at all — nagging about a value
+        // they don't collect would be noise, not a reminder.
+        if (lastOrp is null)
+        {
+            return;
+        }
+
+        var days = (int)(now.Date - lastOrp.TakenAt.Date).TotalDays;
+        if (days < OrpTopUpDueDays)
+        {
+            return;
+        }
+
+        findings.Add(new TrendFinding(
+            "trend.orp.topup-due",
+            days >= OrpTopUpOverdueDays ? TrendSeverity.Warning : TrendSeverity.Info,
+            $"ORP seit {days} Tagen nicht geprüft",
+            $"Der letzte ORP-Wert stammt vom {lastOrp.TakenAt.ToString("dd.MM.", De)} "
+            + $"({lastOrp.OrpMv:0} mV). Laut SOP wird alle 2–3 Tage per HOCl nachjustiert — "
+            + "der Wert baut sich im Betrieb laufend ab.",
+            "orp-optimal-band"));
     }
 
     /// <summary>

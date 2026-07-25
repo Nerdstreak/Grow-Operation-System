@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.8.1
+
+- Changed — **a new tent now computes leaf VPD, not air VPD.** The leaf sits about 2 °C below
+  air temperature, and every RDWC recommendation is drawn for that number; the offset used to
+  default to 0, so a fresh tent quietly showed a different figure than the charts mean.
+  Existing tents keep whatever you set — 0 might have been deliberate.
+- New — **a reminder that ORP is a consumable.** It has to be brought back up with HOCl every
+  two to three days because it decays while doing its job, and the day it is forgotten
+  nothing else looks wrong. Grow OS now says so once it has been more than three days —
+  and stays quiet for anyone who doesn't track ORP at all.
+- New — four more rules from the workshop material, including one worth knowing: RDWC
+  transpires differently from soil, so a VPD table from soil growing does not transfer.
+
 ## 1.8.0
 
 - New — **the nutrient solution is diagnosed as a pattern, not a value.** SOP-N1 lays out a

@@ -33,8 +33,18 @@ public sealed class Tent
     /// </summary>
     public string? CameraEntityIds { get; set; }
 
-    /// <summary>How many °C the leaf sits below air temperature — used for leaf VPD (0 = plain air VPD).</summary>
-    public double LeafTempOffsetC { get; set; }
+    /// <summary>
+    /// How many °C the leaf sits below air temperature, used for leaf VPD (0 = plain air VPD).
+    ///
+    /// Defaults to 2 °C, which is what the workshop material specifies for RDWC and what the
+    /// reference VPD calculator uses in its worked example (air 28 °C, leaf 26 °C). It used
+    /// to default to 0, so a new tent silently computed air VPD — a different number than
+    /// the one every RDWC chart is drawn for.
+    /// </summary>
+    public double LeafTempOffsetC { get; set; } = DefaultLeafTempOffsetC;
+
+    /// <summary>The documented RDWC leaf offset, per the workshop material and the Ben Green calculator.</summary>
+    public const double DefaultLeafTempOffsetC = 2.0;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 

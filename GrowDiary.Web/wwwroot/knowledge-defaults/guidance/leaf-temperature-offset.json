@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0",
+  "id": "leaf-temperature-offset",
+  "title": "VPD im RDWC wird über die Blatttemperatur gerechnet, nicht über die Luft",
+  "rule": "Die Blatttemperatur liegt etwa 2 °C unter der Lufttemperatur. Das VPD wird mit dieser Blatttemperatur gerechnet, nicht mit der reinen Lufttemperatur.",
+  "rationale": "Reines Luft-VPD ergibt eine andere Zahl als die, für die alle RDWC-Empfehlungen gezeichnet sind. Wer beide vergleicht, steuert gegen einen Wert, den die Tabelle gar nicht meint.",
+  "commonMistake": "Den vom Sensor gelieferten VPD-Wert für Blatt-VPD zu halten. Die meisten Sensoren liefern Luft-VPD.",
+  "metrics": [
+    "vpd",
+    "temperature"
+  ],
+  "stages": [],
+  "applicableSetups": [
+    "RDWC",
+    "DWC"
+  ],
+  "sources": [
+    {
+      "type": "UserDocument",
+      "title": "Workshop Lehrmaterial (SKX-RDWC)",
+      "reference": "Abschnitt 7: VPD & Transpirationsraten im RDWC",
+      "credibility": "High"
+    },
+    {
+      "type": "UserDocument",
+      "title": "VPD Rechner Ben Green Growmotion",
+      "reference": "Rechenbeispiel Luft 28 °C / Blatt 26 °C",
+      "credibility": "High"
+    }
+  ]
+}
