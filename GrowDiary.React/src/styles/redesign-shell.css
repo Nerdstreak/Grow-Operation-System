@@ -4,17 +4,6 @@
    changes) so the global nav matches the redesigned pages during
    the page-by-page rollout. Imported last in App.tsx to win cascade.
    ─────────────────────────────────────────────────────────────── */
-:root {
-  --ix-bg: #04070a;
-  --ix-phos: #52e98c;
-  --ix-ink: #e9f4ee;
-  --ix-muted: rgba(233, 244, 238, 0.56);
-  --ix-faint: rgba(233, 244, 238, 0.32);
-  --ix-hair: rgba(94, 231, 160, 0.14);
-  --ix-hair-2: rgba(94, 231, 160, 0.3);
-  --ix-mono: 'JetBrains Mono', ui-monospace, monospace;
-}
-
 .v1-app-shell { background: var(--ix-bg); }
 
 /* desktop sidebar */

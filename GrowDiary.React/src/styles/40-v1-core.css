@@ -1,22 +1,4 @@
 /* === Grow OS Frontend V1 Rebuild === */
-:root {
-  --v1-bg: #000603;
-  --v1-panel: #041109;
-  --v1-panel-2: #07180d;
-  --v1-line: rgba(123, 255, 168, 0.14);
-  --v1-line-strong: rgba(123, 255, 168, 0.28);
-  --v1-text: #effff2;
-  --v1-muted: rgba(239, 255, 242, 0.58);
-  --v1-soft: rgba(239, 255, 242, 0.34);
-  --v1-green: #43d45a;
-  --v1-green-dark: #1c7d37;
-  --v1-warn: #f5c84b;
-  --v1-red: #ff5c5c;
-  --v1-cyan: #48c8ff;
-  --v1-radius: 22px;
-  --v1-radius-sm: 14px;
-}
-
 html, body, #root { min-height: 100%; background: var(--v1-bg); color: var(--v1-text); }
 /* `clip` (not `hidden`) stops sideways scroll WITHOUT forcing overflow-y to `auto`.
    With `hidden`, body became an internal vertical scroll container, which inside the

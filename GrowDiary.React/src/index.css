@@ -1,3 +1,7 @@
+/* Tokens zuerst: eine Quelle fuer Farben, Abstaende und Groessen.
+   Die :root-Bloecke der Layer darunter sind entfernt; tokens.css haelt
+   am Ende Aliase auf die alten Namen, damit nichts bricht. */
+@import './styles/tokens.css';
 @import './styles/00-base.css';
 @import './styles/10-grow-wizard-legacy.css';
 @import './styles/20-settings.css';

@@ -1,0 +1,182 @@
+/* ===================================================================
+   Grow OS · EIN Token-Set  (ersetzt System A/B/C)
+   Import als ERSTE Datei in src/index.css.
+   Enthält am Ende Aliase, damit bestehendes CSS unverändert
+   weiterläuft, während die Layer schrittweise abgebaut werden.
+   =================================================================== */
+@layer tokens {
+  :root {
+    color-scheme: dark;
+
+    /* Flächen */
+    --bg:        #04070a;
+    --panel:     rgba(10, 16, 14, 0.72);
+    --panel-2:   rgba(14, 22, 19, 0.92);
+    --sunk:      #010604;
+
+    /* Linien */
+    --hair:      rgba(94, 231, 160, 0.14);
+    --hair-2:    rgba(94, 231, 160, 0.30);
+
+    /* Text */
+    /* Kontrast: --muted und --faint tragen die 10-px-Labels und müssen 4,5:1
+       erreichen. Nur --hint ist dekorativ (Trenner, Platzhalter) — nie für Text. */
+    --ink:       #e9f4ee;
+    --muted:     rgba(233, 244, 238, 0.74);
+    --faint:     rgba(233, 244, 238, 0.60);
+    --hint:      rgba(233, 244, 238, 0.30);
+
+    /* Semantik */
+    --accent:      #52e98c;      /* Fläche: Button, Marker, Rohr */
+    --accent-text: #52e98c;      /* Text in Accent-Farbe — im Hell-Modus dunkler */
+    --accent-dim:  #1f7d49;
+    --accent-wash: rgba(82, 233, 140, 0.10);
+    --accent-ink:  #04140a;          /* Text auf Accent-Fläche */
+    --warn:        #ffc24d;
+    --warn-text:   #ffc24d;
+    --warn-wash:   rgba(255, 194, 77, 0.09);
+    --danger:      #ff5f5f;
+    --danger-wash: rgba(255, 95, 95, 0.09);
+    --info:        #5cd7ff;
+    --info-text:   #5cd7ff;
+    --info-wash:   rgba(92, 215, 255, 0.10);
+
+    /* Charts */
+    --chart-1: #52e98c;
+    --chart-2: #5cd7ff;
+    --chart-3: #ffc24d;
+    --chart-4: #ff5f5f;
+    --chart-5: #b98cff;
+
+    /* Typografie */
+    --font-sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+    /* Radien — EIN Satz statt 22/14 vs 10/7 vs 14/11 */
+    --r-sm: 7px;
+    --r:    10px;
+    --r-lg: 14px;
+    --r-pill: 999px;
+
+    /* Abstände */
+    --s-1: 4px;
+    --s-2: 8px;
+    --s-3: 12px;
+    --s-4: 16px;
+    --s-5: 22px;
+    --s-6: 30px;
+
+    /* Bedienhöhen — behebt die touch-target-Findings systematisch */
+    --h-xs: 26px;   /* Tabellen-/Inline-Aktion (Desktop, Zeigergerät) */
+    --h-sm: 32px;   /* Sekundär-Button, Tab */
+    --h-md: 38px;   /* Formularfeld */
+    --h-lg: 44px;   /* Primäraktion, alles Touch-relevante */
+
+    /* Layout */
+    --sidebar: 236px;
+    --topbar: 52px;
+    --page-max: 1440px;
+
+    /* Breakpoints als Konstanten (für JS-Abfragen; CSS nutzt sie in
+       Container-Queries bzw. hart in @media — Custom Properties sind
+       in @media-Bedingungen nicht erlaubt) */
+    --bp-sm: 560px;
+    --bp-md: 860px;
+    --bp-lg: 1200px;
+
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  }
+
+  html[data-theme='light'] {
+    color-scheme: light;
+    --bg:        #eef2ef;
+    --panel:     #ffffff;
+    --panel-2:   #f6f9f6;
+    --sunk:      #e7ece8;
+    --hair:      rgba(13, 40, 26, 0.13);
+    --hair-2:    rgba(13, 40, 26, 0.26);
+    --ink:       #0c1512;
+    --muted:     rgba(12, 21, 18, 0.76);
+    --faint:     rgba(12, 21, 18, 0.62);
+    --hint:      rgba(12, 21, 18, 0.34);
+    --accent:      #0e9b55;
+    /* #0e9b55 als kleiner Text auf Weiß sind nur 3,6:1 → eigene Textvariante.
+       Ebenso: weißer Text auf der grünen Fläche reicht nicht, dunkler schon. */
+    --accent-text: #0a7038;
+    --accent-dim:  #0b7c44;
+    --accent-wash: rgba(14, 155, 85, 0.10);
+    --accent-ink:  #04140a;
+    --warn:        #a86800;
+    --warn-text:   #8a5500;
+    --warn-wash:   rgba(168, 104, 0, 0.09);
+    --danger:      #c8352f;
+    --danger-wash: rgba(200, 53, 47, 0.08);
+    --info:        #0d7fa8;
+    --info-text:   #0a6183;
+    --info-wash:   rgba(13, 127, 168, 0.09);
+    --shadow: 0 8px 24px rgba(12, 21, 18, 0.10);
+  }
+
+  /* -----------------------------------------------------------------
+     ALIASE — Übergang. Jede alte Variable zeigt auf das neue Set,
+     damit die 13 bestehenden Stylesheets ohne Änderung weiterlaufen.
+     Beim Auflösen eines Layers die dort benutzten Alt-Namen ersetzen
+     und den Alias hier löschen. Ziel: dieser Block wird leer.
+     ----------------------------------------------------------------- */
+  :root {
+    /* System B (--v1-*) */
+    --v1-bg: var(--bg);
+    --v1-panel: var(--panel);
+    --v1-panel-2: var(--panel-2);
+    --v1-line: var(--hair);
+    --v1-line-strong: var(--hair-2);
+    --v1-text: var(--ink);
+    --v1-muted: var(--muted);
+    --v1-soft: var(--faint);
+    --v1-green: var(--accent);
+    --v1-green-dark: var(--accent-dim);
+    --v1-warn: var(--warn);
+    --v1-red: var(--danger);
+    --v1-cyan: var(--info);
+    --v1-radius: var(--r-lg);
+    --v1-radius-sm: var(--r);
+    --v1-accent: var(--accent);
+    --v1-ok: var(--accent);
+
+    /* System C (--ix-*) */
+    --ix-bg: var(--bg);
+    --ix-panel: var(--panel);
+    --ix-panel-2: var(--panel-2);
+    --ix-hair: var(--hair);
+    --ix-hair-2: var(--hair-2);
+    --ix-ink: var(--ink);
+    --ix-muted: var(--muted);
+    --ix-faint: var(--faint);
+    --ix-phos: var(--accent);
+    --ix-phos-dim: var(--accent-dim);
+    --ix-amber: var(--warn);
+    --ix-red: var(--danger);
+    --ix-cyan: var(--info);
+    --ix-mono: var(--font-mono);
+    --ix-sans: var(--font-sans);
+    --ix-r: var(--r-lg);
+
+    /* System A (Basis) */
+    --surface: var(--panel);
+    --surface2: var(--panel-2);
+    --surface3: var(--sunk);
+    --border: var(--hair);
+    --border2: var(--hair-2);
+    --text: var(--ink);
+    --green: var(--accent);
+    --green-bg: var(--accent-wash);
+    --amber: var(--warn);
+    --amber-bg: var(--warn-wash);
+    --red: var(--danger);
+    --red-bg: var(--danger-wash);
+    --blue: var(--info);
+    --blue-bg: var(--info-wash);
+    --radius: var(--r);
+    --radius-sm: var(--r-sm);
+  }
+}

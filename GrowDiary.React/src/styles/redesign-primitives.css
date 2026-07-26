@@ -6,31 +6,6 @@
    ─────────────────────────────────────────────────────────────── */
 
 /* 1) Unify both token systems onto the instrument palette */
-:root {
-  /* V1 system (drives most pages) */
-  --v1-bg: #04070a;
-  --v1-panel: rgba(10, 16, 14, 0.72);
-  --v1-panel-2: rgba(14, 22, 19, 0.92);
-  --v1-line: rgba(94, 231, 160, 0.14);
-  --v1-line-strong: rgba(94, 231, 160, 0.3);
-  --v1-text: #e9f4ee;
-  --v1-muted: rgba(233, 244, 238, 0.56);
-  --v1-soft: rgba(233, 244, 238, 0.32);
-  --v1-green: #52e98c;
-  --v1-green-dark: #1f7d49;
-  --v1-warn: #ffc24d;
-  --v1-red: #ff5f5f;
-  --v1-cyan: #5cd7ff;
-  --v1-radius: 14px;
-  --v1-radius-sm: 11px;
-  /* base system (System A) accents nudged to match the phosphor look */
-  --green: #52e98c;
-  --green-bg: rgba(82, 233, 140, 0.1);
-  --amber: #ffc24d;
-  --amber-bg: rgba(255, 194, 77, 0.1);
-  --red: #ff5f5f;
-  --red-bg: rgba(255, 95, 95, 0.1);
-}
 html[data-theme="light"] {
   --green-bg: rgba(82, 233, 140, 0.08);
   --amber-bg: rgba(255, 194, 77, 0.08);

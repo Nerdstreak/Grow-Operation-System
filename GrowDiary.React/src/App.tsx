@@ -6,6 +6,7 @@ import AlertsPage from './pages/AlertsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import AiAssistantPage from './pages/AiAssistantPage'
 import { AppSearch, type SearchablePage } from './components/AppSearch'
+import { useTheme } from './useTheme'
 import { GrowScopedSectionPage } from './pages/GrowScopedSectionPage'
 import AutomationPage from './pages/AutomationPage'
 import AnalysisPage from './pages/AnalysisPage'
@@ -134,6 +135,7 @@ function isNavLeafActive(item: NavLeaf, pathname: string): boolean {
 
 function App() {
   const location = useLocation()
+  const { theme, toggle: toggleTheme } = useTheme()
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     try {
@@ -179,6 +181,14 @@ function App() {
             </nav>
           )
         })}
+
+        {/* Der Hell-Modus war im CSS immer da; es fehlte nur der Schalter. */}
+        <div className="v1-nav-foot">
+          <button type="button" className="theme-toggle" onClick={toggleTheme}
+                  aria-label={theme === 'dark' ? 'Zu hellem Design wechseln' : 'Zu dunklem Design wechseln'}>
+            {theme === 'dark' ? 'HELL' : 'DUNKEL'}
+          </button>
+        </div>
       </aside>
 
       <header className="v1-mobile-topbar" data-audit="mobile-header">

@@ -333,14 +333,6 @@
 .empty-hint  { padding: 60px 20px; text-align: center; color: var(--faint); font-size: 13px; }
 
 /* ─── CHART.JS OVERRIDES ─────────────────────────────────────── */
-:root {
-  --chart-1: oklch(74% 0.19 145);   /* --green  */
-  --chart-2: oklch(70% 0.16 240);   /* --blue   */
-  --chart-3: oklch(78% 0.17 72);    /* --amber  */
-  --chart-4: oklch(66% 0.22 25);    /* --red    */
-  --chart-5: oklch(70% 0.15 300);   /* violet   */
-}
-
 /* ─── REACT ROOT ─────────────────────────────────────────────────────────── */
 html, body, #root { height: 100%; margin: 0; }
 #root { display: flex; flex-direction: column; }

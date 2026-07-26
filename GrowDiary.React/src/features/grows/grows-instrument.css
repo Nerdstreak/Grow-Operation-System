@@ -3,21 +3,6 @@
    Scoped under .ix-grows; reuses the global .ix-* component classes.
    ─────────────────────────────────────────────────────────────── */
 .ix-grows {
-  --ix-ink: #e9f4ee;
-  --ix-muted: rgba(233, 244, 238, 0.56);
-  --ix-faint: rgba(233, 244, 238, 0.32);
-  --ix-panel: rgba(10, 16, 14, 0.72);
-  --ix-panel-2: rgba(14, 22, 19, 0.92);
-  --ix-hair: rgba(94, 231, 160, 0.14);
-  --ix-hair-2: rgba(94, 231, 160, 0.3);
-  --ix-phos: #52e98c;
-  --ix-phos-dim: #1f7d49;
-  --ix-amber: #ffc24d;
-  --ix-red: #ff5f5f;
-  --ix-cyan: #5cd7ff;
-  --ix-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --ix-sans: 'Inter', system-ui, sans-serif;
-  --ix-r: 14px;
 
   position: relative;
   isolation: isolate;
