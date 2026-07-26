@@ -1,0 +1,65 @@
+/* Messwert-Kachel mit Zielband — Maße aus dem Entwurf. */
+@layer features {
+
+  .gos-metric-block { display: grid; gap: 7px; }
+  .gos-metric-title { display: flex; align-items: center; gap: 8px; }
+  .gos-metric-title > span:first-child {
+    font: 500 10px/1 var(--font-mono); letter-spacing: .18em; color: var(--faint);
+  }
+  .gos-metric-title .rule { flex: 1; height: 1px; background: var(--hair); }
+
+  /* Umbrechend statt Raster: 8, 10, 12 Werte sind einfach mehr Zeilen, und die
+     Reihenfolge bleibt dabei fest — man sucht einen Wert dort, wo er letztes Mal
+     stand, nicht dort, wo eine Sortierung ihn gerade hinschiebt. */
+  .gos-metric-row {
+    display: flex; flex-wrap: wrap; overflow: hidden;
+    border: 1px solid var(--hair); border-radius: var(--r-lg); background: var(--panel);
+  }
+
+  .gos-metric {
+    flex: 1 1 150px; min-width: 0;
+    padding: 11px 13px;
+    /* Trennlinien auf den Kindern, nicht als Container-Hintergrund: sonst
+       rendert eine leere Rasterzelle als eingefärbte Fläche. */
+    border-left: 1px solid var(--hair); border-top: 1px solid var(--hair);
+    margin: -1px 0 0 -1px;
+  }
+
+  .gos-metric-head { display: flex; justify-content: space-between; gap: 6px; }
+  .gos-metric-label { font: 500 10px/1 var(--font-mono); letter-spacing: .14em; color: var(--faint); }
+  .gos-metric-status { font: 500 10px/1 var(--font-mono); white-space: nowrap; }
+  .gos-metric.is-ok   .gos-metric-status { color: var(--accent-text); }
+  .gos-metric.is-warn .gos-metric-status { color: var(--warn-text); }
+  .gos-metric.is-crit .gos-metric-status { color: var(--danger); }
+
+  .gos-metric-value {
+    margin-top: 7px;
+    font: 500 21px/1 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: normal; word-break: normal;
+  }
+  .gos-metric.is-crit .gos-metric-value { color: var(--danger); }
+  .gos-metric-value .unit { margin-left: 3px; font-size: 11px; color: var(--muted); }
+
+  .gos-metric-scale {
+    position: relative; height: 3px; margin-top: 9px;
+    border-radius: 2px; background: var(--sunk);
+  }
+  .gos-metric-scale.is-empty { background: transparent; }
+  .gos-metric-scale .band {
+    position: absolute; top: 0; bottom: 0;
+    border-radius: 2px; background: var(--accent-wash);
+  }
+  .gos-metric-scale .mark {
+    position: absolute; top: -2px; width: 2px; height: 7px;
+    border-radius: 1px; background: var(--accent);
+    transform: translateX(-1px);
+  }
+  .gos-metric.is-warn .gos-metric-scale .mark { background: var(--warn); }
+  .gos-metric.is-crit .gos-metric-scale .mark { background: var(--danger); }
+  /* Wert ausserhalb der Skala: der Marker liegt am Anschlag und sagt das auch. */
+  .gos-metric-scale .mark.clamped { height: 9px; top: -3px; width: 3px; }
+
+  .gos-metric-target { margin-top: 6px; font: 400 10px/1 var(--font-mono); color: var(--faint); }
+  .gos-metric-stale { margin-top: 3px; font: 400 10px/1 var(--font-mono); color: var(--warn-text); }
+}

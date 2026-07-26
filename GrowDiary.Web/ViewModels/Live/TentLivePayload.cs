@@ -18,4 +18,7 @@ public sealed class MetricPayload
     public string? Unit { get; set; }
     public string Tone { get; set; } = "default";
     public string? Hint { get; set; }
+    public double? NumericValue { get; set; }
+    public double? TargetMin { get; set; }
+    public double? TargetMax { get; set; }
 }

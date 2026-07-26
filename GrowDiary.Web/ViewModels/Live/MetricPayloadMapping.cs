@@ -12,6 +12,9 @@ public static class MetricPayloadMapping
             Value = metric.Value,
             Unit = metric.Unit,
             Tone = metric.Tone,
-            Hint = metric.Hint
+            Hint = metric.Hint,
+            NumericValue = metric.NumericValue,
+            TargetMin = metric.TargetMin,
+            TargetMax = metric.TargetMax
         };
 }

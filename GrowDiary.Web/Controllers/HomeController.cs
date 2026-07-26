@@ -36,6 +36,10 @@ public sealed class HomeController : Controller
 
         foreach (var tent in tents)
         {
+            // Siehe TentsController: die Liste war nie gefuellt, und daran hingen
+            // still die Alarmzeile und die Zielbereiche der Messwert-Kacheln.
+            tent.ActiveGrows = _repository.GetActiveGrowsForTent(tent.Id);
+
             var measurements = _repository.GetMeasurementsForTent(tent.Id);
             var states = await _homeAssistantService.GetStatesAsync(settings, tent, cancellationToken);
             var metrics = _composer.BuildTentMetrics(tent, states, measurements);

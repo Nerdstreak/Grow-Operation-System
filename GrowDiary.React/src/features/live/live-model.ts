@@ -30,7 +30,10 @@ export const hydroMetricKeys = [
 export function mapMetrics(items: MetricPayload[], definitions: readonly (readonly [string, string, string | null])[]): MetricPayload[] {
   return definitions.map(([key, label, unit]) => {
     const found = items.find((item) => item.key === key)
-    return found ? { ...found, label, unit: found.unit ?? unit } : { key, label, value: '–', unit, tone: 'muted', hint: null }
+    if (found) return { ...found, label, unit: found.unit ?? unit }
+    // Kein Wert vom Server: die Kachel steht trotzdem da, damit das Raster nicht
+    // je nach Sensorlage anders aussieht.
+    return { key, label, value: '–', unit, tone: 'muted', hint: null, numericValue: null, targetMin: null, targetMax: null }
   })
 }
 

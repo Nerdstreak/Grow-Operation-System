@@ -7,6 +7,9 @@ import { PlantActions } from '../features/plants/PlantActions'
 import { LightScheduleSection } from '../features/tents/LightScheduleSection'
 import { TentHistorySection } from '../features/tents/TentHistorySection'
 import { resolveUrl } from '../base'
+import { mapMetrics } from '../features/live/live-model'
+import { MetricTile } from '../features/live/MetricTile'
+import '../features/live/metric-tile.css'
 
 const tentMetricDefinitions = [
   ['temperature', 'Temp', '°C'],
@@ -132,7 +135,24 @@ function TentDetailPage() {
 
       <div className="v1-live-metrics-pair">
         <V1Section title="Zeltwerte"><div className="v1-metric-grid compact">{mapMetrics(live?.metrics ?? [], tentMetricDefinitions).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div></V1Section>
-        <V1Section title="Reservoir"><div className="v1-metric-grid compact">{mapMetrics(live?.metrics ?? [], hydroMetricDefinitions).map((metric) => <MetricCard key={metric.key} metric={metric} />)}</div></V1Section>
+        {/* Die Reservoirwerte haben als einzige einen hinterlegten Zielbereich —
+            hier zeigt die Kachel ihn als Band mit Marker, statt die Zahl allein
+            zu lassen. */}
+        <V1Section title="Reservoir">
+          <div className="gos-metric-row">
+            {mapMetrics(live?.metrics ?? [], hydroMetricDefinitions).map((metric) => (
+              <MetricTile
+                key={metric.key}
+                label={metric.label}
+                value={metric.numericValue}
+                unit={metric.unit}
+                targetMin={metric.targetMin}
+                targetMax={metric.targetMax}
+                decimals={metricDecimals(metric.key)}
+              />
+            ))}
+          </div>
+        </V1Section>
       </div>
 
       <TentHistorySection tentId={tent.id} />
@@ -164,7 +184,6 @@ function SetupCard({ setup, plants, quarantineSetups, productionSetups, grows, o
 
 function MetricCard({ metric }: { metric: MetricPayload }) { return <V1Stat label={metric.label} value={metric.value} unit={metric.unit} hint={metric.hint ?? undefined} tone={metricTone(metric)} /> }
 function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
-function mapMetrics(items: MetricPayload[], definitions: readonly (readonly [string, string, string | null])[]): MetricPayload[] { return definitions.map(([key, label, unit]) => { const found = items.find((item) => item.key === key); return found ? { ...found, label, unit: found.unit ?? unit } : { key, label, value: '–', unit, tone: 'muted', hint: null } }) }
 function formatMetricValue(metric: MetricPayload) { return metric.unit && metric.value !== '–' ? `${metric.value} ${metric.unit}` : metric.value }
 function buildScore(metrics: MetricPayload[], tent: TentDto | null) { const usable = metrics.filter((metric) => metric.value && metric.value !== '–').length; if (!tent || usable === 0) return { value: 0, label: 'Einrichten', tone: 'neutral' as const }; const warnings = metrics.filter((metric) => metric.tone === 'warning' || metric.tone === 'danger').length; const value = Math.max(0, Math.min(100, 100 - warnings * 18 - Math.max(0, 6 - usable) * 8)); return value < 55 ? { value, label: 'Kritisch', tone: 'critical' as const } : value < 82 ? { value, label: 'Beobachten', tone: 'warn' as const } : { value, label: 'Stabil', tone: 'ok' as const } }
 function metricTone(metric: MetricPayload) { return metric.tone === 'danger' ? 'critical' : metric.tone === 'warning' ? 'warn' : metric.tone === 'success' ? 'ok' : 'neutral' }
@@ -178,3 +197,17 @@ function formatSize(tent: TentDto) { return !tent.widthCm && !tent.depthCm && !t
 function formatLiters(value: number | null | undefined) { return value == null ? '–' : `${value.toLocaleString('de-DE', { maximumFractionDigits: 1 })} L` }
 
 export default TentDetailPage
+
+/** Nachkommastellen sind Konvention des Messwerts, nicht der Zahl. */
+function metricDecimals(key: string): number {
+  switch (key) {
+    case 'reservoir-ph':
+    case 'reservoir-ec':
+      return 2
+    case 'reservoir-temp':
+    case 'dissolved-oxygen':
+      return 1
+    default:
+      return 0
+  }
+}

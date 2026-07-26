@@ -8,14 +8,42 @@ public sealed class GrowDashboardComposer
     private readonly ChartService _chartService;
     private readonly DeviationAnalyzerService _deviationAnalyzer;
     private readonly WeekCounterService _weekCounter;
+    private readonly TargetValueService _targetValues;
     private readonly ILogger<GrowDashboardComposer> _logger;
 
-    public GrowDashboardComposer(ChartService chartService, DeviationAnalyzerService deviationAnalyzer, WeekCounterService weekCounter, ILogger<GrowDashboardComposer> logger)
+    public GrowDashboardComposer(ChartService chartService, DeviationAnalyzerService deviationAnalyzer, WeekCounterService weekCounter, TargetValueService targetValues, ILogger<GrowDashboardComposer> logger)
     {
         _chartService = chartService;
         _deviationAnalyzer = deviationAnalyzer;
         _weekCounter = weekCounter;
+        _targetValues = targetValues;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Zielbereich je Messwert fuer die aktuelle Phase des Zelts.
+    ///
+    /// Bis hierher trug eine Kachel nur die Zahl. Die Anzeige zeichnet jetzt eine
+    /// Skala mit Zielband darunter — dafuer muss sie wissen, wo das Band liegt.
+    /// Nicht jeder Wert hat einen: Licht und Fuellstand haben keinen Sollbereich,
+    /// die bekommen null und zeichnen keine Skala.
+    /// </summary>
+    private static (double? Min, double? Max) TargetFor(string key, HydroTargetValues? t)
+    {
+        if (t is null) return (null, null);
+        return key switch
+        {
+            "reservoir-ph" => (t.PhMin, t.PhMax),
+            "reservoir-ec" => (t.EcMin, t.EcMax),
+            "orp" => (t.OrpMin, t.OrpMax),
+            "vpd" => (t.VpdMin, t.VpdMax),
+            "ppfd" => (t.PpfdMin, t.PpfdMax),
+            "co2" => (t.Co2Min, t.Co2Max),
+            // Wassertemperatur ist im Wissen als Tag/Nacht-Paar hinterlegt; als
+            // Band gilt die Spanne dazwischen.
+            "reservoir-temp" => (Math.Min(t.WaterTempNightC, t.WaterTempDayC), Math.Max(t.WaterTempNightC, t.WaterTempDayC)),
+            _ => (null, null),
+        };
     }
 
     public List<MetricCard> BuildTentMetrics(Tent tent, Dictionary<string, HomeAssistantState> states, IReadOnlyList<Measurement> measurements)
@@ -24,6 +52,18 @@ public sealed class GrowDashboardComposer
         // (e.g. an auto-measurement that only captured temp/humidity) does not
         // blank out pH/EC/ORP that an earlier manual measurement recorded.
         var latest = BuildLatestComposite(measurements);
+
+        // Die Phase des aktivsten Grows im Zelt bestimmt die Sollwerte. Ohne
+        // aktiven Grow gibt es keinen Zielbereich — dann zeigen die Kacheln nur
+        // die Zahl, was richtig ist: ein leeres Zelt hat kein Ziel.
+        // Die Phase kommt aus der letzten Messung — dieselbe Quelle, aus der auch
+        // die Abweichungsanalyse ihre Sollwerte zieht. Ohne Messung gibt es keine
+        // Phase und damit keinen Zielbereich; das ist richtig so, denn ein Ziel
+        // ohne bekannte Phase waere geraten.
+        var activeGrow = tent.ActiveGrows.FirstOrDefault();
+        var targets = activeGrow is null || latest is null
+            ? null
+            : _targetValues.GetTargets(activeGrow.HydroStyle, latest.Stage);
 
         MetricCard Build(string label, string key, Func<Measurement?, double?> fallback, string tone = "default", string? explicitUnit = null)
         {
@@ -38,7 +78,10 @@ public sealed class GrowDashboardComposer
                         : state.State,
                     Unit = explicitUnit ?? state.UnitOfMeasurement,
                     Tone = tone,
-                    Hint = state.FriendlyName
+                    Hint = state.FriendlyName,
+                    NumericValue = state.NumericValue,
+                    TargetMin = TargetFor(key, targets).Min,
+                    TargetMax = TargetFor(key, targets).Max
                 };
             }
 
@@ -52,7 +95,10 @@ public sealed class GrowDashboardComposer
                 Tone = tone,
                 Hint = value.HasValue
                     ? "Letzte Messung"
-                    : states.Count == 0 ? "Noch nicht mit Home Assistant verbunden" : "Kein Entity gemappt"
+                    : states.Count == 0 ? "Noch nicht mit Home Assistant verbunden" : "Kein Entity gemappt",
+                NumericValue = value,
+                TargetMin = TargetFor(key, targets).Min,
+                TargetMax = TargetFor(key, targets).Max
             };
         }
 
@@ -60,7 +106,7 @@ public sealed class GrowDashboardComposer
         {
             Build("Temperatur", "temperature", m => m?.AirTemperatureC, explicitUnit: "°C"),
             Build("Luftfeuchte", "humidity", m => m?.HumidityPercent, explicitUnit: "%"),
-            BuildVpdMetric(tent, states, latest),
+            BuildVpdMetric(tent, states, latest, targets),
             BuildLightCycleMetric(tent, states),
             BuildPpfdMetric(tent, states, latest)
         };
@@ -491,7 +537,7 @@ public sealed class GrowDashboardComposer
     /// temperature/humidity over the last stored measurement (which could be days old), and
     /// apply the tent's leaf-temperature offset so the number reflects leaf VPD.
     /// </summary>
-    private static MetricCard BuildVpdMetric(Tent tent, Dictionary<string, HomeAssistantState> states, Measurement? latest)
+    private MetricCard BuildVpdMetric(Tent tent, Dictionary<string, HomeAssistantState> states, Measurement? latest, HydroTargetValues? targets)
     {
         if (states.TryGetValue("vpd", out var mapped))
         {
@@ -502,7 +548,10 @@ public sealed class GrowDashboardComposer
                 Value = mapped.NumericValue.HasValue ? FormatMetricValue("vpd", mapped.NumericValue.Value) : mapped.State,
                 Unit = "kPa",
                 Tone = "accent",
-                Hint = mapped.FriendlyName
+                Hint = mapped.FriendlyName,
+                NumericValue = mapped.NumericValue,
+                TargetMin = TargetFor("vpd", targets).Min,
+                TargetMax = TargetFor("vpd", targets).Max
             };
         }
 
@@ -525,7 +574,10 @@ public sealed class GrowDashboardComposer
             Tone = "accent",
             Hint = value.HasValue
                 ? (fromLive ? $"Berechnet aus Live-Werten{offsetHint}" : $"Berechnet aus letzter Messung{offsetHint}")
-                : "Temperatur und Luftfeuchte fehlen"
+                : "Temperatur und Luftfeuchte fehlen",
+            NumericValue = value,
+            TargetMin = TargetFor("vpd", targets).Min,
+            TargetMax = TargetFor("vpd", targets).Max
         };
     }
 

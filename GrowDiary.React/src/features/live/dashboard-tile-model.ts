@@ -3,7 +3,7 @@ import type { DashboardTile, EntityValue } from './useTentDashboard'
 
 /** A blank reading, so a tile still renders while its sensor is quiet. */
 function placeholder(key: string, label: string, unit: string | null): MetricPayload {
-  return { key, label, value: '–', unit, tone: 'muted', hint: null }
+  return { key, label, value: '–', unit, tone: 'muted', hint: null, numericValue: null, targetMin: null, targetMax: null }
 }
 
 /** A readable name for a camera entity, e.g. "camera.hauptzelt" → "Hauptzelt". */
@@ -43,6 +43,12 @@ export function resolveTile(
     // Non-numeric states (on/off, "läuft") are shown as they are — that is the point of
     // letting arbitrary entities in.
     value: raw == null || raw.trim() === '' ? '–' : raw,
+    // Frei eingebundene Entities haben keinen hinterlegten Zielbereich — die
+    // Kachel zeigt dann nur den Wert, was fuer eine beliebige HA-Entity auch
+    // richtig ist.
+    numericValue: numeric ? Number(raw!.replace(',', '.')) : null,
+    targetMin: null,
+    targetMax: null,
     unit: tile.unit ?? value?.unit ?? null,
     tone: raw == null ? 'muted' : numeric ? 'default' : 'default',
     hint: value?.friendlyName ?? null,

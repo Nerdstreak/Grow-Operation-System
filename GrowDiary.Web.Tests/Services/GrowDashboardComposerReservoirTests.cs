@@ -11,8 +11,11 @@ namespace GrowDiary.Web.Tests.Services;
 /// </summary>
 public sealed class GrowDashboardComposerReservoirTests
 {
-    // BuildTentMetrics and its helpers never touch the injected services, so null is safe here.
-    private static readonly GrowDashboardComposer Composer = new(null!, null!, null!, null!);
+    // BuildTentMetrics touches none of the injected services on this path: these
+    // tents have no active grow, so the target lookup short-circuits before the
+    // TargetValueService is read. That the tests below all use ActiveGrows = new()
+    // is therefore load-bearing, not incidental.
+    private static readonly GrowDashboardComposer Composer = new(null!, null!, null!, null!, null!);
 
     private static Tent TentWithoutActiveHydro() => new() { Id = 1, Name = "Zelt-RDWC", ActiveGrows = new() };
 

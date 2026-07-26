@@ -42,6 +42,12 @@ public sealed class TentsController : Controller
         }
 
         var settings = _repository.GetEffectiveHomeAssistantSettings();
+        // Tent.ActiveGrows wurde bis hierher von niemandem gefuellt — die Liste war
+        // immer leer. Daran hingen still zwei Dinge: die Alarmzeile des Zelts blieb
+        // stumm, und die Messwert-Kacheln bekamen keinen Zielbereich, weil der aus
+        // Hydro-Stil und Phase des laufenden Grows kommt.
+        tent.ActiveGrows = _repository.GetActiveGrowsForTent(id);
+
         var measurements = _repository.GetMeasurementsForTent(id);
         var states = await _homeAssistantService.GetStatesAsync(settings, tent, cancellationToken);
         var metrics = _composer.BuildTentMetrics(tent, states, measurements);

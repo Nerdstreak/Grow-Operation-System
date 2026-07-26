@@ -332,6 +332,11 @@ export interface MetricPayload {
   unit: string | null
   tone: string
   hint: string | null
+  /** Der Wert als Zahl — die Skala der Kachel laesst sich aus "25,4 °C" nicht zurueckrechnen. */
+  numericValue: number | null
+  /** Zielbereich der aktuellen Phase; null, wo es keinen gibt (Licht, Fuellstand). */
+  targetMin: number | null
+  targetMax: number | null
 }
 
 export interface TentLivePayload {

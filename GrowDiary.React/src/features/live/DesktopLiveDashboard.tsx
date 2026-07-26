@@ -13,6 +13,8 @@ import { TrendWatchPanel } from './TrendWatchPanel'
 import { DashboardSections } from './DashboardSections'
 import { DashboardEditorBar } from './DashboardEditorBar'
 import './live-instrument.css'
+import { MetricTile } from './MetricTile'
+import './metric-tile.css'
 
 type DesktopLiveDashboardProps = {
   loading: boolean
@@ -50,6 +52,24 @@ function metricClass(metric: MetricPayload) {
 }
 
 function Metric({ metric, trend }: { metric: MetricPayload; trend?: HistoryPoint[] }) {
+  // Wo ein Zielbereich bekannt ist, zeigt die Kachel ihn als Band mit Marker —
+  // erst dadurch sagt eine Zahl, ob sie passt. Wo keiner bekannt ist (Licht,
+  // Fuellstand, oder solange keine Messung die Phase gesetzt hat), bleibt es bei
+  // Wert und Verlauf.
+  const hasTarget = metric.targetMin != null || metric.targetMax != null
+  if (hasTarget) {
+    return (
+      <MetricTile
+        label={metric.label}
+        value={metric.numericValue}
+        unit={metric.unit}
+        targetMin={metric.targetMin}
+        targetMax={metric.targetMax}
+        decimals={decimalsFor(metric.key)}
+      />
+    )
+  }
+
   return (
     <div className={metricClass(metric)}>
       <span className="pip" />
@@ -61,6 +81,25 @@ function Metric({ metric, trend }: { metric: MetricPayload; trend?: HistoryPoint
         : <div className="bar"><i /></div>}
     </div>
   )
+}
+
+/**
+ * Wie viele Nachkommastellen ein Messwert traegt, ist Konvention des Messwerts,
+ * nicht der Zahl: pH schreibt man zweistellig, Luftfeuchte gar nicht.
+ */
+function decimalsFor(key: string): number {
+  switch (key) {
+    case 'reservoir-ph':
+    case 'reservoir-ec':
+    case 'vpd':
+      return 2
+    case 'temperature':
+    case 'reservoir-temp':
+    case 'dissolved-oxygen':
+      return 1
+    default:
+      return 0
+  }
 }
 
 function formatClock(value: number | string | null): string {
