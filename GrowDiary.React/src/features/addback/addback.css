@@ -100,3 +100,13 @@
   /* Der Ablauf in der Seitenspalte ist jetzt Anzeige, kein Knopf. */
   .addback-rail-step em { display: block; font-style: normal; font-size: 11px; color: var(--muted); }
 }
+
+/* Komponentennamen sind editierbare Inputs — im Panel-Stil, nicht nativ grau. */
+@layer features {
+  .addback-components input {
+    border: 1px solid var(--hair); border-radius: var(--r-sm);
+    background: var(--panel-2); color: var(--ink);
+    min-height: var(--h-md); padding: 0 10px;
+  }
+  .addback-components input:focus { outline: none; border-color: var(--accent); }
+}

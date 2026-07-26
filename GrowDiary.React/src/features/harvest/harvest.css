@@ -23,3 +23,13 @@
   }
   .hv-sums em { margin-left: 3px; font-size: 11px; font-style: normal; color: var(--muted); }
 }
+
+/* Nackte Inputs ausserhalb von V1Field fallen sonst ins native Grau zurueck. */
+@layer features {
+  .hv-table input {
+    border: 1px solid var(--hair); border-radius: var(--r-sm);
+    background: var(--panel-2); color: var(--ink);
+    padding: 0 10px;
+  }
+  .hv-table input:focus { outline: none; border-color: var(--accent); }
+}
