@@ -59,9 +59,10 @@ export const navGroups: NavGroup[] = [
     id: 'library',
     label: 'Wissen',
     items: [
-      { to: '/sops', label: 'SOPs', end: true, keywords: 'anleitung ablauf prozedur checkliste' },
-      { to: '/start', label: 'Erste Schritte', end: true, keywords: 'einrichten anleitung hilfe onboarding' },
-      { to: '/wissen', label: 'Bibliothek', end: true, keywords: 'nachschlagen growplan quellen doku symptome' },
+      // Ein Eintrag wie im Entwurf: SOPs, Bibliothek und Symptome sind EINE
+      // durchsuchbare Sammlung. Laufende SOPs wohnen bei den Aufgaben und im
+      // Grow-Detail; die Ersten Schritte öffnet man aus den Einstellungen.
+      { to: '/wissen', label: 'SOPs & Bibliothek', end: true, keywords: 'sop anleitung ablauf prozedur checkliste nachschlagen growplan quellen doku symptome bibliothek wissen' },
     ],
   },
 ]
@@ -77,13 +78,13 @@ export const mobilePrimaryNav = navGroups[0].items
  * Grenzwerten. Das ist schlimmer als ein toter Link, weil es unbemerkt bleibt.
  */
 export const legacyRedirects: Record<string, string> = {
-  '/automatik': '/regeln',
+  '/automatik': '/regeln?tab=automatik',
   '/alarme': '/regeln?tab=grenzwerte',
   '/benachrichtigungen': '/regeln?tab=push',
   '/assistent': '/regeln?tab=ki',
-  '/phenohunt': '/sorten?tab=pheno',
+  '/phenohunt': '/sorten',
   '/hardware': '/sensoren',
-  '/analyse': '/archiv?tab=vergleich',
+  '/analyse': '/archiv',
   '/action': '/aufgaben',
 }
 

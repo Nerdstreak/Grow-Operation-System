@@ -1,0 +1,38 @@
+/* Journal-Strom — Masse aus dem Entwurf: 88px-Zeitspalte, getaggte Zeile,
+ * 86px-Foto-Kacheln im Seitenverhaeltnis 4:3. */
+@layer features {
+  .js-stream { display: grid; }
+  .js-row {
+    padding: 12px 16px; border-bottom: 1px solid var(--hair);
+    display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px;
+  }
+  .js-row:last-child { border-bottom: 0; }
+  .js-when { font: 400 11px/1.5 var(--font-mono); color: var(--muted); }
+
+  .js-headline { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .js-headline strong { font-size: 13px; font-weight: 600; }
+  .js-content > p { margin: 5px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+
+  .js-tag {
+    font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+  }
+  .js-tag.is-accent { color: var(--accent-text); }
+  .js-tag.is-warn { color: var(--warn-text); }
+  .js-tag.is-info { color: var(--info-text); }
+  .js-tag.is-muted { color: var(--faint); }
+
+  .js-photos { display: flex; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
+  .js-photos img {
+    width: 86px; aspect-ratio: 4 / 3; object-fit: cover;
+    border-radius: 6px; border: 1px solid var(--hair);
+    background: var(--sunk);
+  }
+
+  /* Formulare hinter „+ Eintrag": zwei Spalten, brechen um statt zu quetschen. */
+  .js-composer {
+    padding: 12px 16px; border-bottom: 1px solid var(--hair);
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;
+    background: var(--panel-2);
+  }
+  .js-form { display: grid; gap: 10px; align-content: start; }
+}

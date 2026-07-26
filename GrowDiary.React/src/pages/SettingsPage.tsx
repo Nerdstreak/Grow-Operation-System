@@ -1,15 +1,25 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary, SettingsOverviewDto } from '../types'
 import FileInput from '../components/FileInput'
-import { V1Alert, V1Button, V1Card, V1Field, V1Page, V1Section, V1Skeleton } from '../components/v1'
+import { useTheme } from '../useTheme'
+import { V1Alert, V1Page, V1Skeleton } from '../components/v1'
 
 type ImportPreview = { ok: boolean; title: string; details: string[] }
 type BackupManifest = { fileName?: string; downloadUrl?: string }
+type BackendHealth = { appName: string; backendSchema: string }
 
+/**
+ * Einstellungen nach dem Entwurf: drei Panels — Darstellung, Daten, System.
+ * Hinter jedem Knopf steckt die vorhandene Funktion (Vollbackup, JSON-Exporte,
+ * Import-Prüfung); neu ist nur die Anordnung.
+ */
 function SettingsPage() {
+  const { theme, toggle } = useTheme()
   const [settings, setSettings] = useState<SettingsOverviewDto | null>(null)
   const [grows, setGrows] = useState<GrowSummary[]>([])
+  const [health, setHealth] = useState<BackendHealth | null>(null)
   const [importFileName, setImportFileName] = useState('')
   const [importText, setImportText] = useState('')
   const [preview, setPreview] = useState<ImportPreview | null>(null)
@@ -23,13 +33,15 @@ function SettingsPage() {
       setLoading(true)
       setError(null)
       try {
-        const [overview, activeGrows] = await Promise.all([
+        const [overview, activeGrows, backendHealth] = await Promise.all([
           apiFetch<SettingsOverviewDto>('/api/settings', { signal: controller.signal }),
           apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }),
+          apiFetch<BackendHealth>('/api/system/backend-health', { signal: controller.signal }).catch(() => null),
         ])
         if (controller.signal.aborted) return
         setSettings(overview)
         setGrows(activeGrows)
+        setHealth(backendHealth)
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatApiError(caught, 'Einstellungen konnten nicht geladen werden.'))
       } finally {
@@ -69,17 +81,6 @@ function SettingsPage() {
     }
   }
 
-  function exportSystemConfig() {
-    if (!settings) return
-    downloadJson(`grow-os-system-config-${new Date().toISOString().slice(0, 10)}.json`, {
-      schema: 'grow-os.system-config.v1',
-      exportedAtUtc: new Date().toISOString(),
-      homeAssistant: { enabled: settings.homeAssistant.enabled, baseUrl: settings.homeAssistant.baseUrl, tokenStored: Boolean(settings.homeAssistant.accessToken) },
-      tents: settings.tents,
-    })
-    setMessage('System-Konfiguration exportiert.')
-  }
-
   function exportGrowIndex() {
     downloadJson(`grow-os-grows-${new Date().toISOString().slice(0, 10)}.json`, {
       schema: 'grow-os.grow-index.v1',
@@ -89,19 +90,21 @@ function SettingsPage() {
     setMessage('Grow-Index exportiert.')
   }
 
-  function exportHaMapping() {
+  /** System-Index: Konfiguration + HA-Mapping in einer Datei — der Diagnose-Export. */
+  function exportSystemIndex() {
     if (!settings) return
-    downloadJson(`grow-os-ha-mapping-${new Date().toISOString().slice(0, 10)}.json`, {
-      schema: 'grow-os.ha-mapping.v1',
+    downloadJson(`grow-os-system-index-${new Date().toISOString().slice(0, 10)}.json`, {
+      schema: 'grow-os.system-config.v1',
       exportedAtUtc: new Date().toISOString(),
-      homeAssistant: { enabled: settings.homeAssistant.enabled, baseUrl: settings.homeAssistant.baseUrl },
-      tents: settings.tents.map((tent) => ({
+      homeAssistant: { enabled: settings.homeAssistant.enabled, baseUrl: settings.homeAssistant.baseUrl, tokenStored: Boolean(settings.homeAssistant.accessToken) },
+      tents: settings.tents,
+      haMapping: settings.tents.map((tent) => ({
         name: tent.name,
-        cameraEntityId: tent.cameraEntityId,
+        cameras: tent.cameras,
         sensors: tent.sensors.filter((sensor) => sensor.isActive || sensor.haEntityId),
       })),
     })
-    setMessage('HA-Mapping exportiert.')
+    setMessage('System-Index exportiert.')
   }
 
   async function handleFile(file: File | null) {
@@ -135,60 +138,87 @@ function SettingsPage() {
   }
 
   return (
-    <V1Page eyebrow="System" title="Einstellungen" subtitle="Backup, Export und Import. Keine Link-Sammlung, keine manuelle JSON-Eingabe.">
+    <V1Page eyebrow="System" title="Einstellungen">
       {error && <V1Alert title="Fehler" message={error} tone="warn" />}
       {message && <V1Alert message={message} tone="ok" />}
 
       {loading ? <V1Skeleton rows={4} label="Lade Einstellungen" /> : (
-        <>
-          <section className="v1-kpi-grid rc2-admin-kpis">
-            <V1Card><span className="v1-card-kicker">Zelte</span><h2>{settings?.tents.length ?? 0}</h2><p>Systemräume</p></V1Card>
-            <V1Card><span className="v1-card-kicker">Grows</span><h2>{grows.length}</h2><p>aktiv/geplant</p></V1Card>
-            <V1Card tone={settings?.homeAssistant.isManagedByAddon || settings?.homeAssistant.enabled ? 'ok' : 'warn'}><span className="v1-card-kicker">HA</span><h2>{settings?.homeAssistant.isManagedByAddon || settings?.homeAssistant.enabled ? 'aktiv' : 'aus'}</h2><p>{settings?.homeAssistant.isManagedByAddon ? 'Über Add-on' : (settings?.homeAssistant.baseUrl || 'nicht verbunden')}</p></V1Card>
-            <V1Card><span className="v1-card-kicker">Backup</span><h2>ZIP</h2><p>DB + Knowledge</p></V1Card>
+        <div className="co-grid is-300" data-audit="settings-panels">
+          <section className="ls-panel" data-audit="settings-appearance">
+            <div className="ls-panel-head"><span className="ls-label">Darstellung</span></div>
+            <div className="co-row">
+              <span className="co-row-text">Theme</span>
+              <div className="co-row-end st-theme" role="group" aria-label="Theme">
+                <button type="button" className={`ls-btn is-small${theme === 'dark' ? ' is-primary' : ''}`} onClick={() => theme !== 'dark' && toggle()}>Dunkel</button>
+                <button type="button" className={`ls-btn is-small${theme === 'light' ? ' is-primary' : ''}`} onClick={() => theme !== 'light' && toggle()}>Hell</button>
+              </div>
+            </div>
+            <div className="co-row">
+              <span className="co-row-text">Sprache</span>
+              <span className="co-row-value">Deutsch</span>
+            </div>
           </section>
 
-          <V1Section title="Backup & Export">
-            <div className="rc2-admin-grid">
-              <V1Card className="rc2-admin-card tone-ok">
-                <span className="v1-card-kicker">Vollbackup</span>
-                <h2>Backup erstellen</h2>
-                <p>Erstellt zuerst serverseitig ein Backup und lädt anschließend die ZIP-Datei über die vom Backend gemeldete Download-URL herunter.</p>
-                <V1Button variant="primary" onClick={() => void createFullBackup()}>Vollbackup herunterladen</V1Button>
-              </V1Card>
-
-              <V1Card className="rc2-admin-card">
-                <span className="v1-card-kicker">Konfiguration</span>
-                <h2>Systemdaten exportieren</h2>
-                <p>Zelte, HA-Mapping und Grow-Index als JSON für Kontrolle oder Austausch.</p>
-                <div className="v1-action-row">
-                  <V1Button onClick={exportSystemConfig}>System JSON</V1Button>
-                  <V1Button onClick={exportHaMapping}>HA-Mapping</V1Button>
-                  <V1Button onClick={exportGrowIndex}>Grow-Index</V1Button>
-                </div>
-              </V1Card>
+          <section className="ls-panel" data-audit="settings-data">
+            <div className="ls-panel-head"><span className="ls-label">Daten</span></div>
+            <div className="co-row">
+              <div style={{ minWidth: 0 }}>
+                <div className="co-row-title">Backup</div>
+                <div className="co-row-sub">läuft über Home-Assistant-Backups mit</div>
+              </div>
+              <div className="co-row-end"><button type="button" className="ls-btn is-small" onClick={() => void createFullBackup()}>Jetzt sichern</button></div>
             </div>
-          </V1Section>
-
-          <V1Section title="Import prüfen">
-            <div className="rc2-admin-grid two">
-              <V1Card>
-                <span className="v1-card-kicker">Datei auswählen</span>
-                <h2>Import-Datei prüfen</h2>
-                <V1Field label="JSON-Datei">
-                  <FileInput accept="application/json,.json" fileNames={importFileName ? [importFileName] : []} onFiles={(files) => void handleFile(files[0] ?? null)} />
-                </V1Field>
-                <p>Kein manuelles JSON-Feld. Erst Datei auswählen, dann Syntax und Schema prüfen.</p>
-              </V1Card>
-
-              <V1Card tone={preview?.ok ? 'ok' : preview ? 'warn' : 'neutral'}>
-                <span className="v1-card-kicker">Vorschau</span>
-                <h2>{preview?.title ?? 'Noch keine Datei geprüft'}</h2>
-                {preview ? preview.details.map((detail) => <p key={detail}>{detail}</p>) : <p>Die Vorschau erscheint nach Dateiauswahl.</p>}
-              </V1Card>
+            <div className="co-row">
+              <div style={{ minWidth: 0 }}>
+                <div className="co-row-title">Grow exportieren / importieren</div>
+                <div className="co-row-sub">Grow-Index als JSON; Import unten prüfen</div>
+              </div>
+              <div className="co-row-end"><button type="button" className="ls-btn is-small" onClick={exportGrowIndex}>Export</button></div>
             </div>
-          </V1Section>
-        </>
+            <div className="co-row">
+              <div style={{ minWidth: 0 }}>
+                <div className="co-row-title">System-Index</div>
+                <div className="co-row-sub">Diagnose-Export für Fehlerberichte</div>
+              </div>
+              <div className="co-row-end"><button type="button" className="ls-btn is-small" onClick={exportSystemIndex}>Erzeugen</button></div>
+            </div>
+            <div className="co-row st-import">
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="co-row-title">Import prüfen</div>
+                <div className="co-row-sub" style={{ marginBottom: 8 }}>Erst Datei wählen, dann Syntax und Schema prüfen — kein manuelles JSON-Feld.</div>
+                <FileInput accept="application/json,.json" fileNames={importFileName ? [importFileName] : []} onFiles={(files) => void handleFile(files[0] ?? null)} />
+                {preview && (
+                  <div className={`st-preview${preview.ok ? '' : ' is-bad'}`} data-audit="settings-import-preview">
+                    <strong>{preview.title}</strong>
+                    {preview.details.map((detail) => <span key={detail}>{detail}</span>)}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="ls-panel" data-audit="settings-system">
+            <div className="ls-panel-head"><span className="ls-label">System</span></div>
+            <div className="co-row">
+              <span className="co-row-text">Version</span>
+              <span className="co-row-value">{health ? `${health.appName} · Add-on` : 'Grow OS · Add-on'}</span>
+            </div>
+            {health && (
+              <div className="co-row">
+                <span className="co-row-text">Backend-Schema</span>
+                <span className="co-row-value">{health.backendSchema}</span>
+              </div>
+            )}
+            <div className="co-row">
+              <span className="co-row-text">Erste Schritte erneut zeigen</span>
+              <div className="co-row-end"><Link className="ls-btn is-small" to="/start">Onboarding</Link></div>
+            </div>
+            <div className="co-row">
+              <span className="co-row-text">Zelte / Grows</span>
+              <span className="co-row-value">{settings?.tents.length ?? 0} · {grows.length}</span>
+            </div>
+          </section>
+        </div>
       )}
     </V1Page>
   )

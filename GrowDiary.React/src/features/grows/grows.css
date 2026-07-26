@@ -203,3 +203,33 @@
   .gd-meas-table td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
   .gd-meas-table tbody tr:last-child td { border-bottom: 0; }
 }
+
+/* Grow-Uebersicht: Karten nach dem Entwurf. */
+@layer features {
+  .gc-card {
+    border: 1px solid var(--hair); border-radius: 12px;
+    background: var(--panel); overflow: hidden;
+  }
+  .gc-card.is-running { border-color: var(--accent); }
+
+  .gc-head {
+    padding: 12px 16px; border-bottom: 1px solid var(--hair);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .gc-head strong { font-size: 15px; font-weight: 600; }
+  .gc-day { margin-left: auto; font: 400 11px/1 var(--font-mono); color: var(--muted); white-space: nowrap; }
+
+  .gc-body { padding: 12px 16px; display: grid; gap: 10px; }
+
+  /* Phasenbalken: fertig = Wash, laufend = Vollton, geplant = versenkt. */
+  .gc-phasebar { display: flex; gap: 2px; height: 20px; border-radius: 5px; overflow: hidden; }
+  .gc-phasebar i { min-width: 0; }
+  .gc-phasebar i.is-done { background: var(--accent-wash); border: 1px solid var(--hair-2); border-radius: 4px 0 0 4px; }
+  .gc-phasebar i.is-current { background: var(--accent); }
+  .gc-phasebar i.is-planned { background: var(--sunk); border: 1px solid var(--hair); border-radius: 0 4px 4px 0; }
+
+  .gc-facts { font: 400 11.5px/1.6 var(--font-mono); color: var(--muted); }
+
+  /* Geplante Grows tragen die Info-Farbe, wie DAUERHAFT im Entwurf. */
+  .ls-pill.is-plan { color: var(--info-text); }
+}

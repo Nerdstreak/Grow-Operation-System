@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiFetch } from '../api'
-import { V1Page, V1Section, V1Card, V1Field, V1Switch, V1Button, V1Alert, V1Badge, V1Empty } from '../components/v1'
+import { V1Section, V1Card, V1Field, V1Switch, V1Button, V1Alert, V1Badge, V1Empty } from '../components/v1'
 
 type AiProvider = 'OpenAiCompatible' | 'Anthropic'
 
@@ -224,11 +224,8 @@ export function AiAssistantPage() {
     !settings?.isConfigured ? 'none' : preview?.wouldLeaveTheHouse ? 'remote' : 'local'
 
   return (
-    <V1Page
-      eyebrow="Assistent"
-      title="KI-Assistent"
-      subtitle="Beantwortet Fragen zu deinem Grow anhand deiner Unterlagen — er schlägt vor, du entscheidest."
-    >
+    <>
+      <p className="gc-facts">Beantwortet Fragen zu deinem Grow anhand deiner Unterlagen — er schlägt vor, du entscheidest.</p>
       {error && <V1Alert tone="critical" message={error} />}
       {message && <V1Alert tone="ok" message={message} />}
 
@@ -383,7 +380,7 @@ export function AiAssistantPage() {
           </V1Card>
         )}
       </V1Section>
-    </V1Page>
+    </>
   )
 }
 

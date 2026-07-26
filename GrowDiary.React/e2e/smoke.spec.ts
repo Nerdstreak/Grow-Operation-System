@@ -82,12 +82,12 @@ for (const route of ROUTES) {
 // bewusst ausgeschrieben und wird nicht aus navigation.ts importiert — sonst pruefte
 // der Test die Tabelle gegen sich selbst.
 const REDIRECTS: [from: string, to: string][] = [
-  ['/automatik', '/regeln'],
+  ['/automatik', '/regeln?tab=automatik'],
   ['/alarme', '/regeln?tab=grenzwerte'],
   ['/benachrichtigungen', '/regeln?tab=push'],
   ['/assistent', '/regeln?tab=ki'],
-  ['/phenohunt', '/sorten?tab=pheno'],
-  ['/analyse', '/archiv?tab=vergleich'],
+  ['/phenohunt', '/sorten'],
+  ['/analyse', '/archiv'],
   ['/hardware', '/sensoren'],
   ['/action', '/aufgaben'],
 ]

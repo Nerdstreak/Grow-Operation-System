@@ -57,6 +57,21 @@ public sealed class MeasurementsApiController : ApiControllerBase
         return Ok(measurement.ToDto());
     }
 
+    /// <summary>Alle Fotos eines Grows — für den Journal-Strom („Messfotos und Ereignisse in einem Strom").</summary>
+    [HttpGet("grows/{growId:int}/photos")]
+    [ProducesResponseType(typeof(IReadOnlyList<PhotoAssetDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<IReadOnlyList<PhotoAssetDto>> GrowPhotos(int growId)
+    {
+        var grow = _repository.GetGrow(growId);
+        if (grow is null)
+        {
+            return NotFoundError("grow_not_found", $"Grow mit Id {growId} existiert nicht.");
+        }
+
+        return Ok(_repository.GetPhotosForGrow(growId).Select(photo => photo.ToDto()).ToList());
+    }
+
     [HttpGet("measurements/{measurementId:int}/photos")]
     [ProducesResponseType(typeof(IReadOnlyList<PhotoAssetDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]

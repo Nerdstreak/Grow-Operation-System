@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CalibrationEventDto, CreateHardwareItemRequest, HardwareDeviceKind, HardwareItemCriticality, HardwareItemDto, HardwareItemStatus, HydroSetupDto, MaintenanceEventDto, TentDto, UpdateHardwareItemRequest } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
+import type { CalibrationEventDto, CreateHardwareItemRequest, HardwareDeviceKind, HardwareItemCriticality, HardwareItemDto, HardwareItemStatus, HomeAssistantEntity, HydroSetupDto, MaintenanceEventDto, TentDto, UpdateHardwareItemRequest } from '../types'
+import { V1Alert, V1Badge, V1Button, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { classNames, formatSeverityLabel } from '../utils'
 import type { HardwareFilter, HardwareRow } from '../features/hardware/hardware-table-model'
 import { buildHardwareRows, countBy, dueLabel, filterHardwareRows, statusLabel, statusTone } from '../features/hardware/hardware-table-model'
@@ -55,6 +55,7 @@ function HardwarePage() {
   const [tents, setTents] = useState<TentDto[]>([])
   const [hydroSetups, setHydroSetups] = useState<HydroSetupDto[]>([])
   const [maintenance, setMaintenance] = useState<MaintenanceEventDto[]>([])
+  const [entities, setEntities] = useState<HomeAssistantEntity[]>([])
   const [calibration, setCalibration] = useState<CalibrationEventDto[]>([])
   const [filter, setFilter] = useState<HardwareFilter>('alle')
   const [formOpen, setFormOpen] = useState(false)
@@ -72,18 +73,20 @@ function HardwarePage() {
     setError(null)
     try {
       const dueBeforeUtc = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
-      const [items, tentData, hydroData, maintenanceData, calibrationData] = await Promise.all([
+      const [items, tentData, hydroData, maintenanceData, calibrationData, entityData] = await Promise.all([
         apiFetch<HardwareItemDto[]>('/api/hardware-items'),
         apiFetch<TentDto[]>('/api/settings/tents'),
         apiFetch<HydroSetupDto[]>('/api/hydro-setups?includeArchived=true'),
         apiFetch<MaintenanceEventDto[]>(`/api/maintenance-events?dueBeforeUtc=${encodeURIComponent(dueBeforeUtc)}`).catch(() => []),
         apiFetch<CalibrationEventDto[]>(`/api/calibration-events?dueBeforeUtc=${encodeURIComponent(dueBeforeUtc)}`).catch(() => []),
+        apiFetch<HomeAssistantEntity[]>('/api/home-assistant/entities').catch(() => [] as HomeAssistantEntity[]),
       ])
       setHardware(items)
       setTents(tentData)
       setHydroSetups(hydroData)
       setMaintenance(maintenanceData)
       setCalibration(calibrationData)
+      setEntities(entityData)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Sensoren konnten nicht geladen werden.')
     } finally {
@@ -93,7 +96,6 @@ function HardwarePage() {
 
   const sensors = useMemo(() => hardware.filter((item) => isSensorLike(item)), [hardware])
   const offline = sensors.filter((item) => item.status === 'Offline' || item.status === 'Retired').length
-  const trust = sensors.length === 0 ? 0 : Math.max(0, 100 - offline * 25)
   const plannedMaintenance = maintenance.filter((event) => event.status === 'Planned')
   const plannedCalibration = calibration.filter((event) => event.status === 'Planned')
 
@@ -252,23 +254,25 @@ function HardwarePage() {
   }
 
   return (
-    <V1Page eyebrow="Ops" title="Sensoren" subtitle="Physisches Inventar, Zeltzuordnung und Wartungsstatus. HA-Entities werden separat unter Home Assistant gemappt.">
+    <V1Page
+      eyebrow="Anlage / Sensoren"
+      title="Sensoren & Wartung"
+      subtitle="Inventar, Zeltzuordnung, HA-Mapping und Kalibrierung in einer Tabelle."
+      action={<button type="button" className="ls-btn is-primary" onClick={openCreate}>+ Gerät anlegen</button>}
+    >
       {error && <V1Alert title="Fehler" message={error} tone="warn" />}
       {message && <V1Alert message={message} tone="ok" />}
 
-      <section className="v1-kpi-grid">
-        <V1Card tone={sensors.length === 0 ? 'neutral' : trust < 60 ? 'critical' : trust < 85 ? 'warn' : 'ok'}><span className="v1-card-kicker">Sensorvertrauen</span><h2>{sensors.length === 0 ? 'nicht bewertet' : `${trust}%`}</h2><p>{sensors.length} Sensoren · {offline} offline</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Inventar</span><h2>{hardware.length}</h2><p>Geräte</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Zelte</span><h2>{tents.length}</h2><p>Zuordnung möglich</p></V1Card>
-        <V1Card tone={plannedMaintenance.length + plannedCalibration.length > 0 ? 'warn' : 'ok'}><span className="v1-card-kicker">Pflege</span><h2>{plannedMaintenance.length + plannedCalibration.length}</h2><p>Wartung/Kalibrierung fällig</p></V1Card>
-      </section>
+      <div className="co-strip" data-audit="hardware-kpis">
+        <div className="co-cell"><div className="co-cell-label">Geräte</div><div className="co-cell-value is-lg">{hardware.length}</div></div>
+        <div className="co-cell"><div className="co-cell-label">Live über HA</div><div className="co-cell-value is-lg">{hardware.filter((item) => item.haEntityId).length}</div></div>
+        <div className="co-cell"><div className="co-cell-label">Kalibrierung fällig</div><div className={`co-cell-value is-lg${plannedCalibration.length + plannedMaintenance.length > 0 ? ' is-warn' : ''}`}>{plannedCalibration.length + plannedMaintenance.length}</div></div>
+        <div className="co-cell"><div className="co-cell-label">Störung</div><div className="co-cell-value is-lg" style={offline > 0 ? { color: 'var(--danger)' } : undefined}>{offline}</div></div>
+      </div>
 
       {loading ? <V1Skeleton tiles={4} rows={4} label="Lade Sensoren" /> : (
         <>
-          <V1Section
-            title="Geräte"
-            action={!formOpen && <V1Button variant="primary" onClick={openCreate}>Gerät anlegen</V1Button>}
-          >
+          <V1Section title="Geräte">
             {/* Filter statt Tabs: die Tabs zeigten Teilmengen derselben Liste auf
                 getrennten Seiten, sodass dieselbe Sonde in dreien davon stand und
                 man Status und Kalibriertermin nicht zusammen sehen konnte. */}
@@ -299,10 +303,11 @@ function HardwarePage() {
                   <thead>
                     <tr>
                       <th scope="col">Gerät</th>
+                      <th scope="col">Art</th>
                       <th scope="col">Zelt</th>
-                      <th scope="col">Status</th>
-                      <th scope="col">Home Assistant</th>
-                      <th scope="col">Nächste Pflege</th>
+                      <th scope="col">HA-Entity</th>
+                      <th scope="col">Wert</th>
+                      <th scope="col">Kalibrierung</th>
                       <th scope="col"><span className="sr-only">Aktionen</span></th>
                     </tr>
                   </thead>
@@ -311,6 +316,7 @@ function HardwarePage() {
                       <HardwareRowView
                         key={row.item.id}
                         row={row}
+                        liveState={liveStateFor(row.item, entities)}
                         saving={saving === `hardware-${row.item.id}`}
                         onStatus={updateHardwareStatus}
                         onEdit={startEdit}
@@ -370,18 +376,19 @@ function HardwarePage() {
 }
 
 /** Eine Gerätezeile. Bei schmalem Rahmen legt hardware.css sie zu einer Karte um. */
-function HardwareRowView({ row, saving, onStatus, onEdit, onDelete }: { row: HardwareRow; saving: boolean; onStatus: (item: HardwareItemDto, status: HardwareItemStatus) => void; onEdit: (item: HardwareItemDto) => void; onDelete: (item: HardwareItemDto) => void }) {
+function HardwareRowView({ row, liveState, saving, onStatus, onEdit, onDelete }: { row: HardwareRow; liveState: string | null; saving: boolean; onStatus: (item: HardwareItemDto, status: HardwareItemStatus) => void; onEdit: (item: HardwareItemDto) => void; onDelete: (item: HardwareItemDto) => void }) {
   const { item } = row
   return (
     <tr className={classNames(row.overdue && 'overdue')}>
       <td data-label="Gerät">
         <strong>{item.name}</strong>
-        <span className="hw-sub">{deviceKindLabel(item.deviceKind) ?? item.category}{item.manufacturer ? ` · ${item.manufacturer}` : ''}</span>
+        <span className="hw-sub">{item.manufacturer ?? item.category}{item.status !== 'Active' ? <> · <V1Badge tone={statusTone(item.status)}>{statusLabel(item.status)}</V1Badge></> : null}</span>
       </td>
+      <td data-label="Art">{deviceKindLabel(item.deviceKind) ?? item.category}</td>
       <td data-label="Zelt">{row.tentName ?? <span className="hw-empty">—</span>}</td>
-      <td data-label="Status"><V1Badge tone={statusTone(item.status)}>{statusLabel(item.status)}</V1Badge></td>
-      <td data-label="Home Assistant">{item.haEntityId ? <code className="hw-entity">{item.haEntityId}</code> : <span className="hw-empty">nicht gemappt</span>}</td>
-      <td data-label="Nächste Pflege">
+      <td data-label="HA-Entity">{item.haEntityId ? <code className="hw-entity">{item.haEntityId}</code> : <span className="hw-empty">nicht gemappt</span>}</td>
+      <td data-label="Wert">{liveState ?? <span className="hw-empty">—</span>}</td>
+      <td data-label="Kalibrierung">
         {row.nextCare ? (
           <>
             <strong className={classNames(row.overdue && 'hw-overdue')}>{dueLabel(row.dueInDays)}</strong>
@@ -398,6 +405,14 @@ function HardwareRowView({ row, saving, onStatus, onEdit, onDelete }: { row: Har
       </td>
     </tr>
   )
+}
+
+/** Live-Wert der gemappten Entity — die WERT-Spalte des Entwurfs. */
+function liveStateFor(item: HardwareItemDto, entities: HomeAssistantEntity[]): string | null {
+  if (!item.haEntityId) return null
+  const entity = entities.find((candidate) => candidate.entityId === item.haEntityId)
+  if (!entity || entity.state == null || entity.state === '') return null
+  return `${entity.state}${entity.unitOfMeasurement ? ` ${entity.unitOfMeasurement}` : ''}`
 }
 
 function inferDeviceKind(item?: HardwareItemDto): HardwareDeviceKind {

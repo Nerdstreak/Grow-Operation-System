@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { formatDateTime } from '../../utils'
 import { GrowDetailDiagnosisSection } from '../grow-detail/GrowDetailDiagnosisSection'
-import { GrowDetailJournalPanel } from '../grow-detail/GrowDetailJournalPanel'
+import { JournalStreamSection } from '../grow-detail/JournalStreamSection'
 import { GrowDetailMeasurementsSection } from '../grow-detail/GrowDetailMeasurementsSection'
 import { GrowDetailSopSection } from '../grow-detail/GrowDetailSopSection'
 import { SopCatalog } from '../grow-detail/SopCatalog'
@@ -25,8 +24,6 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
   const {
     bundle,
     loading,
-    photoLoading,
-    photos,
     selectedMeasurementId,
     handleMeasurementSelection,
     loadBundle,
@@ -50,9 +47,7 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
     treatmentRecommendations,
   } = useGrowDetailResources({ growId })
 
-  const openTasks = useMemo(() => bundle.tasks.filter((task) => task.status === 'Open'), [bundle.tasks])
   const activeSopIds = useMemo(() => new Set(sopInstances.filter((sop) => sop.status === 'Active').map((sop) => sop.sopId)), [sopInstances])
-  const closedTasks = useMemo(() => bundle.tasks.filter((task) => task.status !== 'Open'), [bundle.tasks])
   const selectedMeasurement = useMemo(
     () => bundle.measurements.find((measurement) => measurement.id === selectedMeasurementId) ?? null,
     [bundle.measurements, selectedMeasurementId],
@@ -72,7 +67,6 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
     setTaskForm,
     startRecommendedSop,
     updateSopStep,
-    updateTaskStatus,
   } = useGrowDetailMutations({
     growId,
     grow: bundle.grow,
@@ -115,8 +109,6 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
   if (!bundle.grow) {
     return <div className="empty-hint" style={{ color: 'var(--red)' }}>{error ?? 'Grow nicht gefunden.'}</div>
   }
-
-  const grow = bundle.grow
 
   return (
     <>
@@ -183,56 +175,23 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
       )}
 
       {section === 'journal' && (
-        <div className="detail-layout">
-          <div>
-            <div className="section-label">Journal</div>
-            <div className="card" style={{ marginBottom: 14 }}>
-              <div className="card-header">
-                <span className="card-title">Einträge</span>
-                <span className="text-muted" style={{ fontSize: 13 }}>{bundle.journal.length}</span>
-              </div>
-              {bundle.journal.length === 0 ? (
-                <div className="empty-hint">Noch keine Journal-Einträge.</div>
-              ) : (
-                bundle.journal.map((entry) => (
-                  <div key={entry.id} className="timeline-item" style={{ padding: '12px 16px' }}>
-                    <div className="tl-dot-col">
-                      <div className="tl-dot journal" />
-                      <div className="tl-line" />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="tl-title">{entry.title ?? entry.entryType}</div>
-                      {entry.body && <div className="tl-sub">{entry.body}</div>}
-                    </div>
-                    <div className="tl-time">{formatDateTime(entry.occurredAtUtc)}</div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <GrowDetailJournalPanel
-            grow={grow}
-            openTasks={openTasks}
-            closedTasks={closedTasks}
-            measurements={bundle.measurements}
-            photos={photos}
-            selectedMeasurementId={selectedMeasurementId}
-            journalForm={journalForm}
-            taskForm={taskForm}
-            photoForm={photoForm}
-            photoLoading={photoLoading}
-            saving={saving}
-            onTaskStatusChange={(taskId, status) => void updateTaskStatus(taskId, status)}
-            onJournalFormChange={(patch) => setJournalForm((current) => ({ ...current, ...patch }))}
-            onTaskFormChange={(patch) => setTaskForm((current) => ({ ...current, ...patch }))}
-            onPhotoFormChange={(patch) => setPhotoForm((current) => ({ ...current, ...patch }))}
-            onMeasurementSelection={(measurementId) => void handleMeasurementSelection(measurementId)}
-            onJournalSubmit={handleJournalSubmit}
-            onTaskSubmit={handleTaskSubmit}
-            onPhotoSubmit={handlePhotoSubmit}
-          />
-        </div>
+        <JournalStreamSection
+          growId={growId}
+          entries={bundle.journal}
+          measurements={bundle.measurements}
+          journalForm={journalForm}
+          photoForm={photoForm}
+          taskForm={taskForm}
+          saving={saving}
+          selectedMeasurementId={selectedMeasurementId}
+          onMeasurementSelection={(measurementId) => void handleMeasurementSelection(measurementId)}
+          onJournalFormChange={(patch) => setJournalForm((current) => ({ ...current, ...patch }))}
+          onPhotoFormChange={(patch) => setPhotoForm((current) => ({ ...current, ...patch }))}
+          onTaskFormChange={(patch) => setTaskForm((current) => ({ ...current, ...patch }))}
+          onJournalSubmit={handleJournalSubmit}
+          onPhotoSubmit={handlePhotoSubmit}
+          onTaskSubmit={handleTaskSubmit}
+        />
       )}
     </>
   )

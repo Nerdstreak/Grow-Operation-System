@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { NotificationSettingsDto } from '../types/notification'
-import { V1Page, V1Section, V1Card, V1Field, V1Switch, V1Button, V1Alert } from '../components/v1'
+import { V1Section, V1Card, V1Field, V1Switch, V1Button, V1Alert } from '../components/v1'
 
 function errorMessage(caught: unknown, fallback: string): string {
   return caught instanceof Error ? caught.message : fallback
@@ -169,16 +169,15 @@ function NotificationsPage() {
   }
 
   if (loading) {
-    return <V1Page eyebrow="Integration" title="Benachrichtigungen"><V1Card>Lädt…</V1Card></V1Page>
+    return <V1Card>Lädt…</V1Card>
   }
 
   return (
-    <V1Page
-      eyebrow="Integration"
-      title="Benachrichtigungen"
-      subtitle="Ein Ort für alle Push-Nachrichten: wähle einmal dein Handy, lege Ruhezeiten fest und entscheide, worüber Grow OS dich über Home Assistant erinnert."
-      action={<V1Button variant="primary" onClick={() => void save()} disabled={saving}>{saving ? 'Speichert…' : 'Speichern'}</V1Button>}
-    >
+    <>
+      <div className="co-tabhead">
+        <p className="gc-facts">Wähle einmal dein Handy, lege Ruhezeiten fest und entscheide, worüber Grow OS dich über Home Assistant erinnert.</p>
+        <V1Button variant="primary" onClick={() => void save()} disabled={saving}>{saving ? 'Speichert…' : 'Speichern'}</V1Button>
+      </div>
       {error && <V1Alert message={error} tone="critical" />}
       {message && <V1Alert message={message} tone="ok" />}
 
@@ -272,7 +271,7 @@ function NotificationsPage() {
           </V1Card>
         </div>
       </V1Section>
-    </V1Page>
+    </>
   )
 }
 

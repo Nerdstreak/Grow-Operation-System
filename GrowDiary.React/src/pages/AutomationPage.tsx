@@ -4,7 +4,7 @@ import type { AutoMeasurementConfigDto, AutoMeasurementFieldMappingUpsertRequest
 import { autoMeasurementFields, defaultMetricKeyByField } from '../features/grow-detail/grow-detail-model'
 import { GrowScopePicker } from '../features/grow-scope/GrowScopePicker'
 import { useSelectedGrow } from '../features/grow-scope/useSelectedGrow'
-import { V1Page, V1Card, V1Alert, V1Empty, V1Switch } from '../components/v1'
+import { V1Card, V1Alert, V1Empty, V1Switch } from '../components/v1'
 
 type Template = {
   triggerKind: Extract<AutoMeasurementTriggerKind, 'LightOnDelay' | 'LightOffDelay'>
@@ -157,12 +157,11 @@ function AutomationPage() {
   }
 
   return (
-    <V1Page
-      eyebrow="Automatik & Regeln"
-      title="Automatik"
-      subtitle="Schalte eine Automatik an, fertig. Sie erfasst automatisch die Werte deiner in Home Assistant zugeordneten Sensoren — du musst nichts auswählen. Voraussetzung: dein Licht ist in Home Assistant als Status hinterlegt."
-      action={<GrowScopePicker grows={grows} growId={growId} onChange={setGrowId} />}
-    >
+    <>
+      <div className="co-tabhead">
+        <p className="gc-facts">Schalte eine Automatik an, fertig. Sie erfasst automatisch die Werte deiner in Home Assistant zugeordneten Sensoren. Voraussetzung: dein Licht ist in Home Assistant als Status hinterlegt.</p>
+        <GrowScopePicker grows={grows} growId={growId} onChange={setGrowId} />
+      </div>
       {(error || growsError) && <V1Alert message={(error ?? growsError) as string} tone="critical" />}
       {notice && <V1Alert message={notice} tone="ok" />}
 
@@ -201,7 +200,7 @@ function AutomationPage() {
           )}
         </div>
       )}
-    </V1Page>
+    </>
   )
 }
 

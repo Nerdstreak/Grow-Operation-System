@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { CreateTentRequest, GrowSummary, HydroSetupDto, TentDependencyError, TentDependencySummaryDto, TentDto, TentLivePayload, TentType, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Stat, V1Switch } from '../components/v1'
+import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Switch } from '../components/v1'
 import { toNullableInt, toNullableString } from '../components/v1-utils'
 import { classNames } from '../utils'
 
@@ -44,6 +44,7 @@ function TentsPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [draft, setDraft] = useState<TentDraft>(() => createDraft())
   const [saving, setSaving] = useState<string | null>(null)
+  const [selectedTentId, setSelectedTentId] = useState<number | null>(null)
   const [blockedDeleteTentId, setBlockedDeleteTentId] = useState<number | null>(null)
   const [deleteDependenciesByTentId, setDeleteDependenciesByTentId] = useState<Record<number, TentDependencySummaryDto | null>>({})
 
@@ -82,8 +83,6 @@ function TentsPage() {
   }, [loadTents])
 
   const activeTents = useMemo(() => tents.filter((tent) => tent.status === 'Active'), [tents])
-  const physicalVolumeKnown = useMemo(() => activeTents.filter((tent) => tent.widthCm && tent.depthCm && tent.tentHeightCm).length, [activeTents])
-  const activeHydroCount = useMemo(() => hydroSetups.filter((setup) => setup.status === 'Active').length, [hydroSetups])
 
   function openCreate() {
     setEditingId(null)
@@ -266,108 +265,273 @@ function TentsPage() {
     )
   }
 
+  const selectedTent = tents.find((tent) => tent.id === selectedTentId && tent.status === 'Active') ?? activeTents[0] ?? tents[0] ?? null
+
   return (
-    <V1Page eyebrow="Räume" title="Zelte" action={<V1Button variant="primary" onClick={openCreate}>Zelt anlegen</V1Button>} className="tents-page">
+    <V1Page eyebrow="Anlage / Zelte" title="Zelte & Räume" action={<button type="button" className="ls-btn is-primary" onClick={openCreate}>+ Zelt anlegen</button>} className="tents-page">
       {error && <V1Alert message={error} tone="warn" />}
 
-      <section className="v1-kpi-grid">
-        <V1Stat label="Aktive Zelte" value={activeTents.length} />
-        <V1Stat label="Größe gepflegt" value={physicalVolumeKnown} />
-        <V1Stat label="Aktive Grows" value={activeTents.reduce((sum, tent) => sum + tent.activeGrowCount, 0)} />
-        <V1Stat label="Hydro-Setups" value={activeHydroCount} />
-      </section>
-
       {loading ? <V1Empty title="Lade Zelte..." /> : tents.length === 0 ? <V1Empty title="Noch kein Zelt" action={<V1Button variant="primary" onClick={openCreate}>Erstes Zelt anlegen</V1Button>} /> : (
-        <section className="v1-card-grid">
-          {tents.map((tent) => <TentCard key={tent.id} tent={tent} live={liveByTentId[tent.id] ?? null} hydroCount={countHydroForTent(hydroSetups, tent.id)} linkedGrows={getGrowsForTent(grows, tent.id)} linkedHydro={getHydroForTent(hydroSetups, tent.id)} deleteBlocked={blockedDeleteTentId === tent.id} deleteDependencies={deleteDependenciesByTentId[tent.id] ?? null} saving={saving === `delete-${tent.id}` || saving === `archive-${tent.id}`} savingKey={saving} onEdit={openEdit} onArchive={archiveTent} onDelete={deleteTent} onArchiveGrow={archiveLinkedGrow} />)}
-        </section>
+        <div className="tn-layout" data-audit="tents-overview">
+          <div className="tn-list">
+            <div className="ls-label">Zelte</div>
+            {tents.map((tent) => (
+              <button
+                key={tent.id}
+                type="button"
+                className={classNames('tn-item', selectedTent?.id === tent.id && 'active', tent.status === 'Archived' && 'is-archived')}
+                onClick={() => setSelectedTentId(tent.id)}
+              >
+                <span className="tn-item-name">
+                  <span className={classNames('co-dot', tent.status === 'Active' && 'is-on')} aria-hidden="true" />
+                  <strong>{tent.name}</strong>
+                </span>
+                <span className="tn-item-meta">{tentMetaLine(tent, countHydroForTent(hydroSetups, tent.id))}</span>
+              </button>
+            ))}
+            <button type="button" className="tn-item is-ghost" onClick={openCreate}>+ Weiteres Zelt</button>
+          </div>
+
+          {selectedTent && (
+            <TentDetail
+              tent={selectedTent}
+              live={liveByTentId[selectedTent.id] ?? null}
+              linkedGrows={getGrowsForTent(grows, selectedTent.id)}
+              linkedHydro={getHydroForTent(hydroSetups, selectedTent.id)}
+              deleteBlocked={blockedDeleteTentId === selectedTent.id}
+              deleteDependencies={deleteDependenciesByTentId[selectedTent.id] ?? null}
+              savingKey={saving}
+              onEdit={openEdit}
+              onArchive={archiveTent}
+              onDelete={deleteTent}
+              onArchiveGrow={archiveLinkedGrow}
+            />
+          )}
+        </div>
       )}
     </V1Page>
   )
 }
 
-function TentCard({ tent, live, hydroCount, linkedGrows, linkedHydro, deleteBlocked, deleteDependencies, saving, savingKey, onEdit, onArchive, onDelete, onArchiveGrow }: { tent: TentDto; live: TentLivePayload | null; hydroCount: number; linkedGrows: GrowSummary[]; linkedHydro: HydroSetupDto[]; deleteBlocked: boolean; deleteDependencies: TentDependencySummaryDto | null; saving: boolean; savingKey: string | null; onEdit: (tent: TentDto) => void; onArchive: (tent: TentDto) => void; onDelete: (tent: TentDto) => void; onArchiveGrow: (grow: Pick<GrowSummary, 'id' | 'name'>) => void }) {
-  const archived = tent.status === 'Archived'
+/** „120×120×200 · 1 Grow · 1 System" — die Kurzzeile der Zeltliste. */
+function tentMetaLine(tent: TentDto, hydroCount: number): string {
+  const parts: string[] = []
+  if (tent.widthCm && tent.depthCm && tent.tentHeightCm) parts.push(`${tent.widthCm}×${tent.depthCm}×${tent.tentHeightCm}`)
+  if (tent.tentType === 'Mother') parts.push('Mutterpflanzen')
+  else if (tent.activeGrowCount > 0) parts.push(`${tent.activeGrowCount} Grow${tent.activeGrowCount > 1 ? 's' : ''}`)
+  if (hydroCount > 0) parts.push(`${hydroCount} System${hydroCount > 1 ? 'e' : ''}`)
+  if (tent.status === 'Archived') parts.push('Archiv')
+  return parts.join(' · ') || formatTentType(tent.tentType)
+}
+
+function TentDetail({ tent, live, linkedGrows, linkedHydro, deleteBlocked, deleteDependencies, savingKey, onEdit, onArchive, onDelete, onArchiveGrow }: { tent: TentDto; live: TentLivePayload | null; linkedGrows: GrowSummary[]; linkedHydro: HydroSetupDto[]; deleteBlocked: boolean; deleteDependencies: TentDependencySummaryDto | null; savingKey: string | null; onEdit: (tent: TentDto) => void; onArchive: (tent: TentDto) => void; onDelete: (tent: TentDto) => void; onArchiveGrow: (grow: Pick<GrowSummary, 'id' | 'name'>) => void }) {
+  const saving = savingKey === `delete-${tent.id}` || savingKey === `archive-${tent.id}`
+  const light = live?.metrics.find((metric) => metric.key === 'light-cycle') ?? null
+  const lightPill = light && (light.value === 'An' || light.value === 'Aus') ? `Licht ${light.value}` : null
+  const runningGrow = linkedGrows.find((grow) => grow.status === 'Running') ?? linkedGrows[0] ?? null
+  const hydro = linkedHydro[0] ?? null
   const panelDependencies = deleteDependencies ?? createClientDependencySummary(linkedGrows, linkedHydro)
   const showDependencyPanel = deleteBlocked && hasDependencies(panelDependencies)
+  const mapped = tent.sensors.filter((sensor) => sensor.isActive && sensor.haEntityId)
+  const missingCore = coreMetrics.filter((core) => !mapped.some((sensor) => sensor.metricType === core.metricType))
+  const camera = (tent.cameras ?? []).find((entity) => entity.trim()) ?? tent.cameraEntityId
+
   return (
-    <V1Card className="v1-tent-card" tone={archived ? 'neutral' : liveTone(live)}>
-      <div className="v1-card-title-row"><div><span className="v1-card-kicker">{formatTentType(tent.tentType)}</span><h2>{tent.name}</h2></div><V1Badge tone={archived ? 'neutral' : liveTone(live)}>{archived ? 'Archiv' : live?.stateLabel ?? 'aktiv'}</V1Badge></div>
-      <div className="tent-metric-groups" data-audit="tent-metrics">
-        <MetricGroup title="Klima" items={[
-          ['Temp', liveValue(live, 'temperature')],
-          ['RLF', liveValue(live, 'humidity')],
-          ['VPD', liveValue(live, 'vpd')],
-        ]} />
-        <MetricGroup title="Licht" items={[
-          ['Zyklus', liveValue(live, 'light-cycle')],
-          ['PPFD', liveValue(live, 'ppfd')],
-          ['Watt', tent.lightWatt ? `${tent.lightWatt} W` : '–'],
-        ]} />
-        <MetricGroup title="Setup" items={[
-          ['Hydro', String(hydroCount)],
-          ['Grows', String(tent.activeGrowCount)],
-          ['Größe', formatSize(tent)],
-        ]} />
-      </div>
-      {linkedGrows.length > 0 && <p>{linkedGrows.length} aktive Grows verknüpft.</p>}
-      <div className="v1-action-row rc-tent-actions" data-audit="tent-card-actions"><V1LinkButton to={`/zelte/${tent.id}`} variant="primary">Öffnen</V1LinkButton><V1Button onClick={() => onEdit(tent)}>Bearbeiten</V1Button><V1Button disabled={saving} onClick={() => void onArchive(tent)}>Archivieren</V1Button><V1Button variant="danger" disabled={saving} audit="tent-delete-button" onClick={() => void onDelete(tent)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button></div>
-      {showDependencyPanel && (
-        <div className={classNames('dependency-panel', deleteBlocked && 'active')} data-audit="tent-delete-blocked">
-          <strong>Löschen blockiert</strong>
-          <p>Dieses Zelt ist mit aktiven Abhängigkeiten verknüpft. Verwalte sie direkt, danach ist Löschen erneut möglich.</p>
-          <div className="v1-list">
-            {panelDependencies.activeGrows.map((grow) => (
-              <div key={`grow-${grow.id}`} className="v1-list-row dependency-row">
-                <div>
-                  <strong>{grow.name}</strong>
-                  <span>{grow.status ?? 'aktiv'}</span>
-                </div>
-                <div className="dependency-row-actions">
-                  <V1LinkButton to={`/grows/${grow.id}`} variant="primary">Verwalten</V1LinkButton>
-                  <V1LinkButton to={`/grows/${grow.id}/setup`}>Bearbeiten</V1LinkButton>
-                  <V1Button disabled={savingKey === `grow-archive-${grow.id}`} onClick={() => void onArchiveGrow({ id: grow.id, name: grow.name })}>{savingKey === `grow-archive-${grow.id}` ? 'Beendet...' : 'Beenden'}</V1Button>
-                </div>
-              </div>
-            ))}
-            {panelDependencies.hydroSetups.map((setup) => (
-              <div key={`hydro-${setup.id}`} className="v1-list-row dependency-row">
-                <div>
-                  <strong>{setup.name}</strong>
-                  <span>{setup.status}</span>
-                </div>
-                <div className="dependency-row-actions">
-                  <V1LinkButton to={`/hydro/${setup.id}`} variant="primary">Öffnen</V1LinkButton>
-                </div>
-              </div>
-            ))}
-            {panelDependencies.sensors.map((sensor) => (
-              <div key={`sensor-${sensor.id}`} className="v1-list-row dependency-row">
-                <div>
-                  <strong>{sensor.name}</strong>
-                  <span>{sensor.status ?? 'verknüpft'}</span>
-                </div>
-                <div className="dependency-row-actions">
-                  <V1LinkButton to="/hardware" variant="primary">Sensoren öffnen</V1LinkButton>
-                </div>
-              </div>
-            ))}
-            {panelDependencies.other.map((item) => (
-              <div key={`other-${item.type}-${item.id}`} className="v1-list-row dependency-row">
-                <div>
-                  <strong>{item.name}</strong>
-                  <span>{[item.type, item.status].filter(Boolean).join(' · ')}</span>
-                </div>
-                <div className="dependency-row-actions">
-                  <V1LinkButton to="/hydro" variant="primary">Setups öffnen</V1LinkButton>
-                </div>
-              </div>
-            ))}
+    <div className="tn-detail">
+      <section className="ls-panel" data-audit="tent-detail-panel">
+        <div className="tn-head">
+          <strong>{tent.name}</strong>
+          {lightPill && <span className="ls-pill">{lightPill}</span>}
+          <span className="tn-head-meta">{headMeta(tent)}</span>
+          <div className="co-actions" data-audit="tent-card-actions">
+            <button type="button" className="ls-btn is-small" onClick={() => onEdit(tent)}>Bearbeiten</button>
+            <V1LinkButton to="/hydro" className="ls-btn is-small">Hydro</V1LinkButton>
           </div>
         </div>
-      )}
-    </V1Card>
+        <div className="tn-groups" data-audit="tent-metrics">
+          <div className="tn-group">
+            <div className="tn-group-label">Klima</div>
+            <Row label="Temp" value={liveValue(live, 'temperature')} />
+            <Row label="RLF" value={liveValue(live, 'humidity')} />
+            <Row label="VPD" value={liveValue(live, 'vpd')} />
+            <Row label="CO₂" value={tent.co2Available ? liveValue(live, 'co2' as LiveMetricKey) : 'nicht gemappt'} faint={!tent.co2Available} />
+          </div>
+          <div className="tn-group">
+            <div className="tn-group-label">Licht</div>
+            <Row label={light?.value === 'An' || light?.value === 'Aus' ? 'Status' : 'Zyklus'} value={light?.value ?? '–'} />
+            <Row label="Leistung" value={tent.lightWatt ? `${tent.lightWatt} W` : '–'} />
+            <Row label="PPFD" value={liveValue(live, 'ppfd')} faint={liveValue(live, 'ppfd') === '–'} />
+          </div>
+          <div className="tn-group">
+            <div className="tn-group-label">Luft</div>
+            <Row label="Abluft" value={tent.exhaustFanCount ? `${tent.exhaustFanCount} × ${tent.exhaustM3h ?? '?'} m³/h` : '–'} />
+            <Row label="Umluft" value={tent.circulationFanCount ? `${tent.circulationFanCount} Ventilatoren` : '–'} />
+            <Row label="Luftwechsel" value={airChanges(tent)} />
+          </div>
+          <div className="tn-group">
+            <div className="tn-group-label">Belegung</div>
+            <Row label="Grow" value={runningGrow?.name ?? '–'} />
+            <Row label="System" value={hydro ? `${hydro.hydroStyle}${hydro.potCount ? ` · ${hydro.potCount} Sites` : ''}` : '–'} />
+            <Row label="Fläche/Pflanze" value={areaPerPlant(tent, runningGrow)} />
+          </div>
+        </div>
+      </section>
+
+      <div className="co-grid is-300">
+        <section className="ls-panel" data-audit="tent-camera-panel">
+          <div className="ls-panel-head">
+            <span className="ls-label">Kamera</span>
+            {camera && <span className="ls-panel-meta">{camera}</span>}
+          </div>
+          {camera ? (
+            <TentCam tentId={tent.id} entity={camera} name={tent.name} />
+          ) : (
+            <div className="ls-panel-body"><p>Keine Kamera gemappt — unter Home Assistant einrichten.</p></div>
+          )}
+        </section>
+
+        <section className="ls-panel" data-audit="tent-sensors-panel">
+          <div className="ls-panel-head">
+            <span className="ls-label">Gemappte Sensoren · {mapped.length}</span>
+          </div>
+          {mapped.slice(0, 8).map((sensor) => (
+            <div key={sensor.id} className="co-row">
+              <span className="co-dot is-on" aria-hidden="true" />
+              <span className="co-row-text">{sensor.displayLabel ?? sensor.metricType}</span>
+              <span className="co-row-value is-faint" style={{ textTransform: 'none' }}>{sensor.haEntityId}</span>
+            </div>
+          ))}
+          {missingCore.slice(0, 3).map((core) => (
+            <div key={core.metricType} className="co-row">
+              <span className="co-dot" aria-hidden="true" />
+              <span className="co-row-text" style={{ color: 'var(--muted)' }}>{core.label} — nicht gemappt</span>
+              <div className="co-row-end"><V1LinkButton to="/home-assistant" className="ls-btn is-small">Mappen</V1LinkButton></div>
+            </div>
+          ))}
+          {mapped.length === 0 && missingCore.length === 0 && (
+            <div className="ls-panel-body"><p>Keine Sensoren definiert.</p></div>
+          )}
+        </section>
+      </div>
+
+      <section className="ls-panel" data-audit="tent-management">
+        <div className="ls-panel-head"><span className="ls-label">Verwaltung</span></div>
+        <div className="co-row">
+          <span className="co-row-sub">Archivieren behält die Historie; Löschen entfernt das Zelt endgültig.</span>
+          <div className="co-row-end">
+            <button type="button" className="ls-btn is-small" disabled={saving} onClick={() => void onArchive(tent)}>Archivieren</button>
+            <button type="button" className="ls-btn is-small is-danger" data-audit="tent-delete-button" disabled={saving} onClick={() => void onDelete(tent)}>{saving ? 'Löscht…' : 'Löschen'}</button>
+          </div>
+        </div>
+        {showDependencyPanel && (
+          <div className={classNames('dependency-panel', deleteBlocked && 'active')} data-audit="tent-delete-blocked" style={{ margin: '0 14px 14px' }}>
+            <strong>Löschen blockiert</strong>
+            <p>Dieses Zelt ist mit aktiven Abhängigkeiten verknüpft. Verwalte sie direkt, danach ist Löschen erneut möglich.</p>
+            <div className="v1-list">
+              {panelDependencies.activeGrows.map((grow) => (
+                <div key={`grow-${grow.id}`} className="v1-list-row dependency-row">
+                  <div>
+                    <strong>{grow.name}</strong>
+                    <span>{grow.status ?? 'aktiv'}</span>
+                  </div>
+                  <div className="dependency-row-actions">
+                    <V1LinkButton to={`/grows/${grow.id}`} variant="primary">Verwalten</V1LinkButton>
+                    <V1LinkButton to={`/grows/${grow.id}/setup`}>Bearbeiten</V1LinkButton>
+                    <V1Button disabled={savingKey === `grow-archive-${grow.id}`} onClick={() => void onArchiveGrow({ id: grow.id, name: grow.name })}>{savingKey === `grow-archive-${grow.id}` ? 'Beendet...' : 'Beenden'}</V1Button>
+                  </div>
+                </div>
+              ))}
+              {panelDependencies.hydroSetups.map((setup) => (
+                <div key={`hydro-${setup.id}`} className="v1-list-row dependency-row">
+                  <div>
+                    <strong>{setup.name}</strong>
+                    <span>{setup.status}</span>
+                  </div>
+                  <div className="dependency-row-actions">
+                    <V1LinkButton to={`/hydro/${setup.id}`} variant="primary">Öffnen</V1LinkButton>
+                  </div>
+                </div>
+              ))}
+              {panelDependencies.sensors.map((sensor) => (
+                <div key={`sensor-${sensor.id}`} className="v1-list-row dependency-row">
+                  <div>
+                    <strong>{sensor.name}</strong>
+                    <span>{sensor.status ?? 'verknüpft'}</span>
+                  </div>
+                  <div className="dependency-row-actions">
+                    <V1LinkButton to="/sensoren" variant="primary">Sensoren öffnen</V1LinkButton>
+                  </div>
+                </div>
+              ))}
+              {panelDependencies.other.map((item) => (
+                <div key={`other-${item.type}-${item.id}`} className="v1-list-row dependency-row">
+                  <div>
+                    <strong>{item.name}</strong>
+                    <span>{[item.type, item.status].filter(Boolean).join(' · ')}</span>
+                  </div>
+                  <div className="dependency-row-actions">
+                    <V1LinkButton to="/hydro" variant="primary">Setups öffnen</V1LinkButton>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
   )
+}
+
+/** Kamerabild mit ehrlichem Fallback — ein gerissenes Bild-Icon sagt nichts. */
+function TentCam({ tentId, entity, name }: { tentId: number; entity: string; name: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return <div className="ls-panel-body"><p>Kein Bild — Home Assistant nicht erreichbar.</p></div>
+  return (
+    <img
+      className="tn-cam"
+      src={`/api/live/tents/${tentId}/camera?entity=${encodeURIComponent(entity)}&t=${tentId}`}
+      alt={`Kamerabild ${name}`}
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
+/** Kernwerte, deren Fehlen die Zelt-Ansicht anmahnt — wie im Entwurf CO₂. */
+const coreMetrics: Array<{ metricType: TentDto['sensors'][number]['metricType']; label: string }> = [
+  { metricType: 'AirTemperature', label: 'Lufttemperatur' },
+  { metricType: 'Humidity', label: 'Luftfeuchte' },
+  { metricType: 'ReservoirPh', label: 'pH Reservoir' },
+]
+
+function Row({ label, value, faint }: { label: string; value: string; faint?: boolean }) {
+  return (
+    <div className="tn-row">
+      <span>{label}</span>
+      <strong className={faint || value === '–' || value === 'nicht gemappt' ? 'is-faint' : undefined}>{value}</strong>
+    </div>
+  )
+}
+
+function headMeta(tent: TentDto): string {
+  const parts: string[] = []
+  if (tent.widthCm && tent.depthCm && tent.tentHeightCm) parts.push(`${tent.widthCm}×${tent.depthCm}×${tent.tentHeightCm} cm`)
+  if (tent.lightWatt) parts.push(`${tent.lightWatt} W`)
+  return parts.join(' · ')
+}
+
+/** ~ Luftwechsel pro Stunde: Abluftleistung geteilt durch Zeltvolumen. */
+function airChanges(tent: TentDto): string {
+  if (!tent.exhaustM3h || !tent.widthCm || !tent.depthCm || !tent.tentHeightCm) return '–'
+  const volumeM3 = (tent.widthCm / 100) * (tent.depthCm / 100) * (tent.tentHeightCm / 100)
+  if (volumeM3 <= 0) return '–'
+  return `~ ${Math.round(tent.exhaustM3h / volumeM3)} ×/h`
+}
+
+function areaPerPlant(tent: TentDto, grow: GrowSummary | null): string {
+  if (!tent.widthCm || !tent.depthCm || !grow?.plantCount) return '–'
+  const perPlant = Math.round((tent.widthCm * tent.depthCm) / grow.plantCount)
+  return `${new Intl.NumberFormat('de-DE').format(perPlant)} cm²`
 }
 
 function isTentDependencyError(payload: unknown): payload is TentDependencyError {
@@ -392,21 +556,6 @@ function hasDependencies(dependencies: TentDependencySummaryDto) {
     || dependencies.other.length > 0
 }
 
-function MetricGroup({ title, items }: { title: string; items: Array<[string, string]> }) {
-  return (
-    <section className="tent-metric-group">
-      <h3>{title}</h3>
-      <dl>
-        {items.map(([label, value]) => (
-          <div key={label} className="tent-metric-row">
-            <dt>{label}</dt>
-            <dd>{value || '–'}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  )
-}
 function sortTents(items: TentDto[]) { return [...items].sort((a, b) => a.status.localeCompare(b.status) || a.displayOrder - b.displayOrder || a.name.localeCompare(b.name)) }
 function countHydroForTent(items: HydroSetupDto[], tentId: number) { return items.filter((setup) => setup.tentId === tentId && setup.status === 'Active').length }
 function getHydroForTent(items: HydroSetupDto[], tentId: number) { return items.filter((setup) => setup.tentId === tentId && setup.status === 'Active') }
@@ -422,14 +571,10 @@ function parseOffset(value: string): number {
 
 function draftToRequest(draft: TentDraft) { return { name: draft.name.trim(), kind: draft.kind.trim() || 'Grow Tent', tentType: draft.tentType, notes: toNullableString(draft.notes), displayOrder: toNullableInt(draft.displayOrder) ?? 0, accentColor: '#22c55e', widthCm: toNullableInt(draft.widthCm), depthCm: toNullableInt(draft.depthCm), tentHeightCm: toNullableInt(draft.tentHeightCm), lightType: toNullableString(draft.lightType), lightWatt: toNullableInt(draft.lightWatt), lightController: null, lightControllerEntityId: null, exhaustFanCount: toNullableInt(draft.exhaustFanCount), exhaustM3h: toNullableInt(draft.exhaustM3h), circulationFanCount: toNullableInt(draft.circulationFanCount), hvacController: null, hvacControllerEntityId: null, co2Available: draft.co2Available, cameraEntityId: null, leafTempOffsetC: parseOffset(draft.leafTempOffsetC) } }
 function formatTentType(value: TentType) { return value === 'Production' ? 'Blüte / Run' : value === 'Mother' ? 'Mutter' : value === 'Propagation' ? 'Anzucht' : value === 'Quarantine' ? 'Quarantäne' : 'Mehrzweck' }
-function formatSize(tent: TentDto) {
-  return tent.widthCm && tent.depthCm && tent.tentHeightCm ? `${tent.widthCm}×${tent.depthCm}×${tent.tentHeightCm} cm` : '–'
-}
 function liveValue(live: TentLivePayload | null, key: LiveMetricKey) {
   const metric = live?.metrics.find((item) => item.key === key)
   return metric ? `${metric.value}${metric.unit && metric.value !== '–' ? ` ${metric.unit}` : ''}` : '–'
 }
-function liveTone(live: TentLivePayload | null) { return live?.stateTone === 'critical' ? 'critical' : live?.stateTone === 'warn' || live?.stateTone === 'warning' ? 'warn' : live ? 'ok' : 'neutral' }
 function formatApiError(caught: unknown, fallback: string) { return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback }
 function isNotFound(caught: unknown) { return caught instanceof ApiRequestError && caught.status === 404 }
 

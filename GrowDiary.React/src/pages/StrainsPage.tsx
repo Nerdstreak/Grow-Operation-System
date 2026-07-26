@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
-import type { StrainDominance, StrainDto } from '../types'
-import { V1Page, V1Section, V1Card, V1Field, V1Button, V1Alert, V1Empty, V1Badge, V1Stat } from '../components/v1'
+import type { GrowSummary, HarvestDto, StrainDominance, StrainDto } from '../types'
+import type { PhenoHuntDto, PhenoPlantDto } from '../types/pheno'
+import { PhenoSheetEditor } from '../features/pheno/PhenoSheetEditor'
+import type { SheetDraft } from '../features/pheno/pheno-sheet-model'
+import { formatNumber } from '../utils'
+import { V1Page, V1Card, V1Field, V1Button, V1Alert, V1Empty, V1Skeleton } from '../components/v1'
 
 type StrainDraft = {
   name: string
@@ -68,25 +72,26 @@ function dominanceLabel(value: StrainDominance): string {
   return DOMINANCE.find((item) => item.value === value)?.label ?? value
 }
 
-function flowerWeeks(strain: StrainDto): string | null {
-  if (strain.flowerWeeksMin == null && strain.flowerWeeksMax == null) return null
-  if (strain.flowerWeeksMin != null && strain.flowerWeeksMax != null) {
-    return strain.flowerWeeksMin === strain.flowerWeeksMax
-      ? `${strain.flowerWeeksMin} Wochen Blüte`
-      : `${strain.flowerWeeksMin}–${strain.flowerWeeksMax} Wochen Blüte`
-  }
-  return `${strain.flowerWeeksMin ?? strain.flowerWeeksMax} Wochen Blüte`
-}
+/** Läufe und Ø-Ertrag je Sorte, aus den echten Grows und Ernten berechnet. */
+type StrainStats = { runs: number; avgPerPlant: number | null }
+
+/** Pheno-Hunt-Zeile: entweder ein Keeper oder der laufende Hunt. */
+type HuntState = { grow: GrowSummary; hunt: PhenoHuntDto }
 
 /**
- * The strain library: your own catalogue of genetics, with the traits that actually change
- * how you grow them (feeding appetite, stretch, preferred VPD).
+ * Sorten & Pheno-Hunt auf einer Seite, wie im Entwurf: oben die Bibliothek als
+ * Tabelle mit Läufen, Ø-Ertrag und Pheno-Keeper, darunter je aktivem Grow der
+ * Kandidaten-Streifen. Bewerten öffnet den Bogen direkt unter dem Streifen.
  */
 function StrainsPage() {
   const [strains, setStrains] = useState<StrainDto[]>([])
+  const [grows, setGrows] = useState<GrowSummary[]>([])
+  const [harvestByGrow, setHarvestByGrow] = useState<Map<number, HarvestDto>>(new Map())
+  const [hunts, setHunts] = useState<HuntState[]>([])
   const [draft, setDraft] = useState<StrainDraft>(emptyDraft)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [formOpen, setFormOpen] = useState(false)
+  const [openPlantId, setOpenPlantId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -97,8 +102,34 @@ function StrainsPage() {
     const controller = new AbortController()
     async function load() {
       try {
-        const list = await apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal })
-        if (!controller.signal.aborted) setStrains(list)
+        const [strainList, active, archived] = await Promise.all([
+          apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal }),
+          apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }).catch(() => []),
+          apiFetch<GrowSummary[]>('/api/grows?archived=true', { signal: controller.signal }).catch(() => []),
+        ])
+        if (controller.signal.aborted) return
+        setStrains(strainList)
+        const allGrows = [...active, ...archived]
+        setGrows(allGrows)
+
+        // Ernten der archivierten Grows für den Ø-Ertrag je Sorte.
+        const harvests = await Promise.all(archived.map((grow) =>
+          apiFetch<HarvestDto>(`/api/grows/${grow.id}/harvest`, { signal: controller.signal }).catch(() => null),
+        ))
+        if (controller.signal.aborted) return
+        const harvestMap = new Map<number, HarvestDto>()
+        archived.forEach((grow, index) => { const harvest = harvests[index]; if (harvest) harvestMap.set(grow.id, harvest) })
+        setHarvestByGrow(harvestMap)
+
+        // Pheno-Hunts der aktiven Grows — nur die mit Pflanzen erscheinen.
+        const running = active.filter((grow) => grow.status === 'Running' || grow.status === 'Planning')
+        const huntResults = await Promise.all(running.map((grow) =>
+          apiFetch<PhenoHuntDto>(`/api/pheno/grows/${grow.id}`, { signal: controller.signal }).catch(() => null),
+        ))
+        if (controller.signal.aborted) return
+        setHunts(running
+          .map((grow, index) => ({ grow, hunt: huntResults[index] }))
+          .filter((item): item is HuntState => item.hunt != null && item.hunt.plants.length > 0))
       } catch (caught) {
         if (!controller.signal.aborted) setError(caught instanceof ApiRequestError ? caught.message : 'Sorten konnten nicht geladen werden.')
       } finally {
@@ -110,6 +141,36 @@ function StrainsPage() {
   }, [reloadKey])
 
   const sorted = useMemo(() => [...strains].sort((a, b) => a.name.localeCompare(b.name, 'de')), [strains])
+
+  const statsByStrain = useMemo(() => {
+    const map = new Map<string, StrainStats>()
+    for (const strain of strains) {
+      const matched = grows.filter((grow) => grow.strain != null && grow.strain.toLowerCase() === strain.name.toLowerCase())
+      const yields = matched
+        .map((grow) => {
+          const harvest = harvestByGrow.get(grow.id)
+          return harvest?.dryWeightG != null && grow.plantCount ? harvest.dryWeightG / grow.plantCount : null
+        })
+        .filter((value): value is number => value != null)
+      map.set(strain.name.toLowerCase(), {
+        runs: matched.length,
+        avgPerPlant: yields.length > 0 ? yields.reduce((sum, value) => sum + value, 0) / yields.length : null,
+      })
+    }
+    return map
+  }, [strains, grows, harvestByGrow])
+
+  const keeperByStrain = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const { grow, hunt } of hunts) {
+      const strainName = grow.strain?.toLowerCase()
+      if (!strainName || map.has(strainName)) continue
+      const keeper = hunt.plants.find((plant) => plant.evaluation?.isKeeper)
+      if (keeper) map.set(strainName, `${keeper.phenoLabel ?? keeper.label}${keeper.evaluation?.isKeeper ? ' · Keeper' : ''}`)
+      else map.set(strainName, `Hunt läuft · ${hunt.plants.length} Kandidaten`)
+    }
+    return map
+  }, [hunts])
 
   function startNew() {
     setDraft(emptyDraft())
@@ -146,103 +207,165 @@ function StrainsPage() {
     }
   }
 
+  async function saveSheet(plant: PhenoPlantDto, sheetDraft: SheetDraft) {
+    setError(null)
+    setNotice(null)
+    try {
+      await apiFetch(`/api/pheno/plants/${plant.plantInstanceId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...sheetDraft, plantInstanceId: plant.plantInstanceId }),
+      })
+      setNotice(`Bogen für „${plant.label}" gespeichert.`)
+      setOpenPlantId(null)
+      setReloadKey((key) => key + 1)
+    } catch (caught) {
+      setError(caught instanceof ApiRequestError ? caught.message : 'Bogen konnte nicht gespeichert werden.')
+    }
+  }
+
   return (
     <V1Page
-      eyebrow="Meine Grows"
-      title="Sorten"
-      subtitle="Deine Genetik-Bibliothek. Was du hier hinterlegst, beschreibt wie eine Sorte wachsen will — und lässt sich später mit deinen Pflanzen verknüpfen."
-      action={<V1Button variant="primary" onClick={startNew}>Sorte anlegen</V1Button>}
+      eyebrow="Grow / Sorten"
+      title="Sorten & Pheno-Hunt"
+      action={<button type="button" className="ls-btn is-primary" onClick={startNew}>+ Sorte</button>}
     >
       {error && <V1Alert message={error} tone="critical" />}
       {notice && <V1Alert message={notice} tone="ok" />}
 
-      <section className="v1-kpi-grid">
-        <V1Stat label="Sorten" value={strains.length} />
-        <V1Stat label="Indica" value={strains.filter((s) => s.dominance === 'Indica').length} />
-        <V1Stat label="Sativa" value={strains.filter((s) => s.dominance === 'Sativa').length} />
-        <V1Stat label="Hybrid" value={strains.filter((s) => s.dominance === 'Hybrid').length} />
-      </section>
-
       {formOpen && (
-        <V1Section title={editingId == null ? 'Neue Sorte' : 'Sorte bearbeiten'}>
-          <V1Card>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
-              <V1Field label="Name"><input value={draft.name} onChange={(event) => setDraft((d) => ({ ...d, name: event.target.value }))} placeholder="z. B. Purple Lemonade" /></V1Field>
-              <V1Field label="Züchter"><input value={draft.breeder} onChange={(event) => setDraft((d) => ({ ...d, breeder: event.target.value }))} placeholder="z. B. FastBuds" /></V1Field>
-              <V1Field label="Typ">
-                <select value={draft.dominance} onChange={(event) => setDraft((d) => ({ ...d, dominance: event.target.value as StrainDominance }))}>
-                  {DOMINANCE.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                </select>
-              </V1Field>
-              <V1Field label="Blüte von (Wochen)"><input inputMode="numeric" value={draft.flowerWeeksMin} onChange={(event) => setDraft((d) => ({ ...d, flowerWeeksMin: event.target.value }))} placeholder="8" /></V1Field>
-              <V1Field label="Blüte bis (Wochen)"><input inputMode="numeric" value={draft.flowerWeeksMax} onChange={(event) => setDraft((d) => ({ ...d, flowerWeeksMax: event.target.value }))} placeholder="10" /></V1Field>
-            </div>
-
-            <p className="rc2-measurement-note" style={{ margin: '14px 0 8px' }}>
-              Feinheiten — leer lassen, wenn du sie nicht kennst. Sie beschreiben, wie stark diese Sorte von einer
-              Durchschnittspflanze abweicht.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
-              <V1Field label="Nährstoffbedarf" hint="1,0 = normal. 1,2 = frisst 20 % mehr, 0,8 = empfindlich.">
-                <input inputMode="decimal" value={draft.nutrientDemandFactor} onChange={(event) => setDraft((d) => ({ ...d, nutrientDemandFactor: event.target.value }))} placeholder="1.0" />
-              </V1Field>
-              <V1Field label="Streckung" hint="1,0 = normal. Über 1 streckt sie in der Blüte stärker.">
-                <input inputMode="decimal" value={draft.stretchFactor} onChange={(event) => setDraft((d) => ({ ...d, stretchFactor: event.target.value }))} placeholder="1.0" />
-              </V1Field>
-              <V1Field label="VPD-Vorliebe (kPa)" hint="Verschiebung zum Standard. +0,1 = mag es etwas trockener.">
-                <input inputMode="decimal" value={draft.vpdPreferenceShift} onChange={(event) => setDraft((d) => ({ ...d, vpdPreferenceShift: event.target.value }))} placeholder="0" />
-              </V1Field>
-            </div>
-
-            <V1Field label="Notizen" wide>
-              <textarea rows={3} value={draft.notes} onChange={(event) => setDraft((d) => ({ ...d, notes: event.target.value }))} placeholder="Geruch, Wuchsform, Erfahrungen …" />
+        <V1Card>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
+            <V1Field label="Name"><input value={draft.name} onChange={(event) => setDraft((d) => ({ ...d, name: event.target.value }))} placeholder="z. B. Purple Lemonade" /></V1Field>
+            <V1Field label="Züchter"><input value={draft.breeder} onChange={(event) => setDraft((d) => ({ ...d, breeder: event.target.value }))} placeholder="z. B. FastBuds" /></V1Field>
+            <V1Field label="Typ">
+              <select value={draft.dominance} onChange={(event) => setDraft((d) => ({ ...d, dominance: event.target.value as StrainDominance }))}>
+                {DOMINANCE.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
             </V1Field>
+            <V1Field label="Blüte von (Wochen)"><input inputMode="numeric" value={draft.flowerWeeksMin} onChange={(event) => setDraft((d) => ({ ...d, flowerWeeksMin: event.target.value }))} placeholder="8" /></V1Field>
+            <V1Field label="Blüte bis (Wochen)"><input inputMode="numeric" value={draft.flowerWeeksMax} onChange={(event) => setDraft((d) => ({ ...d, flowerWeeksMax: event.target.value }))} placeholder="10" /></V1Field>
+          </div>
 
-            <div className="v1-action-row" style={{ marginTop: 12 }}>
-              <V1Button variant="primary" onClick={() => void save()} disabled={saving}>{saving ? 'Speichert…' : 'Speichern'}</V1Button>
-              <V1Button variant="ghost" onClick={() => { setFormOpen(false); setEditingId(null) }}>Abbrechen</V1Button>
-            </div>
-          </V1Card>
-        </V1Section>
+          <p className="gc-facts" style={{ margin: '14px 0 8px' }}>
+            Feinheiten — leer lassen, wenn du sie nicht kennst. Sie beschreiben, wie stark diese Sorte von einer Durchschnittspflanze abweicht.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
+            <V1Field label="Nährstoffbedarf" hint="1,0 = normal. 1,2 = frisst 20 % mehr, 0,8 = empfindlich.">
+              <input inputMode="decimal" value={draft.nutrientDemandFactor} onChange={(event) => setDraft((d) => ({ ...d, nutrientDemandFactor: event.target.value }))} placeholder="1.0" />
+            </V1Field>
+            <V1Field label="Streckung" hint="1,0 = normal. Über 1 streckt sie in der Blüte stärker.">
+              <input inputMode="decimal" value={draft.stretchFactor} onChange={(event) => setDraft((d) => ({ ...d, stretchFactor: event.target.value }))} placeholder="1.0" />
+            </V1Field>
+            <V1Field label="VPD-Vorliebe (kPa)" hint="Verschiebung zum Standard. +0,1 = mag es etwas trockener.">
+              <input inputMode="decimal" value={draft.vpdPreferenceShift} onChange={(event) => setDraft((d) => ({ ...d, vpdPreferenceShift: event.target.value }))} placeholder="0" />
+            </V1Field>
+          </div>
+
+          <V1Field label="Notizen" wide>
+            <textarea rows={3} value={draft.notes} onChange={(event) => setDraft((d) => ({ ...d, notes: event.target.value }))} placeholder="Geruch, Wuchsform, Erfahrungen …" />
+          </V1Field>
+
+          <div className="co-actions" style={{ marginTop: 12 }}>
+            <V1Button variant="primary" onClick={() => void save()} disabled={saving}>{saving ? 'Speichert…' : 'Speichern'}</V1Button>
+            <V1Button variant="ghost" onClick={() => { setFormOpen(false); setEditingId(null) }}>Abbrechen</V1Button>
+          </div>
+        </V1Card>
       )}
 
-      <V1Section title="Bibliothek">
-        {loading ? (
-          <V1Card>Lädt…</V1Card>
-        ) : sorted.length === 0 ? (
-          <V1Empty title="Noch keine Sorte" text="Leg deine erste Sorte an — danach kannst du Grows und Pflanzen darauf verweisen." action={<V1Button variant="primary" onClick={startNew}>Sorte anlegen</V1Button>} />
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
-            {sorted.map((strain) => (
-              <V1Card key={strain.id}>
-                <div className="v1-card-title-row">
-                  <div>
-                    <span className="v1-card-kicker">{strain.breeder ?? 'Züchter offen'}</span>
-                    <h2>{strain.name}</h2>
+      {loading ? (
+        <V1Skeleton rows={4} label="Lade Sorten" />
+      ) : sorted.length === 0 ? (
+        <V1Empty title="Noch keine Sorte" text="Leg deine erste Sorte an — danach kannst du Grows und Pflanzen darauf verweisen." action={<V1Button variant="primary" onClick={startNew}>Sorte anlegen</V1Button>} />
+      ) : (
+        <section className="ls-panel co-table-wrap" data-audit="strains-table">
+          <div className="co-table" style={{ gridTemplateColumns: '1.3fr .9fr .7fr .7fr .9fr 1fr' }}>
+            <div className="co-th">Sorte</div>
+            <div className="co-th">Züchter</div>
+            <div className="co-th">Typ</div>
+            <div className="co-th">Runs</div>
+            <div className="co-th">Ø Ertrag</div>
+            <div className="co-th">Pheno-Keeper</div>
+            {sorted.map((strain) => {
+              const stats = statsByStrain.get(strain.name.toLowerCase())
+              const keeper = keeperByStrain.get(strain.name.toLowerCase())
+              return (
+                <StrainRow key={strain.id}>
+                  <div className="co-td is-name">
+                    <button type="button" className="co-td-link" onClick={() => startEdit(strain)}>{strain.name}</button>
                   </div>
-                  <V1Badge tone={strain.dominance === 'Unknown' ? 'neutral' : 'accent'}>{dominanceLabel(strain.dominance)}</V1Badge>
-                </div>
-                {flowerWeeks(strain) && <p>{flowerWeeks(strain)}</p>}
-                {(strain.nutrientDemandFactor != null || strain.stretchFactor != null || strain.vpdPreferenceShift != null) && (
-                  <p className="rc2-measurement-note">
-                    {[
-                      strain.nutrientDemandFactor != null ? `Nährstoffe ×${strain.nutrientDemandFactor}` : null,
-                      strain.stretchFactor != null ? `Streckung ×${strain.stretchFactor}` : null,
-                      strain.vpdPreferenceShift != null ? `VPD ${strain.vpdPreferenceShift > 0 ? '+' : ''}${strain.vpdPreferenceShift} kPa` : null,
-                    ].filter(Boolean).join(' · ')}
-                  </p>
-                )}
-                {strain.notes && <p className="rc2-measurement-note">{strain.notes}</p>}
-                <div className="v1-action-row" style={{ marginTop: 10 }}>
-                  <V1Button variant="secondary" onClick={() => startEdit(strain)}>Bearbeiten</V1Button>
-                </div>
-              </V1Card>
-            ))}
+                  <div className="co-td is-muted">{strain.breeder ?? '—'}</div>
+                  <div className="co-td is-muted">{dominanceLabel(strain.dominance)}</div>
+                  <div className="co-td">{stats?.runs ?? 0}</div>
+                  <div className="co-td">{stats?.avgPerPlant != null ? `${formatNumber(stats.avgPerPlant, 0)} g/Pflanze` : '—'}</div>
+                  <div className={keeper?.includes('Keeper') ? 'co-td is-good' : 'co-td is-muted'}>{keeper ?? '—'}</div>
+                </StrainRow>
+              )
+            })}
           </div>
-        )}
-      </V1Section>
+        </section>
+      )}
+
+      {hunts.map(({ grow, hunt }) => (
+        <section key={grow.id} className="ls-panel" data-audit="pheno-hunt-panel">
+          <div className="ls-panel-head">
+            <span className="ls-label">Pheno-Hunt · {grow.strain ?? grow.name}</span>
+            <span className="ls-panel-meta">{hunt.plants.length} Kandidaten</span>
+          </div>
+          <div className="co-cells">
+            {rankPlants(hunt.plants).map((plant) => {
+              const keeper = plant.evaluation?.isKeeper ?? false
+              return (
+                <div key={plant.plantInstanceId} className={`co-cand${keeper ? ' is-keeper' : ''}`}>
+                  <div className="co-cand-name">{plant.label}{keeper ? ' · Keeper' : ''}</div>
+                  <div className="co-cand-sub">{scoreLine(plant)}</div>
+                  <button
+                    type="button"
+                    className={`ls-btn is-small${keeper ? ' is-keeperbtn' : ''}`}
+                    style={{ marginLeft: 0 }}
+                    onClick={() => setOpenPlantId((current) => (current === plant.plantInstanceId ? null : plant.plantInstanceId))}
+                  >
+                    {openPlantId === plant.plantInstanceId ? 'Schließen' : plant.evaluation ? 'Bogen' : 'Bewerten'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+          {hunt.plants.filter((plant) => plant.plantInstanceId === openPlantId).map((plant) => (
+            <div key={plant.plantInstanceId} style={{ padding: '12px 14px', borderTop: '1px solid var(--hair)' }}>
+              <PhenoSheetEditor plant={plant} onSave={(sheetDraft) => saveSheet(plant, sheetDraft)} onCancel={() => setOpenPlantId(null)} />
+            </div>
+          ))}
+        </section>
+      ))}
     </V1Page>
   )
+}
+
+/** Nur ein Fragment — die Zellen müssen direkte Grid-Kinder bleiben. */
+function StrainRow({ children }: { children: React.ReactNode }) {
+  return <>{children}</>
+}
+
+function rankPlants(plants: PhenoPlantDto[]): PhenoPlantDto[] {
+  return [...plants].sort((a, b) => (b.score.total ?? -1) - (a.score.total ?? -1))
+}
+
+/** „Ertrag 8,0 · Qualität 7,5" — die zwei besten Noten, sonst „noch offen". */
+function scoreLine(plant: PhenoPlantDto): string {
+  const buckets: Array<[string, number | null]> = [
+    ['Ertrag', plant.score.yield],
+    ['Qualität', plant.score.quality],
+    ['Wirkstoff', plant.score.potency],
+    ['Robustheit', plant.score.resilience],
+    ['Struktur', plant.score.structure],
+  ]
+  const known = buckets.filter((bucket): bucket is [string, number] => bucket[1] != null)
+  if (known.length === 0) return 'noch nicht bewertet'
+  return known
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([label, value]) => `${label} ${formatNumber(value, 1)}`)
+    .join(' · ')
 }
 
 export default StrainsPage

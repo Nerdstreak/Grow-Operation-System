@@ -28,7 +28,6 @@ import './styles/conventions.css'
 import './features/tents/tents.css'
 import './features/measurement/measurement.css'
 import './features/grows/grows.css'
-import './features/home-assistant/ha.css'
 import './features/addback/addback.css'
 import './features/live/live-rc2.css'
 import './features/grows/grows-rc2.css'
@@ -38,7 +37,9 @@ import './styles/widgets.css'
 import { AppShell } from './AppShell'
 import { legacyRedirects } from './navigation'
 import { useAppScope } from './useAppScope'
-import { ArchiveCollectionPage, RulesCollectionPage, StrainsCollectionPage } from './pages/collections'
+import { RulesCollectionPage } from './pages/collections'
+import StrainsPage from './pages/StrainsPage'
+import ArchivePage from './pages/ArchivePage'
 
 /**
  * Weiterleitung, die die Adresszeile nicht halbiert.
@@ -103,8 +104,8 @@ function App() {
 
           {/* Sammelseiten: verwandte Bereiche unter Tabs statt als eigene Menuepunkte. */}
           <Route path="/regeln" element={<RulesCollectionPage />} />
-          <Route path="/sorten" element={<StrainsCollectionPage />} />
-          <Route path="/archiv" element={<ArchiveCollectionPage />} />
+          <Route path="/sorten" element={<StrainsPage />} />
+          <Route path="/archiv" element={<ArchivePage />} />
 
           {/* Alte Pfade bleiben gueltig — Lesezeichen und Links aus HA-Dashboards. */}
           {Object.entries(legacyRedirects).map(([from, to]) => (

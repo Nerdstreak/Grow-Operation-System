@@ -1,37 +1,33 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowSummary, HarvestDto } from '../types'
-import { formatDate, formatNumber } from '../utils'
-import { V1Alert, V1Badge, V1Empty, V1Page, V1Skeleton, V1Stat } from '../components/v1'
+import type { GrowDetail, GrowSummary, HarvestDto } from '../types'
+import { formatNumber } from '../utils'
+import { V1Alert, V1Empty, V1Page, V1Skeleton } from '../components/v1'
 
-// One-line yield summary for an archived grow, so the harvest a user carefully filled
-// in is actually visible again instead of vanishing after saving.
-function yieldLine(harvest: HarvestDto | undefined): string | null {
-  if (!harvest) return null
-  const parts: string[] = []
-  if (harvest.dryWeightG != null) parts.push(`${formatNumber(harvest.dryWeightG, 0)} g trocken`)
-  else if (harvest.wetWeightG != null) parts.push(`${formatNumber(harvest.wetWeightG, 0)} g frisch`)
-  if (harvest.rating != null) parts.push(`★ ${formatNumber(harvest.rating, 0)}/10`)
-  return parts.length > 0 ? parts.join(' · ') : null
-}
-
+/**
+ * Ernte & Archiv nach dem Entwurf: abgeschlossene Grows als Ertragstabelle,
+ * darunter der direkte Vergleich zweier Läufe — statt Archiv und Vergleich
+ * auf zwei Seiten.
+ *
+ * VERGLEICHEN wählt einen Lauf in den Vergleich; der zweite Klick füllt die
+ * zweite Spalte. Ein dritter tauscht den älteren der beiden aus.
+ */
 function ArchivePage() {
   const [grows, setGrows] = useState<GrowSummary[]>([])
   const [harvestByGrow, setHarvestByGrow] = useState<Map<number, HarvestDto>>(new Map())
+  const [compareIds, setCompareIds] = useState<number[]>([])
+  const [compareDetails, setCompareDetails] = useState<GrowDetail[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
-
     async function load() {
-      setLoading(true)
-      setError(null)
       try {
         const data = await apiFetch<GrowSummary[]>('/api/grows?archived=true', { signal: controller.signal })
         if (controller.signal.aborted) return
-        setGrows(data)
+        setGrows(sortByHarvest(data))
         const harvests = await Promise.all(data.map((grow) =>
           apiFetch<HarvestDto>(`/api/grows/${grow.id}/harvest`, { signal: controller.signal }).catch(() => null),
         ))
@@ -40,53 +36,162 @@ function ArchivePage() {
         data.forEach((grow, index) => { const harvest = harvests[index]; if (harvest) map.set(grow.id, harvest) })
         setHarvestByGrow(map)
       } catch (caught) {
-        if (controller.signal.aborted) return
-        setError(caught instanceof ApiRequestError ? caught.message : 'Archiv konnte nicht geladen werden.')
+        if (!controller.signal.aborted) setError(caught instanceof ApiRequestError ? caught.message : 'Archiv konnte nicht geladen werden.')
       } finally {
         if (!controller.signal.aborted) setLoading(false)
       }
     }
-
     void load()
     return () => controller.abort()
   }, [])
 
-  const totalDryWeight = useMemo(
-    () => [...harvestByGrow.values()].reduce((sum, harvest) => sum + (harvest.dryWeightG ?? 0), 0),
-    [harvestByGrow],
-  )
+  useEffect(() => {
+    const controller = new AbortController()
+    async function loadDetails() {
+      const details = compareIds.length === 0 ? [] : await Promise.all(compareIds.map((id) =>
+        apiFetch<GrowDetail>(`/api/grows/${id}`, { signal: controller.signal }).catch(() => null),
+      ))
+      if (!controller.signal.aborted) setCompareDetails(details.filter((detail): detail is GrowDetail => detail != null))
+    }
+    void loadDetails()
+    return () => controller.abort()
+  }, [compareIds])
+
+  function toggleCompare(id: number) {
+    setCompareIds((current) => {
+      if (current.includes(id)) return current.filter((existing) => existing !== id)
+      if (current.length < 2) return [...current, id]
+      return [current[1], id]
+    })
+  }
+
+  const compareCells = useMemo(() => buildCompareCells(compareDetails, harvestByGrow), [compareDetails, harvestByGrow])
 
   return (
-    <V1Page eyebrow="Grows" title="Archiv" subtitle="Abgeschlossene und abgebrochene Grows — mit Ertrag.">
+    <V1Page
+      eyebrow="Grow / Ernte & Archiv"
+      title="Ernte & Archiv"
+      subtitle="Abgeschlossene Grows mit Ertrag — direkt vergleichbar, statt Archiv und Vergleich auf zwei Seiten."
+    >
       {error && <V1Alert message={error} tone="warn" />}
-
-      <section className="v1-kpi-grid">
-        <V1Stat label="Archivierte Runs" value={grows.length} />
-        <V1Stat label="Abgeschlossen" value={grows.filter((grow) => grow.status === 'Completed').length} />
-        <V1Stat label="Abgebrochen" value={grows.filter((grow) => grow.status === 'Aborted').length} />
-        {totalDryWeight > 0 && <V1Stat label="Gesamt-Ertrag" value={formatNumber(totalDryWeight, 0)} unit="g trocken" />}
-      </section>
 
       {loading ? (
         <V1Skeleton rows={4} label="Lade Archiv" />
       ) : grows.length === 0 ? (
         <V1Empty title="Noch keine archivierten Grows" text="Abgeschlossene Grows erscheinen hier — samt Ertrag." />
       ) : (
-        <div className="v1-list">
-          {grows.map((grow) => (
-            <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row">
-              <div>
-                <strong>{grow.name}</strong>
-                <span>{[grow.strain ?? '–', grow.breeder, yieldLine(harvestByGrow.get(grow.id))].filter(Boolean).join(' · ')}</span>
+        <>
+          <section className="ls-panel co-table-wrap" data-audit="grows-archive">
+            <div className="co-table" style={{ gridTemplateColumns: '1.2fr .9fr .8fr .8fr .8fr 1fr' }}>
+              <div className="co-th">Grow</div>
+              <div className="co-th">Geerntet</div>
+              <div className="co-th">Dauer</div>
+              <div className="co-th">Trocken</div>
+              <div className="co-th">g/Pflanze</div>
+              <div className="co-th">Aktion</div>
+              {grows.map((grow) => {
+                const harvest = harvestByGrow.get(grow.id)
+                const perPlant = gramsPerPlant(grow, harvest)
+                const selected = compareIds.includes(grow.id)
+                return (
+                  <RowCells key={grow.id}>
+                    <div className="co-td is-name"><Link to={`/grows/${grow.id}`}>{grow.name}</Link></div>
+                    <div className="co-td is-muted">{harvestDate(grow, harvest)}</div>
+                    <div className="co-td">{durationDays(grow) ?? '—'}</div>
+                    <div className="co-td">{harvest?.dryWeightG != null ? `${formatNumber(harvest.dryWeightG, 0)} g` : '—'}</div>
+                    <div className={perPlant != null ? 'co-td is-good' : 'co-td'}>{perPlant != null ? formatNumber(perPlant, 0) : '—'}</div>
+                    <div className="co-td">
+                      <button type="button" className={`ls-btn is-small${selected ? ' is-primary' : ''}`} style={{ marginLeft: 0 }} onClick={() => toggleCompare(grow.id)}>
+                        {selected ? 'Gewählt' : 'Vergleichen'}
+                      </button>
+                    </div>
+                  </RowCells>
+                )
+              })}
+            </div>
+          </section>
+
+          {compareDetails.length === 2 && (
+            <section className="ls-panel" data-audit="archive-compare">
+              <div className="ls-panel-head">
+                <span className="ls-label">Vergleich · {compareDetails[0].name} vs {compareDetails[1].name}</span>
               </div>
-              <em>{grow.tentName ?? 'ohne Zelt'}{grow.endDate ? ` · ${formatDate(grow.endDate)}` : ''}</em>
-              <V1Badge tone={grow.status === 'Completed' ? 'ok' : 'neutral'}>{grow.status === 'Completed' ? 'Abgeschlossen' : 'Abgebrochen'}</V1Badge>
-            </Link>
-          ))}
-        </div>
+              <div className="co-cells">
+                {compareCells.map((cell) => (
+                  <div key={cell.label} className="co-cand">
+                    <div className="co-cell-label">{cell.label}</div>
+                    <div className={`co-cell-value${cell.highlight ? ' is-good' : ''}`}>{cell.value}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+          {compareDetails.length === 1 && (
+            <p className="gc-facts">Einen zweiten Lauf mit VERGLEICHEN wählen — dann erscheint der Vergleich hier.</p>
+          )}
+        </>
       )}
     </V1Page>
   )
+}
+
+/** Nur ein Fragment — die Zellen müssen direkte Grid-Kinder bleiben. */
+function RowCells({ children }: { children: React.ReactNode }) {
+  return <>{children}</>
+}
+
+function sortByHarvest(items: GrowSummary[]) {
+  return [...items].sort((a, b) => (b.endDate ?? '').localeCompare(a.endDate ?? '') || a.name.localeCompare(b.name))
+}
+
+function harvestDate(grow: GrowSummary, harvest: HarvestDto | undefined): string {
+  const value = harvest?.harvestedAtLocal ?? grow.endDate
+  if (!value) return '—'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
+}
+
+function durationDays(grow: GrowSummary): string | null {
+  if (!grow.startDate || !grow.endDate) return null
+  const start = new Date(grow.startDate).getTime()
+  const end = new Date(grow.endDate).getTime()
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null
+  return `${Math.round((end - start) / 86_400_000)} T`
+}
+
+function gramsPerPlant(grow: GrowSummary, harvest: HarvestDto | undefined): number | null {
+  if (harvest?.dryWeightG == null || !grow.plantCount) return null
+  return harvest.dryWeightG / grow.plantCount
+}
+
+type CompareCell = { label: string; value: string; highlight: boolean }
+
+/**
+ * Die Vergleichsleiste: je Kennzahl „A vs B". Hervorgehoben ist g/Pflanze,
+ * weil das die Zahl ist, für die man überhaupt vergleicht. Ø-Werte über die
+ * Blüte gibt es (noch) nicht als Aggregat — gezeigt wird, was beide Läufe
+ * wirklich haben: letzte Messwerte, Dauer, Ertrag.
+ */
+function buildCompareCells(details: GrowDetail[], harvests: Map<number, HarvestDto>): CompareCell[] {
+  if (details.length !== 2) return []
+  const [a, b] = details
+  const pair = (left: string, right: string) => `${left} vs ${right}`
+  const num = (value: number | null | undefined, decimals: number) => (value != null ? formatNumber(value, decimals) : '—')
+  const perPlant = (detail: GrowDetail) => {
+    const harvest = harvests.get(detail.id)
+    return harvest?.dryWeightG != null && detail.plantCount ? formatNumber(harvest.dryWeightG / detail.plantCount, 0) : '—'
+  }
+  const duration = (detail: GrowDetail) => {
+    if (!detail.startDate || !detail.endDate) return '—'
+    const days = Math.round((new Date(detail.endDate).getTime() - new Date(detail.startDate).getTime()) / 86_400_000)
+    return Number.isFinite(days) && days > 0 ? `${days} T` : '—'
+  }
+  return [
+    { label: 'EC (letzte)', value: pair(num(a.latestMeasurement?.reservoirEc, 2), num(b.latestMeasurement?.reservoirEc, 2)), highlight: false },
+    { label: 'pH (letzte)', value: pair(num(a.latestMeasurement?.reservoirPh, 2), num(b.latestMeasurement?.reservoirPh, 2)), highlight: false },
+    { label: 'Dauer', value: pair(duration(a), duration(b)), highlight: false },
+    { label: 'g/Pflanze', value: pair(perPlant(a), perPlant(b)), highlight: true },
+  ]
 }
 
 export default ArchivePage

@@ -23,10 +23,15 @@
   .system-plan__tank {
     position: absolute; display: grid; place-items: center; gap: 2px; padding: 4px;
     border: 1.5px solid var(--info); border-radius: 4px; background: var(--info-wash);
-    text-align: center;
+    text-align: center; overflow: hidden;
+    container-type: inline-size;
   }
-  .system-plan__tank span { font: 500 10px/1 var(--font-mono); color: var(--info-text); }
-  .system-plan__tank strong { font: 500 11px/1 var(--font-mono); color: var(--ink); }
+  .system-plan__tank span { font: 500 10px/1 var(--font-mono); color: var(--info-text); white-space: nowrap; }
+  .system-plan__tank strong { font: 500 11px/1 var(--font-mono); color: var(--ink); white-space: nowrap; }
+  /* Ein 25-L-Tank ist massstabsgetreu schmal — dann faellt erst das Wort,
+     dann die Literzahl weg, statt Buchstabe fuer Buchstabe umzubrechen. */
+  @container (max-width: 56px) { .system-plan__tank span { display: none; } }
+  @container (max-width: 34px) { .system-plan__tank strong { display: none; } }
 
   .system-plan__site {
     position: absolute; aspect-ratio: 1; display: grid; place-items: center;

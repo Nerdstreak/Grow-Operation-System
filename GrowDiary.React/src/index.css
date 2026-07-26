@@ -15,6 +15,7 @@
 @import './styles/reset.css';
 @import './styles/primitives.css';
 @import './styles/shell.css';
+@import './styles/collection.css';
 
 /* ---- ABBAU (Phase 4) ---- */
 @import './styles/10-grow-wizard-legacy.css';

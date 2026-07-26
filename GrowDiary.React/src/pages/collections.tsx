@@ -2,53 +2,27 @@ import AutomationPage from './AutomationPage'
 import AlertsPage from './AlertsPage'
 import NotificationsPage from './NotificationsPage'
 import { AiAssistantPage } from './AiAssistantPage'
-import StrainsPage from './StrainsPage'
-import PhenoHuntPage from './PhenoHuntPage'
-import ArchivePage from './ArchivePage'
-import AnalysisPage from './AnalysisPage'
 import { TabbedCollectionPage } from './TabbedCollectionPage'
 
 /**
- * Die drei Sammelseiten aus dem Navigations-Umbau.
+ * Regeln & Automatik: EINE Seite mit den vier Bereichen als Tabs, in der
+ * Reihenfolge des Entwurfs — Grenzwerte zuerst, denn das ist der Bereich,
+ * den man im Alltag anfasst.
  *
- * Bewusst nur eine neue Hülle um die bestehenden Seiten: deren Daten- und
- * API-Logik bleibt unangetastet, nur der Weg dorthin ändert sich. Sensoren
- * fasst der Entwurf zu *einer Tabelle* zusammen statt zu Tabs — das bleibt
- * deshalb HardwarePage und wandert erst mit dem Screen-Redesign.
+ * Sorten und Archiv sind keine Tab-Sammlungen mehr: der Entwurf legt
+ * Bibliothek + Pheno-Hunt bzw. Ertragstabelle + Vergleich auf je eine Seite.
  */
-
 export function RulesCollectionPage() {
   return (
     <TabbedCollectionPage
+      eyebrow="Anlage / Regeln"
+      title="Regeln & Automatik"
+      subtitle="Grenzwerte, Auto-Messungen und Benachrichtigungen an einem Ort — vorher drei Seiten plus KI-Assistent."
       tabs={[
-        { key: 'automatik', label: 'Automatik', render: () => <AutomationPage /> },
         { key: 'grenzwerte', label: 'Grenzwerte', render: () => <AlertsPage /> },
+        { key: 'automatik', label: 'Auto-Messungen', render: () => <AutomationPage /> },
         { key: 'push', label: 'Benachrichtigungen', render: () => <NotificationsPage /> },
         { key: 'ki', label: 'KI-Assistent', render: () => <AiAssistantPage /> },
-      ]}
-    />
-  )
-}
-
-export function StrainsCollectionPage() {
-  return (
-    <TabbedCollectionPage
-      tabs={[
-        { key: 'sorten', label: 'Sorten', render: () => <StrainsPage /> },
-        { key: 'pheno', label: 'Pheno Hunt', render: () => <PhenoHuntPage /> },
-      ]}
-    />
-  )
-}
-
-/** Ernte bleibt außen vor: HarvestPage arbeitet pro Grow und braucht die
- *  growId aus der Route, in einem Tab hätte sie nichts zu zeigen. */
-export function ArchiveCollectionPage() {
-  return (
-    <TabbedCollectionPage
-      tabs={[
-        { key: 'archiv', label: 'Archiv', render: () => <ArchivePage /> },
-        { key: 'vergleich', label: 'Vergleich', render: () => <AnalysisPage /> },
       ]}
     />
   )

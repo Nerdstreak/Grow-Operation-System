@@ -102,6 +102,10 @@
 
   .v1-hydro-list { display: grid; gap: 10px; }
   .v1-hydro-list-item { min-height: 64px; }
+  /* Name und Kurzzeile sind zwei Zeilen — zusammengelaufen las es sich wie
+     „Alien RDWCRDWC · …". */
+  .v1-hydro-list-item strong { display: block; }
+  .v1-hydro-list-item span { display: block; margin-top: 5px; }
   /* Setup-Namen nicht mitten im Wort trennen — sie sind kurz genug. */
   .v1-hydro-list-item strong { overflow-wrap: normal; word-break: normal; hyphens: manual; }
 

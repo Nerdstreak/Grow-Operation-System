@@ -1,0 +1,154 @@
+/* Sammelseiten — die gemeinsamen Muster des Entwurfs.
+ *
+ * Der Mock baut Grows, Sorten, Archiv, Regeln, HA, Wissen und Einstellungen
+ * aus vier wiederkehrenden Formen: Tabellen-Grid, Kennzahlen-Leiste,
+ * Filter-Chips und Panel-Zeilen. Die liegen hier EINMAL — dieselbe Form an
+ * zwei Stellen zu pflegen ist in diesem Projekt schon dreimal schiefgegangen. */
+@layer features {
+
+  /* ---------- Tabellen-Grid ----------
+   * Kopf und Zellen in einem CSS-Grid; die Spalten setzt die Seite per
+   * grid-template-columns inline, weil jede Tabelle andere braucht. */
+  .co-table { display: grid; background: var(--panel-2); }
+  .co-th {
+    padding: 8px 12px;
+    font: 500 10px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase;
+    color: var(--faint);
+  }
+  .co-td {
+    padding: 10px 12px; border-top: 1px solid var(--hair);
+    font: 400 12px/1.3 var(--font-mono); font-variant-numeric: tabular-nums;
+    min-width: 0; overflow-wrap: anywhere;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .co-td.is-name { font: 600 12.5px/1.3 var(--font-sans); }
+  .co-td.is-muted { font-size: 11.5px; color: var(--muted); }
+  .co-td.is-good { color: var(--accent-text); }
+  .co-td.is-bad { color: var(--danger); }
+  .co-td input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent); flex: 0 0 auto; }
+  /* Die Checkbox tippt man über das umschließende Label — am Telefon wächst
+     dessen Trefferfläche auf die 44px-Untergrenze. */
+  .co-check { display: inline-grid; place-items: center; min-width: 28px; align-self: stretch; cursor: pointer; }
+  @media (pointer: coarse) {
+    .co-check { min-height: 44px; min-width: 44px; }
+  }
+  .co-td input:not([type='checkbox']), .co-td select {
+    width: 100%; min-width: 0; min-height: 28px; padding: 0 8px;
+    border: 1px solid var(--hair); border-radius: 6px;
+    background: var(--sunk); color: var(--ink);
+    font: 400 12px/1 var(--font-mono);
+  }
+  /* Schmale Fenster: das Grid bleibt, scrollt aber im eigenen Kasten. */
+  .co-table-wrap { overflow-x: auto; }
+  .co-table-wrap .co-table { min-width: 560px; }
+
+  /* ---------- Kennzahlen-Leiste ---------- */
+  .co-strip {
+    display: flex; flex-wrap: wrap;
+    border: 1px solid var(--hair); border-radius: 10px;
+    background: var(--panel); overflow: hidden;
+  }
+  .co-cell { flex: 1 1 170px; padding: 11px 14px; border-left: 1px solid var(--hair); min-width: 0; }
+  .co-cell:first-child { margin-left: -1px; }
+  .co-cell-label {
+    font: 500 10px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase;
+    color: var(--faint);
+  }
+  .co-cell-value { margin-top: 6px; font: 500 16px/1.2 var(--font-mono); }
+  .co-cell-value.is-md { font-size: 15px; }
+  .co-cell-value.is-lg { font-size: 20px; }
+  .co-cell-value.is-good { color: var(--accent-text); }
+  .co-cell-value.is-warn { color: var(--warn-text); }
+  .co-cell-value .co-unit { font-size: 12px; color: var(--muted); margin-left: 3px; }
+
+  /* ---------- Filter-Chips ---------- */
+  .co-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+  .co-chip {
+    min-height: 26px; display: inline-flex; align-items: center; padding: 0 10px;
+    border: 1px solid var(--hair-2); border-radius: 999px;
+    background: transparent; color: var(--muted);
+    font: 400 10.5px/1 var(--font-mono); letter-spacing: .04em; text-transform: uppercase;
+    cursor: pointer;
+  }
+  .co-chip.active {
+    border-color: var(--accent); color: var(--accent-text);
+    background: var(--accent-wash); font-weight: 500;
+  }
+
+  /* ---------- Panel-Zeilen ---------- */
+  .co-row {
+    padding: 11px 14px; border-bottom: 1px solid var(--hair);
+    display: flex; gap: 10px; align-items: center; min-width: 0;
+  }
+  .co-row:last-child { border-bottom: 0; }
+  .co-row-title { font-size: 13px; font-weight: 600; }
+  .co-row-sub { font: 400 11px/1.4 var(--font-mono); color: var(--muted); }
+  .co-row-text { font-size: 13px; }
+  .co-row-value { margin-left: auto; font: 500 10px/1 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  .co-row-value.is-good { color: var(--accent-text); }
+  .co-row-value.is-faint { color: var(--faint); }
+  .co-row-entity { font: 400 11.5px/1.3 var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
+  .co-row .co-row-end { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+  /* Namenszelle als Knopf: öffnet das Bearbeiten, sieht aus wie die Zelle. */
+  .co-td-link {
+    border: 0; padding: 0; background: transparent; cursor: pointer;
+    font: inherit; color: inherit; text-align: left;
+  }
+  .co-td-link:hover { color: var(--accent-text); }
+
+  /* Keeper-Zelle: der Knopf trägt die Akzentfarbe wie im Entwurf. */
+  .ls-btn.is-keeperbtn { border-color: var(--accent); color: var(--accent-text); }
+
+  /* ---------- Aktionsreihen ----------
+   * is-small bringt margin-left:auto mit (Panel-Köpfe, Listenzeilen) — in
+   * einer Knopfreihe stünden die Knöpfe damit auseinander. */
+  .co-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  /* Drei Klassen, weil .ls-btn.is-small gleich spezifisch ist und im Bundle
+     spaeter kommt — sonst gewinnt dessen margin-left:auto wieder. */
+  .co-actions .ls-btn.is-small,
+  .co-actions .ls-btn { margin-left: 0; }
+
+  /* Intro-Zeile eines Tabs: kurzer Satz links, Aktion rechts. */
+  .co-tabhead { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+  .co-tabhead .gc-facts { margin: 0; max-width: 64ch; }
+
+  /* Statuspunkt in Panel-Zeilen (Auto-Messungen). */
+  .co-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--hair-2); flex-shrink: 0; }
+  .co-dot.is-on { background: var(--accent); }
+
+  /* ---------- Kartengitter + Geisterkarte ---------- */
+  .co-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; align-items: start; }
+  .co-grid.is-300 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .co-ghost {
+    min-height: 150px; display: grid; place-items: center; align-content: center; gap: 4px;
+    border: 1px dashed var(--hair-2); border-radius: 12px;
+    background: transparent; color: var(--faint);
+    font: 500 12px/1.6 var(--font-mono); letter-spacing: .04em; text-transform: uppercase;
+    cursor: pointer; text-align: center;
+  }
+  .co-ghost small { font-size: 10.5px; letter-spacing: 0; text-transform: none; }
+  .co-ghost:hover { border-color: var(--accent); color: var(--accent-text); }
+
+  /* ---------- Einstellungen ---------- */
+  .st-theme { display: flex; gap: 4px; }
+  .st-import { align-items: flex-start; }
+  .st-preview {
+    margin-top: 10px; padding: 10px 12px;
+    border: 1px solid var(--hair-2); border-radius: 8px;
+    display: grid; gap: 3px;
+    font: 400 11.5px/1.5 var(--font-mono); color: var(--muted);
+  }
+  .st-preview strong { color: var(--accent-text); font-weight: 600; }
+  .st-preview.is-bad strong { color: var(--danger); }
+
+  /* ---------- Kandidaten-Streifen (Pheno-Hunt, Vergleich) ---------- */
+  .co-cells { display: flex; flex-wrap: wrap; }
+  .co-cand { flex: 1 1 170px; padding: 12px 14px; border-left: 1px solid var(--hair); min-width: 0; }
+  .co-cand:first-child { margin-left: -1px; }
+  .co-cand.is-keeper { background: var(--accent-wash); }
+  .co-cand-name { font: 500 12px/1 var(--font-mono); }
+  .co-cand.is-keeper .co-cand-name { color: var(--accent-text); }
+  .co-cand-sub { margin-top: 6px; font: 400 11px/1.5 var(--font-mono); color: var(--muted); }
+  .co-cand .ls-btn { margin-top: 8px; }
+}

@@ -3,7 +3,8 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { KnowledgeOverviewDto, NutrientProgramDto, WearTemplateDto } from '../types'
-import '../features/knowledge/knowledge-instrument.css'
+import { V1Page, V1Skeleton } from '../components/v1'
+import '../features/knowledge/knowledge.css'
 
 type TopicId = 'rdwc' | 'addback' | 'rootrot' | 'ph-ec' | 'athena' | 'canna' | 'sensors' | 'troubleshooting'
 type KnowledgeRecord = Record<string, unknown>
@@ -190,13 +191,24 @@ function getPreview(record: KnowledgeRecord): string {
     const value = asStr(record[key])
     if (value && value.length > 4) return value
   }
+  // SOPs haben keinen Beschreibungstext — aber Schritte: „8 Schritte, geführt."
+  const steps = record.steps
+  if (Array.isArray(steps) && steps.length > 0) return `${steps.length} Schritte, geführt.`
   let best = ''
   for (const [key, value] of Object.entries(record)) {
-    if (['name', 'title', 'id', 'key', 'type', 'category'].includes(key)) continue
+    if (['name', 'title', 'id', 'key', 'type', 'category', 'schemaVersion', 'slug', 'icon'].includes(key)) continue
     const str = asStr(value)
-    if (str && str.length > best.length) best = str
+    // „1.0" oder ein einzelnes Wort sagen in der Vorschau nichts.
+    if (str && str.length >= 12 && str.length > best.length) best = str
   }
   return best
+}
+
+/** Springt eine SOP auf Symptome an, ist sie ein Notfall-Ablauf. */
+function isSymptomTriggered(record: KnowledgeRecord): boolean {
+  const triggers = asRecArr(record.triggers)
+  if (!triggers) return false
+  return triggers.some((trigger) => asStr(trigger.type) === 'Symptom')
 }
 
 const KEY_LABELS: Record<string, string> = {
@@ -523,7 +535,9 @@ function KnowledgePage() {
           key: `${id}-${getId(rec) ?? i}`,
           refId: getId(rec),
           title: getTitle(rec, raw),
-          subtitle: getRecordTag(rec),
+          // SOPs tragen Notfall/Routine wie im Entwurf — abgeleitet aus den
+          // Triggern: was auf Symptome anspringt, ist ein Notfall-Ablauf.
+          subtitle: id === 'sops' ? (isSymptomTriggered(rec) ? 'Notfall' : 'Routine') : getRecordTag(rec),
           preview: getPreview(rec),
           search: `${getTitle(rec, raw)} ${JSON.stringify(raw)}`.toLowerCase(),
           record: rec,
@@ -532,7 +546,7 @@ function KnowledgePage() {
     })
 
     const grundlagen: Category = {
-      id: 'grundlagen', label: 'Grundlagen', kicker: 'Guides',
+      id: 'grundlagen', label: 'Grundlagen', kicker: 'Guide',
       desc: 'Kompakte Erklärungen zu RDWC, Addback, Werten und Diagnose.',
       entries: topics.map((t) => ({
         key: `grundlagen-${t.id}`,
@@ -546,13 +560,13 @@ function KnowledgePage() {
 
     return [
       grundlagen,
-      recCat('sops', 'SOPs', 'Arbeitsabläufe', 'Schritt-für-Schritt-Prozeduren für den Betrieb.', catalogs.sops),
-      recCat('treatments', 'Maßnahmen', 'Treatments', 'Behandlungen gegen Symptome und Schädlinge.', catalogs.treatments),
-      recCat('symptoms', 'Symptome', 'Diagnose', 'Symptom, mögliche Ursache und empfohlene Maßnahme.', catalogs.symptoms),
-      recCat('pathogens', 'Pathogene', 'Risiken', 'Erreger, Risiko-Level und Gegenmaßnahmen.', catalogs.pathogens),
-      recCat('setpoints', 'Sollwerte', 'Zielbereiche', 'Phasen-Zielwerte für pH, EC, ORP und Klima.', catalogs.setpoints),
-      recCat('programs', 'Programme', 'Nährstoffe', 'Nährstoff-Programme und ihr Einsatzkontext.', catalogs.programs as unknown as KnowledgeRecord[]),
-      recCat('wear', 'Verschleiß', 'Hardware', 'Lebensdauer und Austausch-Anzeichen für Hardware.', catalogs.wear as unknown as KnowledgeRecord[]),
+      recCat('sops', 'SOPs', 'SOP', 'Schritt-für-Schritt-Prozeduren für den Betrieb.', catalogs.sops),
+      recCat('treatments', 'Maßnahmen', 'Maßnahme', 'Behandlungen gegen Symptome und Schädlinge.', catalogs.treatments),
+      recCat('symptoms', 'Symptome', 'Symptom', 'Symptom, mögliche Ursache und empfohlene Maßnahme.', catalogs.symptoms),
+      recCat('pathogens', 'Pathogene', 'Pathogen', 'Erreger, Risiko-Level und Gegenmaßnahmen.', catalogs.pathogens),
+      recCat('setpoints', 'Sollwerte', 'Zielwerte', 'Phasen-Zielwerte für pH, EC, ORP und Klima.', catalogs.setpoints),
+      recCat('programs', 'Programme', 'Programm', 'Nährstoff-Programme und ihr Einsatzkontext.', catalogs.programs as unknown as KnowledgeRecord[]),
+      recCat('wear', 'Verschleiß', 'Verschleiß', 'Lebensdauer und Austausch-Anzeichen für Hardware.', catalogs.wear as unknown as KnowledgeRecord[]),
     ]
   }, [catalogs])
 
@@ -590,7 +604,7 @@ function KnowledgePage() {
     return scored.slice(0, 60)
   }, [q, categories])
 
-  const currentCategory = categories.find((c) => c.id === categoryId) ?? categories[0] ?? null
+  const currentCategory = categories.find((c) => c.id === categoryId) ?? null
   const entries = currentCategory?.entries ?? []
   const selectedEntry = entries.find((e) => e.key === entryKey) ?? entries[0] ?? null
 
@@ -614,90 +628,104 @@ function KnowledgePage() {
     const hit = refIndex.get(id)
     if (hit) openTarget(hit)
   }
+  /* Ton je Kategorie — der Entwurf faerbt die Karten-Tags nach Gefahr:
+     Notfall rot, Routine gruen, Zielwerte cyan. */
+  function toneFor(catId: string, entry: Entry): string {
+    if (catId === 'pathogens') return 'danger'
+    if (catId === 'sops') return entry.subtitle === 'Notfall' ? 'danger' : 'accent'
+    if (catId === 'treatments' || catId === 'symptoms') return 'warn'
+    if (catId === 'setpoints' || catId === 'programs') return 'info'
+    if (catId === 'wear') return 'muted'
+    return 'accent'
+  }
+
+  const gridEntries: Array<{ cat: Category; entry: Entry }> = q
+    ? searchResults.map(({ cat, entry }) => ({ cat, entry }))
+    : categoryId == null
+      ? categories.flatMap((cat) => cat.entries.map((entry) => ({ cat, entry })))
+      : (currentCategory ? currentCategory.entries.map((entry) => ({ cat: currentCategory, entry })) : [])
+
+  const totalCount = categories.reduce((sum, cat) => sum + cat.entries.length, 0)
+  const detailEntry = detailOpen ? selectedEntry : null
+  const detailCategory = currentCategory
+
   let body: ReactNode
   if (loading) {
-    body = <div className="ix-kb-empty"><h2>Lade Wissensbasis…</h2></div>
-  } else if (q) {
+    body = <V1Skeleton tiles={6} label="Lade Wissensbasis" />
+  } else if (detailEntry) {
     body = (
-      <>
-        <div className="ix-kb-backrow"><button type="button" className="ix-kb-back" onClick={() => setQuery('')}>← Übersicht</button></div>
-        {searchResults.length === 0 ? (
-          <div className="ix-kb-empty"><h2>Keine Treffer</h2><p>Für „{query}" wurde nichts gefunden.</p></div>
-        ) : (
-          <div className="ix-kb-results">
-            {searchResults.map(({ cat, entry }) => (
-              <button key={`${cat.id}-${entry.key}`} type="button" className="ix-kb-entry" onClick={() => openTarget({ catId: cat.id, entryKey: entry.key, title: entry.title })}>
-                <span className="ix-kb-result-cat">{cat.label}{entry.subtitle ? ` · ${entry.subtitle}` : ''}</span>
-                <strong>{entry.title}</strong>
-                {entry.preview && <span className="ix-kb-entry-preview">{entry.preview}</span>}
-              </button>
-            ))}
-          </div>
-        )}
-      </>
+      <section className="ls-panel" data-audit="knowledge-detail">
+        <div className="ls-panel-head">
+          <button type="button" className="ls-btn is-small" style={{ marginLeft: 0 }} onClick={() => setDetailOpen(false)}>← Bibliothek</button>
+        </div>
+        <div className="kb-detail">
+          {detailEntry.topic && <TopicDetail topic={detailEntry.topic} />}
+          {detailEntry.record && detailCategory && <RecordDetail category={detailCategory} record={detailEntry.record} index={refIndex} onNavigate={navigateToId} />}
+        </div>
+      </section>
     )
+  } else if (gridEntries.length === 0) {
+    body = <p className="gc-facts">Für „{query}“ wurde nichts gefunden.</p>
   } else {
     body = (
-      <>
-        <div className="ix-kb-tabs" role="tablist">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              role="tab"
-              aria-selected={cat.id === currentCategory?.id}
-              className={cat.id === currentCategory?.id ? 'ix-kb-tab active' : 'ix-kb-tab'}
-              onClick={() => openCategory(cat.id)}
-            >
-              <strong>{cat.label}</strong>
-              <span className="count">{cat.entries.length}</span>
-            </button>
-          ))}
-        </div>
-        {currentCategory?.desc && <p className="ix-kb-cat-desc">{currentCategory.desc}</p>}
-        <div className={detailOpen ? 'ix-kb-browse entry-open' : 'ix-kb-browse'}>
-          <div className="ix-kb-list">
-            {entries.map((e) => (
-              <button key={e.key} type="button" className={e.key === selectedEntry?.key ? 'ix-kb-entry active' : 'ix-kb-entry'} onClick={() => openEntry(e.key)}>
-                <span className="ix-kb-entry-top">
-                  <strong>{e.title}</strong>
-                  {e.subtitle && <span className="ix-kb-entry-tag">{e.subtitle}</span>}
-                </span>
-                {e.preview && <span className="ix-kb-entry-preview">{e.preview}</span>}
+      <div className="co-grid is-300" data-audit="knowledge-grid">
+        {gridEntries.map(({ cat, entry }) => {
+          const tone = toneFor(cat.id, entry)
+          const guided = cat.id === 'sops' && entry.record != null && Array.isArray(entry.record.steps)
+          return (
+            <div key={`${cat.id}-${entry.key}`} className="kb-card">
+              <span className={`kb-tag is-${tone}`}>{cat.kicker}{entry.subtitle ? ` · ${entry.subtitle}` : ''}</span>
+              <div className="kb-card-title">{entry.title}</div>
+              {entry.preview && <p>{entry.preview}</p>}
+              <button
+                type="button"
+                className={`ls-btn is-small${tone === 'danger' && guided ? ' is-primary' : ''}`}
+                style={{ marginLeft: 0 }}
+                onClick={() => { setCategoryId(cat.id); openEntry(entry.key) }}
+              >
+                {guided ? 'Geführt öffnen' : 'Öffnen'}
               </button>
-            ))}
-            {entries.length === 0 && <div className="ix-kb-empty"><p>Keine Einträge in dieser Kategorie.</p></div>}
-          </div>
-          <div className="ix-kb-detail">
-            <button type="button" className="ix-kb-back ix-kb-detail-back" onClick={() => setDetailOpen(false)}>← Liste</button>
-            {selectedEntry?.topic && <TopicDetail topic={selectedEntry.topic} />}
-            {selectedEntry?.record && currentCategory && <RecordDetail category={currentCategory} record={selectedEntry.record} index={refIndex} onNavigate={navigateToId} />}
-            {!selectedEntry && <div className="ix-kb-empty"><p>Eintrag links auswählen.</p></div>}
-          </div>
-        </div>
-      </>
+            </div>
+          )
+        })}
+      </div>
     )
   }
 
   return (
-    <div className="ix-kb">
-      <header className="ix-kb-head">
-        <div className="ix-kb-brand">
-          <span className="kk">Wissensbasis</span>
-          <h1>WISSEN</h1>
+    <V1Page
+      eyebrow="Wissen"
+      title="SOPs & Bibliothek"
+      action={
+        <input
+          className="kb-search"
+          data-audit="knowledge-search"
+          value={query}
+          onChange={(event) => { setQuery(event.target.value); setDetailOpen(false) }}
+          placeholder="Suchen: Wurzelfäule, Addback, VPD …"
+          aria-label="Wissensbasis durchsuchen"
+        />
+      }
+    >
+      {!loading && !detailEntry && (
+        <div className="co-chips" data-audit="knowledge-chips">
+          <button type="button" className={categoryId == null && !q ? 'co-chip active' : 'co-chip'} onClick={() => { setQuery(''); setCategoryId(null); setDetailOpen(false) }}>
+            Alle · {totalCount}
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              className={cat.id === categoryId && !q ? 'co-chip active' : 'co-chip'}
+              onClick={() => { setQuery(''); openCategory(cat.id) }}
+            >
+              {cat.label} · {cat.entries.length}
+            </button>
+          ))}
         </div>
-        <div className="ix-kb-search">
-          <input
-            data-audit="knowledge-search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Suche: Root Rot, Addback, EC, Athena…"
-            aria-label="Wissensbasis durchsuchen"
-          />
-        </div>
-      </header>
+      )}
       {body}
-    </div>
+    </V1Page>
   )
 }
 

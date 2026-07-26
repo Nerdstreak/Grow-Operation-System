@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import QRCode from 'qrcode'
 import { apiFetch, ApiRequestError } from '../api'
 import type { HomeAssistantEntity, HomeAssistantSettingsDto, SensorMetricType, SettingsOverviewDto, TentDto, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Skeleton, V1Switch, V1Tabs } from '../components/v1'
+import { V1Alert, V1Button, V1Empty, V1Field, V1Page, V1Skeleton, V1Switch, V1Tabs } from '../components/v1'
 import { toNullableString } from '../components/v1-utils'
 import { resolveUrl } from '../base'
 import '../features/home-assistant/home-assistant.css'
@@ -13,16 +14,15 @@ type SensorDraft = { metricType: SensorMetricType; haEntityId: string; displayLa
 type TentMappingDraft = { cameras: string[]; sensors: SensorDraft[] }
 type EntityDefinition = { metricType: SensorMetricType; label: string; group: GroupKey; placeholder: string; importance: 'core' | 'optional'; unit?: string }
 type SavingState = 'ha' | `tent-${number}` | null
-type CameraStatus = { ok: boolean; status: string; message: string; cameraEntityId: string | null; previewUrl: string | null }
 
-const groups: Array<{ key: GroupKey; label: string; text: string }> = [
-  { key: 'tent', label: 'Zelt', text: 'Klima, Licht, VPD und Kamera' },
-  { key: 'reservoir', label: 'RDWC/DWC', text: 'pH, EC, Wasser, ORP und Sauerstoff' },
-  { key: 'hardware', label: 'Technik', text: 'Pumpen, Chiller, USV und Schalter' },
+const groups: Array<{ key: GroupKey; label: string }> = [
+  { key: 'tent', label: 'Zelt' },
+  { key: 'reservoir', label: 'RDWC/DWC' },
+  { key: 'hardware', label: 'Technik' },
 ]
 
 const definitions: EntityDefinition[] = [
-  { metricType: 'AirTemperature', label: 'Lufttemperatur', group: 'tent', placeholder: 'sensor.zelt_temperatur', unit: '°C', importance: 'core' },
+  { metricType: 'AirTemperature', label: 'Lufttemp', group: 'tent', placeholder: 'sensor.zelt_temperatur', unit: '°C', importance: 'core' },
   { metricType: 'Humidity', label: 'Luftfeuchte', group: 'tent', placeholder: 'sensor.zelt_luftfeuchte', unit: '%', importance: 'core' },
   { metricType: 'Vpd', label: 'VPD', group: 'tent', placeholder: 'sensor.zelt_vpd', unit: 'kPa', importance: 'core' },
   { metricType: 'Ppfd', label: 'PPFD', group: 'tent', placeholder: 'sensor.lampe_ppfd', unit: 'µmol/m²/s', importance: 'optional' },
@@ -30,8 +30,8 @@ const definitions: EntityDefinition[] = [
   { metricType: 'LightStatus', label: 'Licht', group: 'tent', placeholder: 'switch.licht', importance: 'optional' },
   { metricType: 'ReservoirPh', label: 'pH', group: 'reservoir', placeholder: 'sensor.rdwc_ph', importance: 'core' },
   { metricType: 'ReservoirEc', label: 'EC', group: 'reservoir', placeholder: 'sensor.rdwc_ec', unit: 'mS/cm', importance: 'core' },
-  { metricType: 'ReservoirWaterTemp', label: 'Wassertemperatur', group: 'reservoir', placeholder: 'sensor.rdwc_wassertemperatur', unit: '°C', importance: 'core' },
-  { metricType: 'ReservoirLevel', label: 'Wasserstand (Liter)', group: 'reservoir', placeholder: 'sensor.rdwc_wasserstand_liter', unit: 'L', importance: 'core' },
+  { metricType: 'ReservoirWaterTemp', label: 'Wassertemp', group: 'reservoir', placeholder: 'sensor.rdwc_wassertemperatur', unit: '°C', importance: 'core' },
+  { metricType: 'ReservoirLevel', label: 'Wasserstand (L)', group: 'reservoir', placeholder: 'sensor.rdwc_wasserstand_liter', unit: 'L', importance: 'core' },
   { metricType: 'ReservoirLevelCm', label: 'Wasserstand (cm)', group: 'reservoir', placeholder: 'sensor.rdwc_wasserstand_cm', unit: 'cm', importance: 'optional' },
   { metricType: 'ReservoirOrp', label: 'ORP', group: 'reservoir', placeholder: 'sensor.rdwc_orp', unit: 'mV', importance: 'optional' },
   { metricType: 'ReservoirDissolvedOxygen', label: 'DO', group: 'reservoir', placeholder: 'sensor.rdwc_do', unit: 'mg/L', importance: 'optional' },
@@ -85,15 +85,21 @@ function entityOptionLabel(entity: HomeAssistantEntity): string {
   return `${name} — ${entity.state}${unit}`
 }
 
+/**
+ * Home Assistant nach dem Entwurf: Status-Leiste oben, dann Sensor-Mapping
+ * als Zeilen (Metrik ← Entity, Live-Wert rechts) und das Koppel-Panel mit
+ * QR-Code. Eine Zeile ist aktiv, sobald eine Entity eingetragen ist —
+ * Feld leeren schaltet sie ab.
+ */
 function HomeAssistantPage() {
   const [ha, setHa] = useState<HomeAssistantSettingsDto>({ baseUrl: '', accessToken: '', enabled: false })
   const [entities, setEntities] = useState<HomeAssistantEntity[]>([])
+  const [entitiesLoadedAt, setEntitiesLoadedAt] = useState<Date | null>(null)
   const [tents, setTents] = useState<TentDto[]>([])
   const [drafts, setDrafts] = useState<Record<number, TentMappingDraft>>({})
   const [selectedTentId, setSelectedTentId] = useState<number | null>(null)
   const [activeGroup, setActiveGroup] = useState<GroupKey>('tent')
   const [showToken, setShowToken] = useState(false)
-  const [cameraStatus, setCameraStatus] = useState<CameraStatus | null>(null)
   const [previewNonce, setPreviewNonce] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<SavingState>(null)
@@ -117,7 +123,10 @@ function HomeAssistantPage() {
         // Best-effort: load live entities so the mapping can use a dropdown.
         // Returns [] when Home Assistant is unreachable or not configured.
         const entityList = await apiFetch<HomeAssistantEntity[]>('/api/home-assistant/entities', { signal: controller.signal }).catch(() => [])
-        if (!controller.signal.aborted) setEntities(entityList)
+        if (!controller.signal.aborted) {
+          setEntities(entityList)
+          if (entityList.length > 0) setEntitiesLoadedAt(new Date())
+        }
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatApiError(caught, 'Home Assistant konnte nicht geladen werden.'))
       } finally {
@@ -130,14 +139,22 @@ function HomeAssistantPage() {
 
   const selectedTent = useMemo(() => tents.find((tent) => tent.id === selectedTentId) ?? tents[0] ?? null, [selectedTentId, tents])
   const selectedDraft = selectedTent ? drafts[selectedTent.id] : null
-  const mappedCount = useMemo(() => Object.values(drafts).reduce((sum, draft) => sum + draft.cameras.filter((camera) => camera.trim()).length + draft.sensors.filter((sensor) => sensor.isActive && sensor.haEntityId.trim()).length, 0), [drafts])
+  const mappedCount = selectedDraft ? selectedDraft.sensors.filter((sensor) => sensor.haEntityId.trim()).length : 0
+  const cameraCount = selectedDraft ? selectedDraft.cameras.filter((camera) => camera.trim()).length : 0
+  const connected = ha.isManagedByAddon || ha.enabled
   // Prefer camera.* entities but fall back to the full list so the picker is never
   // empty when HA exposes the camera under a different domain (e.g. image.*).
   const cameraEntities = useMemo(() => {
     const cams = entities.filter((entity) => entity.domain === 'camera' || entity.domain === 'image')
     return cams.length > 0 ? cams : entities
   }, [entities])
-  const coreMappedCount = selectedDraft ? selectedDraft.sensors.filter((sensor) => sensor.isActive && sensor.haEntityId.trim() && definitions.find((definition) => definition.metricType === sensor.metricType)?.importance === 'core').length : 0
+
+  function liveValue(entityId: string): string | null {
+    if (!entityId.trim()) return null
+    const entity = entities.find((item) => item.entityId === entityId.trim())
+    if (!entity || entity.state == null || entity.state === '') return null
+    return `${entity.state}${entity.unitOfMeasurement ? ` ${entity.unitOfMeasurement}` : ''}`
+  }
 
   async function saveConnection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -165,7 +182,6 @@ function HomeAssistantPage() {
       setTents((current) => current.map((tent) => tent.id === saved.id ? saved : tent))
       setDrafts((current) => ({ ...current, [saved.id]: createTentDraft(saved) }))
       setMessage(`${saved.name} gespeichert.`)
-      setCameraStatus(null)
     } catch (caught) {
       setError(formatApiError(caught, 'Entity-Mapping konnte nicht gespeichert werden.'))
     } finally {
@@ -173,19 +189,9 @@ function HomeAssistantPage() {
     }
   }
 
-  // Load a fresh snapshot for EVERY mapped camera (not just the first). Bumping the nonce
-  // re-requests each per-camera preview below with a cache-busting timestamp.
-  function testCamera() {
-    if (!selectedTent) return
-    setError(null)
-    setCameraStatus(null)
-    setPreviewNonce(Date.now())
-  }
-
   function mutateCameras(mutate: (cameras: string[]) => string[]) {
     if (!selectedTent) return
     setDrafts((current) => ({ ...current, [selectedTent.id]: { ...current[selectedTent.id], cameras: mutate(current[selectedTent.id].cameras) } }))
-    setCameraStatus(null)
   }
 
   const addCamera = () => mutateCameras((cameras) => [...cameras, ''])
@@ -198,28 +204,37 @@ function HomeAssistantPage() {
   }
 
   return (
-    <V1Page eyebrow="Home Assistant" title="HA einrichten" subtitle={ha.isManagedByAddon ? 'Zelt wählen, Kamera testen und Sensoren mappen — verbunden ist Grow OS übers Add-on automatisch.' : 'Verbindung speichern, Zelt wählen, Kamera testen und Sensoren mappen.'}>
+    <V1Page eyebrow="Anlage / Home Assistant" title="Home Assistant">
       {error && <V1Alert message={error} tone="warn" />}
       {message && <V1Alert message={message} tone="ok" />}
 
-      <section className="v1-kpi-grid">
-        <V1Card tone={ha.isManagedByAddon || ha.enabled ? 'ok' : 'warn'}><span className="v1-card-kicker">Verbindung</span><h2>{ha.isManagedByAddon || ha.enabled ? 'aktiv' : 'inaktiv'}</h2><p>{ha.isManagedByAddon ? 'Über Add-on' : (ha.baseUrl || 'URL offen')}</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Entitäten</span><h2>{mappedCount}</h2><p>gesamt gemappt</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Kernwerte</span><h2>{coreMappedCount}</h2><p>im ausgewählten Zelt</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Zelte</span><h2>{tents.length}</h2><p>verfügbar</p></V1Card>
-      </section>
-
       {loading ? <V1Skeleton rows={4} label="Lade Home Assistant" /> : (
         <>
-          <V1Section title="1. Verbindung">
-            {ha.isManagedByAddon ? (
-              <V1Card tone="ok">
-                <span className="v1-card-kicker">Home Assistant</span>
-                <h2>Über Add-on verbunden</h2>
-                <p>Grow OS läuft als Home-Assistant-Add-on und ist automatisch verbunden — keine URL und kein Token nötig. Wähle unten einfach deine Sensoren aus.</p>
-              </V1Card>
-            ) : (
-              <form className="v1-ha-connect-form rc2-ha-connect-form" data-audit="ha-connection-layout" onSubmit={(event) => void saveConnection(event)}>
+          <div className="co-strip" data-audit="ha-status-strip">
+            <div className="co-cell">
+              <div className="co-cell-label">Verbindung</div>
+              <div className={`co-cell-value is-md${connected && entities.length > 0 ? ' is-good' : connected ? ' is-warn' : ''}`}>
+                {ha.isManagedByAddon ? 'Add-on · verbunden' : connected ? (entities.length > 0 ? 'verbunden' : 'keine Antwort') : 'inaktiv'}
+              </div>
+            </div>
+            <div className="co-cell">
+              <div className="co-cell-label">Entities gemappt</div>
+              <div className="co-cell-value is-md">{mappedCount} von {definitions.length}</div>
+            </div>
+            <div className="co-cell">
+              <div className="co-cell-label">Kameras</div>
+              <div className="co-cell-value is-md">{cameraCount > 0 ? String(cameraCount) : '—'}</div>
+            </div>
+            <div className="co-cell">
+              <div className="co-cell-label">Entities geladen</div>
+              <div className="co-cell-value is-md">{entitiesLoadedAt ? `${entities.length} · ${new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' }).format(entitiesLoadedAt)}` : 'keine'}</div>
+            </div>
+          </div>
+
+          {!ha.isManagedByAddon && (
+            <section className="ls-panel">
+              <div className="ls-panel-head"><span className="ls-label">Verbindung</span></div>
+              <form className="ha-connect" data-audit="ha-connection-layout" onSubmit={(event) => void saveConnection(event)}>
                 <V1Field label="Home Assistant URL" hint="Beispiel: http://homeassistant.local:8123">
                   <input value={ha.baseUrl ?? ''} onChange={(event) => setHa((current) => ({ ...current, baseUrl: event.target.value }))} placeholder="http://homeassistant.local:8123" />
                 </V1Field>
@@ -229,84 +244,114 @@ function HomeAssistantPage() {
                     <V1Button onClick={() => setShowToken((current) => !current)}>{showToken ? 'Verbergen' : 'Anzeigen'}</V1Button>
                   </div>
                 </V1Field>
-                <div className="rc2-ha-connection-actions" data-audit="ha-connection-actions">
+                <div className="co-actions" data-audit="ha-connection-actions">
                   <V1Switch label="Home Assistant aktiv" checked={ha.enabled} onChange={(checked) => setHa((current) => ({ ...current, enabled: checked }))} />
-                  <V1Button type="submit" variant="primary" disabled={saving === 'ha'} className="rc2-compact-action">{saving === 'ha' ? 'Speichert...' : 'Verbindung speichern'}</V1Button>
+                  <V1Button type="submit" variant="primary" disabled={saving === 'ha'}>{saving === 'ha' ? 'Speichert…' : 'Verbindung speichern'}</V1Button>
                 </div>
               </form>
-            )}
-          </V1Section>
+            </section>
+          )}
 
           {tents.length === 0 ? (
-            <V1Empty title="Kein Zelt angelegt" action={<Link to="/zelte" className="v1-button is-primary">Zelt anlegen</Link>} />
+            <V1Empty title="Kein Zelt angelegt" action={<Link to="/zelte" className="ls-btn is-primary">Zelt anlegen</Link>} />
           ) : selectedTent && selectedDraft && (
-            <section className="v1-ha-layout">
-              <V1Section title="2. Zelt wählen">
-                <V1Tabs label="Zelt" active={selectedTent.id} onChange={(id) => { setSelectedTentId(id); setCameraStatus(null) }} items={tents.map((tent) => ({ value: tent.id, label: tent.name, meta: formatTentSize(tent) }))} />
-              </V1Section>
+            <div className="ha-layout">
+              <section className="ls-panel" data-audit="ha-mapping-panel">
+                <div className="ls-panel-head">
+                  <span className="ls-label">Sensor-Mapping</span>
+                  <span className="ls-panel-meta">Metrik ← HA-Entity, je Zelt</span>
+                  <button type="button" className="ls-btn is-small is-primary" disabled={saving === `tent-${selectedTent.id}`} onClick={() => void saveSelectedTent()}>
+                    {saving === `tent-${selectedTent.id}` ? 'Speichert…' : 'Speichern'}
+                  </button>
+                </div>
 
-              <V1Section title={`3. ${selectedTent.name} mappen`} action={<V1Button variant="primary" disabled={saving === `tent-${selectedTent.id}`} onClick={() => void saveSelectedTent()}>{saving === `tent-${selectedTent.id}` ? 'Speichert...' : 'Mapping speichern'}</V1Button>}>
-                <div style={{ display: 'grid', gap: 12, marginBottom: 12 }}>
-                  <V1Card tone={cameraStatus?.ok ? 'ok' : cameraStatus ? 'warn' : 'neutral'}>
-                    <span className="v1-card-kicker">Kamera</span>
-                    <h2>{cameraStatus?.ok ? 'Snapshot OK' : selectedDraft.cameras.length > 0 ? `${selectedDraft.cameras.length} Kamera(s)` : 'optional'}</h2>
-                    <p className="rc2-measurement-note">Mehrere Kameras möglich (z. B. eine pro Pflanze) — im Live-Dashboard umschaltbar.</p>
-                    <div style={{ display: 'grid', gap: 10, width: '100%', marginTop: 8 }} data-audit="ha-camera-field-action">
-                      {selectedDraft.cameras.map((camera, index) => (
-                        <V1Field key={index} label={`Kamera ${index + 1}`}>
-                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                            <input value={camera} onChange={(event) => updateCameraAt(index, event.target.value)} placeholder="camera.hauptzelt" list={entities.length > 0 ? 'ha-entities-camera' : undefined} style={{ flex: '1 1 220px', minWidth: 0 }} />
-                            <V1Button variant="ghost" onClick={() => removeCameraAt(index)}>Entfernen</V1Button>
-                          </div>
-                        </V1Field>
-                      ))}
+                {tents.length > 1 && (
+                  <div className="ha-tent-row">
+                    <V1Tabs label="Zelt" active={selectedTent.id} onChange={(id) => setSelectedTentId(id)} items={tents.map((tent) => ({ value: tent.id, label: tent.name }))} />
+                  </div>
+                )}
+
+                <div className="ha-tent-row co-chips" role="tablist" aria-label="Entity-Gruppe">
+                  {groups.map((group) => (
+                    <button key={group.key} type="button" role="tab" aria-selected={group.key === activeGroup} className={group.key === activeGroup ? 'co-chip active' : 'co-chip'} onClick={() => setActiveGroup(group.key)}>
+                      {group.label}
+                    </button>
+                  ))}
+                </div>
+
+                {definitions.filter((definition) => definition.group === activeGroup).map((definition) => {
+                  const sensor = selectedDraft.sensors.find((item) => item.metricType === definition.metricType) ?? createSensorDraft(definition)
+                  const live = liveValue(sensor.haEntityId)
+                  const listId = `ha-entities-${definition.metricType}`
+                  return (
+                    <div key={definition.metricType} className="co-row" data-audit="ha-entity-row">
+                      <span className="ha-metric">{definition.label}{definition.unit ? <small> {definition.unit}</small> : null}</span>
+                      <input
+                        className="ha-entity-input"
+                        value={sensor.haEntityId}
+                        onChange={(event) => updateSensor(definition.metricType, { haEntityId: event.target.value })}
+                        placeholder={definition.placeholder}
+                        aria-label={`${definition.label} Entity`}
+                        list={entities.length > 0 ? listId : undefined}
+                      />
                       {entities.length > 0 && (
-                        <datalist id="ha-entities-camera">
-                          {cameraEntities.map((entity) => (
+                        <datalist id={listId}>
+                          {suggestionsForMetric(entities, definition.metricType).map((entity) => (
                             <option key={entity.entityId} value={entity.entityId}>{entityOptionLabel(entity)}</option>
                           ))}
                         </datalist>
                       )}
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <V1Button variant="secondary" onClick={addCamera}>Kamera hinzufügen</V1Button>
-                        <V1Button onClick={() => testCamera()}>Alle Kameras testen</V1Button>
+                      {live != null
+                        ? <span className="co-row-value is-good">{live}</span>
+                        : sensor.haEntityId.trim() === ''
+                          ? <span className="co-row-value is-faint">nicht gemappt</span>
+                          : <span className="co-row-value">gemappt</span>}
+                    </div>
+                  )
+                })}
+
+                {activeGroup === 'tent' && (
+                  <>
+                    {selectedDraft.cameras.map((camera, index) => (
+                      <div key={index} className="co-row" data-audit="ha-camera-field-action">
+                        <span className="ha-metric">Kamera {index + 1}</span>
+                        <input className="ha-entity-input" value={camera} onChange={(event) => updateCameraAt(index, event.target.value)} placeholder="camera.hauptzelt" aria-label={`Kamera ${index + 1} Entity`} list={entities.length > 0 ? 'ha-entities-camera' : undefined} />
+                        <button type="button" className="ls-btn is-small" onClick={() => removeCameraAt(index)}>Entfernen</button>
+                      </div>
+                    ))}
+                    {entities.length > 0 && (
+                      <datalist id="ha-entities-camera">
+                        {cameraEntities.map((entity) => (
+                          <option key={entity.entityId} value={entity.entityId}>{entityOptionLabel(entity)}</option>
+                        ))}
+                      </datalist>
+                    )}
+                    <div className="co-row">
+                      <div className="co-actions">
+                        <button type="button" className="ls-btn is-small" onClick={addCamera}>+ Kamera</button>
+                        <button type="button" className="ls-btn is-small" onClick={() => setPreviewNonce(Date.now())}>Snapshot-Test</button>
                       </div>
                     </div>
                     {previewNonce > 0 && (() => {
                       const saved = (selectedTent.cameras ?? []).filter((camera) => camera.trim())
                       const previewCameras = saved.length > 0 ? saved : selectedDraft.cameras.map((camera) => camera.trim()).filter(Boolean)
                       return previewCameras.length === 0 ? (
-                        <p className="rc2-measurement-note">Trag zuerst mindestens eine Kamera ein.</p>
+                        <div className="ls-panel-body"><p>Trag zuerst mindestens eine Kamera ein.</p></div>
                       ) : (
-                        <>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginTop: 4 }}>
-                            {previewCameras.map((camera, index) => (
-                              <CameraPreview key={`${camera}-${previewNonce}`} tentId={selectedTent.id} entity={camera} index={index} nonce={previewNonce} />
-                            ))}
-                          </div>
-                          {saved.length === 0 && <p className="rc2-measurement-note">Neu hinzugefügte Kameras erst nach „Mapping speichern" testbar.</p>}
-                        </>
+                        <div className="ha-previews">
+                          {previewCameras.map((camera, index) => (
+                            <CameraPreview key={`${camera}-${previewNonce}`} tentId={selectedTent.id} entity={camera} index={index} nonce={previewNonce} />
+                          ))}
+                          {saved.length === 0 && <p className="gc-facts">Neu hinzugefügte Kameras erst nach „Speichern" testbar.</p>}
+                        </div>
                       )
                     })()}
-                  </V1Card>
-                  <V1Card>
-                    <span className="v1-card-kicker">Mapping</span>
-                    <h2>{groups.find((group) => group.key === activeGroup)?.text}</h2>
-                    <p>Core-Werte beeinflussen Live-Dashboard und Systemscore stärker als optionale Technikwerte.</p>
-                    <p>{entities.length > 0 ? `${entities.length} Home-Assistant-Entitäten geladen — im Feld tippen oder aus der Liste wählen.` : 'Keine HA-Entitäten geladen — Entity-IDs manuell eintragen.'}</p>
-                  </V1Card>
-                </div>
+                  </>
+                )}
+              </section>
 
-                <V1Tabs label="Entity-Gruppe" active={activeGroup} onChange={setActiveGroup} items={groups.map((group) => ({ value: group.key, label: group.label, meta: group.text }))} />
-
-                <div className="v1-entity-list">
-                  {definitions.filter((definition) => definition.group === activeGroup).map((definition) => {
-                    const sensor = selectedDraft.sensors.find((item) => item.metricType === definition.metricType) ?? createSensorDraft(definition)
-                    return <EntityRow key={definition.metricType} definition={definition} sensor={sensor} entities={entities} onChange={(patch) => updateSensor(definition.metricType, patch)} />
-                  })}
-                </div>
-              </V1Section>
-            </section>
+              <PairPanel />
+            </div>
           )}
         </>
       )}
@@ -314,32 +359,36 @@ function HomeAssistantPage() {
   )
 }
 
-function EntityRow({ definition, sensor, entities, onChange }: { definition: EntityDefinition; sensor: SensorDraft; entities: HomeAssistantEntity[]; onChange: (patch: Partial<SensorDraft>) => void }) {
-  const hasEntities = entities.length > 0
-  const listId = `ha-entities-${definition.metricType}`
-  const options = hasEntities ? suggestionsForMetric(entities, definition.metricType) : []
+/**
+ * Gerät verbinden — das Koppel-Panel aus dem Entwurf: QR scannen, Grow OS
+ * öffnet auf dem Handy direkt die Messen-Seite. Die Anmeldung übernimmt
+ * Home Assistant; einen eigenen Login hat Grow OS bewusst nicht.
+ */
+function PairPanel() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [nonce, setNonce] = useState(0)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const target = new URL(resolveUrl('/messung'), window.location.href).toString()
+    // Dunkle Module auf hellem Grund, unabhängig vom Theme — Scanner brauchen
+    // den Kontrast genau so herum.
+    void QRCode.toCanvas(canvas, target, { width: 192, margin: 1, color: { dark: '#04140a', light: '#ffffff' } })
+  }, [nonce])
+
   return (
-    <div className={sensor.isActive ? 'v1-entity-row active' : 'v1-entity-row'}>
-      <label>
-        <input type="checkbox" checked={sensor.isActive} onChange={(event) => onChange({ isActive: event.target.checked })} />
-        <strong>{definition.label}</strong>
-        <V1Badge tone={definition.importance === 'core' ? 'accent' : 'neutral'}>{definition.importance === 'core' ? 'Core' : 'optional'}</V1Badge>
-        {definition.unit && <span>{definition.unit}</span>}
-      </label>
-      <input
-        value={sensor.haEntityId}
-        onChange={(event) => onChange({ haEntityId: event.target.value })}
-        placeholder={definition.placeholder}
-        list={hasEntities ? listId : undefined}
-      />
-      {hasEntities && (
-        <datalist id={listId}>
-          {options.map((entity) => (
-            <option key={entity.entityId} value={entity.entityId}>{entityOptionLabel(entity)}</option>
-          ))}
-        </datalist>
-      )}
-    </div>
+    <section className="ls-panel" data-audit="ha-pair-panel">
+      <div className="ls-panel-head"><span className="ls-label">Gerät verbinden</span></div>
+      <div className="ha-pair">
+        <canvas ref={canvasRef} className="ha-pair-qr" aria-label="QR-Code zum Koppeln" />
+        <div>
+          <div className="co-row-title">Handy im Growraum koppeln</div>
+          <p className="ha-pair-text">QR scannen — öffnet Grow OS direkt auf Messen. Die Anmeldung übernimmt Home Assistant im lokalen Netz.</p>
+          <button type="button" className="ls-btn is-small" style={{ marginLeft: 0, marginTop: 9 }} onClick={() => setNonce(Date.now())}>Code neu erzeugen</button>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -359,12 +408,9 @@ function createSensorDraft(definition: EntityDefinition): SensorDraft {
 }
 
 function toUpdateTentRequest(tent: TentDto, draft: TentMappingDraft): UpdateTentRequest {
-  const sensors: UpdateTentSensorRequest[] = draft.sensors.map((sensor) => ({ id: tent.sensors.find((existing) => existing.metricType === sensor.metricType)?.id ?? 0, metricType: sensor.metricType, haEntityId: toNullableString(sensor.haEntityId), displayLabel: toNullableString(sensor.displayLabel), isActive: sensor.isActive && sensor.haEntityId.trim().length > 0 }))
+  // Aktiv ist, was eine Entity hat — der Entwurf kennt keinen separaten Schalter.
+  const sensors: UpdateTentSensorRequest[] = draft.sensors.map((sensor) => ({ id: tent.sensors.find((existing) => existing.metricType === sensor.metricType)?.id ?? 0, metricType: sensor.metricType, haEntityId: toNullableString(sensor.haEntityId), displayLabel: toNullableString(sensor.displayLabel), isActive: sensor.haEntityId.trim().length > 0 }))
   return { name: tent.name, status: tent.status, kind: tent.kind, tentType: tent.tentType, notes: tent.notes, displayOrder: tent.displayOrder, accentColor: tent.accentColor, widthCm: tent.widthCm, depthCm: tent.depthCm, tentHeightCm: tent.tentHeightCm, lightType: tent.lightType, lightWatt: tent.lightWatt, lightController: tent.lightController, lightControllerEntityId: tent.lightControllerEntityId, exhaustFanCount: tent.exhaustFanCount, exhaustM3h: tent.exhaustM3h, circulationFanCount: tent.circulationFanCount, hvacController: tent.hvacController, hvacControllerEntityId: tent.hvacControllerEntityId, co2Available: tent.co2Available, cameraEntityId: null, cameras: draft.cameras.map((camera) => camera.trim()).filter((camera) => camera.length > 0), sensors }
-}
-
-function formatTentSize(tent: TentDto) {
-  return !tent.widthCm && !tent.depthCm && !tent.tentHeightCm ? 'Größe offen' : `${tent.widthCm ?? '–'}×${tent.depthCm ?? '–'}×${tent.tentHeightCm ?? '–'} cm`
 }
 
 function formatApiError(caught: unknown, fallback: string) {
@@ -382,19 +428,19 @@ function CameraPreview({ tentId, entity, index, nonce }: { tentId: number; entit
   const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading')
   const label = cameraLabel(entity, index)
   return (
-    <figure style={{ margin: 0, display: 'grid', gap: 6 }}>
-      <div style={{ position: 'relative', aspectRatio: '16 / 9', background: '#010703', border: '1px solid var(--v1-line)', borderRadius: 12, overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
+    <figure className="ha-preview">
+      <div className="ha-preview-frame">
         <img
           src={resolveUrl(`/api/live/tents/${tentId}/camera?entity=${encodeURIComponent(entity)}&t=${nonce}`)}
           alt={label}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: state === 'ok' ? 'block' : 'none' }}
+          style={{ display: state === 'ok' ? 'block' : 'none' }}
           onLoad={() => setState('ok')}
           onError={() => setState('error')}
         />
-        {state === 'loading' && <span className="rc2-measurement-note">Lädt…</span>}
-        {state === 'error' && <span className="rc2-measurement-note" style={{ padding: 8, textAlign: 'center' }}>Kein Bild — in Home Assistant erreichbar?</span>}
+        {state === 'loading' && <span>Lädt…</span>}
+        {state === 'error' && <span>Kein Bild — in Home Assistant erreichbar?</span>}
       </div>
-      <figcaption className="rc2-measurement-note">{label}</figcaption>
+      <figcaption>{label}</figcaption>
     </figure>
   )
 }

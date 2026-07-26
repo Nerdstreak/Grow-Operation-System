@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { V1Tabs } from '../components/v1'
+import { V1Page, V1Tabs } from '../components/v1'
 
 export type CollectionTab = {
   /** Wert in der Adresszeile, z. B. ?tab=grenzwerte */
@@ -12,15 +12,21 @@ export type CollectionTab = {
 /**
  * Eine Seite, die mehrere bisher getrennte Seiten unter Tabs zusammenfasst.
  *
- * Die Navigation ist von 23 Zielen auf 14 geschrumpft, indem Verwandtes
- * zusammengezogen wurde — Automatik, Grenzwerte und Benachrichtigungen sind
- * dasselbe Thema und standen als drei Einträge nebeneinander.
+ * Kopfzeile und Tab-Leiste gehören der Sammelseite (wie im Entwurf: „Regeln &
+ * Automatik", darunter die Bereiche) — die Bereichs-Seiten liefern nur noch
+ * ihren Inhalt, keinen eigenen Seitenkopf.
  *
  * Der aktive Tab steht in der Adresszeile, damit ein Lesezeichen oder ein Link
  * aus einem Home-Assistant-Dashboard wieder dort landet, wo er hinzeigt. Die
  * alten Pfade leiten auf den jeweiligen Tab um, statt ins Leere zu laufen.
  */
-export function TabbedCollectionPage({ tabs, paramName = 'tab' }: { tabs: CollectionTab[]; paramName?: string }) {
+export function TabbedCollectionPage({ tabs, eyebrow, title, subtitle, paramName = 'tab' }: {
+  tabs: CollectionTab[]
+  eyebrow?: string
+  title: string
+  subtitle?: string
+  paramName?: string
+}) {
   const [params, setParams] = useSearchParams()
   const requested = params.get(paramName)
   const active = useMemo(
@@ -29,7 +35,7 @@ export function TabbedCollectionPage({ tabs, paramName = 'tab' }: { tabs: Collec
   )
 
   return (
-    <>
+    <V1Page eyebrow={eyebrow} title={title} subtitle={subtitle}>
       <V1Tabs
         items={tabs.map((tab) => ({ value: tab.key, label: tab.label, audit: `collection-tab-${tab.key}` }))}
         active={active.key}
@@ -42,6 +48,6 @@ export function TabbedCollectionPage({ tabs, paramName = 'tab' }: { tabs: Collec
         label="Bereich"
       />
       {active.render()}
-    </>
+    </V1Page>
   )
 }
