@@ -59,86 +59,6 @@
 }
 
 /* Knowledge as wiki */
-.rc2-knowledge-toolbar {
-  max-width: 520px;
-  margin-bottom: 14px;
-}
-
-.rc2-topic-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px;
-}
-
-.rc2-topic-card {
-  display: grid;
-  gap: 8px;
-  text-align: left;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  border-radius: var(--radius);
-  padding: 14px;
-  cursor: pointer;
-}
-
-.rc2-topic-card:hover,
-.rc2-topic-card.active {
-  border-color: var(--green);
-  background: color-mix(in oklch, var(--surface2), var(--green-bg) 22%);
-}
-
-.rc2-topic-card span {
-  font-size: 0.78rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  font-weight: 700;
-}
-
-.rc2-topic-card small {
-  color: var(--muted);
-  line-height: 1.4;
-}
-
-.rc2-knowledge-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-  gap: 16px;
-}
-
-.rc2-topic-detail {
-  display: grid;
-  gap: 14px;
-}
-
-.rc2-topic-sections {
-  display: grid;
-  gap: 12px;
-}
-
-.rc2-topic-sections article {
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface2);
-}
-
-.rc2-topic-sections h3 {
-  font-size: 1rem;
-  margin-bottom: 4px;
-}
-
-.rc2-related-list {
-  display: grid;
-  gap: 10px;
-}
-
-.rc2-related-card {
-  display: grid;
-  gap: 8px;
-}
-
 /* Focused creation flows */
 .rc2-focused-layout {
   display: grid;
@@ -467,35 +387,9 @@
 }
 
 /* Audit 2 concrete fixes */
-.rc2-score-line {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  margin: 10px 0 14px;
-}
-
-.rc2-score-line strong {
-  font-size: clamp(2.2rem, 8vw, 4rem);
-  line-height: .9;
-}
-
-.rc2-score-line span {
-  font-size: clamp(1rem, 3vw, 1.5rem);
-  font-weight: 800;
-  opacity: .78;
-}
-
 .rc2-camera-card img {
   min-height: 260px;
   object-fit: cover;
-}
-
-.rc2-camera-preview {
-  width: 100%;
-  max-height: 220px;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
 }
 
 .rc2-compact-action {
@@ -634,28 +528,6 @@
   }
 }
 
-.device-connect-page {
-  gap: 10px;
-}
-
-.device-connect-note {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border: 1px solid color-mix(in oklch, var(--v1-line), #f5c84b 18%);
-  border-radius: 14px;
-  background: rgba(245, 200, 75, 0.05);
-  color: var(--v1-muted);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.device-connect-note strong {
-  color: color-mix(in oklch, var(--v1-muted), white 12%);
-  white-space: nowrap;
-}
-
 html,
 #root,
 .v1-app-shell {
@@ -763,20 +635,6 @@ html,
   min-height: 44px;
 }
 
-.v1-rdwc-map {
-  overflow: visible;
-  max-width: 100%;
-}
-
-.v1-rdwc-inner,
-.v1-rdwc-grid {
-  min-width: 0;
-}
-
-.v1-rdwc-grid {
-  grid-template-columns: repeat(auto-fit, minmax(54px, 1fr));
-}
-
 @media (max-width: 720px) {
   .rc-file-input {
     align-items: stretch;
@@ -795,110 +653,9 @@ html,
     flex: 1 1 138px;
   }
 
-  .v1-rdwc-grid {
-    grid-template-columns: repeat(auto-fit, minmax(46px, 1fr)) !important;
-  }
 }
 
 /* Manual audit 4 P1 fixes */
-.wiki-shell {
-  display: grid;
-  grid-template-columns: minmax(220px, .75fr) minmax(0, 1.55fr) minmax(220px, .7fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.wiki-nav,
-.wiki-article,
-.wiki-related {
-  min-width: 0;
-}
-
-.wiki-nav {
-  display: grid;
-  gap: 12px;
-  position: sticky;
-  top: 86px;
-}
-
-.wiki-search {
-  width: 100%;
-}
-
-.wiki-topic-list {
-  display: grid;
-  gap: 6px;
-}
-
-.wiki-topic {
-  display: grid;
-  gap: 2px;
-  width: 100%;
-  border: 1px solid var(--v1-border);
-  border-radius: 6px;
-  background: var(--v1-surface);
-  color: var(--v1-text);
-  padding: 10px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.wiki-topic.active,
-.wiki-topic:hover {
-  border-color: var(--v1-accent);
-  background: var(--v1-surface-2);
-}
-
-.wiki-topic strong,
-.wiki-article h2,
-.wiki-related h2 {
-  min-width: 0;
-  overflow-wrap: normal;
-  word-break: normal;
-}
-
-.wiki-topic span,
-.wiki-related-item span {
-  color: var(--v1-muted);
-  font-size: .82rem;
-}
-
-.wiki-article {
-  display: grid;
-  gap: 16px;
-  line-height: 1.58;
-}
-
-.wiki-article-section {
-  display: grid;
-  gap: 8px;
-  border-top: 1px solid var(--v1-border);
-  padding-top: 14px;
-}
-
-.wiki-related {
-  display: grid;
-  gap: 12px;
-}
-
-.wiki-related-list {
-  display: grid;
-  gap: 8px;
-}
-
-.wiki-related-item {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-  border: 1px solid var(--v1-border);
-  border-radius: 6px;
-  padding: 10px;
-}
-
-.wiki-back {
-  display: none;
-}
-
 .rc2-ha-connection-actions,
 .rc2-ha-camera-field-action {
   display: grid;
@@ -908,11 +665,6 @@ html,
 
 .rc2-ha-connection-actions {
   grid-template-columns: minmax(140px, auto) auto;
-}
-
-.rc2-ha-camera-field-action {
-  grid-template-columns: minmax(0, 1fr) auto;
-  margin-top: 8px;
 }
 
 .dependency-panel {
@@ -994,12 +746,6 @@ html,
   white-space: normal;
 }
 
-.rc-tent-live-grid,
-.rc-tent-context-grid {
-  min-width: 0;
-  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
-}
-
 .v1-tent-card .v1-info {
   min-height: 64px;
 }
@@ -1039,10 +785,6 @@ html,
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.v1-addback-hub-summary {
-  align-content: center;
 }
 
 @media (max-width: 860px) {
@@ -1149,86 +891,7 @@ html,
   min-height: 40px;
 }
 
-.v1-rdwc-map {
-  display: grid;
-  gap: 10px;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.v1-rdwc-inner {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
-  min-width: 0;
-}
-
-.v1-rdwc-map.tank-right .v1-rdwc-inner {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.v1-rdwc-map.tank-right .v1-rdwc-tank {
-  order: 2;
-}
-
-.v1-rdwc-map.tank-top .v1-rdwc-inner,
-.v1-rdwc-map.tank-bottom .v1-rdwc-inner,
-.v1-rdwc-map.tank-external .v1-rdwc-inner,
-.v1-rdwc-map.tank-none .v1-rdwc-inner {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.v1-rdwc-map.tank-bottom .v1-rdwc-tank,
-.v1-rdwc-map.tank-external .v1-rdwc-tank {
-  order: 2;
-}
-
-.v1-rdwc-grid {
-  display: grid;
-  grid-template-columns: repeat(var(--rdwc-columns, 2), minmax(46px, 1fr)) !important;
-  gap: 10px;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.v1-rdwc-site,
-.v1-rdwc-tank {
-  min-width: 0;
-  min-height: 48px;
-  display: grid;
-  place-items: center;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.v1-rdwc-tank {
-  min-width: 72px;
-}
-
 @media (max-width: 900px) {
-  .wiki-shell {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .wiki-nav {
-    position: static;
-  }
-
-  .wiki-related {
-    display: none;
-  }
-
-  .wiki-shell.has-active-topic .wiki-nav {
-    display: none;
-  }
-
-  .wiki-back {
-    display: inline-flex;
-    width: fit-content;
-  }
-
   .rc2-ha-connection-actions,
   .rc2-ha-camera-field-action {
     grid-template-columns: minmax(0, 1fr);
@@ -1250,19 +913,6 @@ html,
 
   .rc2-ha-connection-actions .v1-switch {
     margin-right: 0;
-  }
-
-  .v1-rdwc-inner {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-
-  .v1-rdwc-tank {
-    order: 0 !important;
-    min-width: 0;
-  }
-
-  .v1-rdwc-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
   .dependency-panel .v1-list-row {
@@ -1293,45 +943,8 @@ html,
 }
 
 /* Audit 6: Grows overview, stable RDWC preview, readable tent cards */
-.grows-overview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 14px;
-}
-
-.grow-overview-card {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-}
-
 .grow-overview-card.archived {
   opacity: .82;
-}
-
-.grow-overview-card__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: start;
-  min-width: 0;
-}
-
-.grow-overview-card__header > div {
-  min-width: 0;
-}
-
-.grow-overview-card__header h2 {
-  margin: 4px 0 0;
-  overflow-wrap: normal;
-  word-break: normal;
-}
-
-.grow-overview-card__metrics {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin: 0;
 }
 
 .grow-overview-card__metrics div,
@@ -1381,14 +994,6 @@ html,
   min-width: 0;
 }
 
-.grow-deviation-values {
-  display: grid;
-  gap: 4px;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.35;
-}
-
 .grow-deviation-copy {
   display: grid;
   gap: 5px;
@@ -1405,14 +1010,6 @@ html,
   color: var(--muted);
   font-size: 13px;
   line-height: 1.4;
-}
-
-.grow-overview-card__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--v1-border);
 }
 
 .grow-overview-card__actions .v1-button,
@@ -1658,13 +1255,6 @@ html,
     overflow-wrap: anywhere;
   }
 
-  .grow-detail-mobile-links,
-  .grow-detail-mobile-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
   .grow-detail-mobile-links .btn,
   .grow-detail-mobile-actions .btn {
     flex: 1 1 calc(50% - 8px);
@@ -1724,21 +1314,6 @@ html,
   #root {
     min-height: var(--app-viewport-height);
     overflow-x: hidden;
-  }
-
-  .v1-mobile-more-group {
-    display: grid;
-    gap: 8px;
-    min-width: 0;
-  }
-
-  .v1-mobile-more-group h2 {
-    margin: 0;
-    color: var(--v1-soft);
-    font-size: 11px;
-    font-weight: 900;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
   }
 
   .v1-mobile-more-grid {
@@ -1870,38 +1445,6 @@ html,
   }
 }
 
-.live-hydro-card,
-.live-desktop-hydro-card {
-  min-width: 0;
-}
-
-.live-desktop-hydro-card {
-  min-height: 100%;
-}
-
-.live-desktop-metric-grid {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-}
-
-.live-desktop-hydro-card .live-desktop-metric-grid {
-  grid-template-columns: repeat(3, minmax(150px, 1fr));
-}
-
-.live-metric-value,
-.live-mobile-metric strong.live-metric-value {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  width: fit-content;
-  max-width: 100%;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: normal;
-  line-height: 1.1;
-  white-space: nowrap !important;
-  overflow-wrap: normal;
-  word-break: normal;
-}
-
 .live-mobile-metric .live-metric-value,
 .live-mobile-metric .live-metric-number,
 .live-mobile-metric .live-metric-unit,
@@ -1929,74 +1472,9 @@ html,
   font-feature-settings: "tnum";
 }
 
-.live-metric-number,
-.live-metric-unit {
-  display: inline-block;
-  min-width: 0;
-  letter-spacing: normal;
-  white-space: nowrap;
-  overflow-wrap: normal;
-  word-break: normal;
-}
-
-.live-mobile-metric .live-metric-number,
-.live-mobile-metric .live-metric-unit {
-  display: inline-block;
-  color: inherit;
-  font-weight: inherit;
-}
-
-.live-metric-unit {
-  color: var(--v1-soft);
-  font-size: .42em;
-  font-style: normal;
-}
-
-.live-camera-empty-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  min-height: 0;
-  padding: 14px 16px;
-}
-
-.live-camera-empty-card h2 {
-  margin: 2px 0 0;
-  font-size: 20px;
-  line-height: 1.15;
-}
-
-.live-camera-empty-card p {
-  margin: 4px 0 0;
-  color: var(--v1-muted);
-  line-height: 1.35;
-}
-
 @media (min-width: 861px) {
-  .rc2-live-page .live-desktop-status-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-  }
-
-  .rc2-live-page .live-desktop-main-grid {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 14px;
-    align-items: start;
-  }
-
-  .rc2-live-page .live-desktop-main-grid > [data-audit] {
-    min-width: 0;
-  }
-
   .rc2-live-page .live-desktop-main-grid > [data-audit="live-climate-card"] {
     grid-column: span 4;
-  }
-
-  .rc2-live-page .live-desktop-main-grid > [data-audit="live-hydro-card"] {
-    grid-column: span 5;
   }
 
   .rc2-live-page .live-desktop-main-grid > [data-audit="live-risk-card"] {
@@ -2009,50 +1487,8 @@ html,
     grid-column: span 6;
   }
 
-  .rc2-live-page .live-desktop-status-card {
-    padding: 16px 18px;
-  }
-
   .rc2-live-page .live-desktop-status-card .v1-card-title-row {
     align-items: center;
-  }
-
-  .rc2-live-page .live-desktop-status-card .live-status-summary {
-    grid-template-columns: repeat(5, minmax(128px, 1fr));
-  }
-
-  .rc2-live-page .live-desktop-metric-grid {
-    grid-template-columns: repeat(2, minmax(150px, 1fr));
-  }
-
-  .rc2-live-page .live-desktop-hydro-card .live-desktop-metric-grid {
-    grid-template-columns: repeat(3, minmax(150px, 1fr));
-  }
-
-  .rc2-live-page .live-desktop-metric-grid .live-mobile-metric {
-    min-height: 104px;
-    align-content: start;
-  }
-
-  .rc2-live-page .live-desktop-hydro-card .live-mobile-metric strong {
-    font-size: 30px;
-    overflow-wrap: normal;
-    word-break: normal;
-    white-space: nowrap;
-    letter-spacing: normal;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .rc2-live-page .live-camera-note {
-    align-self: start;
-  }
-
-  .rc2-live-page .live-camera-empty-card {
-    padding: 10px 12px;
-  }
-
-  .rc2-live-page .live-camera-empty-card p {
-    display: none;
   }
 
   .rc2-live-page .live-camera-empty-card .v1-button {
@@ -2103,26 +1539,6 @@ html,
   }
 }
 
-.live-mobile-metric {
-  min-width: 0;
-}
-
-.live-mobile-metric strong {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  white-space: nowrap;
-  letter-spacing: normal;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: normal;
-  word-break: normal;
-}
-
-.live-mobile-metric small {
-  overflow-wrap: normal;
-  word-break: normal;
-}
-
 .live-risk-card {
   display: grid;
   gap: 12px;
@@ -2133,36 +1549,6 @@ html,
   margin: 0;
   color: var(--v1-muted);
   line-height: 1.45;
-}
-
-.live-risk-list {
-  display: grid;
-  gap: 8px;
-}
-
-.live-risk-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  min-height: 46px;
-  padding: 9px 10px;
-  border: 1px solid var(--v1-line);
-  border-radius: 12px;
-  background: rgba(255,255,255,.025);
-}
-
-.live-risk-row strong,
-.live-risk-row span {
-  min-width: 0;
-  overflow-wrap: normal;
-  word-break: normal;
-}
-
-.live-risk-row span {
-  color: var(--v1-muted);
-  font-size: 12px;
-  font-weight: 900;
 }
 
 .addback-hub-page .v1-info-grid.compact {
@@ -2224,12 +1610,6 @@ html,
 }
 
 @media (max-width: 1180px) {
-  .live-desktop-overview,
-  .live-desktop-operations,
-  .live-desktop-main-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .rc2-live-page .live-desktop-main-grid > [data-audit],
   .rc2-live-page .live-desktop-main-grid > [data-audit="live-climate-card"],
   .rc2-live-page .live-desktop-main-grid > [data-audit="live-hydro-card"],
@@ -2238,10 +1618,6 @@ html,
   .rc2-live-page .live-desktop-main-grid > [data-audit="live-camera"],
   .rc2-live-page .live-desktop-main-grid > [data-audit="live-camera-note"] {
     grid-column: 1 / -1;
-  }
-
-  .live-desktop-hydro-card .live-desktop-metric-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 
   .tents-page .v1-tent-card {
@@ -2263,10 +1639,6 @@ html,
     grid-template-columns: minmax(0, .36fr) minmax(0, 1fr);
   }
 
-  .live-risk-row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 3px;
-  }
 }
 
 @media (min-width: 768px) {
