@@ -1,0 +1,26 @@
+/* src/features/hydro/hydro.css */
+@layer features {
+  .hydro-editor__form { display: grid; gap: var(--s-3); min-width: 0; }
+  .hydro-editor__preview { display: grid; gap: var(--s-3); align-content: start; position: sticky; top: calc(var(--topbar) + var(--s-3)); }
+  .hydro-editor__preview .v1-form-actions { justify-content: flex-end; }
+
+  /* Detailkopf ueber BEIDE Spalten — behebt den dreizeiligen Titel */
+  .hydro-detail { border: 1px solid var(--hair); border-radius: var(--r-lg); background: var(--panel); overflow: hidden; }
+  .hydro-detail__head {
+    display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
+    padding: var(--s-3) var(--s-4); border-bottom: 1px solid var(--hair);
+  }
+  .hydro-detail__head > strong { font-size: 16px; font-weight: 600; white-space: nowrap; }
+  .hydro-detail__head .actions { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .hydro-detail__body { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0; }
+  .hydro-detail__plan { padding: var(--s-4); min-width: 0; }
+  .hydro-detail__facts { display: grid; align-content: start; padding: var(--s-3); }
+  /* Trennlinien auf den Kindern — nicht als Container-Hintergrund mit gap:1px,
+     sonst faerbt sich eine leere Rasterzelle als Panel ein. */
+  .hydro-detail__facts > div { padding: 9px 11px; border-top: 1px solid var(--hair); }
+  .hydro-detail__facts > div:first-child { border-top: 0; }
+
+  @media (max-width: 860px) {
+    .hydro-editor__preview { position: static; }
+  }
+}

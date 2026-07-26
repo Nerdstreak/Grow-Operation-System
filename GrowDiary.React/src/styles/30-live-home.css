@@ -554,55 +554,6 @@ FRONTEND-1 LIVE HOME ───────────────────�
   margin-top: 1rem;
 }
 
-.rdwc-preview {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.25rem;
-  min-height: 220px;
-  width: 100%;
-  overflow: hidden;
-  border: 1px solid rgba(67, 220, 102, 0.16);
-  border-radius: 1rem;
-  background:
-    linear-gradient(90deg, rgba(67, 220, 102, 0.07) 1px, transparent 1px),
-    linear-gradient(rgba(67, 220, 102, 0.07) 1px, transparent 1px),
-    #020603;
-  background-size: 32px 32px;
-  padding: 1.25rem;
-}
-
-.rdwc-preview::after {
-  content: "";
-  position: absolute;
-  inset: 50% 4rem auto 4rem;
-  height: 2px;
-  background: rgba(67, 220, 102, 0.34);
-  pointer-events: none;
-}
-
-.rdwc-preview.tank-top,
-.rdwc-preview.tank-bottom {
-  flex-direction: column;
-}
-
-.rdwc-preview.tank-right {
-  flex-direction: row;
-}
-
-.rdwc-preview.tank-left,
-.rdwc-preview.tank-external {
-  flex-direction: row;
-}
-
-.rdwc-preview.tank-top::after,
-.rdwc-preview.tank-bottom::after {
-  inset: 3rem 50% 3rem auto;
-  width: 2px;
-  height: auto;
-}
-
 .rdwc-network {
   position: relative;
   z-index: 1;
@@ -690,16 +641,6 @@ FRONTEND-1 LIVE HOME ───────────────────�
   .form-section-title,
   .systems-form-wide {
     grid-column: 1 / -1;
-  }
-
-  .rdwc-preview {
-    min-height: 180px;
-    gap: 0.8rem;
-    padding: 0.9rem;
-  }
-
-  .rdwc-preview::after {
-    inset-inline: 2.2rem;
   }
 
   .rdwc-row {

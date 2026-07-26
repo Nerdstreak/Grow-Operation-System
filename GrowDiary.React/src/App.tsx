@@ -22,6 +22,7 @@ import HarvestPage from './pages/HarvestPage'
 import HomeAssistantPage from './pages/HomeAssistantPage'
 import HydroDetailPage from './pages/HydroDetailPage'
 import HydroPage from './pages/HydroPage'
+import HydroEditorPage from './features/hydro/HydroEditorPage'
 import KnowledgePage from './pages/KnowledgePage'
 import LiveDashboardPage from './pages/LiveDashboardPage'
 import ManualMeasurementPage from './pages/ManualMeasurementPage'
@@ -243,7 +244,9 @@ function App() {
           <Route path="/zelte/new" element={<TentsPage />} />
           <Route path="/zelte/:tentId" element={<TentDetailPage />} />
           <Route path="/hydro" element={<HydroPage />} />
-          <Route path="/hydro/new" element={<HydroPage />} />
+          {/* Anlegen und Bearbeiten laufen ueber eine Seite statt fuenf Wizard-Schritte. */}
+          <Route path="/hydro/new" element={<HydroEditorPage />} />
+          <Route path="/hydro/:id/edit" element={<HydroEditorPage />} />
           <Route path="/hydro/:setupId" element={<HydroDetailPage />} />
           <Route path="/home-assistant" element={<HomeAssistantPage />} />
           <Route path="/alarme" element={<AlertsPage />} />

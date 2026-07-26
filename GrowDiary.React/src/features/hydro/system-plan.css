@@ -1,0 +1,54 @@
+/* src/features/hydro/system-plan.css */
+@layer features {
+  .system-plan { margin: 0; display: grid; gap: var(--s-3); }
+  .system-plan__head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 6px var(--s-3); flex-wrap: wrap;
+    font: 500 10px/1 var(--font-mono); letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--faint);
+  }
+  .system-plan__head > span:last-child { letter-spacing: 0; text-transform: none; color: var(--muted); font-size: 11px; }
+
+  .system-plan__stage { position: relative; width: 100%; max-width: 560px; margin: 0 auto; }
+  .system-plan.is-compact .system-plan__stage { max-width: 260px; }
+
+  .system-plan__tent {
+    position: absolute; border: 2px solid var(--hair-2); border-radius: 6px;
+    background: color-mix(in oklab, var(--ink) 2%, transparent);
+  }
+  .system-plan__pipe { position: absolute; border-radius: 2px; }
+  .system-plan__pipe.is-return { background: var(--accent-dim); box-shadow: 0 0 0 1px var(--accent-wash); }
+  .system-plan__pipe.is-feed { background: var(--info); opacity: 0.75; }
+
+  .system-plan__tank {
+    position: absolute; display: grid; place-items: center; gap: 2px; padding: 4px;
+    border: 1.5px solid var(--info); border-radius: 4px; background: var(--info-wash);
+    text-align: center;
+  }
+  .system-plan__tank span { font: 500 10px/1 var(--font-mono); color: var(--info-text); }
+  .system-plan__tank strong { font: 500 11px/1 var(--font-mono); color: var(--ink); }
+
+  .system-plan__site {
+    position: absolute; aspect-ratio: 1; display: grid; place-items: center;
+    border: 1.5px solid var(--accent); border-radius: 50%; background: var(--accent-wash);
+  }
+  .system-plan__netpot {
+    width: 44%; height: 44%; display: grid; place-items: center;
+    border: 1px solid var(--hair-2); border-radius: 50%; background: var(--sunk);
+    font: 500 10px/1 var(--font-mono); color: var(--accent-text);
+  }
+
+  .system-plan__legend {
+    display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4);
+    padding-top: var(--s-3); border-top: 1px solid var(--hair);
+    font: 400 11px/1.4 var(--font-mono); color: var(--muted);
+  }
+  .system-plan__legend > span { display: flex; align-items: center; gap: 6px; }
+  .system-plan__legend .swatch { width: 14px; height: 4px; border-radius: 2px; }
+  .system-plan__legend .swatch.is-return { background: var(--accent-dim); }
+  .system-plan__legend .swatch.is-feed { height: 3px; background: var(--info); }
+  .system-plan__legend .swatch.is-site { width: 9px; height: 9px; border: 1.5px solid var(--accent); border-radius: 50%; background: transparent; }
+  .system-plan__legend .check { margin-left: auto; }
+  .system-plan__legend .check.is-ok { color: var(--accent-text); }
+  .system-plan__legend .check.is-bad { color: var(--danger); }
+}
