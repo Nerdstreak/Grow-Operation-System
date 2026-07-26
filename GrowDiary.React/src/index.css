@@ -9,7 +9,7 @@
 
    Ungeschichtete Regeln schlagen jede Schicht — das betrifft rc2-overrides.css,
    den Patch-Layer, der bewusst zuletzt gewinnt, bis Phase 4 ihn aufgelöst hat. */
-@layer tokens, primitives, features;
+@layer reset, tokens, primitives, features;
 
 @import './styles/tokens.css';
 @import './styles/reset.css';

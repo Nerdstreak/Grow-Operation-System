@@ -90,6 +90,36 @@ describe('CSS-Variablen', () => {
 
   it('setzt die Schichtreihenfolge ausdrücklich, statt sie der Bundle-Reihenfolge zu überlassen', () => {
     const index = readFileSync(join(SRC, 'index.css'), 'utf8')
-    expect(index).toMatch(/@layer\s+tokens\s*,\s*primitives\s*,\s*features\s*;/)
+    expect(index).toMatch(/@layer\s+reset\s*,\s*tokens\s*,\s*primitives\s*,\s*features\s*;/)
+  })
+
+  it('hält den Reset in seiner eigenen, verlierenden Schicht', () => {
+    // Ungeschichtet schlug `*, *::before, *::after { padding: 0 }` jede Regel in
+    // @layer primitives — Schicht vor Spezifität. Damit war jedes padding aus
+    // primitives.css und shell.css wirkungslos, und die Seitenleiste klebte am
+    // Fensterrand. Ein Reset muss die Kaskade eröffnen, nicht beenden.
+    const reset = readFileSync(join(SRC, 'styles', 'reset.css'), 'utf8')
+    expect(reset, 'reset.css muss in @layer reset stehen').toMatch(/@layer\s+reset\s*\{/)
+  })
+
+  it('lässt kein Stylesheet ungeschichtet, das die Primitive überstimmen würde', () => {
+    // Ungeschichtet heisst: gewinnt gegen alle Schichten. Fuer conventions und
+    // widgets ist das gewollt, fuer die alten Nummern-Dateien geduldet, bis sie
+    // aufgeloest sind. Der Test haelt den Bestand fest — eine NEUE ungeschichtete
+    // Datei ist fast immer der Fehler, den reset.css hier vorgemacht hat.
+    const erlaubt = new Set([
+      'index.css',
+      'conventions.css', 'widgets.css', 'primitives-rc2.css',
+      // Abbauliste, siehe index.css
+      '10-grow-wizard-legacy.css', '30-live-home.css', '70-addback-assistant.css',
+      '80-grow-wizard-final.css', '90-operations.css',
+    ])
+    const ungeschichtet = files
+      .filter((file) => file.includes('styles') || file.endsWith('index.css'))
+      .filter((file) => !readFileSync(file, 'utf8').includes('@layer'))
+      .map((file) => file.split(/[\\/]/).pop() ?? file)
+      .filter((name) => !erlaubt.has(name))
+
+    expect(ungeschichtet, `Ungeschichtete Stylesheets:\n${ungeschichtet.join('\n')}`).toEqual([])
   })
 })
