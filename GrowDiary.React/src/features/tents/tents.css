@@ -75,9 +75,11 @@
 }
 .rc-tent-actions .v1-button,
 .rc-tent-actions .v1-link-button {
+  /* Die Breite regelt der Umbruch, die Höhe das Primitiv. Hier stand min-height:
+     40px — eine Zahl zwischen den beiden Größen des Systems, die per Spezifität
+     die 44px-Untergrenze für Touch geschlagen hat. */
   flex: 1 1 104px;
   min-width: 0;
-  min-height: 40px;
 }
 @media (max-width: 900px) {
     .rc-tent-actions .v1-button,

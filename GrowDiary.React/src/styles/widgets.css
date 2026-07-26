@@ -117,3 +117,29 @@
       bottom: calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 12px) !important;
     }
 }
+
+/* ===================================================================
+   Untergrenze für Touch
+
+   44px ist das Minimum, das Apple und Google unabhängig voneinander angeben.
+   Grow OS wird am Wandtablet und mit feuchten Händen im Zelt bedient, also ist
+   das keine Formalie.
+
+   Bewusst als letzte Regel und ungeschichtet: einzelne Seiten hatten ihren
+   Knöpfen eigene Höhen gegeben (40px bei den Zelt-Aktionen, 32px bei den Tabs),
+   und die schlugen die Regel in @layer primitives — Schicht vor Spezifität. Eine
+   Untergrenze, die man aus Versehen unterschreiten kann, ist keine.
+
+   Nur bei grobem Zeiger: mit der Maus soll die Oberfläche nicht auseinandergehen.
+   =================================================================== */
+@media (pointer: coarse) {
+  .v1-button,
+  .v1-link-button,
+  .v1-tab,
+  .hw-filter,
+  select,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  textarea {
+    min-height: var(--h-lg);
+  }
+}
