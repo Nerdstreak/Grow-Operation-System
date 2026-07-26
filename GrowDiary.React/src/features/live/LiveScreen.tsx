@@ -1,0 +1,233 @@
+import { Link } from 'react-router-dom'
+import type { GrowSummary, MetricPayload, RiskEventDto, TentDto } from '../../types'
+import { MetricTile } from './MetricTile'
+import { decimalsForMetric } from './metric-tile-model'
+import { CameraPanel } from './CameraPanel'
+import { buildScore } from './live-model'
+import { classNames } from '../../utils'
+
+/**
+ * Der Live-Bildschirm, gebaut nach dem Entwurf des Designers.
+ *
+ * Aufbau von oben: Kopfzeile mit Score und den zwei Handlungen, dann die
+ * Messwerte in zwei beschrifteten Reihen (Klima, Nährlösung), dann Kamera neben
+ * Risiko und heute fälligen Aufgaben, unten der Grow mit seiner Phasen-Timeline.
+ *
+ * Die Reihenfolge ist fest. Wer morgens auf diese Seite schaut, sucht denselben
+ * Wert an derselben Stelle — eine Sortierung nach Dringlichkeit würde das jeden
+ * Tag verschieben. Die Statusfarbe macht das Hervorheben.
+ */
+
+export type LiveTask = {
+  id: string
+  when: string
+  title: string
+  action: string
+  to: string
+  due?: boolean
+}
+
+export type LiveScreenProps = {
+  tent: TentDto | null
+  grow: GrowSummary | null
+  score: ReturnType<typeof buildScore>
+  scoreParts: string
+  climate: MetricPayload[]
+  hydro: MetricPayload[]
+  sensorsLive: number
+  lastMeasurement: string | null
+  stageLine: string | null
+  risks: RiskEventDto[]
+  tasks: LiveTask[]
+  timeline: { label: string; days: number; state: 'done' | 'current' | 'planned' }[]
+  timelineDates: { start: string; flip: string; harvest: string }
+  plantLine: string | null
+  onRefresh: () => void
+}
+
+export function LiveScreen({
+  tent, grow, score, scoreParts, climate, hydro, sensorsLive,
+  lastMeasurement, stageLine, risks, tasks, timeline, timelineDates, plantLine, onRefresh,
+}: LiveScreenProps) {
+  const topRisk = risks[0] ?? null
+
+  return (
+    <main className="ls" data-audit="live-screen">
+      {/* ---------- Kopfzeile ---------- */}
+      <header className="ls-head">
+        <ScoreRing value={score.value} />
+
+        <div className="ls-head-title">
+          <div className="ls-eyebrow">Jetzt / Live · Grow-Score</div>
+          <h1>{score.label}</h1>
+          <div className="ls-head-parts">{scoreParts}</div>
+        </div>
+
+        <span className="ls-pill">
+          <i />{sensorsLive} Sensoren live
+        </span>
+
+        <span className="ls-head-meta">
+          {[lastMeasurement && `Letzte Messung ${lastMeasurement}`, stageLine, grow?.name]
+            .filter(Boolean).join(' · ')}
+        </span>
+
+        <div className="ls-head-actions">
+          <Link className="ls-btn is-primary" to="/messung">Messung erfassen</Link>
+          <Link className="ls-btn" to="/addback">Addback starten</Link>
+        </div>
+      </header>
+
+      {/* ---------- Messwerte ---------- */}
+      <section className="ls-metrics">
+        <MetricBand title="Klima" metrics={climate} />
+        <MetricBand title="Hydroponik · Nährlösung" metrics={hydro} />
+      </section>
+
+      {/* ---------- Kamera · Risiko · Aufgaben ---------- */}
+      <section className="ls-lower">
+        <CameraPanel tent={tent} onReload={onRefresh} />
+
+        <div className="ls-lower-right">
+          {topRisk ? (
+            <article className={classNames('ls-panel', 'ls-risk', `is-${topRisk.severity.toLowerCase()}`)} data-audit="live-risk">
+              <div className="ls-panel-head">
+                <span className="ls-label">Risiko · {topRisk.severity === 'Critical' ? 'kritisch' : topRisk.severity === 'Warning' ? 'Warnung' : 'Hinweis'}</span>
+                <span className="ls-panel-meta">{topRisk.startedAtUtc ? `seit ${sinceLabel(topRisk.startedAtUtc)}` : ''}</span>
+              </div>
+              <div className="ls-panel-body">
+                <strong>{topRisk.title}</strong>
+                {topRisk.description && <p>{topRisk.description}</p>}
+                <div className="ls-panel-actions">
+                  {/* Ein laufender SOP hat eine Instanz — dann fuehrt der Knopf
+                      dorthin, sonst in die Diagnose, wo die Prozedur ausgewaehlt
+                      wird. Kein erfundener Link auf eine SOP-Id, die es im DTO
+                      nicht gibt. */}
+                  {topRisk.sopInstanceId
+                    ? <Link className="ls-btn is-primary" to={`/sops?instance=${topRisk.sopInstanceId}`}>SOP fortsetzen</Link>
+                    : <Link className="ls-btn is-primary" to="/diagnose">Maßnahme wählen</Link>}
+                  <Link className="ls-btn" to="/aufgaben">Aufgaben</Link>
+                </div>
+              </div>
+            </article>
+          ) : (
+            <article className="ls-panel" data-audit="live-risk">
+              <div className="ls-panel-head"><span className="ls-label">Risiken</span></div>
+              <div className="ls-panel-body"><strong>Nichts Offenes</strong><p>Keine kritischen Abweichungen im gewählten Zelt.</p></div>
+            </article>
+          )}
+
+          <article className="ls-panel" data-audit="live-tasks">
+            <div className="ls-panel-head">
+              <span className="ls-label">Heute fällig</span>
+              <span className="ls-panel-meta">{tasks.length} {tasks.length === 1 ? 'Aufgabe' : 'Aufgaben'}</span>
+              <Link className="ls-btn is-small" to="/aufgaben">Alle</Link>
+            </div>
+            {tasks.length === 0 ? (
+              <div className="ls-panel-body"><p>Für heute steht nichts an.</p></div>
+            ) : (
+              <ul className="ls-tasks">
+                {tasks.slice(0, 3).map((task) => (
+                  <li key={task.id}>
+                    <span className={classNames('ls-task-when', task.due && 'is-due')}>{task.when}</span>
+                    <span className="ls-task-title">{task.title}</span>
+                    <Link className="ls-btn is-small" to={task.to}>{task.action}</Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </article>
+        </div>
+      </section>
+
+      {/* ---------- Grow im Zelt ---------- */}
+      {grow && (
+        <section className="ls-panel ls-grow" data-audit="live-grow">
+          <div className="ls-panel-head">
+            <span className="ls-label">Grow im Zelt</span>
+            <span className="ls-panel-meta">{[grow.name, plantLine, tent?.name].filter(Boolean).join(' · ')}</span>
+            <Link className="ls-btn is-small" to={`/grows/${grow.id}`}>Grow öffnen</Link>
+          </div>
+          <div className="ls-panel-body">
+            <div className="ls-timeline">
+              {timeline.map((phase) => (
+                <div
+                  key={phase.label}
+                  className={classNames('ls-phase', `is-${phase.state}`)}
+                  style={{ flexGrow: Math.max(1, phase.days) }}
+                >
+                  {phase.label}
+                </div>
+              ))}
+            </div>
+            <div className="ls-timeline-dates">
+              <span>Start {timelineDates.start}</span>
+              <span>Flip geplant {timelineDates.flip}</span>
+              <span>Ernte ~{timelineDates.harvest}</span>
+            </div>
+          </div>
+        </section>
+      )}
+    </main>
+  )
+}
+
+/** Eine beschriftete Reihe Messwerte mit Haarlinie bis zum Rand. */
+function MetricBand({ title, metrics }: { title: string; metrics: MetricPayload[] }) {
+  if (metrics.length === 0) return null
+  return (
+    <>
+      <div className="ls-band-label">
+        <span>{title}</span>
+        <i />
+      </div>
+      <div className="gos-metric-row">
+        {metrics.map((metric) => (
+          <MetricTile
+            key={metric.key}
+            label={metric.label}
+            value={metric.numericValue}
+            unit={metric.unit}
+            targetMin={metric.targetMin}
+            targetMax={metric.targetMax}
+            decimals={decimalsForMetric(metric.key)}
+            display={metric.numericValue == null && metric.value !== '–' ? metric.value : undefined}
+            footer={metric.targetMin == null && metric.targetMax == null ? (metric.hint ?? undefined) : undefined}
+          />
+        ))}
+      </div>
+    </>
+  )
+}
+
+/**
+ * Der Score als Ring. Bewusst klein: er ist die Zusammenfassung, nicht die
+ * Nachricht — die steht als Wort daneben.
+ */
+function ScoreRing({ value }: { value: number }) {
+  const clamped = Math.max(0, Math.min(100, value))
+  return (
+    <div
+      className="ls-ring"
+      style={{ background: `conic-gradient(var(--accent) 0 ${clamped}%, var(--sunk) ${clamped}% 100%)` }}
+      role="img"
+      aria-label={`Grow-Score ${clamped} von 100`}
+    >
+      <div className="ls-ring-inner">
+        <span>{clamped}</span>
+        <span className="ls-ring-max">/100</span>
+      </div>
+    </div>
+  )
+}
+
+function sinceLabel(iso: string): string {
+  const started = new Date(iso).getTime()
+  if (Number.isNaN(started)) return ''
+  const minutes = Math.max(0, Math.round((Date.now() - started) / 60000))
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} h ${minutes % 60} min`
+  return `${Math.floor(hours / 24)} Tagen`
+}
+

@@ -56,13 +56,48 @@ export function buildSensorStatus(live: TentLivePayload | undefined, issues: str
     : { label: 'Aktiv', text: `${values.length} Live-Werte werden ausgewertet.`, tone: 'ok' as const }
 }
 
+/**
+ * Der Grow-Score aus den tatsächlichen Abweichungen.
+ *
+ * Vorher zählte er `tone === 'warning' | 'danger'` — ein Feld, das der Server
+ * für Messwerte nie setzt. Ergebnis: der Ring zeigte 100, während vier Werte
+ * ausserhalb ihres Zielbands lagen. Eine Zahl, die der Zeile daneben
+ * widerspricht, ist schlimmer als keine.
+ *
+ * Jetzt zählt, was zählbar ist: jeder Wert mit bekanntem Zielbereich, der
+ * daneben liegt, kostet — deutlich ausserhalb mehr als knapp daneben.
+ */
 export function buildScore(metrics: MetricPayload[], tent: TentDto | null) {
-  const usable = metrics.filter((metric) => metric.value && metric.value !== '–').length
   if (!tent) return { value: 0, label: 'Einrichten', tone: 'neutral' as const }
-  if (usable === 0) return { value: 0, label: 'Einrichten', tone: 'neutral' as const }
-  const warnings = metrics.filter((metric) => metric.tone === 'warning' || metric.tone === 'danger').length
-  const value = Math.max(0, Math.min(100, 100 - warnings * 18 - Math.max(0, 6 - usable) * 8))
-  return value < 55 ? { value, label: 'Kritisch', tone: 'critical' as const } : value < 82 ? { value, label: 'Beobachten', tone: 'warn' as const } : { value, label: 'Stabil', tone: 'ok' as const }
+
+  const messbar = metrics.filter((metric) =>
+    metric.numericValue != null && (metric.targetMin != null || metric.targetMax != null))
+  const brauchbar = metrics.filter((metric) => metric.value && metric.value !== '–').length
+  if (brauchbar === 0) return { value: 0, label: 'Einrichten', tone: 'neutral' as const }
+
+  let abzug = 0
+  for (const metric of messbar) {
+    const wert = metric.numericValue as number
+    const unten = metric.targetMin
+    const oben = metric.targetMax
+    if ((unten == null || wert >= unten) && (oben == null || wert <= oben)) continue
+
+    const abstand = unten != null && wert < unten ? unten - wert : wert - (oben as number)
+    const breite = unten != null && oben != null ? Math.abs(oben - unten) : Math.abs(unten ?? oben ?? 1) * 0.2
+    // Mehr als eine Zielbreite daneben wiegt doppelt.
+    abzug += abstand > Math.max(breite, Number.EPSILON) ? 20 : 10
+  }
+
+  // Ohne Sensoren kann man wenig beurteilen — das senkt den Score, statt ihn zu
+  // beschönigen.
+  abzug += Math.max(0, 6 - brauchbar) * 8
+
+  const value = Math.max(0, Math.min(100, 100 - abzug))
+  return value < 55
+    ? { value, label: 'Kritisch', tone: 'critical' as const }
+    : value < 82
+      ? { value, label: 'Beobachten', tone: 'warn' as const }
+      : { value, label: 'Stabil', tone: 'ok' as const }
 }
 
 export function chooseInitialTent(tents: TentDto[], grows: GrowSummary[]) {

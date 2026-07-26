@@ -1,0 +1,170 @@
+/* Live-Bildschirm — Maße aus dem Entwurf des Designers. */
+@layer features {
+
+  .ls {
+    display: grid; gap: 14px;
+    width: min(1440px, 100%);
+    padding: 20px 22px 40px;
+  }
+
+  /* ---------- Kopfzeile ---------- */
+  .ls-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+  .ls-ring {
+    width: 64px; aspect-ratio: 1; border-radius: 50%;
+    display: grid; place-items: center; flex: 0 0 auto;
+  }
+  .ls-ring-inner {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--bg);
+    display: grid; place-items: center; align-content: center; gap: 1px;
+  }
+  .ls-ring-inner span { font: 600 17px/1 var(--font-mono); }
+  .ls-ring-max { font: 500 8.5px/1 var(--font-mono); letter-spacing: .08em; color: var(--faint); }
+
+  .ls-eyebrow {
+    font: 500 10px/1 var(--font-mono); letter-spacing: .2em; color: var(--faint);
+    text-transform: uppercase;
+  }
+  .ls-head-title h1 {
+    margin: 6px 0 0; font: 600 24px/1.1 var(--font-mono); letter-spacing: -.01em;
+  }
+  .ls-head-parts { margin-top: 6px; font: 400 11px/1.4 var(--font-mono); color: var(--muted); }
+  .ls-head-parts .is-bad { color: var(--danger); }
+
+  .ls-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border: 1px solid var(--hair-2); border-radius: 999px;
+    font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent-text); white-space: nowrap;
+  }
+  .ls-pill i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+  .ls-head-meta { font: 400 11.5px/1.4 var(--font-mono); color: var(--muted); }
+  .ls-head-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ---------- Knöpfe ---------- */
+  .ls-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 32px; padding: 0 12px;
+    border: 1px solid var(--hair-2); border-radius: 8px;
+    background: transparent; color: var(--ink);
+    font: 500 12px/1 var(--font-mono); letter-spacing: .04em; text-transform: uppercase;
+    cursor: pointer; white-space: nowrap;
+  }
+  .ls-btn:hover { border-color: var(--accent); color: var(--accent-text); }
+  .ls-btn.is-primary {
+    border-color: var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 600;
+  }
+  .ls-btn.is-primary:hover { color: var(--accent-ink); opacity: .9; }
+  .ls-btn.is-small { min-height: 26px; padding: 0 10px; font-size: 11px; margin-left: auto; }
+  /* Touch: die Untergrenze aus widgets.css greift hier ebenfalls. */
+
+  /* ---------- Messwertreihen ---------- */
+  .ls-metrics { display: grid; gap: 7px; }
+  .ls-band-label { display: flex; align-items: center; gap: 8px; }
+  .ls-band-label span {
+    font: 500 10px/1 var(--font-mono); letter-spacing: .18em; text-transform: uppercase; color: var(--faint);
+  }
+  .ls-band-label i { flex: 1; height: 1px; background: var(--hair); }
+  .ls-metrics .gos-metric-row + .ls-band-label { margin-top: 5px; }
+
+  /* ---------- Panels ---------- */
+  .ls-panel {
+    border: 1px solid var(--hair); border-radius: 10px; background: var(--panel);
+    overflow: hidden;
+  }
+  .ls-panel-head {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 11px 14px; border-bottom: 1px solid var(--hair);
+  }
+  .ls-label {
+    font: 500 10px/1 var(--font-mono); letter-spacing: .18em; text-transform: uppercase; color: var(--faint);
+  }
+  .ls-panel-meta { font: 400 11px/1.4 var(--font-mono); color: var(--muted); min-width: 0; }
+  .ls-panel-body { padding: 14px; display: grid; gap: 8px; }
+  .ls-panel-body strong { font-size: 15px; font-weight: 600; }
+  .ls-panel-body p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+  .ls-panel-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+
+  /* Das kritische Risiko trägt seinen Rahmen selbst — es ist die eine Sache,
+     die auf dieser Seite nach oben schreit. */
+  .ls-risk.is-critical { border-color: var(--danger); }
+  .ls-risk.is-critical .ls-label { color: var(--danger); }
+  .ls-risk.is-warning { border-color: var(--warn); }
+  .ls-risk.is-warning .ls-label { color: var(--warn-text); }
+
+  /* ---------- Unterer Bereich ---------- */
+  /* Umbruch statt fester Spalten: bei 924px rutscht die rechte Spalte unter die
+     Kamera, statt beide zu zerdrücken. */
+  .ls-lower { display: flex; flex-wrap: wrap; gap: 14px; align-items: start; }
+  .ls-lower > * { flex: 1 1 420px; min-width: 0; }
+  .ls-lower-right { display: grid; gap: 14px; }
+
+  /* ---------- Aufgaben ---------- */
+  .ls-tasks { list-style: none; margin: 0; padding: 0; display: grid; }
+  .ls-tasks li {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; border-bottom: 1px solid var(--hair);
+    min-height: 46px;
+  }
+  .ls-tasks li:last-child { border-bottom: 0; }
+  .ls-task-when {
+    flex: 0 0 64px;
+    font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
+  }
+  .ls-task-when.is-due { color: var(--warn-text); }
+  .ls-task-title { min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ---------- Phasen-Timeline ---------- */
+  .ls-timeline { display: flex; gap: 2px; }
+  .ls-phase {
+    flex: 1 1 0; min-width: 0;
+    display: grid; place-items: center;
+    min-height: 26px; padding: 0 8px; border-radius: var(--r-sm);
+    font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ls-phase.is-done { border: 1px solid var(--hair-2); color: var(--muted); }
+  .ls-phase.is-current { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .ls-phase.is-planned { border: 1px solid var(--hair); color: var(--faint); }
+  .ls-timeline-dates {
+    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    margin-top: 8px; font: 400 11px/1 var(--font-mono); color: var(--muted);
+  }
+
+  /* ---------- Telefon ---------- */
+  @media (max-width: 640px) {
+    .ls { padding: 12px 12px 32px; }
+    .ls-head-actions { margin-left: 0; width: 100%; }
+    .ls-head-actions .ls-btn { flex: 1 1 140px; }
+    .ls-task-when { flex-basis: 52px; }
+  }
+}
+
+/* Kamera-Panel */
+@layer features {
+  .ls-cam-stage { position: relative; background: var(--sunk); min-height: 260px; display: grid; place-items: center; }
+  .ls-cam-stage img { width: 100%; display: block; }
+  .ls-cam-empty { padding: 24px; font-size: 13px; color: var(--faint); text-align: center; }
+  .ls-cam-stale {
+    position: absolute; top: 8px; right: 8px;
+    padding: 3px 8px; border-radius: 999px;
+    background: var(--warn-wash); color: var(--warn-text);
+    font: 500 10px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+  }
+  .ls-cam-strip { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--hair); overflow-x: auto; }
+  .ls-cam-tab {
+    display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto;
+    min-height: 32px; padding: 0 12px;
+    border: 1px solid var(--hair); border-radius: 999px;
+    background: transparent; color: var(--muted);
+    font: 500 11px/1 var(--font-mono); letter-spacing: .06em; cursor: pointer;
+  }
+  .ls-cam-tab .n {
+    display: grid; place-items: center; width: 18px; height: 18px;
+    border: 1px solid var(--hair-2); border-radius: 50%; font-size: 10px;
+  }
+  .ls-cam-tab.active { border-color: var(--accent); color: var(--accent-text); }
+  .ls-cam-tab.active .n { border-color: var(--accent); }
+}

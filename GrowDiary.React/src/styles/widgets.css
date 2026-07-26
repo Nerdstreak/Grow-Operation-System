@@ -137,6 +137,8 @@
   .v1-link-button,
   .v1-tab,
   .hw-filter,
+  .ls-btn,
+  .ls-cam-tab,
   select,
   input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
   textarea {

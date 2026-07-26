@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiFetch } from '../api'
 import type { GrowSummary, RiskEventDto, TentDto, TentLivePayload } from '../types'
-import { LiveDashboard } from '../features/live/DesktopLiveDashboard'
+import { LiveScreen, type LiveTask } from '../features/live/LiveScreen'
+import '../features/live/live-screen.css'
+import { V1Skeleton } from '../components/v1'
 import {
   buildScore,
-  buildSensorStatus,
   chooseInitialTent,
   climateMetricKeys,
   findMetric,
@@ -21,7 +22,6 @@ function LiveDashboardPage() {
   const [selectedTentId, setSelectedTentId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [refresh, setRefresh] = useState(0)
-  const [lastUpdated, setLastUpdated] = useState<number | null>(null)
 
   // Mirror the latest committed state so a background refresh can fall back to the
   // last good data instead of blanking out when a request fails transiently.
@@ -77,7 +77,6 @@ function LiveDashboardPage() {
       setState({ tents: sorted, grows, risks, liveByTentId, issues })
       setSelectedTentId((current) => current ?? chooseInitialTent(sorted, grows))
       setLoading(false)
-      setLastUpdated(Date.now())
     }
     void load()
     return () => controller.abort()
@@ -97,37 +96,164 @@ function LiveDashboardPage() {
   const climateMetrics = mapMetrics(live?.metrics ?? [], climateMetricKeys)
   // The cm water-level slot only renders when its sensor actually reports — most
   // setups measure either liters OR centimeters, so no permanent empty tile.
-  const hydroMetrics = mapMetrics(live?.metrics ?? [], hydroMetricKeys)
-    .filter((metric) => metric.key !== 'reservoir-level-cm' || (metric.value && metric.value !== '–'))
+  // Fuellstand wird entweder in Litern ODER in Zentimetern gemessen — beide
+  // Kacheln zu zeigen heisst, dass eine davon immer leer ist. Es gewinnt die,
+  // die einen Wert hat; ohne beides bleibt die Liter-Kachel als Platzhalter.
+  const hydroAlle = mapMetrics(live?.metrics ?? [], hydroMetricKeys)
+  const hatWert = (key: string) => {
+    const metric = hydroAlle.find((item) => item.key === key)
+    return Boolean(metric && metric.value && metric.value !== '–')
+  }
+  const fuellstandKey = hatWert('reservoir-level') ? 'reservoir-level'
+    : hatWert('reservoir-level-cm') ? 'reservoir-level-cm'
+      : 'reservoir-level'
+  const hydroMetrics = hydroAlle.filter((metric) =>
+    !metric.key.startsWith('reservoir-level') || metric.key === fuellstandKey)
   const lightMetric = findMetric(live?.metrics ?? [], ['light-cycle', 'ppfd'])
-  const sensorStatus = buildSensorStatus(live, state.issues)
   const hasHydroGrow = primaryGrow ? primaryGrow.hydroStyle === 'DWC' || primaryGrow.hydroStyle === 'RDWC' : false
   const risksForContext = state.risks
     .filter((risk) => risk.status === 'Open' || risk.status === 'Acknowledged')
     .filter((risk) => (primaryGrow ? risk.growId === primaryGrow.id : false) || (selectedTent ? risk.tentId === selectedTent.id : false))
     .sort((a, b) => riskRank(a.severity) - riskRank(b.severity) || a.startedAtUtc.localeCompare(b.startedAtUtc))
 
+  // --- Ableitungen fuer den Bildschirm ---------------------------------------
+
+  const sensorsLive = (live?.metrics ?? []).filter((metric) => metric.value && metric.value !== '\u2013').length
+
+  // Die Score-Zeile des Entwurfs: "Klima 100 · Naehrloesung 64 (DO -36) · Technik 100".
+  // Statt erfundener Teilscores nennt sie, was tatsaechlich danebenliegt — eine
+  // Zahl, die niemand nachrechnen kann, waere schlimmer als keine.
+  const abweichungen = [...climateMetrics, ...hydroMetrics]
+    .filter((metric) => metric.numericValue != null && (metric.targetMin != null || metric.targetMax != null))
+    .filter((metric) => (metric.targetMin != null && metric.numericValue! < metric.targetMin)
+      || (metric.targetMax != null && metric.numericValue! > metric.targetMax))
+  const scoreParts = abweichungen.length === 0
+    ? 'Alle Messwerte im Zielband'
+    : `${abweichungen.length} ${abweichungen.length === 1 ? 'Wert' : 'Werte'} daneben: ${abweichungen.map((metric) => metric.label).join(', ')}`
+
+  const lastMeasurement = primaryGrow?.latestMeasurementAt
+    ? formatTime(primaryGrow.latestMeasurementAt)
+    : null
+  const stageLine = primaryGrow
+    ? [primaryGrow.latestStage, growDayLabel(primaryGrow.startDate)]
+      .filter(Boolean).join(' ')
+    : null
+  const plantLine = primaryGrow?.plantCount ? `${primaryGrow.plantCount} Pflanzen` : null
+
+  // Heute faellig: was die Watchdog-Risiken und der Addback-Bedarf hergeben.
+  const tasks: LiveTask[] = []
+  if (hasHydroGrow && primaryGrow) {
+    const ec = hydroMetrics.find((metric) => metric.key === 'reservoir-ec')
+    if (ec?.numericValue != null && ec.targetMax != null && ec.numericValue > ec.targetMax) {
+      tasks.push({
+        id: 'addback',
+        when: 'fällig',
+        title: `Addback · EC ${ec.numericValue.toFixed(2).replace('.', ',')} \u2192 ${ec.targetMax.toFixed(2).replace('.', ',')}`,
+        action: 'Start',
+        to: `/grows/${primaryGrow.id}/addback`,
+        due: true,
+      })
+    }
+  }
+  for (const risk of risksForContext.slice(0, 3 - tasks.length)) {
+    tasks.push({
+      id: `risk-${risk.id}`,
+      when: risk.severity === 'Critical' ? 'jetzt' : 'offen',
+      title: risk.title,
+      action: 'Öffnen',
+      to: '/diagnose',
+      due: risk.severity === 'Critical',
+    })
+  }
+
+  const timeline = buildPhaseTimeline(primaryGrow)
+
+  if (loading) {
+    return (
+      <main className="ls">
+        <V1Skeleton tiles={4} label="Lade Zelt" />
+        <V1Skeleton tiles={5} rows={3} label="Lade Messwerte" />
+      </main>
+    )
+  }
+
   return (
-    <LiveDashboard
-      loading={loading}
-      tents={state.tents}
-      selectedTentId={selectedTent?.id ?? null}
-      onSelectTent={(id) => setSelectedTentId(id)}
-      selectedTent={selectedTent}
-      primaryGrow={primaryGrow}
-      growsForTent={growsForTent}
+    <LiveScreen
+      tent={selectedTent}
+      grow={primaryGrow}
       score={score}
-      climateMetrics={climateMetrics}
-      hydroMetrics={hydroMetrics}
-      lightMetric={lightMetric}
-      sensorStatus={sensorStatus}
-      hasHydroGrow={hasHydroGrow}
-      risksForContext={risksForContext}
-      issues={state.issues}
-      lastUpdated={lastUpdated}
+      scoreParts={scoreParts}
+      climate={climateMetrics.concat(lightMetric ? [{ ...lightMetric, label: lightMetric.key === 'ppfd' ? 'PPFD' : 'Licht' }] : [])}
+      hydro={hydroMetrics}
+      sensorsLive={sensorsLive}
+      lastMeasurement={lastMeasurement}
+      stageLine={stageLine}
+      risks={risksForContext}
+      tasks={tasks}
+      timeline={timeline.phases}
+      timelineDates={timeline.dates}
+      plantLine={plantLine}
       onRefresh={() => setRefresh((current) => current + 1)}
     />
   )
+}
+
+
+/** „09:30" — die Uhrzeit reicht, das Datum steht im Journal. */
+function formatTime(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  return new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' }).format(date)
+}
+
+/** „Tag 26" seit dem Start. */
+function growDayLabel(startDate: string | null | undefined): string {
+  if (!startDate) return ''
+  const start = new Date(startDate)
+  if (Number.isNaN(start.getTime())) return ''
+  const days = Math.floor((Date.now() - start.getTime()) / 86_400_000) + 1
+  return days > 0 ? `Tag ${days}` : ''
+}
+
+function shortDate(value: Date | null): string {
+  // Intl liefert bei de-DE schon einen Punkt am Ende; ein zweiter machte daraus 20.05..
+  return value ? new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit' }).format(value) : '\u2014'
+}
+
+/**
+ * Die Phasen-Timeline aus Start-, Flip- und geschaetztem Erntedatum.
+ *
+ * Ohne Flipdatum gibt es keine Blütephase zu zeichnen — dann steht nur die
+ * laufende Phase da, statt eine Dauer zu erfinden.
+ */
+function buildPhaseTimeline(grow: GrowSummary | null) {
+  const leer = { phases: [] as { label: string; days: number; state: 'done' | 'current' | 'planned' }[], dates: { start: '\u2014', flip: '\u2014', harvest: '\u2014' } }
+  if (!grow?.startDate) return leer
+
+  const start = new Date(grow.startDate)
+  if (Number.isNaN(start.getTime())) return leer
+  const flip = grow.flipDate ? new Date(grow.flipDate) : null
+  const flipValid = flip && !Number.isNaN(flip.getTime()) ? flip : null
+  // Die Zusammenfassung fuehrt die Breeder-Angaben nicht mit; acht Wochen sind
+  // der uebliche Richtwert und stehen als Schaetzung ausdruecklich mit „~" da.
+  const flowerWeeks = 8
+  const harvest = flipValid ? new Date(flipValid.getTime() + flowerWeeks * 7 * 86_400_000) : null
+
+  const today = Date.now()
+  const vegDays = flipValid
+    ? Math.max(1, Math.round((flipValid.getTime() - start.getTime()) / 86_400_000))
+    : Math.max(1, Math.round((today - start.getTime()) / 86_400_000))
+  const inFlower = flipValid != null && today >= flipValid.getTime()
+
+  const phases: { label: string; days: number; state: 'done' | 'current' | 'planned' }[] = [
+    { label: `Veg ${vegDays} T`, days: vegDays, state: inFlower ? 'done' : 'current' },
+  ]
+  if (flipValid) {
+    const flowerDays = flowerWeeks * 7
+    phases.push({ label: `Blüte ${flowerDays} T`, days: flowerDays, state: inFlower ? 'current' : 'planned' })
+  }
+
+  return { phases, dates: { start: shortDate(start), flip: shortDate(flipValid), harvest: shortDate(harvest) } }
 }
 
 export default LiveDashboardPage
