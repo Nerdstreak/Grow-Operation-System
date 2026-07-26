@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowDetail, GrowEntryPoint, GrowStatus, GrowUpsertPayload, HydroSetupDto, KnowledgeOverviewDto, NutrientProgramDto, SeedType, StartMaterial, TentDto } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton, V1Wizard } from '../components/v1'
-import { formatDateShort, formatLiters, toNullableInt } from '../components/v1-utils'
+import type { GrowDetail, GrowEntryPoint, GrowStatus, GrowSummary, GrowUpsertPayload, HydroSetupDto, KnowledgeOverviewDto, NutrientProgramDto, SeedType, StartMaterial, TentDto } from '../types'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
+import { formatLiters, toNullableInt } from '../components/v1-utils'
 import { classNames } from '../utils'
+import { GrowPlanPanel } from '../features/grows/GrowPlanPanel'
+import { buildTimeline, canCreate, checkPlan } from '../features/grows/grow-plan-model'
+import '../features/grows/grows.css'
 
-const steps = ['Run', 'Zelt', 'Hydro', 'Zeit', 'Programm', 'Prüfen']
 const entryPoints: GrowEntryPoint[] = ['Germination', 'Seedling', 'Veg', 'Flower', 'Flush']
 const statuses: GrowStatus[] = ['Planning', 'Running', 'Completed', 'Aborted']
 const seedTypes: SeedType[] = ['Feminized', 'Autoflower', 'Regular']
@@ -28,9 +30,10 @@ function GrowSetupPage() {
   const [tents, setTents] = useState<TentDto[]>([])
   const [hydroSetups, setHydroSetups] = useState<HydroSetupDto[]>([])
   const [programs, setPrograms] = useState<NutrientProgramDto[]>([])
+  // Fuer die Belegungspruefung: welche anderen Grows sitzen schon im Zelt.
+  const [otherGrows, setOtherGrows] = useState<GrowSummary[]>([])
   const [form, setForm] = useState<GrowUpsertPayload>(() => emptyForm())
   const [customProgram, setCustomProgram] = useState('')
-  const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,16 +44,18 @@ function GrowSetupPage() {
       setLoading(true)
       setError(null)
       try {
-        const [tentData, hydroData, knowledge, grow] = await Promise.all([
+        const [tentData, hydroData, knowledge, grow, growsData] = await Promise.all([
           apiFetch<TentDto[]>('/api/settings/tents', { signal: controller.signal }),
           apiFetch<HydroSetupDto[]>('/api/hydro-setups?includeArchived=true', { signal: controller.signal }),
           apiFetch<KnowledgeOverviewDto>('/api/knowledge', { signal: controller.signal }),
           isEditing && growId ? apiFetch<GrowDetail>(`/api/grows/${growId}`, { signal: controller.signal }) : Promise.resolve(null),
+          apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }).catch(() => []),
         ])
         if (controller.signal.aborted) return
         setTents(tentData)
         setHydroSetups(hydroData.filter((setup) => setup.status === 'Active'))
         setPrograms(knowledge.programs ?? [])
+        setOtherGrows(growsData)
         if (grow) setForm({ ...emptyForm(), name: grow.name, tentId: grow.tentId, systemId: grow.systemId, setupId: grow.setupId, strain: grow.strain, breeder: grow.breeder, seedType: grow.seedType, startMaterial: grow.startMaterial, hydroStyle: grow.hydroStyle, plantCount: grow.plantCount, reservoirSize: grow.reservoirSize, containerSize: grow.containerSize, light: grow.light, hasChiller: grow.hasChiller, waterSource: grow.waterSource, nutrients: grow.nutrients, startDate: grow.startDate, entryPoint: grow.entryPoint, daysAlreadyInPhase: grow.daysAlreadyInPhase, autoflowerDaysSinceGermination: grow.autoflowerDaysSinceGermination, flipDate: grow.flipDate, notes: grow.notes, status: grow.status, environment: grow.environment, germinationMethod: grow.germinationMethod, propagationMedium: grow.propagationMedium, cloneSource: grow.cloneSource, cloneIsRooted: grow.cloneIsRooted, phenoNumber: grow.phenoNumber, breederFlowerWeeksMin: grow.breederFlowerWeeksMin, breederFlowerWeeksMax: grow.breederFlowerWeeksMax })
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatApiError(caught, 'Grow-Wizard konnte nicht geladen werden.'))
@@ -72,21 +77,14 @@ function GrowSetupPage() {
   function selectTent(id: number) { setForm((current) => ({ ...current, tentId: id, systemId: hydroSetups.some((setup) => setup.id === current.systemId && setup.tentId === id) ? current.systemId : null, setupId: null })) }
   function selectHydro(setup: HydroSetupDto) { patch({ systemId: setup.id, setupId: null, hydroStyle: setup.hydroStyle, reservoirSize: formatLiters(setup.totalVolumeLiters ?? setup.reservoirLiters), containerSize: formatLiters(setup.potSizeLiters), hasChiller: setup.hasChiller }) }
 
-  function goTo(next: number) {
-    if (next > step) {
-      const message = validateStep(step, form, selectedHydro)
+  async function saveGrow() {
+    // Der Validator lief frueher pro Wizard-Schritt. Auf einer Seite gilt er
+    // einmal fuer alles — und meldet den ersten Einwand, statt zu einem Schritt
+    // zu springen, den es nicht mehr gibt.
+    for (let current = 1; current <= 5; current += 1) {
+      const message = validateStep(current, form, selectedHydro)
       if (message) { setError(message); return }
     }
-    setError(null)
-    setStep(next)
-  }
-
-  async function saveGrow() {
-    for (let current = 1; current < steps.length; current += 1) {
-      const message = validateStep(current, form, selectedHydro)
-      if (message) { setStep(current); setError(message); return }
-    }
-    if (step !== steps.length) { setStep(steps.length); setError('Gespeichert wird erst im Schritt Prüfen.'); return }
     setSaving(true)
     setError(null)
     try {
@@ -102,27 +100,57 @@ function GrowSetupPage() {
 
   if (loading) return <V1Page eyebrow="Grow" title={isEditing ? 'Grow bearbeiten' : 'Grow starten'}><V1Skeleton rows={5} label="Lade Formular" /></V1Page>
 
+  // Prüfung und Timeline rechnen bei jeder Eingabe mit — das ist der Grund,
+  // warum die sechs Schritte zu einer Seite werden konnten.
+  const planInput = {
+    plantCount: form.plantCount ?? null,
+    startDate: form.startDate ?? null,
+    flipDate: form.flipDate ?? null,
+    vegDays: null,
+    flowerDays: null,
+    tent: selectedTent,
+    hydro: selectedHydro,
+    otherGrows: otherGrows.filter((grow) => grow.id !== Number(growId)),
+    programName: selectedProgram?.name ?? (customProgram.trim() || null),
+  }
+  const timeline = buildTimeline(planInput)
+  const findings = checkPlan(planInput)
+  const allowed = canCreate(findings)
+
   return (
     <V1Page eyebrow="Grow" title={isEditing ? 'Grow bearbeiten' : 'Grow starten'} className="grow-wizard-page" action={<Link className="v1-button is-ghost" to={isEditing && growId ? `/grows/${growId}` : '/grows'}>Zurück</Link>}>
       <div className="grow-wizard-mobile-surface" data-audit="grow-wizard">
       {error && <V1Alert message={error} tone="warn" />}
-      <V1Wizard steps={steps} currentStep={step} onStep={goTo} />
-
+      {/* Eine Seite statt sechs Schritte: links eintragen, rechts sofort sehen.
+          Ob die Pflanzenzahl zu den Sites passt oder das Zelt am Starttag belegt
+          ist, merkte man vorher erst am Ende — oder gar nicht. */}
       <div className="grow-wizard-shell">
-        <aside className="grow-wizard-context"><Summary form={form} tent={selectedTent} hydro={selectedHydro} program={selectedProgram} custom={customProgram} /></aside>
         <div className="grow-wizard-main">
-          {step === 1 && <RunStep form={form} patch={patch} />}
-          {step === 2 && <TentStep tents={tents} selectedId={form.tentId} onSelect={selectTent} />}
-          {step === 3 && <HydroStep setups={availableHydro} exactCount={exactHydro.length} selectedId={form.systemId ?? null} onSelect={selectHydro} tent={selectedTent} />}
-          {step === 4 && <TimeStep form={form} patch={patch} />}
-          {step === 5 && <ProgramStep programs={programs} selected={form.nutrients ?? ''} custom={customProgram} setCustom={setCustomProgram} patch={patch} />}
-          {step === 6 && <ReviewStep form={form} tent={selectedTent} hydro={selectedHydro} program={selectedProgram} custom={customProgram} />}
+          <RunStep form={form} patch={patch} />
+          <TentStep tents={tents} selectedId={form.tentId} onSelect={selectTent} />
+          <HydroStep setups={availableHydro} exactCount={exactHydro.length} selectedId={form.systemId ?? null} onSelect={selectHydro} tent={selectedTent} />
+          <TimeStep form={form} patch={patch} />
+          <ProgramStep programs={programs} selected={form.nutrients ?? ''} custom={customProgram} setCustom={setCustomProgram} patch={patch} />
         </div>
+
+        <aside className="grow-wizard-context">
+          <GrowPlanPanel
+            timeline={timeline}
+            findings={findings}
+            summary={<Summary form={form} tent={selectedTent} hydro={selectedHydro} program={selectedProgram} custom={customProgram} />}
+          />
+        </aside>
       </div>
 
       <div className="v1-form-actions sticky-actions" data-audit="grow-wizard-actions">
-        <V1Button variant="ghost" onClick={() => (step === 1 ? navigate('/grows') : setStep((current) => Math.max(1, current - 1)))}>{step === 1 ? 'Abbrechen' : 'Zurück'}</V1Button>
-        {step < steps.length ? <V1Button variant="primary" onClick={() => goTo(step + 1)}>Weiter</V1Button> : <V1Button variant="primary" disabled={saving} onClick={() => void saveGrow()}>{saving ? 'Speichert...' : isEditing ? 'Speichern' : 'Grow starten'}</V1Button>}
+        <V1Button variant="ghost" onClick={() => navigate(isEditing && growId ? `/grows/${growId}` : '/grows')}>Abbrechen</V1Button>
+        <V1Button
+          variant="primary"
+          disabled={saving || !allowed}
+          onClick={() => void saveGrow()}
+        >
+          {saving ? 'Speichert...' : isEditing ? 'Speichern' : 'Grow starten'}
+        </V1Button>
       </div>
       </div>
     </V1Page>
@@ -151,15 +179,10 @@ function ProgramStep({ programs, selected, custom, setCustom, patch }: { program
   return <V1Section title="Programm"><div className="program-grid">{programs.map((program) => <button key={program.key} type="button" className={classNames('program-card', (selected === program.name || selected === program.key) && 'active')} onClick={() => { setCustom(''); patch({ nutrients: program.name }) }}><span className="grow-card-topline"><strong>{program.name}</strong><V1Badge tone="accent">{program.manufacturer}</V1Badge></span><span className="program-summary">{program.summary}</span></button>)}</div><div className="grow-custom-program"><V1Field label="Eigenes Programm"><input value={custom} onChange={(event) => { setCustom(event.target.value); patch({ nutrients: event.target.value || null }) }} placeholder="Eigene Mischung" /></V1Field></div></V1Section>
 }
 
-function ReviewStep({ form, tent, hydro, program, custom }: { form: GrowUpsertPayload; tent: TentDto | null; hydro: HydroSetupDto | null; program: NutrientProgramDto | null; custom: string }) {
-  return <V1Section title="Prüfen"><div className="grow-review-grid"><Info label="Grow" value={form.name || '–'} /><Info label="Zelt" value={tent?.name ?? '–'} /><Info label="Hydro" value={hydro?.name ?? '–'} /><Info label="Start" value={formatDateShort(form.startDate)} /><Info label="Programm" value={program?.name ?? custom ?? form.nutrients ?? '–'} /></div></V1Section>
-}
-
 function Summary({ form, tent, hydro, program, custom }: { form: GrowUpsertPayload; tent: TentDto | null; hydro: HydroSetupDto | null; program: NutrientProgramDto | null; custom: string }) {
   return <V1Card className="grow-summary-card"><span className="v1-card-kicker">Grow-Basis</span><h2>{form.name || 'Neuer Grow'}</h2><div className="grow-summary-list"><span><b>Zelt</b>{tent?.name ?? 'offen'}</span><span><b>Hydro</b>{hydro?.name ?? 'offen'}</span><span><b>Programm</b>{program?.name ?? custom ?? form.nutrients ?? 'offen'}</span></div></V1Card>
 }
 
-function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
 function formatTentSize(tent: TentDto) { return !tent.widthCm && !tent.depthCm && !tent.tentHeightCm ? 'Größe offen' : `${tent.widthCm ?? '–'}×${tent.depthCm ?? '–'}×${tent.tentHeightCm ?? '–'} cm` }
 function validateStep(step: number, form: GrowUpsertPayload, hydro: HydroSetupDto | null) { if (step === 1 && !form.name.trim()) return 'Bitte Grow-Namen eingeben.'; if (step === 2 && !form.tentId) return 'Bitte Zelt wählen.'; if (step === 3 && !hydro) return 'Bitte Hydro-Setup wählen.'; return null }
 function formatApiError(caught: unknown, fallback: string) { return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback }
