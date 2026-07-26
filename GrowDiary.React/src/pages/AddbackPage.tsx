@@ -11,10 +11,10 @@ import type {
   NutrientProgramDto,
   NutrientProgramStageDto,
 } from '../types'
-import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton, V1Stat, V1Wizard } from '../components/v1'
+import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton, V1Stat } from '../components/v1'
 import { classNames, formatNumber } from '../utils'
+import { AddbackFlow, type FlowStep } from '../features/addback/AddbackFlow'
 
-type AddbackStep = 1 | 2 | 3 | 4 | 5 | 6
 
 interface AddbackFormState {
   reservoirLiters: string
@@ -35,7 +35,6 @@ interface ComponentDraft {
   done: boolean
 }
 
-const steps = ['System', 'Istwerte', 'Ziel', 'Dosierung', 'Nachmessung', 'Speichern']
 const genericComponents = ['Silikat / Stabilisator', 'CalMag / Basis', 'Base A', 'Base B', 'PK / Additiv', 'pH-Korrektur']
 
 function AddbackPage() {
@@ -44,7 +43,6 @@ function AddbackPage() {
   const [grow, setGrow] = useState<GrowDetail | null>(null)
   const [knowledge, setKnowledge] = useState<KnowledgeOverviewDto | null>(null)
   const [logs, setLogs] = useState<AddbackLogDto[]>([])
-  const [step, setStep] = useState<AddbackStep>(1)
   const [programKey, setProgramKey] = useState<string>('custom')
   const [form, setForm] = useState<AddbackFormState>({
     reservoirLiters: '',
@@ -188,27 +186,18 @@ function AddbackPage() {
     }
   }
 
-  async function goNext() {
+  /**
+   * Prüfen und rechnen in einem — vorher waren das zwei Wizard-Schritte, durch
+   * die man sich klicken musste. Auf einer Seite genügt ein Knopf.
+   */
+  async function checkAndCalculate() {
     setError(null)
-    if (step === 2) {
-      const validation = validateActuals(form)
-      if (validation) {
-        setError(validation)
-        return
-      }
+    const validation = validateActuals(form)
+    if (validation) {
+      setError(validation)
+      return
     }
-
-    if (step === 3) {
-      const calculation = await calculateAddback()
-      if (!calculation) return
-    }
-
-    setStep((current) => Math.min(6, current + 1) as AddbackStep)
-  }
-
-  function goBack() {
-    setError(null)
-    setStep((current) => Math.max(1, current - 1) as AddbackStep)
+    await calculateAddback()
   }
 
   async function handleSave() {
@@ -249,7 +238,6 @@ function AddbackPage() {
       setSuccess('Addback gespeichert.')
       // Zurück zum Start des Assistenten statt in der Speichern-Maske zu verharren;
       // der neue Log erscheint im Kontext-Rail als "Letzter Log".
-      setStep(1)
     } catch (caught) {
       setError(caught instanceof ApiRequestError ? caught.message : 'Addback konnte nicht gespeichert werden.')
     } finally {
@@ -265,6 +253,45 @@ function AddbackPage() {
       </V1Page>
     )
   }
+
+  // Aus dem vorhandenen Zustand abgeleitet, keine zweite Datenquelle.
+  const ecIst = parseNullableNumber(form.ecIst) ?? defaults?.suggestedEcIst ?? null
+  const ecZiel = parseNullableNumber(form.ecZiel) ?? defaults?.suggestedEcZiel ?? null
+  const ecAfter = parseNullableNumber(form.ecAfter)
+  const flowSteps: FlowStep[] = [
+    {
+      title: 'MESSEN',
+      value: ecIst != null ? `EC ${formatNumber(ecIst, 2)}` : '—',
+      note: ecIst != null ? 'Istwert der Nährlösung' : 'EC eintragen',
+      done: ecIst != null,
+      current: ecIst == null,
+    },
+    {
+      title: 'ZIEL',
+      value: ecZiel != null ? `EC ${formatNumber(ecZiel, 2)}` : '—',
+      note: selectedProgram?.name ?? grow?.nutrients ?? undefined,
+      done: ecZiel != null,
+      current: ecIst != null && ecZiel == null,
+    },
+    {
+      title: 'DOSIEREN',
+      value: hasCalculatedResult
+        ? (result?.needsAddback ? `${formatNumber(result.litersToAdd, 2)} L` : 'nichts nötig')
+        : '—',
+      note: hasCalculatedResult
+        ? (result?.needsAddback ? `Reservoir danach ${formatNumber(result.newReservoirVolume, 1)} L` : 'EC liegt im Ziel')
+        : 'noch nicht berechnet',
+      done: hasCalculatedResult,
+      current: ecIst != null && ecZiel != null && !hasCalculatedResult,
+    },
+    {
+      title: 'KONTROLLE',
+      value: ecAfter != null ? `EC ${formatNumber(ecAfter, 2)}` : '—',
+      note: ecAfter != null ? 'nachgemessen' : 'nach 15 min nachmessen',
+      done: ecAfter != null,
+      current: hasCalculatedResult && ecAfter == null,
+    },
+  ]
 
   return (
     <V1Page
@@ -282,9 +309,8 @@ function AddbackPage() {
           <V1Skeleton tiles={4} rows={3} label="Lade Addback" />
         ) : (
           <>
-          <MobileStepper step={step} steps={steps} />
           <div className="addback-desktop-stepper" data-audit="addback-stepper">
-            <V1Wizard steps={steps} currentStep={step} onStep={(nextStep) => setStep(nextStep as AddbackStep)} />
+            <AddbackFlow steps={flowSteps} />
           </div>
 
           <div className="addback-assistant-layout">
@@ -302,22 +328,24 @@ function AddbackPage() {
 
               <V1Card className="addback-mini-flow-card">
                 <span className="v1-card-kicker">Ablauf</span>
-                {steps.map((item, index) => (
-                  <button
-                    key={item}
-                    type="button"
-                    className={classNames('addback-rail-step', step === index + 1 && 'active', step > index + 1 && 'done')}
-                    onClick={() => setStep((index + 1) as AddbackStep)}
+                {/* Anzeige, keine Navigation: alle Abschnitte stehen ohnehin
+                    untereinander auf derselben Seite. Ein Sprung nach vorn
+                    hätte nur mit halben Daten gerechnet. */}
+                {flowSteps.map((item, index) => (
+                  <div
+                    key={item.title}
+                    className={classNames('addback-rail-step', item.current && 'active', item.done && 'done')}
                   >
                     <span>{index + 1}</span>
-                    <strong>{item}</strong>
-                  </button>
+                    <strong>{item.title}</strong>
+                    <em>{item.value}</em>
+                  </div>
                 ))}
               </V1Card>
             </aside>
 
             <section className="addback-step-panel">
-              {step === 1 && (
+              {(
                 <V1Section title="Grow & Reservoir">
                   <div className="addback-summary-grid">
                     <V1Stat label="Grow" value={grow?.name ?? defaults?.growName ?? '–'} hint={grow?.strain ?? 'Sorte offen'} />
@@ -326,12 +354,12 @@ function AddbackPage() {
                     <V1Stat label="EC aktuell" value={formatNumber(parseNullableNumber(form.ecIst), 2)} unit="mS/cm" hint="letzte Messung / manuell" />
                   </div>
                   <div className="addback-action-row">
-                    <V1Button variant="primary" onClick={goNext}>Istwerte prüfen</V1Button>
+                    <V1Button variant="primary" onClick={() => void checkAndCalculate()} disabled={calculating}>{calculating ? 'Rechnet...' : 'Prüfen & Dosierung berechnen'}</V1Button>
                   </div>
                 </V1Section>
               )}
 
-              {step === 2 && (
+              {(
                 <V1Section title="Istwerte">
                   <div className="addback-form-grid">
                     <NumberField label="Aktuelles Volumen" unit="L" value={form.reservoirLiters} onChange={(value) => updateForm('reservoirLiters', value)} hint={defaults?.suggestedReservoirLiters == null ? 'Manuell eintragen' : `Hydro-Vorschlag: ${formatNumber(defaults.suggestedReservoirLiters, 1)} L`} />
@@ -341,11 +369,10 @@ function AddbackPage() {
                     <ReadOnlyMetric label="ORP" value={grow?.latestMeasurement?.orpMv} unit="mV" />
                     <ReadOnlyMetric label="DO" value={grow?.latestMeasurement?.dissolvedOxygenMgL} unit="mg/L" />
                   </div>
-                  <NavButtons onBack={goBack} onNext={goNext} nextLabel="Zielwerte" />
                 </V1Section>
               )}
 
-              {step === 3 && (
+              {(
                 <V1Section title="Zielwerte">
                   <div className="addback-program-box">
                     <V1Field label="Nährstoffprogramm">
@@ -366,11 +393,10 @@ function AddbackPage() {
                     <NumberField label="Ziel-pH" unit="pH" value={form.phTarget} onChange={(value) => updateForm('phTarget', value)} hint={selectedProgram?.phGuidance ?? 'typisch 5,7–6,0'} />
                     <NumberField label="Addback-EC" unit="mS/cm" value={form.ecStock} onChange={(value) => updateForm('ecStock', value)} hint="EC der vorgemischten Addback-Lösung" />
                   </div>
-                  <NavButtons onBack={goBack} onNext={goNext} nextLabel={calculating ? 'Berechne...' : 'Dosierung'} disabledNext={calculating} />
                 </V1Section>
               )}
 
-              {step === 4 && (
+              {(
                 <V1Section title="Dosierung">
                   <div className="addback-result-card">
                     {result?.errorMessage ? (
@@ -408,12 +434,10 @@ function AddbackPage() {
                       </div>
                     ))}
                   </div>
-
-                  <NavButtons onBack={goBack} onNext={goNext} nextLabel="Nachmessung" />
                 </V1Section>
               )}
 
-              {step === 5 && (
+              {(
                 <V1Section title="Nachmessung">
                   <div className="addback-form-grid">
                     <NumberField label="EC nach Addback" unit="mS/cm" value={form.ecAfter} onChange={(value) => updateForm('ecAfter', value)} hint="nach Durchmischung messen" />
@@ -422,11 +446,10 @@ function AddbackPage() {
                       <textarea rows={5} value={form.notes} onChange={(event) => updateForm('notes', event.target.value)} placeholder="Beobachtung, Abweichung, Reihenfolge, Reaktion der Pflanzen..." />
                     </V1Field>
                   </div>
-                  <NavButtons onBack={goBack} onNext={goNext} nextLabel="Prüfen" />
                 </V1Section>
               )}
 
-              {step === 6 && (
+              {(
                 <V1Section title="Prüfen & Speichern">
                   <div className="addback-review-grid">
                     <Review label="Grow" value={grow?.name ?? defaults?.growName ?? '–'} />
@@ -437,7 +460,6 @@ function AddbackPage() {
                     <Review label="Addback" value={result?.needsAddback ? `${formatNumber(result.litersToAdd, 2)} L` : '0 L'} />
                   </div>
                   <div className="addback-action-row">
-                    <V1Button variant="secondary" onClick={goBack}>Zurück</V1Button>
                     <V1Button variant="primary" onClick={handleSave} disabled={saving || calculating}>{saving ? 'Speichert...' : 'Addback speichern'}</V1Button>
                   </div>
                   {logs.length > 0 && (
@@ -459,31 +481,6 @@ function AddbackPage() {
         )}
       </div>
     </V1Page>
-  )
-}
-
-function MobileStepper({ step, steps }: { step: AddbackStep; steps: string[] }) {
-  return (
-    <div className="addback-mobile-stepper" data-audit="addback-mobile-stepper" aria-label={`Schritt ${step} von ${steps.length}: ${steps[step - 1]}`}>
-      <div>
-        <span>Schritt {step} / {steps.length}</span>
-        <strong>{steps[step - 1]}</strong>
-      </div>
-      <ol>
-        {steps.map((item, index) => (
-          <li key={item} className={classNames(step === index + 1 && 'active', step > index + 1 && 'done')} aria-label={`${index + 1}. ${item}`} />
-        ))}
-      </ol>
-    </div>
-  )
-}
-
-function NavButtons({ onBack, onNext, nextLabel, disabledNext }: { onBack: () => void; onNext: () => void; nextLabel: string; disabledNext?: boolean }) {
-  return (
-    <div className="addback-action-row">
-      <V1Button variant="secondary" onClick={onBack}>Zurück</V1Button>
-      <V1Button variant="primary" onClick={onNext} disabled={disabledNext}>{nextLabel}</V1Button>
-    </div>
   )
 }
 

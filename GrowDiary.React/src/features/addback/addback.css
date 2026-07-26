@@ -62,3 +62,41 @@
       justify-self: start;
     }
 }
+
+/* Addback als eine Seite: vier Schritte oben statt sechs zum Durchklicken. */
+@layer features {
+  .ab-flow {
+    list-style: none; margin: 0 0 var(--s-3); padding: 0;
+    display: flex; flex-wrap: wrap; overflow: hidden;
+    border: 1px solid var(--hair); border-radius: var(--r-lg); background: var(--panel);
+  }
+  /* Umbrechend: bei 924px zwei pro Zeile, auf dem Telefon einer — nie vier
+     zerquetschte nebeneinander. */
+  .ab-flow-step {
+    flex: 1 1 190px; min-width: 0; padding: 12px 14px;
+    border-left: 1px solid var(--hair); border-top: 1px solid var(--hair);
+    margin: -1px 0 0 -1px;
+  }
+  .ab-flow-head { display: flex; align-items: center; gap: 8px; }
+  .ab-flow-no {
+    display: grid; place-items: center; width: 18px; height: 18px;
+    border: 1px solid var(--hair-2); border-radius: 50%;
+    font-family: var(--font-mono); font-size: 10px; color: var(--faint);
+  }
+  .ab-flow-title { font: 500 10px/1 var(--font-mono); letter-spacing: .18em; color: var(--faint); }
+  .ab-flow-value {
+    margin-top: 9px;
+    font: 500 17px/1.15 var(--font-mono); font-variant-numeric: tabular-nums;
+  }
+  .ab-flow-note { margin-top: 5px; font-size: 12px; color: var(--muted); }
+
+  .ab-flow-step.is-done .ab-flow-no { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+  .ab-flow-step.is-current { background: var(--accent-wash); }
+  .ab-flow-step.is-current .ab-flow-no { border-color: var(--accent); color: var(--accent-text); }
+  .ab-flow-step.is-current .ab-flow-title { color: var(--accent-text); }
+  /* Der Schritt, an dem man steht, trägt die Zahl, um die es geht. */
+  .ab-flow-step.is-current .ab-flow-value { font-size: 21px; }
+
+  /* Der Ablauf in der Seitenspalte ist jetzt Anzeige, kein Knopf. */
+  .addback-rail-step em { display: block; font-style: normal; font-size: 11px; color: var(--muted); }
+}
