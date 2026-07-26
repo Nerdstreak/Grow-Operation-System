@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../api'
+import { matchesSearchTerm } from '../search-fold'
 
 export type SearchHit = { kind: string; title: string; subtitle: string | null; route: string }
 
@@ -25,7 +26,7 @@ export function AppSearch({ pages }: { pages: SearchablePage[] }) {
   const pageHits = useMemo<SearchHit[]>(() => {
     if (term.length < 1) return []
     return pages
-      .filter((page) => `${page.label} ${page.keywords ?? ''}`.toLowerCase().includes(term))
+      .filter((page) => matchesSearchTerm(`${page.label} ${page.keywords ?? ''}`, term))
       .slice(0, 6)
       .map((page) => ({ kind: 'Seite', title: page.label, subtitle: null, route: page.route }))
   }, [pages, term])

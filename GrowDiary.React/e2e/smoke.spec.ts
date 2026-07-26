@@ -11,10 +11,15 @@ const ROUTES: { path: string; name: string }[] = [
   { path: '/aufgaben', name: 'Aufgaben' },
   { path: '/grows', name: 'Grows' },
   { path: '/grows/1', name: 'Grow-Detail' },
-  { path: '/sorten', name: 'Sorten' },
-  { path: '/phenohunt', name: 'Pheno Hunt' },
-  { path: '/analyse', name: 'Vergleich' },
-  { path: '/archiv', name: 'Archiv' },
+  { path: '/sorten', name: 'Sorten & Pheno' },
+  { path: '/sorten?tab=pheno', name: 'Pheno Hunt (Tab)' },
+  { path: '/archiv', name: 'Ernte & Archiv' },
+  { path: '/archiv?tab=vergleich', name: 'Vergleich (Tab)' },
+  { path: '/regeln', name: 'Regeln & Automatik' },
+  { path: '/regeln?tab=grenzwerte', name: 'Grenzwerte (Tab)' },
+  { path: '/regeln?tab=push', name: 'Benachrichtigungen (Tab)' },
+  { path: '/regeln?tab=ki', name: 'KI-Assistent (Tab)' },
+  { path: '/sensoren', name: 'Sensoren & Wartung' },
   { path: '/automatik', name: 'Automatik' },
   { path: '/messungen', name: 'Messungen-Verlauf' },
   { path: '/diagnose', name: 'Diagnose' },
@@ -71,3 +76,40 @@ for (const route of ROUTES) {
     expect(errors, `Unerwartete Fehler auf ${route.path}:\n${errors.join('\n')}`).toEqual([])
   })
 }
+
+// Die alten Pfade stehen in Lesezeichen und in Home-Assistant-Dashboards. Sie muessen
+// auf dem jeweiligen Tab landen statt ins Leere zu laufen. Die Erwartung steht hier
+// bewusst ausgeschrieben und wird nicht aus navigation.ts importiert — sonst pruefte
+// der Test die Tabelle gegen sich selbst.
+const REDIRECTS: [from: string, to: string][] = [
+  ['/automatik', '/regeln'],
+  ['/alarme', '/regeln?tab=grenzwerte'],
+  ['/benachrichtigungen', '/regeln?tab=push'],
+  ['/assistent', '/regeln?tab=ki'],
+  ['/phenohunt', '/sorten?tab=pheno'],
+  ['/analyse', '/archiv?tab=vergleich'],
+  ['/hardware', '/sensoren'],
+  ['/action', '/aufgaben'],
+]
+
+for (const [from, to] of REDIRECTS) {
+  test(`leitet ${from} auf ${to} um`, async ({ page }) => {
+    await page.goto(from, { waitUntil: 'networkidle' })
+    const url = new URL(page.url())
+    expect(url.pathname + url.search).toBe(to)
+  })
+}
+
+test('zeigt die vier Navigationsgruppen und die Kontextleiste', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'networkidle' })
+  await page.setViewportSize({ width: 1440, height: 900 })
+
+  const groups = page.locator('.v1-desktop-nav .v1-nav-group')
+  await expect(groups).toHaveCount(4)
+  for (const label of ['Jetzt', 'Grow', 'Anlage', 'Wissen']) {
+    await expect(page.locator('.v1-nav-group-head', { hasText: label })).toBeVisible()
+  }
+
+  // Zelt und Grow werden einmal fuer die ganze App gewaehlt, nicht pro Seite.
+  await expect(page.locator('[data-audit="context-bar"]')).toBeVisible()
+})
