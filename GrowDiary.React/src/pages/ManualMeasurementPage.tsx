@@ -3,9 +3,11 @@ import type { FormEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import { resolveUrl } from '../base'
-import type { GrowStage, GrowSummary, HydroStyle, MeasurementDto, MeasurementUpsertPayload, PhotoTag, TentDto, TentLivePayload, ValueOrigin } from '../types'
+import type { GrowStage, GrowSummary, HydroStyle, MeasurementDto, MeasurementUpsertPayload, MetricPayload, PhotoTag, TentDto, TentLivePayload, ValueOrigin } from '../types'
 import FileInput from '../components/FileInput'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Skeleton, V1Switch } from '../components/v1'
+import { LiveCheckPanel } from '../features/measurement/LiveCheckPanel'
+import '../features/measurement/measurement-edit.css'
 import { toLocalInputValue } from '../utils'
 
 type NumericKey = Exclude<keyof MeasurementDraft, 'takenAtLocal' | 'stage' | 'source' | 'notes' | 'solutionChange'>
@@ -38,7 +40,8 @@ type MeasurementDraft = {
   co2Ppm: string
 }
 
-type FieldDefinition = { key: NumericKey; label: string; unit: string; hint?: string }
+/** unit darf null sein: pH ist dimensionslos, "pH (pH)" sagt nichts. */
+type FieldDefinition = { key: NumericKey; label: string; unit: string | null; hint?: string }
 
 type PhotoDraft = {
   files: File[]
@@ -57,7 +60,7 @@ const climateFields: FieldDefinition[] = [
 ]
 
 const reservoirFields: FieldDefinition[] = [
-  { key: 'reservoirPh', label: 'pH', unit: 'pH' },
+  { key: 'reservoirPh', label: 'pH', unit: null },
   { key: 'reservoirEc', label: 'EC', unit: 'mS/cm' },
   { key: 'reservoirWaterTempC', label: 'Wassertemp.', unit: '°C' },
   { key: 'reservoirLevelCm', label: 'Wasserstand', unit: 'cm' },
@@ -69,9 +72,9 @@ const reservoirFields: FieldDefinition[] = [
 const irrigationFields: FieldDefinition[] = [
   { key: 'waterAmountMl', label: 'Gießmenge', unit: 'ml' },
   { key: 'runoffAmountMl', label: 'Runoff', unit: 'ml' },
-  { key: 'irrigationPh', label: 'Input pH', unit: 'pH' },
+  { key: 'irrigationPh', label: 'Input pH', unit: null },
   { key: 'irrigationEc', label: 'Input EC', unit: 'mS/cm' },
-  { key: 'drainPh', label: 'Drain pH', unit: 'pH' },
+  { key: 'drainPh', label: 'Drain pH', unit: null },
   { key: 'drainEc', label: 'Drain EC', unit: 'mS/cm' },
   { key: 'topOffLiters', label: 'Top-Off', unit: 'L' },
   { key: 'addbackEc', label: 'Addback EC', unit: 'mS/cm' },
@@ -123,11 +126,16 @@ function ManualMeasurementPage() {
   const [growActionSaving, setGrowActionSaving] = useState<string | null>(null)
   // How many °C the leaf sits below air temperature — configured on the tent, used for VPD.
   const [leafOffset, setLeafOffset] = useState(0)
+  // Die Live-Metriken bringen die Zielbereiche der aktuellen Phase mit. Bisher
+  // wurden sie nur zum Vorbefuellen gelesen und danach weggeworfen — dieselben
+  // Zahlen tragen jetzt die Pruefung neben dem Formular.
+  const [liveMetrics, setLiveMetrics] = useState<MetricPayload[]>([])
 
   // Fetches the tent's current live values and writes the mappable ones into the draft.
   // Returns whether any live value was available at all.
   const pullLive = useCallback(async (tentId: number, overwrite: boolean, signal?: AbortSignal): Promise<boolean> => {
     const live = await apiFetch<TentLivePayload>(`/api/live/tents/${tentId}`, signal ? { signal } : undefined)
+    setLiveMetrics(live.metrics)
     const mappable = live.metrics.some((metric) => LIVE_TO_DRAFT[metric.key] && normalizeLiveValue(metric.value) != null)
     setDraft((current) => {
       const next = { ...current }
@@ -422,6 +430,10 @@ function ManualMeasurementPage() {
                   </V1Field>
                 </div>
               </V1Section>
+            </div>
+
+            <div data-audit="measurement-section-check">
+              <LiveCheckPanel draft={draft as unknown as Record<string, string>} metrics={liveMetrics} />
             </div>
 
             <div data-audit="measurement-section-photo">
