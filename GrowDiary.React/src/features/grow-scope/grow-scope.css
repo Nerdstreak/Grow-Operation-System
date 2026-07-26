@@ -1,0 +1,17 @@
+/* Grow-Arbeitsbereich: zweispaltiges Layout und die Hinweisleiste. */
+@layer features {
+  /* Umbruch statt fixer Nebenspalte — 280px fest neben 1fr hat die Hauptspalte
+     unter 900px zerdrueckt, statt die Nebenspalte umbrechen zu lassen. */
+  .detail-layout { display: flex; flex-wrap: wrap; gap: 22px; align-items: start; }
+  .detail-layout > :first-child { flex: 999 1 420px; min-width: 0; }
+  .detail-layout > :last-child { flex: 1 1 280px; min-width: 0; }
+
+  .alert-bar {
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    padding: 10px 28px; font-size: 13px;
+    background: var(--danger-wash, var(--warn-wash)); border-bottom: 1px solid var(--danger);
+  }
+  .alert-bar strong { color: var(--danger); font-weight: 600; }
+  .alert-bar span { color: var(--muted); }
+  .alert-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--danger); flex-shrink: 0; }
+}

@@ -1,6 +1,7 @@
 import type { SopInstanceDto, SopStepInstanceDto, SopStepInstanceStatus } from '../../types'
 import { formatDateTime } from '../../utils'
 import type { GrowDetailSection } from './grow-detail-model'
+import { V1Badge, V1Button } from '../../components/v1'
 
 type GrowDetailSopSectionProps = {
   activeSection: GrowDetailSection
@@ -46,7 +47,7 @@ export function GrowDetailSopSection({
                     <div className="tl-title">{instance.sopName}</div>
                     <div className="tl-sub">{instance.sopId}</div>
                   </div>
-                  <span className="badge badge-neutral">{instance.sopType}</span>
+                  <V1Badge tone="neutral">{instance.sopType}</V1Badge>
                   <span className={`badge ${instance.status === 'Completed' ? 'badge-ok' : 'badge-neutral'}`}>{instance.status}</span>
                   <div className="tl-sub">
                     {instance.stepCount} Steps &ndash; Start {formatDateTime(instance.startedAtUtc)}
@@ -74,7 +75,7 @@ export function GrowDetailSopSection({
                           <div className="tl-sub" style={{ opacity: 0.6 }}>Task #{step.reminderTaskId}</div>
                         )}
                       </div>
-                      <span className="badge badge-neutral">{step.status}</span>
+                      <V1Badge tone="neutral">{step.status}</V1Badge>
                       <span className="tl-sub">{step.subSopId ? `SubSOP: ${step.subSopId}` : ''}</span>
                       <input
                         value={sopStepNotesById[step.id] ?? ''}
@@ -92,9 +93,9 @@ export function GrowDetailSopSection({
                           <button type="button" className="btn btn-secondary" disabled={saving === `sop-step-${step.id}-InProgress`} onClick={() => onUpdateStep(step, 'InProgress')}>
                             Starten
                           </button>
-                          <button type="button" className="btn" disabled={saving === `sop-step-${step.id}-Done`} onClick={() => onUpdateStep(step, 'Done')}>
+                          <V1Button type="button"  disabled={saving === `sop-step-${step.id}-Done`} onClick={() => onUpdateStep(step, 'Done')}>
                             Erledigt
-                          </button>
+                          </V1Button>
                           <button type="button" className="btn btn-secondary" disabled={saving === `sop-step-${step.id}-Skipped`} onClick={() => onUpdateStep(step, 'Skipped')}>
                             Überspringen
                           </button>

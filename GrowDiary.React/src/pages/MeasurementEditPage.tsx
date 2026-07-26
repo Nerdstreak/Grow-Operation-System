@@ -1,9 +1,11 @@
 import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowDetail, GrowStage, MeasurementDto, MeasurementUpsertPayload, PhotoAssetDto, PhotoTag, ValueOrigin } from '../types'
 import { formatDateTime, toLocalInputValue } from '../utils'
+import { V1Alert, V1Badge, V1Button, V1Empty, V1Field, V1LinkButton, V1Page, V1Section } from '../components/v1'
+import '../features/measurement/measurement-edit.css'
 
 interface MeasurementEditState {
   takenAtLocal: string
@@ -190,144 +192,111 @@ function MeasurementEditPage() {
     }
   }
 
+  const backTo = grow ? `/grows/${grow.id}` : '/'
+
   return (
-    <>
-      <div className="topbar">
-        <div className="topbar-left">
-          <Link className="btn" to={grow ? `/grows/${grow.id}` : '/'}>← Zurück</Link>
-          <span className="topbar-title">{grow?.name ?? 'Messung bearbeiten'}</span>
-        </div>
-        <div className="topbar-right">
-          <button type="button" className="btn btn-danger" disabled={deleting} onClick={() => void handleDelete()}>{deleting ? 'Löscht…' : 'Messung löschen'}</button>
-        </div>
-      </div>
+    <V1Page
+      eyebrow="Messung bearbeiten"
+      title={grow?.name ?? 'Messung'}
+      subtitle={measurement ? `#${measurement.id} · ${formatDateTime(measurement.takenAt)}` : undefined}
+      action={<V1LinkButton to={backTo}>Zurück zum Grow</V1LinkButton>}
+    >
+      {error && <V1Alert title="Fehler" message={error} tone="warn" />}
 
-      <div className="page-scroll">
-        {error && (
-          <div className="alert-bar" style={{ marginBottom: 14, borderRadius: 'var(--radius)' }}>
-            <div className="alert-dot" />
-            <strong>Fehler</strong>
-            <span>{error}</span>
-          </div>
-        )}
+      {loading || !draft || !measurement ? (
+        <V1Empty title="Lade Messung..." />
+      ) : (
+        <div className="meas-edit">
+          <form className="meas-edit__form" onSubmit={handleSubmit}>
+            <V1Section title="Basisdaten">
+              <div className="v1-form-grid">
+                <V1Field label="Zeitpunkt">
+                  <input type="datetime-local" value={draft.takenAtLocal} onChange={(event) => setDraft((current) => current ? { ...current, takenAtLocal: event.target.value } : current)} />
+                </V1Field>
+                <V1Field label="Phase">
+                  <select value={draft.stage} onChange={(event) => setDraft((current) => current ? { ...current, stage: event.target.value as GrowStage } : current)}>
+                    {stageOptions.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
+                  </select>
+                </V1Field>
+                <V1Field label="Quelle">
+                  <select value={draft.source} onChange={(event) => setDraft((current) => current ? { ...current, source: event.target.value as ValueOrigin } : current)}>
+                    {sourceOptions.map((source) => <option key={source} value={source}>{source}</option>)}
+                  </select>
+                </V1Field>
+                <V1Field label="Notiz" wide>
+                  <textarea rows={3} value={draft.notes} onChange={(event) => setDraft((current) => current ? { ...current, notes: event.target.value } : current)} />
+                </V1Field>
+              </div>
+              <label className="meas-edit__check">
+                <input type="checkbox" checked={draft.solutionChange} onChange={(event) => setDraft((current) => current ? { ...current, solutionChange: event.target.checked } : current)} />
+                <span>Lösungswechsel dokumentiert</span>
+              </label>
+            </V1Section>
 
-        {loading || !draft || !measurement ? (
-          <div className="empty-hint">Lade Messung...</div>
-        ) : (
-          <div className="detail-layout">
-            <div>
-              <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
-                <div className="card">
-                  <div className="card-header">
-                    <span className="card-title">Basisdaten</span>
-                    <span className="text-muted" style={{ fontSize: 12 }}>#{measurement.id} · {formatDateTime(measurement.takenAt)}</span>
-                  </div>
-                  <div style={{ padding: '16px 18px', display: 'grid', gap: 14 }}>
-                    <div className="meas-fields">
-                      <label className="meas-field">
-                        <span>Zeitpunkt</span>
-                        <input className="meas-input" type="datetime-local" value={draft.takenAtLocal} onChange={(event) => setDraft((current) => current ? { ...current, takenAtLocal: event.target.value } : current)} />
-                      </label>
-                      <label className="meas-field">
-                        <span>Phase</span>
-                        <select className="meas-input" value={draft.stage} onChange={(event) => setDraft((current) => current ? { ...current, stage: event.target.value as GrowStage } : current)}>
-                          {stageOptions.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
-                        </select>
-                      </label>
-                      <label className="meas-field">
-                        <span>Quelle</span>
-                        <select className="meas-input" value={draft.source} onChange={(event) => setDraft((current) => current ? { ...current, source: event.target.value as ValueOrigin } : current)}>
-                          {sourceOptions.map((source) => <option key={source} value={source}>{source}</option>)}
-                        </select>
-                      </label>
-                    </div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
-                      <input type="checkbox" checked={draft.solutionChange} onChange={(event) => setDraft((current) => current ? { ...current, solutionChange: event.target.checked } : current)} />
-                      <span>Lösungswechsel dokumentiert</span>
-                    </label>
-                    <label className="field">
-                      <span>Notiz</span>
-                      <textarea rows={3} value={draft.notes} onChange={(event) => setDraft((current) => current ? { ...current, notes: event.target.value } : current)} />
-                    </label>
-                  </div>
+            {fieldSections.map((section) => (
+              <V1Section key={section.title} title={section.title}>
+                <div className="v1-form-grid">
+                  {section.fields.map((field) => (
+                    <V1Field key={field.key} label={field.label} hint={field.unit ?? undefined}>
+                      <input
+                        inputMode="decimal"
+                        value={draft[field.key]}
+                        onChange={(event) => setDraft((current) => current ? { ...current, [field.key]: event.target.value } : current)}
+                      />
+                    </V1Field>
+                  ))}
                 </div>
+              </V1Section>
+            ))}
 
-                {fieldSections.map((section) => (
-                  <div key={section.title} className="card">
-                    <div className="card-header">
-                      <span className="card-title">{section.title}</span>
-                    </div>
-                    <div className="meas-fields" style={{ padding: '16px 18px' }}>
-                      {section.fields.map((field) => (
-                        <label key={field.key} className="meas-field">
-                          <span>{field.label}</span>
-                          <div className="meas-field-inner">
-                            <input className="meas-input" value={draft[field.key]} onChange={(event) => setDraft((current) => current ? { ...current, [field.key]: event.target.value } : current)} />
-                            {field.unit && <span className="meas-unit">{field.unit}</span>}
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+            <div className="v1-form-actions">
+              {/* Löschen stand oben in der Kopfzeile, direkt neben „Zurück" — die
+                  gefährlichste Schaltfläche der Seite an der Stelle, an der man
+                  beim Verlassen hinklickt. Sie steht jetzt am Ende, bei den
+                  anderen Entscheidungen über diese Messung. */}
+              <V1Button type="button" variant="danger" disabled={deleting} onClick={() => void handleDelete()}>{deleting ? 'Löscht…' : 'Messung löschen'}</V1Button>
+              <V1LinkButton to={backTo}>Abbrechen</V1LinkButton>
+              <V1Button type="submit" variant="primary" disabled={saving}>{saving ? 'Speichert…' : 'Änderungen speichern'}</V1Button>
+            </div>
+          </form>
 
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                  <Link className="btn" to={grow ? `/grows/${grow.id}` : '/'}>Abbrechen</Link>
-                  <button className="btn btn-primary" disabled={saving}>{saving ? 'Speichert…' : 'Änderungen speichern'}</button>
+          <aside className="meas-edit__aside">
+            <V1Section title="Fotos" action={<V1Badge tone="neutral">{photos.length}</V1Badge>}>
+              {photos.length === 0 ? (
+                <V1Empty title="Noch keine Fotos" text="An dieser Messung hängt bisher kein Bild." />
+              ) : (
+                <div className="meas-edit__photos">
+                  {photos.map((photo) => (
+                    <img key={photo.id} src={photo.relativePath} alt={photo.caption ?? `Foto ${photo.id}`} loading="lazy" />
+                  ))}
                 </div>
+              )}
+
+              <form className="meas-edit__upload" onSubmit={handlePhotoSubmit}>
+                <V1Field label="Dateien">
+                  <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setPhotoForm((current) => ({ ...current, files: Array.from(event.target.files ?? []) }))} />
+                </V1Field>
+                <V1Field label="Art">
+                  <select value={photoForm.photoTag} onChange={(event) => setPhotoForm((current) => ({ ...current, photoTag: event.target.value as PhotoTag }))}>
+                    {photoTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
+                  </select>
+                </V1Field>
+                <V1Field label="Bildunterschrift">
+                  <input value={photoForm.photoCaption} onChange={(event) => setPhotoForm((current) => ({ ...current, photoCaption: event.target.value }))} />
+                </V1Field>
+                <label className="meas-edit__check">
+                  <input type="checkbox" checked={photoForm.useAsReferenceShot} onChange={(event) => setPhotoForm((current) => ({ ...current, useAsReferenceShot: event.target.checked }))} />
+                  <span>Als Referenzshot markieren</span>
+                </label>
+                <V1Button type="submit" variant="primary" disabled={uploading || photoForm.files.length === 0}>
+                  {uploading ? 'Lädt hoch…' : photoForm.files.length > 1 ? `${photoForm.files.length} Fotos hochladen` : 'Foto hochladen'}
+                </V1Button>
               </form>
-            </div>
-
-            <div className="side-panel">
-              <div className="panel-card">
-                <div className="panel-card-header">
-                  <span className="panel-card-title">Vorhandene Fotos</span>
-                  <span className="panel-card-count">{photos.length}</span>
-                </div>
-                {photos.length === 0 ? (
-                  <div className="empty-hint" style={{ padding: 14 }}>Noch keine Fotos an dieser Messung.</div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: 14 }}>
-                    {photos.map((photo) => (
-                      <div key={photo.id} style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-                        <img src={photo.relativePath} alt={photo.caption ?? `Foto ${photo.id}`} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover' }} />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="panel-card">
-                <div className="panel-card-header">
-                  <span className="panel-card-title">Fotos ergänzen</span>
-                </div>
-                <form onSubmit={handlePhotoSubmit} style={{ padding: '12px 14px', display: 'grid', gap: 10 }}>
-                  <label className="field">
-                    <span>Tag</span>
-                    <select value={photoForm.photoTag} onChange={(event) => setPhotoForm((current) => ({ ...current, photoTag: event.target.value as PhotoTag }))}>
-                      {photoTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>Caption</span>
-                    <input value={photoForm.photoCaption} onChange={(event) => setPhotoForm((current) => ({ ...current, photoCaption: event.target.value }))} />
-                  </label>
-                  <label className="field">
-                    <span>Dateien</span>
-                    <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setPhotoForm((current) => ({ ...current, files: Array.from(event.target.files ?? []) }))} />
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
-                    <input type="checkbox" checked={photoForm.useAsReferenceShot} onChange={(event) => setPhotoForm((current) => ({ ...current, useAsReferenceShot: event.target.checked }))} />
-                    <span>Als Referenzshot markieren</span>
-                  </label>
-                  <button className="btn btn-primary" disabled={uploading}>{uploading ? 'Lädt hoch…' : 'Fotos hochladen'}</button>
-                </form>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </>
+            </V1Section>
+          </aside>
+        </div>
+      )}
+    </V1Page>
   )
 }
 

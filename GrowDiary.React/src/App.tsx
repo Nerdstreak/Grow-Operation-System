@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import AddbackHubPage from './pages/AddbackHubPage'
 import AddbackPage from './pages/AddbackPage'
 import { GrowScopedSectionPage } from './pages/GrowScopedSectionPage'
@@ -27,6 +27,26 @@ import { AppShell } from './AppShell'
 import { legacyRedirects } from './navigation'
 import { useAppScope } from './useAppScope'
 import { ArchiveCollectionPage, RulesCollectionPage, StrainsCollectionPage } from './pages/collections'
+
+/**
+ * Weiterleitung, die die Adresszeile nicht halbiert.
+ *
+ * `<Navigate to="/regeln" />` wirft die Suchparameter weg. Für die Grow-Detailseite,
+ * die auf `/automatik?growId=3` verlinkt, hiesse das: richtige Seite, falscher Grow —
+ * und weil die Seite dann einfach den ersten Grow zeigt, sieht das nicht nach einem
+ * Fehler aus. Das Ziel bringt sein eigenes `?tab=` mit, deshalb werden beide
+ * Parametersätze zusammengeführt statt einer überschrieben.
+ */
+function LegacyRedirect({ to }: { to: string }) {
+  const { search } = useLocation()
+  const [path, targetQuery] = to.split('?')
+  const params = new URLSearchParams(targetQuery ?? '')
+  for (const [key, value] of new URLSearchParams(search)) {
+    if (!params.has(key)) params.set(key, value)
+  }
+  const query = params.toString()
+  return <Navigate to={query ? `${path}?${query}` : path} replace />
+}
 
 function App() {
   const { scope, counts } = useAppScope()
@@ -76,7 +96,7 @@ function App() {
 
           {/* Alte Pfade bleiben gueltig — Lesezeichen und Links aus HA-Dashboards. */}
           {Object.entries(legacyRedirects).map(([from, to]) => (
-            <Route key={from} path={from} element={<Navigate to={to} replace />} />
+            <Route key={from} path={from} element={<LegacyRedirect to={to} />} />
           ))}
         </Routes>
     </AppShell>

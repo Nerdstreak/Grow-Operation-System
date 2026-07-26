@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../../api'
 import type { CreateCloneFromMotherRequest, DecideQuarantinePlantRequest, GrowSummary, PlantInstanceDto, SetupDto } from '../../types'
 import { V1Button, V1Field } from '../../components/v1'
+import './plants.css'
 
 type Props = {
   plant: PlantInstanceDto

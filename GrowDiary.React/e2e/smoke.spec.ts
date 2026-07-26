@@ -100,6 +100,23 @@ for (const [from, to] of REDIRECTS) {
   })
 }
 
+test('nimmt die Suchparameter mit über die Weiterleitung', async ({ page }) => {
+  // Die Grow-Detailseite verlinkt auf /automatik?growId=3. Ginge growId dabei
+  // verloren, zeigte /regeln einfach den ersten Grow — das sieht nicht nach einem
+  // Fehler aus und ist genau deshalb einer.
+  await page.goto('/automatik?growId=3', { waitUntil: 'networkidle' })
+  const url = new URL(page.url())
+  expect(url.pathname).toBe('/regeln')
+  expect(url.searchParams.get('growId')).toBe('3')
+})
+
+test('lässt das Tab-Ziel der Weiterleitung gewinnen', async ({ page }) => {
+  await page.goto('/alarme?growId=3', { waitUntil: 'networkidle' })
+  const url = new URL(page.url())
+  expect(url.searchParams.get('tab')).toBe('grenzwerte')
+  expect(url.searchParams.get('growId')).toBe('3')
+})
+
 test('zeigt die vier Navigationsgruppen und die Kontextleiste', async ({ page }) => {
   await page.goto('/', { waitUntil: 'networkidle' })
   await page.setViewportSize({ width: 1440, height: 900 })

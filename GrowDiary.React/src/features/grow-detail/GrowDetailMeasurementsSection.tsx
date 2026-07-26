@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import type { MeasurementDto } from '../../types'
 import { formatDateTime, formatNumber } from '../../utils'
 import type { GrowDetailSection, MeasurementFormState } from './grow-detail-model'
+import { V1Button } from '../../components/v1'
+import './grow-detail-legacy.css'
 
 type GrowDetailMeasurementsSectionProps = {
   activeSection: GrowDetailSection
@@ -117,7 +119,7 @@ export function GrowDetailMeasurementsSection({
             <label>Notiz</label>
             <textarea value={measurementForm.notes} onChange={(event) => onMeasurementFormChange({ notes: event.target.value })} rows={2} placeholder="Zustand, Auffälligkeiten, Korrekturen..." />
           </div>
-          <button className="btn btn-primary" disabled={saving === 'measurement'}>{saving === 'measurement' ? 'Speichert...' : 'Messung speichern'}</button>
+          <V1Button variant="primary" disabled={saving === 'measurement'}>{saving === 'measurement' ? 'Speichert...' : 'Messung speichern'}</V1Button>
         </form>
       </div>
     </>

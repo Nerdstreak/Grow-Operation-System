@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import '../features/grow-detail/growdetail-instrument.css'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { formatDate, formatDateTime } from '../utils'
 import { GrowDetailOverviewHero } from '../features/grow-detail/GrowDetailOverviewHero'
 import { useGrowDetailBundle } from '../features/grow-detail/useGrowDetailBundle'
@@ -10,6 +10,7 @@ import {
   formatGrowRuntime,
   formatGrowStatus,
 } from '../features/grow-detail/grow-detail-model'
+import { V1Alert, V1Badge, V1Button, V1Empty, V1LinkButton, V1Page, V1Section } from '../components/v1'
 
 const noop = async () => {}
 
@@ -58,21 +59,17 @@ function GrowDetailPage() {
 
   if (loading) {
     return (
-      <>
-        <div className="topbar"><span className="topbar-title">Grow-Detail</span></div>
-        <div className="page-scroll"><div className="empty-hint">Lade Daten...</div></div>
-      </>
+      <V1Page eyebrow="Grow" title="Lade Daten...">
+        <V1Empty title="Einen Moment" />
+      </V1Page>
     )
   }
 
   if (!bundle.grow) {
     return (
-      <>
-        <div className="topbar"><Link className="btn" to="/grows">Zurück</Link></div>
-        <div className="page-scroll">
-          <div className="empty-hint" style={{ color: 'var(--red)' }}>{error ?? 'Grow nicht gefunden.'}</div>
-        </div>
-      </>
+      <V1Page eyebrow="Grow" title="Nicht gefunden" action={<V1LinkButton to="/grows">Zu den Grows</V1LinkButton>}>
+        <V1Alert title="Fehler" message={error ?? 'Diesen Grow gibt es nicht (mehr).'} tone="warn" />
+      </V1Page>
     )
   }
 
@@ -81,60 +78,51 @@ function GrowDetailPage() {
   const scope = `?growId=${grow.id}`
   const canArchiveGrow = grow.status === 'Planning' || grow.status === 'Running'
 
+  const statusTone = grow.status === 'Running' ? 'ok' : grow.status === 'Planning' ? 'warn' : 'neutral'
+
   return (
     <div className="ix-growdetail">
-      <div className="topbar">
-        <div className="topbar-left">
-          <Link className="btn" to="/grows">Zurück</Link>
-        </div>
-        <div className="topbar-right">
-          <span className={`badge ${grow.status === 'Running' ? 'badge-ok' : grow.status === 'Planning' ? 'badge-warn' : 'badge-neutral'}`}>{grow.status}</span>
-          <div className="grow-management-actions" data-audit="grow-management-actions">
-            <Link className="btn btn-primary" to={`/grows/${grow.id}/setup`}>Bearbeiten</Link>
-            <button type="button" className="btn" disabled={Boolean(saving) || !canArchiveGrow} onClick={() => void archiveGrow()}>
+      <V1Page
+        eyebrow={`${grow.strain ?? 'Sorte offen'} · ${grow.breeder ?? 'Breeder offen'}`}
+        title={grow.name}
+        action={(
+          <div className="v1-action-row" data-audit="grow-management-actions">
+            <V1Badge tone={statusTone}>{formatGrowStatus(grow.status)}</V1Badge>
+            <V1LinkButton to={`/grows/${grow.id}/setup`} variant="primary">Bearbeiten</V1LinkButton>
+            <V1Button disabled={Boolean(saving) || !canArchiveGrow} onClick={() => void archiveGrow()}>
               {saving === 'grow-archive' ? 'Beendet...' : canArchiveGrow ? 'Beenden' : 'Beendet'}
-            </button>
-            <button type="button" className="btn" disabled={Boolean(saving)} onClick={() => void deleteGrow()}>
+            </V1Button>
+            <V1Button variant="danger" disabled={Boolean(saving)} onClick={() => void deleteGrow()}>
               {saving === 'grow-delete' ? 'Löscht...' : 'Löschen'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="page-scroll grow-detail-page" data-audit="grow-detail">
-        {error && (
-          <div className="alert-bar" style={{ marginBottom: 14, borderRadius: 'var(--radius)' }}>
-            <div className="alert-dot" />
-            <strong>Fehler</strong>
-            <span>{error}</span>
+            </V1Button>
           </div>
         )}
-        {notice && (
-          <div className="alert-bar" style={{ marginBottom: 14, borderRadius: 'var(--radius)', background: 'var(--green-bg)', borderColor: 'var(--green)' }}>
-            <div className="alert-dot" style={{ background: 'var(--green)' }} />
-            <strong style={{ color: 'var(--green)' }}>Info</strong>
-            <span>{notice}</span>
-          </div>
-        )}
+        className="grow-detail-page"
+      >
+        {error && <V1Alert title="Fehler" message={error} tone="warn" />}
+        {notice && <V1Alert message={notice} tone="ok" />}
 
-        <section className="grow-detail-mobile-summary" data-audit="grow-detail-summary">
-          <div className="grow-detail-mobile-head">
-            <div>
-              <span className="section-label">Grow</span>
-              <h1>{grow.name}</h1>
-              <p>{grow.strain ?? 'Sorte offen'} · {grow.breeder ?? 'Breeder offen'}</p>
-            </div>
-            <span className={`badge ${grow.status === 'Running' ? 'badge-ok' : grow.status === 'Planning' ? 'badge-warn' : 'badge-neutral'}`}>{formatGrowStatus(grow.status)}</span>
+        {/* Name, Sorte und Status standen bis hier dreimal auf der Seite: in der
+            Kopfzeile, in der Mobil-Zusammenfassung und noch einmal im Hero. Sie
+            stehen jetzt einmal oben; was bleibt, sind die Fakten, die sie nicht
+            wiederholen. */}
+        <V1Section title="Auf einen Blick">
+          <div className="v1-list" data-audit="grow-detail-summary">
+            {([
+              ['Phase', grow.latestMeasurement?.stage ?? grow.entryPoint ?? '–'],
+              ['Zelt', grow.tentName ?? 'ohne Zelt'],
+              ['Hydro / Medium', formatGrowHydroMedium(grow)],
+              ['Start', `${formatDate(grow.startDate)} · ${formatGrowRuntime(grow.startDate)}`],
+              ['Letzte Messung', grow.latestMeasurement ? formatDateTime(grow.latestMeasurement.takenAt) : '–'],
+              ['Messungen', String(bundle.measurements.length)],
+            ] as Array<[string, string]>).map(([label, value]) => (
+              <div key={label} className="v1-list-row">
+                <span>{label}</span>
+                <strong>{value}</strong>
+              </div>
+            ))}
           </div>
-          <dl className="grow-detail-mobile-facts">
-            <div><dt>Phase</dt><dd>{grow.latestMeasurement?.stage ?? grow.entryPoint ?? '–'}</dd></div>
-            <div><dt>Zelt</dt><dd>{grow.tentName ?? 'ohne Zelt'}</dd></div>
-            <div><dt>Hydro / Medium</dt><dd>{formatGrowHydroMedium(grow)}</dd></div>
-            <div><dt>Start</dt><dd>{formatDate(grow.startDate)} · {formatGrowRuntime(grow.startDate)}</dd></div>
-            <div><dt>Letzte Messung</dt><dd>{grow.latestMeasurement ? formatDateTime(grow.latestMeasurement.takenAt) : '–'}</dd></div>
-            <div><dt>Messungen</dt><dd>{bundle.measurements.length}</dd></div>
-          </dl>
-        </section>
+        </V1Section>
 
         <GrowDetailOverviewHero
           grow={grow}
@@ -143,17 +131,16 @@ function GrowDetailPage() {
           openTaskCount={openTasks.length}
         />
 
-        {/* Jump into this grow's own pages, pre-selected. Lives outside the mobile-only
-            summary so it is reachable on desktop too. */}
-        <div className="section-label" style={{ marginTop: 18 }}>Zu diesem Grow</div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link className="btn" to={`/messungen${scope}`}>Messungen</Link>
-          <Link className="btn" to={`/diagnose${scope}`}>Diagnose</Link>
-          <Link className="btn" to={`/journal${scope}`}>Journal &amp; Fotos</Link>
-          <Link className="btn" to={`/sops${scope}`}>SOPs</Link>
-          <Link className="btn" to={`/automatik${scope}`}>Automatik</Link>
-        </div>
-      </div>
+        <V1Section title="Zu diesem Grow">
+          <div className="v1-action-row">
+            <V1LinkButton to={`/messungen${scope}`}>Messungen</V1LinkButton>
+            <V1LinkButton to={`/diagnose${scope}`}>Diagnose</V1LinkButton>
+            <V1LinkButton to={`/journal${scope}`}>Journal &amp; Fotos</V1LinkButton>
+            <V1LinkButton to={`/sops${scope}`}>SOPs</V1LinkButton>
+            <V1LinkButton to={`/regeln${scope}&tab=automatik`}>Automatik</V1LinkButton>
+          </div>
+        </V1Section>
+      </V1Page>
     </div>
   )
 }

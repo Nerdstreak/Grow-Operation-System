@@ -11,6 +11,7 @@ import { useGrowDetailBundle } from '../grow-detail/useGrowDetailBundle'
 import { useGrowDetailMutations } from '../grow-detail/useGrowDetailMutations'
 import { useGrowDetailResources } from '../grow-detail/useGrowDetailResources'
 import type { GrowDetailSection } from '../grow-detail/grow-detail-model'
+import './grow-scope.css'
 
 // The full grow-detail wiring (all the hooks that used to power the grow's tabs),
 // rendering exactly ONE section. Each top-level grow-scoped page hosts one of these,

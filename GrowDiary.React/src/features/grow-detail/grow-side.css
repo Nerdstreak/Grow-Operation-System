@@ -1,0 +1,37 @@
+/* Seitenspalte der Grow-Detailseite. */
+@layer features {
+  .grow-side { display: grid; gap: var(--s-3); align-content: start; }
+  .grow-side-form { display: grid; gap: var(--s-2); }
+
+  .grow-tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .grow-tasks li { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; }
+  .grow-tasks li > div { min-width: 0; }
+  .grow-tasks strong { display: block; font-weight: 500; font-size: 14px; }
+  .grow-tasks span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+  .grow-tasks.done { margin-top: var(--s-2); padding-top: var(--s-2); border-top: 1px solid var(--hair); opacity: .55; }
+  .grow-tasks.done strong { text-decoration: line-through; }
+
+  /* Abhaken ist die häufigste Handlung hier. Der Kreis ist 24px, die Trefferfläche
+     über das ::after-Pseudoelement 44px — groß genug für den Daumen, ohne dass die
+     Liste auseinanderfällt. */
+  .grow-task-check {
+    flex: 0 0 auto; position: relative;
+    width: 24px; height: 24px; margin: 0;
+    border: 1px solid var(--hair-2); border-radius: 50%;
+    background: transparent; cursor: pointer;
+  }
+  .grow-task-check::after { content: ""; position: absolute; inset: -10px; }
+  .grow-task-check:hover { border-color: var(--accent); }
+  .grow-task-check.done { background: var(--accent); border-color: var(--accent); }
+  .grow-task-check:disabled { opacity: .5; cursor: default; }
+
+  .grow-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: var(--s-3); }
+  .grow-photos img {
+    width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block;
+    border: 1px solid var(--hair); border-radius: var(--r);
+  }
+
+  /* Kopf der Übersicht: der Name steht in der Seitenüberschrift, hier nur der Rest. */
+  .grow-hero { display: grid; gap: var(--s-3); }
+  .grow-hero-sub { margin: 0; color: var(--muted); font-size: 14px; }
+}

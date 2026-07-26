@@ -3,6 +3,7 @@ import { apiFetch, ApiRequestError } from '../../api'
 import type { ChangeoutDto, ChangeoutKind, CreateChangeoutRequest } from '../../types'
 import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1Section } from '../../components/v1'
 import { formatDateTime, formatNumber } from '../../utils'
+import './changeouts.css'
 
 type FormState = {
   kind: ChangeoutKind

@@ -1,0 +1,5 @@
+/* Home-Assistant-Seite: Entity-Liste und Layout. */
+@layer features {
+  .v1-ha-layout { display: grid; gap: 14px; }
+  .v1-entity-list { display: grid; gap: 10px; margin-top: 14px; }
+}

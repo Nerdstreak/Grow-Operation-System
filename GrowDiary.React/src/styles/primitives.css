@@ -281,4 +281,53 @@
   @media (max-width: 420px) {
     .v1-metric-grid.compact { grid-template-columns: 1fr; }
   }
+
+  /* ---------- Reste des alten Systems ----------
+     .btn/.badge/.section-label heissen nicht .v1-*, verhalten sich aber wie
+     Primitive und werden noch von einigen Seiten benutzt. Sie stehen hier statt
+     in einer Sammeldatei, damit sie dieselben Tokens benutzen wie alles andere —
+     und verschwinden, sobald die letzte Seite auf V1Button/V1Badge umgestellt ist. */
+  .btn-primary {
+    min-height: 44px; padding: 0 18px;
+    border: none; border-radius: 7px;
+    background: var(--accent); color: var(--accent-ink);
+    font-size: 15px; font-weight: 700;
+  }
+  .btn-primary:hover { opacity: .88; color: var(--accent-ink); }
+  .section-tabs .btn:not(.btn-primary):hover { background: var(--panel-2); border-color: var(--hair); }
+  /* Der aktive Tab hatte seinen Hintergrund an die spezifischere Regel
+     `.section-tabs .btn` verloren. */
+  .section-tabs .btn.btn-primary { background: var(--accent); color: var(--accent-ink); }
+
+  .badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 24px; padding: 3px 9px;
+    border: 1px solid transparent; border-radius: 999px;
+    font-size: 12px; font-weight: 650;
+  }
+  .badge-neutral { background: var(--panel-2); color: var(--muted); }
+
+  .section-label {
+    margin: 24px 0 12px;
+    font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--faint);
+  }
+  .section-label:first-child { margin-top: 0; }
+  .card-title { font-family: var(--font-mono); letter-spacing: 0.14em; }
+  .live-dashboard .section-label { margin-top: 4px; }
+
+  .data-table-header { display: grid; padding: 10px 16px; border-bottom: 1px solid var(--hair); background: var(--panel-2); }
+  .data-table-header span { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); }
+  .data-row { display: grid; padding: 12px 16px; border-bottom: 1px solid var(--hair); align-items: center; }
+  .data-row:last-child { border-bottom: none; }
+  .data-row:hover { background: var(--panel-2); }
+
+  .topbar-left, .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .tents-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+
+  @media (max-width: 680px) {
+    .topbar-left, .topbar-right { flex-wrap: wrap; }
+    .measurement-layout, .ops-layout, .settings-layout, .two-col-grid { grid-template-columns: 1fr; }
+    .field label, .settings-section-label { overflow-wrap: anywhere; hyphens: auto; }
+  }
 }

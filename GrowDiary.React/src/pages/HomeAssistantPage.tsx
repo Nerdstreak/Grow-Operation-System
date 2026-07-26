@@ -6,6 +6,7 @@ import type { HomeAssistantEntity, HomeAssistantSettingsDto, SensorMetricType, S
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch, V1Tabs } from '../components/v1'
 import { toNullableString } from '../components/v1-utils'
 import { resolveUrl } from '../base'
+import '../features/home-assistant/home-assistant.css'
 
 type GroupKey = 'tent' | 'reservoir' | 'hardware'
 type SensorDraft = { metricType: SensorMetricType; haEntityId: string; displayLabel: string; isActive: boolean }

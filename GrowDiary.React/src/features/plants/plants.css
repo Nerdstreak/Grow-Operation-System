@@ -1,0 +1,15 @@
+/* Pflanzenliste und ihre Aktionen (Zelt-Detail). */
+@layer features {
+  .plant-entry { display: grid; gap: 8px; padding: 10px 0; border-top: 1px solid var(--hair); }
+  .plant-entry:first-child { border-top: 0; }
+  .plant-actions { display: grid; gap: 10px; }
+  .plant-actions-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+  .plant-action-form {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end;
+    padding: 12px; border: 1px solid var(--hair); border-radius: 12px; background: var(--panel-2);
+  }
+  .plant-row { display: grid; gap: 2px; }
+  .plant-row strong { font-size: 14px; font-weight: 600; }
+  .plant-row span { color: var(--muted); font-size: 12.5px; }
+  .plant-row em { font-style: normal; font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.08em; }
+}

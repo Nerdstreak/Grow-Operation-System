@@ -16,9 +16,6 @@
 @import './styles/primitives.css';
 @import './styles/shell.css';
 
-/* Seiten, die noch nicht auf den Primitiven stehen. Löst sich mit Phase 6 auf. */
-@import './styles/95-legacy-pages.css';
-
 /* ---- ABBAU (Phase 4) ---- */
 @import './styles/10-grow-wizard-legacy.css';
 @import './styles/20-settings.css';

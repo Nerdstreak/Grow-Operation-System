@@ -2,6 +2,8 @@ import type { FormEvent } from 'react'
 import type { GrowDetail, GrowTaskDto, MeasurementDto, PhotoAssetDto, PhotoTag } from '../../types'
 import { formatDate, formatDateTime, formatSeverityLabel } from '../../utils'
 import { formatGrowHydroMedium, photoTags, type JournalFormState, type PhotoFormState, type TaskFormState } from './grow-detail-model'
+import { V1Badge, V1Button, V1Empty, V1Field, V1Section } from '../../components/v1'
+import './grow-side.css'
 
 type GrowDetailJournalPanelProps = {
   grow: GrowDetail
@@ -47,138 +49,133 @@ export function GrowDetailJournalPanel({
   onPhotoSubmit,
 }: GrowDetailJournalPanelProps) {
   return (
-    <div className="side-panel">
-      <div className="panel-card">
-        <div className="panel-card-header">
-          <span className="panel-card-title">Offene Tasks</span>
-          <span className="panel-card-count">{openTasks.length}</span>
-        </div>
+    <div className="grow-side">
+      <V1Section title="Offene Aufgaben" action={<V1Badge tone={openTasks.length > 0 ? 'warn' : 'ok'}>{openTasks.length}</V1Badge>}>
         {openTasks.length === 0 ? (
-          <div style={{ padding: '14px', fontSize: '12px', color: 'var(--faint)' }}>Keine offenen Tasks.</div>
+          <V1Empty title="Nichts offen" />
         ) : (
-          openTasks.map((task) => (
-            <div key={task.id} className="task-item">
-              <button
-                type="button"
-                className="task-check"
-                disabled={saving === `task-status-${task.id}`}
-                onClick={() => onTaskStatusChange(task.id, 'Done')}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="task-title">{task.title}</div>
-                {task.dueAtUtc && <div className="task-sub">fällig {formatDate(task.dueAtUtc)}</div>}
-              </div>
-            </div>
-          ))
-        )}
-        {closedTasks.length > 0 && (
-          <div style={{ borderTop: '1px solid var(--border)', padding: '8px 14px' }}>
-            {closedTasks.slice(0, 5).map((task) => (
-              <div key={task.id} className="task-item" style={{ opacity: 0.5 }}>
-                <button type="button" className="task-check done" disabled={saving === `task-status-${task.id}`} onClick={() => onTaskStatusChange(task.id, 'Open')} />
-                <div className="task-title" style={{ textDecoration: 'line-through' }}>{task.title}</div>
-              </div>
+          <ul className="grow-tasks">
+            {openTasks.map((task) => (
+              <li key={task.id}>
+                <button
+                  type="button"
+                  className="grow-task-check"
+                  aria-label={`${task.title} erledigt`}
+                  disabled={saving === `task-status-${task.id}`}
+                  onClick={() => onTaskStatusChange(task.id, 'Done')}
+                />
+                <div>
+                  <strong>{task.title}</strong>
+                  {task.dueAtUtc && <span>fällig {formatDate(task.dueAtUtc)}</span>}
+                </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-      </div>
 
-      <div className="panel-card">
-        <div className="panel-card-header"><span className="panel-card-title">Grow-Info</span></div>
-        <div style={{ padding: '12px 14px', fontSize: 13, display: 'grid', gap: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Start</span><span>{formatDate(grow.startDate)}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Medium</span><span>{grow.mediumType}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Hydro-Setup</span><span>{formatGrowHydroMedium(grow)}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Wasser</span><span>{grow.waterSource}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Licht</span><span>{grow.light ?? '—'}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Reservoir</span><span>{grow.reservoirSize ?? '—'}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="text-muted">Nährstoffe</span><span>{grow.nutrients ?? '—'}</span></div>
+        {closedTasks.length > 0 && (
+          <ul className="grow-tasks done">
+            {closedTasks.slice(0, 5).map((task) => (
+              <li key={task.id}>
+                <button
+                  type="button"
+                  className="grow-task-check done"
+                  aria-label={`${task.title} wieder öffnen`}
+                  disabled={saving === `task-status-${task.id}`}
+                  onClick={() => onTaskStatusChange(task.id, 'Open')}
+                />
+                <div><strong>{task.title}</strong></div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </V1Section>
+
+      <V1Section title="Grow-Info">
+        <div className="v1-list">
+          {([
+            ['Start', formatDate(grow.startDate)],
+            ['Medium', grow.mediumType],
+            ['Hydro-Setup', formatGrowHydroMedium(grow)],
+            ['Wasser', grow.waterSource],
+            ['Licht', grow.light ?? '—'],
+            ['Reservoir', grow.reservoirSize ?? '—'],
+            ['Nährstoffe', grow.nutrients ?? '—'],
+          ] as Array<[string, string]>).map(([label, value]) => (
+            <div key={label} className="v1-list-row">
+              <span>{label}</span>
+              <strong>{value}</strong>
+            </div>
+          ))}
         </div>
-      </div>
+      </V1Section>
 
-      <div className="panel-card">
-        <div className="panel-card-header"><span className="panel-card-title">Journal-Eintrag</span></div>
-        <form onSubmit={onJournalSubmit} style={{ padding: '12px 14px', display: 'grid', gap: 10 }}>
-          <div className="field">
-            <label>Titel</label>
+      <V1Section title="Journal-Eintrag">
+        <form className="grow-side-form" onSubmit={onJournalSubmit}>
+          <V1Field label="Titel">
             <input value={journalForm.title} onChange={(event) => onJournalFormChange({ title: event.target.value })} placeholder="Heute deutlich mehr Durst" />
-          </div>
-          <div className="field">
-            <label>Typ</label>
+          </V1Field>
+          <V1Field label="Typ">
             <select value={journalForm.entryType} onChange={(event) => onJournalFormChange({ entryType: event.target.value })}>
               <option>Observation</option><option>Action</option><option>Problem</option><option>Solution</option><option>Training</option><option>Feeding</option><option>ReservoirChange</option>
             </select>
-          </div>
-          <div className="field">
-            <label>Eintrag</label>
+          </V1Field>
+          <V1Field label="Eintrag">
             <textarea value={journalForm.body} onChange={(event) => onJournalFormChange({ body: event.target.value })} rows={3} placeholder="Was ist passiert?" />
-          </div>
-          <button className="btn btn-primary" disabled={saving === 'journal'}>{saving === 'journal' ? 'Speichert...' : 'Journal speichern'}</button>
+          </V1Field>
+          <V1Button type="submit" variant="primary" disabled={saving === 'journal'}>{saving === 'journal' ? 'Speichert...' : 'Journal speichern'}</V1Button>
         </form>
-      </div>
+      </V1Section>
 
-      <div className="panel-card">
-        <div className="panel-card-header"><span className="panel-card-title">Task anlegen</span></div>
-        <form onSubmit={onTaskSubmit} style={{ padding: '12px 14px', display: 'grid', gap: 10 }}>
-          <div className="field">
-            <label>Titel</label>
+      <V1Section title="Aufgabe anlegen">
+        <form className="grow-side-form" onSubmit={onTaskSubmit}>
+          <V1Field label="Titel">
             <input value={taskForm.title} onChange={(event) => onTaskFormChange({ title: event.target.value })} placeholder="z. B. EC nach Addback prüfen" />
-          </div>
-          <div className="field">
-            <label>Prioritaet</label>
+          </V1Field>
+          <V1Field label="Priorität">
             <select value={taskForm.priority} onChange={(event) => onTaskFormChange({ priority: event.target.value })}>
               <option value="Low">{formatSeverityLabel('Low')}</option><option value="Normal">{formatSeverityLabel('Normal')}</option><option value="High">{formatSeverityLabel('High')}</option><option value="Critical">{formatSeverityLabel('Critical')}</option>
             </select>
-          </div>
-          <div className="field">
-            <label>Faellig</label>
+          </V1Field>
+          <V1Field label="Fällig">
             <input type="datetime-local" value={taskForm.dueAtLocal} onChange={(event) => onTaskFormChange({ dueAtLocal: event.target.value })} />
-          </div>
-          <button className="btn btn-primary" disabled={saving === 'task'}>{saving === 'task' ? 'Speichert...' : 'Task speichern'}</button>
+          </V1Field>
+          <V1Button type="submit" variant="primary" disabled={saving === 'task'}>{saving === 'task' ? 'Speichert...' : 'Aufgabe speichern'}</V1Button>
         </form>
-      </div>
+      </V1Section>
 
-      <div className="panel-card">
-        <div className="panel-card-header">
-          <span className="panel-card-title">Fotos</span>
-          <span className="panel-card-count">{photoLoading ? '...' : photos.length}</span>
-        </div>
-        <form onSubmit={onPhotoSubmit} style={{ padding: '12px 14px', display: 'grid', gap: 10 }}>
-          <div className="field">
-            <label>Messung</label>
+      <V1Section title="Fotos" action={<V1Badge tone="neutral">{photoLoading ? '…' : photos.length}</V1Badge>}>
+        <form className="grow-side-form" onSubmit={onPhotoSubmit}>
+          <V1Field label="Messung" hint={measurements.length === 0 ? 'Fotos hängen an einer Messung — leg zuerst eine an.' : undefined}>
             <select value={selectedMeasurementId ?? ''} onChange={(event) => onMeasurementSelection(event.target.value ? parseInt(event.target.value, 10) : null)} disabled={measurements.length === 0}>
               {measurements.length === 0 ? <option value="">Keine Messungen</option> : null}
               {measurements.map((measurement) => (
                 <option key={measurement.id} value={measurement.id}>#{measurement.id} · {measurement.stage} · {formatDateTime(measurement.takenAt)}</option>
               ))}
             </select>
-          </div>
-          <div className="field">
-            <label>Tag</label>
+          </V1Field>
+          <V1Field label="Art">
             <select value={photoForm.photoTag} onChange={(event) => onPhotoFormChange({ photoTag: event.target.value as PhotoTag })}>
               {photoTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
             </select>
-          </div>
-          <div className="field">
-            <label>Caption</label>
+          </V1Field>
+          <V1Field label="Bildunterschrift">
             <input value={photoForm.photoCaption} onChange={(event) => onPhotoFormChange({ photoCaption: event.target.value })} />
-          </div>
-          <div className="field">
-            <label>Dateien</label>
+          </V1Field>
+          <V1Field label="Dateien">
             <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => onPhotoFormChange({ files: Array.from(event.target.files ?? []) })} />
-          </div>
-          <button className="btn btn-primary" disabled={saving === 'photo' || measurements.length === 0}>{saving === 'photo' ? 'Lädt hoch...' : 'Fotos hochladen'}</button>
+          </V1Field>
+          <V1Button type="submit" variant="primary" disabled={saving === 'photo' || measurements.length === 0}>{saving === 'photo' ? 'Lädt hoch...' : 'Fotos hochladen'}</V1Button>
         </form>
+
         {photos.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 14px 14px' }}>
+          <div className="grow-photos">
             {photos.map((photo) => (
-              <div key={photo.id} style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
-                <img src={photo.relativePath} alt={photo.caption ?? `Foto ${photo.id}`} loading="lazy" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
-              </div>
+              <img key={photo.id} src={photo.relativePath} alt={photo.caption ?? `Foto ${photo.id}`} loading="lazy" />
             ))}
           </div>
         )}
-      </div>
+      </V1Section>
     </div>
   )
 }

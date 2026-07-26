@@ -1,0 +1,109 @@
+/* Grow-Detail: Bausteine, die noch eigenes Markup mitbringen.
+
+   Zeitachse, Messfelder, Stabilitätstabelle und der SOP-Setup-Block. Sie kamen
+   aus 00-base.css und lagen zwischenzeitlich in einer Sammeldatei; hier stehen
+   sie bei der Seite, die sie benutzt. Wer einen dieser Blöcke auf V1Section hebt,
+   löscht seinen Abschnitt gleich mit. */
+@layer features {
+
+  /* ---------- Panel-Karten (Journal, Messungen) ---------- */
+  .panel-card { background: var(--panel); border: 1px solid var(--hair); border-radius: var(--r-lg); overflow: hidden; }
+  .panel-card-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 13px 15px; border-bottom: 1px solid var(--hair); background: var(--panel-2);
+  }
+  .panel-card-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .panel-card-count { font-size: 13px; color: var(--faint); background: var(--panel-2); padding: 2px 8px; border-radius: 999px; }
+  .side-panel { display: flex; flex-direction: column; gap: 14px; }
+  .tents-grid .panel-card,
+  .wissen-detail .panel-card { min-height: 100%; }
+
+  /* ---------- Aufgabenliste ---------- */
+  .task-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--hair); min-width: 0; }
+  .task-item:last-child { border-bottom: none; }
+  .task-item:hover { background: var(--panel-2); }
+  .task-title { font-size: 14px; font-weight: 500; }
+  .task-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .task-check {
+    width: 24px; height: 24px; flex-shrink: 0; padding: 0;
+    border: 1px solid var(--hair-2); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; color: inherit; cursor: pointer;
+  }
+  .task-check:hover { border-color: var(--accent); }
+  .task-check.done { background: var(--accent); border-color: var(--accent); }
+
+  /* ---------- Zeitachse ---------- */
+  .timeline-item { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--hair); }
+  .timeline-item:last-child { border-bottom: none; }
+  .tl-dot-col { display: flex; flex-direction: column; align-items: center; padding-top: 3px; }
+  .tl-dot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--hair-2); background: var(--panel-2); flex-shrink: 0; }
+  .tl-dot.measurement { background: var(--accent); border-color: var(--accent); }
+  .tl-dot.journal { background: var(--info); border-color: var(--info); }
+  .tl-dot.task { background: var(--warn); border-color: var(--warn); }
+  .tl-line { flex: 1; width: 1px; background: var(--hair); margin-top: 4px; }
+  .tl-time { font-size: 12px; color: var(--faint); white-space: nowrap; font-family: var(--font-mono); }
+
+  /* ---------- Messfelder ---------- */
+  .meas-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .meas-field { display: grid; gap: 6px; }
+  .meas-field label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .meas-field-inner { position: relative; }
+  .meas-input {
+    width: 100%; min-height: 44px; padding: 12px 14px;
+    border: 1.5px solid var(--hair); border-radius: 8px;
+    background: var(--panel-2); color: var(--ink);
+    font-family: var(--font-mono); font-size: 22px; font-weight: 600;
+    outline: none;
+  }
+  .meas-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+  .meas-input.ok { border-color: var(--accent); }
+  .meas-input.warn { border-color: var(--warn); }
+  .meas-unit {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    font-family: var(--font-mono); font-size: 12px; color: var(--faint); pointer-events: none;
+  }
+
+  /* ---------- Kennzahlen im Kopf ---------- */
+  .grow-kpi { min-width: 0; padding: 14px 16px; background: var(--panel); }
+  .grow-kpi-label { margin-top: 3px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* ---------- SOP-Setup: die Fragen vor einer verzweigten Prozedur ---------- */
+  .sop-setup { padding: 4px 16px 16px; display: grid; gap: 10px; background: var(--panel-2); }
+  .sop-setup-field { display: grid; gap: 4px; font-size: 13px; }
+  .sop-setup-field > span { color: var(--muted); }
+  .sop-setup-field select,
+  .sop-setup-field input {
+    padding: 8px 10px; border: 1px solid var(--hair); border-radius: 10px;
+    background: var(--panel-2); color: inherit; font: inherit; font-size: 14px;
+  }
+  .sop-setup-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+
+  /* ---------- Stabilität: die Diagnosetabelle der SOP über alle Zeilen ---------- */
+  .stability-head { padding: 14px 16px; border-bottom: 1px solid var(--hair); }
+  .stability-head strong { display: block; font-size: 15px; margin-bottom: 4px; }
+  .stability-head p { margin: 0; font-size: 13px; color: var(--muted); }
+  .stability-head.instability strong { color: var(--warn-text); }
+  .stability-head.normal strong { color: var(--accent-text); }
+  .stability-signals { list-style: none; margin: 0; padding: 0; }
+  .stability-signals li {
+    display: grid; grid-template-columns: 22px 150px 1fr; gap: 10px; align-items: baseline;
+    padding: 10px 16px; border-bottom: 1px solid var(--hair); font-size: 13px;
+  }
+  .stability-signals .mark { font-weight: 700; text-align: center; }
+  .stability-signals li.normal .mark { color: var(--accent-text); }
+  .stability-signals li.instability .mark { color: var(--warn-text); }
+  .stability-signals li.unknown .mark { color: var(--muted); }
+  .stability-signals .obs { color: var(--muted); }
+  .stability-visual { padding: 12px 16px; font-size: 13px; }
+  .stability-visual ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); display: grid; gap: 4px; }
+
+  @media (max-width: 640px) {
+    .stability-signals li { grid-template-columns: 22px 1fr; }
+    .stability-signals .obs { grid-column: 2; }
+  }
+
+  @media (max-width: 680px) {
+    .meas-field label { overflow-wrap: anywhere; hyphens: auto; }
+  }
+}

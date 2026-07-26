@@ -1,0 +1,19 @@
+/* Messung bearbeiten — Formular links, Fotos daneben. */
+@layer features {
+  /* Umbruch statt Breakpoint: die Fotospalte rutscht unter das Formular, wenn
+     nebeneinander kein Platz mehr ist, und quetscht es vorher nicht zusammen. */
+  .meas-edit { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: start; }
+  .meas-edit__form { flex: 999 1 420px; min-width: 0; display: grid; gap: var(--s-3); }
+  .meas-edit__aside { flex: 1 1 280px; min-width: 0; }
+
+  .meas-edit__check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; }
+  .meas-edit__check input { width: 18px; height: 18px; }
+
+  .meas-edit__photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+  .meas-edit__photos img {
+    width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+    border: 1px solid var(--hair); border-radius: var(--r);
+  }
+
+  .meas-edit__upload { display: grid; gap: var(--s-2); margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--hair); }
+}

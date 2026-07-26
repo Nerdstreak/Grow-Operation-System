@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../../api'
 import { choiceLabel, optionLabel, subjectPlural } from './sop-choice-labels'
+import { V1Button } from '../../components/v1'
 
 // The knowledge base's SOP definitions, so a user can start a routine proactively —
 // not only when a risk happens to recommend one.
@@ -126,9 +127,9 @@ export function SopCatalog({
                     <div className="tl-title">{entry.name || entry.id}</div>
                     <div className="tl-sub">{meta(entry) || '—'}</div>
                   </div>
-                  <button type="button" className="btn btn-primary" disabled={active || busy === entry.id} onClick={() => void begin(entry.id)}>
+                  <V1Button type="button" variant="primary" disabled={active || busy === entry.id} onClick={() => void begin(entry.id)}>
                     {active ? 'Läuft' : busy === entry.id ? 'Startet…' : 'Starten'}
-                  </button>
+                  </V1Button>
                 </div>
 
                 {setup && (
@@ -169,15 +170,15 @@ export function SopCatalog({
                     ))}
 
                     <div className="sop-setup-actions">
-                      <button
+                      <V1Button
                         type="button"
-                        className="btn btn-primary"
+                        variant="primary"
                         disabled={busy === entry.id}
                         onClick={() => void send(entry.id, answers, counts)}
                       >
                         {busy === entry.id ? 'Startet…' : 'Routine starten'}
-                      </button>
-                      <button type="button" className="btn" onClick={() => setPending(null)}>Abbrechen</button>
+                      </V1Button>
+                      <V1Button type="button"  onClick={() => setPending(null)}>Abbrechen</V1Button>
                     </div>
                   </div>
                 )}

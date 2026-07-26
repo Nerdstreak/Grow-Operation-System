@@ -2,6 +2,7 @@ import type { GrowDeviationDto, GrowTreatmentRecommendationDto, RiskEventDto, Tr
 import { formatSeverityLabel } from '../../utils'
 import { RiskActionCard } from '../risks/RiskActionCard'
 import { formatDeviationTarget, formatDeviationValue, type GrowDetailSection } from './grow-detail-model'
+import { V1Badge, V1Button } from '../../components/v1'
 
 type GrowDetailDiagnosisSectionProps = {
   activeSection: GrowDetailSection
@@ -87,15 +88,15 @@ export function GrowDetailDiagnosisSection({
 
               {actionableRecommendations.map((recommendation) => (
                 <div key={recommendation.stableKey} className="grow-deviation-card" data-audit="grow-recommendation-row" style={{ alignItems: 'center' }}>
-                  <span className="badge badge-neutral">Empfehlung</span>
+                  <V1Badge tone="neutral">Empfehlung</V1Badge>
                   <div className="grow-deviation-main">
                     <div className="tl-title">{recommendation.treatmentName ?? recommendation.sopTitle ?? recommendation.metric}</div>
                     <div className="tl-sub">{recommendation.reason}</div>
                   </div>
                   <div className="grow-deviation-copy">
-                    <button type="button" className="btn btn-primary" disabled={saving === `start-sop-${recommendation.stableKey}`} onClick={() => onStartRecommendedSop(recommendation)}>
+                    <V1Button type="button" variant="primary" disabled={saving === `start-sop-${recommendation.stableKey}`} onClick={() => onStartRecommendedSop(recommendation)}>
                       {saving === `start-sop-${recommendation.stableKey}` ? 'Startet…' : 'SOP starten'}
-                    </button>
+                    </V1Button>
                   </div>
                 </div>
               ))}
