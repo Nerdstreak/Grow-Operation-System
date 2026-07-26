@@ -11,6 +11,10 @@ import { mapMetrics } from '../features/live/live-model'
 import { MetricTile } from '../features/live/MetricTile'
 import { decimalsForMetric } from '../features/live/metric-tile-model'
 import '../features/live/metric-tile.css'
+// Enthaelt die v1-live-/v1-camera-Regeln dieser Seite. Der Import hing bis eben
+// an DesktopLiveDashboard — einer Datei, die niemand mehr laedt; Vite haette
+// beide aus dem Bundle geworfen und diese Seite still entstylt.
+import '../features/live/live-instrument.css'
 
 const tentMetricDefinitions = [
   ['temperature', 'Temp', '°C'],

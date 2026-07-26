@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import '../features/grow-detail/growdetail-instrument.css'
-import { useNavigate, useParams } from 'react-router-dom'
-import { formatDate, formatDateTime } from '../utils'
-import { GrowDetailOverviewHero } from '../features/grow-detail/GrowDetailOverviewHero'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { formatNumber } from '../utils'
 import { useGrowDetailBundle } from '../features/grow-detail/useGrowDetailBundle'
 import { useGrowDetailMutations } from '../features/grow-detail/useGrowDetailMutations'
-import {
-  formatGrowHydroMedium,
-  formatGrowRuntime,
-  formatGrowStatus,
-} from '../features/grow-detail/grow-detail-model'
-import { V1Alert, V1Badge, V1Button, V1Empty, V1LinkButton, V1Page, V1Section } from '../components/v1'
+import { formatGrowStatus } from '../features/grow-detail/grow-detail-model'
+import { V1Alert, V1Badge, V1Button, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
+import { buildPhaseTimeline } from '../features/grows/phase-timeline'
+import type { GrowDeviationDto } from '../types'
+import { apiFetch } from '../api'
 
 const noop = async () => {}
 
@@ -25,10 +23,22 @@ function GrowDetailPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
   const { bundle, loading, loadBundle } = useGrowDetailBundle({ growId, setError })
+  // Fuer die Diagnose-Kurzliste des Entwurfs: die zwei wichtigsten Abweichungen
+  // direkt auf dem Ueberblick, der Rest hinter dem Link.
+  const [deviations, setDeviations] = useState<GrowDeviationDto[]>([])
+  useEffect(() => {
+    if (!growId) return
+    const controller = new AbortController()
+    apiFetch<GrowDeviationDto[]>(`/api/grows/${growId}/deviations`, { signal: controller.signal })
+      .then(setDeviations)
+      .catch(() => { /* Kurzliste ist Beigabe — der Ueberblick steht auch ohne sie. */ })
+    return () => controller.abort()
+  }, [growId])
   const openTasks = useMemo(() => bundle.tasks.filter((task) => task.status === 'Open'), [bundle.tasks])
   const {
     archiveGrow,
     deleteGrow,
+    handleGrowAction,
   } = useGrowDetailMutations({
     growId,
     grow: bundle.grow,
@@ -77,24 +87,30 @@ function GrowDetailPage() {
   const latest = grow.latestMeasurement
   const scope = `?growId=${grow.id}`
   const canArchiveGrow = grow.status === 'Planning' || grow.status === 'Running'
-
   const statusTone = grow.status === 'Running' ? 'ok' : grow.status === 'Planning' ? 'warn' : 'neutral'
+  const canFlip = grow.status === 'Running' && !grow.flipDate
+  const canHarvest = ['Flower', 'Finish', 'Dry'].includes(latest?.stage ?? grow.entryPoint ?? '')
+  const timeline = buildPhaseTimeline(grow)
+  const lastMeasurements = [...bundle.measurements]
+    .sort((a, b) => b.takenAt.localeCompare(a.takenAt))
+    .slice(0, 4)
 
   return (
     <div className="ix-growdetail">
       <V1Page
-        eyebrow={`${grow.strain ?? 'Sorte offen'} · ${grow.breeder ?? 'Breeder offen'}`}
+        eyebrow={`Grow / ${grow.name}`}
         title={grow.name}
         action={(
           <div className="v1-action-row" data-audit="grow-management-actions">
             <V1Badge tone={statusTone}>{formatGrowStatus(grow.status)}</V1Badge>
-            <V1LinkButton to={`/grows/${grow.id}/setup`} variant="primary">Bearbeiten</V1LinkButton>
-            <V1Button disabled={Boolean(saving) || !canArchiveGrow} onClick={() => void archiveGrow()}>
-              {saving === 'grow-archive' ? 'Beendet...' : canArchiveGrow ? 'Beenden' : 'Beendet'}
-            </V1Button>
-            <V1Button variant="danger" disabled={Boolean(saving)} onClick={() => void deleteGrow()}>
-              {saving === 'grow-delete' ? 'Löscht...' : 'Löschen'}
-            </V1Button>
+            <V1LinkButton to={`/grows/${grow.id}/addback`}>Addback</V1LinkButton>
+            {canFlip && (
+              <V1Button disabled={Boolean(saving)} onClick={() => void handleGrowAction('flip')}>
+                {saving === 'flip' ? 'Trägt ein…' : 'Flip 12/12'}
+              </V1Button>
+            )}
+            {canHarvest && <V1LinkButton to={`/grows/${grow.id}/harvest`} variant="primary">Ernte</V1LinkButton>}
+            <a className="v1-button" href={`/grows/${grow.id}/export`}>Export</a>
           </div>
         )}
         className="grow-detail-page"
@@ -102,47 +118,125 @@ function GrowDetailPage() {
         {error && <V1Alert title="Fehler" message={error} tone="warn" />}
         {notice && <V1Alert message={notice} tone="ok" />}
 
-        {/* Name, Sorte und Status standen bis hier dreimal auf der Seite: in der
-            Kopfzeile, in der Mobil-Zusammenfassung und noch einmal im Hero. Sie
-            stehen jetzt einmal oben; was bleibt, sind die Fakten, die sie nicht
-            wiederholen. */}
-        <V1Section title="Auf einen Blick">
-          <div className="v1-list" data-audit="grow-detail-summary">
-            {([
-              ['Phase', grow.latestMeasurement?.stage ?? grow.entryPoint ?? '–'],
-              ['Zelt', grow.tentName ?? 'ohne Zelt'],
-              ['Hydro / Medium', formatGrowHydroMedium(grow)],
-              ['Start', `${formatDate(grow.startDate)} · ${formatGrowRuntime(grow.startDate)}`],
-              ['Letzte Messung', grow.latestMeasurement ? formatDateTime(grow.latestMeasurement.takenAt) : '–'],
-              ['Messungen', String(bundle.measurements.length)],
-            ] as Array<[string, string]>).map(([label, value]) => (
-              <div key={label} className="v1-list-row">
-                <span>{label}</span>
-                <strong>{value}</strong>
-              </div>
-            ))}
+        {/* Die Tabs des Entwurfs führen zu den Top-Seiten — der Grow ist kein
+            Behälter mehr, aber der Weg von hier zu seinen Daten bleibt einer. */}
+        <nav className="gd-tabs" aria-label="Bereiche dieses Grows">
+          <span className="gd-tab is-active">Überblick</span>
+          <Link className="gd-tab" to={`/diagnose${scope}`}>Diagnose{deviations.length > 0 ? ` · ${deviations.length}` : ''}</Link>
+          <Link className="gd-tab" to={`/messungen${scope}`}>Messungen · {bundle.measurements.length}</Link>
+          <Link className="gd-tab" to={`/sops${scope}`}>SOPs</Link>
+          <Link className="gd-tab" to={`/journal${scope}`}>Journal & Fotos</Link>
+          <Link className="gd-tab" to={`/regeln${scope}&tab=automatik`}>Automatik</Link>
+        </nav>
+
+        {/* Phasen-Timeline — dieselbe Rechnung wie auf der Live-Seite. */}
+        <section className="ls-panel" data-audit="grow-detail-timeline">
+          <div className="ls-panel-body">
+            <div className="ls-timeline">
+              {timeline.phases.map((phase) => (
+                <div key={phase.label} className={`ls-phase is-${phase.state}`} style={{ flexGrow: Math.max(1, phase.days) }}>
+                  {phase.label}
+                </div>
+              ))}
+              {timeline.phases.length === 0 && <div className="ls-phase is-planned">Kein Startdatum</div>}
+            </div>
+            <div className="ls-timeline-dates">
+              <span>Start {timeline.dates.start}</span>
+              <span>Flip {timeline.dates.flip}</span>
+              <span>Ernte ~{timeline.dates.harvest}</span>
+            </div>
           </div>
-        </V1Section>
+        </section>
 
-        <GrowDetailOverviewHero
-          grow={grow}
-          latest={latest}
-          measurementCount={bundle.measurements.length}
-          openTaskCount={openTasks.length}
-        />
+        {/* Fakten-Leiste wie im Entwurf: die sechs Zahlen, nach denen man sucht. */}
+        <section className="v1-kpi-grid" data-audit="grow-detail-summary">
+          <V1Stat label="Sorte" value={grow.strain ?? '—'} hint={[grow.breeder, grow.seedType].filter(Boolean).join(' · ') || undefined} />
+          <V1Stat label="Pflanzen" value={grow.plantCount ?? '—'} />
+          <V1Stat label="pH / EC" value={`${formatNumber(latest?.reservoirPh, 2)} · ${formatNumber(latest?.reservoirEc, 2)}`} />
+          <V1Stat label="Klima" value={latest ? `${formatNumber(latest.airTemperatureC, 1)}° · ${formatNumber(latest.humidityPercent, 0)}%` : '—'} />
+          <V1Stat label="Messungen" value={bundle.measurements.length} />
+          <V1Stat label="Offene Tasks" value={openTasks.length} tone={openTasks.length > 0 ? 'warn' : 'neutral'} />
+        </section>
 
-        <V1Section title="Zu diesem Grow">
+        <div className="gd-lower">
+          <section className="ls-panel gd-diagnose" data-audit="grow-detail-diagnose">
+            <div className="ls-panel-head">
+              <span className="ls-label">Diagnose</span>
+              <span className="ls-panel-meta">Abweichung → Symptom → Behandlung</span>
+              {deviations.length > 2 && <Link className="ls-btn is-small" to={`/diagnose${scope}`}>Alle {deviations.length}</Link>}
+            </div>
+            {deviations.length === 0 ? (
+              <div className="ls-panel-body"><p>Keine offenen Abweichungen — alle Werte im Rahmen.</p></div>
+            ) : (
+              <div className="gd-devs">
+                {deviations.slice(0, 2).map((deviation) => (
+                  <article key={deviation.stableKey} className={`gd-dev is-${deviation.severity.toLowerCase()}`}>
+                    <strong>{deviation.message}</strong>
+                    {/* Die Empfehlung nur, wenn sie etwas hinzufuegt — bei
+                        manchen Abweichungen ist sie woertlich die Meldung. */}
+                    {deviation.recommendation && deviation.recommendation !== deviation.message && <p>{deviation.recommendation}</p>}
+                    <div className="ls-panel-actions">
+                      <Link className="ls-btn is-small" to={`/diagnose${scope}`}>Verlauf</Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="ls-panel gd-meas" data-audit="grow-detail-measurements">
+            <div className="ls-panel-head">
+              <span className="ls-label">Letzte Messungen</span>
+              <Link className="ls-btn is-small" to="/messung">Neue Messung</Link>
+            </div>
+            {lastMeasurements.length === 0 ? (
+              <div className="ls-panel-body"><p>Noch keine Messung — die erste dauert zwei Minuten.</p></div>
+            ) : (
+              <div className="gd-meas-wrap">
+                <table className="gd-meas-table">
+                  <thead>
+                    <tr><th scope="col">Zeit</th><th scope="col">pH</th><th scope="col">EC</th><th scope="col">DO</th><th scope="col">Temp</th></tr>
+                  </thead>
+                  <tbody>
+                    {lastMeasurements.map((measurement) => (
+                      <tr key={measurement.id}>
+                        <td>{formatShortTime(measurement.takenAt)}</td>
+                        <td>{formatNumber(measurement.reservoirPh, 2)}</td>
+                        <td>{formatNumber(measurement.reservoirEc, 2)}</td>
+                        <td>{formatNumber(measurement.dissolvedOxygenMgL, 1)}</td>
+                        <td>{formatNumber(measurement.reservoirWaterTempC, 1)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Verwaltung unten — Beenden und Löschen gehören nicht neben die
+            täglichen Handlungen in der Kopfzeile. */}
+        <V1Section title="Verwaltung">
           <div className="v1-action-row">
-            <V1LinkButton to={`/messungen${scope}`}>Messungen</V1LinkButton>
-            <V1LinkButton to={`/diagnose${scope}`}>Diagnose</V1LinkButton>
-            <V1LinkButton to={`/journal${scope}`}>Journal &amp; Fotos</V1LinkButton>
-            <V1LinkButton to={`/sops${scope}`}>SOPs</V1LinkButton>
-            <V1LinkButton to={`/regeln${scope}&tab=automatik`}>Automatik</V1LinkButton>
+            <V1LinkButton to={`/grows/${grow.id}/setup`}>Bearbeiten</V1LinkButton>
+            <V1Button disabled={Boolean(saving) || !canArchiveGrow} onClick={() => void archiveGrow()}>
+              {saving === 'grow-archive' ? 'Beendet...' : canArchiveGrow ? 'Beenden' : 'Beendet'}
+            </V1Button>
+            <V1Button variant="danger" disabled={Boolean(saving)} onClick={() => void deleteGrow()}>
+              {saving === 'grow-delete' ? 'Löscht...' : 'Löschen'}
+            </V1Button>
           </div>
         </V1Section>
       </V1Page>
     </div>
   )
+}
+
+/** „26.07. 09:30" — Datum und Uhrzeit, so kurz wie die Tabelle schmal ist. */
+function formatShortTime(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return '—'
+  return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(date)
 }
 
 export default GrowDetailPage

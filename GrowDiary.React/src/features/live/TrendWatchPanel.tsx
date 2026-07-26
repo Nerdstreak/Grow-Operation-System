@@ -40,25 +40,23 @@ export function TrendWatchPanel({ growId }: { growId: number | null }) {
   const actionable = findings.filter((finding) => finding.severity !== 'Info').length
 
   return (
-    <div className="ix-panel ix-alerts ix-rise ix-d5" data-audit="live-trend-card">
-      <div className="ix-alerts-head">
-        <h3>Beobachtungen · über Tage</h3>
-        {actionable > 0 && <span className="ix-badge ix-b-warn">{actionable} prüfen</span>}
+    <article className="ls-panel" data-audit="live-trend-card">
+      <div className="ls-panel-head">
+        <span className="ls-label">Beobachtungen · über Tage</span>
+        {actionable > 0 && <span className="ls-panel-meta ls-trend-count">{actionable} prüfen</span>}
       </div>
-
       {findings.length === 0 ? (
-        <div className="ix-empty-line">Nichts Auffälliges — keine Drift, kein Verbrauchssprung.</div>
+        <div className="ls-panel-body"><p>Nichts Auffälliges — keine Drift, kein Verbrauchssprung.</p></div>
       ) : (
-        findings.slice(0, 5).map((finding) => (
-          <div key={finding.code} className={`ix-alert ${finding.severity === 'Info' ? '' : 'warn'}`}>
-            <div className="sev" />
-            <div>
-              <div className="ttl">{finding.headline}</div>
-              <div className="meta">{finding.detail}</div>
-            </div>
-          </div>
-        ))
+        <ul className="ls-trends">
+          {findings.slice(0, 5).map((finding) => (
+            <li key={finding.code} className={finding.severity === 'Info' ? '' : 'is-warn'}>
+              <strong>{finding.headline}</strong>
+              <span>{finding.detail}</span>
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
+    </article>
   )
 }

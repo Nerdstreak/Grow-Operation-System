@@ -7,6 +7,7 @@ import type { GrowStage, GrowSummary, HydroStyle, MeasurementDto, MeasurementUps
 import FileInput from '../components/FileInput'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Skeleton, V1Switch } from '../components/v1'
 import { LiveCheckPanel } from '../features/measurement/LiveCheckPanel'
+import { checkDraft, type CheckSeverity } from '../features/measurement/live-check-model'
 import '../features/measurement/measurement-edit.css'
 import { toLocalInputValue } from '../utils'
 
@@ -180,6 +181,18 @@ function ManualMeasurementPage() {
   const selectedGrow = useMemo(() => grows.find((grow) => grow.id === selectedGrowId) ?? null, [grows, selectedGrowId])
   const filledCount = useMemo(() => countFilled(draft), [draft])
   const vpd = useMemo(() => calculateVpd(draft.airTemperatureC, draft.humidityPercent, leafOffset), [draft.airTemperatureC, draft.humidityPercent, leafOffset])
+
+  // Der Rand des Eingabefelds sagt beim Tippen, ob der Wert im Ziel liegt —
+  // dieselbe Pruefung wie im Panel rechts, nur direkt am Feld. Gruen heisst im
+  // Zielband, gelb knapp daneben, rot deutlich — wie im Entwurf.
+  const fieldStatus = useMemo(() => {
+    const map: Record<string, CheckSeverity> = {}
+    const strings = Object.fromEntries(
+      Object.entries(draft).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+    )
+    for (const finding of checkDraft(strings, liveMetrics)) map[finding.field] = finding.severity
+    return map
+  }, [draft, liveMetrics])
   const isHydroGrow = isHydroStyle(selectedGrow?.hydroStyle)
   const solutionFields = isHydroGrow ? reservoirFields : soilSolutionFields
   const tentId = selectedGrow?.tentId ?? null
@@ -291,6 +304,15 @@ function ManualMeasurementPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    await save('grow')
+  }
+
+  /**
+   * Speichert die Messung. „Speichern & Addback“ springt danach direkt in den
+   * Addback — der häufigste nächste Schritt, wenn der EC daneben liegt: erst
+   * messen, dann nachdosieren, ohne Umweg über die Grow-Seite.
+   */
+  async function save(after: 'grow' | 'addback') {
     if (!selectedGrowId) {
       setError('Bitte Grow auswählen.')
       return
@@ -309,7 +331,7 @@ function ManualMeasurementPage() {
       }
 
       setMessage('Messung gespeichert.')
-      navigate(`/grows/${selectedGrowId}`)
+      navigate(after === 'addback' ? `/grows/${selectedGrowId}/addback` : `/grows/${selectedGrowId}`)
     } catch (caught) {
       setError(formatApiError(caught, 'Messung konnte nicht gespeichert werden.'))
     } finally {
@@ -341,8 +363,9 @@ function ManualMeasurementPage() {
           />
         </div>
       ) : (
-        <form className="rc2-measurement-layout" data-audit="measurement-form" onSubmit={(event) => void submit(event)}>
-          <aside className="rc2-measurement-side" data-audit="measurement-section-context">
+        <form className="ms-layout" data-audit="measurement-form" onSubmit={(event) => void submit(event)}>
+          <div className="ms-form">
+          <div data-audit="measurement-section-context">
             <V1Card className="rc2-sticky-card rc2-measurement-context">
               <span className="v1-card-kicker">Kontext</span>
               <h2>{selectedGrow?.name ?? 'Grow wählen'}</h2>
@@ -392,12 +415,10 @@ function ManualMeasurementPage() {
                 </div>
               )}
             </V1Card>
-          </aside>
-
-          <div className="rc2-measurement-main">
+          </div>
             <div data-audit="measurement-section-climate">
               <V1Section title="Klima">
-                <FieldGrid fields={climateFields} draft={draft} patch={patch}>
+                <FieldGrid fields={climateFields} draft={draft} patch={patch} status={fieldStatus}>
                   <div className="rc2-measurement-derived" data-audit="measurement-vpd">
                     <span>VPD{leafOffset > 0 ? ` · Blatt −${leafOffset} °C` : ''}</span>
                     <strong>{vpd ?? '–'}<em>kPa</em></strong>
@@ -408,7 +429,7 @@ function ManualMeasurementPage() {
 
             <div data-audit="measurement-section-hydro">
               <V1Section title={isHydroGrow ? 'Hydro / Nährlösung' : 'Gießen / Drain'}>
-                <FieldGrid fields={solutionFields} draft={draft} patch={patch} />
+                <FieldGrid fields={solutionFields} draft={draft} patch={patch} status={fieldStatus} />
               </V1Section>
             </div>
 
@@ -432,6 +453,9 @@ function ManualMeasurementPage() {
               </V1Section>
             </div>
 
+          </div>
+
+          <aside className="ms-side">
             <div data-audit="measurement-section-check">
               <LiveCheckPanel draft={draft} metrics={liveMetrics} />
             </div>
@@ -475,11 +499,16 @@ function ManualMeasurementPage() {
               </V1Section>
             </div>
 
-            <div className="v1-form-actions measurement-form-actions" data-audit="measurement-form-actions">
-              <Link className="v1-button is-ghost" to="/">Abbrechen</Link>
+            <div className="v1-form-actions ms-actions" data-audit="measurement-form-actions">
               <V1Button type="submit" variant="primary" disabled={saving}>{saving ? 'Speichert...' : 'Messung speichern'}</V1Button>
+              {isHydroGrow && selectedGrowId != null && (
+                <V1Button variant="secondary" disabled={saving} onClick={() => void save('addback')}>
+                  Speichern & Addback
+                </V1Button>
+              )}
+              <Link className="v1-button is-ghost" to="/">Abbrechen</Link>
             </div>
-          </div>
+          </aside>
         </form>
       )}
     </V1Page>
@@ -511,13 +540,14 @@ function PhotoThumbs({ files, onRemove }: { files: File[]; onRemove: (index: num
   )
 }
 
-function FieldGrid({ children, fields, draft, patch }: { children?: ReactNode; fields: FieldDefinition[]; draft: MeasurementDraft; patch: (patchValue: Partial<MeasurementDraft>) => void }) {
+function FieldGrid({ children, fields, draft, patch, status }: { children?: ReactNode; fields: FieldDefinition[]; draft: MeasurementDraft; patch: (patchValue: Partial<MeasurementDraft>) => void; status?: Record<string, CheckSeverity> }) {
   return (
     <div className="rc2-measurement-grid">
       {fields.map((field) => (
         <V1Field key={field.key} label={`${field.label} ${field.unit ? `(${field.unit})` : ''}`} hint={field.hint}>
           <input
             inputMode="decimal"
+            className={status?.[field.key] ? `is-${status[field.key]}` : undefined}
             value={draft[field.key]}
             onChange={(event) => patch({ [field.key]: event.target.value } as Partial<MeasurementDraft>)}
             placeholder="–"

@@ -55,6 +55,10 @@ for (const route of ROUTES) {
         // einem eigenen Knopf — bedient niemand direkt.
         if (Number(style.opacity) === 0 || style.clipPath.startsWith('inset(50%')) continue
         if (box.width <= 4 || box.height <= 4) continue
+        // Eine Checkbox in einem <label> tippt man ueber das Label — das ist der
+        // dokumentierte Fehlalarm des Juni-Audits (label.v1-switch = 344x47).
+        const wrappingLabel = element.closest('label')
+        if (wrappingLabel && wrappingLabel !== element && wrappingLabel.getBoundingClientRect().height >= min - 2) continue
 
         const centreX = box.left + box.width / 2
         const centreY = box.top + box.height / 2

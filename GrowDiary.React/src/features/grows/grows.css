@@ -164,3 +164,42 @@
 
   .gp-idle { margin: 0; color: var(--muted); font-size: 13px; }
 }
+
+/* Grow-Detail: Ueberblick nach dem Entwurf. */
+@layer features {
+  .gd-tabs {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    padding: 8px; border: 1px solid var(--hair); border-radius: 10px; background: var(--panel);
+  }
+  .gd-tab {
+    display: inline-flex; align-items: center;
+    min-height: 32px; padding: 0 14px;
+    border-radius: 8px; color: var(--muted);
+    font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .gd-tab:hover { color: var(--ink); background: var(--panel-2); }
+  .gd-tab.is-active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+  /* Diagnose links, Messungen rechts — bricht um statt zu quetschen. */
+  .gd-lower { display: flex; flex-wrap: wrap; gap: 14px; align-items: start; }
+  .gd-lower > * { flex: 1 1 380px; min-width: 0; }
+
+  .gd-devs { display: grid; }
+  .gd-dev { padding: 12px 14px 12px 16px; border-bottom: 1px solid var(--hair); position: relative; }
+  .gd-dev:last-child { border-bottom: 0; }
+  .gd-dev::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--hair-2); }
+  .gd-dev.is-critical::before { background: var(--danger); }
+  .gd-dev.is-warning::before { background: var(--warn); }
+  .gd-dev strong { display: block; font-size: 14px; font-weight: 600; }
+  .gd-dev p { margin: 4px 0 8px; font-size: 13px; color: var(--muted); }
+
+  .gd-meas-wrap { overflow-x: auto; }
+  .gd-meas-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .gd-meas-table th, .gd-meas-table td { padding: 9px 14px; border-bottom: 1px solid var(--hair); text-align: left; }
+  .gd-meas-table thead th {
+    font: 700 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
+  }
+  .gd-meas-table td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .gd-meas-table tbody tr:last-child td { border-bottom: 0; }
+}

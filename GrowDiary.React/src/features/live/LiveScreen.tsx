@@ -3,6 +3,7 @@ import type { GrowSummary, MetricPayload, RiskEventDto, TentDto } from '../../ty
 import { MetricTile } from './MetricTile'
 import { decimalsForMetric } from './metric-tile-model'
 import { CameraPanel } from './CameraPanel'
+import { TrendWatchPanel } from './TrendWatchPanel'
 import { buildScore } from './live-model'
 import { classNames } from '../../utils'
 
@@ -137,6 +138,11 @@ export function LiveScreen({
               </ul>
             )}
           </article>
+
+          {/* Die Watchdog-Beobachtungen (Drift, Verbrauch) blieben beim Umbau
+              zunaechst auf der Strecke — sie sind ein bestehendes Feature und
+              gehoeren zu „heute fällig“ dazu: was sich ueber Tage anbahnt. */}
+          <TrendWatchPanel growId={grow?.id ?? null} />
         </div>
       </section>
 

@@ -139,6 +139,7 @@
   .hw-filter,
   .ls-btn,
   .ls-cam-tab,
+  .gd-tab,
   select,
   input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
   textarea {

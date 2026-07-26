@@ -2,25 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { CalibrationEventDto, GrowSummary, GrowTaskDto, HardwareItemDto, MaintenanceEventDto, RiskEventDto, SopInstanceDto } from '../types'
-import { V1Alert, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
-import { classNames, formatDateTime, formatSeverityLabel } from '../utils'
+import { V1Alert, V1Page, V1Skeleton } from '../components/v1'
+import { classNames } from '../utils'
 import { RiskActionCard } from '../features/risks/RiskActionCard'
 
 type ActionState = { grows: GrowSummary[]; risks: RiskEventDto[]; tasks: GrowTaskDto[]; maintenance: MaintenanceEventDto[]; calibration: CalibrationEventDto[]; sops: SopInstanceDto[]; hardware: HardwareItemDto[]; issues: string[] }
 const initial: ActionState = { grows: [], risks: [], tasks: [], maintenance: [], calibration: [], sops: [], hardware: [], issues: [] }
 const riskRank: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 }
-const taskRank: Record<string, number> = { Critical: 0, High: 1, Normal: 2, Low: 3 }
-
-type ActionRow = {
-  id: string
-  title: string
-  context: string
-  priority: string
-  action: string
-  to: string
-  tone: 'critical' | 'warning' | 'normal'
-  rank: number
-}
 
 function MobileActionPage() {
   const [state, setState] = useState<ActionState>(initial)
@@ -55,111 +43,167 @@ function MobileActionPage() {
     return () => controller.abort()
   }, [refresh])
 
-  const activeGrows = useMemo(() => state.grows.filter((grow) => grow.status === 'Running' || grow.status === 'Planning'), [state.grows])
   const risks = useMemo(() => [...state.risks].sort((a, b) => (riskRank[a.severity] ?? 9) - (riskRank[b.severity] ?? 9)), [state.risks])
-  const rows = buildRows(state)
-  const status = loading ? 'Lädt' : risks.some((risk) => risk.severity === 'Critical') ? 'Kritisch' : risks.length > 0 || rows.length > 0 ? 'Offen' : 'Bereit'
-  const primaryGrow = activeGrows[0]
-  const actionCards = buildActionCards(state, primaryGrow)
+  const termine = buildTermine(state)
+  const wartung = buildWartung(state)
+  const critCount = risks.filter((risk) => risk.severity === 'Critical').length
+  const warnCount = risks.filter((risk) => risk.severity === 'Warning').length
+
   const handleRiskChanged = (message: string) => {
     setNotice(message)
     setRefresh((current) => current + 1)
   }
 
   return (
-    <V1Page eyebrow="Aktion" title={status}>
+    <V1Page
+      eyebrow="Jetzt / Aufgaben"
+      title="Was jetzt zu tun ist"
+      subtitle="Risiken zuerst, dann Termine. Jede Zeile hat genau eine Hauptaktion — nichts, das man erst suchen muss."
+    >
       {state.issues.length > 0 && <V1Alert title="Teilweise offline" message={state.issues.join(' · ')} tone="warn" />}
       {notice && <V1Alert title="Erledigt" message={notice} tone="ok" />}
-      <section className="v1-kpi-grid"><V1Stat label="Risiken" value={risks.length} /><V1Stat label="Wartung" value={state.maintenance.length} /><V1Stat label="Kalibrierung" value={state.calibration.length} /><V1Stat label="Grows" value={activeGrows.length} /></section>
-      <section className="rc-action-guide-grid">
-        {actionCards.map((card) => (
-          <V1Card key={card.key} className="rc-action-guide-card" tone={card.tone}>
-            <span className="v1-card-kicker">{card.kicker}</span>
-            <h2>{card.title}</h2>
-            <p>{card.description}</p>
-            <p>{card.status}</p>
-            <V1LinkButton to={card.to} variant={card.primary ? 'primary' : 'secondary'}>{card.cta}</V1LinkButton>
-          </V1Card>
-        ))}
-      </section>
-      {risks.length > 0 && (
-        <V1Section title="Risiken">
-          <div className="rc-risk-action-grid" data-audit="risk-action-section">
-            {risks.map((risk) => (
-              <RiskActionCard
-                key={risk.id}
-                risk={risk}
-                context={risk.growId ? getGrowName(state.grows, risk.growId) : risk.hardwareItemId ? getHardwareName(state.hardware, risk.hardwareItemId) : risk.tentId ? `Zelt #${risk.tentId}` : 'System'}
-                onChanged={handleRiskChanged}
-              />
-            ))}
-          </div>
-        </V1Section>
+
+      {loading ? <V1Skeleton tiles={3} rows={4} label="Lade Aufgaben" /> : (
+        <div className="af-cols" data-audit="open-action-list">
+          {/* Risiken zuerst — mit ihrer einen Hauptaktion. Die Karten bringen
+              Bestätigen/Erledigen bereits mit. */}
+          <section className="ls-panel af-col" data-audit="risk-action-section">
+            <div className="ls-panel-head">
+              <span className="ls-label">Risiken</span>
+              {critCount > 0 && <span className="af-count is-crit">{critCount} kritisch</span>}
+              {warnCount > 0 && <span className="af-count is-warn">{warnCount} Warnung</span>}
+              {risks.length === 0 && <span className="ls-panel-meta">nichts offen</span>}
+            </div>
+            {risks.length === 0 ? (
+              <div className="ls-panel-body"><p>Keine offenen Risiken im Bestand.</p></div>
+            ) : (
+              <div className="af-risks">
+                {risks.map((risk) => (
+                  <RiskActionCard
+                    key={risk.id}
+                    risk={risk}
+                    context={risk.growId ? getGrowName(state.grows, risk.growId) : risk.hardwareItemId ? getHardwareName(state.hardware, risk.hardwareItemId) : risk.tentId ? `Zelt #${risk.tentId}` : 'System'}
+                    onChanged={handleRiskChanged}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="ls-panel af-col" data-audit="af-termine">
+            <div className="ls-panel-head">
+              <span className="ls-label">Termine</span>
+              <span className="ls-panel-meta">{termine.length} offen</span>
+            </div>
+            {termine.length === 0 ? (
+              <div className="ls-panel-body"><p>Keine offenen Termine.</p></div>
+            ) : (
+              <ul className="af-rows">{termine.map((item) => <AfRow key={item.id} item={item} />)}</ul>
+            )}
+          </section>
+
+          <section className="ls-panel af-col" data-audit="af-wartung">
+            <div className="ls-panel-head">
+              <span className="ls-label">Wartung</span>
+              <span className="ls-panel-meta">{wartung.length} fällig</span>
+            </div>
+            {wartung.length === 0 ? (
+              <div className="ls-panel-body"><p>Nichts fällig — Sensoren und Technik sind versorgt.</p></div>
+            ) : (
+              <ul className="af-rows">{wartung.map((item) => <AfRow key={item.id} item={item} />)}</ul>
+            )}
+          </section>
+        </div>
       )}
-      <V1Section title="Jetzt">
-        {loading ? <V1Empty title="Lade Aktionen..." /> : rows.length === 0 ? <V1Empty title="Keine offenen Aufgaben" text="Es gibt aktuell keine kritischen Risiken, fälligen Wartungen oder aktiven SOP-Schritte." /> : <div className="v1-list rc-action-list" data-audit="open-action-list">{rows.map((row) => <ActionListRow key={row.id} row={row} />)}</div>}
-      </V1Section>
     </V1Page>
   )
 }
 
-function ActionListRow({ row }: { row: ActionRow }) {
+type AfItem = { id: string; when: string; due: boolean; title: string; to: string; action: string }
+
+function AfRow({ item }: { item: AfItem }) {
   return (
-    <Link to={row.to} className={classNames('v1-list-row rc-action-row', row.tone)} data-audit="open-action-row">
-      <div>
-        <strong>{row.title}</strong>
-        <span>{row.context}</span>
-      </div>
-      <em>{formatSeverityLabel(row.priority)}</em>
-      <small>{row.action}</small>
-    </Link>
+    <li className="af-row">
+      <span className={classNames('af-when', item.due && 'is-due')}>{item.when}</span>
+      <span className="af-title">{item.title}</span>
+      <Link className="ls-btn is-small" to={item.to}>{item.action}</Link>
+    </li>
   )
 }
 
-function buildRows(state: ActionState): ActionRow[] {
+/** Aufgaben und laufende SOPs — das, was einen Zeitpunkt hat. */
+function buildTermine(state: ActionState): AfItem[] {
   return [
-    ...state.tasks.map((task) => ({
-      id: `task-${task.id}`,
-      title: task.title,
-      context: task.growName ?? getGrowName(state.grows, task.growId),
-      priority: task.priority,
-      action: task.dueAtUtc ? `Fällig ${formatDateTime(task.dueAtUtc)}` : 'Offene Aufgabe',
-      to: task.growId ? `/journal?growId=${task.growId}` : '/journal',
-      tone: task.priority === 'Critical' ? 'critical' as const : task.priority === 'High' ? 'warning' as const : 'normal' as const,
-      rank: 20 + (taskRank[task.priority] ?? 9),
-    })),
-    ...state.sops.map((sop) => ({
-      id: `sop-${sop.id}`,
-      title: sop.sopName,
-      context: getGrowName(state.grows, sop.growId),
-      priority: 'SOP',
-      action: formatDateTime(sop.nextStepDueAtUtc ?? sop.dueAtUtc),
-      to: sop.growId ? `/sops?growId=${sop.growId}` : '/sops',
-      tone: 'normal' as const,
-      rank: 35,
-    })),
-    ...state.maintenance.map((event) => ({
-      id: `maintenance-${event.id}`,
-      title: event.title,
-      context: getHardwareName(state.hardware, event.hardwareItemId),
-      priority: 'Wartung',
-      action: formatDateTime(event.dueAtUtc),
-      to: '/hardware',
-      tone: 'warning' as const,
-      rank: 40,
-    })),
-    ...state.calibration.map((event) => ({
-      id: `calibration-${event.id}`,
-      title: event.title,
-      context: getHardwareName(state.hardware, event.hardwareItemId),
-      priority: 'Kalibrierung',
-      action: formatDateTime(event.dueAtUtc),
-      to: '/hardware',
-      tone: 'warning' as const,
-      rank: 41,
-    })),
-    ...buildHardwareRows(state),
-  ].sort((a, b) => a.rank - b.rank || a.title.localeCompare(b.title)).slice(0, 16)
+    ...state.tasks.map((task) => {
+      const when = dueShort(task.dueAtUtc)
+      return {
+        id: `task-${task.id}`,
+        when: when.label,
+        due: when.due || task.priority === 'Critical',
+        title: task.title,
+        to: task.growId ? `/journal?growId=${task.growId}` : '/journal',
+        action: 'Öffnen',
+      }
+    }),
+    ...state.sops.map((sop) => {
+      const when = dueShort(sop.nextStepDueAtUtc ?? sop.dueAtUtc)
+      return {
+        id: `sop-${sop.id}`,
+        when: when.label,
+        due: when.due,
+        title: sop.sopName,
+        to: sop.growId ? `/sops?growId=${sop.growId}` : '/sops',
+        action: 'Weiter',
+      }
+    }),
+  ].sort((a, b) => Number(b.due) - Number(a.due) || a.title.localeCompare(b.title)).slice(0, 8)
+}
+
+/** Wartung, Kalibrierung und Hardware, die Aufmerksamkeit braucht. */
+function buildWartung(state: ActionState): AfItem[] {
+  const rows: AfItem[] = [
+    ...state.maintenance.map((event) => {
+      const when = dueInDays(event.dueAtUtc)
+      return { id: `maintenance-${event.id}`, when: when.label, due: when.due, title: event.title, to: '/sensoren', action: 'Öffnen' }
+    }),
+    ...state.calibration.map((event) => {
+      const when = dueInDays(event.dueAtUtc)
+      return { id: `calibration-${event.id}`, when: when.label, due: when.due, title: event.title, to: '/sensoren', action: 'Öffnen' }
+    }),
+    ...state.hardware
+      .filter((item) => item.status === 'Offline' || item.status === 'MaintenanceDue' || (isMappingExpected(item) && !item.haEntityId))
+      .map((item) => ({
+        id: `hardware-${item.id}`,
+        when: 'jetzt',
+        due: item.status === 'Offline' || item.criticality === 'Critical',
+        title: `${item.name} · ${item.status === 'Offline' ? 'offline' : isMappingExpected(item) && !item.haEntityId ? 'kein Mapping' : 'Wartung fällig'}`,
+        to: '/sensoren',
+        action: 'Öffnen',
+      })),
+  ]
+  return rows.sort((a, b) => Number(b.due) - Number(a.due) || a.title.localeCompare(b.title)).slice(0, 8)
+}
+
+/** „heute", Wochentag oder Datum — kurz genug für die Spalte. */
+function dueShort(iso: string | null | undefined): { label: string; due: boolean } {
+  if (!iso) return { label: 'offen', due: false }
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return { label: 'offen', due: false }
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffDays = Math.floor((date.getTime() - startOfToday.getTime()) / 86_400_000)
+  if (diffDays <= 0) return { label: 'heute', due: true }
+  if (diffDays < 7) return { label: new Intl.DateTimeFormat('de-DE', { weekday: 'short' }).format(date), due: false }
+  return { label: new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit' }).format(date), due: false }
+}
+
+/** „-1 T" / „7 T" — Wartung denkt in Tagen, nicht in Uhrzeiten. */
+function dueInDays(iso: string | null | undefined): { label: string; due: boolean } {
+  if (!iso) return { label: '—', due: false }
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return { label: '—', due: false }
+  const days = Math.floor((date.getTime() - Date.now()) / 86_400_000)
+  return { label: `${days} T`, due: days <= 0 }
 }
 
 // A "mapping missing" warning only makes sense for FIXED sensors that are supposed to
@@ -169,85 +213,6 @@ function isMappingExpected(item: HardwareItemDto) {
   return item.deviceKind === 'FixedSensor'
 }
 
-function buildHardwareRows(state: ActionState): ActionRow[] {
-  return state.hardware
-    .filter((item) => item.status === 'Offline' || item.status === 'MaintenanceDue' || (isMappingExpected(item) && !item.haEntityId))
-    .map((item) => ({
-      id: `hardware-${item.id}`,
-      title: item.name,
-      context: item.growId ? getGrowName(state.grows, item.growId) : item.hydroSetupId ? `Hydro #${item.hydroSetupId}` : item.tentId ? `Zelt #${item.tentId}` : 'Hardware',
-      priority: item.status === 'Offline' || item.criticality === 'Critical' ? 'Critical' : 'Warning',
-      action: item.status === 'Offline' ? 'Offline prüfen' : isMappingExpected(item) && !item.haEntityId ? 'Mapping prüfen' : 'Wartung prüfen',
-      to: '/hardware',
-      tone: item.status === 'Offline' || item.criticality === 'Critical' ? 'critical' as const : 'warning' as const,
-      rank: item.status === 'Offline' ? 10 : 45,
-    }))
-}
-
-function buildActionCards(state: ActionState, primaryGrow: GrowSummary | undefined) {
-  const activeSensors = state.hardware.filter((item) => isSensorLike(item) && item.status === 'Active').length
-  const mappedHardware = state.hardware.filter((item) => item.haEntityId).length
-  const unmappedFixedSensors = state.hardware.filter((item) => isMappingExpected(item) && !item.haEntityId).length
-  const dueSensorWork = state.maintenance.length + state.calibration.length
-
-  return [
-    {
-      key: 'addback',
-      kicker: 'Addback',
-      title: 'Addback berechnen',
-      description: 'Reservoir, Wasserstand und Ziel-EC prüfen.',
-      status: primaryGrow ? `Kontext: ${primaryGrow.name}` : 'Kein aktiver Grow ausgewählt.',
-      to: primaryGrow ? `/grows/${primaryGrow.id}/addback` : '/grows/new',
-      cta: primaryGrow ? 'Addback starten' : 'Grow starten',
-      primary: true,
-      tone: state.risks.some((risk) => risk.severity === 'Critical') ? 'warn' as const : 'neutral' as const,
-    },
-    {
-      key: 'measurement',
-      kicker: 'Messung',
-      title: 'Werte dokumentieren',
-      description: 'pH, EC, Klima und Beobachtungen speichern.',
-      status: primaryGrow?.latestMeasurementAt ? `Letzte Messung: ${formatDateTime(primaryGrow.latestMeasurementAt)}` : 'Noch keine aktuelle Messung erkannt.',
-      to: '/messung',
-      cta: 'Messung erfassen',
-      primary: false,
-      tone: 'neutral' as const,
-    },
-    {
-      key: 'sensors',
-      kicker: 'Sensoren',
-      title: 'Sensoren prüfen',
-      description: 'Offline-Sensoren und fällige Pflege prüfen.',
-      status: activeSensors === 0 ? 'Sensorvertrauen nicht bewertet.' : `${activeSensors} aktive Sensoren, ${dueSensorWork} fällige Aufgaben.`,
-      to: '/hardware',
-      cta: 'Sensoren prüfen',
-      primary: false,
-      tone: activeSensors === 0 || dueSensorWork > 0 ? 'warn' as const : 'ok' as const,
-    },
-    {
-      key: 'ha',
-      kicker: 'Home Assistant',
-      title: 'HA-Mapping prüfen',
-      description: 'Hardware-Entities in Home Assistant prüfen.',
-      status: unmappedFixedSensors > 0
-        ? `${unmappedFixedSensors} fester Sensor(en) ohne Entity.`
-        : mappedHardware > 0
-          ? `${mappedHardware} Hardware-Entities verknüpft.`
-          : 'Keine festen Sensoren gemappt — optional.',
-      to: '/home-assistant',
-      cta: 'HA einrichten',
-      primary: false,
-      tone: unmappedFixedSensors > 0 ? 'warn' as const : 'neutral' as const,
-    },
-  ]
-}
-
 function getGrowName(grows: GrowSummary[], id: number | null) { return id == null ? 'Grow offen' : grows.find((grow) => grow.id === id)?.name ?? `Grow #${id}` }
 function getHardwareName(items: HardwareItemDto[], id: number | null) { return id == null ? 'Hardware offen' : items.find((item) => item.id === id)?.name ?? `Hardware #${id}` }
-function isSensorLike(item: HardwareItemDto) {
-  if (item.deviceKind === 'FixedSensor' || item.deviceKind === 'HandheldMeter') return true
-  if (item.deviceKind === 'Equipment') return false
-  const text = `${item.name} ${item.category}`.toLowerCase()
-  return ['sensor', 'sonde', 'probe', 'ph', 'ec', 'orp', 'do', 'temperatur', 'level'].some((term) => text.includes(term))
-}
 export default MobileActionPage

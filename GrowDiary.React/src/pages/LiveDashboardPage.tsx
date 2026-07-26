@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { apiFetch } from '../api'
 import type { GrowSummary, RiskEventDto, TentDto, TentLivePayload } from '../types'
 import { LiveScreen, type LiveTask } from '../features/live/LiveScreen'
+import { buildPhaseTimeline } from '../features/grows/phase-timeline'
 import '../features/live/live-screen.css'
 import { V1Skeleton } from '../components/v1'
 import {
@@ -215,45 +216,5 @@ function growDayLabel(startDate: string | null | undefined): string {
   return days > 0 ? `Tag ${days}` : ''
 }
 
-function shortDate(value: Date | null): string {
-  // Intl liefert bei de-DE schon einen Punkt am Ende; ein zweiter machte daraus 20.05..
-  return value ? new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit' }).format(value) : '\u2014'
-}
-
-/**
- * Die Phasen-Timeline aus Start-, Flip- und geschaetztem Erntedatum.
- *
- * Ohne Flipdatum gibt es keine Blütephase zu zeichnen — dann steht nur die
- * laufende Phase da, statt eine Dauer zu erfinden.
- */
-function buildPhaseTimeline(grow: GrowSummary | null) {
-  const leer = { phases: [] as { label: string; days: number; state: 'done' | 'current' | 'planned' }[], dates: { start: '\u2014', flip: '\u2014', harvest: '\u2014' } }
-  if (!grow?.startDate) return leer
-
-  const start = new Date(grow.startDate)
-  if (Number.isNaN(start.getTime())) return leer
-  const flip = grow.flipDate ? new Date(grow.flipDate) : null
-  const flipValid = flip && !Number.isNaN(flip.getTime()) ? flip : null
-  // Die Zusammenfassung fuehrt die Breeder-Angaben nicht mit; acht Wochen sind
-  // der uebliche Richtwert und stehen als Schaetzung ausdruecklich mit „~" da.
-  const flowerWeeks = 8
-  const harvest = flipValid ? new Date(flipValid.getTime() + flowerWeeks * 7 * 86_400_000) : null
-
-  const today = Date.now()
-  const vegDays = flipValid
-    ? Math.max(1, Math.round((flipValid.getTime() - start.getTime()) / 86_400_000))
-    : Math.max(1, Math.round((today - start.getTime()) / 86_400_000))
-  const inFlower = flipValid != null && today >= flipValid.getTime()
-
-  const phases: { label: string; days: number; state: 'done' | 'current' | 'planned' }[] = [
-    { label: `Veg ${vegDays} T`, days: vegDays, state: inFlower ? 'done' : 'current' },
-  ]
-  if (flipValid) {
-    const flowerDays = flowerWeeks * 7
-    phases.push({ label: `Blüte ${flowerDays} T`, days: flowerDays, state: inFlower ? 'current' : 'planned' })
-  }
-
-  return { phases, dates: { start: shortDate(start), flip: shortDate(flipValid), harvest: shortDate(harvest) } }
-}
 
 export default LiveDashboardPage

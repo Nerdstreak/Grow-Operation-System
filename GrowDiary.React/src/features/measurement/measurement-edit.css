@@ -40,3 +40,18 @@
   .chk-text strong { display: block; font-weight: 500; }
   .chk-text em { display: block; margin-top: 2px; font-style: normal; color: var(--muted); font-size: 12px; }
 }
+
+/* Messen als zwei Spalten: Formular links, Pruefung und Foto rechts. */
+@layer features {
+  .ms-layout { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: start; }
+  .ms-form { flex: 999 1 480px; min-width: 0; display: grid; gap: var(--s-3); }
+  .ms-side { flex: 1 1 340px; min-width: 0; display: grid; gap: var(--s-3); align-content: start; }
+  .ms-actions { justify-content: flex-start; }
+
+  /* Der Feldrand traegt den Status der Live-Pruefung — gruen im Ziel, gelb
+     knapp daneben, rot deutlich. Wie im Entwurf: man sieht es am Feld selbst,
+     nicht erst im Panel. */
+  .ms-form input.is-ok { border-color: var(--accent); }
+  .ms-form input.is-warn { border-color: var(--warn); }
+  .ms-form input.is-crit { border-color: var(--danger); }
+}
