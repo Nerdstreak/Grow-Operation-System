@@ -9,9 +9,18 @@ import { classNames } from '../../utils'
  * Vorher stand das Ergebnis erst nach dem Speichern in der Diagnose. Wer am
  * Reservoir steht, erfährt es jetzt beim Tippen — und kann direkt handeln, statt
  * später zurückzukommen.
+ *
+ * Der Entwurf kommt so herein, wie das Formular ihn hält, und nur seine
+ * Zeichenketten-Felder gehen weiter. Vorher stand an der Aufrufstelle eine
+ * Umdeutung (`as unknown as Record<string, string>`), die verdeckte, dass der
+ * Entwurf auch boolesche Felder enthält — `checkDraft` ruft auf jedem Wert
+ * `.trim()` auf.
  */
-export function LiveCheckPanel({ draft, metrics }: { draft: Record<string, string>; metrics: MetricPayload[] }) {
-  const findings = checkDraft(draft, metrics)
+export function LiveCheckPanel({ draft, metrics }: { draft: Record<string, unknown>; metrics: MetricPayload[] }) {
+  const strings = Object.fromEntries(
+    Object.entries(draft).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+  )
+  const findings = checkDraft(strings, metrics)
   const problems = findings.filter((finding) => finding.severity !== 'ok')
   const okLine = summariseOk(findings)
 

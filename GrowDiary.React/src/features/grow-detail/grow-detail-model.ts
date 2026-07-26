@@ -1,6 +1,5 @@
 import { ApiRequestError } from '../../api'
 import type {
-  AutoMeasurementAggregation,
   AutoMeasurementField,
   AutoMeasurementFieldMappingUpsertRequest,
   AutoMeasurementStatus,
@@ -13,15 +12,6 @@ import type {
 import { formatNumber, toLocalInputValue } from '../../utils'
 
 export type GrowDetailSection = 'overview' | 'measurements' | 'diagnosis' | 'sops' | 'journal' | 'automation'
-
-export const detailSections: Array<{ key: GrowDetailSection; label: string }> = [
-  { key: 'overview', label: 'Überblick' },
-  { key: 'measurements', label: 'Messungen' },
-  { key: 'diagnosis', label: 'Diagnose' },
-  { key: 'sops', label: 'SOPs' },
-  { key: 'journal', label: 'Journal/Fotos/Tasks' },
-  { key: 'automation', label: 'Automatisierung' },
-]
 
 export const photoTags: PhotoTag[] = ['Overview', 'Canopy', 'Leaf', 'Root', 'Training', 'Flower', 'Problem', 'Comparison', 'Other']
 
@@ -38,10 +28,6 @@ export const autoMeasurementFields: AutoMeasurementField[] = [
   'PpfdMol',
   'Co2Ppm',
 ]
-
-export const autoMeasurementAggregations: AutoMeasurementAggregation[] = ['Latest', 'Median', 'Average']
-export const autoMeasurementTriggerKinds: AutoMeasurementTriggerKind[] = ['Manual', 'LightOnDelay', 'LightOffDelay']
-export const autoMeasurementStatuses: AutoMeasurementStatus[] = ['Enabled', 'Disabled']
 
 export const defaultMetricKeyByField: Record<AutoMeasurementField, string> = {
   AirTemperatureC: 'temperature',
@@ -123,13 +109,6 @@ export function toNullableNumber(value: string): number | null {
   if (!trimmed) return null
   const parsed = Number(trimmed.replace(',', '.'))
   return Number.isNaN(parsed) ? null : parsed
-}
-
-export function toNullableInteger(value: string): number | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  const parsed = Number(trimmed)
-  return Number.isInteger(parsed) ? parsed : null
 }
 
 export function formatDeviationValue(value: number | null, unit: string | null): string {

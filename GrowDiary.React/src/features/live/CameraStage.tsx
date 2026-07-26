@@ -37,15 +37,12 @@ export function CameraStage({ tentId, cameras }: { tentId: number; cameras: Stag
             className={classNames('cam-strip-item', index === active && 'active')}
             onClick={() => setActive(index)}
           >
-            {/* Das Vorschaubild ist derselbe Proxy-Aufruf — der Server liefert
-                den zuletzt gültigen Frame, auch wenn die Kamera gerade hustet. */}
-            <img
-              src={`/api/live/tents/${tentId}/camera?entity=${encodeURIComponent(camera.entityId)}&thumb=1`}
-              alt=""
-              loading="lazy"
-              onError={(event) => { (event.currentTarget as HTMLImageElement).style.visibility = 'hidden' }}
-            />
-            <span>{camera.label}</span>
+            {/* Bewusst ohne Vorschaubild: der Kamera-Proxy kennt keine kleine
+                Größe, ein Miniaturbild wäre also ein zweites Vollbild — bei drei
+                Kameras vier Vollbilder je Aktualisierung auf einem Pi. Sobald der
+                Proxy skaliert liefert, gehört das Bild hierher. */}
+            <span className="cam-strip-index">{index + 1}</span>
+            <span className="cam-strip-label">{camera.label}</span>
           </button>
         ))}
       </div>

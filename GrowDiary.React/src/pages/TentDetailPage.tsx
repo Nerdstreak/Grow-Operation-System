@@ -9,6 +9,7 @@ import { TentHistorySection } from '../features/tents/TentHistorySection'
 import { resolveUrl } from '../base'
 import { mapMetrics } from '../features/live/live-model'
 import { MetricTile } from '../features/live/MetricTile'
+import { decimalsForMetric } from '../features/live/metric-tile-model'
 import '../features/live/metric-tile.css'
 
 const tentMetricDefinitions = [
@@ -148,7 +149,7 @@ function TentDetailPage() {
                 unit={metric.unit}
                 targetMin={metric.targetMin}
                 targetMax={metric.targetMax}
-                decimals={metricDecimals(metric.key)}
+                decimals={decimalsForMetric(metric.key)}
               />
             ))}
           </div>
@@ -198,16 +199,3 @@ function formatLiters(value: number | null | undefined) { return value == null ?
 
 export default TentDetailPage
 
-/** Nachkommastellen sind Konvention des Messwerts, nicht der Zahl. */
-function metricDecimals(key: string): number {
-  switch (key) {
-    case 'reservoir-ph':
-    case 'reservoir-ec':
-      return 2
-    case 'reservoir-temp':
-    case 'dissolved-oxygen':
-      return 1
-    default:
-      return 0
-  }
-}

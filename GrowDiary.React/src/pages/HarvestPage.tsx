@@ -40,7 +40,12 @@ function HarvestPage() {
     async function load() {
       setLoading(true)
       try {
-        const nextHarvest = await apiFetch<HarvestDto>(`/api/grows/${growId}/harvest`, { signal: controller.signal })
+        // Beides gleichzeitig: der Grow haengt nicht am Ernteeintrag, und zwei
+        // Rundreisen nacheinander sind auf dem Pi ueber WLAN eine Sekunde zu viel.
+        const [nextHarvest, grow] = await Promise.all([
+          apiFetch<HarvestDto>(`/api/grows/${growId}/harvest`, { signal: controller.signal }),
+          apiFetch<GrowDetail>(`/api/grows/${growId}`, { signal: controller.signal }).catch(() => null),
+        ])
         setHarvest(nextHarvest)
         setForm({
           harvestedAtLocal: nextHarvest.harvestedAtLocal,
@@ -53,7 +58,6 @@ function HarvestPage() {
           effectNotes: nextHarvest.effectNotes ?? '',
           nugStructure: nextHarvest.nugStructure ?? '',
         })
-        const grow = await apiFetch<GrowDetail>(`/api/grows/${growId}`, { signal: controller.signal }).catch(() => null)
         setPlants(parsePlantWeights(nextHarvest.plantWeightsJson, grow?.plantCount ?? 1))
         setError(null)
       } catch (caught) {

@@ -138,6 +138,38 @@ public sealed class GrowDashboardComposerTargetTests
         Assert.True(dwc.TargetMax > rdwc.TargetMax);
     }
 
+    [Fact]
+    public void ReservoirTiles_AppearForAnActiveGrow_EvenWithoutSensorOrMeasurement()
+    {
+        // Diese Bedingung war jahrelang tot, weil Tent.ActiveGrows nie gefuellt
+        // wurde. Seit sie es ist, entscheidet sie ueber fuenf Kacheln — also
+        // gehoert sie festgehalten, statt sie beim naechsten Umbau erneut
+        // stillzulegen.
+        var composer = CreateComposer();
+        var tent = TentWithGrow(new GrowStyleFixture(HydroStyle.RDWC));
+
+        var keys = composer.BuildTentMetrics(tent, [], []).Select(card => card.Key).ToList();
+
+        Assert.Contains("reservoir-ph", keys);
+        Assert.Contains("reservoir-ec", keys);
+        Assert.Contains("orp", keys);
+        Assert.Contains("dissolved-oxygen", keys);
+    }
+
+    [Fact]
+    public void WithoutAnyGrow_TheReservoirTilesStayAway()
+    {
+        // Ein leeres Zelt zeigt keine Reservoirwerte — sonst staenden auf jedem
+        // frisch angelegten Zelt fuenf Kacheln mit „–".
+        var composer = CreateComposer();
+        var tent = new Tent { Id = 1, Name = "Leer", ActiveGrows = [] };
+
+        var keys = composer.BuildTentMetrics(tent, [], []).Select(card => card.Key).ToList();
+
+        Assert.DoesNotContain("reservoir-ph", keys);
+        Assert.DoesNotContain("dissolved-oxygen", keys);
+    }
+
     private static string FindProjectRoot()
     {
         // Die Projektmappe heisst GrowDiary.slnx — auf "*.sln" zu pruefen findet

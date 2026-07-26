@@ -28,7 +28,7 @@ export type WeightTotals = {
 }
 
 /** Übliche Trockenausbeute; dient nur der Erwartung, nie dem gespeicherten Wert. */
-export const TYPICAL_DRY_RATIO = 0.22
+const TYPICAL_DRY_RATIO = 0.22
 
 export function parsePlantWeights(json: string | null | undefined, fallbackCount: number): PlantWeight[] {
   if (json) {

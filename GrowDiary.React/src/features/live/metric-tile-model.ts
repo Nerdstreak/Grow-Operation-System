@@ -127,3 +127,26 @@ export function targetLabel(
   if (max != null) return `Ziel ≤ ${format(max)}${suffix}`
   return null
 }
+
+/**
+ * Nachkommastellen je Messwert.
+ *
+ * Konvention des Messwerts, nicht der Zahl: pH schreibt man zweistellig,
+ * Luftfeuchte gar nicht. Stand zweimal im Code — auf der Live-Seite mit VPD auf
+ * zwei Stellen, auf der Zelt-Detailseite ohne, sodass derselbe Wert dort „0,92"
+ * und hier „1" hiess.
+ */
+export function decimalsForMetric(key: string): number {
+  switch (key) {
+    case 'reservoir-ph':
+    case 'reservoir-ec':
+    case 'vpd':
+      return 2
+    case 'temperature':
+    case 'reservoir-temp':
+    case 'dissolved-oxygen':
+      return 1
+    default:
+      return 0
+  }
+}

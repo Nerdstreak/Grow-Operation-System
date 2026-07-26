@@ -433,7 +433,7 @@ function ManualMeasurementPage() {
             </div>
 
             <div data-audit="measurement-section-check">
-              <LiveCheckPanel draft={draft as unknown as Record<string, string>} metrics={liveMetrics} />
+              <LiveCheckPanel draft={draft} metrics={liveMetrics} />
             </div>
 
             <div data-audit="measurement-section-photo">

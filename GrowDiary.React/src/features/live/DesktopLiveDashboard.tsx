@@ -14,6 +14,7 @@ import { DashboardSections } from './DashboardSections'
 import { DashboardEditorBar } from './DashboardEditorBar'
 import './live-instrument.css'
 import { MetricTile } from './MetricTile'
+import { decimalsForMetric } from './metric-tile-model'
 import './metric-tile.css'
 
 type DesktopLiveDashboardProps = {
@@ -65,7 +66,7 @@ function Metric({ metric, trend }: { metric: MetricPayload; trend?: HistoryPoint
         unit={metric.unit}
         targetMin={metric.targetMin}
         targetMax={metric.targetMax}
-        decimals={decimalsFor(metric.key)}
+        decimals={decimalsForMetric(metric.key)}
       />
     )
   }
@@ -83,24 +84,6 @@ function Metric({ metric, trend }: { metric: MetricPayload; trend?: HistoryPoint
   )
 }
 
-/**
- * Wie viele Nachkommastellen ein Messwert traegt, ist Konvention des Messwerts,
- * nicht der Zahl: pH schreibt man zweistellig, Luftfeuchte gar nicht.
- */
-function decimalsFor(key: string): number {
-  switch (key) {
-    case 'reservoir-ph':
-    case 'reservoir-ec':
-    case 'vpd':
-      return 2
-    case 'temperature':
-    case 'reservoir-temp':
-    case 'dissolved-oxygen':
-      return 1
-    default:
-      return 0
-  }
-}
 
 function formatClock(value: number | string | null): string {
   if (value == null) return '—'
