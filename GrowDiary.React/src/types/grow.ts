@@ -414,6 +414,8 @@ export interface HarvestDto {
   flavorNotes: string | null
   effectNotes: string | null
   nugStructure: string | null
+  /** Einzelgewichte je Pflanze als JSON; die Summe steht in wetWeightG/dryWeightG. */
+  plantWeightsJson: string | null
 }
 
 export interface GrowActionResultDto {

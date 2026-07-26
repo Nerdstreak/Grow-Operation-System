@@ -46,6 +46,13 @@ public sealed class HarvestUpsertRequest
     public string? FlavorNotes { get; set; }
     public string? EffectNotes { get; set; }
     public string? NugStructure { get; set; }
+
+    /// <summary>
+    /// Einzelgewichte je Pflanze als JSON. Die Summe steht weiterhin in
+    /// <see cref="WetWeightG"/> und <see cref="DryWeightG"/> — Auswertungen
+    /// rechnen mit denen, damit aeltere Ernten ohne Aufschluesselung zaehlen.
+    /// </summary>
+    public string? PlantWeightsJson { get; set; }
 }
 
 public sealed record HarvestDto(
@@ -59,7 +66,8 @@ public sealed record HarvestDto(
     double? Rating,
     string? FlavorNotes,
     string? EffectNotes,
-    string? NugStructure);
+    string? NugStructure,
+    string? PlantWeightsJson);
 
 public sealed record GrowActionResultDto(
     GrowDetailDto Grow,

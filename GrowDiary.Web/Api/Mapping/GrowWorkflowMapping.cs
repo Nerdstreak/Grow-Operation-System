@@ -25,13 +25,15 @@ public static class GrowWorkflowMapping
             entry.Rating,
             entry.FlavorNotes,
             entry.EffectNotes,
-            entry.NugStructure);
+            entry.NugStructure,
+            entry.PlantWeightsJson);
 
     public static HarvestDto CreateDefaultHarvestDto(int growId, string growName)
         => new(
             growId,
             growName,
             DateTime.Today.ToString("yyyy-MM-dd"),
+            null,
             null,
             null,
             null,

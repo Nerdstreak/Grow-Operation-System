@@ -119,6 +119,12 @@ public sealed partial class DatabaseInitializer
         """;
         command.ExecuteNonQuery();
         EnsureColumn(connection, "Grows", "SystemId", "INTEGER NULL");
+
+        // Ernte pro Pflanze. Am Trockenregal wiegt man Pflanze fuer Pflanze, nicht
+        // den Grow am Stueck — die Summe steht weiterhin in WetWeightG/DryWeightG,
+        // die Aufschluesselung hier. Als JSON statt eigener Tabelle, weil sie nur
+        // gemeinsam mit ihrem Ernteeintrag gelesen und geschrieben wird.
+        EnsureColumn(connection, "HarvestEntries", "PlantWeightsJson", "TEXT NULL");
         // Sprint E4 — SOP Scheduling
         EnsureColumn(connection, "SopInstances",     "DueAtUtc",               "TEXT NULL");
         EnsureColumn(connection, "SopInstances",     "NextStepDueAtUtc",       "TEXT NULL");

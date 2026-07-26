@@ -1,0 +1,25 @@
+/* Ernte pro Pflanze. */
+@layer features {
+  .hv-table-wrap { container-type: inline-size; overflow-x: auto; }
+  .hv-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .hv-table th, .hv-table td { padding: 6px 8px; border-bottom: 1px solid var(--hair); text-align: left; }
+  .hv-table thead th {
+    font: 700 11px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--faint);
+    white-space: nowrap;
+  }
+  .hv-table tbody th { font-weight: 500; width: 34%; }
+  .hv-table input { width: 100%; min-height: var(--h-md); }
+  .hv-table tbody td input { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  .hv-sums { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-3); }
+  .hv-sums > div {
+    flex: 1 1 150px; min-width: 0; padding: 11px 13px;
+    border: 1px solid var(--hair); border-radius: var(--r); background: var(--panel);
+  }
+  .hv-sums span { display: block; font: 500 10px/1 var(--font-mono); letter-spacing: .14em; color: var(--faint); }
+  .hv-sums strong {
+    display: block; margin-top: 7px;
+    font: 500 21px/1 var(--font-mono); font-variant-numeric: tabular-nums;
+  }
+  .hv-sums em { margin-left: 3px; font-size: 11px; font-style: normal; color: var(--muted); }
+}

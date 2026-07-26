@@ -20,10 +20,10 @@ public sealed class HarvestRepository
         command.CommandText = """
             INSERT INTO HarvestEntries
                 (GrowId, HarvestedAt, WetWeightG, DryWeightG, DryDays, YieldNotes,
-                 Rating, FlavorNotes, EffectNotes, NugStructure, CreatedAtUtc, UpdatedAtUtc)
+                 Rating, FlavorNotes, EffectNotes, NugStructure, PlantWeightsJson, CreatedAtUtc, UpdatedAtUtc)
             VALUES
                 ($growId, $harvestedAt, $wetWeightG, $dryWeightG, $dryDays, $yieldNotes,
-                 $rating, $flavorNotes, $effectNotes, $nugStructure, $createdAtUtc, $updatedAtUtc);
+                 $rating, $flavorNotes, $effectNotes, $nugStructure, $plantWeightsJson, $createdAtUtc, $updatedAtUtc);
             SELECT last_insert_rowid();
             """;
         command.Parameters.AddWithValue("$growId",       entry.GrowId);
@@ -36,6 +36,7 @@ public sealed class HarvestRepository
         command.Parameters.AddWithValue("$flavorNotes",  (object?)entry.FlavorNotes ?? DBNull.Value);
         command.Parameters.AddWithValue("$effectNotes",  (object?)entry.EffectNotes ?? DBNull.Value);
         command.Parameters.AddWithValue("$nugStructure", (object?)entry.NugStructure ?? DBNull.Value);
+        command.Parameters.AddWithValue("$plantWeightsJson", (object?)entry.PlantWeightsJson ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAtUtc", DateTime.UtcNow.ToString("O"));
         command.Parameters.AddWithValue("$updatedAtUtc", DateTime.UtcNow.ToString("O"));
         return Convert.ToInt32((long)(command.ExecuteScalar() ?? 0L));
@@ -73,6 +74,7 @@ public sealed class HarvestRepository
                 FlavorNotes  = $flavorNotes,
                 EffectNotes  = $effectNotes,
                 NugStructure = $nugStructure,
+                PlantWeightsJson = $plantWeightsJson,
                 UpdatedAtUtc = $updatedAtUtc
             WHERE Id = $id;
             """;
@@ -86,8 +88,20 @@ public sealed class HarvestRepository
         command.Parameters.AddWithValue("$flavorNotes",  (object?)entry.FlavorNotes ?? DBNull.Value);
         command.Parameters.AddWithValue("$effectNotes",  (object?)entry.EffectNotes ?? DBNull.Value);
         command.Parameters.AddWithValue("$nugStructure", (object?)entry.NugStructure ?? DBNull.Value);
+        command.Parameters.AddWithValue("$plantWeightsJson", (object?)entry.PlantWeightsJson ?? DBNull.Value);
         command.Parameters.AddWithValue("$updatedAtUtc", DateTime.UtcNow.ToString("O"));
         command.ExecuteNonQuery();
+    }
+
+    private static string? ColumnOrNull(SqliteDataReader reader, string name)
+    {
+        for (var index = 0; index < reader.FieldCount; index += 1)
+        {
+            if (!string.Equals(reader.GetName(index), name, StringComparison.OrdinalIgnoreCase)) continue;
+            return reader.IsDBNull(index) ? null : reader.GetString(index);
+        }
+
+        return null;
     }
 
     private static HarvestEntry Map(SqliteDataReader reader)
@@ -104,6 +118,9 @@ public sealed class HarvestRepository
             FlavorNotes  = reader["FlavorNotes"] is DBNull ? null : reader["FlavorNotes"].ToString(),
             EffectNotes  = reader["EffectNotes"] is DBNull ? null : reader["EffectNotes"].ToString(),
             NugStructure = reader["NugStructure"] is DBNull ? null : reader["NugStructure"].ToString(),
+            // Defensiv: die Spalte kam spaeter dazu, und dieses Repository erbt
+            // nicht von RepositoryBase, hat also dessen HasColumn nicht.
+            PlantWeightsJson = ColumnOrNull(reader, "PlantWeightsJson"),
             CreatedAtUtc = ParseUtcOrDefault(reader["CreatedAtUtc"]),
             UpdatedAtUtc = ParseUtcOrDefault(reader["UpdatedAtUtc"])
         };

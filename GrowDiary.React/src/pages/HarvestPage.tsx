@@ -2,9 +2,11 @@ import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { HarvestDto } from '../types'
-import { V1Alert, V1Button, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
+import type { GrowDetail, HarvestDto } from '../types'
+import { V1Alert, V1Badge, V1Button, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { summariseYield } from '../features/harvest/harvest-yield'
+import { parsePlantWeights, progressLabel, serialisePlantWeights, totals, type PlantWeight } from '../features/harvest/plant-weights-model'
+import '../features/harvest/harvest.css'
 
 interface HarvestFormState {
   harvestedAtLocal: string
@@ -26,6 +28,10 @@ function HarvestPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<'save' | 'complete' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Einzelgewichte je Pflanze. Am Trockenregal wiegt man Pflanze fuer Pflanze;
+  // die Summe wandert in die Grow-Felder, damit Auswertungen unveraendert
+  // weiterrechnen.
+  const [plants, setPlants] = useState<PlantWeight[]>([])
 
   useEffect(() => {
     if (!growId) return
@@ -47,6 +53,8 @@ function HarvestPage() {
           effectNotes: nextHarvest.effectNotes ?? '',
           nugStructure: nextHarvest.nugStructure ?? '',
         })
+        const grow = await apiFetch<GrowDetail>(`/api/grows/${growId}`, { signal: controller.signal }).catch(() => null)
+        setPlants(parsePlantWeights(nextHarvest.plantWeightsJson, grow?.plantCount ?? 1))
         setError(null)
       } catch (caught) {
         if (controller.signal.aborted) return
@@ -70,8 +78,12 @@ function HarvestPage() {
         method: 'PUT',
         body: JSON.stringify({
           harvestedAtLocal: form.harvestedAtLocal,
-          wetWeightG: parseNullableNumber(form.wetWeightG),
-          dryWeightG: parseNullableNumber(form.dryWeightG),
+          // Sind Einzelgewichte da, gewinnen ihre Summen — sonst bliebe das
+          // Grow-Feld auf einem alten Wert stehen, waehrend die Tabelle daneben
+          // etwas anderes zeigt.
+          wetWeightG: sums.wetG ?? parseNullableNumber(form.wetWeightG),
+          dryWeightG: sums.dryG ?? parseNullableNumber(form.dryWeightG),
+          plantWeightsJson: serialisePlantWeights(plants),
           dryDays: parseNullableInteger(form.dryDays),
           yieldNotes: trimToNull(form.yieldNotes),
           rating: parseNullableNumber(form.rating),
@@ -100,6 +112,11 @@ function HarvestPage() {
     void save(false)
   }
 
+  function patchPlant(index: number, patch: Partial<PlantWeight>) {
+    setPlants((current) => current.map((plant, position) => (position === index ? { ...plant, ...patch } : plant)))
+  }
+
+  const sums = totals(plants)
   const backTo = growId ? `/grows/${growId}` : '/'
   const yieldSummary = form ? summariseYield(form.wetWeightG, form.dryWeightG) : null
 
@@ -140,6 +157,63 @@ function HarvestPage() {
                 <span>{yieldSummary.text}</span>
               </div>
             )}
+          </V1Section>
+
+          <V1Section title="Ernte pro Pflanze" action={<V1Badge tone="neutral">{progressLabel(sums)}</V1Badge>}>
+            <div className="hv-table-wrap">
+              <table className="hv-table" data-audit="harvest-plants">
+                <thead>
+                  <tr>
+                    <th scope="col">Pflanze</th>
+                    <th scope="col">Nass (g)</th>
+                    <th scope="col">Trocken (g)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {plants.map((plant, index) => (
+                    <tr key={plant.label}>
+                      <th scope="row">
+                        <input
+                          value={plant.label}
+                          aria-label={`Kennung Pflanze ${index + 1}`}
+                          onChange={(event) => patchPlant(index, { label: event.target.value })}
+                        />
+                      </th>
+                      <td>
+                        <input
+                          inputMode="decimal"
+                          value={plant.wetG ?? ''}
+                          aria-label={`Nassgewicht ${plant.label}`}
+                          onChange={(event) => patchPlant(index, { wetG: toGrams(event.target.value) })}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          inputMode="decimal"
+                          value={plant.dryG ?? ''}
+                          aria-label={`Trockengewicht ${plant.label}`}
+                          onChange={(event) => patchPlant(index, { dryG: toGrams(event.target.value) })}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="hv-sums">
+              <div><span>Nass gesamt</span><strong>{sums.wetG ?? '—'}<em>g</em></strong></div>
+              <div>
+                <span>{sums.dryG != null ? 'Trocken gesamt' : 'Erwartet trocken'}</span>
+                <strong>{sums.dryG ?? (sums.expectedDryG != null ? `~${sums.expectedDryG}` : '—')}<em>g</em></strong>
+              </div>
+            </div>
+
+            <div className="v1-action-row">
+              <V1Button type="button" onClick={() => setPlants((current) => [...current, { label: `PL-${String(current.length + 1).padStart(2, '0')}`, wetG: null, dryG: null }])}>
+                Pflanze ergänzen
+              </V1Button>
+            </div>
           </V1Section>
 
           <V1Section title="Bewertung">
@@ -199,3 +273,11 @@ function trimToNull(value: string) {
 }
 
 export default HarvestPage
+
+/** Leeres Feld heisst „noch nicht gewogen", nicht „null Gramm". */
+function toGrams(value: string): number | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const parsed = Number(trimmed.replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : null
+}

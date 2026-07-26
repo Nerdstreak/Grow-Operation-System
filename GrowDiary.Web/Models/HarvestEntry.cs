@@ -13,6 +13,14 @@ public sealed class HarvestEntry
     public string? FlavorNotes { get; set; }
     public string? EffectNotes { get; set; }
     public string? NugStructure { get; set; }
+
+    /// <summary>
+    /// Einzelgewichte je Pflanze als JSON: <c>[{"label":"PL-01","wetG":486,"dryG":null}]</c>.
+    /// Die Summe steht in <see cref="WetWeightG"/> und <see cref="DryWeightG"/> —
+    /// die bleiben die Wahrheit fuer Auswertungen, damit aeltere Ernten ohne
+    /// Aufschluesselung weiter zaehlen.
+    /// </summary>
+    public string? PlantWeightsJson { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 }
