@@ -1,0 +1,283 @@
+/* Aus rc2-overrides.css herausgeloest.
+   Bewusst noch ohne @layer: das Verschieben soll die Kaskade nicht
+   veraendern. Aufraeumen und Schichten sind der naechste Schritt. */
+.rc-tent-actions {
+  margin-top: 12px;
+  align-items: stretch;
+}
+@media (max-width: 720px) {
+    .rc-tent-actions .v1-button {
+      flex: 1 1 138px;
+    }
+}
+
+.v1-tent-card {
+  display: grid;
+  gap: 14px;
+}
+.v1-tent-card .v1-card-title-row {
+  align-items: start;
+  gap: 12px;
+}
+.v1-tent-card .v1-card-title-row > div {
+  min-width: 0;
+}
+.v1-tent-card h2 {
+  overflow: visible;
+  overflow-wrap: break-word;
+  word-break: normal;
+  white-space: normal;
+}
+.v1-tent-card .v1-info {
+  min-height: 64px;
+}
+.v1-tent-card .v1-info strong {
+  line-height: 1.2;
+  white-space: normal;
+}
+.rc-tent-actions {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--v1-border);
+  gap: 8px;
+  align-items: stretch;
+}
+.rc-tent-actions .v1-button {
+  flex: 1 1 112px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.v1-tent-card {
+  min-width: 0;
+  max-width: 100%;
+}
+.v1-tent-card .v1-info-grid {
+  gap: 10px;
+}
+.v1-tent-card .v1-info {
+  min-width: 0;
+  min-height: 58px;
+  padding: 10px;
+}
+.v1-tent-card .v1-info strong {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.rc-tent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--v1-border);
+  min-width: 0;
+  max-width: 100%;
+}
+.rc-tent-actions .v1-button,
+.rc-tent-actions .v1-link-button {
+  flex: 1 1 104px;
+  min-width: 0;
+  min-height: 40px;
+}
+@media (max-width: 900px) {
+    .rc-tent-actions .v1-button,
+    .rc-tent-actions .v1-link-button {
+      flex: 1 1 150px;
+    }
+}
+
+.tent-metric-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+}
+.tent-metric-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--v1-line);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, .02);
+}
+.tent-metric-group h3 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--v1-text);
+}
+.tent-metric-group dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+.tent-metric-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  max-width: 100%;
+}
+.tent-metric-row dd {
+  text-align: right;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+@media (max-width: 900px) {
+    .tent-metric-groups {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+}
+
+@media (max-width: 430px) {
+    .tent-metric-row dd {
+      text-align: right;
+    }
+}
+
+.tent-detail-room-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.tent-detail-room-grid .v1-info {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  align-items: start;
+  align-content: start;
+  max-width: 100%;
+  overflow: visible;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.tent-detail-room-grid .v1-info span,
+.tent-detail-room-grid .v1-info strong {
+  text-align: left;
+  white-space: normal;
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.tent-detail-fact-list {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.tent-detail-fact-list .v1-info {
+  min-height: 0;
+  grid-template-columns: minmax(104px, .34fr) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 12px;
+}
+.tent-detail-fact-list .v1-info strong {
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 1200px) {
+    .tent-detail-room-grid {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+    .tent-detail-v2 .tent-detail-room-grid {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+    .tent-detail-v2 .tent-detail-room-grid .v1-info {
+      min-height: 0;
+      width: 100%;
+      box-sizing: border-box;
+      grid-template-columns: minmax(88px, .28fr) minmax(0, 1fr);
+      align-items: baseline;
+      column-gap: 14px;
+      padding: 12px 14px;
+      overflow: visible;
+    }
+    .tent-detail-v2 .tent-detail-room-grid .v1-info span {
+      align-self: baseline;
+    }
+    .tent-detail-v2 .tent-detail-room-grid .v1-info strong {
+      align-self: baseline;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+}
+
+@media (min-width: 861px) {
+    .tents-page .v1-card-grid {
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
+    }
+    .tents-page .v1-tent-card {
+      display: grid;
+      grid-template-columns: minmax(220px, .52fr) minmax(0, 1.48fr);
+      align-items: start;
+      column-gap: 18px;
+      max-width: none;
+    }
+    .tents-page .v1-tent-card .v1-card-title-row {
+      grid-column: 1;
+    }
+    .tents-page .tent-metric-groups {
+      grid-column: 2;
+      grid-template-columns: repeat(3, minmax(190px, 1fr));
+    }
+    .tents-page .v1-tent-card > p,
+    .tents-page .v1-tent-card > .rc-tent-actions,
+    .tents-page .v1-tent-card > .dependency-panel {
+      grid-column: 1 / -1;
+    }
+    .tents-page .rc-tent-actions {
+      justify-content: flex-end;
+    }
+    .tents-page .tent-metric-row {
+      grid-template-columns: minmax(90px, .36fr) minmax(0, 1fr);
+    }
+    .tents-page .tent-metric-row dd {
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+    }
+}
+
+.tent-metric-groups {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.tent-metric-row {
+  display: grid;
+  grid-template-columns: minmax(72px, .42fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+.tent-metric-row dt,
+.tent-metric-row dd,
+.tent-detail-room-grid .v1-info span,
+.tent-detail-room-grid .v1-info strong {
+  min-width: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: manual;
+}
+.tent-metric-row dd {
+  text-align: left;
+  white-space: normal;
+}
+@media (max-width: 1180px) {
+    .tents-page .v1-tent-card {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .tents-page .v1-tent-card .v1-card-title-row,
+    .tents-page .tent-metric-groups {
+      grid-column: 1;
+    }
+    .tents-page .tent-metric-groups {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+}
+
+@media (max-width: 430px) {
+    .tent-metric-row {
+      grid-template-columns: minmax(0, .36fr) minmax(0, 1fr);
+    }
+}

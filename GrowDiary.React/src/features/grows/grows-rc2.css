@@ -1,0 +1,161 @@
+/* Aus rc2-overrides.css herausgeloest.
+   Bewusst noch ohne @layer: das Verschieben soll die Kaskade nicht
+   veraendern. Aufraeumen und Schichten sind der naechste Schritt. */
+.rc2-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.rc2-admin-grid.two {
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+}
+.rc2-admin-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.rc2-admin-card .v1-button {
+  width: fit-content;
+}
+.rc2-admin-kpis .v1-card h2 {
+  font-size: clamp(1.5rem, 6vw, 2.3rem);
+}
+.grow-wizard-shell,
+.grow-wizard-main,
+.grow-wizard-context {
+  min-width: 0;
+}
+.dependency-panel {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin-top: 14px;
+  border: 1px solid var(--v1-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--v1-surface-2);
+}
+.dependency-panel.active {
+  border-color: var(--v1-warn);
+}
+.dependency-panel p {
+  margin: 0;
+}
+.dependency-panel .v1-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+.dependency-panel .dependency-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.dependency-panel .dependency-row > div:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.dependency-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+.dependency-row-actions .v1-button {
+  min-height: 36px;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+.dependency-panel .v1-list-row strong,
+.dependency-panel .v1-list-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 900px) {
+    .dependency-panel .v1-list-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .dependency-row-actions {
+      justify-content: stretch;
+    }
+    .dependency-row-actions .v1-button {
+      flex: 1 1 118px;
+    }
+}
+
+.grows-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.grows-page .v1-hero .v1-button,
+.grows-page .v1-hero .v1-link-button,
+.grow-wizard-page .v1-button,
+.grow-wizard-page .v1-link-button {
+  min-height: 44px;
+}
+@media (max-width: 767px) {
+    .grows-page {
+      gap: 12px;
+    }
+    .grows-page .v1-hero {
+      gap: 10px;
+      padding-bottom: 4px;
+    }
+    .grows-page .v1-hero .v1-button,
+    .grows-page .v1-hero .v1-link-button {
+      min-height: 44px;
+    }
+    .grows-page .v1-kpi-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .grows-page .v1-section {
+      gap: 10px;
+    }
+    .grows-empty-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      width: min(100%, 320px);
+      margin-inline: auto;
+    }
+    .grows-empty-actions .v1-button,
+    .grows-empty-actions .v1-link-button {
+      width: 100%;
+      min-height: 44px;
+    }
+    .grow-wizard-mobile-surface {
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+    }
+    .grow-wizard-mobile-surface .v1-wizard-steps {
+      gap: 6px;
+      padding-bottom: 4px;
+    }
+    .grow-wizard-mobile-surface .v1-wizard-step {
+      min-height: 48px;
+    }
+}
+
+@media (max-width: 760px) {
+    .grow-wizard-page .sticky-actions {
+      position: static !important;
+      margin-top: 16px;
+      margin-bottom: 0 !important;
+      padding: 10px 0 0;
+      border: 0;
+      border-top: 1px solid var(--v1-line);
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    .grow-wizard-page .sticky-actions .v1-button {
+      width: 100% !important;
+      min-height: 44px;
+    }
+}

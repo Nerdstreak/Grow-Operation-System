@@ -1,0 +1,45 @@
+/* Aus rc2-overrides.css herausgeloest.
+   Bewusst noch ohne @layer: das Verschieben soll die Kaskade nicht
+   veraendern. Aufraeumen und Schichten sind der naechste Schritt. */
+@media (min-width: 861px) {
+    .rc2-live-page .live-desktop-main-grid > [data-audit="live-climate-card"] {
+      grid-column: span 4;
+    }
+    .rc2-live-page .live-desktop-main-grid > [data-audit="live-risk-card"] {
+      grid-column: span 3;
+    }
+    .rc2-live-page .live-desktop-main-grid > [data-audit="live-sensor-card"],
+    .rc2-live-page .live-desktop-main-grid > [data-audit="live-camera"],
+    .rc2-live-page .live-desktop-main-grid > [data-audit="live-camera-note"] {
+      grid-column: span 6;
+    }
+    .rc2-live-page .live-desktop-status-card .v1-card-title-row {
+      align-items: center;
+    }
+    .rc2-live-page .live-camera-empty-card .v1-button {
+      min-height: 38px;
+      padding-inline: 12px;
+    }
+}
+
+.live-risk-card {
+  display: grid;
+  gap: 12px;
+  height: 100%;
+}
+.live-risk-card p {
+  margin: 0;
+  color: var(--v1-muted);
+  line-height: 1.45;
+}
+@media (max-width: 1180px) {
+    .rc2-live-page .live-desktop-main-grid > [data-audit],
+    .rc2-live-page .live-desktop-main-grid > [data-audit="live-climate-card"],
+    .rc2-live-page .live-desktop-main-grid > [data-audit="live-hydro-card"],
+    .rc2-live-page .live-desktop-main-grid > [data-audit="live-risk-card"],
+    .rc2-live-page .live-desktop-main-grid > [data-audit="live-sensor-card"],
+    .rc2-live-page .live-desktop-main-grid > [data-audit="live-camera"],
+    .rc2-live-page .live-desktop-main-grid > [data-audit="live-camera-note"] {
+      grid-column: 1 / -1;
+    }
+}

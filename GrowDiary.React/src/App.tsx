@@ -22,6 +22,15 @@ import SettingsPage from './pages/SettingsPage'
 import TentDetailPage from './pages/TentDetailPage'
 import TentsPage from './pages/TentsPage'
 import './rc2-overrides.css'
+// Direkt danach: die Zelt-Regeln standen bis eben in rc2-overrides und muessen
+// an derselben Stelle der Kaskade bleiben.
+import './features/tents/tents.css'
+import './features/measurement/measurement.css'
+import './features/grows/grows.css'
+import './features/home-assistant/ha.css'
+import './features/addback/addback.css'
+import './features/live/live-rc2.css'
+import './features/grows/grows-rc2.css'
 
 import { AppShell } from './AppShell'
 import { legacyRedirects } from './navigation'

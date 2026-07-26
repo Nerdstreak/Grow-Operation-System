@@ -1,0 +1,177 @@
+/* Aus rc2-overrides.css herausgeloest.
+   Bewusst noch ohne @layer: das Verschieben soll die Kaskade nicht
+   veraendern. Aufraeumen und Schichten sind der naechste Schritt. */
+.rc2-measurement-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, .32fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.rc2-measurement-side,
+.rc2-measurement-main {
+  min-width: 0;
+}
+.rc2-measurement-main {
+  display: grid;
+  gap: 16px;
+}
+.rc2-measurement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+.rc2-measurement-extra {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.rc2-measurement-extra .is-wide {
+  grid-column: 1 / -1;
+}
+.rc2-measurement-page .sticky-actions {
+  margin-top: 4px;
+}
+.rc2-measurement-page [data-audit="measurement-form-actions"] {
+  position: static;
+  z-index: auto;
+  margin-top: 4px;
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid var(--v1-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.rc2-measurement-page .v1-hero {
+  margin-bottom: 12px;
+}
+.rc2-measurement-page .v1-field input,
+.rc2-measurement-page .v1-field select,
+.rc2-measurement-page .v1-field textarea {
+  min-height: 48px;
+}
+.rc2-measurement-page .v1-button {
+  min-height: 44px;
+}
+.measurement-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.measurement-empty-actions .v1-button {
+  min-width: 136px;
+}
+.rc2-measurement-context {
+  align-content: start;
+}
+.rc2-measurement-note {
+  color: var(--v1-soft);
+  line-height: 1.35;
+}
+.rc2-measurement-derived {
+  min-width: 0;
+  min-height: 48px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--v1-line);
+  border-radius: 13px;
+  background: color-mix(in oklch, var(--v1-bg), white 3%);
+}
+.rc2-measurement-derived span {
+  color: var(--v1-muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.rc2-measurement-derived strong {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  color: var(--v1-text);
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 800;
+}
+.rc2-measurement-derived em {
+  color: var(--v1-soft);
+  font-size: 12px;
+  font-style: normal;
+}
+.rc2-measurement-photo .rc-file-input {
+  width: 100%;
+  max-width: 100%;
+  justify-content: center;
+}
+@media (max-width: 760px) {
+    .rc2-measurement-page {
+      gap: 10px;
+    }
+    .rc2-measurement-page .v1-hero {
+      margin-bottom: 2px;
+    }
+    .rc2-measurement-page .v1-hero p {
+      max-width: 24ch;
+    }
+    .rc2-measurement-layout,
+    .rc2-measurement-main {
+      gap: 12px;
+    }
+    .rc2-measurement-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .rc2-measurement-extra {
+      gap: 10px;
+    }
+    .rc2-measurement-extra > .rc2-measurement-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .rc2-measurement-photo .v1-field,
+    .rc2-measurement-photo .rc-file-input,
+    .rc2-measurement-photo .rc-file-input .v1-button,
+    .rc2-measurement-photo .rc-file-input-name {
+      text-align: center;
+    }
+    .rc2-measurement-photo .rc-file-input-name {
+      min-height: 32px;
+      display: grid;
+      place-items: center;
+    }
+    .measurement-empty-actions,
+    .measurement-empty-actions .v1-button {
+      width: 100%;
+    }
+    .rc2-measurement-page [data-audit="measurement-form-actions"] {
+      position: static;
+      left: auto;
+      right: auto;
+      bottom: auto;
+      z-index: auto;
+      margin-top: 4px;
+      margin-bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 22px);
+      padding: 10px 0 0;
+      border: 0;
+      border-top: 1px solid var(--v1-line);
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+}
+
+@media (max-width: 767px) {
+    .rc2-measurement-page [data-audit="measurement-form-actions"] {
+      position: static !important;
+      bottom: auto !important;
+      z-index: auto !important;
+      margin-top: 4px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      backdrop-filter: none;
+    }
+}

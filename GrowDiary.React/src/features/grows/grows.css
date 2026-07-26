@@ -1,0 +1,186 @@
+/* Aus rc2-overrides.css herausgeloest.
+   Bewusst noch ohne @layer: das Verschieben soll die Kaskade nicht
+   veraendern. Aufraeumen und Schichten sind der naechste Schritt. */
+.grow-select-grid,
+.program-grid {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.grow-summary-list span,
+.grow-program-mini span {
+  min-width: 0;
+}
+.grow-card-topline,
+.grow-card-facts {
+  min-width: 0;
+}
+.grow-overview-card.archived {
+  opacity: .82;
+}
+.grow-deviation-list {
+  display: grid;
+}
+.grow-deviation-card {
+  display: grid;
+  grid-template-columns: 116px minmax(120px, .7fr) minmax(180px, .8fr) minmax(0, 1.7fr);
+  gap: 12px;
+  align-items: start;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+.grow-deviation-card.critical {
+  background: color-mix(in oklch, var(--red-bg), transparent 48%);
+}
+.grow-deviation-card.warning {
+  background: color-mix(in oklch, var(--amber-bg), transparent 55%);
+}
+.grow-deviation-main,
+.grow-deviation-values,
+.grow-deviation-copy {
+  min-width: 0;
+}
+.grow-deviation-copy {
+  display: grid;
+  gap: 5px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.grow-deviation-copy p {
+  margin: 0;
+}
+.grow-deviation-copy small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.grow-overview-card__actions .v1-button,
+.grow-overview-card__actions .v1-link-button {
+  flex: 1 1 116px;
+  min-height: 44px;
+}
+.grow-detail-mobile-summary {
+  display: none;
+}
+@media (max-width: 767px) {
+    .grows-page .grows-overview-grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+    }
+    .grows-page .grow-overview-card {
+      gap: 10px;
+      padding: 13px;
+    }
+    .grows-page .grow-overview-card__header {
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .grows-page .grow-overview-card__header h2 {
+      font-size: 18px;
+      line-height: 1.2;
+    }
+    .grows-page .grow-overview-card__metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+    .grows-page .grow-overview-card__metrics div {
+      min-height: 48px;
+      padding: 8px;
+      border: 1px solid var(--v1-border);
+      border-radius: 8px;
+    }
+    .grows-page .grow-overview-card__metrics dd {
+      overflow-wrap: anywhere;
+    }
+    .grows-page .grow-overview-card__actions {
+      gap: 7px;
+      padding-top: 10px;
+    }
+    .grows-page .grow-overview-card__actions .v1-button,
+    .grows-page .grow-overview-card__actions .v1-link-button {
+      flex: 1 1 calc(50% - 7px);
+      min-height: 44px;
+      padding-inline: 10px;
+    }
+    .grow-detail-page {
+      padding-bottom: calc(18px + var(--safe-bottom));
+    }
+    .grow-detail-mobile-summary {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      min-width: 0;
+    }
+    .grow-detail-mobile-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 0;
+    }
+    .grow-detail-mobile-head h1 {
+      margin: 3px 0 2px;
+      font-size: 22px;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+    }
+    .grow-detail-mobile-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+    .grow-detail-mobile-facts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+      margin: 0;
+    }
+    .grow-detail-mobile-facts div {
+      min-width: 0;
+      min-height: 48px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .03);
+    }
+    .grow-detail-mobile-facts dt {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .grow-detail-mobile-facts dd {
+      margin: 2px 0 0;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+    .grow-detail-mobile-links .btn,
+    .grow-detail-mobile-actions .btn {
+      flex: 1 1 calc(50% - 8px);
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+}
+
+@media (max-width: 374px) {
+    .grows-page .grow-overview-card__metrics,
+    .grow-detail-mobile-facts {
+      grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 760px) {
+    .grow-deviation-card {
+      gap: 8px;
+      padding: 14px;
+    }
+    .grow-deviation-values,
+    .grow-deviation-copy {
+      font-size: 13px;
+    }
+}
