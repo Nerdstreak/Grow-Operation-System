@@ -246,4 +246,39 @@
      umbricht statt die Hauptspalte zu zerdrücken. */
   .v1-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--s-3); align-items: start; }
   .v1-split-narrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--s-3); align-items: start; }
+
+  /* ---------- aus Phase 2 zurueckgeholt ---------- */
+  .v1-card-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .v1-metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .v1-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+
+  @media (max-width: 1200px) {
+    .v1-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 860px) {
+    .v1-metric-grid, .v1-card-grid, .v1-info-grid, .v1-form-grid, .v1-choice-grid { grid-template-columns: 1fr; }
+  }
+  /* The verbatim payload on the AI page: shown so the transparency claim is checkable,
+   which only works if long lines wrap instead of running off the side. */
+.v1-pre { margin: 12px 0 0; padding: 12px 14px; max-height: 420px; overflow: auto; border: 1px solid var(--v1-line); border-radius: 12px; background: rgba(0,0,0,0.25); font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  @media (max-width: 860px) {
+    .v1-card-grid { gap: 10px; }
+  }
+  .v1-metric-grid.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  @media (min-width: 1180px) {
+    .v1-live-page .v1-metric-grid.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .v1-card-grid-compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  @media (max-width: 860px) {
+    .v1-metric-grid.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .v1-card-grid-compact { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 420px) {
+    .v1-metric-grid.compact { grid-template-columns: 1fr; }
+  }
 }

@@ -1,15 +1,23 @@
-/* Ladeordnung: Tokens, Primitive, Shell — dann die Layer, die noch nicht
-   aufgeloest sind (Phase 4). Reihenfolge nicht aendern, solange sie dastehen.
+/* Die Reihenfolge der Schichten steht hier und nur hier.
 
-   Herausgenommen (ersetzt durch primitives.css / shell.css):
-     00-base.css, 40-v1-core.css, 50-v1-polish.css, 60-v1-rc2.css
-   Die Dateien bleiben vorerst liegen — sie enthalten seitenspezifische Regeln,
-   die in Phase 4 in die Feature-Dateien wandern. */
+   Ohne diese Zeile entscheidet die Reihenfolge des *ersten Vorkommens* über den
+   Rang — und `@layer features` kommt aus Dateien, die einzelne Seiten selbst
+   importieren (hydro.css, live-instrument.css). Ob so eine Datei vor oder nach
+   index.css im Bundle landet, hängt am Modulgraphen, also daran, wer wen
+   importiert. Damit hinge auch die Kaskade daran. Ausgeschrieben hängt sie an
+   dieser Zeile.
+
+   Ungeschichtete Regeln schlagen jede Schicht — das betrifft rc2-overrides.css,
+   den Patch-Layer, der bewusst zuletzt gewinnt, bis Phase 4 ihn aufgelöst hat. */
+@layer tokens, primitives, features;
 
 @import './styles/tokens.css';
 @import './styles/reset.css';
 @import './styles/primitives.css';
 @import './styles/shell.css';
+
+/* Seiten, die noch nicht auf den Primitiven stehen. Löst sich mit Phase 6 auf. */
+@import './styles/95-legacy-pages.css';
 
 /* ---- ABBAU (Phase 4) ---- */
 @import './styles/10-grow-wizard-legacy.css';

@@ -23,4 +23,104 @@
   @media (max-width: 860px) {
     .hydro-editor__preview { position: static; }
   }
+
+  /* ---------- aus Phase 2 zurueckgeholt ---------- */
+
+  @media (max-width: 680px) {
+    .systems-header,
+  .system-card-header,
+  .systems-group-title { align-items: flex-start; flex-direction: column; }
+    .systems-form,
+  .hydro-builder-step,
+  .hydro-choice-grid,
+  .hydro-review-grid,
+  .hydro-review-card,
+  .systems-summary-card,
+  .systems-tent-grid,
+  .systems-setup-grid { grid-template-columns: minmax(0, 1fr); }
+    .hydro-stepper { grid-template-columns: minmax(0, 1fr); }
+    .system-facts { grid-template-columns: minmax(0, 1fr); }
+    .layout-sites.layout-grid2x4,
+  .layout-sites.layout-custom { grid-template-columns: repeat(3, 38px); }
+  }
+  .systems-tent-grid,
+.systems-setup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+  .systems-group-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .systems-group-title h2 { font-size: 18px; letter-spacing: 0; }
+  .systems-group-title span { color: var(--muted); font-size: 13px; }
+  .system-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .system-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .system-facts div { min-height: 64px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); display: grid; align-content: center; gap: 2px; min-width: 0; }
+  .system-facts span { color: var(--faint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .system-facts strong { font-family: var(--mono); font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+  .systems-form-wide,
+.systems-summary-card,
+.systems-toggle-grid,
+.systems-form-error,
+.systems-form-actions { grid-column: 1 / -1; }
+  .hydro-stepper { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+  .hydro-builder-step { display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 12px; align-items: end; }
+  .hydro-step-copy,
+.hydro-choice-grid,
+.hydro-review-grid,
+.hydro-step-summary { grid-column: 1 / -1; }
+  .hydro-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .hydro-review-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr); gap: 12px; align-items: stretch; }
+  .hydro-review-card { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .hydro-review-card > div { min-height: 64px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); display: grid; align-content: center; gap: 2px; min-width: 0; }
+  .hydro-review-card span { color: var(--faint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .hydro-review-card strong { font-family: var(--mono); font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+  .systems-toggle-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+  .systems-toggle-grid label { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); color: var(--muted); font-size: 14px; }
+  .systems-summary-card { display: grid; grid-template-columns: minmax(170px, 0.45fr) minmax(220px, 1fr); gap: 12px; align-items: stretch; }
+  .systems-summary-card > div:first-child { display: grid; align-content: center; gap: 6px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); }
+  .systems-summary-card span { color: var(--faint); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .systems-summary-card strong { font-family: var(--mono); font-size: 28px; line-height: 1; }
+  .layout-sites { display: grid; grid-template-columns: repeat(2, 38px); gap: 8px; z-index: 1; }
+  .layout-sites.layout-singlebucket { grid-template-columns: 42px; }
+  .layout-sites.layout-row { grid-template-columns: repeat(auto-fit, minmax(34px, 38px)); grid-auto-flow: column; }
+  .layout-sites.layout-grid2x3 { grid-template-columns: repeat(3, 38px); }
+  .layout-sites.layout-grid2x4 { grid-template-columns: repeat(4, 38px); }
+  .layout-sites.layout-custom { grid-template-columns: repeat(3, 38px); }
+  .layout-sites span,
+.layout-tank,
+.layout-bucket,
+.layout-custom-preview { display: grid; place-items: center; min-width: 34px; min-height: 34px; border-radius: 7px; font-family: var(--mono); font-size: 12px; font-weight: 700; }
+  .layout-sites span { background: var(--green-bg); border: 1px solid oklch(74% 0.19 145 / 0.35); color: var(--green); }
+  .v1-hydro-layout { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 16px; }
+  .v1-hydro-list { display: grid; gap: 10px; }
+  .v1-hydro-detail { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 14px; align-items: stretch; }
+  .v1-hydro-summary { min-width: 0; }
+  .v1-hydro-title-line { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+  .v1-hydro-title-line > strong { font-size: 34px; letter-spacing: -0.06em; }
+
+  @media (max-width: 860px) {
+    .v1-hydro-layout { gap: 10px; }
+    .v1-hydro-list { grid-auto-flow: column; grid-auto-columns: minmax(220px, 84%); overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+    .v1-hydro-list::-webkit-scrollbar { display: none; }
+    .v1-hydro-detail { grid-template-columns: 1fr; gap: 10px; }
+    .v1-hydro-title-line > strong { font-size: 28px; }
+  }
+  .v1-hydro-detail.rc2 { grid-template-columns: minmax(0, .95fr) minmax(360px, 1.05fr); align-items: start; }
+  .v1-hydro-summary.rc2 { display: grid; gap: 14px; padding: 16px; }
+  .v1-hydro-title-line.rc2 { align-items: start; }
+  .v1-hydro-title-line.rc2 > div { min-width: 0; }
+  .v1-hydro-title-line.rc2 strong { display: block; max-width: 100%; overflow-wrap: anywhere; font-size: clamp(26px, 3vw, 36px); line-height: .95; }
+  .v1-hydro-title-line.rc2 .v1-stat { min-width: 124px; min-height: 82px; }
+  .v1-hydro-title-line.rc2 .v1-stat strong { font-size: 30px; white-space: nowrap; }
+  .v1-hydro-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+
+  @media (max-width: 860px) {
+    .v1-hydro-detail.rc2 { grid-template-columns: 1fr; }
+    .v1-hydro-summary.rc2 { padding: 13px; gap: 12px; }
+    .v1-hydro-title-line.rc2 { display: grid; grid-template-columns: 1fr auto; }
+    .v1-hydro-title-line.rc2 strong { font-size: 25px; }
+    .v1-hydro-title-line.rc2 .v1-stat { min-width: 96px; min-height: 70px; padding: 10px; }
+    .v1-hydro-title-line.rc2 .v1-stat strong { font-size: 24px; }
+    .v1-hydro-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  }
+
+  @media (max-width: 420px) {
+    .v1-hydro-facts { grid-template-columns: 1fr; }
+  }
 }

@@ -21,5 +21,8 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  /* Tests, die Dateien lesen, gehoeren ins Node-Projekt — hier fehlen die
+     Node-Typen mit Absicht, damit App-Code nicht ans Dateisystem kommt. */
+  "exclude": ["src/**/*.node.test.ts"]
 }

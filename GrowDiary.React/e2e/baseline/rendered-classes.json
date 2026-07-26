@@ -1,0 +1,2788 @@
+{
+ "v1-app-shell": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "grid"
+ },
+ "rc2-shell": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "grid"
+ },
+ "v1-desktop-nav": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "v1-brand": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "v1-brand-mark": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "grid"
+ },
+ "app-search": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "block"
+ },
+ "app-search-input": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "inline-block"
+ },
+ "v1-nav-group": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "grid"
+ },
+ "v1-nav-group-head": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "v1-nav-item": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "active": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "v1-nav-foot": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "theme-toggle": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "block"
+ },
+ "v1-mobile-topbar": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "none"
+ },
+ "compact": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "v1-mobile-more-button": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "inline-block"
+ },
+ "v1-route-frame": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "gos-contextbar": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "gos-scope": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "spacer": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "block"
+ },
+ "ix-live": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "ix-top": {
+  "routes": [
+   "/",
+   "/addback",
+   "/grows"
+  ],
+  "display": "flex"
+ },
+ "ix-rise": {
+  "routes": [
+   "/",
+   "/addback",
+   "/grows"
+  ],
+  "display": "flex"
+ },
+ "ix-brand": {
+  "routes": [
+   "/",
+   "/addback",
+   "/grows"
+  ],
+  "display": "flex"
+ },
+ "dot": {
+  "routes": [
+   "/",
+   "/addback",
+   "/grows"
+  ],
+  "display": "block"
+ },
+ "ix-tents": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "flex"
+ },
+ "ix-tent": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "flex"
+ },
+ "on": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "flex"
+ },
+ "ix-livechip": {
+  "routes": [
+   "/"
+  ],
+  "display": "flex"
+ },
+ "rec": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "ix-hero": {
+  "routes": [
+   "/"
+  ],
+  "display": "grid"
+ },
+ "ix-panel": {
+  "routes": [
+   "/",
+   "/addback",
+   "/grows"
+  ],
+  "display": "grid"
+ },
+ "ix-status": {
+  "routes": [
+   "/"
+  ],
+  "display": "grid"
+ },
+ "ix-d1": {
+  "routes": [
+   "/",
+   "/addback",
+   "/grows"
+  ],
+  "display": "grid"
+ },
+ "ix-corner": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "ix-tl": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "ix-tr": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "ix-bl": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "ix-br": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "ix-gauge": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "ring-bg": {
+  "routes": [
+   "/"
+  ],
+  "display": "inline"
+ },
+ "ring": {
+  "routes": [
+   "/"
+  ],
+  "display": "inline"
+ },
+ "mid": {
+  "routes": [
+   "/"
+  ],
+  "display": "grid"
+ },
+ "ix-kick": {
+  "routes": [
+   "/",
+   "/addback",
+   "/grows"
+  ],
+  "display": "block"
+ },
+ "sub": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "ix-facts": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "grid"
+ },
+ "ix-sensor": {
+  "routes": [
+   "/"
+  ],
+  "display": "flex"
+ },
+ "ix-d2": {
+  "routes": [
+   "/",
+   "/addback",
+   "/grows"
+  ],
+  "display": "flex"
+ },
+ "ix-sensor-head": {
+  "routes": [
+   "/"
+  ],
+  "display": "flex"
+ },
+ "ix-badge": {
+  "routes": [
+   "/",
+   "/grows"
+  ],
+  "display": "block"
+ },
+ "ix-b-ok": {
+  "routes": [
+   "/",
+   "/grows"
+  ],
+  "display": "block"
+ },
+ "ix-actions": {
+  "routes": [
+   "/"
+  ],
+  "display": "flex"
+ },
+ "ix-btn": {
+  "routes": [
+   "/",
+   "/addback",
+   "/grows"
+  ],
+  "display": "block"
+ },
+ "pri": {
+  "routes": [
+   "/",
+   "/addback",
+   "/grows"
+  ],
+  "display": "block"
+ },
+ "ix-clusters": {
+  "routes": [
+   "/"
+  ],
+  "display": "grid"
+ },
+ "ix-cluster": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "ix-d3": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "ix-cluster-head": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "flex"
+ },
+ "t": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "flex"
+ },
+ "ix-grid-3": {
+  "routes": [
+   "/"
+  ],
+  "display": "grid"
+ },
+ "ix-tile-slot": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "ix-cam-tile": {
+  "routes": [
+   "/"
+  ],
+  "display": "grid"
+ },
+ "ix-cam-tile-fallback": {
+  "routes": [
+   "/"
+  ],
+  "display": "grid"
+ },
+ "ix-m": {
+  "routes": [
+   "/"
+  ],
+  "display": "flex"
+ },
+ "ok": {
+  "routes": [
+   "/"
+  ],
+  "display": "flex"
+ },
+ "pip": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "lab": {
+  "routes": [
+   "/",
+   "/addback",
+   "/diagnose"
+  ],
+  "display": "block"
+ },
+ "val": {
+  "routes": [
+   "/",
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "spark": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "ix-lower": {
+  "routes": [
+   "/"
+  ],
+  "display": "grid"
+ },
+ "ix-alerts": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "ix-d5": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "ix-alerts-head": {
+  "routes": [
+   "/"
+  ],
+  "display": "flex"
+ },
+ "ix-b-crit": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "ix-alert": {
+  "routes": [
+   "/"
+  ],
+  "display": "grid"
+ },
+ "crit": {
+  "routes": [
+   "/"
+  ],
+  "display": "grid"
+ },
+ "sev": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "ttl": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "meta": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "go": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "warn": {
+  "routes": [
+   "/"
+  ],
+  "display": "grid"
+ },
+ "ix-b-warn": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "ix-d6": {
+  "routes": [
+   "/"
+  ],
+  "display": "block"
+ },
+ "ix-grows-head": {
+  "routes": [
+   "/"
+  ],
+  "display": "flex"
+ },
+ "ix-grow-row": {
+  "routes": [
+   "/"
+  ],
+  "display": "grid"
+ },
+ "v1-bottom-nav": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "none"
+ },
+ "v1-bottom-item": {
+  "routes": [
+   "/",
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/grows",
+   "/grows/1",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "inline"
+ },
+ "v1-page": {
+  "routes": [
+   "/messung",
+   "/aufgaben",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/start",
+   "/settings"
+  ],
+  "display": "grid"
+ },
+ "rc2-measurement-page": {
+  "routes": [
+   "/messung"
+  ],
+  "display": "grid"
+ },
+ "v1-hero": {
+  "routes": [
+   "/messung",
+   "/aufgaben",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "v1-eyebrow": {
+  "routes": [
+   "/messung",
+   "/aufgaben",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/start",
+   "/settings"
+  ],
+  "display": "block"
+ },
+ "v1-hero-action": {
+  "routes": [
+   "/messung",
+   "/sorten",
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1"
+  ],
+  "display": "flex"
+ },
+ "v1-button": {
+  "routes": [
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/sorten",
+   "/diagnose",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "is-ghost": {
+  "routes": [
+   "/messung",
+   "/aufgaben",
+   "/diagnose",
+   "/zelte/1",
+   "/hydro/1",
+   "/hydro/new",
+   "/home-assistant"
+  ],
+  "display": "flex"
+ },
+ "rc2-measurement-layout": {
+  "routes": [
+   "/messung"
+  ],
+  "display": "grid"
+ },
+ "rc2-measurement-side": {
+  "routes": [
+   "/messung"
+  ],
+  "display": "block"
+ },
+ "v1-card": {
+  "routes": [
+   "/messung",
+   "/aufgaben",
+   "/sorten",
+   "/regeln",
+   "/diagnose",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/start",
+   "/settings"
+  ],
+  "display": "grid"
+ },
+ "tone-neutral": {
+  "routes": [
+   "/messung",
+   "/aufgaben",
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/sensoren",
+   "/home-assistant",
+   "/start",
+   "/settings"
+  ],
+  "display": "grid"
+ },
+ "rc2-sticky-card": {
+  "routes": [
+   "/messung"
+  ],
+  "display": "grid"
+ },
+ "rc2-measurement-context": {
+  "routes": [
+   "/messung"
+  ],
+  "display": "grid"
+ },
+ "v1-card-kicker": {
+  "routes": [
+   "/messung",
+   "/aufgaben",
+   "/sorten",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/sensoren",
+   "/home-assistant",
+   "/start",
+   "/settings"
+  ],
+  "display": "block"
+ },
+ "rc2-measurement-note": {
+  "routes": [
+   "/messung",
+   "/sorten",
+   "/zelte/1",
+   "/home-assistant"
+  ],
+  "display": "block"
+ },
+ "v1-field": {
+  "routes": [
+   "/messung",
+   "/zelte/1",
+   "/hydro/new",
+   "/home-assistant",
+   "/settings"
+  ],
+  "display": "grid"
+ },
+ "v1-badge": {
+  "routes": [
+   "/messung",
+   "/sorten",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant"
+  ],
+  "display": "flex"
+ },
+ "tone-ok": {
+  "routes": [
+   "/messung",
+   "/aufgaben",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/sensoren",
+   "/home-assistant",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "rc2-measurement-live": {
+  "routes": [
+   "/messung"
+  ],
+  "display": "grid"
+ },
+ "is-secondary": {
+  "routes": [
+   "/messung",
+   "/aufgaben",
+   "/sorten",
+   "/diagnose",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/sensoren",
+   "/home-assistant",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "rc2-measurement-main": {
+  "routes": [
+   "/messung"
+  ],
+  "display": "grid"
+ },
+ "v1-section": {
+  "routes": [
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/sorten",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/start",
+   "/settings"
+  ],
+  "display": "block"
+ },
+ "v1-section-head": {
+  "routes": [
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/sorten",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "v1-section-body": {
+  "routes": [
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/sorten",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/hydro/new",
+   "/sensoren",
+   "/home-assistant",
+   "/start",
+   "/settings"
+  ],
+  "display": "block"
+ },
+ "rc2-measurement-grid": {
+  "routes": [
+   "/messung"
+  ],
+  "display": "grid"
+ },
+ "rc2-measurement-derived": {
+  "routes": [
+   "/messung"
+  ],
+  "display": "grid"
+ },
+ "rc2-measurement-extra": {
+  "routes": [
+   "/messung"
+  ],
+  "display": "grid"
+ },
+ "v1-switch": {
+  "routes": [
+   "/messung",
+   "/regeln",
+   "/hydro/new",
+   "/home-assistant"
+  ],
+  "display": "flex"
+ },
+ "is-wide": {
+  "routes": [
+   "/messung",
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "rc2-measurement-photo": {
+  "routes": [
+   "/messung"
+  ],
+  "display": "grid"
+ },
+ "rc-file-input": {
+  "routes": [
+   "/messung",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "rc-file-input-native": {
+  "routes": [
+   "/messung",
+   "/settings"
+  ],
+  "display": "block"
+ },
+ "rc-file-input-name": {
+  "routes": [
+   "/messung",
+   "/settings"
+  ],
+  "display": "block"
+ },
+ "v1-form-actions": {
+  "routes": [
+   "/messung",
+   "/hydro/new"
+  ],
+  "display": "flex"
+ },
+ "measurement-form-actions": {
+  "routes": [
+   "/messung"
+  ],
+  "display": "flex"
+ },
+ "is-primary": {
+  "routes": [
+   "/messung",
+   "/addback",
+   "/aufgaben",
+   "/sorten",
+   "/diagnose",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/new",
+   "/home-assistant",
+   "/wissen",
+   "/start",
+   "/settings"
+  ],
+  "display": "flex"
+ },
+ "ix-addback": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "ix-addback-top-grid": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "grid"
+ },
+ "ix-addback-hero": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "grid"
+ },
+ "ix-addback-res": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "grid"
+ },
+ "ix-res-cell": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "grid"
+ },
+ "ph": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "grid"
+ },
+ "ec": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "grid"
+ },
+ "ix-addback-cta": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "flex"
+ },
+ "ix-addback-side": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "flex"
+ },
+ "ix-addback-kpis": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "grid"
+ },
+ "ix-addback-kpi": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "grid"
+ },
+ "changeouts-section": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "v1-list": {
+  "routes": [
+   "/addback",
+   "/aufgaben",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "v1-list-row": {
+  "routes": [
+   "/addback",
+   "/aufgaben",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/new"
+  ],
+  "display": "flex"
+ },
+ "ix-d4": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "ix-empty-line": {
+  "routes": [
+   "/addback"
+  ],
+  "display": "block"
+ },
+ "v1-kpi-grid": {
+  "routes": [
+   "/aufgaben",
+   "/sorten",
+   "/archiv",
+   "/zelte",
+   "/hydro",
+   "/hydro/1",
+   "/sensoren",
+   "/home-assistant",
+   "/settings"
+  ],
+  "display": "grid"
+ },
+ "v1-stat": {
+  "routes": [
+   "/aufgaben",
+   "/sorten",
+   "/archiv",
+   "/zelte",
+   "/zelte/1",
+   "/hydro"
+  ],
+  "display": "flex"
+ },
+ "rc-action-guide-grid": {
+  "routes": [
+   "/aufgaben"
+  ],
+  "display": "grid"
+ },
+ "tone-warn": {
+  "routes": [
+   "/aufgaben",
+   "/diagnose"
+  ],
+  "display": "grid"
+ },
+ "rc-action-guide-card": {
+  "routes": [
+   "/aufgaben"
+  ],
+  "display": "grid"
+ },
+ "rc-risk-action-grid": {
+  "routes": [
+   "/aufgaben",
+   "/diagnose"
+  ],
+  "display": "grid"
+ },
+ "tone-critical": {
+  "routes": [
+   "/aufgaben",
+   "/diagnose"
+  ],
+  "display": "grid"
+ },
+ "rc-risk-action-card": {
+  "routes": [
+   "/aufgaben",
+   "/diagnose"
+  ],
+  "display": "grid"
+ },
+ "rc-risk-action-head": {
+  "routes": [
+   "/aufgaben",
+   "/diagnose"
+  ],
+  "display": "flex"
+ },
+ "rc-risk-action-desc": {
+  "routes": [
+   "/aufgaben",
+   "/diagnose"
+  ],
+  "display": "block"
+ },
+ "rc-risk-action-buttons": {
+  "routes": [
+   "/aufgaben",
+   "/diagnose"
+  ],
+  "display": "flex"
+ },
+ "rc-action-list": {
+  "routes": [
+   "/aufgaben"
+  ],
+  "display": "grid"
+ },
+ "rc-action-row": {
+  "routes": [
+   "/aufgaben"
+  ],
+  "display": "flex"
+ },
+ "normal": {
+  "routes": [
+   "/aufgaben"
+  ],
+  "display": "flex"
+ },
+ "ix-grows": {
+  "routes": [
+   "/grows"
+  ],
+  "display": "block"
+ },
+ "ix-grows-kpis": {
+  "routes": [
+   "/grows"
+  ],
+  "display": "grid"
+ },
+ "ix-grows-kpi": {
+  "routes": [
+   "/grows"
+  ],
+  "display": "grid"
+ },
+ "ix-grows-section": {
+  "routes": [
+   "/grows"
+  ],
+  "display": "block"
+ },
+ "ix-grows-grid": {
+  "routes": [
+   "/grows"
+  ],
+  "display": "grid"
+ },
+ "ix-grow-card": {
+  "routes": [
+   "/grows"
+  ],
+  "display": "grid"
+ },
+ "ix-grow-card-head": {
+  "routes": [
+   "/grows"
+  ],
+  "display": "flex"
+ },
+ "ix-grow-metrics": {
+  "routes": [
+   "/grows"
+  ],
+  "display": "grid"
+ },
+ "ix-grow-card-actions": {
+  "routes": [
+   "/grows"
+  ],
+  "display": "flex"
+ },
+ "danger": {
+  "routes": [
+   "/grows"
+  ],
+  "display": "block"
+ },
+ "ix-growdetail": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "contents"
+ },
+ "topbar": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "block"
+ },
+ "topbar-left": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "flex"
+ },
+ "btn": {
+  "routes": [
+   "/grows/1",
+   "/messungen",
+   "/journal",
+   "/sops"
+  ],
+  "display": "block"
+ },
+ "topbar-right": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "flex"
+ },
+ "badge": {
+  "routes": [
+   "/grows/1",
+   "/diagnose"
+  ],
+  "display": "flex"
+ },
+ "badge-ok": {
+  "routes": [
+   "/grows/1",
+   "/diagnose"
+  ],
+  "display": "flex"
+ },
+ "grow-management-actions": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "flex"
+ },
+ "btn-primary": {
+  "routes": [
+   "/grows/1",
+   "/messungen",
+   "/journal",
+   "/sops"
+  ],
+  "display": "block"
+ },
+ "page-scroll": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "block"
+ },
+ "grow-detail-page": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "block"
+ },
+ "grow-detail-mobile-summary": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "none"
+ },
+ "grow-detail-mobile-head": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "block"
+ },
+ "section-label": {
+  "routes": [
+   "/grows/1",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops"
+  ],
+  "display": "inline"
+ },
+ "grow-detail-mobile-facts": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "block"
+ },
+ "grow-hero": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "block"
+ },
+ "grow-hero-title": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "block"
+ },
+ "grow-hero-sub": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "block"
+ },
+ "grow-kpis": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "block"
+ },
+ "grow-kpi": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "block"
+ },
+ "grow-kpi-val": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "block"
+ },
+ "grow-kpi-label": {
+  "routes": [
+   "/grows/1"
+  ],
+  "display": "block"
+ },
+ "v1-tabs": {
+  "routes": [
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/sensoren",
+   "/home-assistant"
+  ],
+  "display": "flex"
+ },
+ "v1-tab": {
+  "routes": [
+   "/sorten",
+   "/archiv",
+   "/regeln",
+   "/sensoren",
+   "/home-assistant"
+  ],
+  "display": "block"
+ },
+ "v1-card-title-row": {
+  "routes": [
+   "/sorten",
+   "/zelte",
+   "/zelte/1",
+   "/sensoren"
+  ],
+  "display": "flex"
+ },
+ "v1-action-row": {
+  "routes": [
+   "/sorten",
+   "/zelte",
+   "/zelte/1",
+   "/hydro",
+   "/hydro/1",
+   "/sensoren",
+   "/settings"
+  ],
+  "display": "block"
+ },
+ "tone-accent": {
+  "routes": [
+   "/sorten",
+   "/zelte/1",
+   "/home-assistant"
+  ],
+  "display": "flex"
+ },
+ "v1-empty": {
+  "routes": [
+   "/archiv",
+   "/zelte/1",
+   "/hydro/1"
+  ],
+  "display": "grid"
+ },
+ "v1-scope-picker": {
+  "routes": [
+   "/regeln",
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops"
+  ],
+  "display": "flex"
+ },
+ "card": {
+  "routes": [
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops"
+  ],
+  "display": "block"
+ },
+ "card-header": {
+  "routes": [
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops"
+  ],
+  "display": "block"
+ },
+ "card-title": {
+  "routes": [
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops"
+  ],
+  "display": "inline"
+ },
+ "text-muted": {
+  "routes": [
+   "/messungen",
+   "/diagnose",
+   "/journal",
+   "/sops"
+  ],
+  "display": "inline"
+ },
+ "timeline-item": {
+  "routes": [
+   "/messungen"
+  ],
+  "display": "flex"
+ },
+ "tl-dot-col": {
+  "routes": [
+   "/messungen"
+  ],
+  "display": "flex"
+ },
+ "tl-dot": {
+  "routes": [
+   "/messungen"
+  ],
+  "display": "block"
+ },
+ "measurement": {
+  "routes": [
+   "/messungen"
+  ],
+  "display": "block"
+ },
+ "tl-line": {
+  "routes": [
+   "/messungen"
+  ],
+  "display": "block"
+ },
+ "tl-title": {
+  "routes": [
+   "/messungen",
+   "/diagnose",
+   "/sops"
+  ],
+  "display": "block"
+ },
+ "tl-sub": {
+  "routes": [
+   "/messungen",
+   "/diagnose",
+   "/sops"
+  ],
+  "display": "block"
+ },
+ "tl-time": {
+  "routes": [
+   "/messungen"
+  ],
+  "display": "block"
+ },
+ "meas-fields": {
+  "routes": [
+   "/messungen"
+  ],
+  "display": "grid"
+ },
+ "meas-field": {
+  "routes": [
+   "/messungen"
+  ],
+  "display": "grid"
+ },
+ "meas-input": {
+  "routes": [
+   "/messungen"
+  ],
+  "display": "block"
+ },
+ "meas-field-inner": {
+  "routes": [
+   "/messungen"
+  ],
+  "display": "block"
+ },
+ "meas-unit": {
+  "routes": [
+   "/messungen"
+  ],
+  "display": "block"
+ },
+ "field": {
+  "routes": [
+   "/messungen",
+   "/journal"
+  ],
+  "display": "block"
+ },
+ "stability-head": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "block"
+ },
+ "unknown": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "block"
+ },
+ "stability-signals": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "block"
+ },
+ "mark": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "block"
+ },
+ "obs": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "block"
+ },
+ "stability-visual": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "block"
+ },
+ "grow-deviation-list": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "grid"
+ },
+ "grow-deviation-card": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "grid"
+ },
+ "warning": {
+  "routes": [
+   "/diagnose",
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "badge-neutral": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "flex"
+ },
+ "grow-deviation-main": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "block"
+ },
+ "grow-deviation-copy": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "grid"
+ },
+ "critical": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "grid"
+ },
+ "badge-warn": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "flex"
+ },
+ "info": {
+  "routes": [
+   "/diagnose"
+  ],
+  "display": "grid"
+ },
+ "detail-layout": {
+  "routes": [
+   "/journal"
+  ],
+  "display": "grid"
+ },
+ "empty-hint": {
+  "routes": [
+   "/journal",
+   "/sops"
+  ],
+  "display": "block"
+ },
+ "side-panel": {
+  "routes": [
+   "/journal"
+  ],
+  "display": "flex"
+ },
+ "panel-card": {
+  "routes": [
+   "/journal"
+  ],
+  "display": "block"
+ },
+ "panel-card-header": {
+  "routes": [
+   "/journal"
+  ],
+  "display": "flex"
+ },
+ "panel-card-title": {
+  "routes": [
+   "/journal"
+  ],
+  "display": "block"
+ },
+ "panel-card-count": {
+  "routes": [
+   "/journal"
+  ],
+  "display": "block"
+ },
+ "task-item": {
+  "routes": [
+   "/journal"
+  ],
+  "display": "flex"
+ },
+ "task-check": {
+  "routes": [
+   "/journal"
+  ],
+  "display": "flex"
+ },
+ "task-title": {
+  "routes": [
+   "/journal"
+  ],
+  "display": "block"
+ },
+ "task-sub": {
+  "routes": [
+   "/journal"
+  ],
+  "display": "block"
+ },
+ "tents-page": {
+  "routes": [
+   "/zelte"
+  ],
+  "display": "grid"
+ },
+ "v1-card-grid": {
+  "routes": [
+   "/zelte",
+   "/zelte/1",
+   "/start"
+  ],
+  "display": "grid"
+ },
+ "v1-tent-card": {
+  "routes": [
+   "/zelte"
+  ],
+  "display": "grid"
+ },
+ "tent-metric-groups": {
+  "routes": [
+   "/zelte"
+  ],
+  "display": "grid"
+ },
+ "tent-metric-group": {
+  "routes": [
+   "/zelte"
+  ],
+  "display": "grid"
+ },
+ "tent-metric-row": {
+  "routes": [
+   "/zelte"
+  ],
+  "display": "grid"
+ },
+ "rc-tent-actions": {
+  "routes": [
+   "/zelte"
+  ],
+  "display": "flex"
+ },
+ "is-danger": {
+  "routes": [
+   "/zelte",
+   "/hydro",
+   "/sensoren"
+  ],
+  "display": "flex"
+ },
+ "tent-detail-v2": {
+  "routes": [
+   "/zelte/1"
+  ],
+  "display": "grid"
+ },
+ "v1-live-hero-grid": {
+  "routes": [
+   "/zelte/1"
+  ],
+  "display": "grid"
+ },
+ "v1-live-now-card": {
+  "routes": [
+   "/zelte/1"
+  ],
+  "display": "flex"
+ },
+ "v1-info-grid": {
+  "routes": [
+   "/zelte/1",
+   "/hydro/1"
+  ],
+  "display": "grid"
+ },
+ "v1-info": {
+  "routes": [
+   "/zelte/1",
+   "/hydro/1"
+  ],
+  "display": "grid"
+ },
+ "tent-detail-room-grid": {
+  "routes": [
+   "/zelte/1"
+  ],
+  "display": "grid"
+ },
+ "tent-detail-fact-list": {
+  "routes": [
+   "/zelte/1"
+  ],
+  "display": "grid"
+ },
+ "v1-camera-card": {
+  "routes": [
+   "/zelte/1"
+  ],
+  "display": "block"
+ },
+ "rc2-camera-card": {
+  "routes": [
+   "/zelte/1"
+  ],
+  "display": "block"
+ },
+ "ready": {
+  "routes": [
+   "/zelte/1"
+  ],
+  "display": "block"
+ },
+ "v1-camera-label": {
+  "routes": [
+   "/zelte/1"
+  ],
+  "display": "flex"
+ },
+ "v1-live-metrics-pair": {
+  "routes": [
+   "/zelte/1"
+  ],
+  "display": "grid"
+ },
+ "v1-metric-grid": {
+  "routes": [
+   "/zelte/1"
+  ],
+  "display": "grid"
+ },
+ "v1-card-grid-compact": {
+  "routes": [
+   "/zelte/1"
+  ],
+  "display": "grid"
+ },
+ "hydro-page": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "grid"
+ },
+ "v1-hydro-layout": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "grid"
+ },
+ "v1-hydro-list": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "grid"
+ },
+ "v1-hydro-list-item": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "block"
+ },
+ "v1-hydro-detail-section": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "block"
+ },
+ "v1-hydro-detail": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "grid"
+ },
+ "rc2": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "grid"
+ },
+ "v1-hydro-summary": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "grid"
+ },
+ "v1-hydro-title-line": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "flex"
+ },
+ "v1-hydro-facts": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "grid"
+ },
+ "v1-fact": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "grid"
+ },
+ "v1-chip-row": {
+  "routes": [
+   "/hydro",
+   "/hydro/new"
+  ],
+  "display": "flex"
+ },
+ "v1-hydro-preview-card": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "block"
+ },
+ "system-plan": {
+  "routes": [
+   "/hydro",
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "is-compact": {
+  "routes": [
+   "/hydro"
+  ],
+  "display": "grid"
+ },
+ "system-plan__stage": {
+  "routes": [
+   "/hydro",
+   "/hydro/new"
+  ],
+  "display": "block"
+ },
+ "system-plan__tent": {
+  "routes": [
+   "/hydro",
+   "/hydro/new"
+  ],
+  "display": "block"
+ },
+ "system-plan__pipe": {
+  "routes": [
+   "/hydro",
+   "/hydro/new"
+  ],
+  "display": "block"
+ },
+ "is-return": {
+  "routes": [
+   "/hydro",
+   "/hydro/new"
+  ],
+  "display": "block"
+ },
+ "is-feed": {
+  "routes": [
+   "/hydro",
+   "/hydro/new"
+  ],
+  "display": "block"
+ },
+ "system-plan__tank": {
+  "routes": [
+   "/hydro",
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "system-plan__site": {
+  "routes": [
+   "/hydro",
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "system-plan__netpot": {
+  "routes": [
+   "/hydro",
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "hydro-editor": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "v1-split": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "hydro-editor__form": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "v1-choice-grid": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "v1-choice": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "block"
+ },
+ "v1-form-grid": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "hydro-editor__preview": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "grid"
+ },
+ "system-plan__head": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "flex"
+ },
+ "system-plan__legend": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "flex"
+ },
+ "swatch": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "block"
+ },
+ "is-site": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "block"
+ },
+ "check": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "flex"
+ },
+ "is-ok": {
+  "routes": [
+   "/hydro/new"
+  ],
+  "display": "flex"
+ },
+ "ops1b-sensor-grid": {
+  "routes": [
+   "/sensoren"
+  ],
+  "display": "grid"
+ },
+ "v1-ha-connect-form": {
+  "routes": [
+   "/home-assistant"
+  ],
+  "display": "grid"
+ },
+ "rc2-ha-connect-form": {
+  "routes": [
+   "/home-assistant"
+  ],
+  "display": "grid"
+ },
+ "v1-inline-input": {
+  "routes": [
+   "/home-assistant"
+  ],
+  "display": "grid"
+ },
+ "rc2-ha-connection-actions": {
+  "routes": [
+   "/home-assistant"
+  ],
+  "display": "flex"
+ },
+ "rc2-compact-action": {
+  "routes": [
+   "/home-assistant"
+  ],
+  "display": "flex"
+ },
+ "v1-ha-layout": {
+  "routes": [
+   "/home-assistant"
+  ],
+  "display": "grid"
+ },
+ "v1-entity-list": {
+  "routes": [
+   "/home-assistant"
+  ],
+  "display": "grid"
+ },
+ "v1-entity-row": {
+  "routes": [
+   "/home-assistant"
+  ],
+  "display": "block"
+ },
+ "ix-kb": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "block"
+ },
+ "ix-kb-head": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "flex"
+ },
+ "ix-kb-brand": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "flex"
+ },
+ "kk": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "block"
+ },
+ "ix-kb-search": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "flex"
+ },
+ "ix-kb-tabs": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "flex"
+ },
+ "ix-kb-tab": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "flex"
+ },
+ "count": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "block"
+ },
+ "ix-kb-cat-desc": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "block"
+ },
+ "ix-kb-browse": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "grid"
+ },
+ "ix-kb-list": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "grid"
+ },
+ "ix-kb-entry": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "grid"
+ },
+ "ix-kb-entry-top": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "flex"
+ },
+ "ix-kb-entry-tag": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "block"
+ },
+ "ix-kb-entry-preview": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "flow-root"
+ },
+ "ix-kb-detail": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "block"
+ },
+ "ix-kb-back": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "none"
+ },
+ "ix-kb-detail-back": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "none"
+ },
+ "ix-kb-lede": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "block"
+ },
+ "ix-kb-sec": {
+  "routes": [
+   "/wissen"
+  ],
+  "display": "block"
+ },
+ "rc2-admin-kpis": {
+  "routes": [
+   "/settings"
+  ],
+  "display": "grid"
+ },
+ "rc2-admin-grid": {
+  "routes": [
+   "/settings"
+  ],
+  "display": "grid"
+ },
+ "rc2-admin-card": {
+  "routes": [
+   "/settings"
+  ],
+  "display": "grid"
+ },
+ "two": {
+  "routes": [
+   "/settings"
+  ],
+  "display": "grid"
+ }
+}

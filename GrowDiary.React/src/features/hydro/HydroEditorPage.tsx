@@ -11,6 +11,7 @@ import { V1Alert, V1Button, V1Field } from '../../components/v1'
 import { SystemPlan } from './SystemPlan'
 import { buildSystemPlan, layoutTypeFromRows, rowsFromLayoutType } from './system-plan-model'
 import { formatApiError, useHydroSetups } from './useHydroSetups'
+import './hydro.css'
 
 type Draft = {
   name: string

@@ -163,6 +163,17 @@
     --v1-radius-sm: var(--r);
     --v1-accent: var(--accent);
     --v1-ok: var(--accent);
+    /* Ohne diese drei fielen die Regeln in rc2-overrides still aus: eine
+       undefinierte Variable ohne Fallback macht die ganze Deklaration ungültig,
+       ohne dass irgendwo etwas gemeldet wird. */
+    --v1-border: var(--hair);
+    --v1-surface: var(--panel);
+    --v1-surface-2: var(--panel-2);
+
+    /* Kurzformen, die einzelne Dateien noch benutzen. */
+    --font: var(--font-sans);
+    --mono: var(--font-mono);
+    --bottom-nav-height: var(--mobile-bottom-nav-height);
 
     /* System C (--ix-*) */
     --ix-bg: var(--bg);

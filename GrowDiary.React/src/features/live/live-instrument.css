@@ -233,3 +233,83 @@
   color: #fff; background: linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0));
 }
 .ix-cam-tile-fallback { display: grid; place-items: center; min-height: 140px; padding: 12px; text-align: center; color: var(--ix-faint); font-size: 12px; }
+
+  /* ---------- aus Phase 2 zurueckgeholt ---------- */
+@layer features {
+  .live-grow-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+
+  @media (max-width: 680px) {
+    .live-grid,
+  .live-grow-grid { grid-template-columns: minmax(0, 1fr); }
+  }
+  .v1-live-hero-grid { display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(320px, 0.78fr); gap: 18px; align-items: stretch; }
+  .v1-camera-card, .v1-camera-empty { min-height: 360px; border-radius: var(--v1-radius); overflow: hidden; border: 1px solid var(--v1-line); background: #020603; position: relative; }
+  .v1-camera-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 160ms ease; }
+  .v1-camera-card img.ready { opacity: 1; }
+  .v1-camera-label { position: absolute; left: 14px; right: 14px; bottom: 14px; display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 14px; background: rgba(0,0,0,0.64); backdrop-filter: blur(10px); }
+  .v1-camera-empty { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px; }
+  .v1-live-now-card { min-height: 360px; display: flex; flex-direction: column; justify-content: space-between; }
+
+  @media (max-width: 860px) {
+    .v1-live-hero-grid, .v1-hydro-layout, .v1-review-layout, .v1-addback-grid { grid-template-columns: 1fr; }
+    .v1-camera-card, .v1-camera-empty, .v1-live-now-card { min-height: 250px; }
+  }
+  .v1-camera-empty.is-compact { min-height: 154px; align-items: center; }
+  .v1-camera-empty.is-compact h2 { font-size: 28px; }
+  .v1-camera-empty.is-compact p { margin: 4px 0 0; color: var(--v1-muted); }
+  .v1-live-hero-grid { align-items: start; }
+  .v1-live-now-card { min-height: 0; }
+  .v1-live-now-card .v1-action-row .v1-button { flex: 1 1 120px; }
+  .live-status-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .live-status-summary div,
+.live-mobile-metric { min-width: 0; border: 1px solid var(--v1-line); border-radius: 14px; background: rgba(255,255,255,0.02); padding: 11px 12px; }
+  .live-status-summary span,
+.live-mobile-metric span { display: block; color: var(--v1-muted); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; }
+  .live-status-summary strong { display: block; margin-top: 4px; overflow-wrap: anywhere; }
+  .live-sensor-card p { margin: 0; color: var(--v1-muted); line-height: 1.45; }
+  .live-camera-card { min-height: 220px; }
+  .live-desktop-overview { display: grid; grid-template-columns: minmax(280px, 0.72fr) minmax(520px, 1.28fr); gap: 14px; align-items: stretch; }
+  .live-desktop-operations { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.45fr); gap: 14px; align-items: stretch; }
+  .live-desktop-overview > [data-audit],
+.live-desktop-operations > [data-audit] { min-width: 0; }
+  .live-desktop-overview .v1-card,
+.live-desktop-operations .v1-card { height: 100%; }
+  .live-desktop-status-card,
+.live-desktop-climate-card,
+.live-desktop-control-card { display: grid; gap: 12px; }
+  .live-desktop-metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+
+  @media (max-width: 1100px) {
+    .live-desktop-overview,
+  .live-desktop-operations { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  @media (min-width: 861px) {
+    .v1-camera-card { min-height: 330px; }
+    .v1-camera-empty { min-height: 154px; }
+    .v1-live-now-card { min-height: 330px; }
+  }
+
+  @media (max-width: 860px) {
+    .v1-live-hero-grid { gap: 10px; }
+    .v1-camera-card { min-height: 218px; border-radius: 18px; }
+    .v1-camera-empty, .v1-camera-empty.is-compact { min-height: 104px; padding: 13px; border-radius: 18px; }
+    .v1-camera-empty.is-compact h2 { font-size: 22px; margin: 2px 0 0; }
+    .v1-camera-empty .v1-button { min-height: 38px; padding: 0 10px; }
+    .live-status-summary { grid-template-columns: minmax(0, 1fr); gap: 7px; }
+    .live-status-summary div,
+  .live-mobile-metric { padding: 9px 10px; border-radius: 12px; }
+    .live-camera-card { min-height: 170px; }
+    .v1-live-now-card { min-height: 0; }
+  }
+  /* === V1 RC2: final candidate density, hydro facts and addback command view === */
+.v1-live-metrics-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+
+  @media (min-width: 1180px) {
+    .v1-live-page .v1-live-hero-grid { grid-template-columns: minmax(0, 1.05fr) minmax(360px, .8fr); }
+  }
+
+  @media (max-width: 860px) {
+    .v1-live-metrics-pair { grid-template-columns: 1fr; gap: 10px; }
+  }
+}
