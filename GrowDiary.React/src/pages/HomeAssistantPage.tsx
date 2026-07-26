@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { HomeAssistantEntity, HomeAssistantSettingsDto, SensorMetricType, SettingsOverviewDto, TentDto, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch, V1Tabs } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Skeleton, V1Switch, V1Tabs } from '../components/v1'
 import { toNullableString } from '../components/v1-utils'
 import { resolveUrl } from '../base'
 import '../features/home-assistant/home-assistant.css'
@@ -209,7 +209,7 @@ function HomeAssistantPage() {
         <V1Card><span className="v1-card-kicker">Zelte</span><h2>{tents.length}</h2><p>verfügbar</p></V1Card>
       </section>
 
-      {loading ? <V1Empty title="Lade Home Assistant..." /> : (
+      {loading ? <V1Skeleton rows={4} label="Lade Home Assistant" /> : (
         <>
           <V1Section title="1. Verbindung">
             {ha.isManagedByAddon ? (

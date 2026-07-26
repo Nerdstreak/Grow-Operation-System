@@ -5,7 +5,7 @@ import { apiFetch, ApiRequestError } from '../api'
 import { resolveUrl } from '../base'
 import type { GrowStage, GrowSummary, HydroStyle, MeasurementDto, MeasurementUpsertPayload, PhotoTag, TentDto, TentLivePayload, ValueOrigin } from '../types'
 import FileInput from '../components/FileInput'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Skeleton, V1Switch } from '../components/v1'
 import { toLocalInputValue } from '../utils'
 
 type NumericKey = Exclude<keyof MeasurementDraft, 'takenAtLocal' | 'stage' | 'source' | 'notes' | 'solutionChange'>
@@ -320,7 +320,7 @@ function ManualMeasurementPage() {
       {error && <V1Alert title="Fehler" message={error} tone="warn" />}
       {message && <V1Alert message={message} tone="ok" />}
 
-      {loading ? <V1Empty title="Lade Grows..." /> : grows.length === 0 ? (
+      {loading ? <V1Skeleton tiles={6} label="Lade Messfelder" /> : grows.length === 0 ? (
         <div data-audit="measurement-empty-state">
           <V1Empty
             title="Noch kein Grow für Messungen"

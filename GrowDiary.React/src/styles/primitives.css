@@ -330,4 +330,41 @@
     .measurement-layout, .ops-layout, .settings-layout, .two-col-grid { grid-template-columns: 1fr; }
     .field label, .settings-section-label { overflow-wrap: anywhere; hyphens: auto; }
   }
+
+  /* ---------- Laden ----------
+     Der Entwurf verlangt: keine Spinner, kein Sprung. Die Platzhalter tragen
+     dieselbe Rahmenhoehe wie der fertige Inhalt, die Balken benutzen --hint —
+     das Token ist ausdruecklich dekorativ und nie Text. */
+  .v1-skeleton { display: grid; gap: var(--s-3); }
+  .v1-skeleton-tiles { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+  .v1-skeleton-tile {
+    flex: 1 1 150px; min-width: 0; min-height: 89px;
+    display: grid; align-content: center; gap: 8px;
+    padding: var(--s-3); border: 1px solid var(--hair); border-radius: var(--r);
+  }
+  .v1-skeleton-rows { display: grid; gap: 2px; }
+  .v1-skeleton-row {
+    min-height: 56px; display: grid; align-content: center; gap: 7px;
+    padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--hair);
+  }
+  .v1-skeleton .bar { display: block; height: 10px; border-radius: 999px; background: var(--hint); }
+  .v1-skeleton .bar.sm { width: 32%; height: 8px; }
+  .v1-skeleton .bar.md { width: 48%; }
+  .v1-skeleton .bar.lg { width: 60%; height: 18px; }
+  /* Ein ruhiger Puls sagt „laeuft noch", ohne Aufmerksamkeit zu fordern. */
+  @media (prefers-reduced-motion: no-preference) {
+    .v1-skeleton .bar { animation: v1-skeleton-pulse 1.6s ease-in-out infinite; }
+  }
+  @keyframes v1-skeleton-pulse { 0%, 100% { opacity: .55 } 50% { opacity: 1 } }
+
+  /* ---------- Home Assistant antwortet nicht ---------- */
+  .gos-offline {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px var(--s-2);
+    margin: 0 auto var(--s-3); padding: var(--s-2) var(--s-4);
+    width: min(var(--page-max), 100%);
+    border: 1px solid var(--warn); border-radius: var(--r);
+    background: var(--warn-wash); font-size: 13px;
+  }
+  .gos-offline strong { color: var(--warn-text); font-weight: 600; }
+  .gos-offline span { color: var(--muted); }
 }

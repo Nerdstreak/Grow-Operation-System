@@ -407,6 +407,24 @@ public sealed class HomeAssistantService
         return client;
     }
 
+    /// <summary>
+    /// When the breaker is open, we stopped calling Home Assistant because the last
+    /// attempts failed. Returns the moment we will try again, or <c>null</c> while
+    /// calls are going through.
+    ///
+    /// Exposed so the UI can say so once, at the top of the page, instead of every
+    /// tile inventing its own way to look broken. The grow keeps running when Home
+    /// Assistant does not — the values just stop being fresh.
+    /// </summary>
+    public DateTime? UnreachableUntilUtc
+    {
+        get
+        {
+            var ticks = Interlocked.Read(ref _circuitOpenUntilTicks);
+            return ticks > DateTime.UtcNow.Ticks ? new DateTime(ticks, DateTimeKind.Utc) : null;
+        }
+    }
+
     private bool IsCircuitOpen()
         => Interlocked.Read(ref _circuitOpenUntilTicks) > DateTime.UtcNow.Ticks;
 

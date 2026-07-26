@@ -7,6 +7,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { AppSearch } from './components/AppSearch'
 import { isNavLeafActive, mobilePrimaryNav, navGroups, searchablePages } from './navigation'
 import { useTheme } from './useTheme'
+import { useHomeAssistantHealth } from './useHomeAssistantHealth'
 
 type Props = {
   children: ReactNode
@@ -24,6 +25,7 @@ type Props = {
 }
 
 export function AppShell({ children, scope, counts }: Props) {
+  const health = useHomeAssistantHealth()
   const location = useLocation()
   const { theme, toggle } = useTheme()
   const [moreOpen, setMoreOpen] = useState(false)
@@ -121,6 +123,20 @@ export function AppShell({ children, scope, counts }: Props) {
             <div className="spacer" />
           </div>
         )}
+
+        {/* Eine Meldung für die ganze App, nicht eine pro Karte. Nur wenn Home
+            Assistant eingerichtet ist und gerade nicht antwortet — wer es gar
+            nicht nutzt, braucht die Zeile nie zu sehen. */}
+        {health?.configured && !health.reachable && (
+          <div className="gos-offline" role="status" data-audit="ha-offline">
+            <strong>Home Assistant antwortet nicht.</strong>
+            <span>
+              Die angezeigten Messwerte sind der letzte bekannte Stand. Messen, Addback und alles
+              von Hand Eingetragene funktionieren weiter.
+            </span>
+          </div>
+        )}
+
         {children}
       </main>
 

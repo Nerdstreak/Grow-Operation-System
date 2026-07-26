@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { HarvestDto } from '../types'
-import { V1Alert, V1Button, V1Empty, V1Field, V1LinkButton, V1Page, V1Section } from '../components/v1'
+import { V1Alert, V1Button, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { summariseYield } from '../features/harvest/harvest-yield'
 
 interface HarvestFormState {
@@ -113,7 +113,7 @@ function HarvestPage() {
       {error && <V1Alert title="Fehler" message={error} tone="warn" />}
 
       {loading || !form ? (
-        <V1Empty title="Lade Ernte-Dokumentation..." />
+        <V1Skeleton tiles={4} rows={3} label="Lade Ernte" />
       ) : (
         <form onSubmit={handleSubmit}>
           <V1Section title="Gewicht & Trocknung">

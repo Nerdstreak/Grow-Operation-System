@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary, HarvestDto } from '../types'
 import { formatDate, formatNumber } from '../utils'
-import { V1Page, V1Alert, V1Empty, V1Stat, V1Badge } from '../components/v1'
+import { V1Alert, V1Badge, V1Empty, V1Page, V1Skeleton, V1Stat } from '../components/v1'
 
 // One-line yield summary for an archived grow, so the harvest a user carefully filled
 // in is actually visible again instead of vanishing after saving.
@@ -68,7 +68,7 @@ function ArchivePage() {
       </section>
 
       {loading ? (
-        <V1Empty title="Lade Archiv…" />
+        <V1Skeleton rows={4} label="Lade Archiv" />
       ) : grows.length === 0 ? (
         <V1Empty title="Noch keine archivierten Grows" text="Abgeschlossene Grows erscheinen hier — samt Ertrag." />
       ) : (

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowDetail, GrowEntryPoint, GrowStatus, GrowUpsertPayload, HydroSetupDto, KnowledgeOverviewDto, NutrientProgramDto, SeedType, StartMaterial, TentDto } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Wizard } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton, V1Wizard } from '../components/v1'
 import { formatDateShort, formatLiters, toNullableInt } from '../components/v1-utils'
 import { classNames } from '../utils'
 
@@ -100,7 +100,7 @@ function GrowSetupPage() {
     }
   }
 
-  if (loading) return <V1Page eyebrow="Grow" title={isEditing ? 'Grow bearbeiten' : 'Grow starten'}><V1Empty title="Lade Wizard..." /></V1Page>
+  if (loading) return <V1Page eyebrow="Grow" title={isEditing ? 'Grow bearbeiten' : 'Grow starten'}><V1Skeleton rows={5} label="Lade Formular" /></V1Page>
 
   return (
     <V1Page eyebrow="Grow" title={isEditing ? 'Grow bearbeiten' : 'Grow starten'} className="grow-wizard-page" action={<Link className="v1-button is-ghost" to={isEditing && growId ? `/grows/${growId}` : '/grows'}>Zurück</Link>}>

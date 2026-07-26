@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary, SettingsOverviewDto } from '../types'
 import FileInput from '../components/FileInput'
-import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section } from '../components/v1'
+import { V1Alert, V1Button, V1Card, V1Field, V1Page, V1Section, V1Skeleton } from '../components/v1'
 
 type ImportPreview = { ok: boolean; title: string; details: string[] }
 type BackupManifest = { fileName?: string; downloadUrl?: string }
@@ -139,7 +139,7 @@ function SettingsPage() {
       {error && <V1Alert title="Fehler" message={error} tone="warn" />}
       {message && <V1Alert message={message} tone="ok" />}
 
-      {loading ? <V1Empty title="Lade System..." /> : (
+      {loading ? <V1Skeleton rows={4} label="Lade Einstellungen" /> : (
         <>
           <section className="v1-kpi-grid rc2-admin-kpis">
             <V1Card><span className="v1-card-kicker">Zelte</span><h2>{settings?.tents.length ?? 0}</h2><p>Systemräume</p></V1Card>

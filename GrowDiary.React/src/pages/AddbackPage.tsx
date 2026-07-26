@@ -11,18 +11,7 @@ import type {
   NutrientProgramDto,
   NutrientProgramStageDto,
 } from '../types'
-import {
-  V1Alert,
-  V1Button,
-  V1Card,
-  V1Empty,
-  V1Field,
-  V1LinkButton,
-  V1Page,
-  V1Section,
-  V1Stat,
-  V1Wizard,
-} from '../components/v1'
+import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton, V1Stat, V1Wizard } from '../components/v1'
 import { classNames, formatNumber } from '../utils'
 
 type AddbackStep = 1 | 2 | 3 | 4 | 5 | 6
@@ -290,7 +279,7 @@ function AddbackPage() {
 
       <div data-audit="addback-flow">
         {loading ? (
-          <V1Empty title="Lade Addback..." />
+          <V1Skeleton tiles={4} rows={3} label="Lade Addback" />
         ) : (
           <>
           <MobileStepper step={step} steps={steps} />

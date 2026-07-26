@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowDetail, GrowStage, MeasurementDto, MeasurementUpsertPayload, PhotoAssetDto, PhotoTag, ValueOrigin } from '../types'
 import { formatDateTime, toLocalInputValue } from '../utils'
-import { V1Alert, V1Badge, V1Button, V1Empty, V1Field, V1LinkButton, V1Page, V1Section } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import '../features/measurement/measurement-edit.css'
 
 interface MeasurementEditState {
@@ -204,7 +204,7 @@ function MeasurementEditPage() {
       {error && <V1Alert title="Fehler" message={error} tone="warn" />}
 
       {loading || !draft || !measurement ? (
-        <V1Empty title="Lade Messung..." />
+        <V1Skeleton tiles={6} rows={2} label="Lade Messung" />
       ) : (
         <div className="meas-edit">
           <form className="meas-edit__form" onSubmit={handleSubmit}>

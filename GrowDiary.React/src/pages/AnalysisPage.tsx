@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowDetail, GrowSummary } from '../types'
-import { V1Alert, V1Empty, V1Field, V1Page, V1Section } from '../components/v1'
+import { V1Alert, V1Empty, V1Field, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { classNames, formatDate, formatNumber } from '../utils'
 import '../features/analysis/compare.css'
 
@@ -96,7 +96,7 @@ function AnalysisPage() {
       </V1Section>
 
       {loading ? (
-        <V1Empty title="Lade Grows..." />
+        <V1Skeleton rows={4} label="Lade Grows" />
       ) : !leftGrow && !rightGrow ? (
         <V1Empty title="Noch nichts zu vergleichen" text="Wähle oben zwei Grows aus. Es geht auch mit einem — dann siehst du dessen Kennzahlen allein." />
       ) : (

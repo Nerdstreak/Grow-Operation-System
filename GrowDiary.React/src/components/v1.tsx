@@ -68,6 +68,43 @@ export function V1Empty({ title, text, action }: { title: string; text?: string;
   )
 }
 
+/**
+ * Platzhalter beim Laden — dieselben Kästen wie der fertige Inhalt.
+ *
+ * Statt „Lade ..." oder eines Spinners: die Boxen haben schon ihre endgültige
+ * Höhe, nur die Werte sind Balken. Dadurch springt beim Eintreffen der Daten
+ * nichts, und man sieht sofort, wie viel gleich kommt.
+ *
+ * `rows` sind Zeilen einer Liste, `tiles` Kacheln eines Rasters — mehr Formen
+ * braucht es nicht, weil alle Seiten aus diesen beiden bestehen.
+ */
+export function V1Skeleton({ rows = 0, tiles = 0, label = 'Lädt' }: { rows?: number; tiles?: number; label?: string }) {
+  return (
+    <div className="v1-skeleton" role="status" aria-label={label} data-audit="skeleton">
+      {tiles > 0 && (
+        <div className="v1-skeleton-tiles">
+          {Array.from({ length: tiles }, (_, index) => (
+            <div key={index} className="v1-skeleton-tile">
+              <span className="bar sm" />
+              <span className="bar lg" />
+            </div>
+          ))}
+        </div>
+      )}
+      {rows > 0 && (
+        <div className="v1-skeleton-rows">
+          {Array.from({ length: rows }, (_, index) => (
+            <div key={index} className="v1-skeleton-row">
+              <span className="bar md" />
+              <span className="bar sm" />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function V1Alert({ title, message, tone = 'warn' }: { title?: string; message: string; tone?: Tone }) {
   return (
     <div className={classNames('v1-alert', `tone-${tone}`)}>

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../../api'
 import type { ChangeoutDto, ChangeoutKind, CreateChangeoutRequest } from '../../types'
-import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1Section } from '../../components/v1'
+import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1Section, V1Skeleton } from '../../components/v1'
 import { formatDateTime, formatNumber } from '../../utils'
 import './changeouts.css'
 
@@ -135,7 +135,7 @@ export function ChangeoutsPanel({ growId, growName }: { growId: number; growName
       )}
 
       {loading ? (
-        <V1Empty title="Lade Wasserwechsel …" />
+        <V1Skeleton rows={3} label="Lade Wasserwechsel" />
       ) : items.length === 0 ? (
         <V1Empty title="Noch kein Wasserwechsel" text={`Für ${growName} ist noch kein Reservoir-Wechsel erfasst.`} />
       ) : (
