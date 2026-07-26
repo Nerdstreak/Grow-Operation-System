@@ -1,0 +1,127 @@
+/* Aus rc2-overrides.css herausgeloest.
+   Bewusst noch ohne @layer: das Verschieben soll die Kaskade nicht
+   veraendern. Aufraeumen und Schichten sind der naechste Schritt. */
+.v1-inline-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.v1-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+@media (max-width: 760px) {
+    .v1-inline-input {
+      grid-template-columns: 1fr;
+    }
+    .v1-form-actions {
+      margin-bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 18px);
+    }
+    .v1-form-actions {
+      margin-bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 22px) !important;
+    }
+    .v1-bottom-nav {
+      position: static !important;
+      inset: auto !important;
+      background: #031008 !important;
+      margin: 8px 8px env(safe-area-inset-bottom);
+    }
+}
+
+.v1-badge,
+.v1-card-kicker,
+.v1-eyebrow,
+.v1-tab strong,
+.v1-wizard-step strong,
+.v1-bottom-item {
+  white-space: nowrap;
+}
+.v1-alert {
+  align-items: flex-start;
+}
+.v1-alert strong {
+  flex: 0 0 auto;
+  max-width: 42%;
+}
+@media (max-width: 420px) {
+    .v1-alert {
+      display: grid;
+      gap: 6px;
+    }
+    .v1-alert strong {
+      max-width: none;
+    }
+}
+
+.v1-info {
+  min-width: 0;
+}
+.v1-info strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 860px) {
+    .v1-bottom-nav {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      position: fixed;
+      inset: auto 0 0 0 !important;
+      min-height: calc(var(--rc2-bottom-nav-height) + max(0px, env(safe-area-inset-bottom)));
+      margin: 0 !important;
+      padding: 8px 10px max(8px, env(safe-area-inset-bottom)) !important;
+      border: 1px solid var(--v1-line-strong);
+      border-right: 0;
+      border-bottom: 0;
+      border-left: 0;
+      border-radius: 18px 18px 0 0 !important;
+      background: rgb(3, 16, 8) !important;
+      box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.34);
+    }
+}
+
+@media (max-width: 767px) {
+    .v1-mobile-more-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .v1-more-tile {
+      min-width: 0;
+      min-height: 48px;
+      padding: 0 10px;
+      text-align: center;
+    }
+    .v1-bottom-nav {
+      box-sizing: border-box;
+      display: grid !important;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      position: fixed !important;
+      inset: auto 0 0 0 !important;
+      min-height: 0 !important;
+      align-items: center;
+      margin: 0 !important;
+      padding: 6px max(10px, var(--safe-right)) max(var(--safe-bottom), 8px) max(10px, var(--safe-left)) !important;
+      border: 1px solid var(--v1-line-strong);
+      border-right: 0;
+      border-bottom: 0;
+      border-left: 0;
+      border-radius: 18px 18px 0 0 !important;
+      background: rgb(3, 16, 8) !important;
+      box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.34);
+      z-index: 45;
+    }
+    .v1-bottom-item {
+      min-width: 44px;
+      min-height: 44px;
+    }
+}
+
+@media (min-width: 768px) {
+    .v1-mobile-topbar,
+    .v1-bottom-nav,
+    .v1-mobile-more-panel {
+      display: none !important;
+    }
+}

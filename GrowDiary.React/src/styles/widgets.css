@@ -1,0 +1,119 @@
+/* Aus rc2-overrides.css herausgeloest.
+   Bewusst noch ohne @layer: das Verschieben soll die Kaskade nicht
+   veraendern. Aufraeumen und Schichten sind der naechste Schritt. */
+.rc2-sticky-card {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 12px;
+}
+@media (max-width: 760px) {
+    .rc2-sticky-card {
+      position: static;
+    }
+    .sticky-actions {
+      position: sticky;
+      bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 10px);
+      z-index: 5;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: color-mix(in oklch, var(--surface), black 7%);
+      box-shadow: 0 -18px 40px rgba(0,0,0,.28);
+    }
+}
+
+.rc2-compact-action {
+  width: fit-content !important;
+  min-width: 180px;
+  justify-self: start;
+}
+@media (max-width: 760px) {
+    .sticky-actions,
+    .ops1b-sticky-actions {
+      position: sticky;
+      bottom: calc(var(--rc2-bottom-nav-height) + var(--rc2-bottom-nav-gap) + env(safe-area-inset-bottom) + 16px);
+      z-index: 8;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: color-mix(in oklch, var(--surface), black 7%);
+      box-shadow: 0 -18px 40px rgba(0,0,0,.32);
+    }
+    .sticky-actions .v1-button,
+    .ops1b-sticky-actions .v1-button,
+    .rc2-compact-action {
+      width: 100% !important;
+    }
+}
+
+.rc-file-input {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rc-file-input-native {
+  position: absolute;
+  width: 1px !important;
+  min-width: 1px !important;
+  max-width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.rc-file-input-name {
+  min-width: 0;
+  flex: 1 1 160px;
+  color: var(--v1-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+    .rc-file-input {
+      align-items: stretch;
+    }
+    .rc-file-input .v1-button,
+    .rc-file-input-name {
+      width: 100%;
+    }
+}
+
+.grow-management-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 860px) {
+    .sticky-actions {
+      bottom: calc(var(--rc2-bottom-nav-height) + max(0px, env(safe-area-inset-bottom)) + 12px) !important;
+    }
+}
+
+@media (max-width: 900px) {
+    .grow-management-actions {
+      justify-content: stretch;
+      width: 100%;
+    }
+    .grow-management-actions .btn {
+      flex: 1 1 120px;
+    }
+}
+
+@media (max-width: 767px) {
+    .topbar .grow-management-actions {
+      display: none;
+    }
+    .sticky-actions,
+    .ops1b-sticky-actions {
+      bottom: calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 12px) !important;
+    }
+}

@@ -21,9 +21,10 @@ import ReleasePage from './pages/ReleasePage'
 import SettingsPage from './pages/SettingsPage'
 import TentDetailPage from './pages/TentDetailPage'
 import TentsPage from './pages/TentsPage'
-import './rc2-overrides.css'
-// Direkt danach: die Zelt-Regeln standen bis eben in rc2-overrides und muessen
-// an derselben Stelle der Kaskade bleiben.
+// Reihenfolge zaehlt: die Konventionen zuerst, dann die Seitenregeln, die sie
+// fuer ihre Seite praezisieren. Alle ungeschichtet, wie sie es in rc2-overrides
+// auch waren.
+import './styles/conventions.css'
 import './features/tents/tents.css'
 import './features/measurement/measurement.css'
 import './features/grows/grows.css'
@@ -31,6 +32,8 @@ import './features/home-assistant/ha.css'
 import './features/addback/addback.css'
 import './features/live/live-rc2.css'
 import './features/grows/grows-rc2.css'
+import './styles/primitives-rc2.css'
+import './styles/widgets.css'
 
 import { AppShell } from './AppShell'
 import { legacyRedirects } from './navigation'
