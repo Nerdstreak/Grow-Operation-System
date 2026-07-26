@@ -1,8 +1,10 @@
 import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { HarvestDto } from '../types'
+import { V1Alert, V1Button, V1Empty, V1Field, V1LinkButton, V1Page, V1Section } from '../components/v1'
+import { summariseYield } from '../features/harvest/harvest-yield'
 
 interface HarvestFormState {
   harvestedAtLocal: string
@@ -98,96 +100,79 @@ function HarvestPage() {
     void save(false)
   }
 
+  const backTo = growId ? `/grows/${growId}` : '/'
+  const yieldSummary = form ? summariseYield(form.wetWeightG, form.dryWeightG) : null
+
   return (
-    <>
-      <div className="topbar">
-        <div className="topbar-left">
-          <Link className="btn" to={growId ? `/grows/${growId}` : '/'}>Zurück</Link>
-          <span className="topbar-title">{harvest?.growName ?? 'Ernte'}</span>
-        </div>
-      </div>
+    <V1Page
+      eyebrow="Abschluss"
+      title="Ernte erfassen"
+      subtitle={harvest?.growName ?? undefined}
+      action={<V1LinkButton to={backTo}>Zurück zum Grow</V1LinkButton>}
+    >
+      {error && <V1Alert title="Fehler" message={error} tone="warn" />}
 
-      <div className="page-scroll">
-        {error && (
-          <div className="alert-bar" style={{ marginBottom: 14, borderRadius: 'var(--radius)' }}>
-            <div className="alert-dot" />
-            <strong>Fehler</strong>
-            <span>{error}</span>
-          </div>
-        )}
-
-        {loading || !form ? (
-          <div className="empty-hint">Lade Ernte-Dokumentation...</div>
-        ) : (
-          <div className="card" style={{ maxWidth: 920 }}>
-            <div className="card-header">
-              <span className="card-title">Ernte-Dokumentation</span>
+      {loading || !form ? (
+        <V1Empty title="Lade Ernte-Dokumentation..." />
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <V1Section title="Gewicht & Trocknung">
+            <div className="v1-form-grid">
+              <V1Field label="Erntedatum">
+                <input type="date" value={form.harvestedAtLocal} onChange={(event) => setForm((current) => current ? { ...current, harvestedAtLocal: event.target.value } : current)} />
+              </V1Field>
+              <V1Field label="Trocknungsdauer" hint="Tage">
+                <input inputMode="numeric" value={form.dryDays} onChange={(event) => setForm((current) => current ? { ...current, dryDays: event.target.value } : current)} />
+              </V1Field>
+              <V1Field label="Frischgewicht" hint="Gramm">
+                <input inputMode="decimal" value={form.wetWeightG} onChange={(event) => setForm((current) => current ? { ...current, wetWeightG: event.target.value } : current)} />
+              </V1Field>
+              <V1Field label="Trockengewicht" hint="Gramm">
+                <input inputMode="decimal" value={form.dryWeightG} onChange={(event) => setForm((current) => current ? { ...current, dryWeightG: event.target.value } : current)} />
+              </V1Field>
             </div>
-            <form onSubmit={handleSubmit} style={{ padding: '18px 20px', display: 'grid', gap: 14 }}>
-              <div className="meas-fields">
-                <label className="meas-field">
-                  <span>Erntedatum</span>
-                  <input className="meas-input" type="date" value={form.harvestedAtLocal} onChange={(event) => setForm((current) => current ? { ...current, harvestedAtLocal: event.target.value } : current)} />
-                </label>
-                <label className="meas-field">
-                  <span>Trocknungsdauer</span>
-                  <div className="meas-field-inner">
-                    <input className="meas-input" value={form.dryDays} onChange={(event) => setForm((current) => current ? { ...current, dryDays: event.target.value } : current)} />
-                    <span className="meas-unit">Tage</span>
-                  </div>
-                </label>
-                <label className="meas-field">
-                  <span>Frischgewicht</span>
-                  <div className="meas-field-inner">
-                    <input className="meas-input" value={form.wetWeightG} onChange={(event) => setForm((current) => current ? { ...current, wetWeightG: event.target.value } : current)} />
-                    <span className="meas-unit">g</span>
-                  </div>
-                </label>
-                <label className="meas-field">
-                  <span>Trockengewicht</span>
-                  <div className="meas-field-inner">
-                    <input className="meas-input" value={form.dryWeightG} onChange={(event) => setForm((current) => current ? { ...current, dryWeightG: event.target.value } : current)} />
-                    <span className="meas-unit">g</span>
-                  </div>
-                </label>
-                <label className="meas-field">
-                  <span>Bewertung</span>
-                  <div className="meas-field-inner">
-                    <input className="meas-input" value={form.rating} onChange={(event) => setForm((current) => current ? { ...current, rating: event.target.value } : current)} />
-                    <span className="meas-unit">/10</span>
-                  </div>
-                </label>
-                <label className="meas-field">
-                  <span>Blue­tenstruktur</span>
-                  <input className="meas-input" value={form.nugStructure} onChange={(event) => setForm((current) => current ? { ...current, nugStructure: event.target.value } : current)} />
-                </label>
-              </div>
 
-              <label className="field">
-                <span>Ertrag-Notizen</span>
+            {/* Das Verhältnis sagt mehr über die Trocknung als jede der beiden
+                Zahlen für sich — und es auszurechnen, während man tippt, ist
+                genau das, was die App abnehmen kann. */}
+            {yieldSummary && (
+              <div className="v1-chip-row" data-audit="harvest-ratio">
+                <span>{yieldSummary.text}</span>
+              </div>
+            )}
+          </V1Section>
+
+          <V1Section title="Bewertung">
+            <div className="v1-form-grid">
+              <V1Field label="Bewertung" hint="von 10">
+                <input inputMode="numeric" value={form.rating} onChange={(event) => setForm((current) => current ? { ...current, rating: event.target.value } : current)} />
+              </V1Field>
+              <V1Field label="Blütenstruktur">
+                <input value={form.nugStructure} onChange={(event) => setForm((current) => current ? { ...current, nugStructure: event.target.value } : current)} />
+              </V1Field>
+              <V1Field label="Ertrag-Notizen" wide>
                 <textarea rows={3} value={form.yieldNotes} onChange={(event) => setForm((current) => current ? { ...current, yieldNotes: event.target.value } : current)} />
-              </label>
-              <label className="field">
-                <span>Geschmack / Aroma</span>
+              </V1Field>
+              <V1Field label="Geschmack / Aroma" wide>
                 <textarea rows={3} value={form.flavorNotes} onChange={(event) => setForm((current) => current ? { ...current, flavorNotes: event.target.value } : current)} />
-              </label>
-              <label className="field">
-                <span>Effekt / High</span>
+              </V1Field>
+              <V1Field label="Effekt / High" wide>
                 <textarea rows={3} value={form.effectNotes} onChange={(event) => setForm((current) => current ? { ...current, effectNotes: event.target.value } : current)} />
-              </label>
+              </V1Field>
+            </div>
+          </V1Section>
 
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                <Link className="btn" to={growId ? `/grows/${growId}` : '/'}>Abbrechen</Link>
-                <button type="submit" className="btn" disabled={saving !== null}>{saving === 'save' ? 'Speichert…' : 'Ernte speichern'}</button>
-                <button type="button" className="btn btn-primary" disabled={saving !== null} onClick={() => void save(true)}>{saving === 'complete' ? 'Schließt ab…' : 'Speichern & Grow abschließen'}</button>
-              </div>
-            </form>
+          <div className="v1-form-actions">
+            <V1LinkButton to={backTo}>Abbrechen</V1LinkButton>
+            <V1Button type="submit" disabled={saving !== null}>{saving === 'save' ? 'Speichert…' : 'Ernte speichern'}</V1Button>
+            <V1Button type="button" variant="primary" disabled={saving !== null} onClick={() => void save(true)}>{saving === 'complete' ? 'Schließt ab…' : 'Speichern & Grow abschließen'}</V1Button>
           </div>
-        )}
-      </div>
-    </>
+        </form>
+      )}
+    </V1Page>
   )
 }
+
 
 function formatDraftNumber(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return ''

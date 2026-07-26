@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowDetail, GrowSummary } from '../types'
-import { formatDate, formatNumber } from '../utils'
+import { V1Alert, V1Empty, V1Field, V1Page, V1Section } from '../components/v1'
+import { classNames, formatDate, formatNumber } from '../utils'
+import '../features/analysis/compare.css'
 
 function AnalysisPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -70,65 +72,69 @@ function AnalysisPage() {
     setSearchParams(next, { replace: true })
   }
 
+  const rows = compareRows(leftGrow, rightGrow)
+
   return (
-    <>
-      <div className="topbar">
-        <span className="topbar-title">Analyse</span>
-      </div>
+    <V1Page eyebrow="Auswertung" title="Vergleich" subtitle="Zwei Grows nebeneinander — was war anders, und was ist dabei herausgekommen.">
+      {error && <V1Alert title="Fehler" message={error} tone="warn" />}
 
-      <div className="page-scroll">
-        {error && (
-          <div className="alert-bar" style={{ marginBottom: 14 }}>
-            <div className="alert-dot" />
-            <strong>Fehler</strong>
-            <span>{error}</span>
-          </div>
-        )}
-
-        <div className="tents-grid" style={{ marginBottom: 18 }}>
-          <label className="field">
-            <span>Grow A</span>
+      <V1Section title="Grows wählen">
+        <div className="v1-form-grid">
+          <V1Field label="Grow A">
             <select value={leftId} onChange={(event) => updateSelection('leftGrowId', event.target.value)}>
               <option value="">– Grow wählen –</option>
               {allGrows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
             </select>
-          </label>
-          <label className="field">
-            <span>Grow B</span>
+          </V1Field>
+          <V1Field label="Grow B">
             <select value={rightId} onChange={(event) => updateSelection('rightGrowId', event.target.value)}>
               <option value="">– Grow wählen –</option>
               {allGrows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
             </select>
-          </label>
+          </V1Field>
         </div>
+      </V1Section>
 
-        {loading ? (
-          <div className="empty-hint">Lade Analyse...</div>
-        ) : !leftGrow && !rightGrow ? (
-          <div className="empty-hint">Wähle zwei Grows zum Vergleichen.</div>
-        ) : (
-          <div className="data-table">
-            <div className="data-table-header" style={{ gridTemplateColumns: '1.2fr 1fr 1fr' }}>
-              <span>Kennzahl</span>
-              <span>{leftGrow?.name ?? '–'}</span>
-              <span>{rightGrow?.name ?? '–'}</span>
-            </div>
-            {compareRows(leftGrow, rightGrow).map((row) => (
-              <div key={row.label} className="data-row" style={{ gridTemplateColumns: '1.2fr 1fr 1fr', cursor: 'default' }}>
-                <div className="row-name">{row.label}</div>
-                <div className="row-muted">{row.left}</div>
-                <div className="row-muted">{row.right}</div>
-              </div>
-            ))}
+      {loading ? (
+        <V1Empty title="Lade Grows..." />
+      ) : !leftGrow && !rightGrow ? (
+        <V1Empty title="Noch nichts zu vergleichen" text="Wähle oben zwei Grows aus. Es geht auch mit einem — dann siehst du dessen Kennzahlen allein." />
+      ) : (
+        <V1Section title="Kennzahlen">
+          <div className="cmp-table-wrap">
+            <table className="cmp-table">
+              <thead>
+                <tr>
+                  <th scope="col">Kennzahl</th>
+                  <th scope="col">{leftGrow?.name ?? '–'}</th>
+                  <th scope="col">{rightGrow?.name ?? '–'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.label} className={classNames(row.differs && 'differs')}>
+                    <th scope="row">{row.label}</th>
+                    <td>{row.left}</td>
+                    <td>{row.right}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
-    </>
+          {/* Ohne Hervorhebung liest man zehn Zeilen und sucht die Unterschiede
+              selbst — die sind aber der einzige Grund, zwei Grows nebeneinander
+              zu legen. */}
+          <p className="cmp-note">Hervorgehoben ist, worin sich die beiden unterscheiden.</p>
+        </V1Section>
+      )}
+    </V1Page>
   )
 }
 
-function compareRows(left: GrowDetail | null, right: GrowDetail | null) {
-  return [
+type CompareRow = { label: string; left: string; right: string; differs: boolean }
+
+function compareRows(left: GrowDetail | null, right: GrowDetail | null): CompareRow[] {
+  const raw = [
     { label: 'Strain', left: left?.strain ?? '–', right: right?.strain ?? '–' },
     { label: 'Hydro-Stil', left: left?.hydroStyle ?? '–', right: right?.hydroStyle ?? '–' },
     { label: 'Nährstoffe', left: left?.nutrients ?? '–', right: right?.nutrients ?? '–' },
@@ -140,6 +146,14 @@ function compareRows(left: GrowDetail | null, right: GrowDetail | null) {
     { label: 'Temperatur (letzte)', left: formatNumber(left?.latestMeasurement?.airTemperatureC, 1), right: formatNumber(right?.latestMeasurement?.airTemperatureC, 1) },
     { label: 'Luftfeuchte (letzte)', left: formatNumber(left?.latestMeasurement?.humidityPercent, 0), right: formatNumber(right?.latestMeasurement?.humidityPercent, 0) },
   ]
+
+  // Nur markieren, wenn beide Seiten überhaupt einen Wert haben — sonst wäre
+  // jede Zeile hervorgehoben, solange erst ein Grow gewählt ist.
+  const both = left != null && right != null
+  return raw.map((row) => ({
+    ...row,
+    differs: both && row.left !== row.right && row.left !== '–' && row.right !== '–',
+  }))
 }
 
 export default AnalysisPage
