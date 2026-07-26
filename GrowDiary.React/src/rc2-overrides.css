@@ -466,7 +466,6 @@
   }
 }
 
-
 /* Audit 2 concrete fixes */
 .rc2-score-line {
   display: flex;
@@ -552,12 +551,6 @@
   .v1-live-metrics-pair,
   .ops1b-workflow-grid {
     grid-template-columns: 1fr !important;
-  }
-
-  .v1-hydro-list {
-    grid-auto-flow: row !important;
-    grid-auto-columns: auto !important;
-    overflow-x: visible !important;
   }
 
   .v1-card-grid,
@@ -719,8 +712,7 @@ html,
 }
 
 .rc-action-guide-card h2,
-.v1-tent-card h2,
-.v1-hydro-list-item strong {
+.v1-tent-card h2 {
   overflow-wrap: normal;
   word-break: normal;
   hyphens: manual;
@@ -979,10 +971,6 @@ html,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.v1-hydro-summary > .v1-list {
-  display: none;
 }
 
 .v1-tent-card {
@@ -1451,24 +1439,6 @@ html,
   min-height: 44px;
 }
 
-.hydro-layout-step {
-  display: grid;
-  gap: 16px;
-  min-width: 0;
-}
-
-.hydro-layout-controls {
-  display: grid;
-  grid-template-columns: minmax(96px, .45fr) minmax(150px, 1fr) minmax(150px, 1fr);
-  gap: 12px;
-  align-items: end;
-  min-width: 0;
-}
-
-.hydro-review-layout {
-  align-items: stretch;
-}
-
 .tent-metric-groups {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -1518,11 +1488,6 @@ html,
 }
 
 @media (max-width: 900px) {
-  .hydro-layout-controls,
-  .rdwc-preview__controls {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .tent-metric-groups {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
@@ -2095,37 +2060,6 @@ html,
     padding-inline: 12px;
   }
 
-  .hydro-page .v1-hydro-layout {
-    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
-    align-items: start;
-  }
-
-  .hydro-page .v1-hydro-list-item {
-    min-height: 64px;
-  }
-
-  .hydro-page .v1-hydro-detail.rc2 {
-    grid-template-columns: minmax(0, .92fr) minmax(350px, 1.08fr);
-    gap: 16px;
-  }
-
-  .hydro-page .v1-hydro-title-line.rc2 strong {
-    font-size: clamp(24px, 2vw, 30px);
-    line-height: 1.05;
-    overflow-wrap: normal;
-    word-break: normal;
-  }
-
-  .hydro-page .v1-hydro-facts {
-    grid-template-columns: repeat(2, minmax(135px, 1fr));
-  }
-
-  .hydro-page .v1-hydro-preview-card {
-    min-width: 0;
-    height: 100%;
-    padding: 12px;
-  }
-
   .tents-page .v1-card-grid {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
@@ -2310,11 +2244,6 @@ html,
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 
-  .v1-hydro-detail.rc2,
-  .hydro-page .v1-hydro-detail.rc2 {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-
   .tents-page .v1-tent-card {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2326,18 +2255,6 @@ html,
 
   .tents-page .tent-metric-groups {
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  }
-}
-
-@media (max-width: 1023px) {
-  .hydro-page .v1-hydro-layout,
-  .hydro-page .v1-hydro-detail.rc2 {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-
-  .hydro-page [data-audit="hydro-preview"] {
-    width: 100%;
-    max-width: 100%;
   }
 }
 
@@ -2358,9 +2275,6 @@ html,
   .v1-mobile-more-panel {
     display: none !important;
   }
-}
-
-@media (min-width: 768px) and (max-width: 1023px) {
 }
 
 @media (max-width: 760px) {

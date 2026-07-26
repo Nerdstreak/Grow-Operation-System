@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary, HydroSetupDto, HydroSetupLayoutType, ReservoirPosition } from '../types'
 import { SystemPlan } from '../features/hydro/SystemPlan'
 import { rowsFromLayoutType } from '../features/hydro/system-plan-model'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { formatLiters } from '../components/v1-utils'
 import { classNames, formatNumber } from '../utils'
 
@@ -58,13 +58,13 @@ function HydroPage() {
   async function deleteSetup(setup: HydroSetupDto) {
     if (saving) return
     const linkedGrows = getGrowsForSetup(grows, setup)
+    // Verknüpfte Grows blockieren das Löschen. Die Begründung steht im Panel neben
+    // den betroffenen Grows, nicht in einer Fehlerzeile am Seitenkopf — dort stand
+    // sie früher, und der zugehörige Aufruf war hinter einem übrig gebliebenen
+    // Block unerreichbar geworden.
     if (linkedGrows.length > 0) {
-      {
-        setError(null)
-        setBlockedDeleteSetupId(setup.id)
-        return
-      }
-      setError(`${setup.name} ist mit aktiven Grows verknüpft. Öffne die betroffenen Grows oder archiviere das Setup: ${linkedGrows.map((grow) => grow.name).join(', ')}`)
+      setError(null)
+      setBlockedDeleteSetupId(setup.id)
       return
     }
     const confirmed = window.confirm(`${setup.name} endgültig löschen?`)
@@ -166,7 +166,7 @@ function HydroPage() {
 
       {loading ? <V1Empty title="Lade Hydro-Setups..." /> : setups.length === 0 ? <V1Empty title="Noch kein Hydro-Setup" action={<V1Button variant="primary" onClick={openCreate}>Erstes Setup anlegen</V1Button>} /> : (
         <section className="v1-hydro-layout">
-          <V1Section title="Setups">
+          <V1Section title="Setups" className="v1-hydro-list-section">
             <div className="v1-hydro-list">
               {setups.map((setup) => <button key={setup.id} type="button" className={classNames('v1-hydro-list-item', selectedSetup?.id === setup.id && 'active')} onClick={() => setSelectedSetupId(setup.id)}><strong>{setup.name}</strong><span>{setup.hydroStyle} · {setup.tentName ?? 'ohne Zelt'} · {formatLiters(setup.totalVolumeLiters)}</span></button>)}
             </div>
@@ -192,20 +192,42 @@ function HydroDetail({ setup, linkedGrows, deleteBlocked, saving, savingKey, onE
 
   return (
     <V1Section title={setup.name} action={<V1Badge tone={setup.status === 'Active' ? 'ok' : 'neutral'}>{setup.status === 'Active' ? 'aktiv' : 'Archiv'}</V1Badge>} className="v1-hydro-detail-section">
-      <div className="v1-hydro-detail rc2">
-        <V1Card className="v1-hydro-summary rc2">
-          <div className="v1-hydro-title-line rc2">
-            <div>
-              <span className="v1-card-kicker">{setup.hydroStyle}</span>
-              <strong>{setup.name}</strong>
-            </div>
-            <V1Stat label="Volumen" value={formatNumber(setup.totalVolumeLiters, 0)} unit="L" />
+      {/* Kopf über die volle Breite, Plan und Werte darunter nebeneinander. Vorher
+          stand der Name in einer .95fr-Spalte und brach bei längeren Setup-Namen
+          auf drei Zeilen um. Er steht jetzt nur noch in der Section-Überschrift —
+          zweimal derselbe Name war ohnehin einer zu viel. */}
+      <div className="hydro-detail">
+        <div className="hydro-detail__head">
+          <span className="v1-card-kicker">{setup.hydroStyle}</span>
+          <V1Stat label="Volumen" value={formatNumber(setup.totalVolumeLiters, 0)} unit="L" />
+          <div className="actions">
+            <V1LinkButton to={`/hydro/${setup.id}`} variant="primary">Öffnen</V1LinkButton>
+            <V1Button onClick={() => onEdit(setup)}>Bearbeiten</V1Button>
+            <V1Button disabled={saving} onClick={() => void onArchive(setup)}>Archivieren</V1Button>
+            <V1Button variant="danger" disabled={saving} onClick={() => void onDelete(setup)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button>
           </div>
+        </div>
 
-          <div className="v1-hydro-facts">
+        <div className="hydro-detail__body">
+          <div className="hydro-detail__plan">
+            <SystemPlan
+              compact
+              hydroStyle={setup.hydroStyle === 'DWC' ? 'DWC' : 'RDWC'}
+              siteCount={setup.potCount ?? 1}
+              rows={rowsFromLayoutType(setup.layoutType, setup.potCount ?? 1)}
+              potLiters={setup.potSizeLiters ?? 0}
+              tankLiters={setup.reservoirLiters ?? 0}
+              reservoirPosition={setup.reservoirPosition}
+              tentWidthCm={null}
+              tentDepthCm={null}
+            />
+          </div>
+          <div className="hydro-detail__facts">
             {facts.map(([label, value]) => <Fact key={label} label={label} value={value} />)}
           </div>
+        </div>
 
+        <div className="hydro-detail__tech">
           <div className="v1-chip-row">
             {setup.hasCirculationPump && <span>Umwälzpumpe</span>}
             {setup.hasAirPump && <span>Luftpumpe</span>}
@@ -213,49 +235,32 @@ function HydroDetail({ setup, linkedGrows, deleteBlocked, saving, savingKey, onE
             {setup.hasUvSterilizer && <span>UV-C</span>}
             {!setup.hasCirculationPump && !setup.hasAirPump && !setup.hasChiller && !setup.hasUvSterilizer && <span>Technik offen</span>}
           </div>
+        </div>
 
-          <div className="v1-action-row">
-            <V1LinkButton to={`/hydro/${setup.id}`} variant="primary">Öffnen</V1LinkButton>
-            <V1Button onClick={() => onEdit(setup)}>Bearbeiten</V1Button>
-            <V1Button disabled={saving} onClick={() => void onArchive(setup)}>Archivieren</V1Button>
-            <V1Button variant="danger" disabled={saving} onClick={() => void onDelete(setup)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button>
-          </div>
-          {linkedGrows.length > 0 && <div className="v1-list">{linkedGrows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>Verknüpfter aktiver Grow</span></Link>)}</div>}
-          {deleteBlocked && linkedGrows.length > 0 && (
-            <div className={classNames('dependency-panel', deleteBlocked && 'active')} data-audit="hydro-delete-blocked">
-              <strong>{deleteBlocked ? 'Löschen blockiert' : 'Aktive Grows'}</strong>
-              <p>Dieses Hydro-Setup ist mit aktiven oder geplanten Grows verknüpft. Beende oder verwalte die betroffenen Grows, danach ist Löschen erneut möglich.</p>
-              <div className="v1-list">
-                {linkedGrows.map((grow) => (
-                  <div key={grow.id} className="v1-list-row dependency-row">
-                    <div>
-                      <strong>{grow.name}</strong>
-                      <span>{grow.status ?? 'aktiv'}</span>
-                    </div>
-                    <div className="dependency-row-actions">
-                      <V1LinkButton to={`/grows/${grow.id}`} variant="primary">Verwalten</V1LinkButton>
-                      <V1LinkButton to={`/grows/${grow.id}/setup`}>Bearbeiten</V1LinkButton>
-                      <V1Button disabled={savingKey === `grow-archive-${grow.id}`} onClick={() => void onArchiveGrow(grow)}>{savingKey === `grow-archive-${grow.id}` ? 'Beendet...' : 'Beenden'}</V1Button>
-                    </div>
+        {/* Hier stand eine zweite Liste der verknüpften Grows, die rc2-overrides per
+            `display: none` wieder ausgeblendet hat. Markup, das nur existiert, um
+            versteckt zu werden, ist einfacher zu löschen als zu pflegen. */}
+        {deleteBlocked && linkedGrows.length > 0 && (
+          <div className={classNames('dependency-panel', 'active')} data-audit="hydro-delete-blocked">
+            <strong>Löschen blockiert</strong>
+            <p>Dieses Hydro-Setup ist mit aktiven oder geplanten Grows verknüpft. Beende oder verwalte die betroffenen Grows, danach ist Löschen erneut möglich.</p>
+            <div className="v1-list">
+              {linkedGrows.map((grow) => (
+                <div key={grow.id} className="v1-list-row dependency-row">
+                  <div>
+                    <strong>{grow.name}</strong>
+                    <span>{grow.status ?? 'aktiv'}</span>
                   </div>
-                ))}
-              </div>
+                  <div className="dependency-row-actions">
+                    <V1LinkButton to={`/grows/${grow.id}`} variant="primary">Verwalten</V1LinkButton>
+                    <V1LinkButton to={`/grows/${grow.id}/setup`}>Bearbeiten</V1LinkButton>
+                    <V1Button disabled={savingKey === `grow-archive-${grow.id}`} onClick={() => void onArchiveGrow(grow)}>{savingKey === `grow-archive-${grow.id}` ? 'Beendet...' : 'Beenden'}</V1Button>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-        </V1Card>
-        <V1Card className="v1-hydro-preview-card">
-          <SystemPlan
-            compact
-            hydroStyle={setup.hydroStyle === 'DWC' ? 'DWC' : 'RDWC'}
-            siteCount={setup.potCount ?? 1}
-            rows={rowsFromLayoutType(setup.layoutType, setup.potCount ?? 1)}
-            potLiters={setup.potSizeLiters ?? 0}
-            tankLiters={setup.reservoirLiters ?? 0}
-            reservoirPosition={setup.reservoirPosition}
-            tentWidthCm={null}
-            tentDepthCm={null}
-          />
-        </V1Card>
+          </div>
+        )}
       </div>
     </V1Section>
   )

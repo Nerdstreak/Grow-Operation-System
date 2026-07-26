@@ -81,11 +81,11 @@
   .v1-ha-layout { display: grid; gap: 14px; }
   .v1-entity-list { display: grid; gap: 10px; margin-top: 14px; }
   /* --- SOP setup: the questions a branching procedure asks before it starts --- */
-.sop-setup { padding: 4px 16px 16px; display: grid; gap: 10px; background: rgba(255,255,255,0.02); }
+.sop-setup { padding: 4px 16px 16px; display: grid; gap: 10px; background: var(--panel-2); }
   .sop-setup-field { display: grid; gap: 4px; font-size: 13px; }
   .sop-setup-field > span { color: var(--v1-muted); }
   .sop-setup-field select,
-.sop-setup-field input { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--v1-line); background: rgba(255,255,255,0.03); color: inherit; font: inherit; font-size: 14px; }
+.sop-setup-field input { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--v1-line); background: var(--panel-2); color: inherit; font: inherit; font-size: 14px; }
   .sop-setup-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
   .stability-signals { list-style: none; margin: 0; padding: 0; }
   .stability-signals li { display: grid; grid-template-columns: 22px 150px 1fr; gap: 10px; align-items: baseline; padding: 10px 16px; border-bottom: 1px solid var(--v1-line); font-size: 13px; }
@@ -110,7 +110,7 @@
   .plant-entry:first-child { border-top: 0; }
   .plant-actions { display: grid; gap: 10px; }
   .plant-actions-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-  .plant-action-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; padding: 12px; border: 1px solid var(--v1-line); border-radius: 12px; background: rgba(255, 255, 255, 0.02); }
+  .plant-action-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; padding: 12px; border: 1px solid var(--v1-line); border-radius: 12px; background: var(--panel-2); }
   .plant-row { display: grid; gap: 2px; }
   .plant-row strong { font-size: 14px; font-weight: 600; }
   .plant-row span { color: var(--v1-muted); font-size: 12.5px; }
