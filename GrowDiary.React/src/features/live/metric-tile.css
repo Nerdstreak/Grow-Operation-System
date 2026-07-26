@@ -63,3 +63,26 @@
   .gos-metric-target { margin-top: 6px; font: 400 10px/1 var(--font-mono); color: var(--faint); }
   .gos-metric-stale { margin-top: 3px; font: 400 10px/1 var(--font-mono); color: var(--warn-text); }
 }
+
+/* Mehrere Kameras: eine Bühne, darunter der Streifen zum Umschalten. */
+@layer features {
+  .cam-stage { display: grid; gap: 8px; margin-bottom: var(--s-3); }
+  .cam-strip {
+    display: flex; gap: 8px; overflow-x: auto;
+    scrollbar-width: thin; padding-bottom: 2px;
+  }
+  .cam-strip-item {
+    flex: 0 0 auto; width: 104px; padding: 0;
+    display: grid; gap: 4px;
+    border: 1px solid var(--hair); border-radius: var(--r);
+    background: var(--panel); color: var(--muted);
+    font: 500 10px/1.3 var(--font-mono); letter-spacing: .06em;
+    cursor: pointer; overflow: hidden;
+    /* 44px Trefferfläche auch bei kleinem Vorschaubild. */
+    min-height: 44px;
+  }
+  .cam-strip-item img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: var(--sunk); }
+  .cam-strip-item span { padding: 0 6px 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cam-strip-item:hover { border-color: var(--hair-2); color: var(--ink); }
+  .cam-strip-item.active { border-color: var(--accent); color: var(--accent-text); }
+}

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import type { MetricPayload } from '../../types'
-import type { DashboardLayout, DashboardSection, EntityValue } from './useTentDashboard'
+import type { DashboardLayout, DashboardSection, DashboardTile, EntityValue } from './useTentDashboard'
 import { resolveTile } from './dashboard-tile-model'
 import { DashboardCameraTile } from './DashboardCameraTile'
+import { CameraStage } from './CameraStage'
 
 type Props = {
   layout: DashboardLayout
@@ -132,10 +133,24 @@ export function DashboardSections({ layout, metricsByKey, entityValues, editing,
             )}
           </div>
 
+          {/* Mehrere Kameras in einer Sektion werden zu einer Buehne mit
+              Umschaltleiste — drei gleich grosse Karten heissen drei kleine
+              Bilder, und bei einer Kamera schaut man auf Details. Im
+              Bearbeiten-Modus bleiben es einzelne Kacheln, sonst liessen sie
+              sich nicht mehr verschieben. */}
+          {!editing && cameraTilesOf(section).length > 1 && (
+            <CameraStage
+              tentId={layout.tentId}
+              cameras={cameraTilesOf(section).map((tile) => ({ entityId: tile.entityId!, label: tile.label ?? 'Kamera' }))}
+            />
+          )}
+
           <div className="ix-grid-3">
             {section.tiles.map((tile, index) => {
               const span = Math.min(Math.max(tile.span ?? 1, 1), 3)
               const isCamera = tile.kind === 'Camera' && tile.entityId
+              // Was die Buehne schon zeigt, wird nicht noch einmal einzeln gerendert.
+              if (isCamera && !editing && cameraTilesOf(section).length > 1) return null
               const metric = isCamera ? null : resolveTile(tile, metricsByKey, entityValues)
               return (
                 <div
@@ -203,4 +218,9 @@ export function DashboardSections({ layout, metricsByKey, entityValues, editing,
       ))}
     </>
   )
+}
+
+/** Die Kamera-Kacheln einer Sektion, in ihrer Reihenfolge. */
+function cameraTilesOf(section: DashboardSection): DashboardTile[] {
+  return section.tiles.filter((tile) => tile.kind === 'Camera' && Boolean(tile.entityId))
 }
