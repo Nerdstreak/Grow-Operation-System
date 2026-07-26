@@ -32,8 +32,6 @@ import SettingsPage from './pages/SettingsPage'
 import TentDetailPage from './pages/TentDetailPage'
 import TentsPage from './pages/TentsPage'
 import './rc2-overrides.css'
-import './styles/redesign-shell.css'
-import './styles/redesign-primitives.css'
 
 type NavLeaf = { to: string; label: string; end: boolean }
 type NavGroup = { id: string; label: string; defaultOpen: boolean; items: NavLeaf[] }

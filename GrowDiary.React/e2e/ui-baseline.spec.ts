@@ -43,10 +43,22 @@ const ROUTES = [
 async function structuralFacts(page: Page) {
   return page.evaluate(() => {
     const docWidth = document.documentElement.clientWidth
+
+    // A tab strip or a wide table that scrolls inside its own box is a design
+    // decision, not a defect — its children sit past the viewport on purpose.
+    // Only elements with no scrollable ancestor count.
+    const insideScroller = (element: HTMLElement): boolean => {
+      for (let node = element.parentElement; node && node !== document.body; node = node.parentElement) {
+        const overflowX = getComputedStyle(node).overflowX
+        if (overflowX === 'auto' || overflowX === 'scroll') return true
+      }
+      return false
+    }
+
     const overflowing = [...document.querySelectorAll<HTMLElement>('body *')]
       .filter((element) => {
         const box = element.getBoundingClientRect()
-        return box.width > 0 && box.right > docWidth + 1
+        return box.width > 0 && box.right > docWidth + 1 && !insideScroller(element)
       })
       .slice(0, 10)
       .map((element) => `${element.tagName.toLowerCase()}.${(element.className || '').toString().split(' ')[0]}`)

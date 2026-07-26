@@ -79,19 +79,7 @@ export function V1Alert({ title, message, tone = 'warn' }: { title?: string; mes
 
 export function V1Tabs<T extends string | number>({ items, active, onChange, label }: { items: Array<{ value: T; label: string; meta?: string | null; audit?: string }>; active: T; onChange: (value: T) => void; label?: string }) {
   return (
-    <div
-      className="v1-tabs"
-      role="tablist"
-      aria-label={label}
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(118px, 1fr))',
-        gap: 8,
-        width: '100%',
-        maxWidth: '100%',
-        overflow: 'visible',
-      }}
-    >
+    <div className="v1-tabs" role="tablist" aria-label={label}>
       {items.map((item) => (
         <button
           key={String(item.value)}
@@ -99,35 +87,10 @@ export function V1Tabs<T extends string | number>({ items, active, onChange, lab
           className={classNames('v1-tab', item.value === active && 'active')}
           data-audit={item.audit}
           onClick={() => onChange(item.value)}
-          style={{
-            minWidth: 0,
-            width: '100%',
-            maxWidth: '100%',
-            overflow: 'hidden',
-          }}
         >
-          <strong
-            style={{
-              minWidth: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {item.label}
-          </strong>
-          {item.meta && (
-            <span
-              style={{
-                minWidth: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {item.meta}
-            </span>
-          )}
+          {/* The count rides in the label rather than on its own line: a second line
+              was what forced the fixed heights and the truncation underneath them. */}
+          {item.meta ? `${item.label} · ${item.meta}` : item.label}
         </button>
       ))}
     </div>
@@ -158,20 +121,7 @@ export function V1Switch({ label, checked, onChange, hint }: { label: string; ch
 
 export function V1Wizard({ steps, currentStep, onStep }: { steps: string[]; currentStep: number; onStep?: (step: number) => void }) {
   return (
-    <div
-      className="v1-wizard-steps"
-      style={{
-        display: 'grid',
-        // Wider min so the step labels never get clipped: on a narrow container
-        // (e.g. inside the Home Assistant ingress iframe) the row wraps cleanly to
-        // a second line instead of truncating "System" to "Syst…".
-        gridTemplateColumns: 'repeat(auto-fit, minmax(118px, 1fr))',
-        gap: 8,
-        width: '100%',
-        maxWidth: '100%',
-        overflow: 'visible',
-      }}
-    >
+    <div className="v1-wizard-steps">
       {steps.map((step, index) => {
         const number = index + 1
         return (
@@ -181,25 +131,9 @@ export function V1Wizard({ steps, currentStep, onStep }: { steps: string[]; curr
             className={classNames('v1-wizard-step', currentStep === number && 'active', currentStep > number && 'done')}
             onClick={() => onStep?.(number)}
             disabled={!onStep}
-            style={{
-              minWidth: 0,
-              width: '100%',
-              maxWidth: '100%',
-              justifyContent: 'flex-start',
-              overflow: 'hidden',
-            }}
           >
             <span>{number}</span>
-            <strong
-              style={{
-                minWidth: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {step}
-            </strong>
+            <strong>{step}</strong>
           </button>
         )
       })}

@@ -1,0 +1,386 @@
+[
+ {
+  "route": "/",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/messung",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/addback",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/aufgaben",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/diagnose",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/grows",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/hydro",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/zelte",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/hardware",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/automatik",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/alarme",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/benachrichtigungen",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/assistent",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/sops",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/wissen",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/settings",
+  "width": 360,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/messung",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/addback",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/aufgaben",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/diagnose",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/grows",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/hydro",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/zelte",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/hardware",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/automatik",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/alarme",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/benachrichtigungen",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/assistent",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/sops",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/wissen",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/settings",
+  "width": 924,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/messung",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/addback",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/aufgaben",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/diagnose",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/grows",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/hydro",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/zelte",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/hardware",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/automatik",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/alarme",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/benachrichtigungen",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/assistent",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/sops",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/wissen",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ },
+ {
+  "route": "/settings",
+  "width": 1440,
+  "scrollsSideways": false,
+  "overflowingCount": 0,
+  "overflowing": [],
+  "routeFrameChildren": 1
+ }
+]

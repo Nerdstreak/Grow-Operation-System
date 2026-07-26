@@ -338,10 +338,6 @@
 }
 
 /* RC2 bottom-nav and form action fix */
-.v1-page {
-  min-width: 0;
-}
-
 .v1-form-actions,
 .sticky-actions {
   scroll-margin-bottom: var(--rc2-bottom-safe);
@@ -438,11 +434,6 @@
     width: 100%;
   }
 
-  .v1-route-frame,
-  .v1-page {
-    padding-bottom: var(--rc2-bottom-safe);
-  }
-
   .v1-form-actions {
     margin-bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 18px);
   }
@@ -529,35 +520,6 @@
     --rc2-bottom-nav-height: 82px;
     --rc2-bottom-nav-gap: 10px;
     --rc2-bottom-safe: max(154px, calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 62px));
-  }
-
-  .v1-page,
-  .v1-route-frame {
-    padding-bottom: var(--rc2-bottom-safe) !important;
-  }
-
-  .v1-app-shell {
-    height: 100dvh;
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    overflow: hidden;
-  }
-
-  .v1-mobile-topbar {
-    position: static !important;
-    inset: auto !important;
-  }
-
-  .v1-route-frame {
-    position: static !important;
-    inset: auto !important;
-    height: auto !important;
-    min-height: 0 !important;
-    padding-top: 0 !important;
-    margin-bottom: 12px;
-    overflow-y: auto !important;
-    overscroll-behavior: contain;
-    scroll-padding-bottom: var(--rc2-bottom-safe);
   }
 
   .v1-form-actions {
@@ -699,13 +661,6 @@
 .device-connect-note strong {
   color: color-mix(in oklch, var(--v1-muted), white 12%);
   white-space: nowrap;
-}
-
-.v1-route-frame {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 100%;
-  overflow-x: clip;
 }
 
 html,
@@ -1106,10 +1061,6 @@ html,
   :root {
     --rc2-bottom-nav-height: 72px;
     --rc2-bottom-safe: calc(var(--rc2-bottom-nav-height) + max(0px, env(safe-area-inset-bottom)) + 18px);
-  }
-
-  .v1-route-frame {
-    padding-bottom: var(--rc2-bottom-safe) !important;
   }
 
   .v1-bottom-nav {
@@ -1964,101 +1915,12 @@ html,
 }
 
 /* Mobile/tablet shell contract */
-.v1-route-frame {
-  width: auto;
-  max-width: 100%;
-}
-
 @media (max-width: 767px) {
   html,
   body,
   #root {
     min-height: var(--app-viewport-height);
     overflow-x: hidden;
-  }
-
-  .v1-app-shell {
-    min-height: var(--app-viewport-height);
-    height: var(--app-viewport-height);
-    display: block;
-    overflow-x: hidden;
-    overflow-y: hidden;
-  }
-
-  .v1-desktop-nav {
-    display: none !important;
-  }
-
-  .v1-mobile-topbar {
-    box-sizing: border-box;
-    display: flex !important;
-    position: fixed !important;
-    inset: 0 0 auto 0 !important;
-    min-height: var(--mobile-header-height);
-    height: var(--mobile-header-height) !important;
-    z-index: 40;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: calc(var(--safe-top) + 7px) max(10px, var(--safe-right)) 7px max(10px, var(--safe-left)) !important;
-    border-bottom: 1px solid var(--v1-line);
-    background: rgb(0, 6, 3);
-    backdrop-filter: none;
-  }
-
-  .v1-mobile-topbar .v1-brand {
-    min-width: 0;
-  }
-
-  .v1-mobile-more-button {
-    min-width: 58px;
-    min-height: 44px !important;
-    flex: 0 0 auto;
-  }
-
-  .v1-route-frame {
-    box-sizing: border-box;
-    position: fixed !important;
-    inset: var(--mobile-header-height) 0 calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 1px) 0 !important;
-    width: auto !important;
-    max-width: none !important;
-    min-height: 0 !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding-top: 0 !important;
-    padding-right: max(var(--mobile-page-padding), var(--safe-right));
-    padding-bottom: 28px !important;
-    padding-left: max(var(--mobile-page-padding), var(--safe-left)) !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    overscroll-behavior: contain;
-    scroll-padding-bottom: 28px;
-  }
-
-  .v1-page {
-    box-sizing: border-box;
-    width: 100% !important;
-    max-width: 100%;
-    padding: var(--mobile-page-padding) 0 32px !important;
-  }
-
-  .v1-mobile-more-panel {
-    box-sizing: border-box;
-    display: grid !important;
-    gap: 12px;
-    position: fixed !important;
-    top: var(--mobile-header-height) !important;
-    right: 0 !important;
-    bottom: calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 2px) !important;
-    left: 0 !important;
-    z-index: 39;
-    padding: 12px max(12px, var(--safe-right)) 14px max(12px, var(--safe-left)) !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
-    border-bottom: 1px solid var(--v1-line);
-    background: rgb(0, 6, 3);
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
   }
 
   .v1-mobile-more-group {
@@ -2677,27 +2539,6 @@ html,
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
-  .v1-app-shell {
-    min-height: 100dvh;
-  }
-
-  .v1-desktop-nav {
-    display: flex !important;
-    width: 248px;
-  }
-
-  .v1-route-frame {
-    padding-left: 248px !important;
-    min-height: 100dvh;
-    width: auto !important;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
-  .v1-page {
-    width: min(100% - 24px, 1040px) !important;
-    padding: 16px 0 48px;
-  }
 }
 
 @media (max-width: 760px) {

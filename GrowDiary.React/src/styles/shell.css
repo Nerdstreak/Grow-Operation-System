@@ -1,0 +1,142 @@
+/* ===================================================================
+   Grow OS · App-Shell
+   Ersetzt redesign-shell.css und den Shell-Teil von 40-v1-core.css.
+   Neu: Kontextleiste (Zelt + Grow einmal wählen) und 4 Nav-Gruppen.
+   =================================================================== */
+@layer primitives {
+
+  .v1-app-shell {
+    min-height: 100vh; background: var(--bg);
+    display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr);
+  }
+
+  /* ---------- Seitenleiste ---------- */
+  .v1-desktop-nav {
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    display: flex; flex-direction: column; gap: var(--s-1);
+    padding: var(--s-3) var(--s-3);
+    border-right: 1px solid var(--hair); background: var(--panel-2);
+    scrollbar-width: thin; scrollbar-color: var(--hair-2) transparent;
+    overscroll-behavior: contain;
+  }
+  .v1-brand {
+    display: flex; align-items: center; gap: var(--s-2);
+    padding: 4px 6px var(--s-3); border-bottom: 1px solid var(--hair);
+  }
+  .v1-brand.compact { padding: 0; border: 0; }
+  .v1-brand-mark {
+    width: 26px; height: 26px; border-radius: var(--r-sm);
+    display: grid; place-items: center;
+    background: var(--accent); color: var(--accent-ink);
+    font: 700 13px/1 var(--font-mono);
+  }
+  .v1-brand strong { display: block; font: 600 12px/1.2 var(--font-mono); letter-spacing: 0.14em; }
+  .v1-brand span { display: block; margin-top: 2px; font-size: 11px; color: var(--faint); }
+
+  .v1-nav-group { display: grid; gap: 2px; }
+  .v1-nav-group-head {
+    display: flex; align-items: center; gap: 6px;
+    margin: var(--s-3) 0 var(--s-1); padding: 0 6px;
+    border: 0; background: transparent; cursor: pointer;
+    font: 500 10px/1 var(--font-mono); letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--faint);
+  }
+  .v1-nav-group-head::after { content: ''; flex: 1; height: 1px; background: var(--hair); }
+  .v1-nav-item {
+    min-height: 34px; display: flex; align-items: center; justify-content: space-between;
+    gap: var(--s-2); padding: 0 10px; border-radius: var(--r-sm);
+    color: var(--muted); font-size: 13.5px; font-weight: 500; text-decoration: none;
+  }
+  .v1-nav-item:hover { color: var(--ink); background: var(--accent-wash); }
+  .v1-nav-item.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .v1-nav-item .badge { font: 500 10px/1 var(--font-mono); color: var(--faint); }
+  .v1-nav-item .badge.warn { color: var(--warn-text); }
+  /* Auf der Accent-Fuellung des aktiven Eintrags gilt die Auf-Accent-Farbe —
+     sonst steht Gelb auf Gruen (1,0:1). Gilt fuer JEDE Status-Farbe auf Accent. */
+  .v1-nav-item.active .badge,
+  .v1-nav-item.active .badge.warn { color: var(--accent-ink); opacity: 0.8; }
+  .v1-nav-foot {
+    margin-top: auto; padding-top: var(--s-3); border-top: 1px solid var(--hair);
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
+    font: 500 11px/1 var(--font-mono); letter-spacing: 0.1em; color: var(--faint);
+  }
+  .theme-toggle {
+    min-height: var(--h-xs); padding: 0 var(--s-2);
+    border: 1px solid var(--hair-2); border-radius: var(--r-sm);
+    background: transparent; color: var(--muted);
+    font: 500 10px/1 var(--font-mono); cursor: pointer;
+  }
+
+  /* ---------- Kontextleiste ---------- */
+  .gos-contextbar {
+    position: sticky; top: 0; z-index: 5;
+    min-height: var(--topbar); display: flex; align-items: center; gap: var(--s-4);
+    padding: 0 var(--s-5);
+    border-bottom: 1px solid var(--hair); background: var(--panel);
+    backdrop-filter: blur(8px);
+  }
+  .gos-scope { display: flex; align-items: center; gap: var(--s-2); min-width: 0; }
+  .gos-scope > label {
+    font: 500 10px/1 var(--font-mono); letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--faint);
+  }
+  .gos-scope select {
+    min-height: var(--h-sm); max-width: 220px;
+    border: 1px solid var(--hair); border-radius: var(--r-sm);
+    background: var(--sunk); color: var(--ink); padding: 0 var(--s-2);
+    font: 500 12.5px/1 var(--font-mono);
+  }
+  .gos-contextbar .spacer { margin-left: auto; }
+
+  .v1-route-frame { min-width: 0; display: flex; flex-direction: column; }
+
+  /* ---------- Mobile ---------- */
+  .v1-mobile-topbar, .v1-bottom-nav, .v1-mobile-more-panel { display: none; }
+
+  @media (max-width: 860px) {
+    .v1-app-shell { grid-template-columns: 1fr; }
+    .v1-desktop-nav { display: none; }
+    .v1-route-frame { padding-top: 58px; padding-bottom: 76px; }
+    .v1-page { padding: var(--s-3) var(--s-3) var(--s-5); }
+    .v1-mobile-topbar {
+      display: flex; position: fixed; inset: 0 0 auto; z-index: 30;
+      min-height: 58px; align-items: center; justify-content: space-between;
+      gap: var(--s-2); padding: 0 var(--s-3);
+      border-bottom: 1px solid var(--hair); background: var(--panel);
+      backdrop-filter: blur(10px);
+    }
+    .v1-mobile-more-button {
+      min-height: var(--h-lg); padding: 0 var(--s-3);
+      border: 1px solid var(--hair-2); border-radius: var(--r-sm);
+      background: transparent; color: var(--ink);
+      font: 500 12px/1 var(--font-mono); cursor: pointer;
+    }
+    .v1-mobile-more-panel {
+      display: block; position: fixed; inset: 58px 0 auto; z-index: 29;
+      max-height: calc(100vh - 58px); overflow: auto;
+      padding: var(--s-3); background: var(--bg); border-bottom: 1px solid var(--hair);
+    }
+    .v1-mobile-more-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--s-2); }
+    .v1-more-tile {
+      min-height: var(--h-lg); display: grid; place-items: center;
+      border: 1px solid var(--hair); border-radius: var(--r-sm);
+      background: var(--panel); color: var(--muted);
+      font: 500 12px/1 var(--font-mono); text-decoration: none;
+    }
+    .v1-more-tile.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+    .v1-bottom-nav {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      position: fixed; inset: auto 0 0; z-index: 35;
+      min-height: 64px; padding: var(--s-1) var(--s-2);
+      padding-bottom: max(var(--s-1), env(safe-area-inset-bottom));
+      border-top: 1px solid var(--hair); background: var(--panel);
+      backdrop-filter: blur(12px);
+    }
+    .v1-bottom-item {
+      display: grid; place-items: center; border-radius: var(--r-sm);
+      color: var(--muted); font: 500 12px/1 var(--font-mono); text-decoration: none;
+    }
+    .v1-bottom-item.active { background: var(--accent); color: var(--accent-ink); }
+    .gos-contextbar { padding: 0 var(--s-3); gap: var(--s-2); overflow-x: auto; }
+  }
+}

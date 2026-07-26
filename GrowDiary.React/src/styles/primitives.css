@@ -1,0 +1,249 @@
+/* ===================================================================
+   Grow OS · Primitive
+   Bewusst dieselben Klassennamen wie components/v1.tsx (.v1-*), damit
+   ~18 Seiten ohne TSX-Änderung neu aussehen. Keine !important, keine
+   Magic-Numbers — alles über Tokens.
+   Ersetzt: 40-v1-core.css, 50-v1-polish.css, 60-v1-rc2.css und die
+   Primitiv-Teile von redesign-primitives.css.
+   =================================================================== */
+@layer primitives {
+
+  html, body, #root { min-height: 100%; background: var(--bg); color: var(--ink); }
+  body { margin: 0; overflow-x: clip; font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font: inherit; }
+  input, select, textarea { min-width: 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--ink); }
+
+  /* ---------- Seite & Kopf ---------- */
+  .v1-page {
+    width: min(var(--page-max), 100%);
+    margin: 0 auto;
+    padding: var(--s-5) var(--s-5) var(--s-6);
+    display: grid;
+    gap: var(--s-3);
+  }
+  .v1-hero {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: var(--s-4); flex-wrap: wrap;
+    padding: 0 0 var(--s-3);
+    border-bottom: 1px solid var(--hair);
+  }
+  .v1-hero h1 {
+    margin: 6px 0 0;
+    font: 600 24px/1.15 var(--font-mono);
+    letter-spacing: -0.01em;
+  }
+  .v1-hero p {
+    margin: 7px 0 0; max-width: 68ch;
+    font-size: 13px; line-height: 1.5; color: var(--muted);
+    text-wrap: pretty;
+  }
+  .v1-eyebrow, .v1-card-kicker {
+    font: 500 10px/1 var(--font-mono);
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--faint);
+  }
+  .v1-hero-action { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+
+  /* ---------- Flächen ---------- */
+  .v1-section, .v1-card, .v1-alert, .v1-empty, .v1-tabs {
+    border: 1px solid var(--hair);
+    border-radius: var(--r-lg);
+    background: var(--panel);
+  }
+  .v1-section { overflow: hidden; }
+  .v1-section-head {
+    min-height: 40px; display: flex; align-items: center; justify-content: space-between;
+    gap: var(--s-3); padding: var(--s-2) var(--s-4);
+    border-bottom: 1px solid var(--hair);
+  }
+  .v1-section-head h2 {
+    margin: 0;
+    font: 500 10px/1 var(--font-mono);
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
+  }
+  .v1-section-body { padding: var(--s-4); }
+  .v1-card { padding: var(--s-4); }
+  .v1-card h2 { margin: 4px 0 0; font-size: 16px; font-weight: 600; letter-spacing: 0; }
+  .v1-card p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .v1-card.tone-ok { border-color: var(--accent); }
+  .v1-card.tone-warn { border-color: var(--warn); }
+  .v1-card.tone-critical { border-color: var(--danger); }
+
+  /* ---------- Buttons ---------- */
+  .v1-button {
+    min-height: var(--h-sm); padding: 0 var(--s-3);
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border: 1px solid var(--hair-2); border-radius: var(--r-sm);
+    background: transparent; color: var(--ink);
+    font: 500 12px/1 var(--font-mono); letter-spacing: 0.04em;
+    text-decoration: none; cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+  .v1-button:hover:not(:disabled) { background: var(--accent-wash); border-color: var(--accent); }
+  .v1-button.is-primary { min-height: var(--h-lg); background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .v1-button.is-primary:hover:not(:disabled) { filter: brightness(1.06); background: var(--accent); }
+  .v1-button.is-ghost { border-color: transparent; color: var(--muted); }
+  .v1-button.is-ghost:hover:not(:disabled) { color: var(--ink); background: var(--panel-2); }
+  .v1-button.is-danger { color: var(--danger); border-color: var(--hair-2); }
+  .v1-button.is-danger:hover:not(:disabled) { background: var(--danger-wash); border-color: var(--danger); }
+  .v1-button.full { width: 100%; }
+  .v1-button:disabled { opacity: 0.45; cursor: not-allowed; }
+  /* Touch: jede Aktion erreicht 44px, ohne dass Desktop luftig wird */
+  @media (pointer: coarse) {
+    .v1-button { min-height: var(--h-lg); }
+  }
+
+  /* ---------- Badge / Stat ---------- */
+  .v1-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    min-height: var(--h-xs); padding: 0 var(--s-2);
+    border: 1px solid var(--hair-2); border-radius: var(--r-pill);
+    font: 500 10px/1 var(--font-mono); letter-spacing: 0.1em; color: var(--muted);
+  }
+  .v1-badge.tone-ok { color: var(--accent-text); border-color: var(--accent); }
+  .v1-badge.tone-warn { color: var(--warn-text); border-color: var(--warn); }
+  .v1-badge.tone-critical { color: var(--danger); border-color: var(--danger); }
+
+  /* KPI-Reihe: eine Hairline-Leiste statt vier großer Karten.
+     WICHTIG: die Trennlinien sitzen auf den KINDERN, nicht als
+     Container-Hintergrund mit gap:1px. Sonst rendert jede Rasterzelle
+     OHNE Kind (z. B. 4 Kinder in 3 Spalten) als eingefaerbte Flaeche und
+     sieht wie ein leeres, unerklaertes Panel aus. */
+  .v1-kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    background: var(--panel);
+    border: 1px solid var(--hair); border-radius: var(--r); overflow: hidden;
+  }
+  .v1-stat {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 11px var(--s-3);
+    border-left: 1px solid var(--hair);
+  }
+  .v1-stat:first-child { border-left: 0; }
+  .v1-stat > span {
+    font: 500 10px/1 var(--font-mono);
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
+  }
+  .v1-stat strong { font: 500 20px/1 var(--font-mono); letter-spacing: 0; }
+  .v1-stat em { font-style: normal; margin-left: 3px; font-size: 12px; color: var(--muted); }
+  .v1-stat small { font-size: 11px; color: var(--faint); }
+  .v1-stat.tone-ok strong { color: var(--accent-text); }
+  .v1-stat.tone-warn strong { color: var(--warn-text); }
+  .v1-stat.tone-critical strong { color: var(--danger); }
+
+  /* ---------- Tabs ---------- */
+  .v1-tabs {
+    display: flex; gap: var(--s-1); padding: var(--s-1);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .v1-tabs::-webkit-scrollbar { display: none; }
+  .v1-tab {
+    min-height: var(--h-sm); padding: 0 var(--s-3);
+    border: 0; border-radius: var(--r-sm); background: transparent; color: var(--muted);
+    font: 500 11px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase;
+    white-space: nowrap; cursor: pointer;
+  }
+  .v1-tab:hover:not(.active) { color: var(--ink); background: var(--panel-2); }
+  .v1-tab.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .v1-tab span { display: none; }   /* Meta wandert in den Label-Text: "Inventar · 11" */
+
+  /* ---------- Formular ---------- */
+  .v1-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--s-3); }
+  .v1-field { display: grid; gap: 5px; min-width: 0; }
+  .v1-field.is-wide, .is-wide { grid-column: 1 / -1; }
+  .v1-field > span {
+    font: 500 10px/1 var(--font-mono);
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint);
+  }
+  .v1-field input, .v1-field select, .v1-field textarea {
+    width: 100%; min-height: var(--h-md);
+    border: 1px solid var(--hair); border-radius: var(--r-sm);
+    background: var(--sunk); color: var(--ink); padding: 0 10px;
+    font: 400 13px/1 var(--font-sans);
+  }
+  .v1-field input:focus-visible, .v1-field select:focus-visible, .v1-field textarea:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
+  }
+  .v1-field textarea { padding: 9px 10px; line-height: 1.5; resize: vertical; }
+  .v1-field small { font-size: 11.5px; color: var(--faint); }
+  .v1-switch {
+    min-height: var(--h-md); display: flex; align-items: center; gap: var(--s-2);
+    padding: 0 11px; border: 1px solid var(--hair); border-radius: var(--r-sm);
+    background: var(--sunk); font-size: 12.5px; cursor: pointer;
+  }
+  .v1-switch input { width: 16px; height: 16px; accent-color: var(--accent); }
+  .v1-switch strong { font-weight: 500; }
+  .v1-switch small { color: var(--muted); }
+  .v1-form-actions { display: flex; gap: var(--s-2); flex-wrap: wrap; align-items: center; }
+
+  /* ---------- Auswahl-Karten ---------- */
+  .v1-choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--s-3); }
+  .v1-choice {
+    text-align: left; padding: var(--s-3);
+    border: 1.5px solid var(--hair-2); border-radius: var(--r);
+    background: transparent; color: var(--ink); cursor: pointer;
+  }
+  .v1-choice strong { display: block; font: 600 14px/1 var(--font-mono); }
+  .v1-choice span { display: block; margin-top: 6px; font-size: 12px; line-height: 1.45; color: var(--muted); }
+  .v1-choice.active { border-color: var(--accent); background: var(--accent-wash); }
+
+  /* ---------- Listen / Info ---------- */
+  .v1-list { display: grid; background: var(--panel); border-radius: var(--r); overflow: hidden; }
+  .v1-list-row {
+    display: flex; align-items: center; gap: var(--s-3);
+    min-height: var(--h-lg); padding: 10px var(--s-3);
+    border-top: 1px solid var(--hair); color: inherit; text-decoration: none;
+  }
+  .v1-list-row:first-child { border-top: 0; }
+  .v1-list-row span, .v1-list-row em { color: var(--muted); font-style: normal; }
+  .v1-list-row.critical { border-left: 2px solid var(--danger); }
+  .v1-list-row.warning { border-left: 2px solid var(--warn); }
+  .v1-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); background: var(--panel); border: 1px solid var(--hair); border-radius: var(--r); overflow: hidden; }
+  .v1-info, .v1-fact { padding: 9px 11px; display: grid; gap: 4px; min-width: 0; border-left: 1px solid var(--hair); border-top: 1px solid var(--hair); }
+  .v1-info span, .v1-fact span {
+    font: 500 10px/1 var(--font-mono);
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint);
+  }
+  .v1-info strong, .v1-fact strong { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+  .v1-chip-row { display: flex; flex-wrap: wrap; gap: 5px; }
+  .v1-chip-row span {
+    min-height: var(--h-xs); display: inline-flex; align-items: center; padding: 0 var(--s-2);
+    border: 1px solid var(--hair-2); border-radius: var(--r-pill);
+    font: 400 10.5px/1 var(--font-mono); color: var(--muted);
+  }
+
+  /* ---------- Zustände ---------- */
+  .v1-alert { display: flex; gap: var(--s-2); align-items: baseline; padding: 11px var(--s-4); font-size: 13px; }
+  .v1-alert strong { font-weight: 600; }
+  .v1-alert.tone-warn { border-color: var(--warn); background: var(--warn-wash); color: var(--warn-text); }
+  .v1-alert.tone-critical { border-color: var(--danger); background: var(--danger-wash); color: var(--danger); }
+  .v1-alert.tone-ok { border-color: var(--accent); background: var(--accent-wash); color: var(--accent-text); }
+  .v1-empty {
+    display: grid; place-items: center; gap: var(--s-2);
+    padding: var(--s-5); text-align: center; color: var(--muted);
+  }
+  .v1-empty strong { color: var(--ink); font-size: 15px; font-weight: 600; }
+
+  /* ---------- Wizard (nur noch Grow-Setup) ---------- */
+  .v1-wizard-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--s-2); }
+  .v1-wizard-step {
+    min-height: var(--h-md); display: flex; align-items: center; gap: var(--s-2);
+    padding: 0 11px; border: 1px solid var(--hair); border-radius: var(--r-sm);
+    background: transparent; color: var(--muted);
+    font: 500 11px/1 var(--font-mono); text-align: left; cursor: pointer;
+  }
+  .v1-wizard-step span {
+    width: 18px; height: 18px; border-radius: var(--r-pill);
+    display: grid; place-items: center; border: 1px solid var(--hair-2); font-size: 9px;
+  }
+  .v1-wizard-step.active, .v1-wizard-step.done { color: var(--ink); border-color: var(--accent); background: var(--accent-wash); }
+  .v1-wizard-body { margin-top: var(--s-3); }
+
+  /* ---------- Zwei-Spalten-Muster ----------
+     Regel für das ganze Projekt: NIE  minmax(0,1fr) + fixe Spalte.
+     Immer auto-fit mit Mindestbreite, damit die Nebenspalte
+     umbricht statt die Hauptspalte zu zerdrücken. */
+  .v1-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--s-3); align-items: start; }
+  .v1-split-narrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--s-3); align-items: start; }
+}

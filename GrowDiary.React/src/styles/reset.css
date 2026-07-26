@@ -1,0 +1,76 @@
+/* reset.css — Basisverhalten der Elemente.
+   ------------------------------------------------------------------
+   Die Uebergabe des Designers laesst 00-base.css aus den Importen fallen,
+   ohne einen Ersatz fuer dessen Reset mitzuliefern. Ergebnis beim ersten
+   Versuch: Ohne `box-sizing: border-box` addiert sich jedes Padding zur
+   Breite, und Container um Container sprengt sein Elternteil — 20 statt 6
+   Ansichten mit ueberlaufenden Elementen, quer ueber .v1-page, .v1-hero,
+   .v1-card und jedes nackte input.
+
+   Bewusst schmal gehalten: nur Element-Grundlagen, keine Optik. Farben
+   und Groessen kommen aus tokens.css, Komponenten aus primitives.css. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.58;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Waagerechtes Scrollen unterbinden, ohne senkrechtes zu erzwingen:
+   `overflow-x: hidden` wuerde `overflow-y: auto` implizieren und im
+   Home-Assistant-Ingress-Iframe eine zweite Scrollleiste erzeugen. */
+body {
+  overflow-x: clip;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button:not(:disabled),
+[role='button'],
+select,
+summary {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}

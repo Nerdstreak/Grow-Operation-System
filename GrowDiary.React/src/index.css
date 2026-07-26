@@ -1,14 +1,20 @@
-/* Tokens zuerst: eine Quelle fuer Farben, Abstaende und Groessen.
-   Die :root-Bloecke der Layer darunter sind entfernt; tokens.css haelt
-   am Ende Aliase auf die alten Namen, damit nichts bricht. */
+/* Ladeordnung: Tokens, Primitive, Shell — dann die Layer, die noch nicht
+   aufgeloest sind (Phase 4). Reihenfolge nicht aendern, solange sie dastehen.
+
+   Herausgenommen (ersetzt durch primitives.css / shell.css):
+     00-base.css, 40-v1-core.css, 50-v1-polish.css, 60-v1-rc2.css
+   Die Dateien bleiben vorerst liegen — sie enthalten seitenspezifische Regeln,
+   die in Phase 4 in die Feature-Dateien wandern. */
+
 @import './styles/tokens.css';
-@import './styles/00-base.css';
+@import './styles/reset.css';
+@import './styles/primitives.css';
+@import './styles/shell.css';
+
+/* ---- ABBAU (Phase 4) ---- */
 @import './styles/10-grow-wizard-legacy.css';
 @import './styles/20-settings.css';
 @import './styles/30-live-home.css';
-@import './styles/40-v1-core.css';
-@import './styles/50-v1-polish.css';
-@import './styles/60-v1-rc2.css';
 @import './styles/70-addback-assistant.css';
 @import './styles/80-grow-wizard-final.css';
 @import './styles/90-operations.css';
