@@ -23,39 +23,8 @@ GROW-2 · Grow Wizard final
   min-width: 0;
 }
 
-.grow-step-lead {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.grow-step-lead h2 {
-  margin: 0;
-  font-size: clamp(1.35rem, 2.2vw, 2rem);
-  letter-spacing: -0.04em;
-}
-
-.grow-step-lead p {
-  margin: 0;
-  max-width: 32rem;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
 .grow-form-grid {
   align-items: start;
-}
-
-.grow-inline-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.grow-inline-switch {
-  min-height: 100%;
 }
 
 .grow-select-grid,
@@ -148,39 +117,11 @@ GROW-2 · Grow Wizard final
   max-width: 620px;
 }
 
-.grow-review-hero {
-  border: 1px solid color-mix(in oklch, var(--accent) 22%, var(--border));
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at top right, color-mix(in oklch, var(--accent) 20%, transparent), transparent 48%),
-    color-mix(in oklch, var(--surface2) 70%, black);
-  padding: 18px;
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-.grow-review-hero h2 {
-  margin: 3px 0 6px;
-  font-size: clamp(1.5rem, 2.8vw, 2.4rem);
-  letter-spacing: -0.05em;
-}
-
-.grow-review-hero p {
-  margin: 0;
-  color: var(--muted);
-}
-
 .grow-review-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
   margin-bottom: 14px;
-}
-
-.program-review-card {
-  margin-top: 12px;
 }
 
 .grow-summary-card {
@@ -213,30 +154,9 @@ GROW-2 · Grow Wizard final
   color: color-mix(in oklch, var(--text) 88%, var(--muted));
 }
 
-.grow-summary-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
 .grow-summary-stats .v1-stat {
   min-height: 92px;
   padding: 12px;
-}
-
-.grow-program-mini {
-  border: 1px solid color-mix(in oklch, var(--accent) 18%, var(--border));
-  border-radius: 18px;
-  background: color-mix(in oklch, var(--accent) 8%, var(--surface));
-  padding: 12px;
-  display: grid;
-  gap: 5px;
-  color: var(--muted);
-  font-size: .86rem;
-}
-
-.grow-program-mini strong {
-  color: var(--text);
 }
 
 @media (max-width: 980px) {
@@ -263,20 +183,6 @@ GROW-2 · Grow Wizard final
     margin-bottom: 10px;
   }
 
-  .grow-step-lead {
-    display: block;
-    margin-bottom: 12px;
-  }
-
-  .grow-step-lead h2 {
-    font-size: 1.45rem;
-  }
-
-  .grow-step-lead p {
-    margin-top: 4px;
-    font-size: .92rem;
-  }
-
   .grow-select-grid,
   .program-grid {
     grid-template-columns: 1fr;
@@ -301,18 +207,9 @@ GROW-2 · Grow Wizard final
     font-size: .74rem;
   }
 
-  .grow-review-hero {
-    align-items: start;
-    padding: 14px;
-  }
-
   .grow-review-grid {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
-  }
-
-  .grow-inline-inputs {
-    grid-template-columns: 1fr;
   }
 
   .sticky-actions {

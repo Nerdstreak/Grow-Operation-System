@@ -58,9 +58,6 @@
   flex: 1 1 116px;
   min-height: 44px;
 }
-.grow-detail-mobile-summary {
-  display: none;
-}
 @media (max-width: 767px) {
     .grows-page .grows-overview-grid {
       grid-template-columns: minmax(0, 1fr);
@@ -103,58 +100,6 @@
     }
     .grow-detail-page {
       padding-bottom: calc(18px + var(--safe-bottom));
-    }
-    .grow-detail-mobile-summary {
-      display: grid;
-      gap: 12px;
-      margin-bottom: 14px;
-      padding: 14px;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: var(--surface);
-      min-width: 0;
-    }
-    .grow-detail-mobile-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 10px;
-      min-width: 0;
-    }
-    .grow-detail-mobile-head h1 {
-      margin: 3px 0 2px;
-      font-size: 22px;
-      line-height: 1.15;
-      overflow-wrap: anywhere;
-    }
-    .grow-detail-mobile-head p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      overflow-wrap: anywhere;
-    }
-    .grow-detail-mobile-facts {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 7px;
-      margin: 0;
-    }
-    .grow-detail-mobile-facts div {
-      min-width: 0;
-      min-height: 48px;
-      padding: 8px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, .03);
-    }
-    .grow-detail-mobile-facts dt {
-      color: var(--muted);
-      font-size: 12px;
-    }
-    .grow-detail-mobile-facts dd {
-      margin: 2px 0 0;
-      font-weight: 800;
-      overflow-wrap: anywhere;
     }
     .grow-detail-mobile-links .btn,
     .grow-detail-mobile-actions .btn {

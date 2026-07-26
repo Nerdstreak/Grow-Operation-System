@@ -57,150 +57,8 @@ FRONTEND-1 LIVE HOME ───────────────────�
 .live-metric-section-header h3 { font-size: 16px; }
 .live-metric-section-header p { display: none; }
 
-.ha-page {
-  max-width: 1320px;
-  margin: 0 auto;
-  display: grid;
-  gap: 16px;
-}
-
-.ha-shell-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px;
-  box-shadow: 0 1px 0 oklch(100% 0 0 / 0.03) inset;
-}
-
-.ha-top-card {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 112px;
-}
-
-.ha-top-card h1,
-.ha-tent-head h2 {
-  margin: 0;
-  letter-spacing: -0.04em;
-}
-
-.ha-top-card h1 {
-  font-size: clamp(34px, 5vw, 58px);
-  line-height: 0.95;
-}
-
-.ha-top-stats {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.ha-stat-number {
-  min-width: 48px;
-  text-align: right;
-  font-family: var(--mono);
-  font-size: 36px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.ha-connection-form {
-  display: grid;
-  grid-template-columns: minmax(260px, 1.4fr) minmax(260px, 1.3fr) auto auto;
-  gap: 12px;
-  align-items: end;
-}
-
-.ha-enable-row {
-  min-height: 42px;
-  margin-bottom: 0;
-}
-
-.ha-message {
-  min-height: 42px;
-  display: flex;
-  align-items: center;
-  padding: 10px 12px;
-  color: var(--green);
-  background: var(--green-bg);
-  border: 1px solid color-mix(in oklch, var(--green), transparent 68%);
-  border-radius: var(--radius-sm);
-}
-
-.ha-tent-stack {
-  display: grid;
-  gap: 16px;
-}
-
-.ha-tent-card {
-  display: grid;
-  gap: 16px;
-}
-
-.ha-tent-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.ha-tent-head h2 {
-  font-size: clamp(24px, 3vw, 36px);
-}
-
 .ha-camera-field {
   max-width: 720px;
-}
-
-.ha-entity-group {
-  display: grid;
-  gap: 8px;
-}
-
-.ha-entity-title {
-  color: var(--faint);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.ha-entity-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 8px;
-}
-
-.ha-entity-row {
-  display: grid;
-  grid-template-columns: minmax(120px, 0.75fr) minmax(0, 1.25fr);
-  gap: 10px;
-  align-items: center;
-  padding: 10px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-
-.ha-entity-row.is-active {
-  border-color: color-mix(in oklch, var(--green), transparent 62%);
-  background: color-mix(in oklch, var(--green-bg), var(--surface2) 58%);
-}
-
-.ha-entity-active {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  font-weight: 700;
-}
-
-.ha-entity-active span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .ha-entity-row input.mono,
@@ -208,19 +66,7 @@ FRONTEND-1 LIVE HOME ───────────────────�
   font-family: var(--mono);
 }
 
-@media (max-width: 900px) {
-  .ha-connection-form {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 720px) {
-  .ha-top-card,
-  .ha-tent-head {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
   .ha-top-stats,
   .ha-tent-head .btn {
     width: 100%;
@@ -230,87 +76,18 @@ FRONTEND-1 LIVE HOME ───────────────────�
     justify-content: center;
   }
 
-  .ha-shell-card {
-    padding: 14px;
-  }
-
-  .ha-entity-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .ha-entity-row {
-    grid-template-columns: 1fr;
-  }
-
-  .ha-entity-active span {
-    white-space: normal;
-  }
 }
 
 /* ───────────────────────────────────────────────────────────────
    FRONTEND-REBUILD-2: app-like shell, compact workflows
    ─────────────────────────────────────────────────────────────── */
-.app-v2 {
-  background: radial-gradient(circle at 50% -10%, oklch(18% 0.035 150) 0, var(--bg) 42%);
-}
-.shell-sidebar {
-  width: 214px;
-  min-width: 214px;
-  background: oklch(9% 0.016 155);
-}
-.shell-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 18px 16px;
-  border-bottom: 1px solid var(--border);
-}
 .shell-brand .logo-mark { margin: 0; flex: 0 0 28px; }
 .shell-nav .nav-section { padding-top: 12px; }
 .shell-content { min-width: 0; }
-.app-page {
-  width: min(1320px, calc(100vw - var(--sidebar) - 56px));
-  margin: 0 auto;
-  padding: 22px 28px 48px;
-}
-.control-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  min-height: 74px;
-  padding: 18px 22px;
-  margin-bottom: 16px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: linear-gradient(135deg, color-mix(in oklch, var(--surface), black 14%), color-mix(in oklch, var(--surface), var(--green) 7%));
-}
 .control-header h1 { font-size: clamp(34px, 5vw, 58px); line-height: 0.95; letter-spacing: -0.05em; }
 .control-kicker { display: block; color: var(--faint); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px; }
-.ops-card {
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: color-mix(in oklch, var(--surface), black 6%);
-  overflow: hidden;
-}
-.ops-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--border);
-}
 .ops-card-header h2 { font-size: 22px; line-height: 1.1; }
 .ops-card-header span { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
-.ops-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border-top: 1px solid var(--border);
-}
 .live-tent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 14px; }
 .tent-ops-card.is-critical { border-color: color-mix(in oklch, var(--red), transparent 30%); }
 .tent-ops-card.is-warning { border-color: color-mix(in oklch, var(--amber), transparent 35%); }
@@ -318,44 +95,18 @@ FRONTEND-1 LIVE HOME ───────────────────�
 .ops-metric-group:first-of-type { border-top: 0; }
 .ops-metric-group h3 { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 10px; }
 .ops-metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.ops-metric {
-  min-width: 0;
-  padding: 12px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: color-mix(in oklch, var(--surface2), black 10%);
-}
 .ops-metric span { color: var(--muted); font-size: 12px; font-weight: 700; }
 .ops-metric strong { display: block; margin-top: 5px; font-family: var(--mono); font-size: clamp(22px, 4vw, 34px); line-height: 1; letter-spacing: -0.05em; }
 .ops-metric small { color: var(--faint); font-size: 11px; font-family: var(--mono); }
 .ops-metric.is-critical strong { color: var(--red); }
 .ops-metric.is-warning strong { color: var(--amber); }
 .ops-metric.is-ok strong { color: var(--green); }
-.camera-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(240px, .7fr);
-  gap: 14px;
-  margin-bottom: 14px;
-}
 .camera-frame { position: relative; min-height: clamp(220px, 28vw, 430px); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: #000; }
 .camera-frame img { width: 100%; height: 100%; object-fit: cover; }
 .camera-badge { position: absolute; top: 12px; left: 12px; padding: 5px 10px; border-radius: 999px; background: oklch(0% 0 0 / .58); color: white; font-size: 12px; font-weight: 800; }
 .camera-side { display: grid; align-content: center; gap: 10px; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 .camera-side h2 { font-size: 28px; }
 .camera-side span { color: var(--muted); font-family: var(--mono); font-size: 12px; }
-.risk-strip,
-.inline-issues,
-.inline-error,
-.inline-ok {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  margin-bottom: 14px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
-}
 .risk-strip.is-critical,
 .inline-error { border-color: color-mix(in oklch, var(--red), transparent 40%); background: var(--red-bg); }
 .inline-ok { border-color: color-mix(in oklch, var(--green), transparent 40%); background: var(--green-bg); }
@@ -426,73 +177,6 @@ FRONTEND-1 LIVE HOME ───────────────────�
 .quick-action.primary { background: var(--green); color: oklch(10% 0.02 155); border: none; }
 
 /* Reduce old hero text density on systems pages without rewriting form logic */
-.systems-page .systems-header p,
-.systems-page .systems-section-header p,
-.live-card-meta:empty { display: none; }
-.systems-page .systems-header { padding: 18px 20px; }
-.systems-page .systems-header h1 { font-size: clamp(32px, 4vw, 44px); }
-
-@media (max-width: 720px) {
-  .app-v2 { min-height: 100dvh; padding-bottom: 76px; }
-  .compact-mobile-shell { position: sticky; top: 0; display: block; padding: 8px 12px; background: oklch(9% 0.016 155 / .96); backdrop-filter: blur(12px); }
-  .compact-mobile-shell .mobile-shell-bar { min-height: 50px; padding: 0; }
-  .mobile-primary-nav { display: none !important; }
-  .mobile-more-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 8px; padding: 8px 0 0; border-top: 1px solid var(--border); }
-  .mobile-menu-button { min-height: 38px; padding: 0 12px; }
-  .mobile-bottom-nav {
-    position: fixed;
-    left: 10px;
-    right: 10px;
-    bottom: calc(env(safe-area-inset-bottom) + 10px);
-    z-index: 60;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 6px;
-    padding: 7px;
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    background: oklch(12% 0.018 155 / .94);
-    box-shadow: 0 10px 30px oklch(0% 0 0 / .35);
-    backdrop-filter: blur(14px);
-  }
-  .bottom-nav-item { min-height: 46px; display: flex; align-items: center; justify-content: center; border-radius: 13px; color: var(--muted); font-size: 12px; font-weight: 850; }
-  .bottom-nav-item.active { background: var(--green); color: oklch(10% 0.02 155); }
-  .app-page { width: 100%; max-width: 100%; padding: 12px 12px 88px; }
-  .control-header { min-height: 60px; padding: 14px; border-radius: 14px; }
-  .control-header h1 { font-size: clamp(34px, 12vw, 48px); }
-  .control-header .btn { min-height: 38px; padding: 0 12px; }
-  .camera-panel { grid-template-columns: 1fr; }
-  .camera-frame { min-height: 190px; }
-  .camera-side { display: none; }
-  .live-tent-grid { grid-template-columns: 1fr; gap: 12px; }
-  .ops-card-header { padding: 14px; }
-  .ops-card-header h2 { font-size: 20px; }
-  .ops-metric-group { padding: 12px; }
-  .ops-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-  .ops-metric { padding: 10px; }
-  .ops-metric strong { font-size: 27px; }
-  .ops-card-footer { padding: 12px; }
-  .start-grid { grid-template-columns: 1fr; }
-  .compact-row { grid-template-columns: 1fr; gap: 2px; min-height: 58px; }
-  .risk-strip, .inline-issues, .inline-error, .inline-ok { align-items: flex-start; flex-direction: column; }
-  .risk-strip .btn { margin-left: 0; width: 100%; }
-  .ha-connect-panel form { grid-template-columns: 1fr; padding: 12px; }
-  .inline-input-button { grid-template-columns: 1fr; }
-  .ha-count { display: none; }
-  .entity-list { grid-template-columns: 1fr; }
-  .entity-row { grid-template-columns: auto 1fr; gap: 8px; padding: 10px; }
-  .entity-row input:not([type="checkbox"]) { grid-column: 1 / -1; width: 100%; }
-  .camera-entity-row { grid-template-columns: 1fr; margin: 12px; }
-  .addback-grow-grid { grid-template-columns: 1fr; }
-  .addback-live-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .quick-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .action-count-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
-  .action-status-header { align-items: stretch; flex-direction: column; }
-  .topbar { display: none; }
-  .systems-page .systems-header p { display: none !important; }
-  .systems-page .systems-header { margin-bottom: 12px; }
-}
-
 @media (min-width: 721px) {
   .mobile-bottom-nav { display: none; }
 }
@@ -501,10 +185,6 @@ FRONTEND-1 LIVE HOME ───────────────────�
 .tents-clean-page,
 .hydro-page {
   max-width: 1180px;
-}
-
-.tent-only-grid {
-  align-items: stretch;
 }
 
 .entity-form-card .card-header,
@@ -516,153 +196,13 @@ FRONTEND-1 LIVE HOME ───────────────────�
   backdrop-filter: blur(12px);
 }
 
-.entity-form-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.form-section-title {
-  margin-top: 0.25rem;
-  color: rgba(212, 255, 223, 0.56);
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.entity-switch-row {
-  min-height: 44px;
-  align-self: end;
-}
-
-.hydro-overview-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
-  gap: 1rem;
-  align-items: start;
-}
-
-.hydro-list-panel {
-  gap: 1rem;
-}
-
-.hydro-preview-panel {
-  position: sticky;
-  top: 1rem;
-}
-
-.hydro-preview-facts {
-  margin-top: 1rem;
-}
-
-.rdwc-network {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 1rem;
-}
-
-.rdwc-row {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-}
-
-.rdwc-site,
-.rdwc-tank {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  min-width: 4.25rem;
-  min-height: 3.25rem;
-  place-items: center;
-  border-radius: 0.9rem;
-  font-weight: 900;
-}
-
-.rdwc-site {
-  border: 1px solid rgba(67, 220, 102, 0.58);
-  background: rgba(67, 220, 102, 0.1);
-  color: #d7ffdf;
-}
-
-.rdwc-tank {
-  border: 1px solid rgba(73, 203, 255, 0.62);
-  background: rgba(73, 203, 255, 0.1);
-  color: #c6f1ff;
-}
-
-.dwc-preview::after {
-  display: none;
-}
-
-.ops-metric-value {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  min-width: 0;
-}
-
-.ops-metric-value strong {
-  line-height: 1;
-}
-
-.ops-metric-value em,
-.ops-metric-value .ops-unit {
-  color: rgba(212, 255, 223, 0.72);
-  font-size: clamp(0.82rem, 1.2vw, 1rem);
-  font-style: normal;
-  font-weight: 800;
-}
-
-@media (max-width: 980px) {
-  .entity-form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .hydro-overview-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .hydro-preview-panel {
-    position: static;
-  }
-}
-
 @media (max-width: 720px) {
   .tents-clean-page,
   .hydro-page {
     padding-bottom: 6.25rem;
   }
 
-  .entity-form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .form-section-title,
-  .systems-form-wide {
-    grid-column: 1 / -1;
-  }
-
-  .rdwc-row {
-    gap: 0.65rem;
-  }
-
-  .rdwc-site,
-  .rdwc-tank {
-    min-width: 3.2rem;
-    min-height: 2.75rem;
-    font-size: 0.82rem;
-  }
-
-  .hydro-stepper {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .hydro-step strong {
-    display: none;
-  }
 }
-
 
 /* FRONTEND-FIX-2: visual audit and robust core UI */
 .sr-only {
@@ -677,95 +217,3 @@ FRONTEND-1 LIVE HOME ───────────────────�
   clip: rect(0, 0, 0, 0);
 }
 
-.camera-preload {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.live-home-page .control-header {
-  margin-bottom: 14px;
-}
-
-.live-home-page .camera-panel {
-  align-items: stretch;
-}
-
-.ops-metric-value .ops-unit {
-  white-space: nowrap;
-}
-
-.ha-tent-switcher {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px;
-}
-
-.ha-tent-tab {
-  min-width: 0;
-  min-height: 58px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  color: var(--text);
-  text-align: left;
-}
-
-.ha-tent-tab.active {
-  border-color: color-mix(in oklch, var(--green), transparent 30%);
-  background: color-mix(in oklch, var(--green-bg), transparent 20%);
-}
-
-.ha-tent-tab strong,
-.ha-tent-tab span {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ha-tent-tab span {
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.grow-hero-title {
-  margin: 0;
-}
-
-@media (min-width: 1100px) {
-  .live-home-page .camera-panel {
-    grid-template-columns: minmax(0, 1.35fr) minmax(260px, .62fr);
-  }
-
-  .live-home-page .live-tent-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .live-home-page .tent-ops-card {
-    max-width: none;
-  }
-}
-
-@media (max-width: 720px) {
-  .ha-tent-switcher {
-    grid-template-columns: 1fr;
-  }
-
-  .ha-tent-tab {
-    min-height: 52px;
-  }
-
-  .camera-preload {
-    display: none;
-  }
-
-  .ops-metric-value .ops-unit {
-    font-size: 0.82rem;
-  }
-}

@@ -26,10 +26,19 @@ for (const route of ROUTES) {
     await page.goto(route, { waitUntil: 'networkidle' })
 
     // Ein Element, das gerade noch einblendet, ist beim Messen zu klein. Unter
-    // Last hat das den Live-Bildschirm gelegentlich rot gemeldet, allein aber nie
-    // — also auf das Ende der Animationen warten statt auf eine feste Zeit.
+    // Last hat das den Live-Bildschirm gelegentlich rot gemeldet, allein aber nie.
+    //
+    // Nur auf *endliche* Animationen warten: der Live-Bildschirm hat einen
+    // Dauerpuls, und dessen `finished` wird nie erfüllt — die erste Fassung
+    // dieser Zeile lief deshalb zuverlässig in den Timeout und sah aus wie ein
+    // Layoutfehler.
     await page.evaluate(() => Promise.all(
-      document.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
+      document.getAnimations()
+        .filter((animation) => {
+          const timing = (animation.effect as KeyframeEffect | null)?.getComputedTiming()
+          return timing != null && Number.isFinite(timing.iterations ?? Infinity) && Number.isFinite(timing.endTime ?? Infinity)
+        })
+        .map((animation) => animation.finished.catch(() => undefined)),
     ))
 
     const small = await page.evaluate((min) => {
