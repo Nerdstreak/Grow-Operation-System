@@ -2,10 +2,20 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type { CalibrationEventDto, CreateHardwareItemRequest, HardwareDeviceKind, HardwareItemCriticality, HardwareItemDto, HardwareItemStatus, HydroSetupDto, MaintenanceEventDto, TentDto, UpdateHardwareItemRequest } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Tabs } from '../components/v1'
-import { formatSeverityLabel } from '../utils'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section } from '../components/v1'
+import { classNames, formatSeverityLabel } from '../utils'
+import type { HardwareFilter, HardwareRow } from '../features/hardware/hardware-table-model'
+import { buildHardwareRows, countBy, dueLabel, filterHardwareRows, statusLabel, statusTone } from '../features/hardware/hardware-table-model'
+import '../features/hardware/hardware.css'
 
-type Tab = 'status' | 'inventory' | 'maintenance' | 'mapping'
+const FILTERS: Array<{ value: HardwareFilter; label: string }> = [
+  { value: 'alle', label: 'Alle' },
+  { value: 'problem', label: 'Braucht Aufmerksamkeit' },
+  { value: 'sensoren', label: 'Sensoren' },
+  { value: 'geraete', label: 'Technik' },
+  { value: 'pflege', label: 'Pflege geplant' },
+]
+
 type HardwareDraft = {
   name: string
   category: string
@@ -46,7 +56,8 @@ function HardwarePage() {
   const [hydroSetups, setHydroSetups] = useState<HydroSetupDto[]>([])
   const [maintenance, setMaintenance] = useState<MaintenanceEventDto[]>([])
   const [calibration, setCalibration] = useState<CalibrationEventDto[]>([])
-  const [tab, setTab] = useState<Tab>('status')
+  const [filter, setFilter] = useState<HardwareFilter>('alle')
+  const [formOpen, setFormOpen] = useState(false)
   const [draft, setDraft] = useState<HardwareDraft>(() => createDraft())
   const [editingId, setEditingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -86,17 +97,33 @@ function HardwarePage() {
   const plannedMaintenance = maintenance.filter((event) => event.status === 'Planned')
   const plannedCalibration = calibration.filter((event) => event.status === 'Planned')
 
+  const rows = useMemo(
+    () => buildHardwareRows(hardware, tents, maintenance, calibration),
+    [hardware, tents, maintenance, calibration],
+  )
+  const counts = useMemo(() => countBy(rows), [rows])
+  const visibleRows = useMemo(() => filterHardwareRows(rows, filter), [rows, filter])
+
   function startEdit(item: HardwareItemDto) {
     setEditingId(item.id)
     setDraft(createDraft(item))
-    setTab('inventory')
+    setFormOpen(true)
     setError(null)
     setMessage(null)
   }
 
-  function cancelEdit() {
+  function openCreate() {
     setEditingId(null)
     setDraft(createDraft())
+    setFormOpen(true)
+    setError(null)
+    setMessage(null)
+  }
+
+  function closeForm() {
+    setEditingId(null)
+    setDraft(createDraft())
+    setFormOpen(false)
     setError(null)
   }
 
@@ -236,26 +263,73 @@ function HardwarePage() {
         <V1Card tone={plannedMaintenance.length + plannedCalibration.length > 0 ? 'warn' : 'ok'}><span className="v1-card-kicker">Pflege</span><h2>{plannedMaintenance.length + plannedCalibration.length}</h2><p>Wartung/Kalibrierung fällig</p></V1Card>
       </section>
 
-      <V1Tabs<Tab> label="Sensoren Bereich" active={tab} onChange={setTab} items={[{ value: 'status', label: 'Status', meta: `${sensors.length} Sensoren` }, { value: 'inventory', label: 'Inventar', meta: `${hardware.length} Geräte`, audit: 'hardware-inventory-tab' }, { value: 'maintenance', label: 'Wartung', meta: `${plannedMaintenance.length + plannedCalibration.length} offen` }, { value: 'mapping', label: 'Mapping', meta: 'im HA-Setup' }]} />
-
-      {loading ? <V1Empty title="Lade Sensoren..." /> : tab === 'status' ? (
-        <V1Section title="Sensorstatus">
-          {sensors.length === 0 ? <V1Empty title="Noch keine Sensor-Hardware" text="Lege pH-, EC-, ORP-, DO- oder Klima-Sensoren im Inventar an." action={<V1Button variant="primary" onClick={() => setTab('inventory')}>Inventar öffnen</V1Button>} /> : (
-            <div className="ops1b-sensor-grid">
-              {sensors.map((item) => <HardwareCard key={item.id} item={item} saving={saving === `hardware-${item.id}`} onStatus={updateHardwareStatus} onEdit={startEdit} onDelete={deleteHardware} />)}
+      {loading ? <V1Empty title="Lade Sensoren..." /> : (
+        <>
+          <V1Section
+            title="Geräte"
+            action={!formOpen && <V1Button variant="primary" onClick={openCreate}>Gerät anlegen</V1Button>}
+          >
+            {/* Filter statt Tabs: die Tabs zeigten Teilmengen derselben Liste auf
+                getrennten Seiten, sodass dieselbe Sonde in dreien davon stand und
+                man Status und Kalibriertermin nicht zusammen sehen konnte. */}
+            <div className="hw-filters" role="group" aria-label="Liste einschränken">
+              {FILTERS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={classNames('hw-filter', filter === value && 'active')}
+                  aria-pressed={filter === value}
+                  onClick={() => setFilter(value)}
+                  data-audit={`hardware-filter-${value}`}
+                >
+                  {label}<span className="hw-filter-count">{counts[value]}</span>
+                </button>
+              ))}
             </div>
-          )}
-        </V1Section>
-      ) : tab === 'inventory' ? (
-        <div className="ops1b-workflow-grid">
-          <V1Section title="Inventar">
-            {hardware.length === 0 ? <V1Empty title="Keine Hardware angelegt" /> : (
-              <div className="ops1b-inventory-grid">
-                {hardware.map((item) => <HardwareCard key={item.id} item={item} saving={saving === `hardware-${item.id}`} onStatus={updateHardwareStatus} onEdit={startEdit} onDelete={deleteHardware} />)}
+
+            {visibleRows.length === 0 ? (
+              <V1Empty
+                title={rows.length === 0 ? 'Noch keine Hardware angelegt' : 'Nichts in dieser Auswahl'}
+                text={rows.length === 0 ? 'Feste Sensoren erscheinen automatisch, sobald du sie unter Home Assistant zuordnest. Messgeräte und Technik legst du hier an.' : undefined}
+                action={rows.length === 0 ? <V1Button variant="primary" onClick={openCreate}>Gerät anlegen</V1Button> : <V1Button onClick={() => setFilter('alle')}>Alle zeigen</V1Button>}
+              />
+            ) : (
+              <div className="hw-table-wrap">
+                <table className="hw-table" data-audit="hardware-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Gerät</th>
+                      <th scope="col">Zelt</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Home Assistant</th>
+                      <th scope="col">Nächste Pflege</th>
+                      <th scope="col"><span className="sr-only">Aktionen</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleRows.map((row) => (
+                      <HardwareRowView
+                        key={row.item.id}
+                        row={row}
+                        saving={saving === `hardware-${row.item.id}`}
+                        onStatus={updateHardwareStatus}
+                        onEdit={startEdit}
+                        onDelete={deleteHardware}
+                      />
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
+
+            <p className="hw-note">
+              Feste Sensoren legt Grow OS selbst an, sobald du unter{' '}
+              <V1LinkButton to="/home-assistant" variant="ghost">Home Assistant</V1LinkButton>{' '}
+              eine Entity zuordnest — samt Kalibrier-Intervall, das du hier je Sensor ändern kannst.
+            </p>
           </V1Section>
 
+          {formOpen && (
           <V1Section title={editingId ? 'Sensor oder Gerät bearbeiten' : 'Sensor oder Gerät anlegen'}>
             <form className="ops1b-form" data-audit="hardware-edit-form" onSubmit={(event) => void saveHardware(event)}>
               <div className="ops1b-form-grid">
@@ -283,54 +357,47 @@ function HardwarePage() {
                 <V1Field label="Notizen" wide><textarea value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} /></V1Field>
               </div>
               <div className="ops1b-sticky-actions">
-                {editingId && <V1Button type="button" variant="ghost" onClick={cancelEdit}>Abbrechen</V1Button>}
+                <V1Button type="button" variant="ghost" onClick={closeForm}>Abbrechen</V1Button>
                 <V1Button type="submit" variant="primary" disabled={saving === 'hardware'}>{saving === 'hardware' ? 'Speichert...' : editingId ? 'Speichern' : 'Hardware anlegen'}</V1Button>
               </div>
             </form>
           </V1Section>
-        </div>
-      ) : tab === 'maintenance' ? (
-        <V1Section title="Wartung & Kalibrierung">
-          {plannedMaintenance.length + plannedCalibration.length === 0 ? <V1Empty title="Keine fälligen Sensoraufgaben" /> : (
-            <div className="ops1b-inventory-grid">
-              {plannedMaintenance.map((event) => <EventCard key={`m-${event.id}`} title={event.title} meta={`${getHardwareName(hardware, event.hardwareItemId)} · ${formatDate(event.dueAtUtc)}`} />)}
-              {plannedCalibration.map((event) => <EventCard key={`c-${event.id}`} title={event.title} meta={`${getHardwareName(hardware, event.hardwareItemId)} · ${formatDate(event.dueAtUtc)}`} />)}
-            </div>
           )}
-        </V1Section>
-      ) : (
-        <V1Section title="Home-Assistant-Mapping">
-          <V1Card>
-            <span className="v1-card-kicker">Sensor-Zuordnung</span>
-            <h2>Gemappte Entities erscheinen hier automatisch</h2>
-            <p>Sobald du im Tab „Home Assistant" eine Entity zuordnest (z. B. deine pH-Sonde), legt Grow OS den Sensor hier automatisch als Hardware an — inklusive Kalibrier-Intervall, das du pro Sensor anpassen kannst. Die Kalibrier-Erinnerung läuft dann über die Benachrichtigungen.</p>
-            <div className="v1-action-row"><V1LinkButton to="/home-assistant" variant="primary">Zum Home-Assistant-Mapping</V1LinkButton></div>
-          </V1Card>
-        </V1Section>
+        </>
       )}
     </V1Page>
   )
 }
 
-function HardwareCard({ item, saving, onStatus, onEdit, onDelete }: { item: HardwareItemDto; saving: boolean; onStatus: (item: HardwareItemDto, status: HardwareItemStatus) => void; onEdit: (item: HardwareItemDto) => void; onDelete: (item: HardwareItemDto) => void }) {
-  const tone = item.status === 'Active' ? 'ok' : item.status === 'MaintenanceDue' ? 'warn' : 'critical'
+/** Eine Gerätezeile. Bei schmalem Rahmen legt hardware.css sie zu einer Karte um. */
+function HardwareRowView({ row, saving, onStatus, onEdit, onDelete }: { row: HardwareRow; saving: boolean; onStatus: (item: HardwareItemDto, status: HardwareItemStatus) => void; onEdit: (item: HardwareItemDto) => void; onDelete: (item: HardwareItemDto) => void }) {
+  const { item } = row
   return (
-    <V1Card tone={tone}>
-      <div className="v1-card-title-row"><div><span className="v1-card-kicker">{deviceKindLabel(item.deviceKind) ?? item.category}</span><h2>{item.name}</h2></div><V1Badge tone={tone}>{item.status}</V1Badge></div>
-      <p>{item.manufacturer ?? 'Hersteller offen'} {item.model ?? ''}</p>
-      {item.haEntityId && <p>HA: {item.haEntityId}</p>}
-      <div className="v1-action-row">
-        <V1Button onClick={() => onEdit(item)}>Bearbeiten</V1Button>
-        <V1Button disabled={saving} onClick={() => void onStatus(item, item.status === 'Offline' ? 'Active' : 'Offline')}>{item.status === 'Offline' ? 'Aktivieren' : 'Offline setzen'}</V1Button>
-        <V1Button disabled={saving} onClick={() => void onStatus(item, 'MaintenanceDue')}>Wartung</V1Button>
-        <V1Button variant="danger" disabled={saving} audit="hardware-delete-button" onClick={() => void onDelete(item)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button>
-      </div>
-    </V1Card>
+    <tr className={classNames(row.overdue && 'overdue')}>
+      <td data-label="Gerät">
+        <strong>{item.name}</strong>
+        <span className="hw-sub">{deviceKindLabel(item.deviceKind) ?? item.category}{item.manufacturer ? ` · ${item.manufacturer}` : ''}</span>
+      </td>
+      <td data-label="Zelt">{row.tentName ?? <span className="hw-empty">—</span>}</td>
+      <td data-label="Status"><V1Badge tone={statusTone(item.status)}>{statusLabel(item.status)}</V1Badge></td>
+      <td data-label="Home Assistant">{item.haEntityId ? <code className="hw-entity">{item.haEntityId}</code> : <span className="hw-empty">nicht gemappt</span>}</td>
+      <td data-label="Nächste Pflege">
+        {row.nextCare ? (
+          <>
+            <strong className={classNames(row.overdue && 'hw-overdue')}>{dueLabel(row.dueInDays)}</strong>
+            <span className="hw-sub">{row.nextCare.kind}: {row.nextCare.title}</span>
+          </>
+        ) : <span className="hw-empty">—</span>}
+      </td>
+      <td data-label="Aktionen">
+        <div className="hw-actions">
+          <V1Button onClick={() => onEdit(item)}>Bearbeiten</V1Button>
+          <V1Button disabled={saving} onClick={() => void onStatus(item, item.status === 'Offline' ? 'Active' : 'Offline')}>{item.status === 'Offline' ? 'Aktivieren' : 'Offline'}</V1Button>
+          <V1Button variant="danger" disabled={saving} audit="hardware-delete-button" onClick={() => void onDelete(item)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button>
+        </div>
+      </td>
+    </tr>
   )
-}
-
-function EventCard({ title, meta }: { title: string; meta: string }) {
-  return <V1Card tone="warn"><span className="v1-card-kicker">Fällig</span><h2>{title}</h2><p>{meta}</p></V1Card>
 }
 
 function inferDeviceKind(item?: HardwareItemDto): HardwareDeviceKind {
@@ -375,13 +442,7 @@ function toIntOrNull(value: string) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-function getHardwareName(items: HardwareItemDto[], id: number | null) {
-  return id == null ? 'Hardware offen' : items.find((item) => item.id === id)?.name ?? `Hardware #${id}`
-}
 
-function formatDate(value: string | null) {
-  return value ? value.slice(0, 10) : 'kein Datum'
-}
 
 function isNotFound(caught: unknown) {
   return caught instanceof ApiRequestError && caught.status === 404

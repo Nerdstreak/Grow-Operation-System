@@ -1,0 +1,72 @@
+/* Sensoren & Wartung — eine Liste statt vier Tabs. */
+@layer features {
+
+  /* ---------- Filterleiste ---------- */
+  .hw-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: var(--s-3); }
+  .hw-filter {
+    display: inline-flex; align-items: center; gap: 8px;
+    /* 44px, damit der Knopf auch am Wandtablet mit dem Daumen zu treffen ist. */
+    min-height: 44px; padding: 0 14px;
+    border: 1px solid var(--hair); border-radius: 999px;
+    background: var(--panel); color: var(--muted);
+    font-size: 13px; cursor: pointer;
+  }
+  .hw-filter:hover { border-color: var(--hair-2); color: var(--ink); }
+  .hw-filter.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .hw-filter-count {
+    font-family: var(--font-mono); font-size: 11px;
+    padding: 1px 7px; border-radius: 999px;
+    background: var(--panel-2); color: var(--muted);
+  }
+  /* Auf der grünen Fläche gilt die Accent-Schrift, nicht die Status-Farbe —
+     sonst steht hier 1:1-Kontrast. */
+  .hw-filter.active .hw-filter-count { background: color-mix(in oklab, var(--accent-ink) 14%, transparent); color: var(--accent-ink); }
+
+  /* ---------- Tabelle ---------- */
+  /* Der Rahmen misst sich selbst. Ein Media-Query fragt das Fenster — und im
+     Home-Assistant-Ingress-Iframe ist das Fenster breit, der Platz daneben aber
+     nicht. Genau daran ist die alte Umschaltung gescheitert. */
+  .hw-table-wrap { container-type: inline-size; overflow-x: auto; }
+  .hw-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .hw-table th {
+    text-align: left; padding: 8px 12px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--faint); border-bottom: 1px solid var(--hair);
+    white-space: nowrap;
+  }
+  .hw-table td { padding: 11px 12px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  .hw-table tbody tr:last-child td { border-bottom: 0; }
+  .hw-table tbody tr.overdue { background: var(--warn-wash); }
+  .hw-table strong { display: block; font-weight: 600; }
+  .hw-sub { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+  .hw-empty { color: var(--faint); }
+  .hw-overdue { color: var(--warn-text); }
+  .hw-entity { font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  .hw-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+
+  .hw-note { margin: var(--s-3) 0 0; color: var(--muted); font-size: 13px; }
+
+  /* Zu schmal für sechs Spalten: jede Zeile wird eine Karte, die Spaltenköpfe
+     wandern über data-label an die Werte. */
+  @container (max-width: 760px) {
+    .hw-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .hw-table, .hw-table tbody, .hw-table tr, .hw-table td { display: block; width: auto; }
+    .hw-table tr {
+      border: 1px solid var(--hair); border-radius: var(--r);
+      background: var(--panel); padding: 4px 0; margin-bottom: 10px;
+    }
+    .hw-table td { border-bottom: 0; display: flex; gap: 12px; align-items: baseline; padding: 6px 12px; }
+    .hw-table td::before {
+      content: attr(data-label);
+      flex: 0 0 42%;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--faint);
+    }
+    /* Der Gerätename ist die Überschrift der Karte und braucht kein Etikett. */
+    .hw-table td[data-label="Gerät"] { display: block; padding-top: 10px; }
+    .hw-table td[data-label="Gerät"]::before { content: none; }
+    .hw-table td[data-label="Gerät"] strong { font-size: 15px; }
+    .hw-table td[data-label="Aktionen"]::before { content: none; }
+    .hw-actions { justify-content: flex-start; }
+  }
+}
