@@ -18,30 +18,10 @@ namespace GrowDiary.Web.Tests.Services;
 public sealed class GrowDashboardComposerTargetTests
 {
     private static GrowDashboardComposer CreateComposer()
-    {
-        // Die Wissensbasis in ein Temp-Verzeichnis spiegeln, damit der Testlauf
-        // nicht ins App_Data des Repos schreibt — dasselbe Vorgehen wie in den
-        // uebrigen Tests, die den Loader brauchen.
-        var tempRoot = Path.Combine(Path.GetTempPath(), "growos-target-" + Guid.NewGuid().ToString("N"));
-        CopyDefaults(Path.Combine(FindProjectRoot(), "GrowDiary.Web", "wwwroot", "knowledge-defaults"), tempRoot);
-
-        var loader = new KnowledgeBaseLoader(new AppPaths(tempRoot), NullLogger<KnowledgeBaseLoader>.Instance);
-        loader.Initialize();
-        return new GrowDashboardComposer(
-            null!, null!, null!, new TargetValueService(loader),
+        => new(
+            null!, null!, null!, TestKnowledgeBase.TargetValues(),
             NullLogger<GrowDashboardComposer>.Instance);
-    }
 
-    private static void CopyDefaults(string source, string tempRoot)
-    {
-        var destination = Path.Combine(tempRoot, "wwwroot", "knowledge-defaults");
-        foreach (var file in Directory.EnumerateFiles(source, "*.json", SearchOption.AllDirectories))
-        {
-            var target = Path.Combine(destination, Path.GetRelativePath(source, file));
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            File.Copy(file, target);
-        }
-    }
 
     private static Tent TentWithGrow(GrowStyleFixture fixture) => new()
     {
@@ -184,21 +164,4 @@ public sealed class GrowDashboardComposerTargetTests
         Assert.DoesNotContain("dissolved-oxygen", keys);
     }
 
-    private static string FindProjectRoot()
-    {
-        // Die Projektmappe heisst GrowDiary.slnx — auf "*.sln" zu pruefen findet
-        // hier nichts. Deshalb am Projektordner festmachen.
-        var directory = AppContext.BaseDirectory;
-        while (directory is not null)
-        {
-            if (Directory.Exists(Path.Combine(directory, "GrowDiary.Web")))
-            {
-                return directory;
-            }
-
-            directory = Path.GetDirectoryName(directory);
-        }
-
-        throw new InvalidOperationException("Projektwurzel nicht gefunden.");
-    }
 }

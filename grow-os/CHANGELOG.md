@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.0.0-beta.6
+
+**Beta.** The Live screen judges your values again — without waiting for a
+hand-typed measurement first.
+
+- Fixed — **target ranges no longer wait for a manual measurement.** Every
+  target hung off your last typed-in measurement, because the phase was read
+  from it. A grow with live sensors but nothing typed in got no target on any
+  tile: no colour, no "im Ziel", no "daneben" — while the header above it said
+  "Veg · Tag 7". The phase comes from the grow now. A measurement you do
+  record still wins over the calculation.
+- New — **Luft and RLF are judged too.** The knowledge base only carries a VPD
+  target for climate, so the two largest tiles on the screen stayed silent
+  while the small VPD tile beside them was judged. They now show a range read
+  back out of the VPD target: at 46 % humidity, the temperature that lands in
+  your VPD target. Same knowledge, read the other way round — nothing invented.
+- New — **each of those ranges says what it depends on**: "Ziel 15,8–19,6 °C ·
+  bei 46 % RLF". Without that line it reads as "cool the tent down", when the
+  real fix may be raising the humidity. Now you can see both levers.
+- Fixed — **one climate problem counts once.** Luft, RLF and VPD describe the
+  same situation; deducting for all three turned a mild offset into "Kritisch"
+  and listed three names for one problem.
+- Fixed — the header said "Alle Messwerte im Zielband" even when there were no
+  target ranges at all: "all good" where it had to say "I checked nothing". The
+  score printed a number out of the missing-sensor penalty alone, with a verdict
+  beside it. Both now say plainly when nothing could be judged.
+
+
 ## 2.0.0-beta.5
 
 **Beta.** Two things the 2.0 rebuild had dropped, brought back.

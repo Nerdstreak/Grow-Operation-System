@@ -1,8 +1,5 @@
-using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
-using GrowDiary.Web.Services.Knowledge;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GrowDiary.Web.Tests.Services;
 
@@ -25,26 +22,7 @@ public sealed class GrowDashboardComposerReservoirTests
     private static readonly GrowDashboardComposer Composer = new(null!, null!, null!, null!, null!);
 
     private static GrowDashboardComposer ComposerWithTargets()
-    {
-        var paths = new AppPaths(FindProjectRoot());
-        var loader = new KnowledgeBaseLoader(paths, NullLogger<KnowledgeBaseLoader>.Instance);
-        loader.Initialize();
-        return new GrowDashboardComposer(null!, null!, null!, new TargetValueService(loader), null!);
-    }
-
-    /// <summary>Das Wissen liegt neben dem Web-Projekt, nicht im Testausgabe-Ordner.</summary>
-    private static string FindProjectRoot()
-    {
-        var dir = AppContext.BaseDirectory;
-        while (dir is not null)
-        {
-            var candidate = Path.Combine(dir, "GrowDiary.Web", "App_Data");
-            if (Directory.Exists(candidate)) return candidate;
-            dir = Directory.GetParent(dir)?.FullName;
-        }
-
-        throw new DirectoryNotFoundException("GrowDiary.Web/App_Data nicht gefunden.");
-    }
+        => new(null!, null!, null!, TestKnowledgeBase.TargetValues(), null!);
 
     private static Tent TentWithoutActiveHydro() => new() { Id = 1, Name = "Zelt-RDWC", ActiveGrows = new() };
 
