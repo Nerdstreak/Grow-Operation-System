@@ -245,9 +245,10 @@ export function AiAssistantPage() {
 
   // Wechselt der Grow, gehört die Antwort nicht mehr zur Auswahl — stehen
   // lassen hieße, eine Antwort über Grow A unter Grow B zu zeigen.
-  useEffect(() => {
+  function waehleGrow(id: number) {
+    setGrowId(id)
     setAntwort(null)
-  }, [growId])
+  }
 
   async function fragen() {
     if (growId == null || frage.trim() === '') return
@@ -276,7 +277,7 @@ export function AiAssistantPage() {
       <V1Section
         title="Fragen"
         action={grows.length > 1 ? (
-          <select value={growId ?? ''} onChange={(event) => setGrowId(Number(event.target.value))} aria-label="Grow für die Frage">
+          <select value={growId ?? ''} onChange={(event) => waehleGrow(Number(event.target.value))} aria-label="Grow für die Frage">
             {grows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
           </select>
         ) : undefined}
@@ -414,7 +415,7 @@ export function AiAssistantPage() {
       <V1Section
         title="Was gesendet wird"
         action={grows.length > 1 ? (
-          <select value={growId ?? ''} onChange={(event) => setGrowId(Number(event.target.value))} aria-label="Grow">
+          <select value={growId ?? ''} onChange={(event) => waehleGrow(Number(event.target.value))} aria-label="Grow">
             {grows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
           </select>
         ) : undefined}
