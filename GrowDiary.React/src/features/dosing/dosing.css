@@ -1,0 +1,73 @@
+/* Dosierpumpen — Maße aus dem abgenommenen Entwurf. */
+@layer features {
+
+  .dz-pumps { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
+
+  .dz-pump {
+    border: 1px solid var(--hair); border-radius: var(--r-lg); background: var(--panel);
+    padding: 14px; display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: start;
+  }
+  .dz-pump.is-dosing { border-color: var(--accent); }
+  .dz-pump-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .dz-pump-head .name { font: 600 13px/1 var(--font-mono); }
+  .dz-pump-state {
+    margin-left: auto; font: 500 9.5px/1 var(--font-mono); letter-spacing: .12em;
+    text-transform: uppercase; color: var(--hint);
+  }
+  .dz-pump.is-dosing .dz-pump-state { color: var(--accent-text); }
+  .dz-pump-state.is-blocked { color: var(--warn-text); }
+
+  .dz-facts { display: grid; gap: 5px; font: 400 11.5px/1.5 var(--font-mono); color: var(--muted); min-width: 0; }
+  .dz-facts .row { display: flex; gap: 8px; }
+  .dz-facts .row > span:first-child { color: var(--faint); min-width: 84px; flex: 0 0 auto; }
+  .dz-facts b { color: var(--ink); font-weight: 500; }
+  .dz-facts .is-learned { color: var(--info-text); }
+  .dz-facts .is-blocked { color: var(--warn-text); }
+
+  .dz-actions { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .dz-dose-input {
+    width: 84px; min-height: 30px; padding: 0 9px;
+    border: 1px solid var(--hair-2); border-radius: 8px;
+    background: var(--sunk); color: var(--ink); font: 400 12px/1 var(--font-mono);
+  }
+
+  /* ---------- Die Pumpe ---------- */
+  .pump-svg { width: 120px; height: 120px; display: block; }
+  .pump-housing, .pump-foot { fill: none; stroke: var(--hair-2); stroke-width: 3; }
+  .pump-tube { fill: none; stroke: var(--hint); stroke-width: 9; stroke-linecap: round; }
+  .pump-liquid {
+    fill: none; stroke: var(--danger); stroke-width: 5; stroke-linecap: round;
+    stroke-dasharray: 14 10; opacity: .4;
+  }
+  .pump-svg.is-accent .pump-liquid { stroke: var(--accent); }
+  .pump-svg.is-info .pump-liquid { stroke: var(--info); }
+  .pump-rotor circle { fill: none; stroke: var(--muted); stroke-width: 4; }
+  .pump-rotor .pump-roller { fill: var(--bg); stroke: var(--ink); stroke-width: 3.5; }
+  .pump-rotor { transform-origin: 100px 96px; }
+
+  .pump-svg.is-dosing .pump-liquid { opacity: 1; animation: dz-flow .9s linear infinite; }
+  .pump-svg.is-dosing .pump-rotor { animation: dz-spin 2.6s linear infinite; }
+  .pump-svg.is-dosing .pump-tube { stroke: var(--hair-2); }
+  @keyframes dz-spin { to { transform: rotate(360deg); } }
+  @keyframes dz-flow { to { stroke-dashoffset: -24; } }
+  /* Wer Bewegung abgestellt hat, bekommt keine — die Auskunft steht daneben im Text. */
+  @media (prefers-reduced-motion: reduce) {
+    .pump-svg.is-dosing .pump-rotor, .pump-svg.is-dosing .pump-liquid { animation: none; }
+  }
+
+  /* ---------- Kalibrieren ---------- */
+  .dz-calib { display: grid; gap: 10px; }
+  .dz-calib-steps { display: grid; gap: 7px; font: 400 12px/1.6 var(--font-mono); color: var(--muted); }
+  .dz-calib-steps .step { display: flex; gap: 10px; }
+  .dz-calib-steps .step > span:first-child { color: var(--faint); min-width: 26px; }
+  .dz-calib-steps b { color: var(--ink); font-weight: 500; }
+
+  /* ---------- Sicherheitshinweis ---------- */
+  .dz-warn {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 13px; border-left: 2px solid var(--danger);
+    background: var(--danger-wash); border-radius: 0 8px 8px 0;
+    font: 400 12.5px/1.55 var(--font-sans); color: var(--muted);
+  }
+  .dz-warn b { color: var(--ink); font-weight: 600; }
+}

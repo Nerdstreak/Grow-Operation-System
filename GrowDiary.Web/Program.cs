@@ -80,6 +80,8 @@ builder.Services.AddScoped<AutoMeasurementExecutionService>();
 builder.Services.AddScoped<AlertRuleRepository>();
 builder.Services.AddSingleton<SystemHeartbeat>();
 builder.Services.AddScoped<WatchdogService>();
+builder.Services.AddScoped<DosingRepository>();
+builder.Services.AddScoped<DosingService>();
 builder.Services.AddScoped<AlertEvaluationService>();
 builder.Services.AddSingleton<NotificationSettingsRepository>();
 builder.Services.AddSingleton<AiSettingsRepository>();
@@ -110,6 +112,25 @@ app.Services.GetRequiredService<KnowledgeBaseLoader>().Initialize();
 HaConfigLoader.Apply(
     app.Services.GetRequiredService<AppPaths>(),
     app.Services.GetRequiredService<GrowRepository>());
+
+// Der Totmann: Ist Grow OS mitten in einer Dosis abgestuerzt, laeuft die Pumpe
+// seither weiter — niemand ist da, der sie stoppt. Der erste Handgriff nach dem
+// Hochfahren ist deshalb, jede eingerichtete Pumpe einmal auszuwerfen. Kostet
+// nichts, wenn ohnehin alles aus war.
+_ = Task.Run(async () =>
+{
+    using var scope = app.Services.CreateScope();
+    var dosing = scope.ServiceProvider.GetRequiredService<DosingService>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        await dosing.TurnAllOffAsync();
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Pumpen-Auswurf beim Start fehlgeschlagen.");
+    }
+});
 
 if (!app.Environment.IsDevelopment())
 {

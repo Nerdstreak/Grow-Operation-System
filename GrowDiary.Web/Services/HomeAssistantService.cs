@@ -284,6 +284,55 @@ public sealed class HomeAssistantService
     }
 
     /// <summary>
+    /// Ruft einen beliebigen Home-Assistant-Dienst für eine Entität auf, etwa
+    /// <c>switch.turn_on</c> für <c>switch.dosier_ph_minus</c>.
+    /// </summary>
+    /// <remarks>
+    /// Grow OS hat selbst keine Anschlüsse — alles Schaltbare hängt an Home
+    /// Assistant. Dieselbe Strecke, die schon die Push-Nachrichten geht, nur mit
+    /// <c>entity_id</c> statt Titel und Text.
+    /// </remarks>
+    public async Task<bool> CallEntityServiceAsync(
+        HomeAssistantSettings settings,
+        string domain,
+        string service,
+        string entityId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!settings.IsConfigured || string.IsNullOrWhiteSpace(domain)
+            || string.IsNullOrWhiteSpace(service) || string.IsNullOrWhiteSpace(entityId))
+        {
+            return false;
+        }
+
+        try
+        {
+            var client = CreateClient(settings);
+            var payload = JsonSerializer.Serialize(new { entity_id = entityId });
+            using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+            using var response = await client.PostAsync($"api/services/{domain}/{service}", content, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "Home Assistant {Domain}.{Service} für {Entity} schlug fehl: HTTP {StatusCode}.",
+                    domain, service, entityId, (int)response.StatusCode);
+                return false;
+            }
+
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Home Assistant {Domain}.{Service} für {Entity} schlug fehl.", domain, service, entityId);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Calls a Home Assistant notify service (e.g. <c>notify.mobile_app_pixel</c>) to push a
     /// message to the user's device. Returns false when HA is unreachable or the call fails.
     /// </summary>

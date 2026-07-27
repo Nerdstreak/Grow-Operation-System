@@ -678,6 +678,52 @@ public sealed partial class DatabaseInitializer
                 FOREIGN KEY (TentId) REFERENCES Tents(Id) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS IX_TentAlertRules_TentId ON TentAlertRules(TentId);
+
+            CREATE TABLE IF NOT EXISTS DosingPumps (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                TentId INTEGER NOT NULL,
+                Name TEXT NOT NULL,
+                Purpose TEXT NOT NULL DEFAULT 'Custom',
+                Agent TEXT NULL,
+                ConcentrationPercent REAL NULL,
+                HaEntityId TEXT NOT NULL,
+                MlPerMinute REAL NULL,
+                CalibratedAtUtc TEXT NULL,
+                TubeChangedAtUtc TEXT NULL,
+                CalibrationIntervalDays INTEGER NULL,
+                TubeIntervalDays INTEGER NULL,
+                MaxSingleDoseMl REAL NOT NULL DEFAULT 5,
+                MinIntervalMinutes INTEGER NOT NULL DEFAULT 18,
+                MaxDosesPerDay INTEGER NOT NULL DEFAULT 6,
+                MaxMlPerDay REAL NOT NULL DEFAULT 25,
+                MaxReadingAgeMinutes INTEGER NOT NULL DEFAULT 10,
+                AutomationEnabled INTEGER NOT NULL DEFAULT 0,
+                HasHomeAssistantAutoOff INTEGER NOT NULL DEFAULT 0,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (TentId) REFERENCES Tents(Id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS IX_DosingPumps_TentId ON DosingPumps(TentId);
+
+            CREATE TABLE IF NOT EXISTS DoseEvents (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                PumpId INTEGER NOT NULL,
+                TentId INTEGER NOT NULL,
+                GrowId INTEGER NULL,
+                OccurredAtUtc TEXT NOT NULL,
+                Trigger TEXT NOT NULL,
+                Outcome TEXT NOT NULL,
+                RequestedMl REAL NOT NULL DEFAULT 0,
+                DosedMl REAL NOT NULL DEFAULT 0,
+                SecondsRun REAL NOT NULL DEFAULT 0,
+                ValueBefore REAL NULL,
+                ValueAfter REAL NULL,
+                TargetValue REAL NULL,
+                Reason TEXT NULL,
+                FOREIGN KEY (PumpId) REFERENCES DosingPumps(Id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS IX_DoseEvents_PumpId_OccurredAtUtc ON DoseEvents(PumpId, OccurredAtUtc);
+            CREATE INDEX IF NOT EXISTS IX_DoseEvents_TentId_OccurredAtUtc ON DoseEvents(TentId, OccurredAtUtc);
         """;
 
     private const string GrowIndexSql = """

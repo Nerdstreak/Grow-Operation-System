@@ -3,6 +3,8 @@ import AddbackHubPage from './pages/AddbackHubPage'
 import AddbackPage from './pages/AddbackPage'
 import { GrowScopedSectionPage } from './pages/GrowScopedSectionPage'
 import GettingStartedPage from './pages/GettingStartedPage'
+import DosingPage from './pages/DosingPage'
+import DosingPumpSetupPage from './pages/DosingPumpSetupPage'
 import GrowDetailPage from './pages/GrowDetailPage'
 import GrowsPage from './pages/GrowsPage'
 import GrowSetupPage from './pages/GrowSetupPage'
@@ -101,6 +103,12 @@ function App() {
           <Route path="/einstellungen" element={<Navigate to="/settings" replace />} />
         
           <Route path="/sensoren" element={<HardwarePage />} />
+
+          {/* Dosierung: Liste, neu, bearbeiten. Reihenfolge zaehlt — „neu" muss
+              vor „:pumpId" stehen, sonst wird es als Id gelesen. */}
+          <Route path="/dosierung" element={<DosingPage />} />
+          <Route path="/dosierung/neu" element={<DosingPumpSetupPage />} />
+          <Route path="/dosierung/:pumpId" element={<DosingPumpSetupPage />} />
 
           {/* Sammelseiten: verwandte Bereiche unter Tabs statt als eigene Menuepunkte. */}
           <Route path="/regeln" element={<RulesCollectionPage />} />

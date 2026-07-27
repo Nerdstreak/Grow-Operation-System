@@ -1,0 +1,272 @@
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { apiFetch } from '../api'
+import type { TentDto } from '../types'
+import { V1Alert, V1Button, V1Card, V1Field, V1Page, V1Section, V1Skeleton, V1Switch } from '../components/v1'
+import '../features/dosing/dosing.css'
+
+/**
+ * Eine Pumpe einrichten: was sie tut, was drin ist, wen sie in Home Assistant
+ * schaltet — und die Anschläge, die immer gelten.
+ */
+
+type HaEntity = { entityId: string; friendlyName: string | null; domain: string }
+
+type Form = {
+  tentId: number | null
+  name: string
+  purpose: string
+  agent: string
+  concentrationPercent: string
+  haEntityId: string
+  maxSingleDoseMl: string
+  minIntervalMinutes: string
+  maxDosesPerDay: string
+  maxMlPerDay: string
+  hasHomeAssistantAutoOff: boolean
+  tubeChangedNow: boolean
+}
+
+const PURPOSES = [
+  { value: 'PhDown', label: 'pH senken (Säure)' },
+  { value: 'PhUp', label: 'pH heben (Lauge)' },
+  { value: 'Nutrient', label: 'Nährstoff' },
+  { value: 'CalMag', label: 'CalMag' },
+  { value: 'Custom', label: 'frei — nur von Hand' },
+]
+
+function leer(): Form {
+  return {
+    tentId: null, name: '', purpose: 'PhDown', agent: '', concentrationPercent: '',
+    haEntityId: '', maxSingleDoseMl: '5', minIntervalMinutes: '18',
+    maxDosesPerDay: '6', maxMlPerDay: '25', hasHomeAssistantAutoOff: false, tubeChangedNow: false,
+  }
+}
+
+function zahlOderNull(value: string): number | null {
+  const parsed = Number(value.replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function DosingPumpSetupPage() {
+  const { pumpId } = useParams<{ pumpId: string }>()
+  const navigate = useNavigate()
+  const bearbeiten = Boolean(pumpId)
+  const [form, setForm] = useState<Form>(leer())
+  const [tents, setTents] = useState<TentDto[]>([])
+  const [entities, setEntities] = useState<HaEntity[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    async function laden() {
+      try {
+        const [tentData, entityData, pump] = await Promise.all([
+          apiFetch<TentDto[]>('/api/settings/tents', { signal: controller.signal }),
+          apiFetch<HaEntity[]>('/api/home-assistant/entities', { signal: controller.signal }).catch(() => []),
+          bearbeiten ? apiFetch<Record<string, unknown>>(`/api/dosing/pumps/${pumpId}`, { signal: controller.signal }) : Promise.resolve(null),
+        ])
+        if (controller.signal.aborted) return
+        setTents(tentData)
+        setEntities(entityData)
+        if (pump) {
+          setForm({
+            tentId: pump.tentId as number,
+            name: (pump.name as string) ?? '',
+            purpose: (pump.purpose as string) ?? 'Custom',
+            agent: (pump.agent as string) ?? '',
+            concentrationPercent: pump.concentrationPercent != null ? String(pump.concentrationPercent) : '',
+            haEntityId: (pump.haEntityId as string) ?? '',
+            maxSingleDoseMl: String(pump.maxSingleDoseMl ?? 5),
+            minIntervalMinutes: String(pump.minIntervalMinutes ?? 18),
+            maxDosesPerDay: String(pump.maxDosesPerDay ?? 6),
+            maxMlPerDay: String(pump.maxMlPerDay ?? 25),
+            hasHomeAssistantAutoOff: Boolean(pump.hasHomeAssistantAutoOff),
+            tubeChangedNow: false,
+          })
+        } else {
+          setForm((current) => ({ ...current, tentId: tentData[0]?.id ?? null }))
+        }
+      } catch (caught) {
+        if (!controller.signal.aborted) setError(caught instanceof Error ? caught.message : 'Konnte nicht laden.')
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
+      }
+    }
+    void laden()
+    return () => controller.abort()
+  }, [pumpId, bearbeiten])
+
+  function patch(next: Partial<Form>) {
+    setForm((current) => ({ ...current, ...next }))
+  }
+
+  async function speichern() {
+    if (!form.name.trim()) { setError('Die Pumpe braucht einen Namen.'); return }
+    if (!form.haEntityId.trim()) { setError('Ohne Home-Assistant-Entität lässt sich nichts schalten.'); return }
+    if (form.tentId == null) { setError('Wähle ein Zelt.'); return }
+
+    setSaving(true)
+    setError(null)
+    const payload = {
+      tentId: form.tentId,
+      name: form.name.trim(),
+      purpose: form.purpose,
+      agent: form.agent.trim() || null,
+      concentrationPercent: zahlOderNull(form.concentrationPercent),
+      haEntityId: form.haEntityId.trim(),
+      maxSingleDoseMl: zahlOderNull(form.maxSingleDoseMl),
+      minIntervalMinutes: zahlOderNull(form.minIntervalMinutes),
+      maxDosesPerDay: zahlOderNull(form.maxDosesPerDay),
+      maxMlPerDay: zahlOderNull(form.maxMlPerDay),
+      automationEnabled: false,   // Stufe 1: nichts laeuft von allein
+      hasHomeAssistantAutoOff: form.hasHomeAssistantAutoOff,
+      tubeChangedNow: form.tubeChangedNow,
+    }
+    try {
+      if (bearbeiten) await apiFetch(`/api/dosing/pumps/${pumpId}`, { method: 'PUT', body: JSON.stringify(payload) })
+      else await apiFetch('/api/dosing/pumps', { method: 'POST', body: JSON.stringify(payload) })
+      navigate('/dosierung')
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Speichern fehlgeschlagen.')
+      setSaving(false)
+    }
+  }
+
+  async function loeschen() {
+    if (!bearbeiten) return
+    setSaving(true)
+    try {
+      await apiFetch(`/api/dosing/pumps/${pumpId}`, { method: 'DELETE' })
+      navigate('/dosierung')
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Löschen fehlgeschlagen.')
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <V1Skeleton rows={6} label="Lade Pumpe" />
+
+  const schaltbar = entities.filter((entity) =>
+    entity.domain === 'switch' || entity.domain === 'input_boolean' || entity.domain === 'light')
+
+  return (
+    <V1Page
+      eyebrow="Dosierung"
+      title={bearbeiten ? 'Pumpe einstellen' : 'Pumpe einrichten'}
+      action={
+        <>
+          <V1Button variant="primary" onClick={() => void speichern()} disabled={saving}>
+            {saving ? 'Speichert…' : 'Speichern'}
+          </V1Button>
+          <V1Button onClick={() => navigate('/dosierung')}>Zurück</V1Button>
+        </>
+      }
+    >
+      {error && <V1Alert message={error} tone="critical" />}
+
+      <V1Section title="Was die Pumpe tut">
+        <V1Card>
+          <div className="v1-form-grid">
+            <V1Field label="Name">
+              <input value={form.name} onChange={(event) => patch({ name: event.target.value })} placeholder="pH Minus" />
+            </V1Field>
+            <V1Field label="Zelt">
+              <select value={form.tentId ?? ''} onChange={(event) => patch({ tentId: Number(event.target.value) })}>
+                {tents.map((tent) => <option key={tent.id} value={tent.id}>{tent.name}</option>)}
+              </select>
+            </V1Field>
+            <V1Field label="Aufgabe" hint="Bestimmt, gegen welchen Messwert gerechnet wird.">
+              <select value={form.purpose} onChange={(event) => patch({ purpose: event.target.value })}>
+                {PURPOSES.map((purpose) => <option key={purpose.value} value={purpose.value}>{purpose.label}</option>)}
+              </select>
+            </V1Field>
+            <V1Field label="Mittel" hint="Was im Kanister ist.">
+              <input value={form.agent} onChange={(event) => patch({ agent: event.target.value })} placeholder="Phosphorsäure" />
+            </V1Field>
+            <V1Field label="Konzentration in %" hint="Steht auf dem Kanister.">
+              <input inputMode="decimal" value={form.concentrationPercent}
+                onChange={(event) => patch({ concentrationPercent: event.target.value })} placeholder="59" />
+            </V1Field>
+            <V1Field
+              label="Schaltet in Home Assistant"
+              hint={schaltbar.length === 0 ? 'Keine Entitäten erreichbar — ist Home Assistant verbunden?' : 'Die Entität, die den Pumpenstrom schaltet.'}
+            >
+              <input value={form.haEntityId} onChange={(event) => patch({ haEntityId: event.target.value })}
+                placeholder="switch.dosier_ph_minus" list="dosing-entities" />
+              {schaltbar.length > 0 && (
+                <datalist id="dosing-entities">
+                  {schaltbar.map((entity) => (
+                    <option key={entity.entityId} value={entity.entityId}>{entity.friendlyName ?? entity.entityId}</option>
+                  ))}
+                </datalist>
+              )}
+            </V1Field>
+          </div>
+        </V1Card>
+      </V1Section>
+
+      <V1Section title="Anschläge">
+        <V1Card>
+          <div className="v1-form-grid">
+            <V1Field label="Größte Einzeldosis in ml" hint="Macht aus einem Rechenfehler eine Unannehmlichkeit statt eines Schadens.">
+              <input inputMode="decimal" value={form.maxSingleDoseMl} onChange={(event) => patch({ maxSingleDoseMl: event.target.value })} />
+            </V1Field>
+            <V1Field label="Pause danach in Minuten" hint="Erst mischen und neu messen, dann urteilen.">
+              <input inputMode="numeric" value={form.minIntervalMinutes} onChange={(event) => patch({ minIntervalMinutes: event.target.value })} />
+            </V1Field>
+            <V1Field label="Höchstens Dosen am Tag">
+              <input inputMode="numeric" value={form.maxDosesPerDay} onChange={(event) => patch({ maxDosesPerDay: event.target.value })} />
+            </V1Field>
+            <V1Field label="Höchstens ml am Tag">
+              <input inputMode="decimal" value={form.maxMlPerDay} onChange={(event) => patch({ maxMlPerDay: event.target.value })} />
+            </V1Field>
+          </div>
+          {bearbeiten && (
+            <div style={{ marginTop: 12 }}>
+              <V1Switch
+                label="Schlauch heute gewechselt"
+                checked={form.tubeChangedNow}
+                onChange={(checked) => patch({ tubeChangedNow: checked })}
+                hint="Setzt das Schlauchdatum auf heute. Nach einem Wechsel neu kalibrieren."
+              />
+            </div>
+          )}
+        </V1Card>
+      </V1Section>
+
+      <V1Section title="Abschaltung in Home Assistant">
+        <V1Card>
+          <div className="dz-warn">
+            <div>
+              <b>Grow OS schaltet ein und Sekunden später wieder aus.</b> Stürzt es genau dazwischen ab
+              oder fällt der Rechner aus, läuft die Pumpe weiter — niemand ist da, der sie stoppt.
+              Richte in Home Assistant eine Abschaltung ein, die diese Entität nach spätestens
+              30 Sekunden von sich aus abwirft, und hake es hier ab.
+            </div>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <V1Switch
+              label="Abschaltung ist in Home Assistant eingerichtet"
+              checked={form.hasHomeAssistantAutoOff}
+              onChange={(checked) => patch({ hasHomeAssistantAutoOff: checked })}
+              hint="Ohne diesen Haken bleibt die spätere Automatik gesperrt. Von Hand dosieren geht trotzdem."
+            />
+          </div>
+        </V1Card>
+      </V1Section>
+
+      {bearbeiten && (
+        <V1Section title="Entfernen">
+          <V1Card>
+            <V1Button variant="danger" onClick={() => void loeschen()} disabled={saving}>Pumpe löschen</V1Button>
+          </V1Card>
+        </V1Section>
+      )}
+    </V1Page>
+  )
+}
+
+export default DosingPumpSetupPage
