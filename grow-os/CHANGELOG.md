@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.0.0-beta.5
+
+**Beta.** Two things the 2.0 rebuild had dropped, brought back.
+
+- New — **arrange the Live screen yourself again.** Press "Anpassen" and the
+  fixed rows become movable: drag tiles within a section or into another one,
+  rename sections, add your own, remove what you never look at. Any Home
+  Assistant entity can become a tile — a UV clarifier, a socket's power draw,
+  a fan — including things Grow OS knows nothing about. Saved per tent, with
+  "Zurücksetzen" to get the standard back.
+  Nothing changes unless you press it: without an arrangement of your own the
+  screen looks exactly as it does today, and entering the mode starts from
+  what is on screen, so no tile appears or disappears on the way in.
+- New — **each tile shows its last 24 hours as a curve.** "Too high" does not
+  tell you whether a value is still climbing or already coming back down;
+  the curve does. It takes the place of the target bar rather than being added
+  below it, so the tiles stay the size they were, and it is drawn in the
+  colour of the tile's status.
+- Note — an arrangement saved before the 2.0 rebuild is not brought back.
+  It was built for a different screen, is missing everything added since, and
+  would quietly take values off your dashboard. Your Live screen therefore
+  looks the same after this update as before it.
+- Fixed — dragging on a phone still does not work (a browser limitation that
+  was there before as well). Adding, removing, renaming and the ↑ ↓ buttons
+  work everywhere.
+
+
 ## 2.0.0-beta.4
 
 **Beta.** The watchdog learned to see each tent on its own.
