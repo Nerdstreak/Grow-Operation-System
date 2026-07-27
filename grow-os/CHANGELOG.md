@@ -1,5 +1,43 @@
 # Changelog
 
+## 2.0.0-beta.1
+
+**Beta.** The complete UI redesign — every screen rebuilt 1:1 from the designer's
+handoff. Marked beta because a few rough edges are still expected; data, automations
+and the API are untouched, and 1.8.4 remains the last stable release.
+
+- New — **the whole app follows one design language now**: instrument-cluster panels,
+  hairline borders, mono labels, a dark and a light theme with a proper toggle
+  (sidebar and settings stay in sync).
+- New — **Live** is a single cockpit: score ring with the reasons behind the number,
+  climate and nutrient bands with target ranges, camera stage, the current risk with
+  its SOP, today's tasks and the slow-moving observations — plus the grow phase
+  timeline.
+- New — **Messen** checks values while you type and shows deviations live; saving can
+  jump straight into the matching Addback.
+- New — **Addback** and **Grow anlegen** are one page each instead of wizards.
+- New — **Aufgaben** sorts by what matters: risks first, then appointments, then
+  maintenance — one main action per row.
+- New — **Grows** shows each run as a card with its phase bar; finished runs live in
+  **Ernte & Archiv** as a yield table with a two-run comparison.
+- New — **Sorten & Pheno-Hunt** on one page: the library with runs, average yield and
+  keeper per strain, and the candidate strip with the scoring sheet inline.
+- New — **Journal & Fotos** is one stream — entries, measurement photos and events
+  together, with a photos-only filter.
+- New — **SOPs & Bibliothek** merges knowledge into one searchable collection;
+  emergency SOPs are tagged and highlighted.
+- New — **Regeln & Automatik** puts thresholds (with per-rule cooldown), auto
+  measurements, notifications and the AI assistant behind one set of tabs.
+- New — **Home Assistant** shows the mapping as rows with live values and adds
+  a QR panel to pair the phone in the grow room.
+- New — **Zelte & Räume** is a master-detail view: climate, light, air and occupancy
+  per tent, camera and mapped sensors included.
+- Fixed — a global reset was overriding half the design system's spacing.
+- Fixed — the tent's active grows were never populated, which silently disabled
+  alert rows and tile target ranges.
+- Fixed — the live score could show 100 while values were out of range; it now
+  counts real deviations.
+
 ## 1.8.4
 
 - New — **VPD is finally checked against its target.** A target band per stage has been in
