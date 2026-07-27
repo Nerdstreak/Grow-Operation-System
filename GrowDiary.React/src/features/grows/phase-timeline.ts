@@ -27,6 +27,8 @@ export type Phase = {
   /** Für kurze Anzeigen („Veg Tag 20") — ohne den Text zerlegen zu müssen. */
   name: PhaseName
   label: string
+  /** Kurzfassung für enge Stellen wie die Grow-Karten: „Veg 22/28". */
+  short: string
   days: number
   state: PhaseState
   /** Nur gesetzt, solange die Phase läuft: 0–1 des geplanten Anteils. */
@@ -112,21 +114,22 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
   // ---------- Keim ----------
   if (keimEnde && keimEnde.getTime() > start.getTime()) {
     const dauer = tage(start.getTime(), keimEnde.getTime())
-    phases.push({ name: 'Keim', label: `Keim ${dauer} T`, days: dauer, state: 'done' })
+    phases.push({ name: 'Keim', label: `Keim ${dauer} T`, short: `Keim ${dauer} T`, days: dauer, state: 'done' })
   } else {
-    phases.push({ name: 'Keim', label: 'Keim · nicht erfasst', days: 0, state: 'done' })
+    phases.push({ name: 'Keim', label: 'Keim · nicht erfasst', short: 'Keim —', days: 0, state: 'done' })
   }
 
   // ---------- Veg ----------
   if (inBluete && flip) {
     const dauer = tage(vegStart, flip.getTime())
-    phases.push({ name: 'Veg', label: `Veg ${dauer} T`, days: dauer, state: 'done' })
+    phases.push({ name: 'Veg', label: `Veg ${dauer} T`, short: `Veg ${dauer} T`, days: dauer, state: 'done' })
   } else {
     const gelaufen = tage(vegStart, jetzt)
     const geplant = flipFuerRechnung ? tage(vegStart, flipFuerRechnung.getTime()) : null
     phases.push({
       name: 'Veg',
       label: geplant ? `Veg · Tag ${gelaufen} von ${geplant}` : `Veg · Tag ${gelaufen}`,
+      short: geplant ? `Veg ${gelaufen}/${geplant}` : `Veg ${gelaufen} T`,
       days: geplant ?? gelaufen,
       state: 'current',
       progress: geplant ? Math.min(1, gelaufen / geplant) : undefined,
@@ -140,15 +143,16 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
     phases.push({
       name: 'Blüte',
       label: `Blüte · Tag ${tagInBluete} von ${bluetetage}`,
+      short: `Blüte ${tagInBluete}/${bluetetage}`,
       days: bluetetage,
       state: 'current',
       progress: Math.min(1, tagInBluete / bluetetage),
       dayInPhase: tagInBluete,
     })
   } else if (flipFuerRechnung) {
-    phases.push({ name: 'Blüte', label: `Blüte ${bluetetage} T geplant`, days: bluetetage, state: 'planned' })
+    phases.push({ name: 'Blüte', label: `Blüte ${bluetetage} T geplant`, short: `Blüte ${bluetetage} T`, days: bluetetage, state: 'planned' })
   } else {
-    phases.push({ name: 'Blüte', label: 'Blüte · offen', days: 0, state: 'planned' })
+    phases.push({ name: 'Blüte', label: 'Blüte · offen', short: 'Blüte —', days: 0, state: 'planned' })
   }
 
   return {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary } from '../types'
-import { buildPhaseTimeline, currentPhaseLabel } from '../features/grows/phase-timeline'
+import { buildPhaseTimeline, currentPhaseLabel, flipLabel } from '../features/grows/phase-timeline'
 import { V1Alert, V1Page, V1Skeleton } from '../components/v1'
 import '../features/grows/grows.css'
 
@@ -71,26 +71,28 @@ function GrowCard({ grow }: { grow: GrowSummary }) {
       <div className="gc-body">
         {running && timeline.phases.length > 0 && (
           <>
-            {/* Derselbe Strahl wie auf Live und im Grow-Detail, nur schmal und
-                ohne Beschriftung. Hier stand vorher eine zweite, eigene
-                Fassung: ein fest verdrahteter Keim-Balken plus ein erfundener
-                Blüte-Rest — beides ging daneben, sobald der Zeitstrahl selbst
-                alle drei Phasen lieferte. */}
-            <div className="gc-phasebar" role="img" aria-label={timeline.phases.map((phase) => phase.label).join(', ')}>
+            {/* Derselbe Strahl wie auf Live und im Grow-Detail — mit der
+                Beschriftung IM Balken, nicht darunter. Hier stand vorher eine
+                zweite, eigene Fassung: ein fest verdrahteter Keim-Balken plus
+                ein erfundener Blüte-Rest. */}
+            <div className="ls-timeline is-compact">
               {timeline.phases.map((phase) => (
-                <i
+                <div
                   key={phase.label}
-                  className={`is-${phase.state}${phase.days === 0 ? ' is-unknown' : ''}`}
+                  className={`ls-phase is-${phase.state}${phase.days === 0 ? ' is-unknown' : ''}`}
                   style={{ flexGrow: Math.max(1, phase.days) }}
                   title={phase.label}
-                />
+                >
+                  {phase.progress != null && (
+                    <i className="ls-phase-fill" style={{ width: `${Math.round(phase.progress * 100)}%` }} aria-hidden="true" />
+                  )}
+                  <span>{phase.short}</span>
+                </div>
               ))}
             </div>
             <div className="gc-phasetext">
-              {/* Einzelne Elemente statt eines zusammengefuegten Textes: die
-                  Beschriftungen enthalten selbst „·", zusammengeklebt wurde
-                  daraus „Keim · nicht erfasst · Veg · Tag 68 · Blüte · offen". */}
-              {timeline.phases.map((phase) => <span key={phase.label}>{phase.label}</span>)}
+              {flipLabel(timeline.flipIsPlanned, timeline.daysToFlip, timeline.dates.flip)}
+              {timeline.dates.harvest !== '—' && ` · Ernte ~${timeline.dates.harvest}`}
             </div>
           </>
         )}

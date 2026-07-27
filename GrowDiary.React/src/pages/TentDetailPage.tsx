@@ -7,7 +7,7 @@ import { PlantActions } from '../features/plants/PlantActions'
 import { LightScheduleSection } from '../features/tents/LightScheduleSection'
 import { TentHistorySection } from '../features/tents/TentHistorySection'
 import { resolveUrl } from '../base'
-import { mapMetrics } from '../features/live/live-model'
+import { mapMetrics, buildScore } from '../features/live/live-model'
 import { MetricTile } from '../features/live/MetricTile'
 import { decimalsForMetric } from '../features/live/metric-tile-model'
 import '../features/live/metric-tile.css'
@@ -190,7 +190,6 @@ function SetupCard({ setup, plants, quarantineSetups, productionSetups, grows, o
 function MetricCard({ metric }: { metric: MetricPayload }) { return <V1Stat label={metric.label} value={metric.value} unit={metric.unit} hint={metric.hint ?? undefined} tone={metricTone(metric)} /> }
 function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
 function formatMetricValue(metric: MetricPayload) { return metric.unit && metric.value !== '–' ? `${metric.value} ${metric.unit}` : metric.value }
-function buildScore(metrics: MetricPayload[], tent: TentDto | null) { const usable = metrics.filter((metric) => metric.value && metric.value !== '–').length; if (!tent || usable === 0) return { value: 0, label: 'Einrichten', tone: 'neutral' as const }; const warnings = metrics.filter((metric) => metric.tone === 'warning' || metric.tone === 'danger').length; const value = Math.max(0, Math.min(100, 100 - warnings * 18 - Math.max(0, 6 - usable) * 8)); return value < 55 ? { value, label: 'Kritisch', tone: 'critical' as const } : value < 82 ? { value, label: 'Beobachten', tone: 'warn' as const } : { value, label: 'Stabil', tone: 'ok' as const } }
 function metricTone(metric: MetricPayload) { return metric.tone === 'danger' ? 'critical' : metric.tone === 'warning' ? 'warn' : metric.tone === 'success' ? 'ok' : 'neutral' }
 function formatSetupDetails(setup: SetupDto): Array<{ label: string; value: string }> { const base = [{ label: 'Status', value: setup.status }]; if (setup.setupType === 'Mother') return [...base, { label: 'Clones', value: setup.cloneCounterTotal !== null ? String(setup.cloneCounterTotal) : '–' }, { label: 'Schnitt', value: setup.lastCloneCutAt ? formatDate(setup.lastCloneCutAt) : '–' }, { label: 'Health', value: setup.motherHealthStatus ?? '–' }]; if (setup.setupType === 'Quarantine') return [...base, { label: 'Start', value: setup.quarantineStartedAt ? formatDate(setup.quarantineStartedAt) : '–' }, { label: 'Ende', value: setup.quarantinePlannedEndAt ? formatDate(setup.quarantinePlannedEndAt) : '–' }, { label: 'Ergebnis', value: setup.quarantineResult ?? '–' }]; return [...base, { label: 'Notiz', value: setup.notes ?? '–' }] }
 function formatDate(value: string): string { return value.slice(0, 10) }

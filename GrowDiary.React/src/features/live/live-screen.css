@@ -26,6 +26,11 @@
      spezifischer und hat gewonnen, also wurde „/100" in 17px fett gesetzt und
      war mit 46px breiter als der Innenkreis. */
   .ls-ring-inner > span { font: 600 18px/1 var(--font-mono); }
+  /* Die Zahl traegt dieselbe Ampelfarbe wie der Ring — sonst widerspricht
+     eine weisse 40 dem roten Kreis daneben. */
+  .ls-ring.is-critical .ls-ring-inner > span:not(.ls-ring-max) { color: var(--danger); }
+  .ls-ring.is-warn .ls-ring-inner > span:not(.ls-ring-max) { color: var(--warn-text); }
+  .ls-ring.is-ok .ls-ring-inner > span:not(.ls-ring-max) { color: var(--accent-text); }
   .ls-ring-inner > span.ls-ring-max {
     font: 500 8.5px/1 var(--font-mono); letter-spacing: .08em; color: var(--faint);
   }
@@ -37,6 +42,8 @@
   .ls-head-title h1 {
     margin: 6px 0 0; font: 600 24px/1.1 var(--font-mono); letter-spacing: -.01em;
   }
+  .ls-score-label.is-critical { color: var(--danger); }
+  .ls-score-label.is-warn { color: var(--warn-text); }
   .ls-head-parts { margin-top: 6px; font: 400 11px/1.4 var(--font-mono); color: var(--muted); }
   .ls-head-parts .is-bad { color: var(--danger); }
 
@@ -154,6 +161,15 @@
 
   /* ---------- Phasen-Timeline ---------- */
   .ls-timeline { display: flex; gap: 2px; }
+  /* Auf einer Grow-Karte ist weniger Platz — kleinere Schrift, damit die
+     Beschriftungen IM Balken stehen koennen statt darunter. */
+  .ls-timeline.is-compact .ls-phase {
+    min-height: 22px; padding: 0 6px;
+    font-size: 9px; letter-spacing: .06em;
+    /* Kein Abschnitt schrumpft unter seine Beschriftung — sonst stand da
+       „KEIM 12" statt „KEIM 12 T". Die Anteile verteilen sich auf den Rest. */
+    min-width: fit-content;
+  }
   .ls-phase {
     flex: 1 1 0; min-width: 0;
     display: grid; place-items: center;

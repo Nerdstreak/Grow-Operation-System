@@ -65,11 +65,11 @@ export function LiveScreen({
     <main className="ls" data-audit="live-screen">
       {/* ---------- Kopfzeile ---------- */}
       <header className="ls-head">
-        <ScoreRing value={score.value} />
+        <ScoreRing value={score.value} tone={score.tone} />
 
         <div className="ls-head-title">
           <div className="ls-eyebrow">Jetzt / Live · Grow-Score</div>
-          <h1>{score.label}</h1>
+          <h1 className={`ls-score-label is-${score.tone}`}>{score.label}</h1>
           <div className="ls-head-parts">{scoreParts}</div>
         </div>
 
@@ -234,12 +234,23 @@ function MetricBand({ title, metrics }: { title: string; metrics: MetricPayload[
  * Der Score als Ring. Bewusst klein: er ist die Zusammenfassung, nicht die
  * Nachricht — die steht als Wort daneben.
  */
-function ScoreRing({ value }: { value: number }) {
+/**
+ * Der Score-Ring — in der Farbe seiner Bewertung.
+ *
+ * Der Ring war fest auf Akzentgrün gesetzt: bei 40 Punkten stand daneben
+ * „Kritisch“ und der Kreis leuchtete trotzdem grün. Die Bewertung kommt schon
+ * immer aus `buildScore`, sie wurde hier nur nicht benutzt.
+ */
+function ScoreRing({ value, tone }: { value: number; tone: 'ok' | 'warn' | 'critical' | 'neutral' }) {
   const clamped = Math.max(0, Math.min(100, value))
+  const farbe = tone === 'critical' ? 'var(--danger)'
+    : tone === 'warn' ? 'var(--warn)'
+      : tone === 'ok' ? 'var(--accent)'
+        : 'var(--hair-2)'
   return (
     <div
-      className="ls-ring"
-      style={{ background: `conic-gradient(var(--accent) 0 ${clamped}%, var(--sunk) ${clamped}% 100%)` }}
+      className={classNames('ls-ring', `is-${tone}`)}
+      style={{ background: `conic-gradient(${farbe} 0 ${clamped}%, var(--sunk) ${clamped}% 100%)` }}
       role="img"
       aria-label={`Grow-Score ${clamped} von 100`}
     >
