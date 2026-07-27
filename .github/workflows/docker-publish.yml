@@ -51,13 +51,18 @@ jobs:
           set -euo pipefail
           V="${{ inputs.version }}"
           if [ -z "$V" ]; then
-            V=$(grep -E '^version:' grow-os/config.yaml | sed -E 's/[^0-9.]//g')
+            # Wert samt Pre-Release-Suffix aus den Anfuehrungszeichen holen —
+            # das alte „alles ausser Ziffern/Punkten loeschen" haette aus
+            # 2.0.0-beta.1 ein kaputtes 2.0.0..1 gemacht.
+            V=$(grep -E '^version:' grow-os/config.yaml | sed -E 's/^version:[[:space:]]*"?([^"#[:space:]]+)"?.*/\1/')
             echo "Version aus config.yaml: $V"
           else
             echo "Version aus Eingabe: $V"
           fi
-          if ! printf '%s' "$V" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "::error::Ungueltige Version '$V' — erwartet wird z. B. 1.8.3."
+          # Semver mit optionalem Pre-Release (2.0.0-beta.1) — Docker-Tags und
+          # Home Assistant (AwesomeVersion) verstehen beides.
+          if ! printf '%s' "$V" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$'; then
+            echo "::error::Ungueltige Version '$V' — erwartet wird z. B. 1.8.3 oder 2.0.0-beta.1."
             exit 1
           fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
