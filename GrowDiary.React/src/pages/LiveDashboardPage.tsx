@@ -194,6 +194,8 @@ function LiveDashboardPage() {
       timeline={timeline.phases}
       timelineDates={timeline.dates}
       plantLine={plantLine}
+      tents={state.tents}
+      onTent={setSelectedTentId}
       onRefresh={() => setRefresh((current) => current + 1)}
     />
   )

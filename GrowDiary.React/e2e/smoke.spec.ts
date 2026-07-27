@@ -117,7 +117,7 @@ test('lässt das Tab-Ziel der Weiterleitung gewinnen', async ({ page }) => {
   expect(url.searchParams.get('growId')).toBe('3')
 })
 
-test('zeigt die vier Navigationsgruppen und die Kontextleiste', async ({ page }) => {
+test('zeigt die vier Navigationsgruppen, ohne globale Kontextleiste', async ({ page }) => {
   await page.goto('/', { waitUntil: 'networkidle' })
   await page.setViewportSize({ width: 1440, height: 900 })
 
@@ -127,6 +127,8 @@ test('zeigt die vier Navigationsgruppen und die Kontextleiste', async ({ page })
     await expect(page.locator('.v1-nav-group-head', { hasText: label })).toBeVisible()
   }
 
-  // Zelt und Grow werden einmal fuer die ganze App gewaehlt, nicht pro Seite.
-  await expect(page.locator('[data-audit="context-bar"]')).toBeVisible()
+  // Die globale Zelt/Grow-Leiste ist bewusst weg: sie steuerte nur zwei Badges
+  // und keine einzige Seite — man stellte oben etwas ein und unten passierte
+  // nichts. Jede Seite waehlt jetzt selbst.
+  await expect(page.locator('[data-audit="context-bar"]')).toHaveCount(0)
 })

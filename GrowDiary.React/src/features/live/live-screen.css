@@ -66,6 +66,14 @@
   }
   .ls-btn.is-primary:hover { color: var(--accent-ink); opacity: .9; }
   .ls-btn.is-small { min-height: 26px; padding: 0 10px; font-size: 11px; margin-left: auto; }
+
+  /* Zelt-Auswahl in der Kopfzeile — sieht aus wie ein Knopf, ist aber ein Feld. */
+  .ls-tent-select {
+    min-height: 32px; padding: 0 8px;
+    border: 1px solid var(--hair-2); border-radius: 8px;
+    background: var(--sunk); color: var(--ink);
+    font: 500 12px/1 var(--font-mono); cursor: pointer;
+  }
   /* Touch: die Untergrenze aus widgets.css greift hier ebenfalls. */
 
   /* ---------- Messwertreihen ---------- */

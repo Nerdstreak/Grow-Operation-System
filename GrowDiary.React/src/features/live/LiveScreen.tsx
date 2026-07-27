@@ -43,12 +43,16 @@ export type LiveScreenProps = {
   timeline: { label: string; days: number; state: 'done' | 'current' | 'planned' }[]
   timelineDates: { start: string; flip: string; harvest: string }
   plantLine: string | null
+  /** Alle Zelte zur Auswahl; erst ab zwei erscheint der Umschalter. */
+  tents: TentDto[]
+  onTent: (tentId: number) => void
   onRefresh: () => void
 }
 
 export function LiveScreen({
   tent, grow, score, scoreParts, climate, hydro, sensorsLive,
-  lastMeasurement, stageLine, risks, tasks, timeline, timelineDates, plantLine, onRefresh,
+  lastMeasurement, stageLine, risks, tasks, timeline, timelineDates, plantLine,
+  tents, onTent, onRefresh,
 }: LiveScreenProps) {
   const topRisk = risks[0] ?? null
 
@@ -74,6 +78,16 @@ export function LiveScreen({
         </span>
 
         <div className="ls-head-actions">
+          {tents.length > 1 && (
+            <select
+              className="ls-tent-select"
+              aria-label="Zelt"
+              value={tent?.id ?? ''}
+              onChange={(event) => onTent(Number(event.target.value))}
+            >
+              {tents.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          )}
           <Link className="ls-btn is-primary" to="/messung">Messung erfassen</Link>
           <Link className="ls-btn" to="/addback">Addback starten</Link>
         </div>

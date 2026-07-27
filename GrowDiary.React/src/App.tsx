@@ -36,7 +36,7 @@ import './styles/widgets.css'
 
 import { AppShell } from './AppShell'
 import { legacyRedirects } from './navigation'
-import { useAppScope } from './useAppScope'
+import { useNavCounts } from './useNavCounts'
 import { RulesCollectionPage } from './pages/collections'
 import StrainsPage from './pages/StrainsPage'
 import ArchivePage from './pages/ArchivePage'
@@ -62,10 +62,10 @@ function LegacyRedirect({ to }: { to: string }) {
 }
 
 function App() {
-  const { scope, counts } = useAppScope()
+  const counts = useNavCounts()
 
   return (
-    <AppShell scope={scope} counts={counts}>
+    <AppShell counts={counts}>
       <Routes>
           <Route path="/" element={<LiveDashboardPage />} />
           <Route path="/live" element={<Navigate to="/" replace />} />

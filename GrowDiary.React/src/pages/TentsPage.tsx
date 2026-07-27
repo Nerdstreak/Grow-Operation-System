@@ -344,6 +344,10 @@ function TentDetail({ tent, live, linkedGrows, linkedHydro, deleteBlocked, delet
           {lightPill && <span className="ls-pill">{lightPill}</span>}
           <span className="tn-head-meta">{headMeta(tent)}</span>
           <div className="co-actions" data-audit="tent-card-actions">
+            {/* Ohne diesen Knopf war /zelte/:id von nirgendwo erreichbar — und
+                damit auch die Lichtzeiten, die Zelt-Historie und die Verwaltung
+                von Setups und Pflanzen, die nur dort wohnen. */}
+            <V1LinkButton to={`/zelte/${tent.id}`} className="ls-btn is-small is-primary">Öffnen</V1LinkButton>
             <button type="button" className="ls-btn is-small" onClick={() => onEdit(tent)}>Bearbeiten</button>
             <V1LinkButton to="/hydro" className="ls-btn is-small">Hydro</V1LinkButton>
           </div>

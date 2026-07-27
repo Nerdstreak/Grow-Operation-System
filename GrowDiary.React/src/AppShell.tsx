@@ -11,20 +11,18 @@ import { useHomeAssistantHealth } from './useHomeAssistantHealth'
 
 type Props = {
   children: ReactNode
-  /** Kontextleiste: einmal wählen, gilt für alle grow-/zelt-bezogenen Seiten. */
-  scope?: {
-    tents: Array<{ id: number; name: string }>
-    grows: Array<{ id: number; name: string }>
-    tentId: number | null
-    growId: number | null
-    onTent: (id: number | null) => void
-    onGrow: (id: number | null) => void
-  }
-  /** Zähler fuer die Badges in der Navigation. */
+  /**
+   * Zähler für die Badges in der Navigation — über alle laufenden Grows.
+   *
+   * Hier stand einmal eine globale Zelt/Grow-Auswahl. Sie steuerte allerdings
+   * nur diese beiden Zahlen und keine einzige Seite: man stellte oben etwas ein
+   * und unten passierte nichts. Jetzt wählt jede Seite selbst, und die Zähler
+   * zählen das, was ihre Ziele auch zeigen.
+   */
   counts?: { addbackDue?: boolean; openTasks?: number }
 }
 
-export function AppShell({ children, scope, counts }: Props) {
+export function AppShell({ children, counts }: Props) {
   const health = useHomeAssistantHealth()
   const location = useLocation()
   const { theme, toggle } = useTheme()
@@ -104,25 +102,6 @@ export function AppShell({ children, scope, counts }: Props) {
       )}
 
       <main className="v1-route-frame">
-        {scope && (
-          <div className="gos-contextbar" data-audit="context-bar">
-            <div className="gos-scope">
-              <label htmlFor="scope-tent">Zelt</label>
-              <select id="scope-tent" value={scope.tentId ?? ''} onChange={(event) => scope.onTent(event.target.value ? Number(event.target.value) : null)}>
-                <option value="">Alle Zelte</option>
-                {scope.tents.map((tent) => <option key={tent.id} value={tent.id}>{tent.name}</option>)}
-              </select>
-            </div>
-            <div className="gos-scope">
-              <label htmlFor="scope-grow">Grow</label>
-              <select id="scope-grow" value={scope.growId ?? ''} onChange={(event) => scope.onGrow(event.target.value ? Number(event.target.value) : null)}>
-                <option value="">Kein Grow</option>
-                {scope.grows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
-              </select>
-            </div>
-            <div className="spacer" />
-          </div>
-        )}
 
         {/* Eine Meldung für die ganze App, nicht eine pro Karte. Nur wenn Home
             Assistant eingerichtet ist und gerade nicht antwortet — wer es gar
