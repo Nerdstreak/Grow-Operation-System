@@ -16,7 +16,13 @@ public sealed record DashboardSectionDto(
 
 public sealed record DashboardLayoutDto(
     int TentId,
-    List<DashboardSectionDto>? Sections);
+    List<DashboardSectionDto>? Sections,
+    /// <summary>
+    /// True once the user arranged this tent themselves. False means these sections are
+    /// what Grow OS ships — the screen then draws its own built-in arrangement, which
+    /// knows things a stored layout cannot (which water-level unit actually reports).
+    /// </summary>
+    bool IsCustom = false);
 
 /// <summary>The live reading of a Home Assistant entity a custom tile points at.</summary>
 public sealed record DashboardEntityValueDto(

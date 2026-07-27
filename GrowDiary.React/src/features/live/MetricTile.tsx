@@ -1,4 +1,5 @@
 import { metricScale, metricStatus, statusLabel, targetLabel, type MetricStatus } from './metric-tile-model'
+import { Sparkline, type HistoryPoint } from '../../components/SensorChart'
 import { classNames } from '../../utils'
 
 export type MetricTileProps = {
@@ -17,6 +18,8 @@ export type MetricTileProps = {
   display?: string
   /** Zeitpunkt des Werts, falls er nicht mehr frisch ist. */
   stale?: string
+  /** Die letzten 24 Stunden. Vorhanden = Kurve statt Zielband. */
+  trend?: HistoryPoint[]
 }
 
 /**
@@ -33,7 +36,7 @@ export type MetricTileProps = {
  * Kachelzahl nicht zur Spaltenzahl passt.
  */
 export function MetricTile({
-  label, value, unit, targetMin = null, targetMax = null, critical, decimals, footer, display, stale,
+  label, value, unit, targetMin = null, targetMax = null, critical, decimals, footer, display, stale, trend,
 }: MetricTileProps) {
   const status: MetricStatus = display != null && targetMin == null && targetMax == null
     ? 'unknown'
@@ -57,7 +60,14 @@ export function MetricTile({
         {unit && display == null && <span className="unit">{unit}</span>}
       </div>
 
-      {scale ? (
+      {trend && trend.length > 1 ? (
+        // Die Kurve ERSETZT das Zielband, sie kommt nicht dazu: sonst wächst jede
+        // Kachel und die Seite mit ihr. Der Zielbereich steht als Text darunter
+        // weiter da, und die Farbe kommt vom Status der Kachel.
+        <div className="gos-metric-spark" aria-hidden="true">
+          <Sparkline points={trend} height={22} />
+        </div>
+      ) : scale ? (
         <div className="gos-metric-scale" aria-hidden="true">
           <span className="band" style={{ left: `${scale.bandLeft}%`, width: `${scale.bandWidth}%` }} />
           <span className={classNames('mark', scale.clamped && 'clamped')} style={{ left: `${scale.marker}%` }} />

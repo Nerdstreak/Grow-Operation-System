@@ -1,9 +1,13 @@
 import { Link } from 'react-router-dom'
 import type { GrowSummary, MetricPayload, RiskEventDto, TentDto } from '../../types'
+import type { HistoryPoint } from '../../components/SensorChart'
 import { MetricTile } from './MetricTile'
 import { decimalsForMetric } from './metric-tile-model'
 import { CameraPanel } from './CameraPanel'
 import { TrendWatchPanel } from './TrendWatchPanel'
+import { DashboardBands } from './DashboardBands'
+import { DashboardEditorBar } from './DashboardEditor'
+import type { DashboardLayout, EntityValue } from './dashboard-layout'
 import { buildScore } from './live-model'
 import { classNames } from '../../utils'
 import { flipLabel, type Phase } from '../grows/phase-timeline'
@@ -52,16 +56,39 @@ export type LiveScreenProps = {
   tents: TentDto[]
   /** Nur gesetzt, wenn die Überwachung SELBST ein Problem meldet (Watchdog). */
   systemWarning: { headline: string; detail: string } | null
+  /** Die 24-h-Kurve je Messwert; fehlt sie, zeigt die Kachel ihr Zielband. */
+  trends: Map<string, HistoryPoint[]>
+  /** Gesetzt, sobald der Nutzer eine eigene Anordnung hat oder gerade anpasst. */
+  dashboard: DashboardPanel | null
   onTent: (tentId: number) => void
   onRefresh: () => void
+}
+
+/** Alles, was der Anpassen-Modus braucht — gebündelt, damit LiveScreen nicht zerfasert. */
+export type DashboardPanel = {
+  layout: DashboardLayout
+  entityValues: Map<string, EntityValue>
+  editing: boolean
+  saving: boolean
+  dirty: boolean
+  warning: string | null
+  onChange: (layout: DashboardLayout) => void
+  onSave: () => void
+  onReset: () => void
+  /** Schaltet den Anpassen-Modus an und wieder aus — „Anpassen" oben, „Fertig" in der Leiste. */
+  onToggleEditing: () => void
 }
 
 export function LiveScreen({
   tent, grow, score, scoreParts, climate, hydro, sensorsLive,
   lastMeasurement, stageLine, risks, tasks, timeline, timelineDates, plantLine,
-  flipIsPlanned, daysToFlip, tents, systemWarning, onTent, onRefresh,
+  flipIsPlanned, daysToFlip, tents, systemWarning, trends, dashboard, onTent, onRefresh,
 }: LiveScreenProps) {
   const topRisk = risks[0] ?? null
+  // Die eigene Anordnung zeichnet nur, wer eine hat oder gerade eine baut.
+  // Sonst bleibt es bei den festen Reihen — Buchstabe fuer Buchstabe wie bisher.
+  const eigeneAnordnung = dashboard && (dashboard.editing || dashboard.layout.isCustom)
+  const metricsByKey = new Map([...climate, ...hydro].map((metric) => [metric.key, metric]))
 
   return (
     <main className="ls" data-audit="live-screen">
@@ -85,6 +112,11 @@ export function LiveScreen({
         </span>
 
         <div className="ls-head-actions">
+          {dashboard && !dashboard.editing && (
+            <button type="button" className="ls-btn" onClick={dashboard.onToggleEditing} data-audit="dashboard-customise">
+              ▦ Anpassen
+            </button>
+          )}
           {tents.length > 1 && (
             <select
               className="ls-tent-select"
@@ -112,9 +144,35 @@ export function LiveScreen({
       )}
 
       {/* ---------- Messwerte ---------- */}
+      {dashboard?.editing && (
+        <DashboardEditorBar
+          layout={dashboard.layout}
+          onChange={dashboard.onChange}
+          onSave={dashboard.onSave}
+          onReset={dashboard.onReset}
+          onClose={dashboard.onToggleEditing}
+          saving={dashboard.saving}
+          dirty={dashboard.dirty}
+          warning={dashboard.warning}
+        />
+      )}
+
       <section className="ls-metrics">
-        <MetricBand title="Klima" metrics={climate} />
-        <MetricBand title="Hydroponik · Nährlösung" metrics={hydro} />
+        {eigeneAnordnung && dashboard ? (
+          <DashboardBands
+            layout={dashboard.layout}
+            metricsByKey={metricsByKey}
+            entityValues={dashboard.entityValues}
+            trends={trends}
+            editing={dashboard.editing}
+            onChange={dashboard.onChange}
+          />
+        ) : (
+          <>
+            <MetricBand title="Klima" metrics={climate} trends={trends} />
+            <MetricBand title="Hydroponik · Nährlösung" metrics={hydro} trends={trends} />
+          </>
+        )}
       </section>
 
       {/* ---------- Kamera · Risiko · Aufgaben ---------- */}
@@ -216,7 +274,7 @@ export function LiveScreen({
 }
 
 /** Eine beschriftete Reihe Messwerte mit Haarlinie bis zum Rand. */
-function MetricBand({ title, metrics }: { title: string; metrics: MetricPayload[] }) {
+function MetricBand({ title, metrics, trends }: { title: string; metrics: MetricPayload[]; trends: Map<string, HistoryPoint[]> }) {
   if (metrics.length === 0) return null
   return (
     <>
@@ -236,6 +294,7 @@ function MetricBand({ title, metrics }: { title: string; metrics: MetricPayload[
             decimals={decimalsForMetric(metric.key)}
             display={metric.numericValue == null && metric.value !== '–' ? metric.value : undefined}
             footer={metric.targetMin == null && metric.targetMax == null ? (metric.hint ?? undefined) : undefined}
+            trend={trends.get(metric.key)}
           />
         ))}
       </div>

@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { GrowSummary, RiskEventDto, TentDto, TentLivePayload } from '../types'
-import { LiveScreen, type LiveTask } from '../features/live/LiveScreen'
+import { LiveScreen, type DashboardPanel, type LiveTask } from '../features/live/LiveScreen'
+import { useTentDashboard } from '../features/live/useTentDashboard'
+import { useTentSparklines } from '../features/live/useTentSparklines'
+import { layoutIsEmpty, seedLayout, type DashboardLayout } from '../features/live/dashboard-layout'
 import { buildPhaseTimeline } from '../features/grows/phase-timeline'
 import '../features/live/live-screen.css'
 import { V1Skeleton } from '../components/v1'
@@ -28,6 +31,14 @@ function LiveDashboardPage() {
   // Live, weil frische Zahlen eines Zelts verdecken, dass ein anderes dunkel
   // ist. Nur Probleme erscheinen; „alles wach" wäre Dauerrauschen.
   const [systemWarning, setSystemWarning] = useState<{ headline: string; detail: string } | null>(null)
+  // Anpassen-Modus: der Entwurf lebt hier, gespeichert wird erst auf Knopfdruck.
+  // Entwurf und Modus tragen ihr Zelt bei sich, statt beim Zeltwechsel per
+  // Effekt geleert zu werden — abgeleitet statt nachgezogen, das kann nicht
+  // aus dem Tritt geraten.
+  const [draft, setDraft] = useState<{ tentId: number; layout: DashboardLayout } | null>(null)
+  const [editingTentId, setEditingTentId] = useState<number | null>(null)
+  const [savingLayout, setSavingLayout] = useState(false)
+  const [layoutWarning, setLayoutWarning] = useState<string | null>(null)
 
   // Mirror the latest committed state so a background refresh can fall back to the
   // last good data instead of blanking out when a request fails transiently.
@@ -119,6 +130,11 @@ function LiveDashboardPage() {
   const hydroMetrics = hydroAlle.filter((metric) =>
     !metric.key.startsWith('reservoir-level') || metric.key === fuellstandKey)
   const lightMetric = findMetric(live?.metrics ?? [], ['light-cycle', 'ppfd'])
+  // Was im Klima-Band wirklich steht — Licht haengt hinten dran. Der
+  // Anpassen-Modus saet daraus, damit beim Umschalten nichts erscheint oder
+  // verschwindet, was vorher nicht da war.
+  const climateForScreen = climateMetrics.concat(
+    lightMetric ? [{ ...lightMetric, label: lightMetric.key === 'ppfd' ? 'PPFD' : 'Licht' }] : [])
   const hasHydroGrow = primaryGrow ? primaryGrow.hydroStyle === 'DWC' || primaryGrow.hydroStyle === 'RDWC' : false
   const risksForContext = state.risks
     .filter((risk) => risk.status === 'Open' || risk.status === 'Acknowledged')
@@ -176,6 +192,98 @@ function LiveDashboardPage() {
   }
 
   const timeline = buildPhaseTimeline(primaryGrow)
+
+  // --- Eigene Anordnung + Verlaufskurven ------------------------------------
+
+  const { layout, entityValues, reload: reloadLayout } = useTentDashboard(selectedTent?.id ?? null)
+  const trends = useTentSparklines(selectedTent?.id ?? null)
+
+  // Ein Entwurf des vorigen Zelts gilt nach dem Umschalten nicht mehr.
+  const activeDraft = draft && draft.tentId === selectedTent?.id ? draft.layout : null
+  const editing = editingTentId != null && editingTentId === selectedTent?.id
+
+  // Das Layout, das gerade gilt: der Entwurf im Anpassen-Modus, sonst das
+  // Gespeicherte. Ohne beides zeichnet der Bildschirm seine festen Reihen.
+  const shownLayout = activeDraft ?? layout
+
+  const dashboardPanel: DashboardPanel | null = useMemo(() => {
+    if (!selectedTent || !shownLayout) return null
+    return {
+      layout: shownLayout,
+      entityValues,
+      editing,
+      saving: savingLayout,
+      dirty: activeDraft != null,
+      warning: layoutWarning,
+      onChange: (next) => { setDraft({ tentId: selectedTent.id, layout: next }); setLayoutWarning(null) },
+      onSave: () => void speichern(),
+      onReset: () => void zuruecksetzen(),
+      onToggleEditing: () => {
+        if (editing) {
+          // „Fertig": ein nicht gespeicherter Entwurf wird verworfen, nicht
+          // stillschweigend behalten — sonst zeigt die Seite etwas an, das
+          // nirgends steht.
+          setDraft(null)
+          setEditingTentId(null)
+          setLayoutWarning(null)
+          return
+        }
+        // Beim Einstieg genau das übernehmen, was gerade auf dem Schirm steht.
+        setDraft({
+          tentId: selectedTent.id,
+          layout: shownLayout.isCustom
+            ? shownLayout
+            : seedLayout(selectedTent.id, [
+              { title: 'Klima', metrics: climateForScreen },
+              { title: 'Hydroponik · Nährlösung', metrics: hydroMetrics },
+            ]),
+        })
+        setEditingTentId(selectedTent.id)
+      },
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTent, shownLayout, entityValues, editing, savingLayout, activeDraft, layoutWarning, climateForScreen, hydroMetrics])
+
+  async function speichern() {
+    if (!selectedTent || !activeDraft) return
+    if (layoutIsEmpty(activeDraft)) {
+      // Der Server wirft ein leeres Layout weg und liefert den Standard — das
+      // sähe aus, als wäre das Speichern fehlgeschlagen. Lieber vorher sagen.
+      setLayoutWarning('Mindestens eine Kachel muss stehen bleiben — sonst gibt es nichts anzuzeigen.')
+      return
+    }
+    setSavingLayout(true)
+    setLayoutWarning(null)
+    try {
+      await apiFetch<DashboardLayout>(`/api/tents/${selectedTent.id}/dashboard`, {
+        method: 'PUT',
+        body: JSON.stringify({ tentId: selectedTent.id, sections: activeDraft.sections }),
+      })
+      setDraft(null)
+      setEditingTentId(null)
+      reloadLayout()
+    } catch (caught) {
+      setLayoutWarning(formatApiError(caught, 'Anordnung konnte nicht gespeichert werden.'))
+    } finally {
+      setSavingLayout(false)
+    }
+  }
+
+  async function zuruecksetzen() {
+    if (!selectedTent) return
+    setSavingLayout(true)
+    setLayoutWarning(null)
+    try {
+      await apiFetch(`/api/tents/${selectedTent.id}/dashboard`, { method: 'DELETE' })
+      setDraft(null)
+      setEditingTentId(null)
+      reloadLayout()
+    } catch (caught) {
+      setLayoutWarning(formatApiError(caught, 'Zurücksetzen fehlgeschlagen.'))
+    } finally {
+      setSavingLayout(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -241,7 +349,7 @@ function LiveDashboardPage() {
       grow={primaryGrow}
       score={score}
       scoreParts={scoreParts}
-      climate={climateMetrics.concat(lightMetric ? [{ ...lightMetric, label: lightMetric.key === 'ppfd' ? 'PPFD' : 'Licht' }] : [])}
+      climate={climateForScreen}
       hydro={hydroMetrics}
       sensorsLive={sensorsLive}
       lastMeasurement={lastMeasurement}
@@ -255,6 +363,8 @@ function LiveDashboardPage() {
       plantLine={plantLine}
       tents={state.tents}
       systemWarning={systemWarning}
+      trends={trends}
+      dashboard={dashboardPanel}
       onTent={setSelectedTentId}
       onRefresh={() => setRefresh((current) => current + 1)}
     />

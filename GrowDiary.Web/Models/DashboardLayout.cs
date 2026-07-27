@@ -47,7 +47,21 @@ public sealed class DashboardSection
 /// <summary>A tent's dashboard arrangement. Absent = the built-in default is used.</summary>
 public sealed class DashboardLayout
 {
+    /// <summary>
+    /// What the editor that wrote this layout looked like.
+    /// </summary>
+    /// <remarks>
+    /// Layouts written before the Live screen was rebuilt (version 0) are not revived:
+    /// they were arranged against a different screen, are missing everything added since,
+    /// and some hold camera tiles the screen no longer has a place for — the camera now
+    /// has its own stage. Reviving one on update would silently take values off someone's
+    /// dashboard. They are kept, not deleted; the moment the user arranges anything, the
+    /// layout is rewritten at the current version.
+    /// </remarks>
+    public const int CurrentVersion = 2;
+
     public int TentId { get; set; }
+    public int Version { get; set; }
     public List<DashboardSection> Sections { get; set; } = [];
 
     [JsonIgnore]
@@ -60,6 +74,7 @@ public sealed class DashboardLayout
     public static DashboardLayout Default(int tentId) => new()
     {
         TentId = tentId,
+        Version = CurrentVersion,
         Sections =
         [
             new DashboardSection

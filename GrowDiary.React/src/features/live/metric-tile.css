@@ -60,6 +60,17 @@
   /* Wert ausserhalb der Skala: der Marker liegt am Anschlag und sagt das auch. */
   .gos-metric-scale .mark.clamped { height: 9px; top: -3px; width: 3px; }
 
+  /* Die 24-h-Kurve steht anstelle des Zielbands — gleiche Stelle, mehr Aussage:
+     „zu hoch" sagt nicht, ob der Wert gerade steigt oder schon wieder faellt.
+     Die Farbe kommt vom Status der Kachel, nicht zusaetzlich vom Diagramm. */
+  .gos-metric-spark { margin-top: 7px; color: var(--accent); }
+  .gos-metric.is-warn .gos-metric-spark { color: var(--warn); }
+  .gos-metric.is-crit .gos-metric-spark { color: var(--danger); }
+  /* Ohne Zielbereich ist die Kurve die einzige Auskunft der Kachel — sie darf
+     dann nicht die blasseste Linie im Bild sein. Gedeckt, aber lesbar: es gibt
+     hier nichts zu bewerten, nur etwas zu zeigen. */
+  .gos-metric.is-unknown .gos-metric-spark { color: var(--muted); }
+
   .gos-metric-target { margin-top: 6px; font: 400 10px/1 var(--font-mono); color: var(--faint); }
   .gos-metric-stale { margin-top: 3px; font: 400 10px/1 var(--font-mono); color: var(--warn-text); }
 }

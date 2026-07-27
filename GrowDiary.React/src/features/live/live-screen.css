@@ -72,6 +72,115 @@
   .ls-syswarn-text { font: 400 12.5px/1.5 var(--font-sans); }
   .ls-syswarn-text strong { font-weight: 600; }
 
+  /* ---------- Anpassen-Modus ----------
+     Der Umbau ist ein eigener Zustand, kein Nebenher: die Leiste faerbt sich
+     im Akzent, damit sofort klar ist, dass Ziehen jetzt etwas bewirkt. */
+  .ls-editbar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 10px 13px;
+    border: 1px solid var(--accent); border-radius: var(--r);
+    background: var(--accent-wash);
+  }
+  .ls-editbar .ls-label { color: var(--accent-text); }
+  .ls-editbar-spacer { flex: 1; }
+  .ls-editbar-warn {
+    margin: 0; padding: 8px 13px;
+    border-left: 2px solid var(--warn); background: var(--warn-wash);
+    border-radius: 0 8px 8px 0;
+    font: 400 12px/1.5 var(--font-sans); color: var(--ink);
+  }
+  .ls-btn.is-ghost { border-style: dashed; color: var(--muted); }
+
+  .ls-band { display: contents; }
+  .ls-band-label.is-editing { gap: 8px; }
+  /* Breit genug fuer „Hydroponik · Naehrloesung": ein abgeschnittener Name
+     sieht aus wie ein Fehler, und umbenennen kann man nur, was man liest. */
+  .ls-band-rename {
+    background: transparent; border: 1px dashed var(--hair-2); border-radius: 6px;
+    color: var(--ink); font: 500 10px/1 var(--font-mono); letter-spacing: .18em;
+    padding: 6px 8px; text-transform: uppercase;
+    flex: 0 1 320px; min-width: 150px;
+  }
+  .ls-band-rename:focus-visible { border-color: var(--accent); outline: none; }
+
+  /* Die Kachel im Anpassen-Modus: Griff und × liegen ueber ihr, damit die
+     Kachel selbst unveraendert bleibt — man soll sehen, was man verschiebt. */
+  .ls-tile-slot { position: relative; display: flex; min-width: 0; }
+  .ls-tile-slot > .gos-metric { flex: 1 1 auto; }
+  .ls-tile-slot.is-draggable { cursor: grab; }
+  .ls-tile-slot.is-draggable:active { cursor: grabbing; }
+  .gos-metric-row.is-editing { border-style: dashed; border-color: var(--hair-2); }
+  /* Platz fuer Griff UND × zusammen: mit 36px stiess bei schmalen Kacheln der
+     Status („daneben") noch ins Kreuz. */
+  .gos-metric-row.is-editing .gos-metric-head { padding-right: 48px; }
+
+  .ls-tile-tools {
+    position: absolute; top: 8px; right: 8px; z-index: 1;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ls-tile-tools .dots { color: var(--hint); font: 500 12px/1 var(--font-mono); letter-spacing: -1px; }
+  .ls-tile-tools .x {
+    display: grid; place-items: center; width: 18px; height: 18px; padding: 0;
+    border: 1px solid var(--hair-2); border-radius: 50%;
+    background: var(--bg); color: var(--muted);
+    font: 500 11px/1 var(--font-mono); cursor: pointer;
+  }
+  .ls-tile-tools .x:hover { border-color: var(--danger); color: var(--danger); }
+
+  .ls-dropzone {
+    flex: 1 1 150px; margin: -1px 0 0 -1px; min-height: 92px;
+    border: 1px dashed var(--hair-2); border-radius: 10px;
+    display: grid; place-items: center; text-align: center;
+    color: var(--hint); font: 400 10.5px/1.5 var(--font-mono);
+  }
+
+  /* ---------- Kachel hinzufuegen ---------- */
+  .ls-dialog-backdrop {
+    position: fixed; inset: 0; z-index: 50;
+    display: grid; place-items: center; padding: 20px;
+    background: rgba(2, 5, 4, .72);
+  }
+  .ls-dialog {
+    width: min(520px, 100%); max-height: min(78vh, 640px);
+    display: grid; gap: 12px; grid-template-rows: auto auto 1fr;
+    padding: 16px; border: 1px solid var(--hair-2); border-radius: var(--r-lg);
+    background: var(--panel-2);
+  }
+  .ls-dialog-head { display: flex; align-items: center; gap: 12px; }
+  .ls-dialog-head strong { font: 600 14px/1.3 var(--font-mono); flex: 1; }
+  .ls-dialog-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .ls-dialog-field { display: grid; gap: 5px; min-width: 140px; }
+  .ls-dialog-field.is-grow { flex: 1; }
+  .ls-dialog-field > span { font: 500 9.5px/1 var(--font-mono); letter-spacing: .16em; color: var(--faint); text-transform: uppercase; }
+  .ls-dialog-field select,
+  .ls-dialog-field input {
+    min-height: 34px; padding: 0 10px;
+    border: 1px solid var(--hair-2); border-radius: 8px;
+    background: var(--sunk); color: var(--ink); font: 400 12px/1 var(--font-mono);
+  }
+  .ls-dialog-body { overflow-y: auto; display: grid; gap: 5px; align-content: start; }
+  .ls-dialog-cap {
+    position: sticky; top: 0; z-index: 1;
+    padding: 8px 0 4px; background: var(--panel-2);
+    font: 500 9.5px/1 var(--font-mono); letter-spacing: .16em; color: var(--faint); text-transform: uppercase;
+  }
+  .ls-dialog-empty { margin: 0; padding: 6px 2px; color: var(--faint); font-size: 12px; }
+  .ls-pick {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    min-height: 38px; padding: 8px 11px; text-align: left;
+    border: 1px solid var(--hair); border-radius: 8px;
+    background: var(--sunk); color: var(--muted);
+    font: 400 12px/1.3 var(--font-mono); cursor: pointer;
+  }
+  .ls-pick:hover { border-color: var(--accent); color: var(--ink); }
+  .ls-pick .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--hint); flex: 0 0 auto; }
+  .ls-pick:hover .dot { background: var(--accent); }
+  .ls-pick-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ls-pick-tag {
+    flex: 0 0 auto; padding: 2px 7px; border: 1px solid var(--info); border-radius: 999px;
+    color: var(--info); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase;
+  }
+
   /* ---------- Knöpfe ---------- */
   .ls-btn {
     display: inline-flex; align-items: center; justify-content: center;

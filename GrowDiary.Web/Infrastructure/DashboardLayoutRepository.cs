@@ -21,7 +21,14 @@ public sealed class DashboardLayoutRepository : RepositoryBase
     }
 
     /// <summary>The saved layout, or the built-in default when the tent has none.</summary>
-    public DashboardLayout Get(int tentId)
+    public DashboardLayout Get(int tentId) => GetSaved(tentId) ?? DashboardLayout.Default(tentId);
+
+    /// <summary>
+    /// Only what the user actually arranged — null when nothing is stored, or when what
+    /// is stored is unusable. The caller can then tell "this tent was customised" from
+    /// "this is what we ship", which the merged <see cref="Get"/> hides.
+    /// </summary>
+    public DashboardLayout? GetSaved(int tentId)
     {
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
@@ -31,7 +38,7 @@ public sealed class DashboardLayoutRepository : RepositoryBase
 
         if (string.IsNullOrWhiteSpace(raw))
         {
-            return DashboardLayout.Default(tentId);
+            return null;
         }
 
         try
@@ -39,7 +46,14 @@ public sealed class DashboardLayoutRepository : RepositoryBase
             var layout = JsonSerializer.Deserialize<DashboardLayout>(raw, Json);
             if (layout is null || layout.IsEmpty)
             {
-                return DashboardLayout.Default(tentId);
+                return null;
+            }
+
+            // Zu alt zum Wiederbeleben — siehe DashboardLayout.CurrentVersion. Der
+            // Eintrag bleibt stehen; er wird beim naechsten Speichern ueberschrieben.
+            if (layout.Version < DashboardLayout.CurrentVersion)
+            {
+                return null;
             }
 
             layout.TentId = tentId;
@@ -48,12 +62,15 @@ public sealed class DashboardLayoutRepository : RepositoryBase
         catch (JsonException)
         {
             // A corrupt preference must never take the dashboard down.
-            return DashboardLayout.Default(tentId);
+            return null;
         }
     }
 
     public void Save(DashboardLayout layout)
     {
+        // Gespeichert wird immer auf dem heutigen Stand — was hier landet, kam aus
+        // dem heutigen Editor.
+        layout.Version = DashboardLayout.CurrentVersion;
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """

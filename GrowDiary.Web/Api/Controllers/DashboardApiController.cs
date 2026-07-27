@@ -39,7 +39,8 @@ public sealed class DashboardApiController : ApiControllerBase
             return NotFoundError("tent_not_found", $"Zelt mit Id {tentId} existiert nicht.");
         }
 
-        return Ok(ToDto(_layouts.Get(tentId)));
+        var saved = _layouts.GetSaved(tentId);
+        return Ok(ToDto(saved ?? DashboardLayout.Default(tentId), isCustom: saved is not null));
     }
 
     [HttpPut("{tentId:int}/dashboard")]
@@ -63,6 +64,10 @@ public sealed class DashboardApiController : ApiControllerBase
                     Title = string.IsNullOrWhiteSpace(section.Title) ? "Bereich" : section.Title.Trim(),
                     Tiles = (section.Tiles ?? [])
                         .Where(tile => !string.IsNullOrWhiteSpace(tile.MetricKey) || !string.IsNullOrWhiteSpace(tile.EntityId))
+                        // Kameras haben auf dem Live-Bildschirm ihre eigene Bühne mit
+                        // Umschaltleiste. Als Kachel daneben wären sie dasselbe Bild
+                        // ein zweites Mal, nur kleiner.
+                        .Where(tile => !string.Equals(tile.Kind, nameof(DashboardTileKind.Camera), StringComparison.OrdinalIgnoreCase))
                         .Select(tile => new DashboardTile
                         {
                             Id = string.IsNullOrWhiteSpace(tile.Id) ? Guid.NewGuid().ToString("N")[..8] : tile.Id,
@@ -81,7 +86,7 @@ public sealed class DashboardApiController : ApiControllerBase
         };
 
         _layouts.Save(layout);
-        return Ok(ToDto(_layouts.Get(tentId)));
+        return Ok(ToDto(_layouts.Get(tentId), isCustom: true));
     }
 
     /// <summary>Restores the built-in arrangement.</summary>
@@ -90,7 +95,7 @@ public sealed class DashboardApiController : ApiControllerBase
     public ActionResult<DashboardLayoutDto> Reset(int tentId)
     {
         _layouts.Reset(tentId);
-        return Ok(ToDto(DashboardLayout.Default(tentId)));
+        return Ok(ToDto(DashboardLayout.Default(tentId), isCustom: false));
     }
 
     /// <summary>
@@ -128,12 +133,13 @@ public sealed class DashboardApiController : ApiControllerBase
         return Ok(values);
     }
 
-    private static DashboardLayoutDto ToDto(DashboardLayout layout) => new(
+    private static DashboardLayoutDto ToDto(DashboardLayout layout, bool isCustom) => new(
         layout.TentId,
         layout.Sections.Select(section => new DashboardSectionDto(
             section.Id,
             section.Title,
             section.Tiles.Select(tile => new DashboardTileDto(
                 tile.Id, tile.Kind.ToString(), tile.MetricKey, tile.EntityId, tile.Label, tile.Unit, tile.Span)).ToList()
-        )).ToList());
+        )).ToList(),
+        isCustom);
 }

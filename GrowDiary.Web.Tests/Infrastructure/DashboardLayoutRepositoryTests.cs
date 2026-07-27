@@ -134,6 +134,76 @@ public sealed class DashboardLayoutRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void GetSaved_TellsCustomisedFromShipped()
+    {
+        // The screen needs this distinction: without a saved layout it draws its own
+        // built-in arrangement, which knows things a stored layout cannot.
+        Assert.Null(_repository.GetSaved(1));
+
+        _repository.Save(new DashboardLayout
+        {
+            TentId = 1,
+            Sections = [new DashboardSection { Title = "Meins", Tiles = [new DashboardTile { MetricKey = "vpd" }] }],
+        });
+
+        Assert.Equal("Meins", Assert.Single(_repository.GetSaved(1)!.Sections).Title);
+
+        _repository.Reset(1);
+        Assert.Null(_repository.GetSaved(1));
+    }
+
+    [Fact]
+    public void GetSaved_TreatsAnEmptySaveAsNoCustomisation()
+    {
+        _repository.Save(new DashboardLayout { TentId = 1, Sections = [] });
+
+        Assert.Null(_repository.GetSaved(1));
+    }
+
+    [Fact]
+    public void LayoutFromBeforeTheRebuild_IsNotRevived()
+    {
+        // Ein Layout aus 1.6.0 wurde gegen einen anderen Bildschirm gebaut. Es
+        // wiederzubeleben nähme dem Nutzer beim Update wortlos Werte weg, die er
+        // seit Monaten sieht. Der Eintrag bleibt liegen, gilt aber nicht.
+        var alt = new DashboardLayout
+        {
+            TentId = 1,
+            Sections = [new DashboardSection { Title = "Kameras", Tiles = [new DashboardTile { MetricKey = "temperature" }] }],
+        };
+        _repository.Save(alt);
+        DowngradeStoredVersion(1);
+
+        Assert.Null(_repository.GetSaved(1));
+        Assert.Equal(2, _repository.Get(1).Sections.Count); // der eingebaute Standard
+    }
+
+    [Fact]
+    public void SavingStampsTheCurrentVersion()
+    {
+        _repository.Save(new DashboardLayout
+        {
+            TentId = 1,
+            Version = 0,
+            Sections = [new DashboardSection { Title = "Meins", Tiles = [new DashboardTile { MetricKey = "vpd" }] }],
+        });
+
+        Assert.Equal(DashboardLayout.CurrentVersion, _repository.GetSaved(1)!.Version);
+    }
+
+    /// <summary>Schreibt die gespeicherte Version zurück — so sah ein 1.6.0-Eintrag aus.</summary>
+    private void DowngradeStoredVersion(int tentId)
+    {
+        var paths = new AppPaths(_dbPath);
+        using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={paths.DatabasePath}");
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE AppSettings SET Value = REPLACE(Value, '\"version\":2', '\"version\":0') WHERE Key = $key;";
+        command.Parameters.AddWithValue("$key", $"dashboard:tent:{tentId}");
+        command.ExecuteNonQuery();
+    }
+
+    [Fact]
     public void LayoutsAreKeptPerTent()
     {
         _repository.Save(new DashboardLayout
