@@ -113,8 +113,10 @@ describe('buildPhaseTimeline', () => {
     const veg = strahl.phases.find((phase) => phase.state === 'current')!
     expect(veg.state).toBe('current')
     expect(veg.label).toBe('Veg · Tag 10 von 15')
-    // Es ist ein gesetztes Datum, kein aus der Dauer errechneter Plan.
-    expect(strahl.flipIsPlanned).toBe(false)
+    // Auch ein festes Datum in der Zukunft liest sich als "geplant" — vorher
+    // stand unter dem Strahl "Geflippt", obwohl der Termin erst kommt.
+    expect(strahl.flipIsPlanned).toBe(true)
+    expect(strahl.daysToFlip).toBe(5)
   })
 
   it('fällt ohne Breeder-Angabe auf acht Wochen zurück', () => {

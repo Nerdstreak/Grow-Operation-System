@@ -5,6 +5,7 @@ import type { CalibrationEventDto, GrowSummary, GrowTaskDto, HardwareItemDto, Ma
 import { V1Alert, V1Page, V1Skeleton } from '../components/v1'
 import { classNames } from '../utils'
 import { RiskActionCard } from '../features/risks/RiskActionCard'
+import { TASKS_CHANGED_EVENT } from '../useNavCounts'
 
 type ActionState = { grows: GrowSummary[]; risks: RiskEventDto[]; tasks: GrowTaskDto[]; maintenance: MaintenanceEventDto[]; calibration: CalibrationEventDto[]; sops: SopInstanceDto[]; hardware: HardwareItemDto[]; issues: string[] }
 const initial: ActionState = { grows: [], risks: [], tasks: [], maintenance: [], calibration: [], sops: [], hardware: [], issues: [] }
@@ -57,6 +58,7 @@ function MobileActionPage() {
     try {
       await apiFetch(`/api/tasks/${taskId}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'Done' }) })
       setNotice(`„${titel}“ erledigt.`)
+      window.dispatchEvent(new Event(TASKS_CHANGED_EVENT))
       setRefresh((current) => current + 1)
     } catch (caught) {
       setNotice(caught instanceof Error ? caught.message : 'Aufgabe konnte nicht abgehakt werden.')

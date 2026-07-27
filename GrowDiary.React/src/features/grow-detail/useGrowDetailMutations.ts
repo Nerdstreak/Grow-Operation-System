@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Dispatch, FormEvent, SetStateAction } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../../api'
+import { TASKS_CHANGED_EVENT } from '../../useNavCounts'
 import type {
   GrowActionResultDto,
   GrowDetail,
@@ -108,6 +109,7 @@ export function useGrowDetailMutations({
       })
       setTaskForm(emptyTaskForm())
       setNotice('Task gespeichert.')
+      window.dispatchEvent(new Event(TASKS_CHANGED_EVENT))
       await loadBundle()
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Aufgabe konnte nicht gespeichert werden.')

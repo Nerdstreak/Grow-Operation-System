@@ -196,6 +196,10 @@ public sealed partial class GrowExportsApiController
             CloneIsRooted = source.CloneIsRooted,
             BreederFlowerWeeksMin = source.BreederFlowerWeeksMin,
             BreederFlowerWeeksMax = source.BreederFlowerWeeksMax,
+            PlannedVegDays = source.PlannedVegDays,
+            // StrainId absichtlich NICHT: die Ziel-Installation hat andere
+            // Sorten-IDs — ein fremder Verweis zeigte auf irgendetwas.
+            // Name und Breeder reisen als Text mit und reichen zum Zuordnen.
             PlantCount = source.PlantCount,
             PhenoNumber = source.PhenoNumber,
             EntryPoint = source.EntryPoint,

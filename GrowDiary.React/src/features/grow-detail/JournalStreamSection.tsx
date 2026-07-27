@@ -66,9 +66,11 @@ export function JournalStreamSection({ growId, entries, measurements, journalFor
     }
     void load()
     return () => controller.abort()
-    // entries.length: nach dem Speichern eines Eintrags lädt der Bundle neu —
-    // dann können auch neue Fotos dazugekommen sein.
-  }, [growId, entries.length])
+    // Auf die Identität des Arrays hören, nicht auf die Länge: nach einem
+    // Foto-Upload lädt der Bundle neu (neues Array), die ANZAHL der Einträge
+    // bleibt aber gleich — mit entries.length blieb der Strom stehen und das
+    // frisch hochgeladene Foto erschien erst nach einem Seitenwechsel.
+  }, [growId, entries])
 
   const stream = useMemo(() => buildJournalStream(entries, photos), [entries, photos])
   const visible = photosOnly ? stream.filter((item) => item.photos.length > 0) : stream

@@ -172,9 +172,12 @@ function StrainsPage() {
   }, [strains, grows, harvestByGrow])
 
   const keeperByStrain = useMemo(() => {
+    // Schlüssel ist die Sorten-ID, wenn der Grow verknüpft ist — der Name nur
+    // als Rückfall für Läufe von vor der Verknüpfung. Sonst verliert eine
+    // umbenannte Sorte ihren Keeper.
     const map = new Map<string, string>()
     for (const { grow, hunt } of hunts) {
-      const strainName = grow.strain?.toLowerCase()
+      const strainName = grow.strainId != null ? `id:${grow.strainId}` : grow.strain?.toLowerCase()
       if (!strainName || map.has(strainName)) continue
       const keeper = hunt.plants.find((plant) => plant.evaluation?.isKeeper)
       if (keeper) map.set(strainName, `${keeper.phenoLabel ?? keeper.label}${keeper.evaluation?.isKeeper ? ' · Keeper' : ''}`)
@@ -312,7 +315,7 @@ function StrainsPage() {
             <div className="co-th">Pheno-Keeper</div>
             {sorted.map((strain) => {
               const stats = statsByStrain.get(strain.name.toLowerCase())
-              const keeper = keeperByStrain.get(strain.name.toLowerCase())
+              const keeper = keeperByStrain.get(`id:${strain.id}`) ?? keeperByStrain.get(strain.name.toLowerCase())
               return (
                 <StrainRow key={strain.id}>
                   <div className="co-td is-name">

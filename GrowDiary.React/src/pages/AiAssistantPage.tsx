@@ -243,6 +243,12 @@ export function AiAssistantPage() {
   const destination: 'none' | 'local' | 'remote' =
     !settings?.isConfigured ? 'none' : preview?.wouldLeaveTheHouse ? 'remote' : 'local'
 
+  // Wechselt der Grow, gehört die Antwort nicht mehr zur Auswahl — stehen
+  // lassen hieße, eine Antwort über Grow A unter Grow B zu zeigen.
+  useEffect(() => {
+    setAntwort(null)
+  }, [growId])
+
   async function fragen() {
     if (growId == null || frage.trim() === '') return
     setFragt(true)

@@ -141,14 +141,6 @@ export function formatGrowHydroMedium(grow: GrowDetail) {
   return grow.mediumDetail ?? grow.mediumType ?? 'Medium offen'
 }
 
-export function formatGrowRuntime(startDate: string | null) {
-  if (!startDate) return '-'
-  const start = new Date(startDate)
-  if (Number.isNaN(start.getTime())) return '-'
-  const days = Math.max(0, Math.floor((Date.now() - start.getTime()) / 86_400_000))
-  return `${days} d`
-}
-
 export function isNotFound(caught: unknown) {
   return caught instanceof ApiRequestError && caught.status === 404
 }

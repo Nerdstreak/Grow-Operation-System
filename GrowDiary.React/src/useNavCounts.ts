@@ -17,9 +17,20 @@ type GrowOption = { id: number; status?: string }
  * Seite — man stellte oben etwas ein und unten passierte nichts. Deshalb ist die
  * Leiste weg und jede Seite wählt selbst.
  */
+export const TASKS_CHANGED_EVENT = 'growos-tasks-changed'
+
 export function useNavCounts(): { addbackDue: boolean; openTasks: number } {
   const [openTasks, setOpenTasks] = useState(0)
   const [addbackDue, setAddbackDue] = useState(false)
+  const [version, setVersion] = useState(0)
+
+  // Abhaken und Anlegen melden sich per Event — sonst zeigte die Leiste die
+  // alte Zahl, bis man die App neu lud.
+  useEffect(() => {
+    const onChange = () => setVersion((current) => current + 1)
+    window.addEventListener(TASKS_CHANGED_EVENT, onChange)
+    return () => window.removeEventListener(TASKS_CHANGED_EVENT, onChange)
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -49,7 +60,7 @@ export function useNavCounts(): { addbackDue: boolean; openTasks: number } {
 
     void load()
     return () => controller.abort()
-  }, [])
+  }, [version])
 
   return { addbackDue, openTasks }
 }

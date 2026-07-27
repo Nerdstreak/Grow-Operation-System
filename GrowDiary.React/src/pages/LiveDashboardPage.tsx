@@ -6,7 +6,7 @@ import { LiveScreen, type DashboardPanel, type LiveTask } from '../features/live
 import { useTentDashboard } from '../features/live/useTentDashboard'
 import { useTentSparklines } from '../features/live/useTentSparklines'
 import { layoutIsEmpty, seedLayout, type DashboardLayout } from '../features/live/dashboard-layout'
-import { buildPhaseTimeline } from '../features/grows/phase-timeline'
+import { buildPhaseTimeline, currentPhaseLabel } from '../features/grows/phase-timeline'
 import '../features/live/live-screen.css'
 import { V1Skeleton } from '../components/v1'
 import {
@@ -165,13 +165,15 @@ function LiveDashboardPage() {
       ? `Alle ${bewertbar.length} bewerteten Werte im Zielband`
       : `${abweichungen.length} ${abweichungen.length === 1 ? 'Wert' : 'Werte'} daneben: ${abweichungen.map((metric) => metric.label).join(', ')}`
 
+  const timeline = buildPhaseTimeline(primaryGrow)
+
   const lastMeasurement = primaryGrow?.latestMeasurementAt
     ? formatTime(primaryGrow.latestMeasurementAt)
     : null
-  const stageLine = primaryGrow
-    ? [primaryGrow.latestStage, growDayLabel(primaryGrow.startDate)]
-      .filter(Boolean).join(' ')
-    : null
+  // Aus dem Zeitstrahl, nicht selbst gerechnet: die eigene Fassung zählte ab
+  // Startdatum (Keimzeit inklusive) und nannte jede Phase so, wie die letzte
+  // Messung hieß — direkt über dem Strahl, der beides richtig macht.
+  const stageLine = primaryGrow ? currentPhaseLabel(timeline) : null
   const plantLine = primaryGrow?.plantCount ? `${primaryGrow.plantCount} Pflanzen` : null
 
   // Heute faellig: was die Watchdog-Risiken und der Addback-Bedarf hergeben.
@@ -199,8 +201,6 @@ function LiveDashboardPage() {
       due: risk.severity === 'Critical',
     })
   }
-
-  const timeline = buildPhaseTimeline(primaryGrow)
 
   // --- Eigene Anordnung + Verlaufskurven ------------------------------------
 
@@ -389,13 +389,7 @@ function formatTime(iso: string): string {
 }
 
 /** „Tag 26" seit dem Start. */
-function growDayLabel(startDate: string | null | undefined): string {
-  if (!startDate) return ''
-  const start = new Date(startDate)
-  if (Number.isNaN(start.getTime())) return ''
-  const days = Math.floor((Date.now() - start.getTime()) / 86_400_000) + 1
-  return days > 0 ? `Tag ${days}` : ''
-}
+
 
 
 export default LiveDashboardPage

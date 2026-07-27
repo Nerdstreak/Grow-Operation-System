@@ -99,10 +99,13 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
     ? new Date(vegStart + grow.plannedVegDays * TAG)
     : null
   const flipFuerRechnung = flip ?? geplanterFlip
-  const flipIsPlanned = flip == null && geplanterFlip != null
+  const inBluete = flip != null && jetzt >= flip.getTime()
+  // Geplant ist alles, was noch nicht passiert ist — auch ein fest gesetztes
+  // Datum in der Zukunft. Vorher stand unter dem Strahl "Geflippt 06.08.",
+  // obwohl der 06.08. erst kommt.
+  const flipIsPlanned = flipFuerRechnung != null && !inBluete
 
   const harvest = flipFuerRechnung ? new Date(flipFuerRechnung.getTime() + bluetetage * TAG) : null
-  const inBluete = flip != null && jetzt >= flip.getTime()
 
   // Alle drei Phasen erscheinen IMMER. Vorher fehlten Keim und Blüte, solange
   // kein Bewurzelungsdatum und kein Flip erfasst war — dann stand da ein
@@ -163,8 +166,8 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
       harvest: shortDate(harvest),
     },
     flipIsPlanned,
-    daysToFlip: flipIsPlanned && geplanterFlip
-      ? Math.round((geplanterFlip.getTime() - jetzt) / TAG)
+    daysToFlip: flipIsPlanned && flipFuerRechnung
+      ? Math.round((flipFuerRechnung.getTime() - jetzt) / TAG)
       : null,
   }
 }
