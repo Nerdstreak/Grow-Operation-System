@@ -1,5 +1,36 @@
 # Changelog
 
+## 2.0.0-beta.7
+
+**Beta.** Grow OS can act, not just watch: dosing pumps — by hand for now.
+
+- New — **Anlage → Dosierung.** Set up a peristaltic pump, tell Grow OS what
+  it doses and which Home Assistant entity switches it, calibrate it, and give
+  a dose at the press of a button. The pump on screen turns for exactly as long
+  as it really runs. Nothing happens on its own yet; the automation follows
+  once the arithmetic and the limits have proven themselves on real tents.
+- New — **calibration**: the pump runs into a measuring cup, you enter what
+  landed in it, and Grow OS knows its ml/min. Without that, millilitres are not
+  a runtime and it refuses rather than assuming a flow rate. A worn tube pumps
+  less than a new one, so the pump carries its own due date.
+- New — **test mode**, to walk the whole thing through without hardware: it
+  computes, waits out the real runtime and logs, but switches nothing. Test
+  doses are marked as such everywhere and never count towards what Grow OS
+  learns — otherwise there would later be a number with no drop behind it.
+- New — **the log records refusals too**, with the reason. Otherwise you are
+  left wondering why nothing happened overnight.
+- Note — the dose is not computed from the concentration. How hard your
+  solution resists a pH change depends on water hardness and nutrients, so
+  Grow OS measures instead of guessing: the first doses you give yourself, and
+  from three of them onward it knows the effect per millilitre in *your*
+  reservoir.
+- Safety — every dose passes hard limits: largest single dose, mixing pause,
+  daily count and volume, and a runtime ceiling. Grow OS switches every
+  configured pump off once at startup, in case a crash left one running. The
+  later automation stays locked until you confirm a Home-Assistant-side
+  auto-off — the only thing that helps if Grow OS dies between on and off.
+
+
 ## 2.0.0-beta.6
 
 **Beta.** The Live screen judges your values again — without waiting for a
