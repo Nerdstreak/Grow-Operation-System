@@ -14,12 +14,20 @@ describe('buildPhaseTimeline', () => {
     expect(buildPhaseTimeline({ startDate: 'kein Datum' }, JETZT).phases).toEqual([])
   })
 
-  it('zeigt ohne geplante Veg-Dauer nur die laufende Phase — ohne ein Ende zu erfinden', () => {
+  it('zeigt immer alle drei Phasen — auch die, für die nichts feststeht', () => {
     const strahl = buildPhaseTimeline({ startDate: vorTagen(20) }, JETZT)
 
-    expect(strahl.phases).toHaveLength(1)
-    expect(strahl.phases[0].label).toBe('Veg · Tag 20')
-    expect(strahl.phases[0].progress).toBeUndefined()
+    // Genau das fehlte: ohne Flip und ohne Plan stand da nur ein Balken „Veg".
+    expect(strahl.phases.map((phase) => phase.label)).toEqual([
+      'Keim · nicht erfasst',
+      'Veg · Tag 20',
+      'Blüte · offen',
+    ])
+    // Unbekannte Dauer heisst days: 0 — die Anzeige gibt dem Abschnitt dann nur
+    // einen schmalen Streifen, statt eine Länge zu behaupten.
+    expect(strahl.phases[0].days).toBe(0)
+    expect(strahl.phases[2].days).toBe(0)
+    expect(strahl.phases[1].progress).toBeUndefined()
     expect(strahl.dates.flip).toBe('—')
     expect(strahl.dates.harvest).toBe('—')
     expect(strahl.daysToFlip).toBeNull()
@@ -50,9 +58,10 @@ describe('buildPhaseTimeline', () => {
     const strahl = buildPhaseTimeline({ startDate: vorTagen(40), plannedVegDays: 28 }, JETZT)
 
     expect(strahl.daysToFlip).toBe(-12)
+    const veg = strahl.phases.find((phase) => phase.state === 'current')!
     // Der Fortschritt bleibt bei 1 stehen statt über den Balken hinauszulaufen.
-    expect(strahl.phases[0].progress).toBe(1)
-    expect(strahl.phases[0].label).toBe('Veg · Tag 40 von 28')
+    expect(veg.progress).toBe(1)
+    expect(veg.label).toBe('Veg · Tag 40 von 28')
   })
 
   it('setzt die Keimphase vor die Veg-Phase, sobald bewurzelt bekannt ist', () => {
@@ -101,7 +110,7 @@ describe('buildPhaseTimeline', () => {
     const strahl = buildPhaseTimeline({ startDate: vorTagen(10), flipDate: inTagen(5) }, JETZT)
 
     // Das Datum steht fest, der Flip ist aber noch nicht passiert: Veg läuft.
-    const veg = strahl.phases[0]
+    const veg = strahl.phases.find((phase) => phase.state === 'current')!
     expect(veg.state).toBe('current')
     expect(veg.label).toBe('Veg · Tag 10 von 15')
     // Es ist ein gesetztes Datum, kein aus der Dauer errechneter Plan.
@@ -116,7 +125,7 @@ describe('buildPhaseTimeline', () => {
   it('ignoriert eine unsinnige Veg-Dauer von null oder weniger', () => {
     const strahl = buildPhaseTimeline({ startDate: vorTagen(10), plannedVegDays: 0 }, JETZT)
     expect(strahl.dates.flip).toBe('—')
-    expect(strahl.phases[0].label).toBe('Veg · Tag 10')
+    expect(strahl.phases.find((phase) => phase.state === 'current')!.label).toBe('Veg · Tag 10')
   })
 })
 

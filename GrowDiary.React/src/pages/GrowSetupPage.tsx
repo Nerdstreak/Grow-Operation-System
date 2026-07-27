@@ -104,7 +104,8 @@ function GrowSetupPage() {
   // warum die sechs Schritte zu einer Seite werden konnten.
   const planInput = {
     plantCount: form.plantCount ?? null,
-    startDate: form.startDate ?? null,
+    // Pflichtfeld mit Regel statt Fehlermeldung: ohne Angabe ist heute Tag 1.
+    startDate: form.startDate || new Date().toISOString().slice(0, 10),
     flipDate: form.flipDate ?? null,
     vegDays: null,
     flowerDays: null,
@@ -172,7 +173,9 @@ function HydroStep({ setups, exactCount, selectedId, onSelect, tent }: { setups:
 }
 
 function TimeStep({ form, patch }: { form: GrowUpsertPayload; patch: (value: Partial<GrowUpsertPayload>) => void }) {
-  return <V1Section title="Zeit"><div className="v1-form-grid grow-form-grid"><V1Field label="Startdatum"><input type="date" value={form.startDate} onChange={(event) => patch({ startDate: event.target.value })} /></V1Field><V1Field label="Startpunkt"><select value={form.entryPoint} onChange={(event) => patch({ entryPoint: event.target.value as GrowEntryPoint })}>{entryPoints.map((value) => <option key={value} value={value}>{value}</option>)}</select></V1Field><V1Field label="Tage in Phase"><input type="number" min="0" value={form.daysAlreadyInPhase ?? ''} onChange={(event) => patch({ daysAlreadyInPhase: toNullableInt(event.target.value) })} /></V1Field>{form.seedType !== 'Autoflower' && (
+  return <V1Section title="Zeit"><div className="v1-form-grid grow-form-grid"><V1Field label="Startdatum *" hint="Tag 1 des Grows — daran haengen Phasen, Tageszaehlung und Zeitstrahl. Leer heisst heute.">
+    <input type="date" required value={form.startDate} onChange={(event) => patch({ startDate: event.target.value })} />
+  </V1Field><V1Field label="Startpunkt"><select value={form.entryPoint} onChange={(event) => patch({ entryPoint: event.target.value as GrowEntryPoint })}>{entryPoints.map((value) => <option key={value} value={value}>{value}</option>)}</select></V1Field><V1Field label="Tage in Phase"><input type="number" min="0" value={form.daysAlreadyInPhase ?? ''} onChange={(event) => patch({ daysAlreadyInPhase: toNullableInt(event.target.value) })} /></V1Field>{form.seedType !== 'Autoflower' && (
     <V1Field label="Veg-Dauer geplant (Tage)" hint={vegHinweis(form)}>
       <input
         type="number" min="1" max="365"

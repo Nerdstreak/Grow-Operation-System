@@ -134,7 +134,7 @@ function GrowDetailPage() {
           <div className="ls-panel-body">
             <div className="ls-timeline">
               {timeline.phases.map((phase) => (
-                <div key={phase.label} className={`ls-phase is-${phase.state}`} style={{ flexGrow: Math.max(1, phase.days) }}>
+                <div key={phase.label} className={`ls-phase is-${phase.state}${phase.days === 0 ? ' is-unknown' : ''}`} style={{ flexGrow: Math.max(1, phase.days) }}>
                   {phase.progress != null && (
                     <i className="ls-phase-fill" style={{ width: `${Math.round(phase.progress * 100)}%` }} aria-hidden="true" />
                   )}

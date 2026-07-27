@@ -170,7 +170,12 @@ public sealed class GrowFormViewModel
             FlipDate = NeedsFlipDate && !string.IsNullOrWhiteSpace(FlipDate) ? DateTime.Parse(FlipDate) : null,
             Nutrients = string.IsNullOrWhiteSpace(Nutrients) ? null : Nutrients.Trim(),
             Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim(),
-            StartDate = DateTime.Parse(StartDate)
+            // Ohne Startdatum ergibt der ganze Grow keinen Sinn: Phasen, Tageszählung
+            // und Zeitstrahl hängen daran. Kommt keins an — leeres Feld, fremder
+            // API-Aufrufer —, ist der Tag des Anlegens Tag 1. Das ist die Regel,
+            // die ein Grower ohnehin im Kopf hat, und besser als ein Fehler oder
+            // ein Grow ohne Zeitachse.
+            StartDate = DateTime.TryParse(StartDate, out var start) ? start : DateTime.Today
         };
 
         // Steckling bereits bewurzelt: RootedAt auf StartDate setzen

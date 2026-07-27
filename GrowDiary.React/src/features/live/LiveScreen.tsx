@@ -178,7 +178,7 @@ export function LiveScreen({
               {timeline.map((phase) => (
                 <div
                   key={phase.label}
-                  className={classNames('ls-phase', `is-${phase.state}`)}
+                  className={classNames('ls-phase', `is-${phase.state}`, phase.days === 0 && 'is-unknown')}
                   style={{ flexGrow: Math.max(1, phase.days) }}
                 >
                   {/* Der Fuellstand zeigt, wo im Plan man heute steht — die

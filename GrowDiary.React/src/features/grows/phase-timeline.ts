@@ -96,15 +96,19 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
   const harvest = flipFuerRechnung ? new Date(flipFuerRechnung.getTime() + bluetetage * TAG) : null
   const inBluete = flip != null && jetzt >= flip.getTime()
 
+  // Alle drei Phasen erscheinen IMMER. Vorher fehlten Keim und Blüte, solange
+  // kein Bewurzelungsdatum und kein Flip erfasst war — dann stand da ein
+  // einzelner Balken „Veg", und wo man im Lauf steckt, war nicht zu sehen.
+  // `days: 0` heißt „Dauer unbekannt": die Anzeige gibt dem Abschnitt dann nur
+  // einen schmalen Streifen, statt eine Länge zu behaupten.
   const phases: Phase[] = []
 
   // ---------- Keim ----------
   if (keimEnde && keimEnde.getTime() > start.getTime()) {
-    phases.push({
-      label: `Keim ${tage(start.getTime(), keimEnde.getTime())} T`,
-      days: tage(start.getTime(), keimEnde.getTime()),
-      state: 'done',
-    })
+    const dauer = tage(start.getTime(), keimEnde.getTime())
+    phases.push({ label: `Keim ${dauer} T`, days: dauer, state: 'done' })
+  } else {
+    phases.push({ label: 'Keim · nicht erfasst', days: 0, state: 'done' })
   }
 
   // ---------- Veg ----------
@@ -133,6 +137,8 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
     })
   } else if (flipFuerRechnung) {
     phases.push({ label: `Blüte ${bluetetage} T geplant`, days: bluetetage, state: 'planned' })
+  } else {
+    phases.push({ label: 'Blüte · offen', days: 0, state: 'planned' })
   }
 
   return {

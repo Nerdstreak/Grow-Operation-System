@@ -92,6 +92,39 @@ public sealed class PlannedVegDaysTests : IDisposable
         Assert.Equal(9, ausListe.BreederFlowerWeeksMax);
     }
 
+    [Fact]
+    public void Macht_den_Tag_des_Anlegens_zu_Tag_1_wenn_kein_Startdatum_kommt()
+    {
+        // Ohne Startdatum haengt der ganze Grow in der Luft: Phasen, Tageszaehlung
+        // und Zeitstrahl rechnen davon aus. Frueher haette ein leeres Feld beim
+        // Parsen geworfen; jetzt gilt die Regel, die ein Grower ohnehin annimmt.
+        var form = new GrowDiary.Web.ViewModels.GrowFormViewModel
+        {
+            Name = "Ohne Datum",
+            TentId = _tent.Id,
+            HydroStyle = HydroStyle.RDWC,
+            StartDate = string.Empty,
+        };
+
+        var grow = form.ToGrow();
+
+        Assert.Equal(DateTime.Today, grow.StartDate.Date);
+    }
+
+    [Fact]
+    public void Behaelt_ein_angegebenes_Startdatum()
+    {
+        var form = new GrowDiary.Web.ViewModels.GrowFormViewModel
+        {
+            Name = "Mit Datum",
+            TentId = _tent.Id,
+            HydroStyle = HydroStyle.RDWC,
+            StartDate = "2026-05-20",
+        };
+
+        Assert.Equal(new DateTime(2026, 5, 20), form.ToGrow().StartDate.Date);
+    }
+
     public void Dispose()
     {
         Environment.SetEnvironmentVariable("GROWDIARY_DB_PATH", null);
