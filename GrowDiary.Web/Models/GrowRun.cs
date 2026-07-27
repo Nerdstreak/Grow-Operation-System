@@ -28,6 +28,12 @@ public sealed class GrowRun
     public GerminationMethod? GerminationMethod { get; set; }
     public string? CloneSource { get; set; }
     public bool CloneIsRooted { get; set; }
+    /// <summary>
+    /// Wie lange vegetativ gewachsen werden soll, in Tagen ab Startdatum.
+    /// Die Absicht, nicht die Beobachtung: daraus ergibt sich der geplante
+    /// Flip-Termin, solange <see cref="FlipDate"/> noch leer ist.
+    /// </summary>
+    public int? PlannedVegDays { get; set; }
     public int? BreederFlowerWeeksMin { get; set; }
     public int? BreederFlowerWeeksMax { get; set; }
     public int? PlantCount { get; set; }

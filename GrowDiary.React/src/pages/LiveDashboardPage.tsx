@@ -243,6 +243,8 @@ function LiveDashboardPage() {
       tasks={tasks}
       timeline={timeline.phases}
       timelineDates={timeline.dates}
+      flipIsPlanned={timeline.flipIsPlanned}
+      daysToFlip={timeline.daysToFlip}
       plantLine={plantLine}
       tents={state.tents}
       onTent={setSelectedTentId}

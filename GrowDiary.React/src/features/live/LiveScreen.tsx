@@ -6,6 +6,7 @@ import { CameraPanel } from './CameraPanel'
 import { TrendWatchPanel } from './TrendWatchPanel'
 import { buildScore } from './live-model'
 import { classNames } from '../../utils'
+import { flipLabel, type Phase } from '../grows/phase-timeline'
 
 /**
  * Der Live-Bildschirm, gebaut nach dem Entwurf des Designers.
@@ -40,8 +41,12 @@ export type LiveScreenProps = {
   stageLine: string | null
   risks: RiskEventDto[]
   tasks: LiveTask[]
-  timeline: { label: string; days: number; state: 'done' | 'current' | 'planned' }[]
+  /** Der geteilte Phasentyp — die Inline-Fassung kannte den Fortschritt nicht. */
+  timeline: Phase[]
   timelineDates: { start: string; flip: string; harvest: string }
+  /** Flip steht nur im Plan; die Beschriftung sagt das dann auch. */
+  flipIsPlanned: boolean
+  daysToFlip: number | null
   plantLine: string | null
   /** Alle Zelte zur Auswahl; erst ab zwei erscheint der Umschalter. */
   tents: TentDto[]
@@ -52,7 +57,7 @@ export type LiveScreenProps = {
 export function LiveScreen({
   tent, grow, score, scoreParts, climate, hydro, sensorsLive,
   lastMeasurement, stageLine, risks, tasks, timeline, timelineDates, plantLine,
-  tents, onTent, onRefresh,
+  flipIsPlanned, daysToFlip, tents, onTent, onRefresh,
 }: LiveScreenProps) {
   const topRisk = risks[0] ?? null
 
@@ -176,14 +181,19 @@ export function LiveScreen({
                   className={classNames('ls-phase', `is-${phase.state}`)}
                   style={{ flexGrow: Math.max(1, phase.days) }}
                 >
-                  {phase.label}
+                  {/* Der Fuellstand zeigt, wo im Plan man heute steht — die
+                      Balkenbreite allein sagt nur, wie lang die Phase ist. */}
+                  {phase.progress != null && (
+                    <i className="ls-phase-fill" style={{ width: `${Math.round(phase.progress * 100)}%` }} aria-hidden="true" />
+                  )}
+                  <span>{phase.label}</span>
                 </div>
               ))}
             </div>
             <div className="ls-timeline-dates">
               <span>Start {timelineDates.start}</span>
-              <span>Flip geplant {timelineDates.flip}</span>
-              <span>Ernte ~{timelineDates.harvest}</span>
+              <span className={daysToFlip != null && daysToFlip < 0 ? 'is-due' : undefined}>{flipLabel(flipIsPlanned, daysToFlip, timelineDates.flip)}</span>
+              <span>{timelineDates.harvest === '\u2014' ? 'Ernte offen' : `Ernte ~${timelineDates.harvest}`}</span>
             </div>
           </div>
         </section>

@@ -233,3 +233,13 @@
   /* Geplante Grows tragen die Info-Farbe, wie DAUERHAFT im Entwurf. */
   .ls-pill.is-plan { color: var(--info-text); }
 }
+
+/* Hinweis unter dem Zeitstrahl, wenn kein Plan hinterlegt ist. */
+@layer features {
+  .gd-plan-hint {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .gd-plan-hint .gc-facts { margin: 0; flex: 1 1 260px; min-width: 0; }
+  .gd-plan-hint .ls-btn { margin-left: 0; }
+}

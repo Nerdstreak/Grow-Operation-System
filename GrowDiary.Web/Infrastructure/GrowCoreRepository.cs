@@ -122,7 +122,7 @@ public sealed class GrowCoreRepository : RepositoryBase
                 TentId, SystemId, SetupId, Name, Strain, Breeder, Status, MediumType, FeedingStyle, HydroStyle, MediumDetail,
                 Environment, Light, ContainerSize, ReservoirSize, IrrigationStyle, IrrigationType, WaterSource,
                 SeedType, StartMaterial, GerminationMethod, CloneSource, CloneIsRooted,
-                BreederFlowerWeeksMin, BreederFlowerWeeksMax, PlantCount, PhenoNumber,
+                BreederFlowerWeeksMin, BreederFlowerWeeksMax, PlannedVegDays, PlantCount, PhenoNumber,
                 PropagationMedium, HasChiller, EntryPoint, DaysAlreadyInPhase,
                 AutoflowerDaysSinceGermination, FlipDate, GerminatedAt, RootedAt,
                 Nutrients, Notes, StartDate, EndDate, CreatedAtUtc, UpdatedAtUtc,
@@ -133,7 +133,7 @@ public sealed class GrowCoreRepository : RepositoryBase
                 $tentId, $systemId, $setupId, $name, $strain, $breeder, $status, $mediumType, $feedingStyle, $hydroStyle, $mediumDetail,
                 $environment, $light, $containerSize, $reservoirSize, $irrigationStyle, $irrigationType, $waterSource,
                 $seedType, $startMaterial, $germinationMethod, $cloneSource, $cloneIsRooted,
-                $breederFlowerWeeksMin, $breederFlowerWeeksMax, $plantCount, $phenoNumber,
+                $breederFlowerWeeksMin, $breederFlowerWeeksMax, $plannedVegDays, $plantCount, $phenoNumber,
                 $propagationMedium, $hasChiller, $entryPoint, $daysAlreadyInPhase,
                 $autoflowerDaysSinceGermination, $flipDate, $germinatedAt, $rootedAt,
                 $nutrients, $notes, $startDate, $endDate, $createdAtUtc, $updatedAtUtc,
@@ -180,6 +180,7 @@ public sealed class GrowCoreRepository : RepositoryBase
                 CloneIsRooted = $cloneIsRooted,
                 BreederFlowerWeeksMin = $breederFlowerWeeksMin,
                 BreederFlowerWeeksMax = $breederFlowerWeeksMax,
+                PlannedVegDays = $plannedVegDays,
                 PlantCount = $plantCount,
                 PhenoNumber = $phenoNumber,
                 PropagationMedium = $propagationMedium,
@@ -559,6 +560,7 @@ public sealed class GrowCoreRepository : RepositoryBase
             CloneIsRooted = reader["CloneIsRooted"] is long cr && cr == 1,
             BreederFlowerWeeksMin = reader["BreederFlowerWeeksMin"] is DBNull or null ? null : Convert.ToInt32(reader["BreederFlowerWeeksMin"], CultureInfo.InvariantCulture),
             BreederFlowerWeeksMax = reader["BreederFlowerWeeksMax"] is DBNull or null ? null : Convert.ToInt32(reader["BreederFlowerWeeksMax"], CultureInfo.InvariantCulture),
+            PlannedVegDays = HasColumn(reader, "PlannedVegDays") && reader["PlannedVegDays"] is not (DBNull or null) ? Convert.ToInt32(reader["PlannedVegDays"], CultureInfo.InvariantCulture) : null,
             PlantCount = reader["PlantCount"] is DBNull or null ? null : Convert.ToInt32(reader["PlantCount"], CultureInfo.InvariantCulture),
             PhenoNumber = reader["PhenoNumber"] is DBNull or null ? null : Convert.ToInt32(reader["PhenoNumber"], CultureInfo.InvariantCulture),
             PropagationMedium = reader["PropagationMedium"] is DBNull or null ? null : Enum.TryParse<PropagationMedium>(reader["PropagationMedium"]?.ToString(), out var pm) ? pm : null,
@@ -688,6 +690,7 @@ public sealed class GrowCoreRepository : RepositoryBase
         command.Parameters.AddWithValue("$cloneIsRooted", grow.CloneIsRooted ? 1 : 0);
         command.Parameters.AddWithValue("$breederFlowerWeeksMin", (object?)grow.BreederFlowerWeeksMin ?? DBNull.Value);
         command.Parameters.AddWithValue("$breederFlowerWeeksMax", (object?)grow.BreederFlowerWeeksMax ?? DBNull.Value);
+        command.Parameters.AddWithValue("$plannedVegDays", (object?)grow.PlannedVegDays ?? DBNull.Value);
         command.Parameters.AddWithValue("$plantCount", (object?)grow.PlantCount ?? DBNull.Value);
         command.Parameters.AddWithValue("$phenoNumber", (object?)grow.PhenoNumber ?? DBNull.Value);
         command.Parameters.AddWithValue("$propagationMedium", (object?)grow.PropagationMedium?.ToString() ?? DBNull.Value);

@@ -25,6 +25,10 @@ public sealed record GrowSummaryDto(
     DateTime StartDate,
     DateTime? EndDate,
     DateTime? FlipDate,
+    /// <summary>Geplante Veg-Dauer in Tagen ab Start — daraus der geplante Flip.</summary>
+    int? PlannedVegDays,
+    int? BreederFlowerWeeksMin,
+    int? BreederFlowerWeeksMax,
     DateTime? GerminatedAt,
     DateTime? RootedAt,
     int MeasurementCount,

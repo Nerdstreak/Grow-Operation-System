@@ -17,7 +17,7 @@ const startMaterials: StartMaterial[] = ['Seed', 'Clone']
 function emptyForm(): GrowUpsertPayload {
   return {
     templateId: null, name: '', tentId: null, systemId: null, setupId: null, strain: null, breeder: null, seedType: 'Feminized', startMaterial: 'Seed', germinationMethod: 'PaperTowel',
-    cloneSource: null, cloneIsRooted: false, phenoNumber: null, breederFlowerWeeksMin: null, breederFlowerWeeksMax: null, hydroStyle: 'RDWC', plantCount: null, reservoirSize: null,
+    cloneSource: null, cloneIsRooted: false, phenoNumber: null, breederFlowerWeeksMin: null, breederFlowerWeeksMax: null, plannedVegDays: null, hydroStyle: 'RDWC', plantCount: null, reservoirSize: null,
     containerSize: null, propagationMedium: 'Rockwool', light: null, hasChiller: false, waterSource: 'RO', nutrients: null, startDate: new Date().toISOString().slice(0, 10),
     entryPoint: 'Germination', daysAlreadyInPhase: null, autoflowerDaysSinceGermination: null, flipDate: null, notes: null, status: 'Planning', environment: 'Indoor',
   }
@@ -56,7 +56,7 @@ function GrowSetupPage() {
         setHydroSetups(hydroData.filter((setup) => setup.status === 'Active'))
         setPrograms(knowledge.programs ?? [])
         setOtherGrows(growsData)
-        if (grow) setForm({ ...emptyForm(), name: grow.name, tentId: grow.tentId, systemId: grow.systemId, setupId: grow.setupId, strain: grow.strain, breeder: grow.breeder, seedType: grow.seedType, startMaterial: grow.startMaterial, hydroStyle: grow.hydroStyle, plantCount: grow.plantCount, reservoirSize: grow.reservoirSize, containerSize: grow.containerSize, light: grow.light, hasChiller: grow.hasChiller, waterSource: grow.waterSource, nutrients: grow.nutrients, startDate: grow.startDate, entryPoint: grow.entryPoint, daysAlreadyInPhase: grow.daysAlreadyInPhase, autoflowerDaysSinceGermination: grow.autoflowerDaysSinceGermination, flipDate: grow.flipDate, notes: grow.notes, status: grow.status, environment: grow.environment, germinationMethod: grow.germinationMethod, propagationMedium: grow.propagationMedium, cloneSource: grow.cloneSource, cloneIsRooted: grow.cloneIsRooted, phenoNumber: grow.phenoNumber, breederFlowerWeeksMin: grow.breederFlowerWeeksMin, breederFlowerWeeksMax: grow.breederFlowerWeeksMax })
+        if (grow) setForm({ ...emptyForm(), name: grow.name, tentId: grow.tentId, systemId: grow.systemId, setupId: grow.setupId, strain: grow.strain, breeder: grow.breeder, seedType: grow.seedType, startMaterial: grow.startMaterial, hydroStyle: grow.hydroStyle, plantCount: grow.plantCount, reservoirSize: grow.reservoirSize, containerSize: grow.containerSize, light: grow.light, hasChiller: grow.hasChiller, waterSource: grow.waterSource, nutrients: grow.nutrients, startDate: grow.startDate, entryPoint: grow.entryPoint, daysAlreadyInPhase: grow.daysAlreadyInPhase, autoflowerDaysSinceGermination: grow.autoflowerDaysSinceGermination, flipDate: grow.flipDate, notes: grow.notes, status: grow.status, environment: grow.environment, germinationMethod: grow.germinationMethod, propagationMedium: grow.propagationMedium, cloneSource: grow.cloneSource, cloneIsRooted: grow.cloneIsRooted, phenoNumber: grow.phenoNumber, breederFlowerWeeksMin: grow.breederFlowerWeeksMin, breederFlowerWeeksMax: grow.breederFlowerWeeksMax, plannedVegDays: grow.plannedVegDays })
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatApiError(caught, 'Grow-Wizard konnte nicht geladen werden.'))
       } finally {
@@ -172,7 +172,33 @@ function HydroStep({ setups, exactCount, selectedId, onSelect, tent }: { setups:
 }
 
 function TimeStep({ form, patch }: { form: GrowUpsertPayload; patch: (value: Partial<GrowUpsertPayload>) => void }) {
-  return <V1Section title="Zeit"><div className="v1-form-grid grow-form-grid"><V1Field label="Startdatum"><input type="date" value={form.startDate} onChange={(event) => patch({ startDate: event.target.value })} /></V1Field><V1Field label="Startpunkt"><select value={form.entryPoint} onChange={(event) => patch({ entryPoint: event.target.value as GrowEntryPoint })}>{entryPoints.map((value) => <option key={value} value={value}>{value}</option>)}</select></V1Field><V1Field label="Tage in Phase"><input type="number" min="0" value={form.daysAlreadyInPhase ?? ''} onChange={(event) => patch({ daysAlreadyInPhase: toNullableInt(event.target.value) })} /></V1Field>{form.seedType !== 'Autoflower' && <V1Field label="Flipdatum"><input type="date" value={form.flipDate ?? ''} onChange={(event) => patch({ flipDate: event.target.value || null })} /></V1Field>}<V1Field label="Status"><select value={form.status} onChange={(event) => patch({ status: event.target.value as GrowStatus })}>{statuses.map((value) => <option key={value} value={value}>{value}</option>)}</select></V1Field></div></V1Section>
+  return <V1Section title="Zeit"><div className="v1-form-grid grow-form-grid"><V1Field label="Startdatum"><input type="date" value={form.startDate} onChange={(event) => patch({ startDate: event.target.value })} /></V1Field><V1Field label="Startpunkt"><select value={form.entryPoint} onChange={(event) => patch({ entryPoint: event.target.value as GrowEntryPoint })}>{entryPoints.map((value) => <option key={value} value={value}>{value}</option>)}</select></V1Field><V1Field label="Tage in Phase"><input type="number" min="0" value={form.daysAlreadyInPhase ?? ''} onChange={(event) => patch({ daysAlreadyInPhase: toNullableInt(event.target.value) })} /></V1Field>{form.seedType !== 'Autoflower' && (
+    <V1Field label="Veg-Dauer geplant (Tage)" hint={vegHinweis(form)}>
+      <input
+        type="number" min="1" max="365"
+        value={form.plannedVegDays ?? ''}
+        placeholder="z. B. 28"
+        onChange={(event) => patch({ plannedVegDays: toNullableInt(event.target.value) })}
+      />
+    </V1Field>
+  )}{form.seedType !== 'Autoflower' && <V1Field label="Flipdatum" hint="Erst ausfüllen, wenn wirklich geflippt wurde."><input type="date" value={form.flipDate ?? ''} onChange={(event) => patch({ flipDate: event.target.value || null })} /></V1Field>}<V1Field label="Status"><select value={form.status} onChange={(event) => patch({ status: event.target.value as GrowStatus })}>{statuses.map((value) => <option key={value} value={value}>{value}</option>)}</select></V1Field></div></V1Section>
+}
+
+/**
+ * Der Termin, der sich aus der geplanten Veg-Dauer ergibt.
+ *
+ * Ohne ihn muesste man im Kopf rechnen -- und genau diese Rechnung macht der
+ * Zeitstrahl spaeter auch. Sie hier zu zeigen ist die Probe darauf.
+ */
+function vegHinweis(form: GrowUpsertPayload): string {
+  if (form.plannedVegDays == null || form.plannedVegDays <= 0) {
+    return 'Leer lassen, wenn du nach Augenmass flippst \u2014 dann zeigt der Zeitstrahl keinen Termin.'
+  }
+  const start = new Date(form.startDate)
+  if (Number.isNaN(start.getTime())) return 'Flip nach dieser Dauer ab Bewurzelung.'
+  const flip = new Date(start.getTime() + form.plannedVegDays * 86_400_000)
+  const datum = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(flip)
+  return `Flip am ${datum}, wenn ab Start gerechnet wird \u2014 mit Bewurzelungsdatum entsprechend spaeter.`
 }
 
 function ProgramStep({ programs, selected, custom, setCustom, patch }: { programs: NutrientProgramDto[]; selected: string; custom: string; setCustom: (value: string) => void; patch: (value: Partial<GrowUpsertPayload>) => void }) {

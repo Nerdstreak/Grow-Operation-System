@@ -23,6 +23,7 @@ public static class RequestMapping
         PhenoNumber = request.PhenoNumber,
         BreederFlowerWeeksMin = request.BreederFlowerWeeksMin,
         BreederFlowerWeeksMax = request.BreederFlowerWeeksMax,
+        PlannedVegDays = request.PlannedVegDays,
         HydroStyle = request.HydroStyle,
         PlantCount = request.PlantCount,
         ReservoirSize = request.ReservoirSize,

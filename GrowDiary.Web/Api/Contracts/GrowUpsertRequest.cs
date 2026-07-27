@@ -23,6 +23,9 @@ public sealed class GrowUpsertRequest
     public int? PhenoNumber { get; set; }
     public int? BreederFlowerWeeksMin { get; set; }
     public int? BreederFlowerWeeksMax { get; set; }
+
+    /// <summary>Geplante Veg-Dauer in Tagen ab Startdatum; leer = kein Plan.</summary>
+    public int? PlannedVegDays { get; set; }
     public HydroStyle HydroStyle { get; set; } = HydroStyle.RDWC;
     public int? PlantCount { get; set; }
     public string? ReservoirSize { get; set; }

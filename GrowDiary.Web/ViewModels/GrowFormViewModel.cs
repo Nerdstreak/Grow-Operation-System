@@ -30,6 +30,12 @@ public sealed class GrowFormViewModel
     public int? BreederFlowerWeeksMin { get; set; }
     public int? BreederFlowerWeeksMax { get; set; }
 
+    /// <summary>
+    /// Geplante Veg-Dauer in Tagen ab Start. Autoflower kennt keinen Flip und
+    /// damit auch keine planbare Veg-Phase — dort bleibt das Feld leer.
+    /// </summary>
+    public int? PlannedVegDays { get; set; }
+
     // Schritt 2 – System
     public HydroStyle HydroStyle { get; set; } = HydroStyle.RDWC;
     public int? PlantCount { get; set; }
@@ -91,6 +97,7 @@ public sealed class GrowFormViewModel
             PhenoNumber = grow.PhenoNumber,
             BreederFlowerWeeksMin = grow.BreederFlowerWeeksMin,
             BreederFlowerWeeksMax = grow.BreederFlowerWeeksMax,
+            PlannedVegDays = grow.PlannedVegDays,
             PlantCount = grow.PlantCount,
             PropagationMedium = grow.PropagationMedium,
             HasChiller = grow.HasChiller,
@@ -153,6 +160,7 @@ public sealed class GrowFormViewModel
             PhenoNumber = PhenoNumber,
             BreederFlowerWeeksMin = IsAutoflower ? null : BreederFlowerWeeksMin,
             BreederFlowerWeeksMax = IsAutoflower ? null : BreederFlowerWeeksMax,
+            PlannedVegDays = IsAutoflower ? null : PlannedVegDays,
             PlantCount = PlantCount,
             PropagationMedium = PropagationMedium,
             HasChiller = HasChiller,

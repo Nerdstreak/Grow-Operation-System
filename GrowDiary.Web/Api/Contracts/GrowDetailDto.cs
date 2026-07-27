@@ -34,6 +34,7 @@ public sealed record GrowDetailDto(
     bool CloneIsRooted,
     int? BreederFlowerWeeksMin,
     int? BreederFlowerWeeksMax,
+    int? PlannedVegDays,
     int? PlantCount,
     int? PhenoNumber,
     int? TentId,

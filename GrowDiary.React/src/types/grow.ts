@@ -39,6 +39,10 @@ export interface GrowSummary {
   startDate: string
   endDate: string | null
   flipDate: string | null
+  /** Geplante Veg-Dauer in Tagen ab Bewurzelung (ohne die: ab Start). */
+  plannedVegDays: number | null
+  breederFlowerWeeksMin: number | null
+  breederFlowerWeeksMax: number | null
   germinatedAt: string | null
   rootedAt: string | null
   measurementCount: number
@@ -193,6 +197,7 @@ export interface GrowDetail {
   cloneIsRooted: boolean
   breederFlowerWeeksMin: number | null
   breederFlowerWeeksMax: number | null
+  plannedVegDays: number | null
   plantCount: number | null
   phenoNumber: number | null
   tentId: number | null
@@ -231,6 +236,7 @@ export interface GrowUpsertPayload {
   phenoNumber: number | null
   breederFlowerWeeksMin: number | null
   breederFlowerWeeksMax: number | null
+  plannedVegDays: number | null
   hydroStyle: HydroStyle
   plantCount: number | null
   reservoirSize: string | null

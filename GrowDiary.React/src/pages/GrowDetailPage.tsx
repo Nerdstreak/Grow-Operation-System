@@ -6,7 +6,7 @@ import { useGrowDetailBundle } from '../features/grow-detail/useGrowDetailBundle
 import { useGrowDetailMutations } from '../features/grow-detail/useGrowDetailMutations'
 import { formatGrowStatus } from '../features/grow-detail/grow-detail-model'
 import { V1Alert, V1Badge, V1Button, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
-import { buildPhaseTimeline } from '../features/grows/phase-timeline'
+import { buildPhaseTimeline, flipLabel } from '../features/grows/phase-timeline'
 import type { GrowDeviationDto } from '../types'
 import { apiFetch } from '../api'
 
@@ -135,16 +135,29 @@ function GrowDetailPage() {
             <div className="ls-timeline">
               {timeline.phases.map((phase) => (
                 <div key={phase.label} className={`ls-phase is-${phase.state}`} style={{ flexGrow: Math.max(1, phase.days) }}>
-                  {phase.label}
+                  {phase.progress != null && (
+                    <i className="ls-phase-fill" style={{ width: `${Math.round(phase.progress * 100)}%` }} aria-hidden="true" />
+                  )}
+                  <span>{phase.label}</span>
                 </div>
               ))}
-              {timeline.phases.length === 0 && <div className="ls-phase is-planned">Kein Startdatum</div>}
+              {timeline.phases.length === 0 && <div className="ls-phase is-planned"><span>Kein Startdatum</span></div>}
             </div>
             <div className="ls-timeline-dates">
               <span>Start {timeline.dates.start}</span>
-              <span>Flip {timeline.dates.flip}</span>
-              <span>Ernte ~{timeline.dates.harvest}</span>
+              <span className={timeline.daysToFlip != null && timeline.daysToFlip < 0 ? 'is-due' : undefined}>
+                {flipLabel(timeline.flipIsPlanned, timeline.daysToFlip, timeline.dates.flip)}
+              </span>
+              <span>{timeline.dates.harvest === '—' ? 'Ernte offen' : `Ernte ~${timeline.dates.harvest}`}</span>
             </div>
+            {/* Ohne Plan bleibt der Strahl offen — dann steht hier, wo man ihn
+                setzt, statt dass drei Striche ohne Erklaerung dastehen. */}
+            {timeline.dates.flip === '—' && (
+              <div className="gd-plan-hint">
+                <p className="gc-facts">Keine Veg-Dauer geplant — ohne sie kann der Strahl keinen Flip- und Erntetermin zeigen.</p>
+                <Link className="ls-btn is-small" to={`/grows/${grow.id}/setup`}>Veg-Dauer eintragen</Link>
+              </div>
+            )}
           </div>
         </section>
 

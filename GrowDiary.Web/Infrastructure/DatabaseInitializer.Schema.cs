@@ -47,6 +47,7 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "Grows", "CloneIsRooted",                  "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "Grows", "BreederFlowerWeeksMin",          "INTEGER NULL");
         EnsureColumn(connection, "Grows", "BreederFlowerWeeksMax",          "INTEGER NULL");
+        EnsureColumn(connection, "Grows", "PlannedVegDays",                 "INTEGER NULL");
         EnsureColumn(connection, "Grows", "PlantCount",                     "INTEGER NULL");
         EnsureColumn(connection, "Grows", "PhenoNumber",                    "INTEGER NULL");
         EnsureColumn(connection, "Grows", "PropagationMedium",              "TEXT NULL");

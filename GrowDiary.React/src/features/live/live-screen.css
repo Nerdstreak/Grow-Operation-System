@@ -161,6 +161,14 @@
     font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  .ls-phase { position: relative; overflow: hidden; }
+  .ls-phase > span { position: relative; z-index: 1; }
+  /* Fuellstand der laufenden Phase: liegt unter der Beschriftung. */
+  .ls-phase-fill {
+    position: absolute; inset: 0 auto 0 0;
+    background: color-mix(in oklch, var(--accent) 30%, transparent);
+  }
+  .ls-phase.is-current .ls-phase-fill { background: color-mix(in oklch, var(--accent-ink) 18%, transparent); }
   .ls-phase.is-done { border: 1px solid var(--hair-2); color: var(--muted); }
   .ls-phase.is-current { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
   .ls-phase.is-planned { border: 1px solid var(--hair); color: var(--faint); }
@@ -168,6 +176,7 @@
     display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
     margin-top: 8px; font: 400 11px/1 var(--font-mono); color: var(--muted);
   }
+  .ls-timeline-dates .is-due { color: var(--warn-text); }
 
   /* ---------- Telefon ---------- */
   @media (max-width: 640px) {
