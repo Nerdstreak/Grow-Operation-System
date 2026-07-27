@@ -496,6 +496,7 @@ function KnowledgePage() {
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [entryKey, setEntryKey] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [listPanel, setListPanel] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -608,16 +609,6 @@ function KnowledgePage() {
   const entries = currentCategory?.entries ?? []
   const selectedEntry = entries.find((e) => e.key === entryKey) ?? entries[0] ?? null
 
-  function openCategory(id: string) {
-    const cat = categories.find((c) => c.id === id)
-    setCategoryId(id)
-    setEntryKey(cat?.entries[0]?.key ?? null)
-    setDetailOpen(false)
-  }
-  function openEntry(key: string) {
-    setEntryKey(key)
-    setDetailOpen(true)
-  }
   function openTarget(target: RefTarget) {
     setQuery('')
     setCategoryId(target.catId)
@@ -628,26 +619,44 @@ function KnowledgePage() {
     const hit = refIndex.get(id)
     if (hit) openTarget(hit)
   }
-  /* Ton je Kategorie — der Entwurf faerbt die Karten-Tags nach Gefahr:
-     Notfall rot, Routine gruen, Zielwerte cyan. */
-  function toneFor(catId: string, entry: Entry): string {
-    if (catId === 'pathogens') return 'danger'
-    if (catId === 'sops') return entry.subtitle === 'Notfall' ? 'danger' : 'accent'
-    if (catId === 'treatments' || catId === 'symptoms') return 'warn'
-    if (catId === 'setpoints' || catId === 'programs') return 'info'
-    if (catId === 'wear') return 'muted'
-    return 'accent'
+  const detailEntry = detailOpen ? selectedEntry : null
+  const detailCategory = currentCategory
+  const totalCount = categories.reduce((sum, cat) => sum + cat.entries.length, 0)
+
+  // ---------- Zone 1 + 2: SOPs, getrennt nach Notfall und Routine ----------
+  const sopsKategorie = categories.find((cat) => cat.id === 'sops') ?? null
+  const notfallSops = sopsKategorie?.entries.filter((entry) => entry.subtitle === 'Notfall') ?? []
+  const routineSops = (sopsKategorie?.entries.filter((entry) => entry.subtitle !== 'Notfall') ?? [])
+    .slice()
+    .sort((a, b) => sopSortRang(a) - sopSortRang(b))
+
+  // ---------- Zone 3: Bibliothek ----------
+  const panels: Array<{ schluessel: string; label: string; ton: string; hinweis: string; eintraege: Array<{ cat: Category; entry: Entry }> }> = [
+    { schluessel: 'symptoms', label: 'Symptome', ton: 'warn', hinweis: 'Symptom → Ursache → Maßnahme' },
+    { schluessel: 'treatments', label: 'Maßnahmen', ton: 'warn', hinweis: 'mit Dosierung & Timing' },
+    { schluessel: 'pathogens', label: 'Pathogene', ton: 'danger', hinweis: 'Risiko & Gegenmaßnahmen' },
+    { schluessel: 'grundlagen', label: 'Grundlagen', ton: 'accent', hinweis: 'verstehen, nicht nachschlagen' },
+    { schluessel: 'setpoints+programs', label: 'Zielwerte & Programme', ton: 'info', hinweis: 'Quelle der Kachel-Ziele' },
+    { schluessel: 'wear', label: 'Verschleiß', ton: 'muted', hinweis: 'Lebensdauer & Austausch' },
+  ].map((panel) => ({
+    ...panel,
+    eintraege: panel.schluessel.split('+').flatMap((id) => {
+      const cat = categories.find((item) => item.id === id)
+      return cat ? cat.entries.map((entry) => ({ cat, entry })) : []
+    }),
+  }))
+
+  const offenesPanel = panels.find((panel) => panel.schluessel === listPanel) ?? null
+
+  function zeigeEintrag(cat: Category, entry: Entry) {
+    setCategoryId(cat.id)
+    setEntryKey(entry.key)
+    setDetailOpen(true)
   }
 
   const gridEntries: Array<{ cat: Category; entry: Entry }> = q
     ? searchResults.map(({ cat, entry }) => ({ cat, entry }))
-    : categoryId == null
-      ? categories.flatMap((cat) => cat.entries.map((entry) => ({ cat, entry })))
-      : (currentCategory ? currentCategory.entries.map((entry) => ({ cat: currentCategory, entry })) : [])
-
-  const totalCount = categories.reduce((sum, cat) => sum + cat.entries.length, 0)
-  const detailEntry = detailOpen ? selectedEntry : null
-  const detailCategory = currentCategory
+    : []
 
   let body: ReactNode
   if (loading) {
@@ -656,7 +665,7 @@ function KnowledgePage() {
     body = (
       <section className="ls-panel" data-audit="knowledge-detail">
         <div className="ls-panel-head">
-          <button type="button" className="ls-btn is-small" style={{ marginLeft: 0 }} onClick={() => setDetailOpen(false)}>← Bibliothek</button>
+          <button type="button" className="ls-btn is-small" style={{ marginLeft: 0 }} onClick={() => setDetailOpen(false)}>← Zurück</button>
         </div>
         <div className="kb-detail">
           {detailEntry.topic && <TopicDetail topic={detailEntry.topic} />}
@@ -664,31 +673,127 @@ function KnowledgePage() {
         </div>
       </section>
     )
-  } else if (gridEntries.length === 0) {
-    body = <p className="gc-facts">Für „{query}“ wurde nichts gefunden.</p>
-  } else {
+  } else if (q) {
+    // ---------- Suche: über alles, als kompakte Zeilen ----------
+    body = gridEntries.length === 0 ? (
+      <p className="gc-facts">Für „{query}" wurde nichts gefunden — durchsucht wurden alle {totalCount} Einträge.</p>
+    ) : (
+      <section className="ls-panel" data-audit="knowledge-search-results">
+        <div className="ls-panel-head">
+          <span className="ls-label">Treffer · {gridEntries.length}</span>
+        </div>
+        {gridEntries.map(({ cat, entry }) => (
+          <button key={`${cat.id}-${entry.key}`} type="button" className="co-row kb-rowbtn" onClick={() => zeigeEintrag(cat, entry)}>
+            <span className={`kb-tag is-${toneFuer(cat.id, entry)}`}>{cat.label}</span>
+            <span className="co-row-text">{entry.title}</span>
+            {entry.preview && <span className="kb-row-preview">{entry.preview}</span>}
+          </button>
+        ))}
+      </section>
+    )
+  } else if (offenesPanel) {
+    // ---------- Ein Bereich komplett, als Zeilen ----------
     body = (
-      <div className="co-grid is-300" data-audit="knowledge-grid">
-        {gridEntries.map(({ cat, entry }) => {
-          const tone = toneFor(cat.id, entry)
-          const guided = cat.id === 'sops' && entry.record != null && Array.isArray(entry.record.steps)
-          return (
-            <div key={`${cat.id}-${entry.key}`} className="kb-card">
-              <span className={`kb-tag is-${tone}`}>{cat.kicker}{entry.subtitle ? ` · ${entry.subtitle}` : ''}</span>
-              <div className="kb-card-title">{entry.title}</div>
-              {entry.preview && <p>{entry.preview}</p>}
-              <button
-                type="button"
-                className={`ls-btn is-small${tone === 'danger' && guided ? ' is-primary' : ''}`}
-                style={{ marginLeft: 0 }}
-                onClick={() => { setCategoryId(cat.id); openEntry(entry.key) }}
-              >
-                {guided ? 'Geführt öffnen' : 'Öffnen'}
+      <section className="ls-panel" data-audit="knowledge-panel-list">
+        <div className="ls-panel-head">
+          <button type="button" className="ls-btn is-small" style={{ marginLeft: 0 }} onClick={() => setListPanel(null)}>← Übersicht</button>
+          <span className="ls-label">{offenesPanel.label} · {offenesPanel.eintraege.length}</span>
+          <span className="ls-panel-meta">{offenesPanel.hinweis}</span>
+        </div>
+        {offenesPanel.eintraege.map(({ cat, entry }) => (
+          <button key={entry.key} type="button" className="co-row kb-rowbtn" onClick={() => zeigeEintrag(cat, entry)}>
+            <span className="co-row-text">{entry.title}</span>
+            <span className="co-row-value is-faint">{zeilenMeta(cat.id, entry)}</span>
+          </button>
+        ))}
+      </section>
+    )
+  } else {
+    // ---------- Übersicht: drei Zonen nach Dringlichkeit ----------
+    body = (
+      <>
+        {/* Zone 1 · Notfall: wenn etwas schiefgeht, sucht niemand. */}
+        <section data-audit="knowledge-emergency">
+          <div className="kb-zone is-danger"><span>Im Notfall</span><i /></div>
+          <div className="co-grid is-300">
+            {notfallSops.map((entry) => (
+              <div key={entry.key} className="kb-card is-danger">
+                <span className="kb-tag is-danger">SOP · Notfall</span>
+                <div className="kb-card-title">{entry.title}</div>
+                {entry.preview && <p>{entry.preview}</p>}
+                <button type="button" className="ls-btn is-small is-dangerfill" style={{ marginLeft: 0 }} onClick={() => sopsKategorie && zeigeEintrag(sopsKategorie, entry)}>
+                  Geführt starten
+                </button>
+              </div>
+            ))}
+            <div className="kb-card">
+              <span className="kb-tag is-warn">Vom Symptom aus</span>
+              <div className="kb-card-title">Ich sehe etwas — was ist das?</div>
+              <p>{panels[0].eintraege.length} Symptome mit Ursachen und passender Maßnahme — von „bräunliche Wurzeln" bis „CalMag-Mangel".</p>
+              <button type="button" className="ls-btn is-small" style={{ marginLeft: 0 }} onClick={() => setListPanel('symptoms')}>
+                Symptome durchsuchen
               </button>
             </div>
-          )
-        })}
-      </div>
+          </div>
+        </section>
+
+        {/* Zone 2 · Abläufe: vergleichbar in einer Tabelle statt elf Karten. */}
+        {routineSops.length > 0 && sopsKategorie && (
+          <section className="ls-panel co-table-wrap" data-audit="knowledge-sops-table">
+            <div className="ls-panel-head">
+              <span className="ls-label">Abläufe · SOPs</span>
+              <span className="ls-panel-meta">geführt, Schritt für Schritt · laufende stehen unter Aufgaben</span>
+            </div>
+            <div className="co-table" style={{ gridTemplateColumns: '1.6fr .7fr .6fr .6fr .5fr' }}>
+              <div className="co-th">Ablauf</div>
+              <div className="co-th">Art</div>
+              <div className="co-th">Dauer</div>
+              <div className="co-th">Schritte</div>
+              <div className="co-th" aria-hidden="true"></div>
+              {routineSops.map((entry) => {
+                const fakten = sopFakten(entry)
+                return (
+                  <SopZeile key={entry.key}>
+                    <div className="co-td is-name">{entry.title}</div>
+                    <div className="co-td is-muted">{fakten.art}</div>
+                    <div className="co-td">{fakten.dauer}</div>
+                    <div className="co-td">{fakten.schritte}</div>
+                    <div className="co-td">
+                      <button type="button" className="ls-btn is-small" style={{ marginLeft: 0 }} onClick={() => zeigeEintrag(sopsKategorie, entry)}>Öffnen</button>
+                    </div>
+                  </SopZeile>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Zone 3 · Bibliothek: Beispiele zeigen, der Rest ist einen Klick weit. */}
+        <section data-audit="knowledge-library">
+          <div className="kb-zone"><span>Bibliothek · Nachschlagen</span><i /></div>
+          <div className="co-grid is-300">
+            {panels.map((panel) => (
+              <div key={panel.schluessel} className="ls-panel">
+                <div className="ls-panel-head">
+                  <span className={`kb-tag is-${panel.ton}`}>{panel.label} · {panel.eintraege.length}</span>
+                  <span className="ls-panel-meta">{panel.hinweis}</span>
+                </div>
+                {panel.eintraege.slice(0, 3).map(({ cat, entry }) => (
+                  <button key={entry.key} type="button" className="co-row kb-rowbtn" onClick={() => zeigeEintrag(cat, entry)}>
+                    <span className="co-row-text">{entry.title}</span>
+                    <span className="co-row-value is-faint">{zeilenMeta(cat.id, entry)}</span>
+                  </button>
+                ))}
+                {panel.eintraege.length > 3 && (
+                  <button type="button" className="co-row kb-rowbtn kb-more" onClick={() => setListPanel(panel.schluessel)}>
+                    Alle {panel.eintraege.length} anzeigen
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      </>
     )
   }
 
@@ -701,32 +806,90 @@ function KnowledgePage() {
           className="kb-search"
           data-audit="knowledge-search"
           value={query}
-          onChange={(event) => { setQuery(event.target.value); setDetailOpen(false) }}
-          placeholder="Suchen: Wurzelfäule, Addback, VPD …"
+          onChange={(event) => { setQuery(event.target.value); setDetailOpen(false); setListPanel(null) }}
+          placeholder="Suchen: Wurzelfäule, Addback, CalMag …"
           aria-label="Wissensbasis durchsuchen"
         />
       }
     >
-      {!loading && !detailEntry && (
-        <div className="co-chips" data-audit="knowledge-chips">
-          <button type="button" className={categoryId == null && !q ? 'co-chip active' : 'co-chip'} onClick={() => { setQuery(''); setCategoryId(null); setDetailOpen(false) }}>
-            Alle · {totalCount}
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              className={cat.id === categoryId && !q ? 'co-chip active' : 'co-chip'}
-              onClick={() => { setQuery(''); openCategory(cat.id) }}
-            >
-              {cat.label} · {cat.entries.length}
-            </button>
-          ))}
-        </div>
-      )}
       {body}
     </V1Page>
   )
+}
+
+/** Nur ein Fragment — die Zellen müssen direkte Grid-Kinder bleiben. */
+function SopZeile({ children }: { children: ReactNode }) {
+  return <>{children}</>
+}
+
+/** Ton je Kategorie — nach Gefahr: Notfall rot, Routine grün, Zielwerte cyan. */
+function toneFuer(catId: string, entry: Entry): string {
+  if (catId === 'pathogens') return 'danger'
+  if (catId === 'sops') return entry.subtitle === 'Notfall' ? 'danger' : 'accent'
+  if (catId === 'treatments' || catId === 'symptoms') return 'warn'
+  if (catId === 'setpoints' || catId === 'programs') return 'info'
+  if (catId === 'wear') return 'muted'
+  return 'accent'
+}
+
+/** Routine zuerst, dann Abläufe, dann Mehrtägiges — und darin nach Aufwand. */
+function sopSortRang(entry: Entry): number {
+  const typ = entry.record ? asStr(entry.record.type) : undefined
+  const gruppe = typ === 'Recurring' ? 0 : typ === 'MultiDay' ? 2 : 1
+  const minuten = entry.record && typeof entry.record.estimatedDurationMinutes === 'number'
+    ? entry.record.estimatedDurationMinutes : 999
+  return gruppe * 10000 + minuten
+}
+
+/** Art, Dauer und Schrittzahl einer SOP — die Spalten der Ablauf-Tabelle. */
+function sopFakten(entry: Entry): { art: string; dauer: string; schritte: string } {
+  const rec = entry.record ?? {}
+  const typ = asStr(rec.type)
+  const art = typ === 'Recurring' ? 'Routine' : typ === 'MultiDay' ? 'Mehrtägig' : 'Ablauf'
+  const tage = typeof rec.durationDays === 'number' ? rec.durationDays : undefined
+  const minuten = typeof rec.estimatedDurationMinutes === 'number' ? rec.estimatedDurationMinutes : undefined
+  const dauer = tage != null ? `${tage} T`
+    : minuten != null ? (minuten >= 90 ? `~${(minuten / 60).toLocaleString('de-DE', { maximumFractionDigits: 1 })} h` : `~${minuten} min`)
+      : '—'
+  const schritte = Array.isArray(rec.steps) ? String(rec.steps.length) : '—'
+  return { art, dauer, schritte }
+}
+
+/**
+ * Die kleine Angabe rechts in einer Bibliothekszeile — je Kategorie das,
+ * was beim Überfliegen hilft: wohin ein Symptom führt, wie riskant ein
+ * Pathogen ist, wie lange ein Teil hält.
+ */
+function zeilenMeta(catId: string, entry: Entry): string {
+  const rec = entry.record ?? {}
+  switch (catId) {
+    case 'symptoms': {
+      if (asStr(rec.treatmentSopId)) return '→ SOP'
+      const massnahmen = asStrArr(rec.suggestedTreatmentIds)
+      return massnahmen ? `→ ${massnahmen.length} Maßnahme${massnahmen.length === 1 ? '' : 'n'}` : 'Diagnose'
+    }
+    case 'treatments':
+      return isRecord(rec.dosage) ? 'Dosierung' : 'Anwendung'
+    case 'pathogens': {
+      if (rec.treatable === false) return 'nicht behandelbar'
+      const risiko = asStr(rec.riskLevel)
+      return risiko === 'High' || risiko === 'Critical' ? 'Risiko hoch' : risiko === 'Medium' ? 'Risiko mittel' : 'Risiko gering'
+    }
+    case 'grundlagen':
+      return 'Guide'
+    case 'setpoints':
+      return 'Zielwerte'
+    case 'programs':
+      return 'Programm'
+    case 'wear': {
+      const tage = typeof rec.expectedLifespanDays === 'number' ? rec.expectedLifespanDays : undefined
+      if (tage != null) return `~${Math.round(tage / 30)} Monate`
+      const pruefung = typeof rec.inspectionIntervalDays === 'number' ? rec.inspectionIntervalDays : undefined
+      return pruefung != null ? `Prüfung ${pruefung} T` : ''
+    }
+    default:
+      return entry.subtitle
+  }
 }
 
 export default KnowledgePage

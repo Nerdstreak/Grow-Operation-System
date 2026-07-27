@@ -34,6 +34,32 @@
   .kb-tag.is-muted { color: var(--faint); }
   .kb-tag.is-danger { color: var(--danger); }
 
+  /* ---------- Zonen-Überschriften ---------- */
+  .kb-zone {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    font: 500 10px/1 var(--font-mono); letter-spacing: .16em; text-transform: uppercase;
+    color: var(--faint);
+  }
+  .kb-zone i { flex: 1; height: 1px; background: var(--hair); }
+  .kb-zone.is-danger span { color: var(--danger); }
+
+  /* Notfall-Karten: roter Rahmen, roter Vollton-Knopf. */
+  .kb-card.is-danger { border-color: var(--danger); background: var(--danger-wash); }
+  .ls-btn.is-dangerfill { border-color: var(--danger); background: var(--danger); color: #140404; font-weight: 600; }
+  .ls-btn.is-dangerfill:hover { color: #140404; opacity: .9; }
+
+  /* Bibliothekszeilen sind Knöpfe — volle Breite, Zelloptik. */
+  .kb-rowbtn {
+    width: 100%; border: 0; background: transparent; color: inherit;
+    text-align: left; cursor: pointer; font: inherit;
+  }
+  .kb-rowbtn:hover { background: var(--accent-wash); }
+  .kb-rowbtn.kb-more { color: var(--accent-text); font-weight: 500; font-size: 12.5px; }
+  .kb-row-preview {
+    margin-left: auto; font: 400 11px/1.4 var(--font-mono); color: var(--faint);
+    max-width: 42ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
   /* ---------- Detailansicht ---------- */
   .kb-detail { padding: 14px 16px 18px; max-width: 76ch; }
   .kb-detail .kk {
