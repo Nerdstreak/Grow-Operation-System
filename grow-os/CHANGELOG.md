@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.0.0-beta.4
+
+**Beta.** The watchdog learned to see each tent on its own.
+
+- Fixed — **one dark tent no longer hides behind another's fresh data.** The
+  watchdog judged "newest reading anywhere", so a tent going silent while a
+  second one kept reporting raised nothing at all. It now keeps a pulse per
+  tent: the push names the dark tent ("Zelt 'Hauptzelt' liefert seit 45
+  Minuten nichts"), and a further tent failing later is a new message instead
+  of being swallowed as a repetition of the old one.
+- New — **the system watch is visible where it matters.** The
+  Systemüberwachung card lists for each tent when its data last arrived, and Live
+  shows a warning strip above the metric tiles whenever monitoring itself has
+  a problem — right where fresh-looking numbers would otherwise lie. Quiet
+  when everything is fine.
+- Fixed — switching cameras could leave the previous camera's image on stage
+  under the new camera's name when the new one delivered nothing.
+- Fixed — picking a different strain in the grow form kept the flowering
+  weeks the previous pick had filled in, as if they were your own numbers.
+
+
 ## 2.0.0-beta.3
 
 **Beta.** One page, rebuilt after real use: the knowledge base.
