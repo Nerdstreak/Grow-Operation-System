@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary, HarvestDto, StrainDominance, StrainDto } from '../types'
-import type { PhenoHuntDto, PhenoPlantDto } from '../types/pheno'
+import type { PhenoHuntDto, PhenoPlantDto, PhenoWeightsDto } from '../types/pheno'
 import { PhenoSheetEditor } from '../features/pheno/PhenoSheetEditor'
 import type { SheetDraft } from '../features/pheno/pheno-sheet-model'
 import { formatNumber } from '../utils'
@@ -92,6 +92,8 @@ function StrainsPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [openPlantId, setOpenPlantId] = useState<number | null>(null)
+  const [weightsOpen, setWeightsOpen] = useState(false)
+  const [weightDraft, setWeightDraft] = useState<PhenoWeightsDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -127,9 +129,13 @@ function StrainsPage() {
           apiFetch<PhenoHuntDto>(`/api/pheno/grows/${grow.id}`, { signal: controller.signal }).catch(() => null),
         ))
         if (controller.signal.aborted) return
-        setHunts(running
+        const aktiveHunts = running
           .map((grow, index) => ({ grow, hunt: huntResults[index] }))
-          .filter((item): item is HuntState => item.hunt != null && item.hunt.plants.length > 0))
+          .filter((item): item is HuntState => item.hunt != null && item.hunt.plants.length > 0)
+        setHunts(aktiveHunts)
+        // Die Gewichtung gilt global, nicht je Grow — der erste Hunt liefert
+        // den aktuellen Stand.
+        if (aktiveHunts.length > 0) setWeightDraft(aktiveHunts[0].hunt.weights)
       } catch (caught) {
         if (!controller.signal.aborted) setError(caught instanceof ApiRequestError ? caught.message : 'Sorten konnten nicht geladen werden.')
       } finally {
@@ -204,6 +210,20 @@ function StrainsPage() {
       setError(caught instanceof ApiRequestError ? caught.message : 'Sorte konnte nicht gespeichert werden.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function saveWeights() {
+    if (!weightDraft) return
+    setError(null)
+    setNotice(null)
+    try {
+      await apiFetch('/api/pheno/weights', { method: 'PUT', body: JSON.stringify(weightDraft) })
+      setNotice('Gewichtung gespeichert — die Noten sind neu berechnet.')
+      setWeightsOpen(false)
+      setReloadKey((key) => key + 1)
+    } catch (caught) {
+      setError(caught instanceof ApiRequestError ? caught.message : 'Gewichtung konnte nicht gespeichert werden.')
     }
   }
 
@@ -305,12 +325,34 @@ function StrainsPage() {
         </section>
       )}
 
-      {hunts.map(({ grow, hunt }) => (
+      {hunts.map(({ grow, hunt }, index) => (
         <section key={grow.id} className="ls-panel" data-audit="pheno-hunt-panel">
           <div className="ls-panel-head">
             <span className="ls-label">Pheno-Hunt · {grow.strain ?? grow.name}</span>
-            <span className="ls-panel-meta">{hunt.plants.length} Kandidaten</span>
+            <span className="ls-panel-meta">{hunt.plants.length} Kandidaten · {weightSummary(weightDraft ?? hunt.weights)}</span>
+            <button type="button" className="ls-btn is-small" onClick={() => setWeightsOpen((open) => !open)}>
+              {weightsOpen ? 'Schließen' : 'Gewichtung'}
+            </button>
           </div>
+          {weightsOpen && weightDraft && index === 0 && (
+            <div className="ph-weights" data-audit="pheno-weights">
+              <p className="gc-facts">Was zählt für dich? Die Noten werden nach dem Speichern neu berechnet.</p>
+              <div className="ph-weight-grid">
+                {WEIGHT_BUCKETS.map((bucket) => (
+                  <V1Field key={bucket.key} label={`${bucket.label} · ${weightDraft[bucket.key]}`}>
+                    <input
+                      type="range" min={0} max={100} step={5}
+                      value={weightDraft[bucket.key]}
+                      onChange={(event) => setWeightDraft({ ...weightDraft, [bucket.key]: Number(event.target.value) })}
+                    />
+                  </V1Field>
+                ))}
+              </div>
+              <div className="co-actions">
+                <V1Button variant="primary" onClick={() => void saveWeights()}>Gewichtung speichern</V1Button>
+              </div>
+            </div>
+          )}
           <div className="co-cells">
             {rankPlants(hunt.plants).map((plant) => {
               const keeper = plant.evaluation?.isKeeper ?? false
@@ -339,6 +381,26 @@ function StrainsPage() {
       ))}
     </V1Page>
   )
+}
+
+const WEIGHT_BUCKETS: Array<{ key: keyof PhenoWeightsDto; label: string }> = [
+  { key: 'yield', label: 'Ertrag' },
+  { key: 'quality', label: 'Qualität' },
+  { key: 'potency', label: 'Wirkstoff' },
+  { key: 'resilience', label: 'Robustheit' },
+  { key: 'structure', label: 'Struktur' },
+]
+
+/** „Ertrag 40 % · Qualität 30 %" — die zwei schwersten Kriterien. */
+function weightSummary(weights: PhenoWeightsDto): string {
+  const summe = WEIGHT_BUCKETS.reduce((sum, bucket) => sum + (weights[bucket.key] ?? 0), 0)
+  if (summe <= 0) return 'ohne Gewichtung'
+  return WEIGHT_BUCKETS
+    .map((bucket) => ({ label: bucket.label, anteil: Math.round(((weights[bucket.key] ?? 0) / summe) * 100) }))
+    .sort((a, b) => b.anteil - a.anteil)
+    .slice(0, 2)
+    .map((item) => `${item.label} ${item.anteil} %`)
+    .join(' · ')
 }
 
 /** Nur ein Fragment — die Zellen müssen direkte Grid-Kinder bleiben. */

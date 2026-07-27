@@ -4,6 +4,23 @@ import { V1Section, V1Card, V1Field, V1Switch, V1Button, V1Alert, V1Badge, V1Emp
 
 type AiProvider = 'OpenAiCompatible' | 'Anthropic'
 
+/** Eine Aussage der Antwort -- mit der Quelle, auf die sie sich stuetzt. */
+type AiClaim = {
+  text: string
+  sourceId: string | null
+  grounded: boolean
+  sourceTitle: string | null
+  sourceUrl: string | null
+}
+
+type AiAnswer = {
+  summary: string
+  claims: AiClaim[]
+  unanswered: string | null
+  ungroundedCount: number
+  isUngrounded: boolean
+}
+
 type AiSettings = {
   provider: AiProvider
   baseUrl: string | null
@@ -116,6 +133,9 @@ export function AiAssistantPage() {
   const [grows, setGrows] = useState<GrowOption[]>([])
   const [growId, setGrowId] = useState<number | null>(null)
   const [preview, setPreview] = useState<SendPreview | null>(null)
+  const [frage, setFrage] = useState('')
+  const [antwort, setAntwort] = useState<AiAnswer | null>(null)
+  const [fragt, setFragt] = useState(false)
   const [showRaw, setShowRaw] = useState(false)
 
   const [saving, setSaving] = useState(false)
@@ -223,11 +243,93 @@ export function AiAssistantPage() {
   const destination: 'none' | 'local' | 'remote' =
     !settings?.isConfigured ? 'none' : preview?.wouldLeaveTheHouse ? 'remote' : 'local'
 
+  async function fragen() {
+    if (growId == null || frage.trim() === '') return
+    setFragt(true)
+    setError(null)
+    setAntwort(null)
+    try {
+      const data = await apiFetch<AiAnswer>('/api/ai/ask', {
+        method: 'POST',
+        body: JSON.stringify({ growId, question: frage.trim() }),
+      })
+      setAntwort(data)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Die Frage konnte nicht gestellt werden.')
+    } finally {
+      setFragt(false)
+    }
+  }
+
   return (
     <>
       <p className="gc-facts">Beantwortet Fragen zu deinem Grow anhand deiner Unterlagen — er schlägt vor, du entscheidest.</p>
       {error && <V1Alert tone="critical" message={error} />}
       {message && <V1Alert tone="ok" message={message} />}
+
+      <V1Section
+        title="Fragen"
+        action={grows.length > 1 ? (
+          <select value={growId ?? ''} onChange={(event) => setGrowId(Number(event.target.value))} aria-label="Grow für die Frage">
+            {grows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
+          </select>
+        ) : undefined}
+      >
+        <V1Card>
+          {!settings?.isConfigured ? (
+            <V1Empty
+              title="Noch kein Modell eingerichtet"
+              text="Unten ein Modell verbinden — danach kannst du hier fragen."
+            />
+          ) : (
+            <>
+              <V1Field label="Deine Frage" wide hint="Antwortet nur aus deinen Messungen, Journal-Einträgen und der Bibliothek.">
+                <textarea
+                  rows={2}
+                  value={frage}
+                  data-audit="ai-question"
+                  onChange={(event) => setFrage(event.target.value)}
+                  placeholder="z. B. Warum fällt mein Sauerstoff seit drei Tagen?"
+                />
+              </V1Field>
+              <div className="co-actions">
+                <V1Button variant="primary" disabled={fragt || frage.trim() === '' || growId == null} onClick={() => void fragen()}>
+                  {fragt ? 'Fragt …' : 'Fragen'}
+                </V1Button>
+                {antwort && <V1Button variant="ghost" onClick={() => { setAntwort(null); setFrage('') }}>Neue Frage</V1Button>}
+              </div>
+
+              {antwort && (
+                <div className="ai-answer" data-audit="ai-answer">
+                  {/* Zuerst die Warnung, dann die Antwort: eine Antwort ohne
+                      Beleg darf nicht wie eine belegte aussehen. */}
+                  {antwort.isUngrounded && (
+                    <V1Alert
+                      tone="warn"
+                      title="Ohne Beleg"
+                      message={`${antwort.ungroundedCount} Aussage(n) stehen in keiner deiner Unterlagen. Bitte selbst prüfen.`}
+                    />
+                  )}
+                  <p className="ai-summary">{antwort.summary}</p>
+                  {antwort.claims.length > 0 && (
+                    <ul className="ai-claims">
+                      {antwort.claims.map((claim, index) => (
+                        <li key={index} className={claim.grounded ? 'is-grounded' : 'is-ungrounded'}>
+                          <span>{claim.text}</span>
+                          {claim.grounded
+                            ? <em>{claim.sourceTitle ?? claim.sourceId ?? 'Quelle'}</em>
+                            : <em className="is-warn">ohne Beleg</em>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {antwort.unanswered && <p className="ai-unanswered">Offen geblieben: {antwort.unanswered}</p>}
+                </div>
+              )}
+            </>
+          )}
+        </V1Card>
+      </V1Section>
 
       <V1Section title="Modell verbinden">
         <V1Card>

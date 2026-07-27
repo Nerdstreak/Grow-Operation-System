@@ -15,6 +15,7 @@ function MobileActionPage() {
   const [loading, setLoading] = useState(true)
   const [refresh, setRefresh] = useState(0)
   const [notice, setNotice] = useState<string | null>(null)
+  const [erledigt, setErledigt] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -44,6 +45,26 @@ function MobileActionPage() {
   }, [refresh])
 
   const risks = useMemo(() => [...state.risks].sort((a, b) => (riskRank[a.severity] ?? 9) - (riskRank[b.severity] ?? 9)), [state.risks])
+  /**
+   * Eine Aufgabe abhaken.
+   *
+   * Das ging zwischenzeitlich nirgends mehr: die Aufgabe liess sich anlegen,
+   * stand hier als Termin — und blieb bis in alle Ewigkeit offen, weil die
+   * einzige Stelle mit dem Erledigt-Knopf beim Umbau des Journals wegfiel.
+   */
+  async function taskErledigen(taskId: number, titel: string) {
+    setErledigt(`task-${taskId}`)
+    try {
+      await apiFetch(`/api/tasks/${taskId}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'Done' }) })
+      setNotice(`„${titel}“ erledigt.`)
+      setRefresh((current) => current + 1)
+    } catch (caught) {
+      setNotice(caught instanceof Error ? caught.message : 'Aufgabe konnte nicht abgehakt werden.')
+    } finally {
+      setErledigt(null)
+    }
+  }
+
   const termine = buildTermine(state)
   const wartung = buildWartung(state)
   const critCount = risks.filter((risk) => risk.severity === 'Critical').length
@@ -98,7 +119,14 @@ function MobileActionPage() {
             {termine.length === 0 ? (
               <div className="ls-panel-body"><p>Keine offenen Termine.</p></div>
             ) : (
-              <ul className="af-rows">{termine.map((item) => <AfRow key={item.id} item={item} />)}</ul>
+              <ul className="af-rows">{termine.map((item) => (
+                <AfRow
+                  key={item.id}
+                  item={item}
+                  busy={erledigt === `task-${item.taskId ?? 0}`}
+                  onDone={item.taskId != null ? () => void taskErledigen(item.taskId!, item.title) : undefined}
+                />
+              ))}</ul>
             )}
           </section>
 
@@ -119,14 +147,22 @@ function MobileActionPage() {
   )
 }
 
-type AfItem = { id: string; when: string; due: boolean; title: string; to: string; action: string }
+type AfItem = { id: string; when: string; due: boolean; title: string; to: string; action: string; taskId?: number }
 
-function AfRow({ item }: { item: AfItem }) {
+function AfRow({ item, busy, onDone }: { item: AfItem; busy?: boolean; onDone?: () => void }) {
   return (
     <li className="af-row">
       <span className={classNames('af-when', item.due && 'is-due')}>{item.when}</span>
       <span className="af-title">{item.title}</span>
-      <Link className="ls-btn is-small" to={item.to}>{item.action}</Link>
+      {/* Eine Hauptaktion je Zeile: eine Aufgabe hakt man ab, einen laufenden
+          SOP setzt man fort. */}
+      {onDone ? (
+        <button type="button" className="ls-btn is-small is-primary" disabled={busy} onClick={onDone}>
+          {busy ? '…' : 'Erledigt'}
+        </button>
+      ) : (
+        <Link className="ls-btn is-small" to={item.to}>{item.action}</Link>
+      )}
     </li>
   )
 }
@@ -138,6 +174,7 @@ function buildTermine(state: ActionState): AfItem[] {
       const when = dueShort(task.dueAtUtc)
       return {
         id: `task-${task.id}`,
+        taskId: task.id,
         when: when.label,
         due: when.due || task.priority === 'Critical',
         title: task.title,

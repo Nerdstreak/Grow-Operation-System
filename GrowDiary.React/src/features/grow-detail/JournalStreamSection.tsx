@@ -9,6 +9,13 @@ import './journal-stream.css'
 
 const photoTags: PhotoTag[] = ['Overview', 'Canopy', 'Leaf', 'Root', 'Training', 'Flower', 'Problem', 'Comparison', 'Other']
 
+const taskPriorities: Array<{ value: string; label: string }> = [
+  { value: 'Low', label: 'Niedrig' },
+  { value: 'Normal', label: 'Normal' },
+  { value: 'High', label: 'Hoch' },
+  { value: 'Critical', label: 'Kritisch' },
+]
+
 const entryTypes: Array<{ value: string; label: string }> = [
   { value: 'Observation', label: 'Beobachtung' },
   { value: 'Note', label: 'Notiz' },
@@ -121,6 +128,13 @@ export function JournalStreamSection({ growId, entries, measurements, journalFor
               <input value={taskForm.title} onChange={(event) => onTaskFormChange({ title: event.target.value })} placeholder="z. B. pH-Sonde kalibrieren" />
             </V1Field>
             <V1Field label="Fällig am"><input type="datetime-local" value={taskForm.dueAtLocal} onChange={(event) => onTaskFormChange({ dueAtLocal: event.target.value })} /></V1Field>
+            {/* Die Priorität entscheidet, wie weit oben die Aufgabe unter
+                „Aufgaben" steht — ohne sie landet alles auf „Normal". */}
+            <V1Field label="Priorität">
+              <select value={taskForm.priority} onChange={(event) => onTaskFormChange({ priority: event.target.value })}>
+                {taskPriorities.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+            </V1Field>
             <V1Button type="submit" disabled={saving === 'task'}>{saving === 'task' ? 'Speichert…' : 'Aufgabe anlegen'}</V1Button>
           </form>
         </div>
