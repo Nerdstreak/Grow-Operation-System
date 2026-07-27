@@ -1,5 +1,50 @@
 # Changelog
 
+## 2.0.0-beta.2
+
+**Beta.** Everything the first beta was missing or got wrong, found by using it.
+
+- New — **plan how long a grow stays in veg.** Without it the timeline could only
+  ever say "day 68 and counting": no flip date, no harvest estimate. Enter the
+  intended veg days and the timeline shows when the flip is due ("in 8 days",
+  or "overdue by 12"), plus an estimated harvest. Leave it empty and nothing is
+  invented — the run simply stays open.
+- New — **the timeline shows all three phases**: germination, veg, flowering.
+  Phases without data say so instead of disappearing, and the running phase
+  fills up so you can see where in the plan today sits. Same timeline
+  everywhere now: Live, the grow list and the grow itself.
+- New — **a grow can point at a strain from your library.** Picking one fills in
+  the breeder and its flowering weeks, and the strain statistics ("runs",
+  "average yield") finally count the right runs instead of matching names,
+  where a typo silently dropped a run.
+- New — **ask the assistant a question.** The model could be connected and
+  tested, but there was no way to ask it anything. Answers now show which of
+  your records back each statement, and anything unbacked is marked before you
+  read it.
+- New — **the first run guides you**: an empty installation now shows the three
+  steps in the order they have to happen instead of an empty cockpit.
+- Fixed — **tasks could be created but never ticked off.** The button lived on a
+  panel that was replaced during the redesign.
+- Fixed — **light schedules and plant management were unreachable.** The tent
+  detail page lost its only link, taking the light times, the tent history and
+  the whole setup and plant management with it — which also broke the pheno
+  hunt, since that is where plants are created.
+- Fixed — **the pheno hunt lost its weighting**, so scores could no longer be
+  tuned.
+- Fixed — **the score ring was green while the score said "critical."** Ring,
+  number and word now agree. The tent page also had a second, different scoring
+  formula; there is one now.
+- Fixed — **the sidebar scrolled away on long pages**, leaving a bare strip
+  underneath.
+- Fixed — the start date is required; without one, the day you create the grow
+  is day one.
+- Fixed — thresholds now show the target range of the current phase beside them,
+  from the same source the tiles use, and can be filled from it.
+- Changed — **the tent/grow selectors at the top are gone.** They steered
+  nothing: no page ever read them, while each page picked its own grow. Every
+  page now chooses for itself, visibly, and the sidebar counters count across
+  all running grows — which is what their pages show.
+
 ## 2.0.0-beta.1
 
 **Beta.** The complete UI redesign — every screen rebuilt 1:1 from the designer's
