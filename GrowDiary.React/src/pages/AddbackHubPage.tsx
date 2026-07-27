@@ -4,11 +4,19 @@ import { apiFetch, ApiRequestError } from '../api'
 import type { AddbackLogDto, GrowDetail, GrowSummary, HydroSetupDto } from '../types'
 import { formatNumber } from '../utils'
 import { ChangeoutsPanel } from '../features/changeouts/ChangeoutsPanel'
-import '../features/addback/addback-instrument.css'
+import { V1Alert, V1Empty, V1Page, V1Skeleton } from '../components/v1'
 
 type GrowWithLogs = { detail: GrowDetail; logs: AddbackLogDto[] }
 type ProtocolGroup = { hydroSetupId: number | null; name: string; tentName: string | null; growNames: string[]; logs: AddbackLogDto[] }
 
+/**
+ * Addback-Übersicht: welcher Grow ist dran, was war zuletzt, und der Verlauf.
+ *
+ * Die Seite war zuletzt die einzige in der alten Instrument-Optik (cyanfarbene
+ * Werte, Eckklammern) und fiel dadurch aus der App heraus. Sie benutzt jetzt
+ * dieselben Muster wie alle anderen — ihren eigenen Grow-Umschalter behält sie,
+ * weil jede Seite ihre Auswahl selbst trägt.
+ */
 function AddbackHubPage() {
   const [grows, setGrows] = useState<GrowSummary[]>([])
   const [protocolGroups, setProtocolGroups] = useState<ProtocolGroup[]>([])
@@ -71,106 +79,96 @@ function AddbackHubPage() {
   )
   const lastAddback = selectedGrow ? latestByGrowId.get(selectedGrow.id) ?? null : null
 
-  const topBar = (
-    <div className="ix-top">
-      <div className="ix-brand"><span className="dot" /><b>RESERVOIR</b></div>
-      {hydroGrows.length > 0 && (
-        <div className="ix-tents">
-          {hydroGrows.map((grow) => (
-            <button key={grow.id} type="button" className={`ix-tent ${grow.id === selectedGrow?.id ? 'on' : ''}`} onClick={() => setSelectedGrowId(grow.id)}>
-              {grow.name} · {grow.hydroStyle}
-            </button>
-          ))}
-        </div>
-      )}
-      <Link className="ix-btn" to="/grows/new" style={{ marginLeft: 'auto' }}>Grow anlegen</Link>
-    </div>
-  )
-
-  if (loading) {
-    return <div className="ix-addback" data-audit="addback-hub">{topBar}<div className="ix-panel ix-addback-empty"><h2>Lade Addback …</h2></div></div>
-  }
-
-  if (!selectedGrow) {
-    return (
-      <div className="ix-addback" data-audit="addback-hub">
-        {topBar}
-        {error && <div className="ix-empty-line" style={{ color: 'var(--ix-red)' }}>{error}</div>}
-        <div className="ix-panel ix-addback-empty ix-rise ix-d1">
-          <span className="ix-corner ix-tl" /><span className="ix-corner ix-br" />
-          <h2>Kein aktiver Hydro-Grow</h2>
-          <p>Addback braucht einen aktiven DWC/RDWC-Grow mit Hydro-Setup.</p>
-          <div className="ix-addback-cta" style={{ justifyContent: 'center' }}>
-            <Link className="ix-btn pri" to="/grows/new">Grow anlegen</Link>
-            <Link className="ix-btn" to="/hydro">Hydro öffnen</Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="ix-addback" data-audit="addback-hub">
-      {topBar}
-      {error && <div className="ix-empty-line" style={{ color: 'var(--ix-red)' }}>{error}</div>}
+    <V1Page
+      eyebrow="Jetzt / Addback"
+      title="Reservoir"
+      action={hydroGrows.length > 1 ? (
+        <select
+          className="ls-tent-select"
+          aria-label="Grow"
+          value={selectedGrow?.id ?? ''}
+          onChange={(event) => setSelectedGrowId(Number(event.target.value))}
+        >
+          {hydroGrows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name} · {grow.hydroStyle}</option>)}
+        </select>
+      ) : undefined}
+    >
+      {error && <V1Alert message={error} tone="warn" />}
 
-      <section className="ix-addback-top-grid">
-        <div className="ix-panel ix-addback-hero ix-rise ix-d1">
-          <span className="ix-corner ix-tl" /><span className="ix-corner ix-tr" /><span className="ix-corner ix-bl" /><span className="ix-corner ix-br" />
-          <div className="ix-addback-res">
-            <div className="ix-res-cell ph"><div className="lab">pH</div><div className="val">{formatNumber(selectedGrow.latestReservoirPh, 2)}</div></div>
-            <div className="ix-res-cell ec"><div className="lab">EC</div><div className="val">{formatNumber(selectedGrow.latestReservoirEc, 2)}<u>mS</u></div></div>
-          </div>
-          <div>
-            <div className="ix-kick">Nächster Addback · {selectedGrow.tentName ?? 'ohne Zelt'}</div>
-            <h1>{selectedGrow.name}</h1>
-            <div className="sub">{selectedGrow.strain ?? 'Sorte offen'} · {selectedGrow.hydroStyle}</div>
-            <div className="ix-facts">
-              <div><span>Hydro</span><strong>{selectedGrow.hydroStyle}</strong></div>
-              <div><span>Letzter Addback</span><strong>{formatShortDateTime(lastAddback?.performedAtUtc)}</strong></div>
+      {loading ? (
+        <V1Skeleton tiles={4} rows={3} label="Lade Addback" />
+      ) : !selectedGrow ? (
+        <V1Empty
+          title="Kein aktiver Hydro-Grow"
+          text="Addback braucht einen laufenden DWC- oder RDWC-Grow mit Hydro-System."
+          action={(
+            <div className="co-actions">
+              <Link className="ls-btn is-primary" to="/grows/new">Grow anlegen</Link>
+              <Link className="ls-btn" to="/hydro">Hydro öffnen</Link>
             </div>
-            <div className="ix-addback-cta">
-              <Link className="ix-btn pri" to={`/grows/${selectedGrow.id}/addback`}>Addback starten</Link>
-              <Link className="ix-btn" to={`/grows/${selectedGrow.id}`}>Grow öffnen</Link>
+          )}
+        />
+      ) : (
+        <>
+          <div className="co-strip" data-audit="addback-status">
+            <div className="co-cell">
+              <div className="co-cell-label">pH</div>
+              <div className="co-cell-value is-lg">{formatNumber(selectedGrow.latestReservoirPh, 2)}</div>
+            </div>
+            <div className="co-cell">
+              <div className="co-cell-label">EC</div>
+              <div className="co-cell-value is-lg">{formatNumber(selectedGrow.latestReservoirEc, 2)}<span className="co-unit">mS/cm</span></div>
+            </div>
+            <div className="co-cell">
+              <div className="co-cell-label">Letzter Addback</div>
+              <div className="co-cell-value is-md">{formatShortDateTime(lastAddback?.performedAtUtc)}</div>
+            </div>
+            <div className="co-cell">
+              <div className="co-cell-label">Erfasst</div>
+              <div className="co-cell-value is-md">{selectedLogs.length} {selectedLogs.length === 1 ? 'Eintrag' : 'Einträge'}</div>
             </div>
           </div>
-        </div>
 
-        <div className="ix-panel ix-addback-side ix-rise ix-d2">
-          <span className="ix-corner ix-tl" /><span className="ix-corner ix-br" />
-          <div className="ix-kick">Hub</div>
-          <h2>{hydroGrows.length} Hydro-Grow{hydroGrows.length === 1 ? '' : 's'}</h2>
-          <p>Reservoir-Pflege & Addback-Verlauf je Grow. Oben den Grow wählen, Werte prüfen und Addback starten.</p>
-        </div>
-      </section>
+          <section className="ls-panel" data-audit="addback-next">
+            <div className="ls-panel-head">
+              <span className="ls-label">Nächster Addback</span>
+              <span className="ls-panel-meta">{[selectedGrow.tentName ?? 'ohne Zelt', selectedGrow.strain, selectedGrow.hydroStyle].filter(Boolean).join(' · ')}</span>
+            </div>
+            <div className="ls-panel-body">
+              <strong>{selectedGrow.name}</strong>
+              <p>Werte prüfen, Menge berechnen lassen und protokollieren — der Assistent rechnet mit dem Reservoirvolumen dieses Systems.</p>
+              <div className="ls-panel-actions">
+                <Link className="ls-btn is-primary" to={`/grows/${selectedGrow.id}/addback`}>Addback starten</Link>
+                <Link className="ls-btn" to={`/grows/${selectedGrow.id}`}>Grow öffnen</Link>
+              </div>
+            </div>
+          </section>
 
-      <section className="ix-addback-kpis ix-rise ix-d3">
-        <div className="ix-addback-kpi"><span>Aktive Grows</span><strong>{activeGrows.length}</strong></div>
-        <div className="ix-addback-kpi"><span>Hydro</span><strong>{hydroGrows.length}</strong></div>
-        <div className="ix-addback-kpi"><span>Verläufe</span><strong>{protocolGroups.length}</strong></div>
-        <div className="ix-addback-kpi"><span>Logs</span><strong>{allLogs.length}</strong></div>
-      </section>
+          <ChangeoutsPanel growId={selectedGrow.id} growName={selectedGrow.name} />
 
-      <ChangeoutsPanel growId={selectedGrow.id} growName={selectedGrow.name} />
-
-      <div className="ix-panel ix-cluster ix-rise ix-d4" data-audit="addback-log-list" style={{ marginTop: 16 }}>
-        <div className="ix-cluster-head">
-          <div className="t"><span className="ix-kick">Verlauf</span><h3>Addback-Protokoll · {selectedGrow.name}</h3></div>
-          {selectedLogs.length > 0 && <span className="ix-badge ix-b-ok">{selectedLogs.length}</span>}
-        </div>
-        {selectedLogs.length === 0 ? (
-          <div className="ix-empty-line">Noch kein Addback für diesen Grow erfasst.</div>
-        ) : (
-          selectedLogs.slice(0, 8).map((log) => (
-            <Link key={log.id} className="ix-grow-row" to={`/grows/${log.growId}/addback`}>
-              <strong>{formatShortDateTime(log.performedAtUtc)}</strong>
-              <span>EC {formatNumber(log.ecBefore, 2)} → {formatNumber(log.ecAfter ?? log.ecTarget, 2)} · pH {formatNumber(log.phBefore, 2)} → {formatNumber(log.phAfter, 2)}</span>
-              <em>{formatNumber(log.litersAdded, 2)} L</em>
-            </Link>
-          ))
-        )}
-      </div>
-    </div>
+          <section className="ls-panel" data-audit="addback-log-list">
+            <div className="ls-panel-head">
+              <span className="ls-label">Verlauf · {selectedGrow.name}</span>
+              {selectedLogs.length > 0 && <span className="ls-panel-meta">{selectedLogs.length} erfasst</span>}
+            </div>
+            {selectedLogs.length === 0 ? (
+              <div className="ls-panel-body"><p>Noch kein Addback für diesen Grow erfasst.</p></div>
+            ) : (
+              selectedLogs.slice(0, 8).map((log) => (
+                <Link key={log.id} className="co-row" to={`/grows/${log.growId}/addback`}>
+                  <span className="co-row-title">{formatShortDateTime(log.performedAtUtc)}</span>
+                  <span className="co-row-sub">
+                    EC {formatNumber(log.ecBefore, 2)} → {formatNumber(log.ecAfter ?? log.ecTarget, 2)} · pH {formatNumber(log.phBefore, 2)} → {formatNumber(log.phAfter, 2)}
+                  </span>
+                  <span className="co-row-value">{formatNumber(log.litersAdded, 2)} L</span>
+                </Link>
+              ))
+            )}
+          </section>
+        </>
+      )}
+    </V1Page>
   )
 }
 

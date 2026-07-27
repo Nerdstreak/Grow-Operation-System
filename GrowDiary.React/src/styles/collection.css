@@ -142,6 +142,9 @@
   .st-preview strong { color: var(--accent-text); font-weight: 600; }
   .st-preview.is-bad strong { color: var(--danger); }
 
+  /* Rueckverweis auf den Grow, aus dem man kam. */
+  .gs-back { margin-left: 0; justify-self: start; }
+
   /* ---------- KI-Antwort ---------- */
   .ai-answer { margin-top: 12px; display: grid; gap: 10px; }
   .ai-summary { margin: 0; font-size: 13.5px; line-height: 1.6; }

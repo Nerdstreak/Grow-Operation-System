@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { GrowSummary, RiskEventDto, TentDto, TentLivePayload } from '../types'
 import { LiveScreen, type LiveTask } from '../features/live/LiveScreen'
@@ -174,6 +175,55 @@ function LiveDashboardPage() {
       <main className="ls">
         <V1Skeleton tiles={4} label="Lade Zelt" />
         <V1Skeleton tiles={5} rows={3} label="Lade Messwerte" />
+      </main>
+    )
+  }
+
+  // Frische Installation: ohne Zelt gibt es nichts zu zeigen. Statt eines leeren
+  // Cockpits, das aussieht wie ein Fehler, steht hier der Weg — in der
+  // Reihenfolge, in der es gemacht werden muss.
+  if (state.tents.length === 0) {
+    return (
+      <main className="ls" data-audit="live-first-run">
+        <header className="ls-head">
+          <div className="ls-head-title">
+            <div className="ls-eyebrow">Jetzt / Live</div>
+            <h1>Willkommen bei Grow OS</h1>
+            <div className="ls-head-parts">Drei Schritte bis zum ersten Messwert.</div>
+          </div>
+        </header>
+        <ol className="ls-firstrun">
+          <li>
+            <div>
+              <strong>Zelt anlegen</strong>
+              <span>Der Raum: Größe, Licht, Abluft. Danach lassen sich Sensoren zuordnen.</span>
+            </div>
+            <Link className="ls-btn is-primary" to="/zelte/new">Zelt anlegen</Link>
+          </li>
+          <li>
+            <div>
+              <strong>Hydro-System anlegen</strong>
+              <span>RDWC oder DWC: Sites, Topf- und Tankgröße. Daraus rechnet der Addback.</span>
+            </div>
+            <Link className="ls-btn" to="/hydro/new">Hydro anlegen</Link>
+          </li>
+          <li>
+            <div>
+              <strong>Grow starten</strong>
+              <span>Sorte, Zelt und System wählen — ab dann zeigt diese Seite deine Werte.</span>
+            </div>
+            <Link className="ls-btn" to="/grows/new">Grow starten</Link>
+          </li>
+        </ol>
+        <article className="ls-panel">
+          <div className="ls-panel-body">
+            <p>Lieber ausführlich? Die Ersten Schritte erklären Einrichtung und Home-Assistant-Anbindung.</p>
+            <div className="ls-panel-actions">
+              <Link className="ls-btn" to="/start">Erste Schritte</Link>
+              <Link className="ls-btn" to="/home-assistant">Home Assistant verbinden</Link>
+            </div>
+          </div>
+        </article>
       </main>
     )
   }

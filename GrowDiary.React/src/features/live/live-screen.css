@@ -76,6 +76,26 @@
   }
   /* Touch: die Untergrenze aus widgets.css greift hier ebenfalls. */
 
+  /* ---------- Erstlauf ----------
+     Nummerierte Schritte, weil hier die Reihenfolge wirklich zaehlt: ohne Zelt
+     kein Hydro-System, ohne beides kein Grow. */
+  .ls-firstrun { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: schritt; }
+  .ls-firstrun li {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 14px 16px 14px 12px;
+    border: 1px solid var(--hair); border-radius: 10px; background: var(--panel);
+  }
+  .ls-firstrun li::before {
+    counter-increment: schritt; content: counter(schritt);
+    flex: 0 0 28px; height: 28px; display: grid; place-items: center;
+    border-radius: 50%; background: var(--accent-wash); color: var(--accent-text);
+    font: 600 12px/1 var(--font-mono);
+  }
+  .ls-firstrun li > div { flex: 1 1 260px; min-width: 0; display: grid; gap: 3px; }
+  .ls-firstrun strong { font-size: 14px; font-weight: 600; }
+  .ls-firstrun span { font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+  .ls-firstrun .ls-btn { margin-left: auto; }
+
   /* ---------- Messwertreihen ---------- */
   .ls-metrics { display: grid; gap: 7px; }
   .ls-band-label { display: flex; align-items: center; gap: 8px; }

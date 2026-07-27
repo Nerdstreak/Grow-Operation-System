@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../api'
-import type { GrowSummary, TentDto } from '../types'
+import type { GrowSummary, MetricPayload, TentDto, TentLivePayload } from '../types'
 import type { AutoMeasurementConfigDto } from '../types/automation'
 import type { AlertRuleDto, TentAlertRulesDto } from '../types/alert'
 import type { NotificationSettingsDto } from '../types/notification'
 import { V1Alert, V1Empty, V1Skeleton, V1Tabs } from '../components/v1'
+import { decimalsForMetric } from '../features/live/metric-tile-model'
 
 type MetricDef = { key: string; label: string; unit: string; min: string; max: string }
 
@@ -60,6 +61,7 @@ function AlertsPage() {
   const [rows, setRows] = useState<Rows>(emptyRows())
   const [autoConfigs, setAutoConfigs] = useState<AutoMeasurementConfigDto[]>([])
   const [notifications, setNotifications] = useState<NotificationSettingsDto | null>(null)
+  const [ziele, setZiele] = useState<Map<string, MetricPayload>>(new Map())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -123,6 +125,43 @@ function AlertsPage() {
     void loadRules(selectedTentId)
     return () => controller.abort()
   }, [selectedTentId])
+
+  // Die Zielwerte der aktuellen Phase kommen aus derselben Quelle wie die
+  // Kacheln auf Live — damit hier keine dritte Wahrheit entsteht.
+  useEffect(() => {
+    if (selectedTentId == null) return
+    const controller = new AbortController()
+    async function loadZiele(tentId: number) {
+      try {
+        const live = await apiFetch<TentLivePayload>(`/api/live/tents/${tentId}`, { signal: controller.signal })
+        if (controller.signal.aborted) return
+        setZiele(new Map(live.metrics
+          .filter((metric) => metric.targetMin != null || metric.targetMax != null)
+          .map((metric) => [metric.key, metric])))
+      } catch {
+        /* Ohne Ziele bleibt die Spalte leer — die Grenzwerte funktionieren weiter. */
+      }
+    }
+    void loadZiele(selectedTentId)
+    return () => controller.abort()
+  }, [selectedTentId])
+
+  /** Fuellt leere Felder aus den Zielwerten; vorhandene Eingaben bleiben. */
+  function zieleUebernehmen() {
+    setRows((current) => {
+      const next = { ...current }
+      for (const metric of ALERT_METRICS) {
+        const ziel = ziele.get(metric.key)
+        if (!ziel) continue
+        const zeile = next[metric.key]
+        const min = zeile.min === '' && ziel.targetMin != null ? String(ziel.targetMin) : zeile.min
+        const max = zeile.max === '' && ziel.targetMax != null ? String(ziel.targetMax) : zeile.max
+        next[metric.key] = { ...zeile, min, max, enabled: zeile.enabled || min !== '' || max !== '' }
+      }
+      return next
+    })
+    setMessage('Leere Felder aus den Zielwerten gefüllt — prüfen und speichern.')
+  }
 
   function setRow(key: string, patch: Partial<Row>) {
     setRows((current) => ({ ...current, [key]: { ...current[key], ...patch } }))
@@ -195,12 +234,16 @@ function AlertsPage() {
         <div className="ls-panel-head">
           <span className="ls-label">Grenzwerte · {selectedTent.name}</span>
           <span className="ls-panel-meta">leere Felder = keine Grenze; Karenz in Minuten</span>
+          {ziele.size > 0 && (
+            <button type="button" className="ls-btn is-small" onClick={zieleUebernehmen}>Ziele übernehmen</button>
+          )}
           <button type="button" className="ls-btn is-small is-primary" disabled={saving} onClick={() => void save()}>
             {saving ? 'Speichert…' : 'Speichern'}
           </button>
         </div>
-        <div className="co-table" style={{ gridTemplateColumns: '1.1fr .8fr .8fr .7fr .6fr' }}>
+        <div className="co-table" style={{ gridTemplateColumns: '1fr .8fr .8fr .8fr .6fr .5fr' }}>
           <div className="co-th">Metrik</div>
+          <div className="co-th">Ziel dieser Phase</div>
           <div className="co-th">Warnen unter</div>
           <div className="co-th">Warnen über</div>
           <div className="co-th">Karenz</div>
@@ -210,6 +253,7 @@ function AlertsPage() {
             return (
               <AlertRow key={metric.key}>
                 <div className="co-td is-name">{metric.label}{metric.unit ? <span className="co-unit">{metric.unit}</span> : null}</div>
+                <div className="co-td is-muted">{zielText(ziele.get(metric.key), metric.key)}</div>
                 <div className="co-td"><input inputMode="decimal" value={row.min} placeholder={metric.min || '—'} aria-label={`${metric.label} warnen unter`} onChange={(event) => setRow(metric.key, { min: event.target.value })} /></div>
                 <div className="co-td"><input inputMode="decimal" value={row.max} placeholder={metric.max || '—'} aria-label={`${metric.label} warnen über`} onChange={(event) => setRow(metric.key, { max: event.target.value })} /></div>
                 <div className="co-td"><input inputMode="numeric" value={row.cooldown} aria-label={`${metric.label} Karenz in Minuten`} onChange={(event) => setRow(metric.key, { cooldown: event.target.value })} /></div>
@@ -265,6 +309,21 @@ function AlertsPage() {
       </div>
     </>
   )
+}
+
+/**
+ * „6,00–6,10" bzw. „≥ 7,0" — das Zielband der aktuellen Phase aus der
+ * Wissensbasis. Es steht neben den Grenzwerten, damit sichtbar ist, worauf
+ * sich die Warnung eigentlich bezieht.
+ */
+function zielText(metric: MetricPayload | undefined, key: string): string {
+  if (!metric) return '—'
+  const stellen = decimalsForMetric(key)
+  const zahl = (wert: number) => wert.toFixed(stellen).replace('.', ',')
+  if (metric.targetMin != null && metric.targetMax != null) return `${zahl(metric.targetMin)}–${zahl(metric.targetMax)}`
+  if (metric.targetMin != null) return `≥ ${zahl(metric.targetMin)}`
+  if (metric.targetMax != null) return `≤ ${zahl(metric.targetMax)}`
+  return '—'
 }
 
 /** Nur ein Fragment — die Zellen müssen direkte Grid-Kinder bleiben. */
