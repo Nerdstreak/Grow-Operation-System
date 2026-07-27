@@ -227,6 +227,18 @@
   .gc-phasebar i.is-done { background: var(--accent-wash); border: 1px solid var(--hair-2); border-radius: 4px 0 0 4px; }
   .gc-phasebar i.is-current { background: var(--accent); }
   .gc-phasebar i.is-planned { background: var(--sunk); border: 1px solid var(--hair); border-radius: 0 4px 4px 0; }
+  /* Abschnitte ohne bekannte Dauer: schmal und gestrichelt, wie im grossen
+     Strahl — sie behaupten keine Laenge. */
+  .gc-phasebar i.is-unknown { flex-grow: 0; flex-basis: 14px; border-style: dashed; background: transparent; }
+
+  /* Der Balken allein sagt nicht, welche Phase welche ist. */
+  .gc-phasetext {
+    display: flex; flex-wrap: wrap; gap: 0 4px;
+    font: 400 11px/1.5 var(--font-mono); color: var(--muted);
+  }
+  .gc-phasetext span:not(:first-child)::before {
+    content: '|'; margin-right: 5px; color: var(--hair-2);
+  }
 
   .gc-facts { font: 400 11.5px/1.6 var(--font-mono); color: var(--muted); }
 

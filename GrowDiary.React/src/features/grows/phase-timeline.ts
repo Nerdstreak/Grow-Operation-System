@@ -21,12 +21,18 @@
 
 export type PhaseState = 'done' | 'current' | 'planned'
 
+export type PhaseName = 'Keim' | 'Veg' | 'Blüte'
+
 export type Phase = {
+  /** Für kurze Anzeigen („Veg Tag 20") — ohne den Text zerlegen zu müssen. */
+  name: PhaseName
   label: string
   days: number
   state: PhaseState
   /** Nur gesetzt, solange die Phase läuft: 0–1 des geplanten Anteils. */
   progress?: number
+  /** Der wievielte Tag in dieser Phase heute ist; nur für die laufende. */
+  dayInPhase?: number
 }
 
 export type PhaseTimeline = {
@@ -106,23 +112,25 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
   // ---------- Keim ----------
   if (keimEnde && keimEnde.getTime() > start.getTime()) {
     const dauer = tage(start.getTime(), keimEnde.getTime())
-    phases.push({ label: `Keim ${dauer} T`, days: dauer, state: 'done' })
+    phases.push({ name: 'Keim', label: `Keim ${dauer} T`, days: dauer, state: 'done' })
   } else {
-    phases.push({ label: 'Keim · nicht erfasst', days: 0, state: 'done' })
+    phases.push({ name: 'Keim', label: 'Keim · nicht erfasst', days: 0, state: 'done' })
   }
 
   // ---------- Veg ----------
   if (inBluete && flip) {
     const dauer = tage(vegStart, flip.getTime())
-    phases.push({ label: `Veg ${dauer} T`, days: dauer, state: 'done' })
+    phases.push({ name: 'Veg', label: `Veg ${dauer} T`, days: dauer, state: 'done' })
   } else {
     const gelaufen = tage(vegStart, jetzt)
     const geplant = flipFuerRechnung ? tage(vegStart, flipFuerRechnung.getTime()) : null
     phases.push({
+      name: 'Veg',
       label: geplant ? `Veg · Tag ${gelaufen} von ${geplant}` : `Veg · Tag ${gelaufen}`,
       days: geplant ?? gelaufen,
       state: 'current',
       progress: geplant ? Math.min(1, gelaufen / geplant) : undefined,
+      dayInPhase: gelaufen,
     })
   }
 
@@ -130,15 +138,17 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
   if (inBluete && flip) {
     const tagInBluete = Math.floor((jetzt - flip.getTime()) / TAG) + 1
     phases.push({
+      name: 'Blüte',
       label: `Blüte · Tag ${tagInBluete} von ${bluetetage}`,
       days: bluetetage,
       state: 'current',
       progress: Math.min(1, tagInBluete / bluetetage),
+      dayInPhase: tagInBluete,
     })
   } else if (flipFuerRechnung) {
-    phases.push({ label: `Blüte ${bluetetage} T geplant`, days: bluetetage, state: 'planned' })
+    phases.push({ name: 'Blüte', label: `Blüte ${bluetetage} T geplant`, days: bluetetage, state: 'planned' })
   } else {
-    phases.push({ label: 'Blüte · offen', days: 0, state: 'planned' })
+    phases.push({ name: 'Blüte', label: 'Blüte · offen', days: 0, state: 'planned' })
   }
 
   return {
@@ -176,4 +186,17 @@ export function flipLabel(geplant: boolean, tage: number | null, datum: string):
   if (tage < 0) return `Flip überfällig seit ${Math.abs(tage)} T`
   if (tage === 0) return 'Flip heute geplant'
   return `Flip geplant ${datum} · in ${tage} T`
+}
+
+/**
+ * Die Kurzform für Kartenköpfe: „Veg Tag 20", „Blüte Tag 22".
+ *
+ * Kommt aus demselben Strahl wie alles andere. Die Grow-Karten hatten dafür
+ * eine eigene Rechnung, die ab Startdatum zählte — also die Keimzeit
+ * mitzählte — und jede laufende Phase „Veg" nannte.
+ */
+export function currentPhaseLabel(timeline: PhaseTimeline): string | null {
+  const laufend = timeline.phases.find((phase) => phase.state === 'current')
+  if (!laufend || laufend.dayInPhase == null) return null
+  return `${laufend.name} Tag ${laufend.dayInPhase}`
 }

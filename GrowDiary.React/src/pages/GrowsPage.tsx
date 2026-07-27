@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary } from '../types'
-import { buildPhaseTimeline } from '../features/grows/phase-timeline'
+import { buildPhaseTimeline, currentPhaseLabel } from '../features/grows/phase-timeline'
 import { V1Alert, V1Page, V1Skeleton } from '../components/v1'
 import '../features/grows/grows.css'
 
@@ -66,22 +66,33 @@ function GrowCard({ grow }: { grow: GrowSummary }) {
       <div className="gc-head">
         <strong>{grow.name}</strong>
         <span className={`ls-pill${running ? '' : ' is-plan'}`}>{statusLabel(grow.status)}</span>
-        <span className="gc-day">{dayLabel(grow)}</span>
+        <span className="gc-day">{dayLabel(grow, timeline)}</span>
       </div>
       <div className="gc-body">
         {running && timeline.phases.length > 0 && (
-          <div className="gc-phasebar" aria-hidden="true">
-            {/* Keimphase als fester kleiner Anteil wie im Entwurf — sie ist
-                vorbei, sobald der Grow läuft. */}
-            <i className="is-done" style={{ flex: 12 }} />
-            {timeline.phases.map((phase) => (
-              <i key={phase.label} className={`is-${phase.state}`} style={{ flex: Math.max(phase.days, 4) }} />
-            ))}
-            {/* Ohne Flip-Datum gibt es keine geplante Blüte in der Timeline —
-                der Balken zeigt trotzdem, dass noch etwas kommt (8-Wochen-
-                Richtwert, wie in der Phasen-Timeline). */}
-            {!timeline.phases.some((phase) => phase.state === 'planned') && <i className="is-planned" style={{ flex: 56 }} />}
-          </div>
+          <>
+            {/* Derselbe Strahl wie auf Live und im Grow-Detail, nur schmal und
+                ohne Beschriftung. Hier stand vorher eine zweite, eigene
+                Fassung: ein fest verdrahteter Keim-Balken plus ein erfundener
+                Blüte-Rest — beides ging daneben, sobald der Zeitstrahl selbst
+                alle drei Phasen lieferte. */}
+            <div className="gc-phasebar" role="img" aria-label={timeline.phases.map((phase) => phase.label).join(', ')}>
+              {timeline.phases.map((phase) => (
+                <i
+                  key={phase.label}
+                  className={`is-${phase.state}${phase.days === 0 ? ' is-unknown' : ''}`}
+                  style={{ flexGrow: Math.max(1, phase.days) }}
+                  title={phase.label}
+                />
+              ))}
+            </div>
+            <div className="gc-phasetext">
+              {/* Einzelne Elemente statt eines zusammengefuegten Textes: die
+                  Beschriftungen enthalten selbst „·", zusammengeklebt wurde
+                  daraus „Keim · nicht erfasst · Veg · Tag 68 · Blüte · offen". */}
+              {timeline.phases.map((phase) => <span key={phase.label}>{phase.label}</span>)}
+            </div>
+          </>
         )}
         <div className="gc-facts">{factsLine(grow)}</div>
         <div className="co-actions" data-audit="grow-list-actions">
@@ -104,22 +115,19 @@ function factsLine(grow: GrowSummary): string {
   ].filter(Boolean).join(' · ') || 'Noch keine Angaben'
 }
 
-/** „Veg Tag 26" bzw. „Blüte Tag 12" — geplante Grows haben noch keinen Tag. */
-function dayLabel(grow: GrowSummary): string {
-  if (grow.status !== 'Running' || !grow.startDate) return grow.startDate ? `Start ${shortDate(grow.startDate)}` : ''
-  const now = Date.now()
-  const flip = grow.flipDate ? new Date(grow.flipDate).getTime() : null
-  if (flip != null && now >= flip) return `Blüte Tag ${daysSince(flip)}`
-  return `Veg Tag ${daysSince(new Date(grow.startDate).getTime())}`
-}
-
-function daysSince(timestamp: number): number {
-  return Math.max(1, Math.floor((Date.now() - timestamp) / 86_400_000) + 1)
-}
-
-function shortDate(value: string): string {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit' }).format(date)
+/**
+ * „Veg Tag 26" bzw. „Blüte Tag 12" — geplante Grows zeigen ihr Startdatum.
+ *
+ * Kommt aus dem Zeitstrahl. Vorher rechnete diese Karte selbst: ab Startdatum
+ * statt ab Bewurzelung (die Keimzeit wurde also mitgezählt) und mit „Veg" als
+ * Namen für jede laufende Phase.
+ */
+function dayLabel(grow: GrowSummary, timeline: ReturnType<typeof buildPhaseTimeline>): string {
+  if (grow.status === 'Running') {
+    const laufend = currentPhaseLabel(timeline)
+    if (laufend) return laufend
+  }
+  return grow.startDate ? `Start ${timeline.dates.start}` : ''
 }
 
 function statusLabel(status: GrowSummary['status']) {
