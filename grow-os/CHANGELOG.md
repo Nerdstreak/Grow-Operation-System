@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.0.0-beta.3
+
+**Beta.** One page, rebuilt after real use: the knowledge base.
+
+- New — **SOPs & Bibliothek is organised by urgency** instead of showing 93
+  equal cards. Emergencies come first: the root-rot and power-outage SOPs sit
+  at the top as red cards with a guided start, next to "I see something —
+  what is it?" leading into the symptom list. Below, the routine SOPs form one
+  table with kind, duration and step count — the things you actually compare.
+  The reference material (symptoms, treatments, pathogens, target values,
+  wear) sits in six compact panels; each row shows the one fact that helps
+  while scanning, like where a symptom leads or how long an air stone lasts.
+- Changed — search results are compact rows tagged by category, no longer a
+  wall of cards.
+
+
 ## 2.0.0-beta.2
 
 **Beta.** Everything the first beta was missing or got wrong, found by using it.
