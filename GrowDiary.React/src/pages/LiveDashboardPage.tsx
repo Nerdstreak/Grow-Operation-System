@@ -148,13 +148,22 @@ function LiveDashboardPage() {
   // Die Score-Zeile des Entwurfs: "Klima 100 · Naehrloesung 64 (DO -36) · Technik 100".
   // Statt erfundener Teilscores nennt sie, was tatsaechlich danebenliegt — eine
   // Zahl, die niemand nachrechnen kann, waere schlimmer als keine.
-  const abweichungen = [...climateMetrics, ...hydroMetrics]
-    .filter((metric) => metric.numericValue != null && (metric.targetMin != null || metric.targetMax != null))
+  // Wie im Score: ein zurueckgerechnetes Ziel (Luft/Feuchte aus dem VPD-Ziel)
+  // beschreibt dieselbe Lage wie VPD selbst und wird hier nicht zusaetzlich
+  // aufgezaehlt — sonst stuenden drei Namen fuer ein Problem.
+  const bewertbar = [...climateMetrics, ...hydroMetrics]
+    .filter((metric) => metric.numericValue != null && !metric.targetDerived && (metric.targetMin != null || metric.targetMax != null))
+  const abweichungen = bewertbar
     .filter((metric) => (metric.targetMin != null && metric.numericValue! < metric.targetMin)
       || (metric.targetMax != null && metric.numericValue! > metric.targetMax))
-  const scoreParts = abweichungen.length === 0
-    ? 'Alle Messwerte im Zielband'
-    : `${abweichungen.length} ${abweichungen.length === 1 ? 'Wert' : 'Werte'} daneben: ${abweichungen.map((metric) => metric.label).join(', ')}`
+  // „Alle Messwerte im Zielband" stand hier auch dann, wenn es gar kein Zielband
+  // gab — die Zeile sagte „alles gut", wo sie „ich habe nichts geprueft" sagen
+  // musste. Ohne bewertbaren Wert wird das jetzt benannt.
+  const scoreParts = bewertbar.length === 0
+    ? 'Keine Zielwerte — ohne aktiven Grow im Zelt gibt es nichts zu vergleichen'
+    : abweichungen.length === 0
+      ? `Alle ${bewertbar.length} bewerteten Werte im Zielband`
+      : `${abweichungen.length} ${abweichungen.length === 1 ? 'Wert' : 'Werte'} daneben: ${abweichungen.map((metric) => metric.label).join(', ')}`
 
   const lastMeasurement = primaryGrow?.latestMeasurementAt
     ? formatTime(primaryGrow.latestMeasurementAt)

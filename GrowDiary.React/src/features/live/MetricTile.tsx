@@ -20,6 +20,8 @@ export type MetricTileProps = {
   stale?: string
   /** Die letzten 24 Stunden. Vorhanden = Kurve statt Zielband. */
   trend?: HistoryPoint[]
+  /** Woran ein zurueckgerechnetes Ziel haengt — „bei 46 % RLF". */
+  targetNote?: string | null
 }
 
 /**
@@ -36,7 +38,7 @@ export type MetricTileProps = {
  * Kachelzahl nicht zur Spaltenzahl passt.
  */
 export function MetricTile({
-  label, value, unit, targetMin = null, targetMax = null, critical, decimals, footer, display, stale, trend,
+  label, value, unit, targetMin = null, targetMax = null, critical, decimals, footer, display, stale, trend, targetNote,
 }: MetricTileProps) {
   const status: MetricStatus = display != null && targetMin == null && targetMax == null
     ? 'unknown'
@@ -78,7 +80,10 @@ export function MetricTile({
         <div className="gos-metric-scale is-empty" aria-hidden="true" />
       )}
 
-      {target && <div className="gos-metric-target">{target}</div>}
+      {/* Der Zusatz nennt, woran ein zurueckgerechnetes Ziel haengt. „Ziel
+          15,8–19,6 °C" allein liest sich als „kuehl runter", obwohl in
+          Wahrheit die Feuchte zu niedrig ist. */}
+      {target && <div className="gos-metric-target">{target}{targetNote ? ` · ${targetNote}` : ''}</div>}
       {stale && <div className="gos-metric-stale">{stale}</div>}
     </div>
   )

@@ -337,6 +337,10 @@ export interface MetricPayload {
   /** Zielbereich der aktuellen Phase; null, wo es keinen gibt (Licht, Fuellstand). */
   targetMin: number | null
   targetMax: number | null
+  /** Woran das Ziel haengt, wenn es zurueckgerechnet ist — „bei 46 % RLF". */
+  targetNote?: string | null
+  /** Zurueckgerechnet statt aus dem Wissen: wird gezeigt, zaehlt aber nicht extra im Score. */
+  targetDerived?: boolean
 }
 
 export interface TentLivePayload {

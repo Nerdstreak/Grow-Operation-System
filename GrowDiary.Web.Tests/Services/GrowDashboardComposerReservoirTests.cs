@@ -1,5 +1,8 @@
+using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
+using GrowDiary.Web.Services.Knowledge;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GrowDiary.Web.Tests.Services;
 
@@ -11,11 +14,37 @@ namespace GrowDiary.Web.Tests.Services;
 /// </summary>
 public sealed class GrowDashboardComposerReservoirTests
 {
-    // BuildTentMetrics touches none of the injected services on this path: these
-    // tents have no active grow, so the target lookup short-circuits before the
-    // TargetValueService is read. That the tests below all use ActiveGrows = new()
-    // is therefore load-bearing, not incidental.
+    // BuildTentMetrics touches none of the injected services for a tent WITHOUT an
+    // active grow: the target lookup short-circuits before the TargetValueService is
+    // read. That most tests below use ActiveGrows = new() is therefore load-bearing,
+    // not incidental.
+    //
+    // A tent WITH an active grow now always reads it, even without a measurement —
+    // that is the point of resolving the phase from the grow. Those tests get a real
+    // service.
     private static readonly GrowDashboardComposer Composer = new(null!, null!, null!, null!, null!);
+
+    private static GrowDashboardComposer ComposerWithTargets()
+    {
+        var paths = new AppPaths(FindProjectRoot());
+        var loader = new KnowledgeBaseLoader(paths, NullLogger<KnowledgeBaseLoader>.Instance);
+        loader.Initialize();
+        return new GrowDashboardComposer(null!, null!, null!, new TargetValueService(loader), null!);
+    }
+
+    /// <summary>Das Wissen liegt neben dem Web-Projekt, nicht im Testausgabe-Ordner.</summary>
+    private static string FindProjectRoot()
+    {
+        var dir = AppContext.BaseDirectory;
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir, "GrowDiary.Web", "App_Data");
+            if (Directory.Exists(candidate)) return candidate;
+            dir = Directory.GetParent(dir)?.FullName;
+        }
+
+        throw new DirectoryNotFoundException("GrowDiary.Web/App_Data nicht gefunden.");
+    }
 
     private static Tent TentWithoutActiveHydro() => new() { Id = 1, Name = "Zelt-RDWC", ActiveGrows = new() };
 
@@ -81,7 +110,7 @@ public sealed class GrowDashboardComposerReservoirTests
             ActiveGrows = new() { new GrowRun { Id = 1, IrrigationType = IrrigationType.ActiveHydro } },
         };
 
-        var cards = Composer.BuildTentMetrics(tent, new Dictionary<string, HomeAssistantState>(), new List<Measurement>());
+        var cards = ComposerWithTargets().BuildTentMetrics(tent, new Dictionary<string, HomeAssistantState>(), new List<Measurement>());
 
         Assert.Contains(cards, card => card.Key == "reservoir-ph");
     }

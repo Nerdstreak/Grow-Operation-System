@@ -15,6 +15,8 @@ public static class MetricPayloadMapping
             Hint = metric.Hint,
             NumericValue = metric.NumericValue,
             TargetMin = metric.TargetMin,
-            TargetMax = metric.TargetMax
+            TargetMax = metric.TargetMax,
+            TargetNote = metric.TargetNote,
+            TargetDerived = metric.TargetDerived
         };
 }

@@ -295,6 +295,7 @@ function MetricBand({ title, metrics, trends }: { title: string; metrics: Metric
             display={metric.numericValue == null && metric.value !== '–' ? metric.value : undefined}
             footer={metric.targetMin == null && metric.targetMax == null ? (metric.hint ?? undefined) : undefined}
             trend={trends.get(metric.key)}
+            targetNote={metric.targetNote}
           />
         ))}
       </div>

@@ -21,4 +21,10 @@ public sealed class MetricPayload
     public double? NumericValue { get; set; }
     public double? TargetMin { get; set; }
     public double? TargetMax { get; set; }
+
+    /// <summary>Woran der Zielbereich haengt, wenn er zurueckgerechnet ist — „bei 46 % RLF".</summary>
+    public string? TargetNote { get; set; }
+
+    /// <summary>Zurueckgerechnet statt aus dem Wissen: wird gezeigt, zaehlt aber nicht extra im Score.</summary>
+    public bool TargetDerived { get; set; }
 }

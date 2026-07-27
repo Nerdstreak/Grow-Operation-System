@@ -1,3 +1,4 @@
+using System.Globalization;
 using GrowDiary.Web.Models;
 using Microsoft.Extensions.Logging;
 
@@ -56,14 +57,18 @@ public sealed class GrowDashboardComposer
         // Die Phase des aktivsten Grows im Zelt bestimmt die Sollwerte. Ohne
         // aktiven Grow gibt es keinen Zielbereich — dann zeigen die Kacheln nur
         // die Zahl, was richtig ist: ein leeres Zelt hat kein Ziel.
-        // Die Phase kommt aus der letzten Messung — dieselbe Quelle, aus der auch
-        // die Abweichungsanalyse ihre Sollwerte zieht. Ohne Messung gibt es keine
-        // Phase und damit keinen Zielbereich; das ist richtig so, denn ein Ziel
-        // ohne bekannte Phase waere geraten.
+        //
+        // Die Phase kommt aus dem GROW, nicht aus der letzten Messung. Vorher
+        // hing hier alles an `latest`: wer noch nie von Hand gemessen hatte, sah
+        // den ganzen Bildschirm ohne einen einzigen Zielbereich — grau, ohne
+        // „im Ziel" — obwohl die Sensoren lieferten und oben „Veg · Tag 7" stand.
+        // Eine erfasste Messung darf die Phase weiterhin überstimmen: wer sie
+        // eingetragen hat, weiss es besser als jede Rechnung.
         var activeGrow = tent.ActiveGrows.FirstOrDefault();
-        var targets = activeGrow is null || latest is null
+        var stage = latest?.Stage ?? (activeGrow is null ? (GrowStage?)null : GrowStageResolver.Resolve(activeGrow, DateTime.Today));
+        var targets = activeGrow is null || stage is null
             ? null
-            : _targetValues.GetTargets(activeGrow.HydroStyle, latest.Stage);
+            : _targetValues.GetTargets(activeGrow.HydroStyle, stage.Value);
 
         MetricCard Build(string label, string key, Func<Measurement?, double?> fallback, string tone = "default", string? explicitUnit = null)
         {
@@ -174,7 +179,59 @@ public sealed class GrowDashboardComposer
         if (hasActiveHydro || states.ContainsKey("reservoir-temp") || measurements.Any(m => m.ReservoirWaterTempC.HasValue))
             cards.Add(Build("Wassertemp.", "reservoir-temp", m => m?.ReservoirWaterTempC, explicitUnit: "°C"));
 
+        ApplyClimateBands(cards, targets, tent.LeafTempOffsetC);
+
         return cards;
+    }
+
+    /// <summary>
+    /// Gibt Temperatur und Luftfeuchte ihr Zielband — zurückgerechnet aus dem
+    /// VPD-Ziel und dem jeweils anderen gemessenen Wert.
+    /// </summary>
+    /// <remarks>
+    /// Das Wissen kennt für Klima nur ein VPD-Band. Die beiden größten Kacheln
+    /// des Bildschirms blieben dadurch immer ohne Bewertung, während die kleine
+    /// VPD-Kachel daneben eine hatte. Gerechnet wird mit derselben Formel wie
+    /// hin, nur nach der anderen Variablen aufgelöst; erfunden wird nichts.
+    ///
+    /// Ohne den Partnerwert gibt es kein Band: ein Temperaturziel ohne bekannte
+    /// Feuchte wäre geraten.
+    /// </remarks>
+    private static void ApplyClimateBands(List<MetricCard> cards, HydroTargetValues? targets, double leafOffsetC)
+    {
+        if (targets is null) return;
+
+        var temperature = cards.FirstOrDefault(card => card.Key == "temperature");
+        var humidity = cards.FirstOrDefault(card => card.Key == "humidity");
+
+        // Beide Bänder aus den Werten VOR der Änderung rechnen, sonst hinge das
+        // zweite am gerade gesetzten Ziel des ersten.
+        var luft = temperature?.NumericValue;
+        var feuchte = humidity?.NumericValue;
+
+        if (luft is { } l && humidity is not null && humidity.TargetMin is null)
+        {
+            var (min, max) = ClimateBandCalculator.HumidityBand(l, targets.VpdMin, targets.VpdMax, leafOffsetC);
+            if (min is not null)
+            {
+                humidity.TargetMin = min;
+                humidity.TargetMax = max;
+                humidity.TargetNote = $"bei {l.ToString("0.#", CultureInfo.GetCultureInfo("de-DE"))} °C";
+                humidity.TargetDerived = true;
+            }
+        }
+
+        if (feuchte is { } f && temperature is not null && temperature.TargetMin is null)
+        {
+            var (min, max) = ClimateBandCalculator.TemperatureBand(f, targets.VpdMin, targets.VpdMax, leafOffsetC);
+            if (min is not null)
+            {
+                temperature.TargetMin = min;
+                temperature.TargetMax = max;
+                temperature.TargetNote = $"bei {f.ToString("0.#", CultureInfo.GetCultureInfo("de-DE"))} % RLF";
+                temperature.TargetDerived = true;
+            }
+        }
     }
 
     public ChartSeries BuildTentClimateChart(

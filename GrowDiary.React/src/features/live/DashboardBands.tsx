@@ -81,6 +81,7 @@ export function DashboardBands({
                     display={metric.numericValue == null && metric.value !== '–' ? metric.value : undefined}
                     footer={metric.targetMin == null && metric.targetMax == null ? (metric.hint ?? undefined) : undefined}
                     trend={trend}
+                    targetNote={metric.targetNote}
                   />
                   {editing && (
                     <span className="ls-tile-tools">

@@ -70,10 +70,19 @@ export function buildSensorStatus(live: TentLivePayload | undefined, issues: str
 export function buildScore(metrics: MetricPayload[], tent: TentDto | null) {
   if (!tent) return { value: 0, label: 'Einrichten', tone: 'neutral' as const }
 
+  // Zurueckgerechnete Ziele zaehlen nicht mit: Luft, Feuchte und VPD beschreiben
+  // dieselbe Lage, und dreimal abzuziehen macht aus einem Klimaproblem drei. Auf
+  // der Kachel steht die Bewertung trotzdem — dort beantwortet sie die Frage
+  // „ist dieser Wert gerade gut", und die ist eine andere als „wie steht es".
   const messbar = metrics.filter((metric) =>
-    metric.numericValue != null && (metric.targetMin != null || metric.targetMax != null))
+    metric.numericValue != null && !metric.targetDerived && (metric.targetMin != null || metric.targetMax != null))
   const brauchbar = metrics.filter((metric) => metric.value && metric.value !== '–').length
   if (brauchbar === 0) return { value: 0, label: 'Einrichten', tone: 'neutral' as const }
+
+  // Ohne einen einzigen Wert mit Zielbereich gibt es nichts zu benoten. Vorher
+  // kam hier trotzdem eine Zahl heraus — allein aus dem Abzug fuer fehlende
+  // Sensoren — und daneben stand „Beobachten", als waere etwas geprueft worden.
+  if (messbar.length === 0) return { value: 0, label: 'Nicht bewertet', tone: 'neutral' as const }
 
   let abzug = 0
   for (const metric of messbar) {

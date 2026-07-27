@@ -104,20 +104,34 @@ public sealed class GrowDashboardComposerTargetTests
     }
 
     [Fact]
-    public void WithoutAMeasurement_ThereIsNoTarget()
+    public void WithoutAMeasurement_ThePhaseComesFromTheGrow()
     {
-        // Ohne Messung ist die Phase unbekannt, und ein Zielbereich ohne Phase
-        // wäre geraten. Dieselbe Regel benutzt die Abweichungsanalyse.
+        // Frueher galt: ohne Messung keine Phase, also kein Zielbereich. Das war
+        // falsch herum gedacht — die Phase steht im Grow. Wer noch nie von Hand
+        // gemessen hatte, sah dadurch den ganzen Bildschirm ohne einen einzigen
+        // Zielbereich: keine Farbe, kein „im Ziel", obwohl die Sensoren lieferten.
         var composer = CreateComposer();
         var tent = TentWithGrow(new GrowStyleFixture(HydroStyle.RDWC));
 
         var cards = composer.BuildTentMetrics(tent, [], []);
 
-        var ph = cards.SingleOrDefault(card => card.Key == "reservoir-ph");
-        if (ph is not null)
-        {
-            Assert.Null(ph.TargetMin);
-        }
+        var ph = cards.Single(card => card.Key == "reservoir-ph");
+        Assert.NotNull(ph.TargetMin);
+        Assert.NotNull(ph.TargetMax);
+    }
+
+    [Fact]
+    public void ARecordedMeasurement_StillOverridesTheCalculatedPhase()
+    {
+        // Wer die Phase eingetragen hat, weiss es besser als jede Rechnung: der
+        // Grow unten ist ohne Flip, die Messung sagt Bluete — und die gewinnt.
+        var composer = CreateComposer();
+        var tent = TentWithGrow(new GrowStyleFixture(HydroStyle.RDWC));
+
+        var ausGrow = composer.BuildTentMetrics(tent, [], []).Single(card => card.Key == "reservoir-ec");
+        var ausMessung = composer.BuildTentMetrics(tent, [], [MeasurementAt(GrowStage.Flower)]).Single(card => card.Key == "reservoir-ec");
+
+        Assert.NotEqual(ausGrow.TargetMax, ausMessung.TargetMax);
     }
 
     [Fact]

@@ -20,4 +20,20 @@ public sealed class MetricCard
     /// <summary>Zielbereich fuer diese Phase, null wo es keinen gibt (Licht, Fuellstand).</summary>
     public double? TargetMin { get; set; }
     public double? TargetMax { get; set; }
+
+    /// <summary>
+    /// Woran der Zielbereich haengt, wenn er aus einem anderen Wert stammt —
+    /// „bei 46 % RLF". Ohne den Zusatz liest sich „Ziel 15,8–19,6 °C" als
+    /// Aufforderung zu kuehlen, obwohl in Wahrheit die Feuchte zu niedrig ist.
+    /// </summary>
+    public string? TargetNote { get; set; }
+
+    /// <summary>
+    /// True, wenn der Zielbereich nicht aus dem Wissen stammt, sondern aus einem
+    /// anderen Messwert zurueckgerechnet wurde. Solche Werte werden angezeigt,
+    /// zaehlen aber nicht eigenstaendig in den Score: Luft, Feuchte und VPD
+    /// beschreiben dieselbe Lage, und dreimal abziehen macht aus einem Problem
+    /// drei.
+    /// </summary>
+    public bool TargetDerived { get; set; }
 }

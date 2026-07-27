@@ -38,6 +38,35 @@ describe('buildScore', () => {
     expect(buildScore([], zelt)).toMatchObject({ value: 0, tone: 'neutral', label: 'Einrichten' })
   })
 
+  it('benotet nicht, wenn kein Wert einen Zielbereich hat', () => {
+    // Der Fall aus dem echten Zelt: drei Sensoren liefern, aber kein einziger
+    // Wert hat ein Ziel. Vorher kam hier 76 heraus — allein aus dem Abzug für
+    // fehlende Sensoren — und daneben stand „Beobachten", als wäre geprüft
+    // worden. Eine Note ohne Massstab ist schlimmer als keine.
+    const ohneZiel = [
+      metrik('temperature', 25.6, null, null),
+      metrik('humidity', 46, null, null),
+      metrik('vpd', 1.41, null, null),
+    ]
+
+    expect(buildScore(ohneZiel, zelt)).toMatchObject({ value: 0, tone: 'neutral', label: 'Nicht bewertet' })
+  })
+
+  it('zieht für ein Klimaproblem nur einmal ab, nicht dreimal', () => {
+    // Luft und Feuchte tragen ein aus dem VPD-Ziel zurückgerechnetes Band. Sie
+    // zeigen dieselbe Lage wie VPD — dreimal abziehen machte aus einem Problem
+    // drei und riss den Score grundlos nach unten.
+    const werte = sechsImZiel()
+    const luft = { ...metrik('temperature', 25.6, 15.8, 19.6), targetDerived: true }
+    const feuchte = { ...metrik('humidity', 46, 59, 65), targetDerived: true }
+    const vpd = metrik('vpd', 1.32, 0.7, 0.9)
+
+    const score = buildScore([werte[0], werte[1], werte[5], luft, feuchte, vpd], zelt)
+
+    // Nur VPD liegt daneben, und zwar mehr als eine Bandbreite: 20 Abzug.
+    expect(score.value).toBe(80)
+  })
+
   it('nennt alles im Zielband stabil und grün', () => {
     const score = buildScore(sechsImZiel(), zelt)
 
