@@ -24,6 +24,10 @@ function LiveDashboardPage() {
   const [selectedTentId, setSelectedTentId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [refresh, setRefresh] = useState(0)
+  // Der Watchdog meldet, wenn die Überwachung SELBST schweigt — das gehört auf
+  // Live, weil frische Zahlen eines Zelts verdecken, dass ein anderes dunkel
+  // ist. Nur Probleme erscheinen; „alles wach" wäre Dauerrauschen.
+  const [systemWarning, setSystemWarning] = useState<{ headline: string; detail: string } | null>(null)
 
   // Mirror the latest committed state so a background refresh can fall back to the
   // last good data instead of blanking out when a request fails transiently.
@@ -49,10 +53,12 @@ function LiveDashboardPage() {
         }
       }
 
-      const [tentsResult, growsResult, risksResult] = await Promise.all([
+      const [tentsResult, growsResult, risksResult, watchdogResult] = await Promise.all([
         attempt<TentDto[]>('Zelte', '/api/settings/tents'),
         attempt<GrowSummary[]>('Grows', '/api/grows?archived=false'),
         attempt<RiskEventDto[]>('Risiken', '/api/risk-events?openOnly=true'),
+        // Kein `attempt`: ein scheiternder Watchdog-Abruf ist kein Seitenfehler.
+        apiFetch<{ headline: string; detail: string; isProblem: boolean }>('/api/notifications/watchdog', { signal: controller.signal }).catch(() => null),
       ])
 
       const sorted = tentsResult.ok
@@ -77,6 +83,7 @@ function LiveDashboardPage() {
         if (merged) liveByTentId[tent.id] = merged
       }
       setState({ tents: sorted, grows, risks, liveByTentId, issues })
+      setSystemWarning(watchdogResult?.isProblem ? { headline: watchdogResult.headline, detail: watchdogResult.detail } : null)
       setSelectedTentId((current) => current ?? chooseInitialTent(sorted, grows))
       setLoading(false)
     }
@@ -247,6 +254,7 @@ function LiveDashboardPage() {
       daysToFlip={timeline.daysToFlip}
       plantLine={plantLine}
       tents={state.tents}
+      systemWarning={systemWarning}
       onTent={setSelectedTentId}
       onRefresh={() => setRefresh((current) => current + 1)}
     />

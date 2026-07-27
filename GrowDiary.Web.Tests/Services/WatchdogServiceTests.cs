@@ -6,24 +6,25 @@ public sealed class WatchdogServiceTests
 {
     private static readonly DateTime Now = new(2026, 7, 26, 12, 0, 0, DateTimeKind.Utc);
 
+    private static WatchdogTentPulse Tent(string name = "Hauptzelt", int sensors = 4, int? readingAgeMinutes = 3)
+        => new(name, sensors, readingAgeMinutes is { } age ? Now.AddMinutes(-age) : null);
+
     private static WatchdogInput Healthy(
         bool configured = true,
-        int sensors = 4,
         int snapshotAgeMinutes = 2,
         int haAgeMinutes = 2,
-        int? readingAgeMinutes = 3,
-        string? haError = null) => new(
+        string? haError = null,
+        params WatchdogTentPulse[] tents) => new(
             configured,
-            sensors,
             Now.AddMinutes(-snapshotAgeMinutes),
             Now.AddMinutes(-haAgeMinutes),
-            readingAgeMinutes is { } age ? Now.AddMinutes(-age) : null,
-            haError);
+            haError,
+            tents.Length > 0 ? tents : [Tent()]);
 
     [Fact]
     public void EverythingFresh_IsHealthy_AndSaysHowOldTheDataIs()
     {
-        var verdict = WatchdogService.Evaluate(Healthy(readingAgeMinutes: 3), Now);
+        var verdict = WatchdogService.Evaluate(Healthy(tents: Tent(readingAgeMinutes: 3)), Now);
 
         Assert.Equal(WatchdogService.Ok, verdict.Code);
         Assert.False(verdict.IsProblem);
@@ -42,7 +43,7 @@ public sealed class WatchdogServiceTests
     [Fact]
     public void WithoutMappedSensors_NothingToWatch()
     {
-        var verdict = WatchdogService.Evaluate(Healthy(sensors: 0), Now);
+        var verdict = WatchdogService.Evaluate(Healthy(tents: Tent(sensors: 0)), Now);
 
         Assert.Equal(WatchdogService.Idle, verdict.Code);
         Assert.False(verdict.IsProblem);
@@ -52,7 +53,8 @@ public sealed class WatchdogServiceTests
     public void StalledWorker_IsReportedFirst()
     {
         // Worker stopped: everything else is unknowable, so this must win over the others.
-        var verdict = WatchdogService.Evaluate(Healthy(snapshotAgeMinutes: 40, haAgeMinutes: 40, readingAgeMinutes: 40), Now);
+        var verdict = WatchdogService.Evaluate(
+            Healthy(snapshotAgeMinutes: 40, haAgeMinutes: 40, tents: Tent(readingAgeMinutes: 40)), Now);
 
         Assert.Equal(WatchdogService.WorkerStalled, verdict.Code);
         Assert.True(verdict.IsProblem);
@@ -62,7 +64,7 @@ public sealed class WatchdogServiceTests
     public void NeverRanWorker_CountsAsStalled()
         => Assert.Equal(
             WatchdogService.WorkerStalled,
-            WatchdogService.Evaluate(new WatchdogInput(true, 3, null, null, null, null), Now).Code);
+            WatchdogService.Evaluate(new WatchdogInput(true, null, null, null, [Tent()]), Now).Code);
 
     [Fact]
     public void HomeAssistantSilent_IsReported_WithReason()
@@ -77,7 +79,7 @@ public sealed class WatchdogServiceTests
     [Fact]
     public void ConnectionUpButNoFreshReadings_IsReported()
     {
-        var verdict = WatchdogService.Evaluate(Healthy(readingAgeMinutes: 45), Now);
+        var verdict = WatchdogService.Evaluate(Healthy(tents: Tent(readingAgeMinutes: 45)), Now);
 
         Assert.Equal(WatchdogService.NoData, verdict.Code);
         Assert.True(verdict.IsProblem);
@@ -87,9 +89,78 @@ public sealed class WatchdogServiceTests
     public void ShortHiccup_IsNotAProblem()
     {
         // One missed 5-minute round must not raise an alarm.
-        var verdict = WatchdogService.Evaluate(Healthy(snapshotAgeMinutes: 7, haAgeMinutes: 7, readingAgeMinutes: 8), Now);
+        var verdict = WatchdogService.Evaluate(
+            Healthy(snapshotAgeMinutes: 7, haAgeMinutes: 7, tents: Tent(readingAgeMinutes: 8)), Now);
 
         Assert.Equal(WatchdogService.Ok, verdict.Code);
         Assert.False(verdict.IsProblem);
+    }
+
+    [Fact]
+    public void OneDarkTentAmongLiveOnes_IsReported_ByName()
+    {
+        // The case a global "newest reading anywhere" could never see: tent B keeps
+        // reporting, so the freshest reading looks fine while tent A is dead.
+        var verdict = WatchdogService.Evaluate(
+            Healthy(tents: [Tent("Hauptzelt", readingAgeMinutes: 45), Tent("Klon-Box", readingAgeMinutes: 3)]), Now);
+
+        Assert.Equal(WatchdogService.TentDark, verdict.Code);
+        Assert.True(verdict.IsProblem);
+        Assert.Contains("Hauptzelt", verdict.Detail);
+        Assert.Contains("45 Minuten", verdict.Detail);
+    }
+
+    [Fact]
+    public void TentThatNeverDelivered_IsNamedAsSuch()
+    {
+        var verdict = WatchdogService.Evaluate(
+            Healthy(tents: [Tent("Neues Zelt", readingAgeMinutes: null), Tent("Hauptzelt", readingAgeMinutes: 2)]), Now);
+
+        Assert.Equal(WatchdogService.TentDark, verdict.Code);
+        Assert.Contains("noch nie Werte geliefert", verdict.Detail);
+    }
+
+    [Fact]
+    public void AllTentsDark_IsStillTheGlobalNoDataVerdict()
+    {
+        var verdict = WatchdogService.Evaluate(
+            Healthy(tents: [Tent("A", readingAgeMinutes: 45), Tent("B", readingAgeMinutes: 60)]), Now);
+
+        Assert.Equal(WatchdogService.NoData, verdict.Code);
+    }
+
+    [Fact]
+    public void SecondTentGoingDark_IsANewState_NotARepetition()
+    {
+        // The ChangeKey carries WHICH tents are dark: one more dark tent must produce a
+        // different key, so the dedup in CheckAndNotifyAsync sends a fresh push.
+        var oneDark = WatchdogService.Evaluate(
+            Healthy(tents: [Tent("A", readingAgeMinutes: 45), Tent("B", readingAgeMinutes: 3), Tent("C", readingAgeMinutes: 3)]), Now);
+        var twoDark = WatchdogService.Evaluate(
+            Healthy(tents: [Tent("A", readingAgeMinutes: 55), Tent("B", readingAgeMinutes: 45), Tent("C", readingAgeMinutes: 3)]), Now);
+
+        Assert.Equal(WatchdogService.TentDark, oneDark.Code);
+        Assert.Equal(WatchdogService.TentDark, twoDark.Code);
+        Assert.NotEqual(oneDark.ChangeKey, twoDark.ChangeKey);
+    }
+
+    [Fact]
+    public void TentsWithoutSensors_DoNotCountAsDark()
+    {
+        // An empty spare tent must not keep the watchdog barking forever.
+        var verdict = WatchdogService.Evaluate(
+            Healthy(tents: [Tent("Leer", sensors: 0, readingAgeMinutes: null), Tent("Hauptzelt", readingAgeMinutes: 2)]), Now);
+
+        Assert.Equal(WatchdogService.Ok, verdict.Code);
+    }
+
+    [Fact]
+    public void OkVerdict_ReportsTheFreshestTent()
+    {
+        var verdict = WatchdogService.Evaluate(
+            Healthy(tents: [Tent("A", readingAgeMinutes: 12), Tent("B", readingAgeMinutes: 4)]), Now);
+
+        Assert.Equal(WatchdogService.Ok, verdict.Code);
+        Assert.Contains("4 Minuten", verdict.Detail);
     }
 }

@@ -145,13 +145,36 @@ public sealed class NotificationsApiController : ControllerBase
         });
     }
 
-    /// <summary>Current watchdog verdict — is the monitoring itself alive?</summary>
+    /// <summary>Current watchdog verdict — is the monitoring itself alive? Includes the per-tent pulse.</summary>
     [HttpGet("watchdog")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public IActionResult Watchdog([FromServices] WatchdogService watchdog)
     {
-        var verdict = watchdog.Inspect(DateTime.UtcNow);
-        return Ok(new { code = verdict.Code, headline = verdict.Headline, detail = verdict.Detail, isProblem = verdict.IsProblem });
+        var nowUtc = DateTime.UtcNow;
+        var report = watchdog.Inspect(nowUtc);
+        var verdict = report.Verdict;
+        return Ok(new
+        {
+            code = verdict.Code,
+            headline = verdict.Headline,
+            detail = verdict.Detail,
+            isProblem = verdict.IsProblem,
+            // Nur überwachte Zelte: ohne gemappte Sensoren gibt es keinen Puls zu zeigen.
+            tents = report.Tents
+                .Where(tent => tent.MappedSensorCount > 0)
+                .Select(tent =>
+                {
+                    var minutes = tent.NewestReadingUtc is { } newest
+                        ? (int?)Math.Max(0, (int)Math.Round((nowUtc - newest).TotalMinutes))
+                        : null;
+                    return new
+                    {
+                        name = tent.Name,
+                        minutesSinceData = minutes,
+                        stale = minutes is null || minutes > WatchdogService.NoDataMinutes,
+                    };
+                }),
+        });
     }
 
     /// <summary>Sends the current watchdog state to the phone, so the path can be proven.</summary>
@@ -159,7 +182,7 @@ public sealed class NotificationsApiController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> WatchdogTest([FromServices] WatchdogService watchdog, CancellationToken cancellationToken)
     {
-        var verdict = watchdog.Inspect(DateTime.UtcNow);
+        var verdict = watchdog.Inspect(DateTime.UtcNow).Verdict;
         var settings = _settingsRepo.GetNotificationSettings();
         if (!settings.IsConfigured)
         {

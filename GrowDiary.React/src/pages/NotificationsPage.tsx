@@ -8,6 +8,20 @@ function errorMessage(caught: unknown, fallback: string): string {
   return caught instanceof Error ? caught.message : fallback
 }
 
+/** Der Watchdog-Status samt Puls je Zelt — „stale" heißt: seit >20 min nichts. */
+type WatchdogStatus = {
+  headline: string
+  detail: string
+  isProblem: boolean
+  tents?: Array<{ name: string; minutesSinceData: number | null; stale: boolean }>
+}
+
+function pulseLabel(minutes: number | null): string {
+  if (minutes == null) return 'noch nie Daten'
+  if (minutes <= 1) return 'gerade eben'
+  return `vor ${minutes} min`
+}
+
 function hourToInput(value: number | null): string {
   return value == null ? '' : String(value)
 }
@@ -49,7 +63,7 @@ function NotificationsPage() {
   const [testing, setTesting] = useState(false)
   const [testingCal, setTestingCal] = useState(false)
   const [testingWatchdog, setTestingWatchdog] = useState(false)
-  const [watchdog, setWatchdog] = useState<{ headline: string; detail: string; isProblem: boolean } | null>(null)
+  const [watchdog, setWatchdog] = useState<WatchdogStatus | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -65,7 +79,7 @@ function NotificationsPage() {
         setQuietEnd(hourToInput(dto.quietHoursEndHour))
         const services = await apiFetch<string[]>('/api/notifications/notify-services', { signal: controller.signal }).catch(() => [])
         if (!controller.signal.aborted) setNotifyOptions(services)
-        const status = await apiFetch<{ headline: string; detail: string; isProblem: boolean }>('/api/notifications/watchdog', { signal: controller.signal }).catch(() => null)
+        const status = await apiFetch<WatchdogStatus>('/api/notifications/watchdog', { signal: controller.signal }).catch(() => null)
         if (!controller.signal.aborted && status) setWatchdog(status)
       } catch (caught) {
         if (!controller.signal.aborted) setError(errorMessage(caught, 'Einstellungen konnten nicht geladen werden.'))
@@ -159,7 +173,7 @@ function NotificationsPage() {
       const result = await apiFetch<{ ok: boolean; message: string }>('/api/notifications/watchdog/test', { method: 'POST', body: JSON.stringify({}) })
       if (result.ok) setMessage(result.message)
       else setError(result.message)
-      const status = await apiFetch<{ headline: string; detail: string; isProblem: boolean }>('/api/notifications/watchdog').catch(() => null)
+      const status = await apiFetch<WatchdogStatus>('/api/notifications/watchdog').catch(() => null)
       if (status) setWatchdog(status)
     } catch (caught) {
       setError(errorMessage(caught, 'Systemtest fehlgeschlagen.'))
@@ -258,6 +272,19 @@ function NotificationsPage() {
             {watchdog && (
               <p className="rc2-measurement-note" style={{ margin: '10px 0 0' }}>
                 <strong style={{ color: watchdog.isProblem ? 'var(--v1-text)' : 'var(--v1-green)' }}>{watchdog.headline}</strong> — {watchdog.detail}
+              </p>
+            )}
+            {watchdog?.tents && watchdog.tents.length > 0 && (
+              // Der Puls je Zelt: EIN Zelt kann dunkel sein, während die anderen
+              // melden — die eine Gesamtzeile würde das verdecken.
+              <p className="rc2-measurement-note" style={{ margin: '6px 0 0' }}>
+                {watchdog.tents.map((tent, index) => (
+                  <span key={tent.name}>
+                    {index > 0 && ' · '}
+                    {tent.name}:{' '}
+                    <strong style={{ color: tent.stale ? 'var(--v1-warn)' : 'var(--v1-green)' }}>{pulseLabel(tent.minutesSinceData)}</strong>
+                  </span>
+                ))}
               </p>
             )}
             <div style={{ marginTop: 10 }}>

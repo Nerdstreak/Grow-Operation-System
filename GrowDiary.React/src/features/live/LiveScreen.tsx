@@ -50,6 +50,8 @@ export type LiveScreenProps = {
   plantLine: string | null
   /** Alle Zelte zur Auswahl; erst ab zwei erscheint der Umschalter. */
   tents: TentDto[]
+  /** Nur gesetzt, wenn die Überwachung SELBST ein Problem meldet (Watchdog). */
+  systemWarning: { headline: string; detail: string } | null
   onTent: (tentId: number) => void
   onRefresh: () => void
 }
@@ -57,7 +59,7 @@ export type LiveScreenProps = {
 export function LiveScreen({
   tent, grow, score, scoreParts, climate, hydro, sensorsLive,
   lastMeasurement, stageLine, risks, tasks, timeline, timelineDates, plantLine,
-  flipIsPlanned, daysToFlip, tents, onTent, onRefresh,
+  flipIsPlanned, daysToFlip, tents, systemWarning, onTent, onRefresh,
 }: LiveScreenProps) {
   const topRisk = risks[0] ?? null
 
@@ -97,6 +99,17 @@ export function LiveScreen({
           <Link className="ls-btn" to="/addback">Addback starten</Link>
         </div>
       </header>
+
+      {/* ---------- Systemwarnung ---------- */}
+      {/* Wenn die Überwachung selbst schweigt, sind alle Kacheln darunter
+          womöglich alte Zahlen — das muss ÜBER den Messwerten stehen, nicht
+          in einer Benachrichtigung, die erst abends jemand liest. */}
+      {systemWarning && (
+        <Link className="ls-syswarn" to="/regeln?tab=push" data-audit="live-system-warning">
+          <span className="ls-label">Systemüberwachung</span>
+          <span className="ls-syswarn-text"><strong>{systemWarning.headline}</strong> — {systemWarning.detail}</span>
+        </Link>
+      )}
 
       {/* ---------- Messwerte ---------- */}
       <section className="ls-metrics">

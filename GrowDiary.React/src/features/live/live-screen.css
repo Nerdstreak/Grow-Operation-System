@@ -58,6 +58,20 @@
   .ls-head-meta { font: 400 11.5px/1.4 var(--font-mono); color: var(--muted); }
   .ls-head-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 
+  /* ---------- Systemwarnung (Watchdog) ----------
+     Erscheint nur, wenn die Überwachung selbst ein Problem meldet — dann sind
+     die Kacheln darunter womöglich alte Zahlen. Deshalb über den Messwerten. */
+  .ls-syswarn {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    padding: 10px 14px;
+    border: 1px solid var(--warn); border-radius: 10px;
+    background: var(--warn-wash);
+    color: var(--ink); text-decoration: none;
+  }
+  .ls-syswarn .ls-label { color: var(--warn-text); }
+  .ls-syswarn-text { font: 400 12.5px/1.5 var(--font-sans); }
+  .ls-syswarn-text strong { font-weight: 600; }
+
   /* ---------- Knöpfe ---------- */
   .ls-btn {
     display: inline-flex; align-items: center; justify-content: center;

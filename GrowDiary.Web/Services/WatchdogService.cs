@@ -3,22 +3,35 @@ using GrowDiary.Web.Models;
 
 namespace GrowDiary.Web.Services;
 
+/// <summary>One tent's pulse: how many sensors are mapped, and when data last arrived.</summary>
+public sealed record WatchdogTentPulse(string Name, int MappedSensorCount, DateTime? NewestReadingUtc);
+
 /// <summary>What the watchdog looked at.</summary>
 public sealed record WatchdogInput(
     bool HomeAssistantConfigured,
-    int MappedSensorCount,
     DateTime? LastSnapshotRunUtc,
     DateTime? LastHomeAssistantSuccessUtc,
-    DateTime? NewestReadingUtc,
-    string? LastHomeAssistantError);
+    string? LastHomeAssistantError,
+    IReadOnlyList<WatchdogTentPulse> Tents);
 
-/// <summary>What it concluded.</summary>
-public sealed record WatchdogVerdict(string Code, string Headline, string Detail, bool IsProblem);
+/// <summary>
+/// What it concluded. <see cref="ChangeKey"/> is the identity of the state for
+/// notification dedup: for tent outages it carries WHICH tents are dark, so a second
+/// tent going dark is a new state and gets its own push instead of hiding in the old one.
+/// </summary>
+public sealed record WatchdogVerdict(string Code, string Headline, string Detail, bool IsProblem, string ChangeKey);
+
+/// <summary>The verdict plus the per-tent pulses it was based on — for the status endpoint.</summary>
+public sealed record WatchdogReport(WatchdogVerdict Verdict, IReadOnlyList<WatchdogTentPulse> Tents);
 
 /// <summary>
 /// The dead-man's switch: a normal alert says "this value is wrong", the watchdog says
 /// "I cannot see anything at all right now". Without it, silence is ambiguous — it could
 /// mean everything is fine, or that monitoring itself has stopped.
+///
+/// The pulse is per tent. A global "newest reading anywhere" hid the case where one tent
+/// goes dark while another keeps reporting — exactly the outage a multi-tent owner never
+/// notices, because the app still shows fresh numbers somewhere.
 /// </summary>
 public sealed class WatchdogService
 {
@@ -27,6 +40,7 @@ public sealed class WatchdogService
     public const string WorkerStalled = "worker_stalled";
     public const string HaUnreachable = "ha_unreachable";
     public const string NoData = "no_data";
+    public const string TentDark = "tent_dark";
 
     // The snapshot worker loops every 5 minutes; three missed rounds is a real problem,
     // not a hiccup.
@@ -59,20 +73,21 @@ public sealed class WatchdogService
         if (!input.HomeAssistantConfigured)
         {
             return new WatchdogVerdict(Idle, "Nicht überwacht",
-                "Home Assistant ist noch nicht verbunden — es gibt nichts zu überwachen.", false);
+                "Home Assistant ist noch nicht verbunden — es gibt nichts zu überwachen.", false, Idle);
         }
 
-        if (input.MappedSensorCount == 0)
+        var watched = input.Tents.Where(tent => tent.MappedSensorCount > 0).ToList();
+        if (watched.Count == 0)
         {
             return new WatchdogVerdict(Idle, "Nicht überwacht",
-                "Noch kein Sensor zugeordnet — ordne auf der Home-Assistant-Seite Entitäten zu.", false);
+                "Noch kein Sensor zugeordnet — ordne auf der Home-Assistant-Seite Entitäten zu.", false, Idle);
         }
 
         var snapshotAge = Age(input.LastSnapshotRunUtc, nowUtc);
         if (snapshotAge is null || snapshotAge > TimeSpan.FromMinutes(StalledMinutes))
         {
             return new WatchdogVerdict(WorkerStalled, "Überwachung steht",
-                "Grow OS hat seit über 15 Minuten keine Runde mehr gedreht. Ein Neustart des Add-ons behebt das meist.", true);
+                "Grow OS hat seit über 15 Minuten keine Runde mehr gedreht. Ein Neustart des Add-ons behebt das meist.", true, WorkerStalled);
         }
 
         var haAge = Age(input.LastHomeAssistantSuccessUtc, nowUtc);
@@ -80,65 +95,84 @@ public sealed class WatchdogService
         {
             var reason = string.IsNullOrWhiteSpace(input.LastHomeAssistantError) ? string.Empty : $" ({input.LastHomeAssistantError})";
             return new WatchdogVerdict(HaUnreachable, "Home Assistant antwortet nicht",
-                $"Seit über 15 Minuten kommen keine Werte aus Home Assistant{reason}. Solange sind Grenzwert-Alarme blind.", true);
+                $"Seit über 15 Minuten kommen keine Werte aus Home Assistant{reason}. Solange sind Grenzwert-Alarme blind.", true, HaUnreachable);
         }
 
-        var readingAge = Age(input.NewestReadingUtc, nowUtc);
-        if (readingAge is null || readingAge > TimeSpan.FromMinutes(NoDataMinutes))
+        var dark = watched.Where(tent => IsDark(tent, nowUtc)).ToList();
+
+        if (dark.Count == watched.Count)
         {
             return new WatchdogVerdict(NoData, "Keine neuen Messwerte",
-                "Die Verbindung steht, aber deine Sensoren liefern seit über 20 Minuten nichts Neues. Prüfe die Geräte in Home Assistant.", true);
+                "Die Verbindung steht, aber deine Sensoren liefern seit über 20 Minuten nichts Neues. Prüfe die Geräte in Home Assistant.", true, NoData);
         }
 
-        var minutes = (int)Math.Round(readingAge.Value.TotalMinutes);
+        if (dark.Count > 0)
+        {
+            // Some tents report, some are dark — the case a global check could not see.
+            var parts = dark.Select(tent => DarkLabel(tent, nowUtc)).ToList();
+            var detail = dark.Count == 1
+                ? $"{parts[0]} — die übrigen Zelte melden normal. Prüfe die Geräte in Home Assistant."
+                : $"{string.Join(" · ", parts)} — die übrigen Zelte melden normal. Prüfe die Geräte in Home Assistant.";
+            var changeKey = $"{TentDark}:{string.Join(",", dark.Select(tent => tent.Name).OrderBy(name => name, StringComparer.Ordinal))}";
+            return new WatchdogVerdict(TentDark,
+                dark.Count == 1 ? $"Zelt „{dark[0].Name}\" ist dunkel" : $"{dark.Count} Zelte sind dunkel",
+                detail, true, changeKey);
+        }
+
+        var freshest = watched
+            .Select(tent => Age(tent.NewestReadingUtc, nowUtc)!.Value)
+            .Min();
+        var minutes = (int)Math.Round(freshest.TotalMinutes);
         return new WatchdogVerdict(Ok, "Alles wach",
-            minutes <= 1 ? "Letzte Sensordaten gerade eben." : $"Letzte Sensordaten vor {minutes} Minuten.", false);
+            minutes <= 1 ? "Letzte Sensordaten gerade eben." : $"Letzte Sensordaten vor {minutes} Minuten.", false, Ok);
     }
+
+    private static bool IsDark(WatchdogTentPulse tent, DateTime nowUtc)
+        => Age(tent.NewestReadingUtc, nowUtc) is not { } age || age > TimeSpan.FromMinutes(NoDataMinutes);
+
+    private static string DarkLabel(WatchdogTentPulse tent, DateTime nowUtc)
+        => Age(tent.NewestReadingUtc, nowUtc) is { } age
+            ? $"Zelt „{tent.Name}\" liefert seit {(int)Math.Round(age.TotalMinutes)} Minuten nichts Neues"
+            : $"Zelt „{tent.Name}\" hat noch nie Werte geliefert";
 
     private static TimeSpan? Age(DateTime? timestampUtc, DateTime nowUtc)
         => timestampUtc is { } value ? nowUtc - value : null;
 
     /// <summary>Collects the current state without notifying — used by the status endpoint.</summary>
-    public WatchdogVerdict Inspect(DateTime nowUtc)
+    public WatchdogReport Inspect(DateTime nowUtc)
     {
         var settings = _repository.GetEffectiveHomeAssistantSettings();
-        var tents = _repository.GetTents();
-        var mappedSensors = tents.Sum(tent => tent.Sensors.Count(sensor => sensor.IsActive && !string.IsNullOrWhiteSpace(sensor.HaEntityId)));
-        var newest = tents
-            .Select(tent => _readings.GetNewestReadingUtc(tent.Id))
-            .Where(value => value.HasValue)
-            .Select(value => value!.Value)
-            .DefaultIfEmpty()
-            .Max();
+        var pulses = _repository.GetTents()
+            .Select(tent => new WatchdogTentPulse(
+                tent.Name,
+                tent.Sensors.Count(sensor => sensor.IsActive && !string.IsNullOrWhiteSpace(sensor.HaEntityId)),
+                _readings.GetNewestReadingUtc(tent.Id)))
+            .ToList();
 
         var (snapshotRun, haSuccess, haError) = _heartbeat.Read();
-        return Evaluate(
-            new WatchdogInput(
-                settings.IsConfigured,
-                mappedSensors,
-                snapshotRun,
-                haSuccess,
-                newest == default ? null : newest,
-                haError),
+        var verdict = Evaluate(
+            new WatchdogInput(settings.IsConfigured, snapshotRun, haSuccess, haError, pulses),
             nowUtc);
+        return new WatchdogReport(verdict, pulses);
     }
 
     /// <summary>
     /// Checks and pushes once per state change: one message when something breaks, one when
-    /// it recovers. Never repeats the same complaint.
+    /// it recovers. Never repeats the same complaint — but a DIFFERENT set of dark tents is
+    /// a new state, not a repetition.
     /// </summary>
     public async Task<WatchdogVerdict> CheckAndNotifyAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
     {
-        var verdict = Inspect(nowUtc);
+        var verdict = Inspect(nowUtc).Verdict;
         var previous = _heartbeat.NotifiedCode;
 
-        if (verdict.IsProblem && previous != verdict.Code)
+        if (verdict.IsProblem && previous != verdict.ChangeKey)
         {
             var sent = await _notifications.SendAsync(
                 NotificationCategory.System, "🌱 Grow OS · Systemwarnung", $"{verdict.Headline}: {verdict.Detail}", cancellationToken);
             if (sent)
             {
-                _heartbeat.NotifiedCode = verdict.Code;
+                _heartbeat.NotifiedCode = verdict.ChangeKey;
                 _logger.LogWarning("Watchdog: {Code} — {Detail}", verdict.Code, verdict.Detail);
             }
         }
