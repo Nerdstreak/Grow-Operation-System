@@ -117,6 +117,18 @@ public sealed class DosingPump
     /// </summary>
     public bool HasHomeAssistantAutoOff { get; set; }
 
+    /// <summary>
+    /// Testbetrieb: Grow OS rechnet, protokolliert und zeigt die Pumpe laufen —
+    /// schaltet aber nichts. Es fließt nichts.
+    /// </summary>
+    /// <remarks>
+    /// Damit lässt sich der ganze Weg ohne Hardware durchspielen: einrichten,
+    /// kalibrieren, dosieren, Protokoll lesen. Testdosen sind überall als solche
+    /// markiert und fließen NICHT ins Gelernte ein — sonst stünde später unter
+    /// „gelernt" eine Zahl, hinter der nie ein Tropfen war.
+    /// </remarks>
+    public bool SimulationMode { get; set; }
+
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
 
@@ -169,4 +181,10 @@ public sealed class DoseEvent
 
     /// <summary>Klartext: warum abgelehnt, oder was ausgelöst hat.</summary>
     public string? Reason { get; set; }
+
+    /// <summary>
+    /// Im Testbetrieb entstanden — es ist nichts geflossen. Wird angezeigt und
+    /// beim Lernen übersprungen.
+    /// </summary>
+    public bool Simulated { get; set; }
 }

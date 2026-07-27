@@ -63,6 +63,10 @@ public static class DosingCalculator
     {
         var brauchbar = history
             .Where(dose => dose.Outcome == DoseOutcome.Done && dose.DosedMl > 0)
+            // Testdosen fliegen raus: es ist nichts geflossen, jede Aenderung
+            // danach hat eine andere Ursache. Sonst stuende hier spaeter eine
+            // Zahl, hinter der nie ein Tropfen war.
+            .Where(dose => !dose.Simulated)
             .Where(dose => dose.ValueBefore is not null && dose.ValueAfter is not null)
             .Select(dose => (dose.ValueAfter!.Value - dose.ValueBefore!.Value) / dose.DosedMl)
             .ToList();
@@ -99,7 +103,10 @@ public static class DosingGuard
 
     public static DosingDecision Evaluate(DosingPump pump, double requestedMl, DosingContext context, DateTime nowUtc)
     {
-        if (string.IsNullOrWhiteSpace(pump.HaEntityId))
+        // Im Testbetrieb wird nichts geschaltet — dann braucht es auch keine
+        // Entität. Alles andere gilt unverändert, sonst prüfte der Test etwas
+        // anderes als der Ernstfall.
+        if (!pump.SimulationMode && string.IsNullOrWhiteSpace(pump.HaEntityId))
         {
             return DosingDecision.No("Keine Home-Assistant-Entität hinterlegt.");
         }
@@ -118,7 +125,13 @@ public static class DosingGuard
         // zwei Schritten. Ablehnen hiesse, dass gar nichts passiert.
         var ml = Math.Min(requestedMl, pump.MaxSingleDoseMl);
 
-        var gelaufen = context.DosesToday.Where(dose => dose.Outcome == DoseOutcome.Done).ToList();
+        // Was auf Tagesgrenze und Mischzeit zaehlt: nur, was in die Loesung
+        // gegangen ist. Kalibrierlaeufe gehen in den Messbecher und aendern an
+        // der Loesung nichts — beim ersten Durchspielen war deshalb nach dem
+        // Kalibrieren 18 Minuten lang keine Dosis moeglich.
+        var gelaufen = context.DosesToday
+            .Where(dose => dose.Outcome == DoseOutcome.Done && dose.Trigger != DoseTrigger.Calibration)
+            .ToList();
         if (gelaufen.Count >= pump.MaxDosesPerDay)
         {
             return DosingDecision.No($"Tagesgrenze erreicht: schon {gelaufen.Count} Dosierungen.");
@@ -180,8 +193,9 @@ public static class DosingGuard
 
         // Ohne Abschaltung in Home Assistant läuft die Pumpe weiter, wenn Grow OS
         // zwischen Ein- und Ausschalten abstürzt. Von Hand ist das vertretbar —
-        // jemand steht daneben. Unbeaufsichtigt nicht.
-        if (!pump.HasHomeAssistantAutoOff)
+        // jemand steht daneben. Unbeaufsichtigt nicht. Im Testbetrieb entfällt
+        // die Forderung: es gibt nichts, das weiterlaufen könnte.
+        if (!pump.SimulationMode && !pump.HasHomeAssistantAutoOff)
         {
             return DosingDecision.No("Ohne Abschaltung in Home Assistant bleibt die Automatik gesperrt.");
         }
@@ -242,12 +256,23 @@ public sealed class DosingService
     /// </remarks>
     public async Task<bool> RunForSecondsAsync(DosingPump pump, double seconds, CancellationToken cancellationToken = default)
     {
+        var kappt = Math.Clamp(seconds, 0, DosingGuard.AbsoluteMaxSeconds);
+        if (kappt <= 0) return false;
+
+        // Testbetrieb: die Zeit vergeht wirklich, damit die Anzeige die echte
+        // Dauer zeigt — geschaltet wird nichts. Ohne Home Assistant liesse sich
+        // sonst kein einziger Schritt durchspielen.
+        if (pump.SimulationMode)
+        {
+            _logger.LogInformation("Testbetrieb: Pumpe {Pump} laeuft {Seconds:0.#} s — es fliesst nichts.", pump.Name, kappt);
+            await Task.Delay(TimeSpan.FromSeconds(kappt), CancellationToken.None);
+            return true;
+        }
+
         var settings = _repository.GetEffectiveHomeAssistantSettings();
         if (!settings.IsConfigured) return false;
 
         var (domain, _) = SplitEntity(pump.HaEntityId);
-        var kappt = Math.Clamp(seconds, 0, DosingGuard.AbsoluteMaxSeconds);
-        if (kappt <= 0) return false;
 
         var an = await _homeAssistant.CallEntityServiceAsync(settings, domain, "turn_on", pump.HaEntityId, cancellationToken);
         if (!an)
@@ -280,6 +305,9 @@ public sealed class DosingService
     /// <summary>Schaltet eine einzelne Pumpe aus — ohne Bedingungen.</summary>
     public async Task<bool> TurnOffAsync(DosingPump pump, CancellationToken cancellationToken = default)
     {
+        // Eine Pumpe im Testbetrieb war nie an; „aus" ist trivial wahr.
+        if (pump.SimulationMode) return true;
+
         var settings = _repository.GetEffectiveHomeAssistantSettings();
         if (!settings.IsConfigured || string.IsNullOrWhiteSpace(pump.HaEntityId)) return false;
 

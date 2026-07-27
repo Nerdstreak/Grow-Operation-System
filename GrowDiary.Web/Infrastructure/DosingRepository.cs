@@ -46,12 +46,12 @@ public sealed class DosingRepository : RepositoryBase
                 (TentId, Name, Purpose, Agent, ConcentrationPercent, HaEntityId, MlPerMinute,
                  CalibratedAtUtc, TubeChangedAtUtc, CalibrationIntervalDays, TubeIntervalDays,
                  MaxSingleDoseMl, MinIntervalMinutes, MaxDosesPerDay, MaxMlPerDay, MaxReadingAgeMinutes,
-                 AutomationEnabled, HasHomeAssistantAutoOff, CreatedAtUtc, UpdatedAtUtc)
+                 AutomationEnabled, HasHomeAssistantAutoOff, SimulationMode, CreatedAtUtc, UpdatedAtUtc)
             VALUES
                 ($tentId, $name, $purpose, $agent, $concentration, $entity, $mlPerMinute,
                  $calibratedAt, $tubeChangedAt, $calInterval, $tubeInterval,
                  $maxSingle, $minInterval, $maxDoses, $maxMl, $maxAge,
-                 $automation, $autoOff, $now, $now);
+                 $automation, $autoOff, $simulation, $now, $now);
             SELECT last_insert_rowid();
         """;
         BindPump(command, pump);
@@ -72,6 +72,7 @@ public sealed class DosingRepository : RepositoryBase
                    MaxSingleDoseMl = $maxSingle, MinIntervalMinutes = $minInterval,
                    MaxDosesPerDay = $maxDoses, MaxMlPerDay = $maxMl, MaxReadingAgeMinutes = $maxAge,
                    AutomationEnabled = $automation, HasHomeAssistantAutoOff = $autoOff,
+                   SimulationMode = $simulation,
                    UpdatedAtUtc = $now
              WHERE Id = $id;
         """;
@@ -115,10 +116,10 @@ public sealed class DosingRepository : RepositoryBase
         command.CommandText = """
             INSERT INTO DoseEvents
                 (PumpId, TentId, GrowId, OccurredAtUtc, Trigger, Outcome, RequestedMl, DosedMl,
-                 SecondsRun, ValueBefore, ValueAfter, TargetValue, Reason)
+                 SecondsRun, ValueBefore, ValueAfter, TargetValue, Reason, Simulated)
             VALUES
                 ($pumpId, $tentId, $growId, $occurredAt, $trigger, $outcome, $requestedMl, $dosedMl,
-                 $seconds, $before, $after, $target, $reason);
+                 $seconds, $before, $after, $target, $reason, $simulated);
             SELECT last_insert_rowid();
         """;
         command.Parameters.AddWithValue("$pumpId", dose.PumpId);
@@ -134,6 +135,7 @@ public sealed class DosingRepository : RepositoryBase
         AddNullable(command, "$after", dose.ValueAfter);
         AddNullable(command, "$target", dose.TargetValue);
         command.Parameters.AddWithValue("$reason", (object?)dose.Reason ?? DBNull.Value);
+        command.Parameters.AddWithValue("$simulated", dose.Simulated ? 1 : 0);
         return Convert.ToInt32(command.ExecuteScalar());
     }
 
@@ -156,9 +158,9 @@ public sealed class DosingRepository : RepositoryBase
     }
 
     /// <summary>
-    /// Die tatsächlich gelaufenen Dosen einer Pumpe seit einem Zeitpunkt — die
-    /// Grundlage für Tagesgrenze und Sperrfrist. Abgelehnte zählen nicht mit:
-    /// aus ihnen ist nichts geflossen.
+    /// Die gelaufenen Dosen einer Pumpe seit einem Zeitpunkt. Was davon auf
+    /// Tagesgrenze und Sperrfrist zählt, entscheidet <c>DosingGuard</c> — hier
+    /// wird nur geholt.
     /// </summary>
     public List<DoseEvent> GetDosesSince(int pumpId, DateTime sinceUtc)
     {
@@ -211,6 +213,7 @@ public sealed class DosingRepository : RepositoryBase
         command.Parameters.AddWithValue("$maxAge", pump.MaxReadingAgeMinutes);
         command.Parameters.AddWithValue("$automation", pump.AutomationEnabled ? 1 : 0);
         command.Parameters.AddWithValue("$autoOff", pump.HasHomeAssistantAutoOff ? 1 : 0);
+        command.Parameters.AddWithValue("$simulation", pump.SimulationMode ? 1 : 0);
     }
 
     private static DosingPump MapPump(SqliteDataReader reader) => new()
@@ -234,6 +237,7 @@ public sealed class DosingRepository : RepositoryBase
         MaxReadingAgeMinutes = Convert.ToInt32(reader["MaxReadingAgeMinutes"]),
         AutomationEnabled = Convert.ToInt32(reader["AutomationEnabled"]) == 1,
         HasHomeAssistantAutoOff = Convert.ToInt32(reader["HasHomeAssistantAutoOff"]) == 1,
+        SimulationMode = HasColumn(reader, "SimulationMode") && Convert.ToInt32(reader["SimulationMode"]) == 1,
         CreatedAtUtc = ParseStoredUtcDateTime(NullString(reader["CreatedAtUtc"])) ?? DateTime.UtcNow,
         UpdatedAtUtc = ParseStoredUtcDateTime(NullString(reader["UpdatedAtUtc"])) ?? DateTime.UtcNow,
     };
@@ -254,5 +258,6 @@ public sealed class DosingRepository : RepositoryBase
         ValueAfter = NullableDouble(reader["ValueAfter"]),
         TargetValue = NullableDouble(reader["TargetValue"]),
         Reason = NullString(reader["Reason"]),
+        Simulated = HasColumn(reader, "Simulated") && Convert.ToInt32(reader["Simulated"]) == 1,
     };
 }

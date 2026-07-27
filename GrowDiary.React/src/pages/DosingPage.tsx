@@ -32,6 +32,7 @@ type Pump = {
   maxMlPerDay: number
   automationEnabled: boolean
   hasHomeAssistantAutoOff: boolean
+  simulationMode: boolean
   metricKey: string | null
   learnedChangePerMl: number | null
   learnedFromDoses: number
@@ -50,6 +51,7 @@ type DoseEvent = {
   valueBefore: number | null
   valueAfter: number | null
   reason: string | null
+  simulated: boolean
 }
 
 const PURPOSE_LABEL: Record<string, string> = {
@@ -233,6 +235,7 @@ function DosingPage() {
                   >
                     <div className="dz-pump-head">
                       <span className="name">{pump.name}</span>
+                      {pump.simulationMode && <span className="dz-badge">Testbetrieb</span>}
                       <span className={classNames('dz-pump-state', !dosing && pump.blockedReason && 'is-blocked')}>
                         {dosing ? '● dosiert' : pump.blockedReason ? 'gesperrt' : 'bereit'}
                       </span>
@@ -355,7 +358,10 @@ function DosingPage() {
               {log.map((dose) => (
                 <LogRow key={dose.id}>
                   <div className="co-td">{zeit(dose.occurredAtUtc)}</div>
-                  <div className="co-td is-name">{dose.pumpName}</div>
+                  <div className="co-td is-name">
+                    {dose.pumpName}
+                    {dose.simulated && <span className="dz-badge is-small">Test</span>}
+                  </div>
                   <div className="co-td">{dose.outcome === 'Done' ? `${zahl(dose.dosedMl, 1)} ml` : '—'}</div>
                   <div className="co-td">{zahl(dose.valueBefore)}</div>
                   <div className="co-td">{zahl(dose.valueAfter)}</div>

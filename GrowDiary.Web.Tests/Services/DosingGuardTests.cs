@@ -153,6 +153,22 @@ public sealed class DosingGuardTests
     }
 
     [Fact]
+    public void ACalibrationRun_DoesNotStartTheMixingClock()
+    {
+        // Der Kalibrierlauf geht in den Messbecher, nicht ins Becken. Beim
+        // ersten Durchspielen war deshalb nach dem Kalibrieren 18 Minuten lang
+        // keine Dosis moeglich — die Sperre gilt aber der Loesung, an der der
+        // Lauf nichts geaendert hat.
+        var kalibrierung = new DoseEvent
+        {
+            Outcome = DoseOutcome.Done, Trigger = DoseTrigger.Calibration,
+            DosedMl = 0, SecondsRun = 15, OccurredAtUtc = Now.AddMinutes(-1),
+        };
+
+        Assert.True(DosingGuard.Evaluate(Pump(), 2, Context(today: [kalibrierung]), Now).Allowed);
+    }
+
+    [Fact]
     public void RejectedRequests_DoNotStartTheMixingClock()
     {
         // Aus einer abgelehnten Anfrage ist nichts geflossen — sie darf die
@@ -256,6 +272,47 @@ public sealed class DosingGuardTests
         var context = Context(reading: null, readingAgeMinutes: 999, probeCalibrated: false, probeOverdue: true);
 
         Assert.True(DosingGuard.Evaluate(Pump(), 2, context, Now).Allowed);
+    }
+
+    // ---------- Testbetrieb ----------
+
+    [Fact]
+    public void InSimulation_NoEntityIsNeeded()
+    {
+        // Ohne Hardware laesst sich sonst kein Schritt durchspielen.
+        var pump = Pump(p => { p.SimulationMode = true; p.HaEntityId = ""; });
+
+        Assert.True(DosingGuard.Evaluate(pump, 3.5, Context(), Now).Allowed);
+    }
+
+    [Fact]
+    public void SimulationDoesNotLoosenTheOtherLimits()
+    {
+        // Sonst pruefte der Test etwas anderes als der Ernstfall.
+        var pump = Pump(p => { p.SimulationMode = true; p.HaEntityId = ""; });
+        var heute = new[] { Done(2, Now.AddMinutes(-5)) };
+
+        var decision = DosingGuard.Evaluate(pump, 2, Context(today: heute), Now);
+
+        Assert.False(decision.Allowed);
+        Assert.Contains("mischen", decision.Reason);
+    }
+
+    [Fact]
+    public void AnUncalibratedSimulatedPump_StillRefuses()
+    {
+        var pump = Pump(p => { p.SimulationMode = true; p.MlPerMinute = null; });
+
+        Assert.False(DosingGuard.Evaluate(pump, 3.5, Context(), Now).Allowed);
+    }
+
+    [Fact]
+    public void SimulationNeedsNoHomeAssistantAutoOff()
+    {
+        // Es gibt nichts, das weiterlaufen koennte.
+        var pump = Pump(p => { p.SimulationMode = true; p.HasHomeAssistantAutoOff = false; });
+
+        Assert.True(DosingGuard.EvaluateAutomatic(pump, 2, Context(), Now).Allowed);
     }
 
     [Fact]

@@ -209,6 +209,12 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "AppliedSchemaMigrations", "IsDestructive", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "AppliedSchemaMigrations", "Checksum", "TEXT NULL");
         EnsureColumn(connection, "AppliedSchemaMigrations", "EngineVersion", "TEXT NOT NULL DEFAULT 'migration-engine.v1'");
+
+        // Testbetrieb der Dosierpumpen. Die Tabellen entstanden eine Version
+        // frueher — im CREATE TABLE nachzutragen erreicht nur frische
+        // Datenbanken, bestehende brauchen den Zusatz hier.
+        EnsureColumn(connection, "DosingPumps", "SimulationMode", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "DoseEvents", "Simulated", "INTEGER NOT NULL DEFAULT 0");
     }
 
 

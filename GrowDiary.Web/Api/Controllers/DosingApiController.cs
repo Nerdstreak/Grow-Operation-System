@@ -118,6 +118,7 @@ public sealed class DosingApiController : ApiControllerBase
             DosedMl = 0,
             SecondsRun = ok ? seconds : 0,
             Reason = ok ? $"Kalibrierlauf {seconds:0.#} s" : "Kalibrierlauf: Home Assistant hat nicht geschaltet.",
+            Simulated = pump.SimulationMode,
         });
 
         return Ok(new DoseResultDto(ok, 0, ok ? seconds : 0,
@@ -172,6 +173,7 @@ public sealed class DosingApiController : ApiControllerBase
                 RequestedMl = request.Ml,
                 ValueBefore = context.Reading,
                 Reason = decision.Reason,
+                Simulated = pump.SimulationMode,
             });
             return Ok(new DoseResultDto(false, 0, 0, decision.Reason));
         }
@@ -188,7 +190,8 @@ public sealed class DosingApiController : ApiControllerBase
             DosedMl = ok ? decision.Ml : 0,
             SecondsRun = ok ? decision.Seconds : 0,
             ValueBefore = context.Reading,
-            Reason = ok ? "Von Hand ausgelöst." : "Home Assistant hat die Pumpe nicht geschaltet.",
+            Simulated = pump.SimulationMode,
+            Reason = ok ? (pump.SimulationMode ? "Testbetrieb — es ist nichts geflossen." : "Von Hand ausgelöst.") : "Home Assistant hat die Pumpe nicht geschaltet.",
         });
 
         return Ok(new DoseResultDto(ok, ok ? decision.Ml : 0, ok ? decision.Seconds : 0,
@@ -261,7 +264,7 @@ public sealed class DosingApiController : ApiControllerBase
             dose.Id, dose.PumpId, namen.GetValueOrDefault(dose.PumpId, "—"),
             dose.OccurredAtUtc, dose.Trigger.ToString(), dose.Outcome.ToString(),
             dose.RequestedMl, dose.DosedMl, dose.SecondsRun,
-            dose.ValueBefore, dose.ValueAfter, dose.TargetValue, dose.Reason)).ToList());
+            dose.ValueBefore, dose.ValueAfter, dose.TargetValue, dose.Reason, dose.Simulated)).ToList());
     }
 
     // ---------- Innenleben ----------
@@ -316,8 +319,8 @@ public sealed class DosingApiController : ApiControllerBase
             return BadRequestError("invalid_body", "Der Anfrage-Rumpf ist leer oder unlesbar.");
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequestError("name_required", "Die Pumpe braucht einen Namen.");
-        if (string.IsNullOrWhiteSpace(request.HaEntityId))
-            return BadRequestError("entity_required", "Ohne Home-Assistant-Entität lässt sich nichts schalten.");
+        if (!request.SimulationMode && string.IsNullOrWhiteSpace(request.HaEntityId))
+            return BadRequestError("entity_required", "Ohne Home-Assistant-Entität lässt sich nichts schalten — oder schalte den Testbetrieb ein.");
         if (_repository.GetTent(request.TentId) is null)
             return BadRequestError("tent_not_found", $"Zelt {request.TentId} existiert nicht.");
         if (request.MaxSingleDoseMl is <= 0)
@@ -342,6 +345,7 @@ public sealed class DosingApiController : ApiControllerBase
         if (request.MaxReadingAgeMinutes is { } age) pump.MaxReadingAgeMinutes = age;
         pump.AutomationEnabled = request.AutomationEnabled;
         pump.HasHomeAssistantAutoOff = request.HasHomeAssistantAutoOff;
+        pump.SimulationMode = request.SimulationMode;
         return pump;
     }
 
@@ -359,7 +363,7 @@ public sealed class DosingApiController : ApiControllerBase
             pump.HaEntityId, pump.MlPerMinute, pump.CalibratedAtUtc, pump.TubeChangedAtUtc,
             pump.CalibrationIntervalDays, pump.TubeIntervalDays,
             pump.MaxSingleDoseMl, pump.MinIntervalMinutes, pump.MaxDosesPerDay, pump.MaxMlPerDay,
-            pump.MaxReadingAgeMinutes, pump.AutomationEnabled, pump.HasHomeAssistantAutoOff,
+            pump.MaxReadingAgeMinutes, pump.AutomationEnabled, pump.HasHomeAssistantAutoOff, pump.SimulationMode,
             pump.MetricKey,
             DosingCalculator.LearnedChangePerMl(history),
             auswertbar,

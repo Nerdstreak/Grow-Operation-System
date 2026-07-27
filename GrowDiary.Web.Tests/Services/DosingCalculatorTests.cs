@@ -84,6 +84,34 @@ public sealed class DosingCalculatorTests
     }
 
     [Fact]
+    public void LearnedChange_IgnoresSimulatedDoses()
+    {
+        // Im Testbetrieb ist nichts geflossen. Jede Aenderung danach hat eine
+        // andere Ursache — sonst stuende unter „gelernt" eine Zahl, hinter der
+        // nie ein Tropfen war.
+        var doses = new List<DoseEvent> { Dose(2, 6.4, 6.2), Dose(3, 6.3, 6.0), Dose(1, 6.2, 6.1) };
+        doses.Add(new DoseEvent
+        {
+            Outcome = DoseOutcome.Done, DosedMl = 5, ValueBefore = 6.5, ValueAfter = 5.0, Simulated = true,
+        });
+
+        Assert.Equal(-0.1, DosingCalculator.LearnedChangePerMl(doses)!.Value, 3);
+    }
+
+    [Fact]
+    public void OnlySimulatedDoses_TeachNothing()
+    {
+        var doses = new[]
+        {
+            new DoseEvent { Outcome = DoseOutcome.Done, DosedMl = 2, ValueBefore = 6.4, ValueAfter = 6.2, Simulated = true },
+            new DoseEvent { Outcome = DoseOutcome.Done, DosedMl = 3, ValueBefore = 6.3, ValueAfter = 6.0, Simulated = true },
+            new DoseEvent { Outcome = DoseOutcome.Done, DosedMl = 1, ValueBefore = 6.2, ValueAfter = 6.1, Simulated = true },
+        };
+
+        Assert.Null(DosingCalculator.LearnedChangePerMl(doses));
+    }
+
+    [Fact]
     public void LearnedChange_IgnoresRejectedRequests()
     {
         var doses = new List<DoseEvent> { Dose(2, 6.4, 6.2), Dose(3, 6.3, 6.0), Dose(1, 6.2, 6.1) };

@@ -24,6 +24,7 @@ type Form = {
   maxDosesPerDay: string
   maxMlPerDay: string
   hasHomeAssistantAutoOff: boolean
+  simulationMode: boolean
   tubeChangedNow: boolean
 }
 
@@ -39,7 +40,8 @@ function leer(): Form {
   return {
     tentId: null, name: '', purpose: 'PhDown', agent: '', concentrationPercent: '',
     haEntityId: '', maxSingleDoseMl: '5', minIntervalMinutes: '18',
-    maxDosesPerDay: '6', maxMlPerDay: '25', hasHomeAssistantAutoOff: false, tubeChangedNow: false,
+    maxDosesPerDay: '6', maxMlPerDay: '25', hasHomeAssistantAutoOff: false,
+    simulationMode: false, tubeChangedNow: false,
   }
 }
 
@@ -84,6 +86,7 @@ function DosingPumpSetupPage() {
             maxDosesPerDay: String(pump.maxDosesPerDay ?? 6),
             maxMlPerDay: String(pump.maxMlPerDay ?? 25),
             hasHomeAssistantAutoOff: Boolean(pump.hasHomeAssistantAutoOff),
+            simulationMode: Boolean(pump.simulationMode),
             tubeChangedNow: false,
           })
         } else {
@@ -105,7 +108,10 @@ function DosingPumpSetupPage() {
 
   async function speichern() {
     if (!form.name.trim()) { setError('Die Pumpe braucht einen Namen.'); return }
-    if (!form.haEntityId.trim()) { setError('Ohne Home-Assistant-Entität lässt sich nichts schalten.'); return }
+    if (!form.simulationMode && !form.haEntityId.trim()) {
+      setError('Ohne Home-Assistant-Entität lässt sich nichts schalten — oder schalte den Testbetrieb ein.')
+      return
+    }
     if (form.tentId == null) { setError('Wähle ein Zelt.'); return }
 
     setSaving(true)
@@ -123,6 +129,7 @@ function DosingPumpSetupPage() {
       maxMlPerDay: zahlOderNull(form.maxMlPerDay),
       automationEnabled: false,   // Stufe 1: nichts laeuft von allein
       hasHomeAssistantAutoOff: form.hasHomeAssistantAutoOff,
+      simulationMode: form.simulationMode,
       tubeChangedNow: form.tubeChangedNow,
     }
     try {
@@ -233,6 +240,24 @@ function DosingPumpSetupPage() {
                 hint="Setzt das Schlauchdatum auf heute. Nach einem Wechsel neu kalibrieren."
               />
             </div>
+          )}
+        </V1Card>
+      </V1Section>
+
+      <V1Section title="Testbetrieb">
+        <V1Card tone={form.simulationMode ? 'warn' : 'neutral'}>
+          <V1Switch
+            label="Testbetrieb — schaltet nichts, es fließt nichts"
+            checked={form.simulationMode}
+            onChange={(checked) => patch({ simulationMode: checked })}
+            hint="Zum Durchspielen ohne Hardware: Grow OS rechnet, wartet die echte Laufzeit ab und protokolliert — schaltet aber keine Entität."
+          />
+          {form.simulationMode && (
+            <p className="rc2-measurement-note" style={{ margin: '10px 0 0' }}>
+              Testdosen sind im Protokoll als solche markiert und fließen <strong>nicht</strong> in das
+              Gelernte ein. Sonst stünde dort später eine Zahl, hinter der nie ein Tropfen war.
+              Eine Home-Assistant-Entität brauchst du im Testbetrieb nicht.
+            </p>
           )}
         </V1Card>
       </V1Section>

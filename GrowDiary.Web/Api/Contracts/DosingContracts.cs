@@ -20,6 +20,8 @@ public sealed record DosingPumpDto(
     int MaxReadingAgeMinutes,
     bool AutomationEnabled,
     bool HasHomeAssistantAutoOff,
+    /// <summary>Testbetrieb: rechnet und protokolliert, schaltet aber nichts.</summary>
+    bool SimulationMode,
     /// <summary>Der Messwert, gegen den die Pumpe arbeitet; null bei „frei".</summary>
     string? MetricKey,
     /// <summary>Was aus dem Protokoll gelernt wurde — Änderung je ml; null bis genug Daten da sind.</summary>
@@ -46,6 +48,8 @@ public sealed class DosingPumpUpsertRequest
     public int? MaxReadingAgeMinutes { get; set; }
     public bool AutomationEnabled { get; set; }
     public bool HasHomeAssistantAutoOff { get; set; }
+    /// <summary>Testbetrieb — ohne Hardware durchspielen.</summary>
+    public bool SimulationMode { get; set; }
     /// <summary>Setzt das Schlauchdatum auf jetzt — „Schlauch gewechselt".</summary>
     public bool TubeChangedNow { get; set; }
 }
@@ -81,7 +85,8 @@ public sealed record DoseEventDto(
     double? ValueBefore,
     double? ValueAfter,
     double? TargetValue,
-    string? Reason);
+    string? Reason,
+    bool Simulated);
 
 /// <summary>Antwort auf eine Dosieranfrage — auch auf eine abgelehnte.</summary>
 public sealed record DoseResultDto(

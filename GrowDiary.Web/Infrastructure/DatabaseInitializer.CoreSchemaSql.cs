@@ -699,6 +699,7 @@ public sealed partial class DatabaseInitializer
                 MaxReadingAgeMinutes INTEGER NOT NULL DEFAULT 10,
                 AutomationEnabled INTEGER NOT NULL DEFAULT 0,
                 HasHomeAssistantAutoOff INTEGER NOT NULL DEFAULT 0,
+                SimulationMode INTEGER NOT NULL DEFAULT 0,
                 CreatedAtUtc TEXT NOT NULL,
                 UpdatedAtUtc TEXT NOT NULL,
                 FOREIGN KEY (TentId) REFERENCES Tents(Id) ON DELETE CASCADE
@@ -720,6 +721,7 @@ public sealed partial class DatabaseInitializer
                 ValueAfter REAL NULL,
                 TargetValue REAL NULL,
                 Reason TEXT NULL,
+                Simulated INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY (PumpId) REFERENCES DosingPumps(Id) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS IX_DoseEvents_PumpId_OccurredAtUtc ON DoseEvents(PumpId, OccurredAtUtc);
