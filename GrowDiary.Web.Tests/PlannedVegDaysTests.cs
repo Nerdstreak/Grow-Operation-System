@@ -125,6 +125,37 @@ public sealed class PlannedVegDaysTests : IDisposable
         Assert.Equal(new DateTime(2026, 5, 20), form.ToGrow().StartDate.Date);
     }
 
+    [Fact]
+    public void Verknuepft_den_Grow_mit_einer_Sorte_aus_der_Bibliothek()
+    {
+        // Ohne diese Verknuepfung muss die Sorten-Tabelle ihre Laeufe ueber
+        // Namensgleichheit suchen — ein Tippfehler und der Lauf faellt aus der
+        // Statistik.
+        var grow = NeuerGrow("Mit Sorte");
+        grow.StrainId = 42;
+        grow.Strain = "Purple Lemonade";
+
+        var id = _repository.CreateGrow(grow);
+        var gelesen = _repository.GetGrow(id)!;
+
+        Assert.Equal(42, gelesen.StrainId);
+        // Der Text bleibt daneben stehen: er haelt fest, was zum Zeitpunkt des
+        // Laufs galt, auch wenn die Sorte spaeter umbenannt wird.
+        Assert.Equal("Purple Lemonade", gelesen.Strain);
+    }
+
+    [Fact]
+    public void Laesst_die_Sorte_frei_wenn_nichts_verknuepft_wird()
+    {
+        var grow = NeuerGrow("Freitext");
+        grow.Strain = "Unbekannte Bagseed";
+
+        var id = _repository.CreateGrow(grow);
+
+        Assert.Null(_repository.GetGrow(id)!.StrainId);
+        Assert.Equal("Unbekannte Bagseed", _repository.GetGrow(id)!.Strain);
+    }
+
     public void Dispose()
     {
         Environment.SetEnvironmentVariable("GROWDIARY_DB_PATH", null);

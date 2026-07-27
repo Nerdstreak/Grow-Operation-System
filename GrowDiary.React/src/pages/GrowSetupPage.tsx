@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowDetail, GrowEntryPoint, GrowStatus, GrowSummary, GrowUpsertPayload, HydroSetupDto, KnowledgeOverviewDto, NutrientProgramDto, SeedType, StartMaterial, TentDto } from '../types'
+import type { GrowDetail, GrowEntryPoint, GrowStatus, GrowSummary, GrowUpsertPayload, HydroSetupDto, KnowledgeOverviewDto, NutrientProgramDto, SeedType, StartMaterial, StrainDto, TentDto } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { formatLiters, toNullableInt } from '../components/v1-utils'
 import { classNames } from '../utils'
@@ -17,7 +17,7 @@ const startMaterials: StartMaterial[] = ['Seed', 'Clone']
 function emptyForm(): GrowUpsertPayload {
   return {
     templateId: null, name: '', tentId: null, systemId: null, setupId: null, strain: null, breeder: null, seedType: 'Feminized', startMaterial: 'Seed', germinationMethod: 'PaperTowel',
-    cloneSource: null, cloneIsRooted: false, phenoNumber: null, breederFlowerWeeksMin: null, breederFlowerWeeksMax: null, plannedVegDays: null, hydroStyle: 'RDWC', plantCount: null, reservoirSize: null,
+    cloneSource: null, cloneIsRooted: false, phenoNumber: null, breederFlowerWeeksMin: null, breederFlowerWeeksMax: null, plannedVegDays: null, strainId: null, hydroStyle: 'RDWC', plantCount: null, reservoirSize: null,
     containerSize: null, propagationMedium: 'Rockwool', light: null, hasChiller: false, waterSource: 'RO', nutrients: null, startDate: new Date().toISOString().slice(0, 10),
     entryPoint: 'Germination', daysAlreadyInPhase: null, autoflowerDaysSinceGermination: null, flipDate: null, notes: null, status: 'Planning', environment: 'Indoor',
   }
@@ -28,6 +28,7 @@ function GrowSetupPage() {
   const navigate = useNavigate()
   const isEditing = Boolean(growId)
   const [tents, setTents] = useState<TentDto[]>([])
+  const [strains, setStrains] = useState<StrainDto[]>([])
   const [hydroSetups, setHydroSetups] = useState<HydroSetupDto[]>([])
   const [programs, setPrograms] = useState<NutrientProgramDto[]>([])
   // Fuer die Belegungspruefung: welche anderen Grows sitzen schon im Zelt.
@@ -44,19 +45,21 @@ function GrowSetupPage() {
       setLoading(true)
       setError(null)
       try {
-        const [tentData, hydroData, knowledge, grow, growsData] = await Promise.all([
+        const [tentData, hydroData, knowledge, grow, growsData, strainData] = await Promise.all([
           apiFetch<TentDto[]>('/api/settings/tents', { signal: controller.signal }),
           apiFetch<HydroSetupDto[]>('/api/hydro-setups?includeArchived=true', { signal: controller.signal }),
           apiFetch<KnowledgeOverviewDto>('/api/knowledge', { signal: controller.signal }),
           isEditing && growId ? apiFetch<GrowDetail>(`/api/grows/${growId}`, { signal: controller.signal }) : Promise.resolve(null),
           apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }).catch(() => []),
+          apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal }).catch(() => [] as StrainDto[]),
         ])
         if (controller.signal.aborted) return
         setTents(tentData)
         setHydroSetups(hydroData.filter((setup) => setup.status === 'Active'))
         setPrograms(knowledge.programs ?? [])
         setOtherGrows(growsData)
-        if (grow) setForm({ ...emptyForm(), name: grow.name, tentId: grow.tentId, systemId: grow.systemId, setupId: grow.setupId, strain: grow.strain, breeder: grow.breeder, seedType: grow.seedType, startMaterial: grow.startMaterial, hydroStyle: grow.hydroStyle, plantCount: grow.plantCount, reservoirSize: grow.reservoirSize, containerSize: grow.containerSize, light: grow.light, hasChiller: grow.hasChiller, waterSource: grow.waterSource, nutrients: grow.nutrients, startDate: grow.startDate, entryPoint: grow.entryPoint, daysAlreadyInPhase: grow.daysAlreadyInPhase, autoflowerDaysSinceGermination: grow.autoflowerDaysSinceGermination, flipDate: grow.flipDate, notes: grow.notes, status: grow.status, environment: grow.environment, germinationMethod: grow.germinationMethod, propagationMedium: grow.propagationMedium, cloneSource: grow.cloneSource, cloneIsRooted: grow.cloneIsRooted, phenoNumber: grow.phenoNumber, breederFlowerWeeksMin: grow.breederFlowerWeeksMin, breederFlowerWeeksMax: grow.breederFlowerWeeksMax, plannedVegDays: grow.plannedVegDays })
+        setStrains(strainData)
+        if (grow) setForm({ ...emptyForm(), name: grow.name, tentId: grow.tentId, systemId: grow.systemId, setupId: grow.setupId, strain: grow.strain, breeder: grow.breeder, seedType: grow.seedType, startMaterial: grow.startMaterial, hydroStyle: grow.hydroStyle, plantCount: grow.plantCount, reservoirSize: grow.reservoirSize, containerSize: grow.containerSize, light: grow.light, hasChiller: grow.hasChiller, waterSource: grow.waterSource, nutrients: grow.nutrients, startDate: grow.startDate, entryPoint: grow.entryPoint, daysAlreadyInPhase: grow.daysAlreadyInPhase, autoflowerDaysSinceGermination: grow.autoflowerDaysSinceGermination, flipDate: grow.flipDate, notes: grow.notes, status: grow.status, environment: grow.environment, germinationMethod: grow.germinationMethod, propagationMedium: grow.propagationMedium, cloneSource: grow.cloneSource, cloneIsRooted: grow.cloneIsRooted, phenoNumber: grow.phenoNumber, breederFlowerWeeksMin: grow.breederFlowerWeeksMin, breederFlowerWeeksMax: grow.breederFlowerWeeksMax, plannedVegDays: grow.plannedVegDays, strainId: grow.strainId })
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatApiError(caught, 'Grow-Wizard konnte nicht geladen werden.'))
       } finally {
@@ -127,7 +130,7 @@ function GrowSetupPage() {
           ist, merkte man vorher erst am Ende — oder gar nicht. */}
       <div className="grow-wizard-shell">
         <div className="grow-wizard-main">
-          <RunStep form={form} patch={patch} />
+          <RunStep form={form} patch={patch} strains={strains} />
           <TentStep tents={tents} selectedId={form.tentId} onSelect={selectTent} />
           <HydroStep setups={availableHydro} exactCount={exactHydro.length} selectedId={form.systemId ?? null} onSelect={selectHydro} tent={selectedTent} />
           <TimeStep form={form} patch={patch} />
@@ -158,9 +161,84 @@ function GrowSetupPage() {
   )
 }
 
-function RunStep({ form, patch }: { form: GrowUpsertPayload; patch: (value: Partial<GrowUpsertPayload>) => void }) {
-  return <V1Section title="Run"><div className="v1-form-grid grow-form-grid"><V1Field label="Grow-Name" wide><input value={form.name} onChange={(event) => patch({ name: event.target.value })} placeholder="Purple Lemonade RDWC" /></V1Field><V1Field label="Sorte"><input value={form.strain ?? ''} onChange={(event) => patch({ strain: event.target.value })} /></V1Field><V1Field label="Breeder"><input value={form.breeder ?? ''} onChange={(event) => patch({ breeder: event.target.value })} /></V1Field><V1Field label="Pflanzen"><input type="number" min="1" value={form.plantCount ?? ''} onChange={(event) => patch({ plantCount: toNullableInt(event.target.value) })} /></V1Field><V1Field label="Seed Type"><select value={form.seedType} onChange={(event) => patch({ seedType: event.target.value as SeedType })}>{seedTypes.map((value) => <option key={value} value={value}>{value}</option>)}</select></V1Field><V1Field label="Startmaterial"><select value={form.startMaterial} onChange={(event) => patch({ startMaterial: event.target.value as StartMaterial })}>{startMaterials.map((value) => <option key={value} value={value}>{value}</option>)}</select></V1Field></div></V1Section>
+/**
+ * Der Kopf des Grows: Name, Sorte, Pflanzenzahl.
+ *
+ * Die Sorte kommt aus der Bibliothek, statt frei getippt zu werden. Vorher
+ * stand hier nur ein Textfeld — die Sorten-Tabelle musste ihre Laeufe deshalb
+ * ueber Namensgleichheit suchen, und ein Tippfehler liess einen Lauf aus der
+ * Statistik verschwinden. Wer eine Sorte waehlt, uebernimmt automatisch
+ * Zuechter und Bluetewochen; „frei eintragen" bleibt fuer alles, was (noch)
+ * nicht in der Bibliothek steht.
+ */
+function RunStep({ form, patch, strains }: { form: GrowUpsertPayload; patch: (value: Partial<GrowUpsertPayload>) => void; strains: StrainDto[] }) {
+  const sorten = [...strains].sort((a, b) => a.name.localeCompare(b.name, 'de'))
+
+  function waehleSorte(wert: string) {
+    if (wert === '') {
+      // Freie Eingabe: die Verknuepfung faellt weg, der Text bleibt stehen.
+      patch({ strainId: null })
+      return
+    }
+    const sorte = sorten.find((item) => String(item.id) === wert)
+    if (!sorte) return
+    patch({
+      strainId: sorte.id,
+      strain: sorte.name,
+      breeder: sorte.breeder ?? form.breeder,
+      // Die Bluetewochen treiben den Zeitstrahl \u2014 aus der Bibliothek sind sie
+      // verlaesslicher als aus dem Gedaechtnis. Eigene Angaben bleiben stehen.
+      breederFlowerWeeksMin: form.breederFlowerWeeksMin ?? sorte.flowerWeeksMin,
+      breederFlowerWeeksMax: form.breederFlowerWeeksMax ?? sorte.flowerWeeksMax,
+    })
+  }
+
+  return (
+    <V1Section title="Run">
+      <div className="v1-form-grid grow-form-grid">
+        <V1Field label="Grow-Name" wide>
+          <input value={form.name} onChange={(event) => patch({ name: event.target.value })} placeholder="Purple Lemonade RDWC" />
+        </V1Field>
+
+        <V1Field label="Sorte" hint={sorten.length === 0 ? 'Noch keine Sorte in der Bibliothek \u2014 unter „Sorten & Pheno" anlegen.' : 'Aus der Bibliothek: z\u00e4hlt sp\u00e4ter in Runs und \u00d8-Ertrag mit.'}>
+          <select value={form.strainId != null ? String(form.strainId) : ''} onChange={(event) => waehleSorte(event.target.value)}>
+            <option value="">— frei eintragen —</option>
+            {sorten.map((sorte) => (
+              <option key={sorte.id} value={sorte.id}>{sorte.name}{sorte.breeder ? ` \u00b7 ${sorte.breeder}` : ''}</option>
+            ))}
+          </select>
+        </V1Field>
+
+        {form.strainId == null && (
+          <V1Field label="Sorte (frei)">
+            <input value={form.strain ?? ''} onChange={(event) => patch({ strain: event.target.value })} placeholder="z. B. Purple Lemonade" />
+          </V1Field>
+        )}
+
+        <V1Field label="Breeder">
+          <input value={form.breeder ?? ''} onChange={(event) => patch({ breeder: event.target.value })} />
+        </V1Field>
+
+        <V1Field label="Pflanzen">
+          <input type="number" min="1" value={form.plantCount ?? ''} onChange={(event) => patch({ plantCount: toNullableInt(event.target.value) })} />
+        </V1Field>
+
+        <V1Field label="Seed Type">
+          <select value={form.seedType} onChange={(event) => patch({ seedType: event.target.value as SeedType })}>
+            {seedTypes.map((value) => <option key={value} value={value}>{value}</option>)}
+          </select>
+        </V1Field>
+
+        <V1Field label="Startmaterial">
+          <select value={form.startMaterial} onChange={(event) => patch({ startMaterial: event.target.value as StartMaterial })}>
+            {startMaterials.map((value) => <option key={value} value={value}>{value}</option>)}
+          </select>
+        </V1Field>
+      </div>
+    </V1Section>
+  )
 }
+
 
 function TentStep({ tents, selectedId, onSelect }: { tents: TentDto[]; selectedId: number | null; onSelect: (id: number) => void }) {
   if (tents.length === 0) return <V1Empty title="Kein Zelt angelegt" action={<V1LinkButton to="/zelte/new" variant="primary">Zelt anlegen</V1LinkButton>} />

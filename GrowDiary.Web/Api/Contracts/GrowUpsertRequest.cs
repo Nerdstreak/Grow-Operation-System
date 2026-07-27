@@ -26,6 +26,9 @@ public sealed class GrowUpsertRequest
 
     /// <summary>Geplante Veg-Dauer in Tagen ab Startdatum; leer = kein Plan.</summary>
     public int? PlannedVegDays { get; set; }
+
+    /// <summary>Sorte aus der Bibliothek; leer = nur freier Text.</summary>
+    public int? StrainId { get; set; }
     public HydroStyle HydroStyle { get; set; } = HydroStyle.RDWC;
     public int? PlantCount { get; set; }
     public string? ReservoirSize { get; set; }

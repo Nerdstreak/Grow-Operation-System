@@ -36,6 +36,9 @@ public sealed class GrowFormViewModel
     /// </summary>
     public int? PlannedVegDays { get; set; }
 
+    /// <summary>Sorte aus der Bibliothek; leer = nur freier Text.</summary>
+    public int? StrainId { get; set; }
+
     // Schritt 2 – System
     public HydroStyle HydroStyle { get; set; } = HydroStyle.RDWC;
     public int? PlantCount { get; set; }
@@ -98,6 +101,7 @@ public sealed class GrowFormViewModel
             BreederFlowerWeeksMin = grow.BreederFlowerWeeksMin,
             BreederFlowerWeeksMax = grow.BreederFlowerWeeksMax,
             PlannedVegDays = grow.PlannedVegDays,
+            StrainId = grow.StrainId,
             PlantCount = grow.PlantCount,
             PropagationMedium = grow.PropagationMedium,
             HasChiller = grow.HasChiller,
@@ -161,6 +165,7 @@ public sealed class GrowFormViewModel
             BreederFlowerWeeksMin = IsAutoflower ? null : BreederFlowerWeeksMin,
             BreederFlowerWeeksMax = IsAutoflower ? null : BreederFlowerWeeksMax,
             PlannedVegDays = IsAutoflower ? null : PlannedVegDays,
+            StrainId = StrainId,
             PlantCount = PlantCount,
             PropagationMedium = PropagationMedium,
             HasChiller = HasChiller,

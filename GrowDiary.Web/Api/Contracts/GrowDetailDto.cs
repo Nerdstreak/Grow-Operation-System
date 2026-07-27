@@ -35,6 +35,7 @@ public sealed record GrowDetailDto(
     int? BreederFlowerWeeksMin,
     int? BreederFlowerWeeksMax,
     int? PlannedVegDays,
+    int? StrainId,
     int? PlantCount,
     int? PhenoNumber,
     int? TentId,

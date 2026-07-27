@@ -24,6 +24,7 @@ public static class RequestMapping
         BreederFlowerWeeksMin = request.BreederFlowerWeeksMin,
         BreederFlowerWeeksMax = request.BreederFlowerWeeksMax,
         PlannedVegDays = request.PlannedVegDays,
+        StrainId = request.StrainId,
         HydroStyle = request.HydroStyle,
         PlantCount = request.PlantCount,
         ReservoirSize = request.ReservoirSize,

@@ -24,6 +24,7 @@ public sealed record GrowSummaryDto(
     string? HydroSetupName,
     DateTime StartDate,
     DateTime? EndDate,
+    int? StrainId,
     DateTime? FlipDate,
     /// <summary>Geplante Veg-Dauer in Tagen ab Start — daraus der geplante Flip.</summary>
     int? PlannedVegDays,

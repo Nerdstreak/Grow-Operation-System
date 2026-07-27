@@ -9,6 +9,13 @@ public sealed class GrowRun
     public string? TentName { get; set; }
     public string? HydroSetupName { get; set; }
     public string Name { get; set; } = string.Empty;
+    /// <summary>
+    /// Verweis in die Sorten-Bibliothek. <see cref="Strain"/> und
+    /// <see cref="Breeder"/> bleiben als Text daneben stehen: sie halten fest,
+    /// was zum Zeitpunkt des Laufs galt, auch wenn die Sorte spaeter umbenannt
+    /// oder geloescht wird.
+    /// </summary>
+    public int? StrainId { get; set; }
     public string? Strain { get; set; }
     public string? Breeder { get; set; }
     public GrowStatus Status { get; set; } = GrowStatus.Planning;

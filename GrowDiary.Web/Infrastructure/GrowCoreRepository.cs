@@ -119,7 +119,7 @@ public sealed class GrowCoreRepository : RepositoryBase
         command.CommandText = """
             INSERT INTO Grows
             (
-                TentId, SystemId, SetupId, Name, Strain, Breeder, Status, MediumType, FeedingStyle, HydroStyle, MediumDetail,
+                TentId, SystemId, SetupId, Name, StrainId, Strain, Breeder, Status, MediumType, FeedingStyle, HydroStyle, MediumDetail,
                 Environment, Light, ContainerSize, ReservoirSize, IrrigationStyle, IrrigationType, WaterSource,
                 SeedType, StartMaterial, GerminationMethod, CloneSource, CloneIsRooted,
                 BreederFlowerWeeksMin, BreederFlowerWeeksMax, PlannedVegDays, PlantCount, PhenoNumber,
@@ -130,7 +130,7 @@ public sealed class GrowCoreRepository : RepositoryBase
             )
             VALUES
             (
-                $tentId, $systemId, $setupId, $name, $strain, $breeder, $status, $mediumType, $feedingStyle, $hydroStyle, $mediumDetail,
+                $tentId, $systemId, $setupId, $name, $strainId, $strain, $breeder, $status, $mediumType, $feedingStyle, $hydroStyle, $mediumDetail,
                 $environment, $light, $containerSize, $reservoirSize, $irrigationStyle, $irrigationType, $waterSource,
                 $seedType, $startMaterial, $germinationMethod, $cloneSource, $cloneIsRooted,
                 $breederFlowerWeeksMin, $breederFlowerWeeksMax, $plannedVegDays, $plantCount, $phenoNumber,
@@ -181,6 +181,7 @@ public sealed class GrowCoreRepository : RepositoryBase
                 BreederFlowerWeeksMin = $breederFlowerWeeksMin,
                 BreederFlowerWeeksMax = $breederFlowerWeeksMax,
                 PlannedVegDays = $plannedVegDays,
+                StrainId = $strainId,
                 PlantCount = $plantCount,
                 PhenoNumber = $phenoNumber,
                 PropagationMedium = $propagationMedium,
@@ -560,6 +561,7 @@ public sealed class GrowCoreRepository : RepositoryBase
             CloneIsRooted = reader["CloneIsRooted"] is long cr && cr == 1,
             BreederFlowerWeeksMin = reader["BreederFlowerWeeksMin"] is DBNull or null ? null : Convert.ToInt32(reader["BreederFlowerWeeksMin"], CultureInfo.InvariantCulture),
             BreederFlowerWeeksMax = reader["BreederFlowerWeeksMax"] is DBNull or null ? null : Convert.ToInt32(reader["BreederFlowerWeeksMax"], CultureInfo.InvariantCulture),
+            StrainId = HasColumn(reader, "StrainId") && reader["StrainId"] is not (DBNull or null) ? Convert.ToInt32(reader["StrainId"], CultureInfo.InvariantCulture) : null,
             PlannedVegDays = HasColumn(reader, "PlannedVegDays") && reader["PlannedVegDays"] is not (DBNull or null) ? Convert.ToInt32(reader["PlannedVegDays"], CultureInfo.InvariantCulture) : null,
             PlantCount = reader["PlantCount"] is DBNull or null ? null : Convert.ToInt32(reader["PlantCount"], CultureInfo.InvariantCulture),
             PhenoNumber = reader["PhenoNumber"] is DBNull or null ? null : Convert.ToInt32(reader["PhenoNumber"], CultureInfo.InvariantCulture),
@@ -691,6 +693,7 @@ public sealed class GrowCoreRepository : RepositoryBase
         command.Parameters.AddWithValue("$breederFlowerWeeksMin", (object?)grow.BreederFlowerWeeksMin ?? DBNull.Value);
         command.Parameters.AddWithValue("$breederFlowerWeeksMax", (object?)grow.BreederFlowerWeeksMax ?? DBNull.Value);
         command.Parameters.AddWithValue("$plannedVegDays", (object?)grow.PlannedVegDays ?? DBNull.Value);
+        command.Parameters.AddWithValue("$strainId", (object?)grow.StrainId ?? DBNull.Value);
         command.Parameters.AddWithValue("$plantCount", (object?)grow.PlantCount ?? DBNull.Value);
         command.Parameters.AddWithValue("$phenoNumber", (object?)grow.PhenoNumber ?? DBNull.Value);
         command.Parameters.AddWithValue("$propagationMedium", (object?)grow.PropagationMedium?.ToString() ?? DBNull.Value);

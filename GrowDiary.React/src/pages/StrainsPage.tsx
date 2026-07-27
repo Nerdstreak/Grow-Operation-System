@@ -151,7 +151,12 @@ function StrainsPage() {
   const statsByStrain = useMemo(() => {
     const map = new Map<string, StrainStats>()
     for (const strain of strains) {
-      const matched = grows.filter((grow) => grow.strain != null && grow.strain.toLowerCase() === strain.name.toLowerCase())
+      // Verknuepfte Grows zaehlen zuerst. Der Namensvergleich bleibt als
+      // Rueckfall fuer Laeufe, die vor der Verknuepfung angelegt wurden —
+      // sonst faenge die Statistik jedes Bestandsgrows bei null an.
+      const matched = grows.filter((grow) => grow.strainId != null
+        ? grow.strainId === strain.id
+        : grow.strain != null && grow.strain.toLowerCase() === strain.name.toLowerCase())
       const yields = matched
         .map((grow) => {
           const harvest = harvestByGrow.get(grow.id)
