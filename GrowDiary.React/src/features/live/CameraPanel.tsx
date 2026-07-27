@@ -12,14 +12,15 @@ import { classNames } from '../../utils'
  *
  * Das zuletzt gültige Bild bleibt stehen, wenn ein Abruf scheitert. Der Server
  * hält es ohnehin vor; eine leere Fläche wäre die schlechtere Auskunft, weil das
- * Zelt ja weiterläuft.
+ * Zelt ja weiterläuft. Das gilt nur je Kamera: jedes Bild trägt die Kamera, von
+ * der es stammt, und die Bühne zeigt nur Bilder der gerade gewählten — sonst
+ * stünde nach dem Umschalten das Bild der vorigen unter dem neuen Namen.
  */
 export function CameraPanel({ tent, onReload }: { tent: TentDto | null; onReload?: () => void }) {
   const cameras = tent?.cameras?.length ? tent.cameras : (tent?.cameraEntityId ? [tent.cameraEntityId] : [])
   const [active, setActive] = useState(0)
-  const [src, setSrc] = useState<string | null>(null)
-  const [meta, setMeta] = useState<{ capturedAt: string | null; live: boolean } | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [frame, setFrame] = useState<{ camera: string; src: string; capturedAt: string | null; live: boolean } | null>(null)
+  const [failedCamera, setFailedCamera] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const urlRef = useRef<string | null>(null)
   const current = cameras[Math.min(active, cameras.length - 1)]
@@ -39,14 +40,18 @@ export function CameraPanel({ tent, onReload }: { tent: TentDto | null; onReload
           const next = URL.createObjectURL(blob)
           if (urlRef.current) URL.revokeObjectURL(urlRef.current)
           urlRef.current = next
-          setSrc(next)
-          setMeta({ capturedAt: response.headers.get('X-Camera-Captured-At'), live: response.headers.get('X-Camera-Live') !== 'false' })
-          setFailed(false)
-        } else if (!urlRef.current) {
-          setFailed(true)
+          setFrame({
+            camera: current!,
+            src: next,
+            capturedAt: response.headers.get('X-Camera-Captured-At'),
+            live: response.headers.get('X-Camera-Live') !== 'false',
+          })
+          setFailedCamera(null)
+        } else {
+          setFailedCamera(current!)
         }
       } catch {
-        if (alive && !urlRef.current) setFailed(true)
+        if (alive) setFailedCamera(current!)
       } finally {
         // Der nächste Abruf startet erst, wenn der vorige durch ist — eine
         // langsame Kamera wird dadurch seltener aktualisiert statt abgebrochen.
@@ -60,12 +65,15 @@ export function CameraPanel({ tent, onReload }: { tent: TentDto | null; onReload
 
   useEffect(() => () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current) }, [])
 
+  const shown = frame && frame.camera === current ? frame : null
+  const failed = failedCamera === current
+
   return (
     <article className="ls-panel ls-cam" data-audit="live-camera">
       <div className="ls-panel-head">
         <span className="ls-label">Kamera</span>
         <span className="ls-panel-meta">
-          {current ? `${current}${meta?.capturedAt ? ` · ${ageLabel(meta.capturedAt)}` : ''}` : 'keine gemappt'}
+          {current ? `${current}${shown?.capturedAt ? ` · ${ageLabel(shown.capturedAt)}` : ''}` : 'keine gemappt'}
         </span>
         {current && (
           <button
@@ -79,8 +87,8 @@ export function CameraPanel({ tent, onReload }: { tent: TentDto | null; onReload
       </div>
 
       <div className="ls-cam-stage">
-        {src ? (
-          <img src={src} alt={`Kamerabild ${current}`} />
+        {shown ? (
+          <img src={shown.src} alt={`Kamerabild ${current}`} />
         ) : (
           <div className="ls-cam-empty">
             {cameras.length === 0
@@ -88,7 +96,7 @@ export function CameraPanel({ tent, onReload }: { tent: TentDto | null; onReload
               : failed ? 'Kein Bild — in Home Assistant erreichbar?' : 'Lädt …'}
           </div>
         )}
-        {meta && !meta.live && src && <span className="ls-cam-stale">veraltet</span>}
+        {shown && !shown.live && <span className="ls-cam-stale">veraltet</span>}
       </div>
 
       {cameras.length > 1 && (

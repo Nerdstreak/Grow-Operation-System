@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowDetail, GrowEntryPoint, GrowStatus, GrowSummary, GrowUpsertPayload, HydroSetupDto, KnowledgeOverviewDto, NutrientProgramDto, SeedType, StartMaterial, StrainDto, TentDto } from '../types'
@@ -173,6 +173,10 @@ function GrowSetupPage() {
  */
 function RunStep({ form, patch, strains }: { form: GrowUpsertPayload; patch: (value: Partial<GrowUpsertPayload>) => void; strains: StrainDto[] }) {
   const sorten = [...strains].sort((a, b) => a.name.localeCompare(b.name, 'de'))
+  // Was der letzte Bibliotheks-Klick bei den Bluetewochen eingetragen hat.
+  // Beim Wechsel auf eine andere Sorte wird nur genau das ersetzt \u2014 sonst
+  // stuenden unter Sorte B noch die Wochen von Sorte A, als waeren sie eigene.
+  const autofill = useRef<{ min: number | null; max: number | null } | null>(null)
 
   function waehleSorte(wert: string) {
     if (wert === '') {
@@ -182,14 +186,22 @@ function RunStep({ form, patch, strains }: { form: GrowUpsertPayload; patch: (va
     }
     const sorte = sorten.find((item) => String(item.id) === wert)
     if (!sorte) return
+    // Die Bluetewochen treiben den Zeitstrahl \u2014 aus der Bibliothek sind sie
+    // verlaesslicher als aus dem Gedaechtnis. Eigene Angaben bleiben stehen;
+    // nur leere Felder und der Autofill der vorigen Sorte werden gefuellt.
+    const min = form.breederFlowerWeeksMin == null || form.breederFlowerWeeksMin === autofill.current?.min
+      ? sorte.flowerWeeksMin
+      : form.breederFlowerWeeksMin
+    const max = form.breederFlowerWeeksMax == null || form.breederFlowerWeeksMax === autofill.current?.max
+      ? sorte.flowerWeeksMax
+      : form.breederFlowerWeeksMax
+    autofill.current = { min: sorte.flowerWeeksMin ?? null, max: sorte.flowerWeeksMax ?? null }
     patch({
       strainId: sorte.id,
       strain: sorte.name,
       breeder: sorte.breeder ?? form.breeder,
-      // Die Bluetewochen treiben den Zeitstrahl \u2014 aus der Bibliothek sind sie
-      // verlaesslicher als aus dem Gedaechtnis. Eigene Angaben bleiben stehen.
-      breederFlowerWeeksMin: form.breederFlowerWeeksMin ?? sorte.flowerWeeksMin,
-      breederFlowerWeeksMax: form.breederFlowerWeeksMax ?? sorte.flowerWeeksMax,
+      breederFlowerWeeksMin: min,
+      breederFlowerWeeksMax: max,
     })
   }
 
