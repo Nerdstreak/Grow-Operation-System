@@ -110,8 +110,11 @@ describe('CSS-Variablen', () => {
     const erlaubt = new Set([
       'index.css',
       'conventions.css', 'widgets.css', 'primitives-rc2.css',
-      // Abbauliste, siehe index.css
-      '10-grow-wizard-legacy.css', '30-live-home.css', '70-addback-assistant.css',
+      // Abbauliste, siehe index.css. 10-grow-wizard-legacy.css ist geschichtet
+      // und steht deshalb NICHT mehr hier: seine ungeschichteten
+      // `html, body, #root { height: 100% }` haben den App-Rahmen auf eine
+      // Bildschirmhoehe gedeckelt und die klebende Seitenleiste ausgehebelt.
+      '30-live-home.css', '70-addback-assistant.css',
       '80-grow-wizard-final.css', '90-operations.css',
     ])
     const ungeschichtet = files

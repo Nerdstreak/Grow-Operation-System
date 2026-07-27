@@ -10,17 +10,25 @@
   /* ---------- Kopfzeile ---------- */
   .ls-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 
+  /* Etwas groesser als die 64/52 des Entwurfs: dort steht eine zweistellige
+     Zahl, unser Score kann dreistellig werden (100). */
   .ls-ring {
-    width: 64px; aspect-ratio: 1; border-radius: 50%;
+    width: 72px; aspect-ratio: 1; border-radius: 50%;
     display: grid; place-items: center; flex: 0 0 auto;
   }
   .ls-ring-inner {
-    width: 52px; height: 52px; border-radius: 50%;
+    width: 58px; height: 58px; border-radius: 50%;
     background: var(--bg);
     display: grid; place-items: center; align-content: center; gap: 1px;
   }
-  .ls-ring-inner span { font: 600 17px/1 var(--font-mono); }
-  .ls-ring-max { font: 500 8.5px/1 var(--font-mono); letter-spacing: .08em; color: var(--faint); }
+  /* Beide Regeln auf derselben Ebene ansetzen. Vorher stand hier
+     `.ls-ring-inner span` gegen `.ls-ring-max` — der Nachfahrenselektor ist
+     spezifischer und hat gewonnen, also wurde „/100" in 17px fett gesetzt und
+     war mit 46px breiter als der Innenkreis. */
+  .ls-ring-inner > span { font: 600 18px/1 var(--font-mono); }
+  .ls-ring-inner > span.ls-ring-max {
+    font: 500 8.5px/1 var(--font-mono); letter-spacing: .08em; color: var(--faint);
+  }
 
   .ls-eyebrow {
     font: 500 10px/1 var(--font-mono); letter-spacing: .2em; color: var(--faint);

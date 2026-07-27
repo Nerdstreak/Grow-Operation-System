@@ -1,112 +1,24 @@
-/* Grow Wizard */
-.grow-wizard-page { display: grid; gap: 18px; max-width: 1280px; margin: 0 auto; }
-.grow-wizard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-.grow-choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
-.grow-choice-card { display: grid; gap: 12px; padding: 14px; min-width: 0; text-align: left; color: var(--text); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
-.grow-choice-card:hover { border-color: var(--border2); }
-.grow-choice-card.is-selected { border-color: oklch(74% 0.19 145 / 0.55); background: var(--green-bg); }
-.grow-choice-card > div:first-child { display: grid; gap: 3px; }
-.grow-choice-card > div:first-child strong { font-size: 17px; line-height: 1.2; overflow-wrap: anywhere; }
-.grow-choice-card > div:first-child span { color: var(--muted); font-size: 13px; }
-.grow-hydro-summary { display: grid; gap: 10px; min-width: 0; }
-.grow-legacy-details { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); }
-.grow-legacy-details summary { cursor: pointer; color: var(--muted); font-weight: 700; }
-.grow-legacy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
-.systems-check { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); color: var(--muted); font-size: 14px; }
+/* Was vom alten Grow-Wizard-Stylesheet übrig ist.
+ *
+ * Von 112 Zeilen sind drei Regeln geblieben — der Rest beschrieb Markup, das
+ * es nicht mehr gibt (.grow-choice-*, .grow-pick-*, .systems-check, .app,
+ * .mobile-shell, .hydro-builder …) oder Hilfsklassen, die niemand benutzt.
+ *
+ * Wichtiger als das Aufräumen ist, was hier NICHT mehr steht:
+ *
+ *   html, body, #root { height: 100%; }
+ *   #root { display: flex; flex-direction: column; }
+ *
+ * Diese zwei Zeilen standen ungeschichtet und schlugen damit jede Regel aus
+ * `@layer primitives` — auch das dort korrekt gesetzte `min-height: 100%`.
+ * Folge: Der App-Rahmen war exakt einen Bildschirm hoch, während der Inhalt
+ * darüber hinauswuchs. Die Seitenleiste klebt mit `position: sticky`, hatte
+ * damit aber nur eine Bildschirmhöhe Spielraum — auf langen Seiten (Messen,
+ * Regeln) scrollte sie weg und darunter blieb der nackte Hintergrund stehen.
+ */
+@layer features {
+  .grow-wizard-page { display: grid; gap: 18px; max-width: 1280px; margin: 0 auto; }
 
-@media (max-width: 680px) {
-  .systems-header-actions .btn,
-  .system-actions .btn,
-  .systems-form-actions .btn {
-    flex: 1 1 100%;
-  }
+  .text-muted { color: var(--muted); }
+  .empty-hint { padding: 60px 20px; text-align: center; color: var(--faint); font-size: 13px; }
 }
-
-@media (max-width: 720px) {
-  html,
-  body,
-  #root {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
-  .app {
-    display: block;
-    min-height: 100%;
-    height: auto;
-    overflow: visible;
-  }
-
-  .mobile-shell {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    display: grid;
-    gap: 0;
-    width: 100%;
-    max-width: 100vw;
-    background: color-mix(in oklch, var(--surface), black 8%);
-    border-bottom: 1px solid var(--border);
-    box-shadow: 0 10px 26px oklch(0% 0 0 / 0.18);
-  }
-
-  .content {
-    min-height: 0;
-    overflow: visible;
-  }
-
-  .systems-page,
-  .grow-wizard-page,
-  .grow-wizard,
-  .grow-choice-grid,
-  .grow-choice-card,
-  .grow-hydro-summary,
-  .systems-form-card,
-  .hydro-builder,
-  .hydro-builder-step,
-  .hydro-review-grid,
-  .hydro-review-card,
-  .hydro-review-side {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-  }
-
-  .hydro-builder-step > *,
-  .hydro-builder .field,
-  .hydro-builder input,
-  .hydro-builder select,
-  .hydro-builder textarea {
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  .hydro-builder-actions .btn {
-    width: 100%;
-    min-height: 46px;
-  }
-}
-
-.text-muted  { color: var(--muted); }
-.text-faint  { color: var(--faint); }
-.text-green  { color: var(--green); }
-.text-amber  { color: var(--amber); }
-.text-red    { color: var(--red); }
-.text-mono   { font-family: var(--mono); }
-.full-width  { width: 100%; }
-.empty-hint  { padding: 60px 20px; text-align: center; color: var(--faint); font-size: 13px; }
-
-/* ─── CHART.JS OVERRIDES ─────────────────────────────────────── */
-/* ─── REACT ROOT ─────────────────────────────────────────────────────────── */
-html, body, #root { height: 100%; margin: 0; }
-#root { display: flex; flex-direction: column; }
-
-/* Grow Wizard Polish */
-.grow-pick-card:hover { border-color: var(--border2); background: var(--surface3); }
-.grow-pick-card.is-selected { border-color: oklch(74% 0.19 145 / 0.55); background: var(--green-bg); }
-.grow-pick-main { display: grid; gap: 4px; min-width: 0; }
-.grow-pick-kicker { color: var(--faint); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
-.grow-pick-main strong { font-size: 18px; line-height: 1.2; overflow-wrap: anywhere; }
-.grow-pick-main span:last-child { color: var(--muted); font-size: 13px; }
-.grow-pick-meta { display: flex; flex-wrap: wrap; gap: 6px; }
