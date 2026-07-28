@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.0.0-beta.9
+
+**Beta.** Your own limits now win — everywhere, and the tile says so.
+
+- Fixed — **the app had two opinions about the same value.** With pH limits of
+  5,60–5,90 entered and a reading of 5,99, the live tile said "zu niedrig"
+  (against the shipped 6,00–6,10) while the alert said "zu hoch" (against
+  yours). Follow the tile and you dose pH up; follow your own limit and you
+  dose it down — opposite directions, with nothing saying which one applied.
+  One place now decides, and the live tiles, the diagnosis, the dosing and the
+  alerts all read from it.
+- New — **the tile names the source**: "Ziel 5,60–5,90 · dein Wert". Shipped
+  values stay unlabelled, so the note only appears where it answers something.
+- Note — what you did *not* enter stays with the shipped phase values. Setting
+  your own pH does not flatten the phase staircase for EC, VPD or anything
+  else. A switched-off limit does not count, and half a range is allowed:
+  "not above 6,2" leaves the bottom open.
+
+
 ## 2.0.0-beta.8
 
 **Beta.** Two fixes everyone gets, plus a test mode for people who develop
