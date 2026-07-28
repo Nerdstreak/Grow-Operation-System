@@ -51,7 +51,12 @@ public sealed class SupervisorInfoServiceTests
     [Fact]
     public void TheSlugBecomesThePanelPath()
     {
-        Assert.Equal("/hassio/ingress/local_grow_os", SupervisorInfoService.PanelPath("local_grow_os"));
+        // Home Assistant registriert das Panel mit frontend_url_path=<slug>
+        // (hassio/addon_panel.py) — die Adresse ist also schlicht der Slug.
+        // Der erste Anlauf zeigte auf /hassio/ingress/<slug>; dort findet die
+        // Oberflaeche kein Panel und zeichnet eine leere Seite.
+        Assert.Equal("/local_grow_os", SupervisorInfoService.PanelPath("local_grow_os"));
+        Assert.Equal("/a0d7b954_grow_os", SupervisorInfoService.PanelPath("a0d7b954_grow_os"));
     }
 
     [Theory]

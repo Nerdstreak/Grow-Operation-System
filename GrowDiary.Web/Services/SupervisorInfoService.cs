@@ -10,7 +10,7 @@ namespace GrowDiary.Web.Services;
 /// Wofür: Grow OS wird über den Ingress ausgeliefert, und dieser Pfad
 /// (<c>/api/hassio_ingress/&lt;token&gt;/</c>) trägt ein Token, das pro Anfrage
 /// wechselt — ein Lesezeichen darauf ist am nächsten Tag tot. Stabil ist nur der
-/// Panel-Pfad <c>/hassio/ingress/&lt;slug&gt;</c>, und dafür braucht es den Slug.
+/// Panel-Pfad, und dafür braucht es den Slug.
 ///
 /// Raten geht nicht: der Slug ist je nach Installationsweg <c>local_grow_os</c>
 /// oder <c>&lt;repo-hash&gt;_grow_os</c>. Der Supervisor weiss es, also wird er
@@ -98,6 +98,20 @@ public sealed class SupervisorInfoService
     }
 
     /// <summary>Der stabile Panel-Pfad zu diesem Add-on, oder null ohne Slug.</summary>
+    /// <remarks>
+    /// <b>Der Pfad ist schlicht der Slug.</b> Home Assistant registriert das
+    /// Seitenleisten-Panel eines Add-ons mit <c>frontend_url_path=&lt;slug&gt;</c>
+    /// (<c>homeassistant/components/hassio/addon_panel.py</c>) — die Adresse
+    /// lautet also <c>/&lt;slug&gt;</c>, nicht <c>/hassio/ingress/&lt;slug&gt;</c>.
+    ///
+    /// Das war der erste Anlauf hier, und er war falsch: unter
+    /// <c>/hassio/ingress/…</c> findet die Oberfläche kein Panel und zeichnet
+    /// eine leere Seite. Wer den Code scannte, bekam nichts zu sehen — kein
+    /// Fehler, nur nichts.
+    ///
+    /// Voraussetzung bleibt, dass am Add-on „In Seitenleiste anzeigen"
+    /// eingeschaltet ist: nur dafür legt Home Assistant überhaupt ein Panel an.
+    /// </remarks>
     public static string? PanelPath(string? slug)
-        => string.IsNullOrWhiteSpace(slug) ? null : $"/hassio/ingress/{slug}";
+        => string.IsNullOrWhiteSpace(slug) ? null : $"/{slug}";
 }

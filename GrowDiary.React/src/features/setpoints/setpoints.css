@@ -47,4 +47,12 @@
   .sp-input::placeholder { color: var(--hint); }
   .sp-input.is-changed { border-color: var(--info); color: var(--info-text); }
   .sp-input:focus-visible { border-color: var(--accent); outline: none; }
+
+  /* Beim Ansehen eines mitgelieferten Profils: gleiche Breite wie ein Feld,
+     damit die Tabelle nicht springt, aber sichtbar kein Eingabefeld. */
+  .sp-static {
+    width: 100%; min-width: 0; padding: 5px 6px;
+    display: block; text-align: center;
+    color: var(--muted); font: 400 11px/1.2 var(--font-mono);
+  }
 }

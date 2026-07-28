@@ -51,6 +51,21 @@ function parse(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+/**
+ * „6–6,2" statt zweier Zahlen nebeneinander.
+ *
+ * Beim Ansehen fehlen die Feldrahmen, die Min und Max sonst trennen — ohne
+ * Gedankenstrich läse sich „6" neben „6,2" als eine einzige Zahl.
+ */
+function spanne(min: number | undefined, max: number | undefined): string {
+  const unten = zahl(min)
+  const oben = zahl(max)
+  if (unten === '' && oben === '') return '—'
+  if (unten === '') return `bis ${oben}`
+  if (oben === '') return `ab ${unten}`
+  return unten === oben ? unten : `${unten}–${oben}`
+}
+
 function SetpointProfilesPage() {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
@@ -79,6 +94,22 @@ function SetpointProfilesPage() {
   }, [refresh])
 
   const offen = profiles.find((profile) => profile.id === openId) ?? null
+
+  /**
+   * Ein mitgeliefertes Profil aufschlagen — nur lesen.
+   *
+   * Vorher gab es dafür gar keinen Weg: an den mitgelieferten Profilen stand
+   * nur „Kopieren". Wer wissen wollte, was in RDWC oder DWC überhaupt drinsteht,
+   * musste sich erst eine Kopie anlegen — also etwas verändern, um etwas
+   * nachsehen zu können.
+   */
+  function ansehen(profile: Profile) {
+    setOpenId(profile.id)
+    setDraftName(profile.name)
+    setDraft({})
+    setError(null)
+    setMessage(null)
+  }
 
   function bearbeiten(profile: Profile) {
     // Der Entwurf startet leer: eingetragen wird nur, was der Nutzer anfasst.
@@ -204,7 +235,10 @@ function SetpointProfilesPage() {
               </div>
               <div className="sp-actions">
                 {profile.isShipped ? (
-                  <V1Button onClick={() => void anlegen(profile)} disabled={saving}>Kopieren</V1Button>
+                  <>
+                    <V1Button onClick={() => ansehen(profile)}>Ansehen</V1Button>
+                    <V1Button onClick={() => void anlegen(profile)} disabled={saving}>Kopieren</V1Button>
+                  </>
                 ) : (
                   <>
                     <V1Button onClick={() => bearbeiten(profile)}>Bearbeiten</V1Button>
@@ -217,26 +251,46 @@ function SetpointProfilesPage() {
         </div>
       </V1Section>
 
-      {offen && !offen.isShipped && (
+      {offen && (
         <V1Section
-          title={`Bearbeiten · ${offen.name}`}
+          title={`${offen.isShipped ? 'Ansehen' : 'Bearbeiten'} · ${offen.name}`}
           action={
-            <>
-              <V1Button variant="primary" onClick={() => void speichern()} disabled={saving}>
-                {saving ? 'Speichert…' : 'Speichern'}
-              </V1Button>
-              <V1Button onClick={() => setOpenId(null)}>Schließen</V1Button>
-            </>
+            offen.isShipped ? (
+              <>
+                <V1Button variant="primary" onClick={() => void anlegen(offen)} disabled={saving}>
+                  Kopieren und anpassen
+                </V1Button>
+                <V1Button onClick={() => setOpenId(null)}>Schließen</V1Button>
+              </>
+            ) : (
+              <>
+                <V1Button variant="primary" onClick={() => void speichern()} disabled={saving}>
+                  {saving ? 'Speichert…' : 'Speichern'}
+                </V1Button>
+                <V1Button onClick={() => setOpenId(null)}>Schließen</V1Button>
+              </>
+            )
           }
         >
           <V1Card>
-            <V1Field label="Name">
-              <input value={draftName} onChange={(event) => setDraftName(event.target.value)} />
-            </V1Field>
-            <p className="sp-hint">
-              Leer lassen heißt „wie mitgeliefert". Nur was du einträgst, gehört dir — alles andere bekommt
-              weiterhin unsere Updates.
-            </p>
+            {offen.isShipped ? (
+              <p className="sp-hint">
+                Das sind unsere Werte, gepflegt mit den Updates. Ändern lässt sich hier nichts —
+                für eigene Erfahrungswerte legst du dir mit „Kopieren und anpassen" eine eigene
+                Fassung an. Darin gehört dir nur, was du wirklich einträgst; alles andere wandert
+                weiter mit unseren Updates mit.
+              </p>
+            ) : (
+              <>
+                <V1Field label="Name">
+                  <input value={draftName} onChange={(event) => setDraftName(event.target.value)} />
+                </V1Field>
+                <p className="sp-hint">
+                  Leer lassen heißt „wie mitgeliefert". Nur was du einträgst, gehört dir — alles andere bekommt
+                  weiterhin unsere Updates.
+                </p>
+              </>
+            )}
           </V1Card>
 
           <div className="co-table-wrap">
@@ -251,22 +305,33 @@ function SetpointProfilesPage() {
                     const basis = offen.stages.find((eintrag) => eintrag.stage === stage.key)?.values ?? {}
                     return (
                       <div key={column.label} className="sp-td">
-                        <div className="sp-pair">
-                          {[column.min, column.max].map((feld) => {
-                            const eigen = draft[stage.key]?.[feld]
-                            return (
-                              <input
-                                key={feld}
-                                className={classNames('sp-input', eigen != null && 'is-changed')}
-                                inputMode="decimal"
-                                value={eigen ?? ''}
-                                placeholder={zahl(basis[feld])}
-                                onChange={(event) => aendern(stage.key, feld, event.target.value)}
-                                aria-label={`${stage.label} ${column.label} ${feld.endsWith('Max') || feld === 'waterTempDayC' ? 'oben' : 'unten'}`}
-                              />
-                            )
-                          })}
-                        </div>
+                        {/* Beim Ansehen keine Eingabefelder: ein Feld, in das man
+                            tippen kann und das nichts speichert, ist schlimmer als
+                            gar keins. Und ohne Feldrahmen braucht die Spanne einen
+                            Trenner, sonst liest sich „6" neben „6,2" als eine Zahl. */}
+                        {offen.isShipped ? (
+                          <span className="sp-static">
+                            {spanne(basis[column.min], basis[column.max])}
+                          </span>
+                        ) : (
+                          <div className="sp-pair">
+                            {[column.min, column.max].map((feld) => {
+                              const eigen = draft[stage.key]?.[feld]
+                              const grenze = feld.endsWith('Max') || feld === 'waterTempDayC' ? 'oben' : 'unten'
+                              return (
+                                <input
+                                  key={feld}
+                                  className={classNames('sp-input', eigen != null && 'is-changed')}
+                                  inputMode="decimal"
+                                  value={eigen ?? ''}
+                                  placeholder={zahl(basis[feld])}
+                                  onChange={(event) => aendern(stage.key, feld, event.target.value)}
+                                  aria-label={`${stage.label} ${column.label} ${grenze}`}
+                                />
+                              )
+                            })}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
