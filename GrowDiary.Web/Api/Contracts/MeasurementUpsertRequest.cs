@@ -26,6 +26,9 @@ public sealed class MeasurementUpsertRequest
     public double? ReservoirLevelCm { get; set; }
     public double? ReservoirLevelLiters { get; set; }
     public double? DissolvedOxygenMgL { get; set; }
+    public double? AirflowAtLeafMPerMin { get; set; }
+    /// <summary>„Weak", „Moderate" oder „Strong" — bewusst Stufen statt Litern.</summary>
+    public string? WaterFlow { get; set; }
     public double? OrpMv { get; set; }
     public double? TopOffLiters { get; set; }
     public double? AddbackEc { get; set; }

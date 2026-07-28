@@ -19,6 +19,10 @@ type MeasurementDraft = {
   source: ValueOrigin
   notes: string
   solutionChange: boolean
+  // Bewusst kein Zahlenfeld: die Quelle sagt „moderat, nicht stark" und nennt
+  // keinen Durchsatz. Ein Feld in L/min wuerde eine Genauigkeit vortaeuschen,
+  // die es nicht gibt.
+  waterFlow: string
   airTemperatureC: string
   humidityPercent: string
   heightCm: string
@@ -39,6 +43,7 @@ type MeasurementDraft = {
   addbackEc: string
   ppfdMol: string
   co2Ppm: string
+  airflowAtLeafMPerMin: string
 }
 
 /** unit darf null sein: pH ist dimensionslos, "pH (pH)" sagt nichts. */
@@ -58,6 +63,12 @@ const climateFields: FieldDefinition[] = [
   { key: 'humidityPercent', label: 'Luftfeuchte', unit: '%' },
   { key: 'ppfdMol', label: 'PPFD', unit: 'µmol/m²/s' },
   { key: 'co2Ppm', label: 'CO₂', unit: 'ppm' },
+  {
+    key: 'airflowAtLeafMPerMin',
+    label: 'Luftstrom am Blatt',
+    unit: 'm/min',
+    hint: 'RDWC 90–120, sonst 60–90. Mit dem Anemometer im Bestand messen, nicht am Lüfter.',
+  },
 ]
 
 const reservoirFields: FieldDefinition[] = [
@@ -445,6 +456,18 @@ function ManualMeasurementPage() {
               <V1Section title="Beobachtung">
                 <div className="rc2-measurement-extra">
                   <FieldGrid fields={observationFields} draft={draft} patch={patch} />
+                  {isHydroGrow && (
+                    <V1Field
+                      label="Wasserfluss"
+                      hint="Moderat ist das Ziel. Starker Flow zerrt an den Wurzeln — mehr Umwälzung verteilt nicht besser.">
+                      <select value={draft.waterFlow} onChange={(event) => patch({ waterFlow: event.target.value })}>
+                        <option value="">nicht beurteilt</option>
+                        <option value="Weak">schwach</option>
+                        <option value="Moderate">moderat</option>
+                        <option value="Strong">stark</option>
+                      </select>
+                    </V1Field>
+                  )}
                   <V1Switch label="Lösungswechsel" checked={draft.solutionChange} onChange={(checked) => patch({ solutionChange: checked })} hint="Reservoir oder Nährlösung vollständig gewechselt." />
                   <V1Field label="Notiz" wide>
                     <textarea rows={4} value={draft.notes} onChange={(event) => patch({ notes: event.target.value })} placeholder="Blattbild, Wurzeln, Geruch, Korrektur..." />
@@ -593,6 +616,8 @@ function createDraft(): MeasurementDraft {
     source: 'Manual',
     notes: '',
     solutionChange: false,
+    waterFlow: '',
+    airflowAtLeafMPerMin: '',
     airTemperatureC: '',
     humidityPercent: '',
     heightCm: '',
@@ -643,6 +668,8 @@ function toPayload(draft: MeasurementDraft): MeasurementUpsertPayload {
     solutionChange: draft.solutionChange,
     ppfdMol: parseNullableNumber(draft.ppfdMol),
     co2Ppm: parseNullableNumber(draft.co2Ppm),
+    airflowAtLeafMPerMin: parseNullableNumber(draft.airflowAtLeafMPerMin),
+    waterFlow: draft.waterFlow || null,
   }
 }
 

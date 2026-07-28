@@ -454,6 +454,21 @@ public enum HardwareDeviceKind
     Equipment
 }
 
+/// <summary>
+/// Wie stark das Wasser zirkuliert — in Stufen, nicht in Litern.
+/// </summary>
+/// <remarks>
+/// Starker, gleichmäßiger Flow erzeugt Wurzelstress; moderate Bewegung ist das
+/// Ziel. Der häufigste Fehler ist die zu groß gewählte Pumpe, in der Annahme,
+/// mehr Umwälzung sei grundsätzlich besser.
+/// </remarks>
+public enum WaterFlowLevel
+{
+    Weak,
+    Moderate,
+    Strong
+}
+
 public enum SensorMetricType
 {
     AirTemperature,

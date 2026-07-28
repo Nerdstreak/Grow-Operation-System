@@ -27,6 +27,8 @@ public static class MeasurementMapping
         ReservoirLevelCm: measurement.ReservoirLevelCm,
         ReservoirLevelLiters: measurement.ReservoirLevelLiters,
         DissolvedOxygenMgL: measurement.DissolvedOxygenMgL,
+        AirflowAtLeafMPerMin: measurement.AirflowAtLeafMPerMin,
+        WaterFlow: measurement.WaterFlow?.ToString(),
         OrpMv: measurement.OrpMv,
         TopOffLiters: measurement.TopOffLiters,
         AddbackEc: measurement.AddbackEc,

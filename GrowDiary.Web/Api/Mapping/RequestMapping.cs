@@ -73,6 +73,8 @@ public static class RequestMapping
         ReservoirLevelCm = request.ReservoirLevelCm,
         ReservoirLevelLiters = request.ReservoirLevelLiters,
         DissolvedOxygenMgL = request.DissolvedOxygenMgL,
+        AirflowAtLeafMPerMin = request.AirflowAtLeafMPerMin,
+        WaterFlow = Enum.TryParse<WaterFlowLevel>(request.WaterFlow, ignoreCase: true, out var waterFlow) ? waterFlow : null,
         OrpMv = request.OrpMv,
         TopOffLiters = request.TopOffLiters,
         AddbackEc = request.AddbackEc,

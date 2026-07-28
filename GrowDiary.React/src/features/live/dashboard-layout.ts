@@ -236,3 +236,30 @@ export function resolveTile(
     targetMax: null,
   }
 }
+
+/**
+ * Wohin eine gezogene Kachel fallen darf, als Zeichenkette im DOM.
+ *
+ * Gebraucht für das Sortieren mit dem Finger: HTML5-Drag-and-Drop kennt kein
+ * Touch, also wird beim Ziehen das Element unter dem Finger gesucht und aus
+ * seinem Attribut das Ziel gelesen. Der Index steht vorne und wird an der
+ * ersten Trennung abgeschnitten — so darf eine Bereichs-Kennung alles
+ * enthalten, auch das Trennzeichen selbst.
+ */
+const DROP_SEPARATOR = '|'
+
+export function encodeDropTarget(sectionId: string, index: number): string {
+  return `${index}${DROP_SEPARATOR}${sectionId}`
+}
+
+export function parseDropTarget(raw: string | null | undefined): { sectionId: string; index: number } | null {
+  if (!raw) return null
+  const cut = raw.indexOf(DROP_SEPARATOR)
+  if (cut <= 0) return null
+
+  const index = Number(raw.slice(0, cut))
+  const sectionId = raw.slice(cut + 1)
+  if (!Number.isInteger(index) || index < 0 || sectionId === '') return null
+
+  return { sectionId, index }
+}

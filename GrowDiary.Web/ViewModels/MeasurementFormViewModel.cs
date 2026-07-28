@@ -36,6 +36,8 @@ public sealed class MeasurementFormViewModel
     public double? ReservoirLevelCm { get; set; }
     public double? ReservoirLevelLiters { get; set; }
     public double? DissolvedOxygenMgL { get; set; }
+    public double? AirflowAtLeafMPerMin { get; set; }
+    public WaterFlowLevel? WaterFlow { get; set; }
     public double? OrpMv { get; set; }
     public double? TopOffLiters { get; set; }
     public double? AddbackEc { get; set; }
@@ -130,6 +132,8 @@ public sealed class MeasurementFormViewModel
             ReservoirLevelCm = measurement.ReservoirLevelCm,
             ReservoirLevelLiters = measurement.ReservoirLevelLiters,
             DissolvedOxygenMgL = measurement.DissolvedOxygenMgL,
+            AirflowAtLeafMPerMin = measurement.AirflowAtLeafMPerMin,
+            WaterFlow = measurement.WaterFlow,
             OrpMv = measurement.OrpMv,
             TopOffLiters = measurement.TopOffLiters,
             AddbackEc = measurement.AddbackEc,
@@ -168,6 +172,8 @@ public sealed class MeasurementFormViewModel
             ReservoirLevelCm = ReservoirLevelCm,
             ReservoirLevelLiters = ReservoirLevelLiters,
             DissolvedOxygenMgL = DissolvedOxygenMgL,
+            AirflowAtLeafMPerMin = AirflowAtLeafMPerMin,
+            WaterFlow = WaterFlow,
             OrpMv = OrpMv,
             TopOffLiters = TopOffLiters,
             AddbackEc = AddbackEc,

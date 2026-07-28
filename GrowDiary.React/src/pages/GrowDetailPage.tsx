@@ -9,6 +9,7 @@ import { V1Alert, V1Badge, V1Button, V1Empty, V1LinkButton, V1Page, V1Section, V
 import { buildPhaseTimeline, flipLabel } from '../features/grows/phase-timeline'
 import type { GrowDeviationDto } from '../types'
 import { apiFetch } from '../api'
+import { resolveUrl } from '../base'
 
 const noop = async () => {}
 
@@ -226,6 +227,26 @@ function GrowDetailPage() {
             )}
           </section>
         </div>
+
+        {/* Für einen eigenen Assistenten. In Grow OS selbst steckt keine KI und
+            soll auch keine stecken — wer einen fragen will, nimmt diese Datei
+            mit und entscheidet selbst, wem er sie vorlegt. */}
+        <V1Section title="Lagebericht für einen eigenen KI-Agenten">
+          <p style={{ margin: '0 0 10px', font: '400 12px/1.6 var(--font-mono)', color: 'var(--muted)', maxWidth: '68ch' }}>
+            Eine kurze Datei mit dem Stand dieses Grows: Phase und Tag, die aktuellen Werte mit
+            Zielbereich und der Angabe, woher das Ziel stammt, offene Auffälligkeiten, die letzten
+            Dosen und Journal-Einträge. Grow OS verschickt nichts — die Datei landet bei dir, und du
+            entscheidest, wem du sie gibst.
+          </p>
+          <div className="v1-action-row">
+            <a className="v1-button" href={resolveUrl(`/api/agent-export/grows/${grow.id}/download`)}>
+              Lagebericht herunterladen
+            </a>
+            <a className="v1-button" href={resolveUrl(`/api/agent-export/grows/${grow.id}`)} target="_blank" rel="noreferrer">
+              Vorher ansehen
+            </a>
+          </div>
+        </V1Section>
 
         {/* Verwaltung unten — Beenden und Löschen gehören nicht neben die
             täglichen Handlungen in der Kopfzeile. */}

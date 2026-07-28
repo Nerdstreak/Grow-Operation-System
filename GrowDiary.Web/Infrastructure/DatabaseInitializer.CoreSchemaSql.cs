@@ -53,6 +53,8 @@ public sealed partial class DatabaseInitializer
                 ReservoirLevelCm REAL NULL,
                 ReservoirLevelLiters REAL NULL,
                 DissolvedOxygenMgL REAL NULL,
+                AirflowAtLeafMPerMin REAL NULL,
+                WaterFlow TEXT NULL,
                 OrpMv REAL NULL,
                 TopOffLiters REAL NULL,
                 AddbackEc REAL NULL,

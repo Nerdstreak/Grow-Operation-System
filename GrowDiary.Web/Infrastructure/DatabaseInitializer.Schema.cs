@@ -228,6 +228,10 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "DosingPumps", "PartnerRatio", "REAL NOT NULL DEFAULT 1");
         EnsureColumn(connection, "DosingPumps", "PartnerDelayMinutes", "INTEGER NOT NULL DEFAULT 5");
 
+        // Stroemung: Luftstrom am Blatt als Zahl, Wasserfluss als Stufe.
+        EnsureColumn(connection, "Measurements", "AirflowAtLeafMPerMin", "REAL NULL");
+        EnsureColumn(connection, "Measurements", "WaterFlow", "TEXT NULL");
+
     }
 
 

@@ -27,6 +27,8 @@ public sealed record MeasurementDto(
     double? ReservoirLevelCm,
     double? ReservoirLevelLiters,
     double? DissolvedOxygenMgL,
+    double? AirflowAtLeafMPerMin,
+    string? WaterFlow,
     double? OrpMv,
     double? TopOffLiters,
     double? AddbackEc,

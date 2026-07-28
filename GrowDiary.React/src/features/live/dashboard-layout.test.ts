@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   addSection,
   addTile,
+  encodeDropTarget,
   entityTile,
+  parseDropTarget,
   layoutIsEmpty,
   metricTile,
   moveSection,
@@ -168,5 +170,31 @@ describe('Kachel auflösen', () => {
     expect(resolved.label).toBe('Mein Name')
     expect(resolved.unit).toBe('W')
     expect(resolved.numericValue).toBe(5)
+  })
+})
+
+describe('Ziel beim Ziehen mit dem Finger', () => {
+  it('kodiert und liest ein Ziel zurück', () => {
+    const kodiert = encodeDropTarget('klima', 2)
+
+    expect(parseDropTarget(kodiert)).toEqual({ sectionId: 'klima', index: 2 })
+  })
+
+  it('verträgt ein Trennzeichen in der Bereichs-Kennung', () => {
+    // Eigene Bereiche bekommen ihren Namen vom Nutzer — dort darf alles stehen.
+    expect(parseDropTarget(encodeDropTarget('mein|technik', 0)))
+      .toEqual({ sectionId: 'mein|technik', index: 0 })
+  })
+
+  it('gibt bei Unsinn nichts zurück', () => {
+    // Unter dem Finger liegt oft irgendein Element ohne Ziel — das darf keine
+    // Kachel an Position NaN schieben.
+    expect(parseDropTarget(null)).toBeNull()
+    expect(parseDropTarget('')).toBeNull()
+    expect(parseDropTarget('klima')).toBeNull()
+    expect(parseDropTarget('|klima')).toBeNull()
+    expect(parseDropTarget('x|klima')).toBeNull()
+    expect(parseDropTarget('2|')).toBeNull()
+    expect(parseDropTarget('-1|klima')).toBeNull()
   })
 })

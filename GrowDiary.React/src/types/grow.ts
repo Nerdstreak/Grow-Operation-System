@@ -84,6 +84,10 @@ export interface MeasurementDto {
   solutionChange: boolean
   ppfdMol: number | null
   co2Ppm: number | null
+  /** Luftstrom auf Blattniveau in m/min — RDWC 90–120, sonst 60–90. */
+  airflowAtLeafMPerMin: number | null
+  /** „Weak" | „Moderate" | „Strong" — Stufen, weil die Quelle keinen Durchsatz nennt. */
+  waterFlow: string | null
 }
 
 export interface GrowDeviationDto {
@@ -158,6 +162,10 @@ export interface MeasurementUpsertPayload {
   solutionChange: boolean
   ppfdMol: number | null
   co2Ppm: number | null
+  /** Luftstrom auf Blattniveau in m/min — RDWC 90–120, sonst 60–90. */
+  airflowAtLeafMPerMin: number | null
+  /** „Weak" | „Moderate" | „Strong" — Stufen, weil die Quelle keinen Durchsatz nennt. */
+  waterFlow: string | null
 }
 
 export interface PhotoAssetDto {

@@ -1,0 +1,318 @@
+using System.Text;
+using GrowDiary.Web.Infrastructure;
+using GrowDiary.Web.Models;
+
+namespace GrowDiary.Web.Services;
+
+/// <summary>Eine Zeile im Kontext-Paket: eine Messgröße mit Ziel und Herkunft.</summary>
+public sealed record AgentMetricLine(
+    string Label,
+    string Key,
+    double? Value,
+    string? Unit,
+    double? TargetMin,
+    double? TargetMax,
+    string TargetSource,
+    int? AgeMinutes,
+    string Verdict);
+
+/// <summary>Alles, was ein fremder Agent über diesen Grow wissen muss.</summary>
+public sealed record AgentContext(
+    string GrowName,
+    string Stage,
+    int? DayInStage,
+    int? DayTotal,
+    string HydroStyle,
+    string ProfileName,
+    double? ReservoirLiters,
+    IReadOnlyList<AgentMetricLine> Metrics,
+    IReadOnlyList<string> OpenIssues,
+    IReadOnlyList<string> RecentJournal,
+    IReadOnlyList<string> RecentDoses,
+    DateTime GeneratedAtUtc);
+
+/// <summary>
+/// Das Kontext-Paket für einen eigenen KI-Agenten.
+/// </summary>
+/// <remarks>
+/// <para>Nicht zu verwechseln mit dem Grow-Export: der ist ein vollständiges
+/// Archiv eines abgeschlossenen Laufs, gedacht zum Aufheben. Das hier ist eine
+/// Momentaufnahme, gedacht zum Vorlegen — was steht gerade an, gegen welche
+/// Ziele, und was ist zuletzt passiert.</para>
+///
+/// <para>Der Unterschied macht die Auswahl: hier zählt, was für eine Einschätzung
+/// nötig ist, und sonst nichts. Ein Agent, der zehntausend Messzeilen bekommt,
+/// antwortet schlechter als einer, der zwanzig gute bekommt — und die
+/// Sensormesswerte eines halben Jahres sagen über heute Abend nichts.</para>
+///
+/// <para>Jede Zahl trägt ihre Herkunft. Ohne sie kann ein Agent nicht
+/// unterscheiden, ob 6,05 ein bewusst gesetzter eigener Wert ist oder der
+/// mitgelieferte Vorschlag — und wird dem einen widersprechen, als wäre es der
+/// andere.</para>
+/// </remarks>
+public sealed class AgentContextBuilder
+{
+    private readonly GrowRepository _repository;
+    private readonly SensorReadingRepository _readings;
+    private readonly AlertRuleRepository _alertRules;
+    private readonly TargetValueService _targetValues;
+    private readonly HydroSetupRepository _hydroSetups;
+    private readonly SetpointProfileRepository _profiles;
+    private readonly DosingRepository _dosing;
+    private readonly JournalRepository _journal;
+
+    public AgentContextBuilder(
+        GrowRepository repository,
+        SensorReadingRepository readings,
+        AlertRuleRepository alertRules,
+        TargetValueService targetValues,
+        HydroSetupRepository hydroSetups,
+        SetpointProfileRepository profiles,
+        DosingRepository dosing,
+        JournalRepository journal)
+    {
+        _repository = repository;
+        _readings = readings;
+        _alertRules = alertRules;
+        _targetValues = targetValues;
+        _hydroSetups = hydroSetups;
+        _profiles = profiles;
+        _dosing = dosing;
+        _journal = journal;
+    }
+
+    /// <summary>Die Messgrößen, die in das Paket gehören — Reihenfolge wie im Kopf eines Growers.</summary>
+    private static readonly (string Key, string Label, string? Unit)[] Metrics =
+    [
+        ("reservoir-ph", "pH", null),
+        ("reservoir-ec", "EC", "mS/cm"),
+        ("reservoir-temp", "Wassertemperatur", "°C"),
+        ("dissolved-oxygen", "Sauerstoff", "mg/L"),
+        ("orp", "ORP", "mV"),
+        ("temperature", "Lufttemperatur", "°C"),
+        ("humidity", "Luftfeuchte", "%"),
+        ("vpd", "VPD", "kPa"),
+        ("co2", "CO₂", "ppm"),
+        ("ppfd", "PPFD", "µmol/m²/s"),
+    ];
+
+    public AgentContext? Build(int growId, DateTime nowUtc)
+    {
+        var grow = _repository.GetGrow(growId);
+        if (grow is null) return null;
+
+        var stage = GrowStageResolver.Resolve(grow, DateTime.Today);
+        var resolved = SetpointProfileResolver.Resolve(
+            grow.SetpointProfileId,
+            grow.SystemId is { } systemId ? _hydroSetups.GetSystem(systemId)?.SetpointProfileId : null,
+            grow.HydroStyle);
+        var targets = _targetValues.GetTargets(resolved.ProfileId, stage);
+        var rules = grow.TentId is { } tentId ? _alertRules.GetForTent(tentId) : null;
+
+        return new AgentContext(
+            GrowName: grow.Name,
+            Stage: StageLabel(stage),
+            DayInStage: null,
+            DayTotal: grow.StartDate is { } start ? (int)(DateTime.Today - start.Date).TotalDays + 1 : null,
+            HydroStyle: grow.HydroStyle.ToString(),
+            ProfileName: ProfileLabel(resolved),
+            ReservoirLiters: grow.SystemId is { } id ? _hydroSetups.GetSystem(id)?.ReservoirLiters : null,
+            Metrics: BuildMetrics(grow, targets, rules, nowUtc),
+            OpenIssues: BuildIssues(grow),
+            RecentJournal: BuildJournal(grow),
+            RecentDoses: BuildDoses(grow, nowUtc),
+            GeneratedAtUtc: nowUtc);
+    }
+
+    private List<AgentMetricLine> BuildMetrics(
+        GrowRun grow, HydroTargetValues? targets, IReadOnlyList<TentAlertRule>? rules, DateTime nowUtc)
+    {
+        var lines = new List<AgentMetricLine>();
+        if (grow.TentId is not { } tentId) return lines;
+
+        foreach (var (key, label, unit) in Metrics)
+        {
+            var reading = _readings.GetNewestReading(tentId, key);
+            var (min, max, source) = TargetFor(key, targets, rules);
+
+            // Messgroessen ohne Wert UND ohne Ziel weglassen: eine Zeile
+            // „ORP: — (kein Ziel)" traegt nichts bei und kostet Aufmerksamkeit.
+            if (reading is null && min is null && max is null) continue;
+
+            lines.Add(new AgentMetricLine(
+                label, key, reading?.Value, unit ?? reading?.Unit, min, max, source,
+                reading is { } r ? (int)(nowUtc - r.CapturedAtUtc).TotalMinutes : null,
+                Verdict(reading?.Value, min, max)));
+        }
+
+        return lines;
+    }
+
+    private (double? Min, double? Max, string Source) TargetFor(
+        string key, HydroTargetValues? targets, IReadOnlyList<TentAlertRule>? rules)
+    {
+        if (UserTargets.For(key, rules) is { } eigen)
+        {
+            return (eigen.Min, eigen.Max, "vom Nutzer eingetragen");
+        }
+
+        if (targets is null) return (null, null, "keins");
+
+        return key switch
+        {
+            "reservoir-ph" => (targets.PhMin, targets.PhMax, "Phasen-Profil"),
+            "reservoir-ec" => (targets.EcMin, targets.EcMax, "Phasen-Profil"),
+            "reservoir-temp" => (targets.WaterTempNightC, targets.WaterTempDayC, "Phasen-Profil"),
+            "orp" => (targets.OrpMin, targets.OrpMax, "Phasen-Profil"),
+            "vpd" => (targets.VpdMin, targets.VpdMax, "Phasen-Profil"),
+            "ppfd" => (targets.PpfdMin, targets.PpfdMax, "Phasen-Profil"),
+            "co2" => (targets.Co2Min, targets.Co2Max, "Phasen-Profil"),
+            _ => (null, null, "keins"),
+        };
+    }
+
+    /// <summary>Kurzurteil je Zeile — damit ein Agent nicht selbst vergleichen muss.</summary>
+    private static string Verdict(double? value, double? min, double? max)
+    {
+        if (value is not { } wert) return "kein Messwert";
+        if (min is null && max is null) return "kein Ziel hinterlegt";
+        if (min is { } untere && wert < untere) return "unter dem Ziel";
+        if (max is { } obere && wert > obere) return "über dem Ziel";
+        return "im Ziel";
+    }
+
+    private List<string> BuildIssues(GrowRun grow)
+        => _repository.GetRiskEvents()
+            .Where(risk => risk.GrowId == grow.Id || (grow.TentId is { } tentId && risk.TentId == tentId))
+            .Where(risk => risk.Status is RiskEventStatus.Open or RiskEventStatus.Acknowledged)
+            .OrderByDescending(risk => risk.CreatedAtUtc)
+            .Take(10)
+            .Select(risk => $"{risk.CreatedAtUtc:yyyy-MM-dd} · {risk.Severity} · {risk.Title}")
+            .ToList();
+
+    private List<string> BuildJournal(GrowRun grow)
+        => _journal.GetForGrow(grow.Id)
+            .OrderByDescending(entry => entry.OccurredAtUtc)
+            .Take(8)
+            .Select(entry => $"{entry.OccurredAtUtc:yyyy-MM-dd} · {Kurz(entry.Title, 60)}{(string.IsNullOrWhiteSpace(entry.Body) ? "" : " — " + Kurz(entry.Body, 200))}")
+            .ToList();
+
+    private List<string> BuildDoses(GrowRun grow, DateTime nowUtc)
+    {
+        if (grow.TentId is not { } tentId) return [];
+
+        var namen = _dosing.GetPumps(tentId).ToDictionary(pump => pump.Id, pump => pump.Name);
+        return _dosing.GetEvents(tentId: tentId, limit: 12)
+            .Where(dose => dose.Outcome == DoseOutcome.Done && dose.DosedMl > 0)
+            .Select(dose =>
+            {
+                var wirkung = dose.ValueBefore is { } vor && dose.ValueAfter is { } nach
+                    ? $", {vor:0.00} → {nach:0.00}"
+                    : string.Empty;
+                var test = dose.Simulated ? " (Testbetrieb, nichts geflossen)" : string.Empty;
+                return $"{dose.OccurredAtUtc:yyyy-MM-dd HH:mm} · {namen.GetValueOrDefault(dose.PumpId, "Pumpe")} · {dose.DosedMl:0.##} ml{wirkung}{test}";
+            })
+            .ToList();
+    }
+
+    private string ProfileLabel(ResolvedProfile resolved)
+    {
+        var name = _profiles.GetAll().FirstOrDefault(profile => profile.ReferenceId == resolved.ProfileId)?.Name
+            ?? resolved.ProfileId;
+        var herkunft = resolved.Origin switch
+        {
+            ProfileOrigin.Grow => "am Grow gesetzt",
+            ProfileOrigin.System => "vom Hydro-System geerbt",
+            _ => "Standard des Anbaustils",
+        };
+        return $"{name} ({herkunft})";
+    }
+
+    private static string StageLabel(GrowStage stage) => stage switch
+    {
+        GrowStage.Seedling => "Sämling",
+        GrowStage.Clone => "Steckling",
+        GrowStage.Veg => "Vegetativ",
+        GrowStage.Transition => "Transition",
+        GrowStage.Flower => "Blüte",
+        GrowStage.Finish => "Finish",
+        _ => stage.ToString(),
+    };
+
+    private static string Kurz(string? text, int max)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var einzeilig = text.Replace('\n', ' ').Replace('\r', ' ').Trim();
+        return einzeilig.Length <= max ? einzeilig : einzeilig[..max] + "…";
+    }
+
+    /// <summary>
+    /// Dasselbe als Text — das Format, das ein Agent tatsächlich vorgelegt bekommt.
+    /// </summary>
+    /// <remarks>
+    /// Markdown und nicht JSON: der Nutzer soll die Datei öffnen und lesen
+    /// können, bevor er sie weitergibt. Wer sie an einen Agenten übergibt, gibt
+    /// Angaben über seinen Grow aus der Hand — dann soll er vorher sehen, was
+    /// drinsteht.
+    /// </remarks>
+    public static string ToMarkdown(AgentContext context)
+    {
+        var text = new StringBuilder();
+        text.AppendLine($"# Grow OS — Lagebericht: {context.GrowName}");
+        text.AppendLine();
+        text.AppendLine($"Stand: {context.GeneratedAtUtc:yyyy-MM-dd HH:mm} UTC");
+        text.AppendLine($"Phase: {context.Stage}"
+            + (context.DayTotal is { } tag ? $" · Tag {tag} seit Start" : string.Empty));
+        text.AppendLine($"System: {context.HydroStyle}"
+            + (context.ReservoirLiters is { } liter ? $" · {liter:0.#} L Reservoir" : string.Empty));
+        text.AppendLine($"Sollwert-Profil: {context.ProfileName}");
+        text.AppendLine();
+
+        text.AppendLine("## Aktuelle Werte");
+        text.AppendLine();
+        text.AppendLine("| Messgröße | Wert | Alter | Ziel | Ziel kommt von | Urteil |");
+        text.AppendLine("|---|---|---|---|---|---|");
+        foreach (var line in context.Metrics)
+        {
+            var wert = line.Value is { } v ? $"{v:0.##}{(line.Unit is null ? "" : " " + line.Unit)}" : "—";
+            var alter = line.AgeMinutes is { } m ? $"{m} min" : "—";
+            var ziel = (line.TargetMin, line.TargetMax) switch
+            {
+                ({ } min, { } max) => $"{min:0.##}–{max:0.##}",
+                ({ } min, null) => $"ab {min:0.##}",
+                (null, { } max) => $"bis {max:0.##}",
+                _ => "—",
+            };
+            text.AppendLine($"| {line.Label} | {wert} | {alter} | {ziel} | {line.TargetSource} | {line.Verdict} |");
+        }
+        text.AppendLine();
+
+        Abschnitt(text, "Offene Auffälligkeiten", context.OpenIssues, "Keine offenen Punkte.");
+        Abschnitt(text, "Letzte Dosen", context.RecentDoses, "Es wurde noch nichts dosiert.");
+        Abschnitt(text, "Letzte Journal-Einträge", context.RecentJournal, "Noch keine Einträge.");
+
+        text.AppendLine("---");
+        text.AppendLine();
+        text.AppendLine("Erzeugt von Grow OS. Die Zielwerte stammen entweder aus den Grenzwerten, die");
+        text.AppendLine("der Betreiber selbst eingetragen hat, oder aus dem hinterlegten Phasen-Profil —");
+        text.AppendLine("die Spalte „Ziel kommt von“ sagt, welches. Ein selbst eingetragener Wert ist");
+        text.AppendLine("eine bewusste Entscheidung und kein Vorschlag.");
+
+        return text.ToString();
+    }
+
+    private static void Abschnitt(StringBuilder text, string titel, IReadOnlyList<string> zeilen, string wennLeer)
+    {
+        text.AppendLine($"## {titel}");
+        text.AppendLine();
+        if (zeilen.Count == 0)
+        {
+            text.AppendLine(wennLeer);
+        }
+        else
+        {
+            foreach (var zeile in zeilen) text.AppendLine($"- {zeile}");
+        }
+        text.AppendLine();
+    }
+}

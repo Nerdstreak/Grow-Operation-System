@@ -109,7 +109,7 @@ public sealed class MeasurementRepository : RepositoryBase
                 AirTemperatureC, HumidityPercent, HeightCm,
                 WaterAmountMl, RunoffAmountMl, IrrigationPh, IrrigationEc, DrainPh, DrainEc,
                 ReservoirPh, ReservoirEc, ReservoirWaterTempC, ReservoirLevelCm, ReservoirLevelLiters,
-                DissolvedOxygenMgL, OrpMv, TopOffLiters, AddbackEc, SolutionChange,
+                DissolvedOxygenMgL, AirflowAtLeafMPerMin, WaterFlow, OrpMv, TopOffLiters, AddbackEc, SolutionChange,
                 PpfdMol, Co2Ppm, CreatedAtUtc, UpdatedAtUtc
             )
             VALUES
@@ -118,7 +118,7 @@ public sealed class MeasurementRepository : RepositoryBase
                 $airTemperatureC, $humidityPercent, $heightCm,
                 $waterAmountMl, $runoffAmountMl, $irrigationPh, $irrigationEc, $drainPh, $drainEc,
                 $reservoirPh, $reservoirEc, $reservoirWaterTempC, $reservoirLevelCm, $reservoirLevelLiters,
-                $dissolvedOxygenMgL, $orpMv, $topOffLiters, $addbackEc, $solutionChange,
+                $dissolvedOxygenMgL, $airflow, $waterFlow, $orpMv, $topOffLiters, $addbackEc, $solutionChange,
                 $ppfdMol, $co2Ppm, $createdAtUtc, $updatedAtUtc
             );
             SELECT last_insert_rowid();
@@ -153,6 +153,8 @@ public sealed class MeasurementRepository : RepositoryBase
                 ReservoirLevelCm = $reservoirLevelCm,
                 ReservoirLevelLiters = $reservoirLevelLiters,
                 DissolvedOxygenMgL = $dissolvedOxygenMgL,
+                AirflowAtLeafMPerMin = $airflow,
+                WaterFlow = $waterFlow,
                 OrpMv = $orpMv,
                 TopOffLiters = $topOffLiters,
                 AddbackEc = $addbackEc,
@@ -226,6 +228,8 @@ public sealed class MeasurementRepository : RepositoryBase
             ReservoirLevelCm = NullableDouble(reader["ReservoirLevelCm"]),
             ReservoirLevelLiters = NullableDouble(reader["ReservoirLevelLiters"]),
             DissolvedOxygenMgL = NullableDouble(reader["DissolvedOxygenMgL"]),
+            AirflowAtLeafMPerMin = HasColumn(reader, "AirflowAtLeafMPerMin") ? NullableDouble(reader["AirflowAtLeafMPerMin"]) : null,
+            WaterFlow = HasColumn(reader, "WaterFlow") && Enum.TryParse<WaterFlowLevel>(NullString(reader["WaterFlow"]), out var flow) ? flow : null,
             OrpMv = NullableDouble(reader["OrpMv"]),
             TopOffLiters = NullableDouble(reader["TopOffLiters"]),
             AddbackEc = NullableDouble(reader["AddbackEc"]),
@@ -259,6 +263,8 @@ public sealed class MeasurementRepository : RepositoryBase
         AddNullable(command, "$reservoirLevelCm", measurement.ReservoirLevelCm);
         AddNullable(command, "$reservoirLevelLiters", measurement.ReservoirLevelLiters);
         AddNullable(command, "$dissolvedOxygenMgL", measurement.DissolvedOxygenMgL);
+        AddNullable(command, "$airflow", measurement.AirflowAtLeafMPerMin);
+        command.Parameters.AddWithValue("$waterFlow", (object?)measurement.WaterFlow?.ToString() ?? DBNull.Value);
         AddNullable(command, "$orpMv", measurement.OrpMv);
         AddNullable(command, "$topOffLiters", measurement.TopOffLiters);
         AddNullable(command, "$addbackEc", measurement.AddbackEc);

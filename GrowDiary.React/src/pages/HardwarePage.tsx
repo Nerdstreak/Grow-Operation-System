@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CalibrationEventDto, CreateHardwareItemRequest, HardwareDeviceKind, HardwareItemCriticality, HardwareItemDto, HardwareItemStatus, HomeAssistantEntity, HydroSetupDto, MaintenanceEventDto, TentDto, UpdateHardwareItemRequest } from '../types'
+import type { CalibrationEventDto, CreateHardwareItemRequest, HardwareDeviceKind, HardwareItemCriticality, HardwareItemDto, HardwareItemStatus, HomeAssistantEntity, HydroSetupDto, MaintenanceEventDto, TentDto, UpdateHardwareItemRequest, WearTemplateDto } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { classNames, formatSeverityLabel } from '../utils'
 import type { HardwareFilter, HardwareRow } from '../features/hardware/hardware-table-model'
@@ -29,6 +29,9 @@ type HardwareDraft = {
   serialNumber: string
   calibrationIntervalDays: string
   notes: string
+  wearTemplateId: string
+  expectedLifespanDays: string
+  inspectionIntervalDays: string
 }
 
 const criticalityOptions: HardwareItemCriticality[] = ['Low', 'Medium', 'High', 'Critical']
@@ -57,6 +60,7 @@ function HardwarePage() {
   const [maintenance, setMaintenance] = useState<MaintenanceEventDto[]>([])
   const [entities, setEntities] = useState<HomeAssistantEntity[]>([])
   const [calibration, setCalibration] = useState<CalibrationEventDto[]>([])
+  const [wearTemplates, setWearTemplates] = useState<WearTemplateDto[]>([])
   const [filter, setFilter] = useState<HardwareFilter>('alle')
   const [formOpen, setFormOpen] = useState(false)
   const [draft, setDraft] = useState<HardwareDraft>(() => createDraft())
@@ -68,18 +72,46 @@ function HardwarePage() {
 
   useEffect(() => { void load() }, [])
 
+  /**
+   * Eine Vorlage wählen füllt Lebensdauer und Prüfintervall.
+   *
+   * Warum das nötig war: die zwölf Verschleiß-Vorlagen gab es seit jeher im
+   * Wissen — nur bot das Formular sie nie an. Also blieb bei jedem angelegten
+   * Gerät die Lebensdauer leer, und die Wartungserinnerung, die daran hängt,
+   * meldete sich nie. Eine UV-C-Lampe leuchtet nach 9000 Stunden weiter und
+   * klärt trotzdem nicht mehr; genau so ein Fall fällt ohne Erinnerung niemandem
+   * auf.
+   *
+   * Der Name wird nur übernommen, wenn das Feld leer ist — wer seiner Sonde
+   * schon einen Namen gegeben hat, soll ihn nicht durch die Auswahl verlieren.
+   */
+  function waehleVorlage(templateId: string) {
+    const template = wearTemplates.find((item) => item.id === templateId)
+    setDraft((current) => ({
+      ...current,
+      wearTemplateId: templateId,
+      name: current.name.trim() === '' && template ? template.name : current.name,
+      category: template ? template.category : current.category,
+      expectedLifespanDays: template ? String(template.expectedLifespanDays) : current.expectedLifespanDays,
+      inspectionIntervalDays: template?.inspectionIntervalDays != null
+        ? String(template.inspectionIntervalDays)
+        : current.inspectionIntervalDays,
+    }))
+  }
+
   async function load() {
     setLoading(true)
     setError(null)
     try {
       const dueBeforeUtc = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
-      const [items, tentData, hydroData, maintenanceData, calibrationData, entityData] = await Promise.all([
+      const [items, tentData, hydroData, maintenanceData, calibrationData, entityData, wearData] = await Promise.all([
         apiFetch<HardwareItemDto[]>('/api/hardware-items'),
         apiFetch<TentDto[]>('/api/settings/tents'),
         apiFetch<HydroSetupDto[]>('/api/hydro-setups?includeArchived=true'),
         apiFetch<MaintenanceEventDto[]>(`/api/maintenance-events?dueBeforeUtc=${encodeURIComponent(dueBeforeUtc)}`).catch(() => []),
         apiFetch<CalibrationEventDto[]>(`/api/calibration-events?dueBeforeUtc=${encodeURIComponent(dueBeforeUtc)}`).catch(() => []),
         apiFetch<HomeAssistantEntity[]>('/api/home-assistant/entities').catch(() => [] as HomeAssistantEntity[]),
+        apiFetch<WearTemplateDto[]>('/api/knowledge/wear').catch(() => [] as WearTemplateDto[]),
       ])
       setHardware(items)
       setTents(tentData)
@@ -87,6 +119,7 @@ function HardwarePage() {
       setMaintenance(maintenanceData)
       setCalibration(calibrationData)
       setEntities(entityData)
+      setWearTemplates(wearData)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Sensoren konnten nicht geladen werden.')
     } finally {
@@ -155,11 +188,11 @@ function HardwarePage() {
       notes: nullable(draft.notes),
       installedAtUtc: existing?.installedAtUtc ?? new Date().toISOString(),
       retiredAtUtc: existing?.retiredAtUtc ?? null,
-      wearTemplateId: existing?.wearTemplateId ?? null,
+      wearTemplateId: draft.wearTemplateId || null,
       tentSensorId: existing?.tentSensorId ?? null,
       growId: existing?.growId ?? null,
-      expectedLifespanDays: existing?.expectedLifespanDays ?? null,
-      inspectionIntervalDays: existing?.inspectionIntervalDays ?? null,
+      expectedLifespanDays: toIntOrNull(draft.expectedLifespanDays),
+      inspectionIntervalDays: toIntOrNull(draft.inspectionIntervalDays),
       calibrationIntervalDays: toIntOrNull(draft.calibrationIntervalDays),
     }
 
@@ -360,6 +393,21 @@ function HardwarePage() {
                 <V1Field label="Modell"><input value={draft.model} onChange={(event) => setDraft((current) => ({ ...current, model: event.target.value }))} /></V1Field>
                 <V1Field label="Seriennummer"><input value={draft.serialNumber} onChange={(event) => setDraft((current) => ({ ...current, serialNumber: event.target.value }))} /></V1Field>
                 <V1Field label="Kalibrieren alle (Tage)" hint="Erinnerung nach jeder Kalibrierung; leer = Standard je Typ"><input type="number" min="1" value={draft.calibrationIntervalDays} onChange={(event) => setDraft((current) => ({ ...current, calibrationIntervalDays: event.target.value }))} placeholder="z. B. 14" /></V1Field>
+                <V1Field
+                  label="Verschleißteil"
+                  wide
+                  hint="Füllt Lebensdauer und Prüfintervall aus unserem Wissen — beides bleibt danach änderbar.">
+                  <select value={draft.wearTemplateId} onChange={(event) => waehleVorlage(event.target.value)}>
+                    <option value="">— keine Vorlage —</option>
+                    {wearTemplates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name} · {template.expectedLifespanDays} Tage
+                      </option>
+                    ))}
+                  </select>
+                </V1Field>
+                <V1Field label="Lebensdauer (Tage)" hint="Danach meldet sich die Wartung. Leer = keine Erinnerung."><input type="number" min="1" value={draft.expectedLifespanDays} onChange={(event) => setDraft((current) => ({ ...current, expectedLifespanDays: event.target.value }))} placeholder="z. B. 375" /></V1Field>
+                <V1Field label="Prüfen alle (Tage)"><input type="number" min="1" value={draft.inspectionIntervalDays} onChange={(event) => setDraft((current) => ({ ...current, inspectionIntervalDays: event.target.value }))} placeholder="z. B. 90" /></V1Field>
                 <V1Field label="Notizen" wide><textarea value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} /></V1Field>
               </div>
               <div className="ops1b-sticky-actions">
@@ -436,6 +484,9 @@ function createDraft(item?: HardwareItemDto): HardwareDraft {
     serialNumber: item?.serialNumber ?? '',
     calibrationIntervalDays: item?.calibrationIntervalDays != null ? String(item.calibrationIntervalDays) : '',
     notes: item?.notes ?? '',
+    wearTemplateId: item?.wearTemplateId ?? '',
+    expectedLifespanDays: item?.expectedLifespanDays != null ? String(item.expectedLifespanDays) : '',
+    inspectionIntervalDays: item?.inspectionIntervalDays != null ? String(item.inspectionIntervalDays) : '',
   }
 }
 

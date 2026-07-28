@@ -33,9 +33,12 @@ interface MeasurementEditState {
   addbackEc: string
   ppfdMol: string
   co2Ppm: string
+  airflowAtLeafMPerMin: string
+  /** Stufe, keine Zahl — deshalb aus den Zahlenfeldern ausgenommen. */
+  waterFlow: string
 }
 
-type MeasurementNumericFieldKey = Exclude<keyof MeasurementEditState, 'takenAtLocal' | 'stage' | 'source' | 'notes' | 'solutionChange'>
+type MeasurementNumericFieldKey = Exclude<keyof MeasurementEditState, 'takenAtLocal' | 'stage' | 'source' | 'notes' | 'solutionChange' | 'waterFlow'>
 
 interface PhotoFormState {
   photoCaption: string
@@ -327,6 +330,8 @@ function createDraft(measurement: MeasurementDto): MeasurementEditState {
     addbackEc: formatDraftNumber(measurement.addbackEc),
     ppfdMol: formatDraftNumber(measurement.ppfdMol),
     co2Ppm: formatDraftNumber(measurement.co2Ppm),
+    airflowAtLeafMPerMin: formatDraftNumber(measurement.airflowAtLeafMPerMin),
+    waterFlow: measurement.waterFlow ?? '',
   }
 }
 
@@ -357,6 +362,8 @@ function toPayload(draft: MeasurementEditState): MeasurementUpsertPayload {
     solutionChange: draft.solutionChange,
     ppfdMol: parseNullableNumber(draft.ppfdMol),
     co2Ppm: parseNullableNumber(draft.co2Ppm),
+    airflowAtLeafMPerMin: parseNullableNumber(draft.airflowAtLeafMPerMin),
+    waterFlow: draft.waterFlow || null,
   }
 }
 

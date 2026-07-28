@@ -109,6 +109,11 @@
   .ls-tile-slot > .gos-metric { flex: 1 1 auto; }
   .ls-tile-slot.is-draggable { cursor: grab; }
   .ls-tile-slot.is-draggable:active { cursor: grabbing; }
+  /* Die Kachel, die gerade am Finger haengt — und die Stelle, an der sie landen
+     wuerde. Ohne beides zieht man am Handy blind: der Finger verdeckt genau das,
+     was man treffen will. */
+  .ls-tile-slot.is-dragging { opacity: .45; }
+  .ls-tile-slot.is-over { outline: 2px solid var(--accent); outline-offset: -1px; border-radius: 10px; }
   .gos-metric-row.is-editing { border-style: dashed; border-color: var(--hair-2); }
   /* Platz fuer Griff UND × zusammen: mit 36px stiess bei schmalen Kacheln der
      Status („daneben") noch ins Kreuz. */
@@ -118,7 +123,16 @@
     position: absolute; top: 8px; right: 8px; z-index: 1;
     display: flex; align-items: center; gap: 6px;
   }
-  .ls-tile-tools .dots { color: var(--hint); font: 500 12px/1 var(--font-mono); letter-spacing: -1px; }
+  /* Der Griff. `touch-action: none` ist der Kern der Sache: ohne das nimmt der
+     Browser den Wisch fuer sich und scrollt, und die Kachel bleibt liegen.
+     Deshalb auch nur der Griff und nicht die ganze Kachel — sonst liesse sich
+     das Dashboard im Anpassen-Modus gar nicht mehr scrollen. */
+  .ls-tile-tools .dots {
+    display: grid; place-items: center; min-width: 24px; min-height: 24px; padding: 0;
+    border: none; background: none; touch-action: none; cursor: grab;
+    color: var(--hint); font: 500 12px/1 var(--font-mono); letter-spacing: -1px;
+  }
+  .ls-tile-tools .dots:active { cursor: grabbing; color: var(--ink); }
   .ls-tile-tools .x {
     display: grid; place-items: center; width: 18px; height: 18px; padding: 0;
     border: 1px solid var(--hair-2); border-radius: 50%;
@@ -133,6 +147,7 @@
     display: grid; place-items: center; text-align: center;
     color: var(--hint); font: 400 10.5px/1.5 var(--font-mono);
   }
+  .ls-dropzone.is-over { border-color: var(--accent); color: var(--accent-text); }
 
   /* ---------- Kachel hinzufuegen ---------- */
   .ls-dialog-backdrop {
