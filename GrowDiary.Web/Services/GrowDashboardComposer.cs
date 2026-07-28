@@ -1,4 +1,5 @@
 using System.Globalization;
+using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 using Microsoft.Extensions.Logging;
 
@@ -10,14 +11,22 @@ public sealed class GrowDashboardComposer
     private readonly DeviationAnalyzerService _deviationAnalyzer;
     private readonly WeekCounterService _weekCounter;
     private readonly TargetValueService _targetValues;
+    private readonly AlertRuleRepository? _alertRules;
     private readonly ILogger<GrowDashboardComposer> _logger;
 
-    public GrowDashboardComposer(ChartService chartService, DeviationAnalyzerService deviationAnalyzer, WeekCounterService weekCounter, TargetValueService targetValues, ILogger<GrowDashboardComposer> logger)
+    public GrowDashboardComposer(
+        ChartService chartService,
+        DeviationAnalyzerService deviationAnalyzer,
+        WeekCounterService weekCounter,
+        TargetValueService targetValues,
+        ILogger<GrowDashboardComposer> logger,
+        AlertRuleRepository? alertRules = null)
     {
         _chartService = chartService;
         _deviationAnalyzer = deviationAnalyzer;
         _weekCounter = weekCounter;
         _targetValues = targetValues;
+        _alertRules = alertRules;
         _logger = logger;
     }
 
@@ -181,6 +190,10 @@ public sealed class GrowDashboardComposer
 
         ApplyClimateBands(cards, targets, tent.LeafTempOffsetC);
 
+        // Zuletzt und damit ueber allem: was der Nutzer selbst eingetragen hat.
+        // Erst hier, damit es auch die zurueckgerechneten Klimabaender schlaegt.
+        ApplyUserTargets(cards, tent.Id);
+
         return cards;
     }
 
@@ -197,6 +210,34 @@ public sealed class GrowDashboardComposer
     /// Ohne den Partnerwert gibt es kein Band: ein Temperaturziel ohne bekannte
     /// Feuchte wäre geraten.
     /// </remarks>
+    /// <summary>
+    /// Der eingetragene Wert des Nutzers gewinnt — über dem Wissen und über
+    /// jedem zurückgerechneten Band.
+    /// </summary>
+    /// <remarks>
+    /// Und die Kachel sagt es: „dein Wert". Ohne den Zusatz stünde dort eine
+    /// Zahl, die von den mitgelieferten abweicht, ohne dass jemand erkennen
+    /// könnte warum — genau die Verwirrung, die das hier abstellt.
+    /// </remarks>
+    private void ApplyUserTargets(List<MetricCard> cards, int tentId)
+    {
+        var rules = _alertRules?.GetForTent(tentId);
+        if (rules is null || rules.Count == 0) return;
+
+        foreach (var card in cards)
+        {
+            if (UserTargets.For(card.Key, rules) is not { } eigene) continue;
+
+            card.TargetMin = eigene.Min;
+            card.TargetMax = eigene.Max;
+            card.TargetNote = UserTargets.SourceLabel;
+            // Kein abgeleiteter Wert mehr: was der Nutzer setzt, zaehlt voll in
+            // den Score. Sonst waere sein eigener Grenzwert der einzige, der
+            // nicht bewertet wird.
+            card.TargetDerived = false;
+        }
+    }
+
     private static void ApplyClimateBands(List<MetricCard> cards, HydroTargetValues? targets, double leafOffsetC)
     {
         if (targets is null) return;

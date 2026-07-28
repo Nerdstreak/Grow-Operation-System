@@ -1,3 +1,4 @@
+using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 
 namespace GrowDiary.Web.Services;
@@ -34,7 +35,9 @@ public sealed class DeviationAnalyzerService
 
     private readonly TargetValueService _targetValues;
 
-    public DeviationAnalyzerService(TargetValueService targetValues)
+    private readonly AlertRuleRepository? _alertRules;
+
+    public DeviationAnalyzerService(TargetValueService targetValues, AlertRuleRepository? alertRules = null)
     {
         _targetValues = targetValues;
     }
@@ -67,7 +70,13 @@ public sealed class DeviationAnalyzerService
         }
 
         var latest = sorted[0];
-        var targets = _targetValues.GetTargets(grow.HydroStyle, latest.Stage);
+        // Der eingetragene Wert des Nutzers gewinnt — dieselbe Regel wie auf den
+        // Live-Kacheln. Vorher las die Diagnose nur das Wissen und widersprach
+        // damit den Alarmen, die schon immer die Werte des Nutzers nahmen.
+        var wissen = _targetValues.GetTargets(grow.HydroStyle, latest.Stage);
+        var targets = wissen is null || grow.TentId is not { } tentId
+            ? wissen
+            : UserTargets.Overlay(wissen, _alertRules?.GetForTent(tentId));
         var deviations = new List<GrowDeviation>();
 
         CheckPh(grow, sorted, targets, deviations);

@@ -77,7 +77,10 @@ builder.Services.AddSingleton<PhotoStorageService>();
 builder.Services.AddSingleton<GrowDashboardComposer>();
 builder.Services.AddScoped<SensorReadingRepository>();
 builder.Services.AddScoped<AutoMeasurementExecutionService>();
-builder.Services.AddScoped<AlertRuleRepository>();
+// Singleton wie die uebrigen zustandslosen Repositories: der Live-Bildschirm und
+// die Diagnose sind Singletons und muessen die Grenzwerte des Nutzers lesen
+// koennen — ein Scoped-Dienst laesst sich dort nicht hineingeben.
+builder.Services.AddSingleton<AlertRuleRepository>();
 builder.Services.AddSingleton<SystemHeartbeat>();
 builder.Services.AddScoped<WatchdogService>();
 builder.Services.AddScoped<DosingRepository>();

@@ -306,8 +306,12 @@ public sealed class DosingApiController : ApiControllerBase
         var tent = _repository.GetTent(pump.TentId);
         if (tent is null || pump.MetricKey is not { } key) return null;
 
-        var rule = _alertRules.GetForTent(tent.Id).FirstOrDefault(r => r.MetricKey == key);
-        if (rule?.MinValue is { } min && rule.MaxValue is { } max) return (min + max) / 2;
+        // Dieselbe Stelle wie Live und Diagnose: der Wert des Nutzers gewinnt.
+        if (UserTargets.For(key, _alertRules.GetForTent(tent.Id)) is { Min: { } min, Max: { } max })
+        {
+            return (min + max) / 2;
+        }
+
         return null;
     }
 
