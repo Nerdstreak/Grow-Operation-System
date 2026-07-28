@@ -3,6 +3,7 @@ using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Api.Mapping;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 
@@ -10,6 +11,24 @@ namespace GrowDiary.Web.Api.Controllers;
 
 public sealed partial class SystemApiController
 {
+    /// <summary>
+    /// Läuft dieser Server auf erfundenen Werten?
+    /// </summary>
+    /// <remarks>
+    /// Die Oberfläche fragt das beim Start und zeigt einen Streifen, solange es
+    /// so ist. Erfundene Messwerte, die man für echte hält, wären nicht bloss
+    /// falsch — an ihnen hängen Alarme und die Dosierung.
+    /// </remarks>
+    [HttpGet("demo-mode")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult DemoMode() => Ok(new
+    {
+        enabled = DemoData.IsEnabled,
+        hint = DemoData.IsEnabled
+            ? "Testdaten: alle Messwerte sind erfunden. Es ist kein Home Assistant verbunden und es wird nichts geschaltet."
+            : null,
+    });
+
     [HttpGet("backend-health")]
     [ProducesResponseType(typeof(BackendHealthDto), StatusCodes.Status200OK)]
     public ActionResult<BackendHealthDto> BackendHealth()

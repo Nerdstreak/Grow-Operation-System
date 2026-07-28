@@ -12,7 +12,9 @@ public sealed record WatchdogInput(
     DateTime? LastSnapshotRunUtc,
     DateTime? LastHomeAssistantSuccessUtc,
     string? LastHomeAssistantError,
-    IReadOnlyList<WatchdogTentPulse> Tents);
+    IReadOnlyList<WatchdogTentPulse> Tents,
+    /// <summary>Wann der Prozess startete — vorher hat er nichts versäumt.</summary>
+    DateTime? StartedAtUtc = null);
 
 /// <summary>
 /// What it concluded. <see cref="ChangeKey"/> is the identity of the state for
@@ -41,6 +43,7 @@ public sealed class WatchdogService
     public const string HaUnreachable = "ha_unreachable";
     public const string NoData = "no_data";
     public const string TentDark = "tent_dark";
+    public const string Starting = "starting";
 
     // The snapshot worker loops every 5 minutes; three missed rounds is a real problem,
     // not a hiccup.
@@ -86,6 +89,17 @@ public sealed class WatchdogService
         var snapshotAge = Age(input.LastSnapshotRunUtc, nowUtc);
         if (snapshotAge is null || snapshotAge > TimeSpan.FromMinutes(StalledMinutes))
         {
+            // Frisch gestartet und noch keine Runde gedreht ist kein Stillstand,
+            // sondern der Anfang. Ohne diese Ausnahme schlug der Watchdog nach
+            // jedem Neustart und jedem Update erst einmal Alarm.
+            if (input.LastSnapshotRunUtc is null
+                && Age(input.StartedAtUtc, nowUtc) is { } seitStart
+                && seitStart <= TimeSpan.FromMinutes(StalledMinutes))
+            {
+                return new WatchdogVerdict(Starting, "Startet gerade",
+                    "Grow OS ist eben hochgefahren und hat noch keine Runde gedreht.", false, Starting);
+            }
+
             return new WatchdogVerdict(WorkerStalled, "Überwachung steht",
                 "Grow OS hat seit über 15 Minuten keine Runde mehr gedreht. Ein Neustart des Add-ons behebt das meist.", true, WorkerStalled);
         }
@@ -151,7 +165,7 @@ public sealed class WatchdogService
 
         var (snapshotRun, haSuccess, haError) = _heartbeat.Read();
         var verdict = Evaluate(
-            new WatchdogInput(settings.IsConfigured, snapshotRun, haSuccess, haError, pulses),
+            new WatchdogInput(settings.IsConfigured, snapshotRun, haSuccess, haError, pulses, _heartbeat.StartedAtUtc),
             nowUtc);
         return new WatchdogReport(verdict, pulses);
     }

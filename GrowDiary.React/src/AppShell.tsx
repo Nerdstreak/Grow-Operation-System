@@ -8,6 +8,7 @@ import { AppSearch } from './components/AppSearch'
 import { isNavLeafActive, mobilePrimaryNav, navGroups, searchablePages } from './navigation'
 import { useTheme } from './useTheme'
 import { useHomeAssistantHealth } from './useHomeAssistantHealth'
+import { useDemoMode } from './useDemoMode'
 
 type Props = {
   children: ReactNode
@@ -24,6 +25,7 @@ type Props = {
 
 export function AppShell({ children, counts }: Props) {
   const health = useHomeAssistantHealth()
+  const demoMode = useDemoMode()
   const location = useLocation()
   const { theme, toggle } = useTheme()
   const [moreOpen, setMoreOpen] = useState(false)
@@ -102,6 +104,19 @@ export function AppShell({ children, counts }: Props) {
       )}
 
       <main className="v1-route-frame">
+
+        {/* Testdaten: muss über allem stehen und darf nicht wegzuklicken sein.
+            Erfundene Messwerte, die jemand für echte hält, wären nicht bloß
+            falsch — an ihnen hängen Alarme und die Dosierung. */}
+        {demoMode && (
+          <div className="gos-demo" role="status" data-audit="demo-mode">
+            <strong>Testdaten</strong>
+            <span>
+              Alle Messwerte auf diesem Server sind erfunden. Kein Home Assistant verbunden,
+              es wird nichts geschaltet.
+            </span>
+          </div>
+        )}
 
         {/* Eine Meldung für die ganze App, nicht eine pro Karte. Nur wenn Home
             Assistant eingerichtet ist und gerade nicht antwortet — wer es gar

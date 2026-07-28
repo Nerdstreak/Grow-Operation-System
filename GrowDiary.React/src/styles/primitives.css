@@ -370,4 +370,21 @@
   }
   .gos-offline strong { color: var(--warn-text); font-weight: 600; }
   .gos-offline span { color: var(--muted); }
+
+  /* ---------- Testdaten ----------
+     Absichtlich dieselbe Form wie die Ausfallmeldung, aber in Info-Blau statt
+     Warn-Gelb: es ist kein Problem, sondern eine Ansage. Nicht wegklickbar —
+     wer erfundene Werte fuer echte haelt, trifft Entscheidungen auf Sand. */
+  .gos-demo {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px var(--s-2);
+    margin: 0 auto var(--s-3); padding: var(--s-2) var(--s-4);
+    width: min(var(--page-max), 100%);
+    border: 1px solid var(--info); border-radius: var(--r);
+    background: var(--info-wash); font-size: 13px;
+  }
+  .gos-demo strong {
+    color: var(--info-text); font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; font-size: 11px;
+  }
+  .gos-demo span { color: var(--muted); }
 }

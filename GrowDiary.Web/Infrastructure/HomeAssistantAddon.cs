@@ -40,6 +40,15 @@ public static class HomeAssistantAddon
     /// </summary>
     public static HomeAssistantSettings ResolveEffective(HomeAssistantSettings stored)
     {
+        // Testdatenmodus (GROW_OS_DEMO) schlägt alles: der Entwicklungsrechner
+        // hat kein Home Assistant, soll sich aber wie ein verbundener verhalten.
+        // Ohne das hielten Watchdog, Live und Dosierung ihn für unkonfiguriert
+        // und blockierten, bevor die erfundenen Werte gefragt wären.
+        if (Services.DemoData.IsEnabled)
+        {
+            return Services.DemoData.Settings();
+        }
+
         var token = SupervisorToken;
         if (token is null)
         {

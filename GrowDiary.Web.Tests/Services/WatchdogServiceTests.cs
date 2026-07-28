@@ -67,6 +67,41 @@ public sealed class WatchdogServiceTests
             WatchdogService.Evaluate(new WatchdogInput(true, null, null, null, [Tent()]), Now).Code);
 
     [Fact]
+    public void JustStarted_IsNotAStall()
+    {
+        // Nach einem Neustart ist noch keine Runde gedreht. Ohne diese Ausnahme
+        // schlug der Watchdog nach jedem Update erst einmal Alarm — ausgerechnet
+        // in dem Moment, in dem der Nutzer hinschaut.
+        var verdict = WatchdogService.Evaluate(
+            new WatchdogInput(true, null, null, null, [Tent()], StartedAtUtc: Now.AddMinutes(-1)), Now);
+
+        Assert.Equal(WatchdogService.Starting, verdict.Code);
+        Assert.False(verdict.IsProblem);
+    }
+
+    [Fact]
+    public void StartedLongAgoAndStillNoRound_IsAStallAfterAll()
+    {
+        // Die Nachsicht gilt nur fuer den Anfang. Wer nach einer Viertelstunde
+        // noch keine Runde gedreht hat, haengt wirklich.
+        var verdict = WatchdogService.Evaluate(
+            new WatchdogInput(true, null, null, null, [Tent()], StartedAtUtc: Now.AddHours(-2)), Now);
+
+        Assert.Equal(WatchdogService.WorkerStalled, verdict.Code);
+        Assert.True(verdict.IsProblem);
+    }
+
+    [Fact]
+    public void AfterARoundHasRun_AStallIsStillAStall()
+    {
+        // Der Startzeitpunkt darf einen echten Stillstand nicht verdecken.
+        var verdict = WatchdogService.Evaluate(
+            new WatchdogInput(true, Now.AddMinutes(-40), Now.AddMinutes(-2), null, [Tent()], StartedAtUtc: Now.AddMinutes(-1)), Now);
+
+        Assert.Equal(WatchdogService.WorkerStalled, verdict.Code);
+    }
+
+    [Fact]
     public void HomeAssistantSilent_IsReported_WithReason()
     {
         var verdict = WatchdogService.Evaluate(Healthy(haAgeMinutes: 30, haError: "HttpRequestException"), Now);

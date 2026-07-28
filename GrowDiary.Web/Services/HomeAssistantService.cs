@@ -26,6 +26,14 @@ public sealed class HomeAssistantService
         Tent tent,
         CancellationToken cancellationToken = default)
     {
+        // Testdatenmodus: erfundene, bewegte Werte statt eines Abrufs. Vor der
+        // Sensorpruefung, weil auf einem frischen Entwicklungsrechner nichts
+        // zugeordnet ist — und dann bliebe der Bildschirm leer.
+        if (DemoData.IsEnabled)
+        {
+            return DemoData.StatesFor(DateTime.UtcNow);
+        }
+
         if (!settings.IsConfigured || tent.Sensors.Count == 0)
         {
             return new Dictionary<string, HomeAssistantState>();
@@ -166,6 +174,16 @@ public sealed class HomeAssistantService
         {
             return null;
         }
+
+        // Testdatenmodus: ein gezeichnetes Bild statt eines Abrufs. Ohne diesen
+        // Zweig ging der Aufruf wirklich raus, scheiterte, und der Schutzschalter
+        // meldete danach „Home Assistant antwortet nicht" — direkt unter dem
+        // Streifen, der sagt, dass gar kein Home Assistant im Spiel ist.
+        if (DemoData.IsEnabled)
+        {
+            return (DemoData.CameraImage(entityId, DateTime.Now), "image/svg+xml");
+        }
+
         if (IsCircuitOpen())
         {
             return null;
@@ -222,6 +240,11 @@ public sealed class HomeAssistantService
         HomeAssistantSettings settings,
         CancellationToken cancellationToken = default)
     {
+        if (DemoData.IsEnabled)
+        {
+            return DemoData.Entities(DateTime.UtcNow);
+        }
+
         if (!settings.IsConfigured || IsCircuitOpen())
         {
             return Array.Empty<HomeAssistantEntity>();
@@ -303,6 +326,14 @@ public sealed class HomeAssistantService
             || string.IsNullOrWhiteSpace(service) || string.IsNullOrWhiteSpace(entityId))
         {
             return false;
+        }
+
+        // Im Testdatenmodus geht kein Aufruf raus — es gibt nichts zu schalten.
+        // Gemeldet wird trotzdem Erfolg, damit der ganze Weg durchlaeuft.
+        if (DemoData.IsEnabled)
+        {
+            _logger.LogInformation("Testdaten: {Domain}.{Service} fuer {Entity} — nicht wirklich geschaltet.", domain, service, entityId);
+            return true;
         }
 
         try

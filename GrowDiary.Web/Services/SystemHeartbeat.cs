@@ -9,6 +9,16 @@ public sealed class SystemHeartbeat
 {
     private readonly object _gate = new();
 
+    /// <summary>
+    /// Wann dieser Prozess gestartet ist.
+    /// </summary>
+    /// <remarks>
+    /// Nach einem Neustart ist noch keine Runde gedreht. Ohne diesen Zeitpunkt
+    /// las der Watchdog das als „Überwachung steht" und schlug Alarm — jedes
+    /// Mal, wenn jemand das Add-on neu startet oder ein Update einspielt.
+    /// </remarks>
+    public DateTime StartedAtUtc { get; } = DateTime.UtcNow;
+
     private DateTime? _lastSnapshotRunUtc;
     private DateTime? _lastHaSuccessUtc;
     private string? _lastHaError;

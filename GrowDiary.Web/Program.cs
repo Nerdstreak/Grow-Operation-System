@@ -113,6 +113,39 @@ HaConfigLoader.Apply(
     app.Services.GetRequiredService<AppPaths>(),
     app.Services.GetRequiredService<GrowRepository>());
 
+// Testdatenmodus: einmal 24 Stunden Verlauf nachtragen, damit Kurven und
+// Verlaufsseite sofort etwas zeigen. Nur, wenn fuer das Zelt noch nichts da
+// ist — sonst waechst die Historie bei jedem Neustart doppelt.
+if (DemoData.IsEnabled)
+{
+    using var demoScope = app.Services.CreateScope();
+    var demoLogger = demoScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        var tents = demoScope.ServiceProvider.GetRequiredService<GrowRepository>().GetTents();
+        var readings = demoScope.ServiceProvider.GetRequiredService<SensorReadingRepository>();
+        var nowUtc = DateTime.UtcNow;
+        foreach (var tent in tents)
+        {
+            var neuester = readings.GetNewestReadingUtc(tent.Id);
+            if (neuester is { } vorhanden && nowUtc - vorhanden < TimeSpan.FromHours(2)) continue;
+
+            var anzahl = 0;
+            foreach (var reading in DemoData.SeedHistory(tent.Id, nowUtc))
+            {
+                readings.AddReading(reading);
+                anzahl++;
+            }
+
+            demoLogger.LogInformation("Testdaten: {Count} Messwerte fuer Zelt {TentId} nachgetragen.", anzahl, tent.Id);
+        }
+    }
+    catch (Exception ex)
+    {
+        demoLogger.LogWarning(ex, "Testdaten-Verlauf konnte nicht angelegt werden.");
+    }
+}
+
 // Der Totmann: Ist Grow OS mitten in einer Dosis abgestuerzt, laeuft die Pumpe
 // seither weiter — niemand ist da, der sie stoppt. Der erste Handgriff nach dem
 // Hochfahren ist deshalb, jede eingerichtete Pumpe einmal auszuwerfen. Kostet
