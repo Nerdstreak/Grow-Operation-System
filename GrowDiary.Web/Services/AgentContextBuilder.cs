@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
@@ -52,6 +53,17 @@ public sealed record AgentContext(
 /// </remarks>
 public sealed class AgentContextBuilder
 {
+    /// <summary>
+    /// Deutsches Zahlenformat für den Bericht.
+    /// </summary>
+    /// <remarks>
+    /// Über <see cref="AppCulture"/>, nicht über <c>GetCultureInfo</c> direkt:
+    /// ohne ICU wirft der Aufruf, und in einem statischen Feld reisst das die
+    /// ganze Klasse mit — der Bericht wäre dann nicht englisch formatiert,
+    /// sondern gar nicht erzeugt worden.
+    /// </remarks>
+    private static readonly CultureInfo Deutsch = AppCulture.German;
+
     private readonly GrowRepository _repository;
     private readonly SensorReadingRepository _readings;
     private readonly AlertRuleRepository _alertRules;
@@ -187,14 +199,14 @@ public sealed class AgentContextBuilder
             .Where(risk => risk.Status is RiskEventStatus.Open or RiskEventStatus.Acknowledged)
             .OrderByDescending(risk => risk.CreatedAtUtc)
             .Take(10)
-            .Select(risk => $"{risk.CreatedAtUtc:yyyy-MM-dd} · {risk.Severity} · {risk.Title}")
+            .Select(risk => $"{risk.CreatedAtUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} · {risk.Severity} · {risk.Title}")
             .ToList();
 
     private List<string> BuildJournal(GrowRun grow)
         => _journal.GetForGrow(grow.Id)
             .OrderByDescending(entry => entry.OccurredAtUtc)
             .Take(8)
-            .Select(entry => $"{entry.OccurredAtUtc:yyyy-MM-dd} · {Kurz(entry.Title, 60)}{(string.IsNullOrWhiteSpace(entry.Body) ? "" : " — " + Kurz(entry.Body, 200))}")
+            .Select(entry => $"{entry.OccurredAtUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} · {Kurz(entry.Title, 60)}{(string.IsNullOrWhiteSpace(entry.Body) ? "" : " — " + Kurz(entry.Body, 200))}")
             .ToList();
 
     private List<string> BuildDoses(GrowRun grow, DateTime nowUtc)
@@ -207,10 +219,10 @@ public sealed class AgentContextBuilder
             .Select(dose =>
             {
                 var wirkung = dose.ValueBefore is { } vor && dose.ValueAfter is { } nach
-                    ? $", {vor:0.00} → {nach:0.00}"
+                    ? $", {vor.ToString("0.00", Deutsch)} → {nach.ToString("0.00", Deutsch)}"
                     : string.Empty;
                 var test = dose.Simulated ? " (Testbetrieb, nichts geflossen)" : string.Empty;
-                return $"{dose.OccurredAtUtc:yyyy-MM-dd HH:mm} · {namen.GetValueOrDefault(dose.PumpId, "Pumpe")} · {dose.DosedMl:0.##} ml{wirkung}{test}";
+                return $"{dose.OccurredAtUtc.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)} · {namen.GetValueOrDefault(dose.PumpId, "Pumpe")} · {dose.DosedMl.ToString("0.##", Deutsch)} ml{wirkung}{test}";
             })
             .ToList();
     }
@@ -254,17 +266,23 @@ public sealed class AgentContextBuilder
     /// können, bevor er sie weitergibt. Wer sie an einen Agenten übergibt, gibt
     /// Angaben über seinen Grow aus der Hand — dann soll er vorher sehen, was
     /// drinsteht.
+    ///
+    /// Die Zahlen werden fest deutsch formatiert, nicht in der Kultur des
+    /// Rechners. Der Text ist deutsch; ein „6.2" mittendrin wäre schon falsch,
+    /// und schlimmer: dieselbe Datei sähe je nach Container anders aus. Genau
+    /// daran ist der erste Anlauf gescheitert — lokal 6,2, auf dem Bau-Rechner
+    /// 6.2.
     /// </remarks>
     public static string ToMarkdown(AgentContext context)
     {
         var text = new StringBuilder();
         text.AppendLine($"# Grow OS — Lagebericht: {context.GrowName}");
         text.AppendLine();
-        text.AppendLine($"Stand: {context.GeneratedAtUtc:yyyy-MM-dd HH:mm} UTC");
+        text.AppendLine($"Stand: {context.GeneratedAtUtc.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)} UTC");
         text.AppendLine($"Phase: {context.Stage}"
             + (context.DayTotal is { } tag ? $" · Tag {tag} seit Start" : string.Empty));
         text.AppendLine($"System: {context.HydroStyle}"
-            + (context.ReservoirLiters is { } liter ? $" · {liter:0.#} L Reservoir" : string.Empty));
+            + (context.ReservoirLiters is { } liter ? $" · {liter.ToString("0.#", Deutsch)} L Reservoir" : string.Empty));
         text.AppendLine($"Sollwert-Profil: {context.ProfileName}");
         text.AppendLine();
 
@@ -274,13 +292,13 @@ public sealed class AgentContextBuilder
         text.AppendLine("|---|---|---|---|---|---|");
         foreach (var line in context.Metrics)
         {
-            var wert = line.Value is { } v ? $"{v:0.##}{(line.Unit is null ? "" : " " + line.Unit)}" : "—";
+            var wert = line.Value is { } v ? $"{v.ToString("0.##", Deutsch)}{(line.Unit is null ? "" : " " + line.Unit)}" : "—";
             var alter = line.AgeMinutes is { } m ? $"{m} min" : "—";
             var ziel = (line.TargetMin, line.TargetMax) switch
             {
-                ({ } min, { } max) => $"{min:0.##}–{max:0.##}",
-                ({ } min, null) => $"ab {min:0.##}",
-                (null, { } max) => $"bis {max:0.##}",
+                ({ } min, { } max) => $"{min.ToString("0.##", Deutsch)}–{max.ToString("0.##", Deutsch)}",
+                ({ } min, null) => $"ab {min.ToString("0.##", Deutsch)}",
+                (null, { } max) => $"bis {max.ToString("0.##", Deutsch)}",
                 _ => "—",
             };
             text.AppendLine($"| {line.Label} | {wert} | {alter} | {ziel} | {line.TargetSource} | {line.Verdict} |");

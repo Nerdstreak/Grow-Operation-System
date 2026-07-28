@@ -305,7 +305,7 @@ public sealed class GrowDashboardComposer
             {
                 humidity.TargetMin = min;
                 humidity.TargetMax = max;
-                humidity.TargetNote = $"bei {l.ToString("0.#", CultureInfo.GetCultureInfo("de-DE"))} °C";
+                humidity.TargetNote = $"bei {l.ToString("0.#", AppCulture.German)} °C";
                 humidity.TargetDerived = true;
             }
         }
@@ -317,7 +317,7 @@ public sealed class GrowDashboardComposer
             {
                 temperature.TargetMin = min;
                 temperature.TargetMax = max;
-                temperature.TargetNote = $"bei {f.ToString("0.#", CultureInfo.GetCultureInfo("de-DE"))} % RLF";
+                temperature.TargetNote = $"bei {f.ToString("0.#", AppCulture.German)} % RLF";
                 temperature.TargetDerived = true;
             }
         }

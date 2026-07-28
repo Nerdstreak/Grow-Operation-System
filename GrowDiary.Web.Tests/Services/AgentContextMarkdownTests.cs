@@ -1,3 +1,4 @@
+using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Services;
 
 namespace GrowDiary.Web.Tests.Services;
@@ -80,11 +81,15 @@ public sealed class AgentContextMarkdownTests
     [Fact]
     public void AHalfOpenTargetIsWrittenAsSuch()
     {
+        // Gegen dieselbe Kultur geprueft, die der Bericht benutzt. Auf das
+        // Komma zu prüfen hiesse, die Kultur des Rechners zu prüfen: ohne ICU
+        // faellt AppCulture auf invariant zurueck, und der Test waere rot,
+        // obwohl der Bericht genau das Richtige tut.
         var nurOben = AgentContextBuilder.ToMarkdown(Context([Line(min: null, max: 6.2)]));
         var nurUnten = AgentContextBuilder.ToMarkdown(Context([Line(min: 5.8, max: null)]));
 
-        Assert.Contains("bis 6,2", nurOben);
-        Assert.Contains("ab 5,8", nurUnten);
+        Assert.Contains($"bis {6.2.ToString("0.##", AppCulture.German)}", nurOben);
+        Assert.Contains($"ab {5.8.ToString("0.##", AppCulture.German)}", nurUnten);
     }
 
     [Fact]
