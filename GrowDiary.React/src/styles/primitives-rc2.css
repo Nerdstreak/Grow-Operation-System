@@ -76,8 +76,13 @@
       border-bottom: 0;
       border-left: 0;
       border-radius: 18px 18px 0 0 !important;
-      background: rgb(3, 16, 8) !important;
-      box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.34);
+      /* Die Leiste muss sich vom Seitenhintergrund abheben. rgb(3,16,8) auf
+         #04070a war Kontrast 1,04 — praktisch derselbe Farbton, und uebrig
+         blieb ein 1-px-Rand. Am Handy im Zelt sah man die Leiste dann kaum.
+         Jetzt eine echte Flaeche, dazu ein deutlicherer oberer Rand. */
+      background: #16241d !important;
+      border-top-color: #5ee7a080;
+      box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.55);
     }
 }
 
@@ -108,8 +113,13 @@
       border-bottom: 0;
       border-left: 0;
       border-radius: 18px 18px 0 0 !important;
-      background: rgb(3, 16, 8) !important;
-      box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.34);
+      /* Die Leiste muss sich vom Seitenhintergrund abheben. rgb(3,16,8) auf
+         #04070a war Kontrast 1,04 — praktisch derselbe Farbton, und uebrig
+         blieb ein 1-px-Rand. Am Handy im Zelt sah man die Leiste dann kaum.
+         Jetzt eine echte Flaeche, dazu ein deutlicherer oberer Rand. */
+      background: #16241d !important;
+      border-top-color: #5ee7a080;
+      box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.55);
       z-index: 45;
     }
     .v1-bottom-item {

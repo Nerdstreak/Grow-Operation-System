@@ -35,15 +35,8 @@
   .ha-preview-frame span { font: 400 11px/1.4 var(--font-mono); color: var(--muted); padding: 8px; text-align: center; }
   .ha-preview figcaption { font: 400 11px/1.4 var(--font-mono); color: var(--muted); }
 
-  /* Gerät verbinden: QR links, Erklärung rechts. */
-  .ha-pair {
-    padding: 14px; display: grid; grid-template-columns: auto minmax(0, 1fr);
-    gap: 14px; align-items: center;
-  }
-  .ha-pair-qr {
-    width: 96px; height: 96px;
-    border: 1px solid var(--hair-2); border-radius: 8px;
-    background: #fff;
-  }
+  /* Kurzer Verweis auf „Aufs Handy holen" — der QR-Code wohnt dort.
+     Hier stand bis 2.0.0-beta.15 ein zweiter, der auf die Ingress-Adresse mit
+     Token zeigte und darum nur einmal funktionierte. */
   .ha-pair-text { margin: 5px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
 }

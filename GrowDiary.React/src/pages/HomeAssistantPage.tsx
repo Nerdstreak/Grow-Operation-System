@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import QRCode from 'qrcode'
 import { apiFetch, ApiRequestError } from '../api'
 import type { HomeAssistantEntity, HomeAssistantSettingsDto, SensorMetricType, SettingsOverviewDto, TentDto, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
 import { V1Alert, V1Button, V1Empty, V1Field, V1Page, V1Skeleton, V1Switch, V1Tabs } from '../components/v1'
@@ -350,45 +349,21 @@ function HomeAssistantPage() {
                 )}
               </section>
 
-              <PairPanel />
+              {/* Der QR-Code wohnt jetzt unter „Aufs Handy holen". Hier stand
+                  eine zweite Fassung, die auf die Ingress-Adresse mit Token
+                  zeigte — die stirbt beim naechsten Aufruf. */}
+              <section className="ls-panel">
+                <div className="ls-panel-head"><span className="ls-label">Aufs Handy</span></div>
+                <p className="ha-pair-text" style={{ margin: '0 0 10px' }}>
+                  Grow OS als Kachel auf den Startbildschirm des Handys — mit QR-Code und Anleitung.
+                </p>
+                <Link to="/handy" className="ls-btn is-small">Aufs Handy holen</Link>
+              </section>
             </div>
           )}
         </>
       )}
     </V1Page>
-  )
-}
-
-/**
- * Gerät verbinden — das Koppel-Panel aus dem Entwurf: QR scannen, Grow OS
- * öffnet auf dem Handy direkt die Messen-Seite. Die Anmeldung übernimmt
- * Home Assistant; einen eigenen Login hat Grow OS bewusst nicht.
- */
-function PairPanel() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [nonce, setNonce] = useState(0)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const target = new URL(resolveUrl('/messung'), window.location.href).toString()
-    // Dunkle Module auf hellem Grund, unabhängig vom Theme — Scanner brauchen
-    // den Kontrast genau so herum.
-    void QRCode.toCanvas(canvas, target, { width: 192, margin: 1, color: { dark: '#04140a', light: '#ffffff' } })
-  }, [nonce])
-
-  return (
-    <section className="ls-panel" data-audit="ha-pair-panel">
-      <div className="ls-panel-head"><span className="ls-label">Gerät verbinden</span></div>
-      <div className="ha-pair">
-        <canvas ref={canvasRef} className="ha-pair-qr" aria-label="QR-Code zum Koppeln" />
-        <div>
-          <div className="co-row-title">Handy im Growraum koppeln</div>
-          <p className="ha-pair-text">QR scannen — öffnet Grow OS direkt auf Messen. Die Anmeldung übernimmt Home Assistant im lokalen Netz.</p>
-          <button type="button" className="ls-btn is-small" style={{ marginLeft: 0, marginTop: 9 }} onClick={() => setNonce(Date.now())}>Code neu erzeugen</button>
-        </div>
-      </div>
-    </section>
   )
 }
 
