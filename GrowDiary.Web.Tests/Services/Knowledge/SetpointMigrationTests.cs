@@ -62,8 +62,16 @@ public sealed class SetpointMigrationTests : IDisposable
     [Fact]
     public void Loader_LoadsRdwcDefaultSetpoint()
     {
-        Assert.Single(_loader.Setpoints);
-        Assert.Equal("rdwc-default", _loader.Setpoints[0].Id);
+        // Nicht mehr „genau eines": seit DWC ein eigenes Profil hat, liegen
+        // mehrere Dateien nebeneinander. Gemeint war immer, dass das
+        // RDWC-Profil ankommt — das wird jetzt auch genau so geprueft.
+        Assert.Contains(_loader.Setpoints, setpoint => setpoint.Id == "rdwc-default");
+    }
+
+    [Fact]
+    public void Loader_LoadsDwcDefaultSetpoint()
+    {
+        Assert.Contains(_loader.Setpoints, setpoint => setpoint.Id == "dwc-default");
     }
 
     [Fact]

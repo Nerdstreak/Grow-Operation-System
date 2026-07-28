@@ -4,8 +4,7 @@ using GrowDiary.Web.Services.Knowledge;
 namespace GrowDiary.Web.Services;
 
 /// <summary>
-/// Sollwerte pro Phase und Anbautyp – Basis: RDWC (Athena Blended / SKX-Growplan).
-/// DWC EC wird über DwcEcMultiplier hochgerechnet.
+/// Sollwerte pro Phase und Anbautyp, aus den Profil-Dateien der Wissensbasis.
 /// </summary>
 public sealed record HydroTargetValues(
     double PhMin,
@@ -27,18 +26,42 @@ public sealed record HydroTargetValues(
 public sealed class TargetValueService
 {
     /// <summary>
-    /// EC-Multiplikator für DWC gegenüber RDWC.
-    /// DWC hat weniger Puffervolumen und braucht 30–70 % höhere EC.
-    /// Startwert: 1.3 (konservativ, kann pro Grow kalibriert werden).
+    /// EC-Aufschlag von DWC gegenüber RDWC — weniger Puffervolumen, also höhere EC.
     /// </summary>
+    /// <remarks>
+    /// Steht nur noch hier, weil die Nährstoff-Empfehlung ihn braucht. Die
+    /// Zielwerte rechnen NICHT mehr damit: DWC hat ein eigenes Profil, in dem
+    /// der Aufschlag schon je Phase eingerechnet ist. Beides zusammen ergäbe
+    /// das 1,69-fache.
+    /// </remarks>
     public const double DwcEcMultiplier = 1.3;
 
-    private readonly Dictionary<GrowStage, HydroTargetValues> _rdwcTargets;
+    /// <summary>Fällt ein Anbaustil durch, gilt RDWC — das ist das ausführlichste Profil.</summary>
+    private const string FallbackProfileId = "rdwc-default";
+
+    private readonly Dictionary<string, Dictionary<GrowStage, HydroTargetValues>> _profiles;
 
     public TargetValueService(KnowledgeBaseLoader knowledgeBase)
     {
-        _rdwcTargets = LoadRdwcTargets(knowledgeBase);
+        _profiles = LoadProfiles(knowledgeBase);
     }
+
+    /// <summary>
+    /// Welches Profil für einen Anbaustil gilt.
+    /// </summary>
+    /// <remarks>
+    /// NFT, Aeroponik und „Sonstiges" haben noch kein eigenes Profil und
+    /// bekommen RDWC. Das ist eine Annahme, keine Messung — sie steht hier an
+    /// einer Stelle, statt sich über den Code zu verteilen.
+    /// </remarks>
+    public static string ProfileIdFor(HydroStyle hydroStyle) => hydroStyle switch
+    {
+        HydroStyle.DWC => "dwc-default",
+        _ => FallbackProfileId,
+    };
+
+    /// <summary>Die geladenen Profile — für Anzeige und Auswahl.</summary>
+    public IReadOnlyCollection<string> ProfileIds => _profiles.Keys;
 
     /// <summary>
     /// Gibt Sollwerte für den angegebenen HydroStyle und GrowStage zurück.
@@ -46,32 +69,40 @@ public sealed class TargetValueService
     /// DWC-EC wird automatisch mit DwcEcMultiplier hochgerechnet.
     /// </summary>
     public HydroTargetValues? GetTargets(HydroStyle hydroStyle, GrowStage stage)
+        => GetTargets(ProfileIdFor(hydroStyle), stage);
+
+    /// <summary>Die Sollwerte eines bestimmten Profils.</summary>
+    public HydroTargetValues? GetTargets(string profileId, GrowStage stage)
     {
-        if (!_rdwcTargets.TryGetValue(stage, out var targets))
+        if (!_profiles.TryGetValue(profileId, out var profile)
+            && !_profiles.TryGetValue(FallbackProfileId, out profile))
         {
             return null;
         }
 
-        if (hydroStyle == HydroStyle.DWC)
-        {
-            return targets with
-            {
-                EcMin = Math.Round(targets.EcMin * DwcEcMultiplier, 2),
-                EcMax = Math.Round(targets.EcMax * DwcEcMultiplier, 2)
-            };
-        }
-
-        return targets;
+        return profile.TryGetValue(stage, out var targets) ? targets : null;
     }
 
-    private static Dictionary<GrowStage, HydroTargetValues> LoadRdwcTargets(KnowledgeBaseLoader kb)
+    /// <summary>
+    /// Alle Profil-Dateien der Wissensbasis, nach Id.
+    /// </summary>
+    /// <remarks>
+    /// Vorher wurde genau eine Datei gesucht („rdwc-default"). Ein zweites
+    /// Profil danebenzulegen hätte nichts bewirkt — niemand hätte es gelesen.
+    /// </remarks>
+    private static Dictionary<string, Dictionary<GrowStage, HydroTargetValues>> LoadProfiles(KnowledgeBaseLoader kb)
     {
-        var setpoint = kb.Setpoints.FirstOrDefault(s => s.Id == "rdwc-default");
-        if (setpoint is null)
+        var profiles = new Dictionary<string, Dictionary<GrowStage, HydroTargetValues>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var setpoint in kb.Setpoints)
         {
-            return new Dictionary<GrowStage, HydroTargetValues>();
+            if (string.IsNullOrWhiteSpace(setpoint.Id)) continue;
+            profiles[setpoint.Id] = LoadStages(setpoint);
         }
+        return profiles;
+    }
 
+    private static Dictionary<GrowStage, HydroTargetValues> LoadStages(Knowledge.Schema.SetpointDefinition setpoint)
+    {
         var result = new Dictionary<GrowStage, HydroTargetValues>();
         foreach (var (stageName, sp) in setpoint.Stages)
         {
