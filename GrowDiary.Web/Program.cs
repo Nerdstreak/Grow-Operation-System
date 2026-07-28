@@ -69,6 +69,7 @@ builder.Services.AddSingleton<RiskEventSopRecommender>();
 builder.Services.AddSingleton<WeekCounterService>();
 builder.Services.AddSingleton<ChartService>();
 builder.Services.AddSingleton<HomeAssistantService>();
+builder.Services.AddSingleton<SupervisorInfoService>();
 builder.Services.AddSingleton<LightStatusTransitionService>();
 builder.Services.AddSingleton<AutoMeasurementValueGuard>();
 builder.Services.AddSingleton<AutoMeasurementStatusService>();

@@ -1,0 +1,45 @@
+/* Aufs Handy holen — QR-Code links, Anleitung und Adresse rechts. */
+@layer features {
+
+  .mo-scan { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start; }
+
+  /* Der Code bekommt einen weissen Rahmen mit, nicht nur eine weisse Fläche:
+     im dunklen Modus stünde er sonst randlos auf dunklem Grund, und genau die
+     Ruhezone braucht ein Scanner. */
+  .mo-qr {
+    background: #ffffff; padding: 10px; border-radius: var(--r-lg);
+    border: 1px solid var(--hair); line-height: 0;
+  }
+  .mo-qr-svg { display: block; width: 100%; height: auto; max-width: 240px; }
+  .mo-qr-empty {
+    width: 220px; height: 220px; display: grid; place-items: center; text-align: center;
+    font: 400 11.5px/1.5 var(--font-mono); color: #5f5e5a; padding: 0 16px;
+  }
+
+  .mo-side { display: grid; gap: 12px; min-width: 0; }
+
+  .mo-steps {
+    margin: 0; padding-left: 18px; display: grid; gap: 6px;
+    font: 400 12px/1.55 var(--font-mono); color: var(--muted);
+  }
+  .mo-steps b { color: var(--ink); font-weight: 500; }
+
+  .mo-url { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .mo-url code {
+    flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere;
+    padding: 7px 9px; border: 1px solid var(--hair-2); border-radius: 8px;
+    background: var(--sunk); color: var(--ink); font: 400 11.5px/1.45 var(--font-mono);
+  }
+
+  .mo-note {
+    margin: 0 0 10px; max-width: 68ch;
+    font: 400 12px/1.6 var(--font-mono); color: var(--muted);
+  }
+  .mo-note:last-child { margin-bottom: 0; }
+  .mo-note code { color: var(--ink); overflow-wrap: anywhere; }
+
+  @media (max-width: 720px) {
+    .mo-scan { grid-template-columns: 1fr; }
+    .mo-qr { justify-self: center; }
+  }
+}

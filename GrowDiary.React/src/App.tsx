@@ -5,6 +5,7 @@ import { GrowScopedSectionPage } from './pages/GrowScopedSectionPage'
 import GettingStartedPage from './pages/GettingStartedPage'
 import DosingPage from './pages/DosingPage'
 import SetpointProfilesPage from './pages/SetpointProfilesPage'
+import MobilePage from './pages/MobilePage'
 import DosingPumpSetupPage from './pages/DosingPumpSetupPage'
 import GrowDetailPage from './pages/GrowDetailPage'
 import GrowsPage from './pages/GrowsPage'
@@ -93,6 +94,7 @@ function App() {
           <Route path="/hydro/:id/edit" element={<HydroEditorPage />} />
           <Route path="/hydro/:setupId" element={<HydroDetailPage />} />
           <Route path="/home-assistant" element={<HomeAssistantPage />} />
+          <Route path="/handy" element={<MobilePage />} />
           <Route path="/messungen" element={<GrowScopedSectionPage title="Messungen" section="measurements" />} />
           <Route path="/diagnose" element={<GrowScopedSectionPage title="Diagnose" section="diagnosis" />} />
           <Route path="/journal" element={<GrowScopedSectionPage title="Journal & Fotos" section="journal" />} />

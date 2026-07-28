@@ -33,7 +33,7 @@ const ROUTES = [
   { path: '/automatik', name: 'automatik' },
   { path: '/alarme', name: 'alarme' },
   { path: '/benachrichtigungen', name: 'benachrichtigungen' },
-  { path: '/assistent', name: 'assistent' },
+  { path: '/handy', name: 'handy' },
   { path: '/sops', name: 'sops' },
   { path: '/wissen', name: 'wissen' },
   { path: '/settings', name: 'settings' },

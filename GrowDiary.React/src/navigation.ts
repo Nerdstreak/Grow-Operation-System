@@ -54,6 +54,7 @@ export const navGroups: NavGroup[] = [
       { to: '/dosierung', label: 'Dosierung', end: false, keywords: 'pumpe peristaltik ph minus plus säure nährstoff dosieren kalibrieren' },
       { to: '/regeln', label: 'Regeln & Automatik', end: true, keywords: 'grenzwerte schwellen alarm push zeitplan automation' },
       { to: '/home-assistant', label: 'Home Assistant', end: true, keywords: 'ha entitäten verbindung integration mapping kamera' },
+      { to: '/handy', label: 'Aufs Handy holen', end: true, keywords: 'mobil smartphone qr code startbildschirm lesezeichen app icon telefon' },
     ],
   },
   {
