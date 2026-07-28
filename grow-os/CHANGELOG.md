@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.0.0-beta.20
+
+**Beta.** Timestamps that say UTC now come back as UTC.
+
+- Fixed — **45 read sites across ten repository classes read "…Utc" columns
+  as local time.** Storage was correct; reading was not. Display never showed
+  it, because the value carries its offset and means the same instant. The
+  damage was wherever something calculated with it: the dosing check "is the
+  last water level younger than two hours?" saw a reading from ten minutes ago
+  as two hours in the future and never fired; the status report said "measured
+  -120 minutes ago"; the trend lines on the live screen applied the time zone a
+  second time, shifting the axis by the offset.
+- Fixed — **the status report shows local date and time.** A human reads it,
+  and just before midnight it printed the wrong day.
+- Added — **a test reads the source and rejects any new site of this kind.**
+  The mistake is made by copying the line next to it, and 45 occurrences never
+  turned a single test red. Both new tests were verified against the
+  reinstated bug; they measure differences, not clock readings, because on a
+  UTC build server the offset is zero and none of this is visible.
+
 ## 2.0.0-beta.19
 
 **Beta.** Two numbers the rig already knows, no longer typed in by hand.
