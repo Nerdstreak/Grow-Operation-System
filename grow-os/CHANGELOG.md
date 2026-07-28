@@ -1,5 +1,37 @@
 # Changelog
 
+## 2.0.0-beta.15
+
+**Beta.** The seedling phase is now something you observe, not something the
+calendar decides.
+
+- New — **"Sämling ist durch"** on the grow page. The transition to veg does not
+  hang on a date: it hangs on the plant. Real serrated leaves instead of the two
+  round cotyledons, a thicker stem, new leaf pairs coming regularly, side shoots
+  at the nodes, visibly more water going. One to three weeks after germination
+  is typical — typical, not certain. Press the button when you see it, and the
+  targets follow.
+- Fixed — **the phase bar and the targets contradicted each other.** The bar said
+  "Veg day 8" while the tiles showed seedling targets, because the app carried
+  two different phase models: the bar knew germination/veg/flower, the targets
+  additionally knew a seedling. The bar now shows the seedling too, and marks it
+  "geschätzt" until you record the transition.
+- Fixed — **a seed grow without a germination date stayed a seedling forever.**
+  That is the normal case, since almost nobody records germination — and after
+  three months a full-grown plant would still have been fed seedling EC.
+- Fixed — **an empty temperature target now explains itself.** At 40 % humidity
+  no temperature reaches a VPD target of 0.40–0.50 kPa: even at 5 °C the VPD is
+  already 0.41. The calculation knew this and said nothing, leaving the tile
+  blank. It now says so, and points at the humidity — which is the thing that
+  actually needs changing.
+- Removed — **the second QR code** on the Home Assistant page. It pointed at the
+  ingress address *with* its token, so it worked once at best, and "generate new
+  code" produced the same address every time. The working one lives under
+  "Aufs Handy holen".
+- Fixed — **the bottom bar on a phone was hard to see.** Against the page
+  background it had a contrast of 1.04 — the same shade, with a one-pixel border
+  as its only edge.
+
 ## 2.0.0-beta.14
 
 **Beta.** Two fixes from the first real use of beta.13.
