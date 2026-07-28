@@ -52,7 +52,7 @@ export const navGroups: NavGroup[] = [
       { to: '/hydro', label: 'Hydro-Systeme', end: false, keywords: 'rdwc dwc reservoir tank pumpe sites layout' },
       { to: '/sensoren', label: 'Sensoren & Wartung', end: true, keywords: 'hardware geräte kalibrierung inventar' },
       { to: '/dosierung', label: 'Dosierung', end: false, keywords: 'pumpe peristaltik ph minus plus säure nährstoff dosieren kalibrieren' },
-      { to: '/regeln', label: 'Regeln & Automatik', end: true, keywords: 'grenzwerte schwellen alarm push zeitplan automation ki assistent' },
+      { to: '/regeln', label: 'Regeln & Automatik', end: true, keywords: 'grenzwerte schwellen alarm push zeitplan automation' },
       { to: '/home-assistant', label: 'Home Assistant', end: true, keywords: 'ha entitäten verbindung integration mapping kamera' },
     ],
   },
@@ -83,7 +83,8 @@ export const legacyRedirects: Record<string, string> = {
   '/automatik': '/regeln?tab=automatik',
   '/alarme': '/regeln?tab=grenzwerte',
   '/benachrichtigungen': '/regeln?tab=push',
-  '/assistent': '/regeln?tab=ki',
+  // Die KI wurde entfernt; das Lesezeichen darf trotzdem nicht ins Leere laufen.
+  '/assistent': '/regeln',
   '/phenohunt': '/sorten',
   '/hardware': '/sensoren',
   '/analyse': '/archiv',

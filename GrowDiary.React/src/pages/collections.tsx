@@ -1,7 +1,6 @@
 import AutomationPage from './AutomationPage'
 import AlertsPage from './AlertsPage'
 import NotificationsPage from './NotificationsPage'
-import { AiAssistantPage } from './AiAssistantPage'
 import { TabbedCollectionPage } from './TabbedCollectionPage'
 
 /**
@@ -22,7 +21,6 @@ export function RulesCollectionPage() {
         { key: 'grenzwerte', label: 'Grenzwerte', render: () => <AlertsPage /> },
         { key: 'automatik', label: 'Auto-Messungen', render: () => <AutomationPage /> },
         { key: 'push', label: 'Benachrichtigungen', render: () => <NotificationsPage /> },
-        { key: 'ki', label: 'KI-Assistent', render: () => <AiAssistantPage /> },
       ]}
     />
   )
