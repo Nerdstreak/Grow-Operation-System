@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.0.0-beta.8
+
+**Beta.** Two fixes everyone gets, plus a test mode for people who develop
+Grow OS.
+
+- Fixed — **no more false alarm right after a restart.** For the first seconds
+  after starting, the watchdog reported "Überwachung steht", because the
+  heartbeat lives in memory and no round had run yet. That fired after every
+  restart and every update — exactly when you are looking at the screen. A
+  fresh start is now its own quiet state; a stall that follows a completed
+  round still counts as one.
+- Fixed — with no Home Assistant configured, the camera request went out
+  anyway, failed, and tripped the connection guard, so "Home Assistant
+  antwortet nicht" appeared even where no camera was ever set up.
+- New (for developers) — **test data**: start with `GROW_OS_DEMO=1` and Grow OS
+  fills itself with invented but plausible readings, backfills 24 hours of
+  history, and draws a placeholder camera frame. pH and EC drift upwards over
+  the day so there is something real to correct, which is what the dosing needs
+  to be tried against. A strip across the app says the values are invented for
+  as long as it is on. Environment variable only — there is deliberately no
+  switch in the interface, because invented readings in a running tent would
+  not merely be wrong: alerts and the dosing hang off them.
+
+
 ## 2.0.0-beta.7
 
 **Beta.** Grow OS can act, not just watch: dosing pumps — by hand for now.
