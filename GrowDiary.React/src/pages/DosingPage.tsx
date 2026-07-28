@@ -3,7 +3,7 @@ import { apiFetch } from '../api'
 import type { TentDto } from '../types'
 import { V1Alert, V1Button, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { PumpGraphic } from '../features/dosing/PumpGraphic'
-import { runSecondsForPump, secondsForTarget, targetForPump } from '../features/dosing/calibration'
+import { MAX_CALIBRATION_SECONDS, runSecondsForPump, secondsForTarget, targetForPump } from '../features/dosing/calibration'
 import '../features/dosing/dosing.css'
 import { classNames } from '../utils'
 
@@ -175,9 +175,14 @@ function DosingPage() {
     setMessage(null)
     // Die Sekunden merken, mit denen wirklich gelaufen wurde — daraus rechnet
     // der Server spaeter die Foerdermenge.
-    const geschaetzt = options.targetMl != null
-      ? secondsForTarget(options.targetMl, pump.mlPerMinute) ?? options.seconds ?? 30
-      : options.seconds ?? 30
+    // Gedeckelt wie auf dem Server: bei einer sehr langsamen Pumpe passt selbst
+    // die kleinste Zielmenge nicht in die Zeit, und dann zaehlt der Knopf sonst
+    // an einem Lauf herunter, der laengst vorbei ist.
+    const geschaetzt = Math.min(
+      options.targetMl != null
+        ? secondsForTarget(options.targetMl, pump.mlPerMinute) ?? options.seconds ?? 30
+        : options.seconds ?? 30,
+      MAX_CALIBRATION_SECONDS)
     setCalibSeconds(geschaetzt)
     setRestSekunden(Math.ceil(geschaetzt))
     try {
