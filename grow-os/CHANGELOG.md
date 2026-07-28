@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.0-beta.14
+
+**Beta.** Two fixes from the first real use of beta.13.
+
+- Fixed — **the QR code led to a blank page.** It pointed at
+  `/hassio/ingress/<slug>`; Home Assistant registers an add-on's sidebar panel
+  at plain `/<slug>`. Under the wrong path the frontend finds no panel and draws
+  nothing at all — no error, just an empty screen. Scanning the code now lands
+  where clicking Grow OS in the sidebar lands. The page also states the
+  precondition: "Show in sidebar" has to be on, or Home Assistant never creates
+  an address for Grow OS in the first place.
+- Fixed — **you could not look at the shipped setpoint profiles.** RDWC and DWC
+  offered only "copy", so finding out what is actually in them meant creating a
+  copy first — changing something in order to read something. They now open
+  read-only, with the ranges written as `6–6,2` rather than two numbers running
+  into each other.
+
 ## 2.0.0-beta.13
 
 **Beta.** Dosing that suggests and then acts, a report for your own AI, and a
