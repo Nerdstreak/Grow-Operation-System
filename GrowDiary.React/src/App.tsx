@@ -4,6 +4,7 @@ import AddbackPage from './pages/AddbackPage'
 import { GrowScopedSectionPage } from './pages/GrowScopedSectionPage'
 import GettingStartedPage from './pages/GettingStartedPage'
 import DosingPage from './pages/DosingPage'
+import SetpointProfilesPage from './pages/SetpointProfilesPage'
 import DosingPumpSetupPage from './pages/DosingPumpSetupPage'
 import GrowDetailPage from './pages/GrowDetailPage'
 import GrowsPage from './pages/GrowsPage'
@@ -103,6 +104,8 @@ function App() {
           <Route path="/einstellungen" element={<Navigate to="/settings" replace />} />
         
           <Route path="/sensoren" element={<HardwarePage />} />
+
+          <Route path="/sollwerte" element={<SetpointProfilesPage />} />
 
           {/* Dosierung: Liste, neu, bearbeiten. Reihenfolge zaehlt — „neu" muss
               vor „:pumpId" stehen, sonst wird es als Id gelesen. */}

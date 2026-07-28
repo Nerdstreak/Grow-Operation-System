@@ -9,6 +9,7 @@ public sealed record HydroSetupDto(
     int? TentId,
     string? TentName,
     HydroStyle HydroStyle,
+    string? SetpointProfileId,
     int? PotCount,
     double? PotSizeLiters,
     double? ReservoirLiters,
@@ -38,6 +39,9 @@ public class CreateHydroSetupRequest
     public string Name { get; set; } = string.Empty;
 
     public HydroStyle HydroStyle { get; set; } = HydroStyle.RDWC;
+
+    /// <summary>Sollwert-Profil dieses Systems; null heisst „nach Anbaustil".</summary>
+    public string? SetpointProfileId { get; set; }
     public int? PotCount { get; set; }
     public double? PotSizeLiters { get; set; }
     public double? ReservoirLiters { get; set; }

@@ -5,6 +5,7 @@ import type { GrowDetail, GrowEntryPoint, GrowStatus, GrowSummary, GrowUpsertPay
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { formatLiters, toNullableInt } from '../components/v1-utils'
 import { classNames } from '../utils'
+import { ProfileSelect } from '../features/setpoints/ProfileSelect'
 import { GrowPlanPanel } from '../features/grows/GrowPlanPanel'
 import { buildTimeline, canCreate, checkPlan } from '../features/grows/grow-plan-model'
 import '../features/grows/grows.css'
@@ -17,7 +18,7 @@ const startMaterials: StartMaterial[] = ['Seed', 'Clone']
 function emptyForm(): GrowUpsertPayload {
   return {
     templateId: null, name: '', tentId: null, systemId: null, setupId: null, strain: null, breeder: null, seedType: 'Feminized', startMaterial: 'Seed', germinationMethod: 'PaperTowel',
-    cloneSource: null, cloneIsRooted: false, phenoNumber: null, breederFlowerWeeksMin: null, breederFlowerWeeksMax: null, plannedVegDays: null, strainId: null, hydroStyle: 'RDWC', plantCount: null, reservoirSize: null,
+    cloneSource: null, cloneIsRooted: false, phenoNumber: null, breederFlowerWeeksMin: null, breederFlowerWeeksMax: null, plannedVegDays: null, strainId: null, setpointProfileId: null, hydroStyle: 'RDWC', plantCount: null, reservoirSize: null,
     containerSize: null, propagationMedium: 'Rockwool', light: null, hasChiller: false, waterSource: 'RO', nutrients: null, startDate: new Date().toISOString().slice(0, 10),
     entryPoint: 'Germination', daysAlreadyInPhase: null, autoflowerDaysSinceGermination: null, flipDate: null, notes: null, status: 'Planning', environment: 'Indoor',
   }
@@ -59,7 +60,7 @@ function GrowSetupPage() {
         setPrograms(knowledge.programs ?? [])
         setOtherGrows(growsData)
         setStrains(strainData)
-        if (grow) setForm({ ...emptyForm(), name: grow.name, tentId: grow.tentId, systemId: grow.systemId, setupId: grow.setupId, strain: grow.strain, breeder: grow.breeder, seedType: grow.seedType, startMaterial: grow.startMaterial, hydroStyle: grow.hydroStyle, plantCount: grow.plantCount, reservoirSize: grow.reservoirSize, containerSize: grow.containerSize, light: grow.light, hasChiller: grow.hasChiller, waterSource: grow.waterSource, nutrients: grow.nutrients, startDate: grow.startDate, entryPoint: grow.entryPoint, daysAlreadyInPhase: grow.daysAlreadyInPhase, autoflowerDaysSinceGermination: grow.autoflowerDaysSinceGermination, flipDate: grow.flipDate, notes: grow.notes, status: grow.status, environment: grow.environment, germinationMethod: grow.germinationMethod, propagationMedium: grow.propagationMedium, cloneSource: grow.cloneSource, cloneIsRooted: grow.cloneIsRooted, phenoNumber: grow.phenoNumber, breederFlowerWeeksMin: grow.breederFlowerWeeksMin, breederFlowerWeeksMax: grow.breederFlowerWeeksMax, plannedVegDays: grow.plannedVegDays, strainId: grow.strainId })
+        if (grow) setForm({ ...emptyForm(), name: grow.name, tentId: grow.tentId, systemId: grow.systemId, setupId: grow.setupId, strain: grow.strain, breeder: grow.breeder, seedType: grow.seedType, startMaterial: grow.startMaterial, hydroStyle: grow.hydroStyle, plantCount: grow.plantCount, reservoirSize: grow.reservoirSize, containerSize: grow.containerSize, light: grow.light, hasChiller: grow.hasChiller, waterSource: grow.waterSource, nutrients: grow.nutrients, startDate: grow.startDate, entryPoint: grow.entryPoint, daysAlreadyInPhase: grow.daysAlreadyInPhase, autoflowerDaysSinceGermination: grow.autoflowerDaysSinceGermination, flipDate: grow.flipDate, notes: grow.notes, status: grow.status, environment: grow.environment, germinationMethod: grow.germinationMethod, propagationMedium: grow.propagationMedium, cloneSource: grow.cloneSource, cloneIsRooted: grow.cloneIsRooted, phenoNumber: grow.phenoNumber, breederFlowerWeeksMin: grow.breederFlowerWeeksMin, breederFlowerWeeksMax: grow.breederFlowerWeeksMax, plannedVegDays: grow.plannedVegDays, strainId: grow.strainId, setpointProfileId: grow.setpointProfileId ?? null })
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatApiError(caught, 'Grow-Wizard konnte nicht geladen werden.'))
       } finally {
@@ -274,7 +275,15 @@ function TimeStep({ form, patch }: { form: GrowUpsertPayload; patch: (value: Par
         onChange={(event) => patch({ plannedVegDays: toNullableInt(event.target.value) })}
       />
     </V1Field>
-  )}{form.seedType !== 'Autoflower' && <V1Field label="Flipdatum" hint="Erst ausfüllen, wenn wirklich geflippt wurde."><input type="date" value={form.flipDate ?? ''} onChange={(event) => patch({ flipDate: event.target.value || null })} /></V1Field>}<V1Field label="Status"><select value={form.status} onChange={(event) => patch({ status: event.target.value as GrowStatus })}>{statuses.map((value) => <option key={value} value={value}>{value}</option>)}</select></V1Field></div></V1Section>
+  )}{form.seedType !== 'Autoflower' && <V1Field label="Flipdatum" hint="Erst ausfüllen, wenn wirklich geflippt wurde."><input type="date" value={form.flipDate ?? ''} onChange={(event) => patch({ flipDate: event.target.value || null })} /></V1Field>}<V1Field label="Status"><select value={form.status} onChange={(event) => patch({ status: event.target.value as GrowStatus })}>{statuses.map((value) => <option key={value} value={value}>{value}</option>)}</select></V1Field>
+    {/* Sollwerte sind, wie man DIESEN Lauf faehrt. Steht hier nichts, gilt das
+        Profil des Hydro-Systems — das sagt der Hinweis auch. */}
+    <ProfileSelect
+      value={form.setpointProfileId ?? null}
+      onChange={(value) => patch({ setpointProfileId: value })}
+      inheritedLabel="Profil des Hydro-Systems"
+      hint="Nur setzen, wenn dieser Lauf anders laufen soll als der Rest im selben System."
+    /></div></V1Section>
 }
 
 /**

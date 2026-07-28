@@ -40,10 +40,12 @@ public sealed class TargetValueService
     private const string FallbackProfileId = "rdwc-default";
 
     private readonly Dictionary<string, Dictionary<GrowStage, HydroTargetValues>> _profiles;
+    private readonly Infrastructure.SetpointProfileRepository? _customProfiles;
 
-    public TargetValueService(KnowledgeBaseLoader knowledgeBase)
+    public TargetValueService(KnowledgeBaseLoader knowledgeBase, Infrastructure.SetpointProfileRepository? customProfiles = null)
     {
         _profiles = LoadProfiles(knowledgeBase);
+        _customProfiles = customProfiles;
     }
 
     /// <summary>
@@ -71,16 +73,36 @@ public sealed class TargetValueService
     public HydroTargetValues? GetTargets(HydroStyle hydroStyle, GrowStage stage)
         => GetTargets(ProfileIdFor(hydroStyle), stage);
 
-    /// <summary>Die Sollwerte eines bestimmten Profils.</summary>
+    /// <summary>
+    /// Die Sollwerte eines bestimmten Profils — mitgeliefert oder eigenes.
+    /// </summary>
+    /// <remarks>
+    /// Ein eigenes Profil speichert nur seine Abweichungen. Die Basis kommt aus
+    /// der Wissensbasis und wird bei jedem Abruf frisch daruntergelegt — so
+    /// erreichen spaetere Verbesserungen auch den, der einmal etwas angepasst
+    /// hat.
+    /// </remarks>
     public HydroTargetValues? GetTargets(string profileId, GrowStage stage)
     {
-        if (!_profiles.TryGetValue(profileId, out var profile)
+        SetpointProfile? eigenes = null;
+        var basisId = profileId;
+
+        if (SetpointProfile.IdFromReference(profileId) is { } customId)
+        {
+            eigenes = _customProfiles?.Get(customId);
+            // Geloeschtes Profil: lieber die Basis als ein leerer Bildschirm.
+            basisId = eigenes?.BaseProfileId ?? FallbackProfileId;
+        }
+
+        if (!_profiles.TryGetValue(basisId, out var profile)
             && !_profiles.TryGetValue(FallbackProfileId, out profile))
         {
             return null;
         }
 
-        return profile.TryGetValue(stage, out var targets) ? targets : null;
+        if (!profile.TryGetValue(stage, out var targets)) return null;
+
+        return eigenes is null ? targets : SetpointProfileResolver.Apply(targets, eigenes, stage);
     }
 
     /// <summary>

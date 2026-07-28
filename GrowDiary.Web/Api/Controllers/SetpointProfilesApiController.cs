@@ -1,0 +1,201 @@
+using GrowDiary.Web.Api.Contracts;
+using GrowDiary.Web.Infrastructure;
+using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
+using Microsoft.AspNetCore.Mvc;
+
+namespace GrowDiary.Web.Api.Controllers;
+
+/// <summary>Ein Profil, wie es die Oberfläche zeigt — mit aufgelösten Werten je Phase.</summary>
+public sealed record SetpointProfileDto(
+    string Id,
+    string Name,
+    string BaseProfileId,
+    bool IsShipped,
+    int ChangedValueCount,
+    /// <summary>Je Phase die fertigen Werte (Basis plus Abweichungen).</summary>
+    /// <remarks>
+    /// Bewusst eine Liste, kein Wörterbuch: die JSON-Ausgabe schreibt
+    /// Wörterbuch-Schlüssel klein, aus „Veg" würde „veg" — und die Oberfläche
+    /// suchte dann nach einem Schlüssel, den es nicht gibt.
+    /// </remarks>
+    List<StageValuesDto> Stages);
+
+/// <summary>Die Werte einer Phase, plus die Felder, die der Nutzer selbst gesetzt hat.</summary>
+public sealed record StageValuesDto(
+    string Stage,
+    Dictionary<string, double> Values,
+    List<string> Changed);
+
+public sealed class SetpointProfileUpsertRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string BaseProfileId { get; set; } = "rdwc-default";
+    /// <summary>Nur die abweichenden Werte — was hier fehlt, bleibt bei der Basis.</summary>
+    public Dictionary<string, Dictionary<string, double>>? Overrides { get; set; }
+}
+
+/// <summary>
+/// Sollwert-Profile: die mitgelieferten und die eigenen des Nutzers.
+/// </summary>
+[ApiController]
+[Route("api/setpoint-profiles")]
+[Produces("application/json")]
+public sealed class SetpointProfilesApiController : ApiControllerBase
+{
+    private static readonly GrowStage[] Stages =
+        [GrowStage.Seedling, GrowStage.Clone, GrowStage.Veg, GrowStage.Transition, GrowStage.Flower, GrowStage.Finish];
+
+    private readonly SetpointProfileRepository _profiles;
+    private readonly TargetValueService _targets;
+
+    public SetpointProfilesApiController(SetpointProfileRepository profiles, TargetValueService targets)
+    {
+        _profiles = profiles;
+        _targets = targets;
+    }
+
+    /// <summary>Alle Profile — mitgeliefert und eigene.</summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(IReadOnlyList<SetpointProfileDto>), StatusCodes.Status200OK)]
+    public ActionResult<IReadOnlyList<SetpointProfileDto>> GetAll()
+    {
+        var list = new List<SetpointProfileDto>();
+
+        foreach (var shippedId in _targets.ProfileIds.OrderBy(id => id, StringComparer.Ordinal))
+        {
+            list.Add(Shipped(shippedId));
+        }
+
+        foreach (var own in _profiles.GetAll())
+        {
+            list.Add(Own(own));
+        }
+
+        return Ok(list);
+    }
+
+    [HttpPost]
+    [ProducesResponseType(typeof(SetpointProfileDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    public ActionResult<SetpointProfileDto> Create([FromBody] SetpointProfileUpsertRequest? request)
+    {
+        if (Validate(request) is { } error) return error;
+
+        var profile = new SetpointProfile
+        {
+            Name = request!.Name.Trim(),
+            BaseProfileId = request.BaseProfileId,
+            Overrides = Clean(request.Overrides),
+        };
+        var id = _profiles.Insert(profile);
+        profile.Id = id;
+        return CreatedAtAction(nameof(GetAll), Own(profile));
+    }
+
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(SetpointProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<SetpointProfileDto> Update(int id, [FromBody] SetpointProfileUpsertRequest? request)
+    {
+        var existing = _profiles.Get(id);
+        if (existing is null) return NotFoundError("profile_not_found", $"Profil {id} existiert nicht.");
+        if (Validate(request) is { } error) return error;
+
+        existing.Name = request!.Name.Trim();
+        existing.BaseProfileId = request.BaseProfileId;
+        existing.Overrides = Clean(request.Overrides);
+        _profiles.Update(existing);
+        return Ok(Own(existing));
+    }
+
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public IActionResult Delete(int id)
+    {
+        _profiles.Delete(id);
+        return NoContent();
+    }
+
+    // ---------- Innenleben ----------
+
+    private ActionResult? Validate(SetpointProfileUpsertRequest? request)
+    {
+        if (request is null)
+            return BadRequestError("invalid_body", "Der Anfrage-Rumpf ist leer oder unlesbar.");
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return BadRequestError("name_required", "Das Profil braucht einen Namen.");
+        if (!_targets.ProfileIds.Contains(request.BaseProfileId))
+            return BadRequestError("base_not_found", $"Es gibt kein mitgeliefertes Profil \"{request.BaseProfileId}\".");
+        return null;
+    }
+
+    /// <summary>
+    /// Wirft weg, was nicht in die Tabelle gehört.
+    /// </summary>
+    /// <remarks>
+    /// Unbekannte Phasen oder Felder würden beim Anwenden still ignoriert — sie
+    /// aber zu speichern hiesse, dem Nutzer eine Änderung zu bestätigen, die
+    /// nie wirkt.
+    /// </remarks>
+    private static Dictionary<string, Dictionary<string, double>> Clean(
+        Dictionary<string, Dictionary<string, double>>? raw)
+    {
+        var result = new Dictionary<string, Dictionary<string, double>>();
+        if (raw is null) return result;
+
+        foreach (var (stageName, felder) in raw)
+        {
+            if (!Stages.Any(s => string.Equals(s.ToString(), stageName, StringComparison.OrdinalIgnoreCase))) continue;
+
+            var sauber = felder
+                .Where(paar => SetpointProfile.Fields.Contains(paar.Key, StringComparer.Ordinal))
+                .Where(paar => double.IsFinite(paar.Value))
+                .ToDictionary(paar => paar.Key, paar => paar.Value);
+
+            if (sauber.Count > 0) result[stageName] = sauber;
+        }
+
+        return result;
+    }
+
+    private SetpointProfileDto Shipped(string id) => new(
+        id, NameFor(id), id, IsShipped: true, ChangedValueCount: 0, Stages: StagesFor(id, null));
+
+    private SetpointProfileDto Own(SetpointProfile profile) => new(
+        profile.ReferenceId, profile.Name, profile.BaseProfileId,
+        IsShipped: false, profile.ChangedValueCount,
+        Stages: StagesFor(profile.ReferenceId, profile));
+
+    private static string NameFor(string id) => id switch
+    {
+        "rdwc-default" => "RDWC Standard",
+        "dwc-default" => "DWC Standard",
+        _ => id,
+    };
+
+    /// <summary>Die fertigen Werte je Phase — so, wie sie am Ende gelten.</summary>
+    private List<StageValuesDto> StagesFor(string profileId, SetpointProfile? profile)
+    {
+        var result = new List<StageValuesDto>();
+        foreach (var stage in Stages)
+        {
+            if (_targets.GetTargets(profileId, stage) is not { } t) continue;
+            var geaendert = profile?.Overrides.TryGetValue(stage.ToString(), out var felder) == true
+                ? felder.Keys.ToList()
+                : [];
+            var werte = new Dictionary<string, double>
+            {
+                ["phMin"] = t.PhMin, ["phMax"] = t.PhMax,
+                ["ecMin"] = t.EcMin, ["ecMax"] = t.EcMax,
+                ["orpMin"] = t.OrpMin, ["orpMax"] = t.OrpMax,
+                ["waterTempDayC"] = t.WaterTempDayC, ["waterTempNightC"] = t.WaterTempNightC,
+                ["vpdMin"] = t.VpdMin, ["vpdMax"] = t.VpdMax,
+                ["ppfdMin"] = t.PpfdMin, ["ppfdMax"] = t.PpfdMax,
+                ["co2Min"] = t.Co2Min, ["co2Max"] = t.Co2Max,
+            };
+            result.Add(new StageValuesDto(stage.ToString(), werte, geaendert));
+        }
+        return result;
+    }
+}

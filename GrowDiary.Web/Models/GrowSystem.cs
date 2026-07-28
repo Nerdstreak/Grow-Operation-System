@@ -7,6 +7,15 @@ public sealed class GrowSystem
     public string? TentName { get; set; }
     public string Name { get; set; } = string.Empty;
     public string HydroStyle { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Sollwert-Profil dieses Systems; null heisst „nach Anbaustil".
+    /// </summary>
+    /// <remarks>
+    /// Der Standard für jeden Grow darin: DWC oder RDWC ist eine Eigenschaft
+    /// der Hardware, also einmal hier einstellen statt bei jedem Lauf neu.
+    /// </remarks>
+    public string? SetpointProfileId { get; set; }
     public int? PotCount { get; set; }
     public double? PotSizeLiters { get; set; }
     public double? ReservoirLiters { get; set; }

@@ -91,13 +91,13 @@ public sealed class HydroSetupRepository : RepositoryBase
         using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO GrowSystems (
-                TentId, Name, HydroStyle, PotCount, PotSizeLiters, ReservoirLiters,
+                TentId, Name, HydroStyle, SetpointProfileId, PotCount, PotSizeLiters, ReservoirLiters,
                 Status, LayoutType, ReservoirPosition,
                 HasCirculationPump, CirculationPumpNotes, HasAirPump, AirPumpNotes, AirStoneCount,
                 HasChiller, HasUvSterilizer, Notes, DisplayOrder, CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
-                $tentId, $name, $hydroStyle, $potCount, $potSizeLiters, $reservoirLiters,
+                $tentId, $name, $hydroStyle, $setpointProfileId, $potCount, $potSizeLiters, $reservoirLiters,
                 $status, $layoutType, $reservoirPosition,
                 $hasCirculationPump, $circulationPumpNotes, $hasAirPump, $airPumpNotes, $airStoneCount,
                 $hasChiller, $hasUvSterilizer, $notes, $displayOrder, $createdAtUtc, $updatedAtUtc
@@ -126,6 +126,7 @@ public sealed class HydroSetupRepository : RepositoryBase
                 TentId = $tentId,
                 Name = $name,
                 HydroStyle = $hydroStyle,
+                SetpointProfileId = $setpointProfileId,
                 PotCount = $potCount,
                 PotSizeLiters = $potSizeLiters,
                 ReservoirLiters = $reservoirLiters,
@@ -292,6 +293,7 @@ public sealed class HydroSetupRepository : RepositoryBase
             TentName = HasColumn(reader, "TentName") ? NullString(reader["TentName"]) : null,
             Name = reader["Name"]?.ToString() ?? string.Empty,
             HydroStyle = reader["HydroStyle"]?.ToString() ?? string.Empty,
+            SetpointProfileId = HasColumn(reader, "SetpointProfileId") ? NullString(reader["SetpointProfileId"]) : null,
             PotCount = reader["PotCount"] is DBNull or null ? null : Convert.ToInt32(reader["PotCount"], CultureInfo.InvariantCulture),
             PotSizeLiters = reader["PotSizeLiters"] is DBNull or null ? null : Convert.ToDouble(reader["PotSizeLiters"], CultureInfo.InvariantCulture),
             ReservoirLiters = reader["ReservoirLiters"] is DBNull or null ? null : Convert.ToDouble(reader["ReservoirLiters"], CultureInfo.InvariantCulture),
@@ -318,6 +320,7 @@ public sealed class HydroSetupRepository : RepositoryBase
         command.Parameters.AddWithValue("$tentId", (object?)system.TentId ?? DBNull.Value);
         command.Parameters.AddWithValue("$name", system.Name);
         command.Parameters.AddWithValue("$hydroStyle", system.HydroStyle);
+        command.Parameters.AddWithValue("$setpointProfileId", (object?)system.SetpointProfileId ?? DBNull.Value);
         command.Parameters.AddWithValue("$potCount", (object?)system.PotCount ?? DBNull.Value);
         command.Parameters.AddWithValue("$potSizeLiters", (object?)system.PotSizeLiters ?? DBNull.Value);
         command.Parameters.AddWithValue("$reservoirLiters", (object?)system.ReservoirLiters ?? DBNull.Value);

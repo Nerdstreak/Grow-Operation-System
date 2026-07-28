@@ -726,6 +726,15 @@ public sealed partial class DatabaseInitializer
             );
             CREATE INDEX IF NOT EXISTS IX_DoseEvents_PumpId_OccurredAtUtc ON DoseEvents(PumpId, OccurredAtUtc);
             CREATE INDEX IF NOT EXISTS IX_DoseEvents_TentId_OccurredAtUtc ON DoseEvents(TentId, OccurredAtUtc);
+
+            CREATE TABLE IF NOT EXISTS SetpointProfiles (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL,
+                BaseProfileId TEXT NOT NULL DEFAULT 'rdwc-default',
+                OverridesJson TEXT NOT NULL DEFAULT '{}',
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL
+            );
         """;
 
     private const string GrowIndexSql = """

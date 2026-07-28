@@ -136,6 +136,13 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "SopStepInstances", "AvailableAtUtc",         "TEXT NULL");
         EnsureColumn(connection, "SopStepInstances", "ReminderTaskId",         "INTEGER NULL");
 
+        // Sollwert-Profil je Grow und je Hydro-System. Null heisst „geerbt":
+        // der Grow folgt seinem System, das System dem Anbaustil.
+        // Muss NACH dem Anlegen von GrowSystems stehen — sonst scheitert ALTER
+        // TABLE an einer Tabelle, die es noch nicht gibt.
+        EnsureColumn(connection, "Grows", "SetpointProfileId", "TEXT NULL");
+        EnsureColumn(connection, "GrowSystems", "SetpointProfileId", "TEXT NULL");
+
         RecordSchemaVersion(connection);
     }
 
@@ -215,6 +222,7 @@ public sealed partial class DatabaseInitializer
         // Datenbanken, bestehende brauchen den Zusatz hier.
         EnsureColumn(connection, "DosingPumps", "SimulationMode", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "DoseEvents", "Simulated", "INTEGER NOT NULL DEFAULT 0");
+
     }
 
 

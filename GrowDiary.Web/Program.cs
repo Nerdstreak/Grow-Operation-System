@@ -83,6 +83,7 @@ builder.Services.AddScoped<AutoMeasurementExecutionService>();
 builder.Services.AddSingleton<AlertRuleRepository>();
 builder.Services.AddSingleton<SystemHeartbeat>();
 builder.Services.AddScoped<WatchdogService>();
+builder.Services.AddSingleton<SetpointProfileRepository>();
 builder.Services.AddScoped<DosingRepository>();
 builder.Services.AddScoped<DosingService>();
 builder.Services.AddScoped<AlertEvaluationService>();

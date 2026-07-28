@@ -4,6 +4,15 @@ public sealed class GrowRun
 {
     public int Id { get; set; }
     public int? TentId { get; set; }
+
+    /// <summary>
+    /// Eigenes Sollwert-Profil für diesen Lauf; null heisst „vom System geerbt".
+    /// </summary>
+    /// <remarks>
+    /// Sollwerte beschreiben, wie man DIESE Pflanze fährt — eine Sorte, die mehr
+    /// verträgt, ein Versuch. Zwei Läufe im selben Becken dürfen abweichen.
+    /// </remarks>
+    public string? SetpointProfileId { get; set; }
     public int? SystemId { get; set; }
     public int? SetupId { get; set; }
     public string? TentName { get; set; }

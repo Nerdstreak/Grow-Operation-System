@@ -60,6 +60,7 @@ export const navGroups: NavGroup[] = [
     id: 'library',
     label: 'Wissen',
     items: [
+      { to: '/sollwerte', label: 'Sollwert-Profile', end: true, keywords: 'zielwerte setpoints profil rdwc dwc phasen erfahrung eigene werte' },
       // Ein Eintrag wie im Entwurf: SOPs, Bibliothek und Symptome sind EINE
       // durchsuchbare Sammlung. Laufende SOPs wohnen bei den Aufgaben und im
       // Grow-Detail; die Ersten Schritte öffnet man aus den Einstellungen.

@@ -8,6 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '../../api'
 import type { CreateHydroSetupRequest, HydroSetupDto, ReservoirPosition, SelectableHydroStyle } from '../../types'
 import { V1Alert, V1Button, V1Field } from '../../components/v1'
+import { ProfileSelect } from '../setpoints/ProfileSelect'
 import { SystemPlan } from './SystemPlan'
 import { buildSystemPlan, layoutTypeFromRows, rowsFromLayoutType } from './system-plan-model'
 import { formatApiError, useHydroSetups } from './useHydroSetups'
@@ -28,10 +29,11 @@ type Draft = {
   hasChiller: boolean
   hasUvSterilizer: boolean
   notes: string
+  setpointProfileId: string | null
 }
 
 const emptyDraft: Draft = {
-  name: '', tentId: '', hydroStyle: 'RDWC', siteCount: 4, rows: 2,
+  name: '', tentId: '', hydroStyle: 'RDWC', siteCount: 4, rows: 2, setpointProfileId: null,
   potLiters: 19, tankLiters: 60, reservoirPosition: 'Left',
   hasCirculationPump: true, hasAirPump: true, airStoneCount: 4,
   hasChiller: false, hasUvSterilizer: false, notes: '',
@@ -62,6 +64,7 @@ export default function HydroEditorPage() {
       name: existing.name,
       tentId: existing.tentId ? String(existing.tentId) : '',
       hydroStyle: existing.hydroStyle === 'DWC' ? 'DWC' : 'RDWC',
+      setpointProfileId: existing.setpointProfileId ?? null,
       siteCount: existing.potCount ?? 1,
       rows: rowsFromLayoutType(existing.layoutType, existing.potCount ?? 1),
       potLiters: existing.potSizeLiters ?? 19,
@@ -109,6 +112,7 @@ export default function HydroEditorPage() {
         tentId: draft.tentId ? Number(draft.tentId) : null,
         name: draft.name.trim(),
         hydroStyle: draft.hydroStyle,
+        setpointProfileId: draft.setpointProfileId,
         potCount: isRdwc ? draft.siteCount : 1,
         potSizeLiters: draft.potLiters,
         reservoirLiters: isRdwc ? draft.tankLiters : null,
@@ -173,6 +177,14 @@ export default function HydroEditorPage() {
                   {tents.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </V1Field>
+              {/* Der Standard fuer jeden Grow in diesem System — DWC oder RDWC
+                  ist eine Eigenschaft der Hardware, also einmal hier. */}
+              <ProfileSelect
+                value={draft.setpointProfileId}
+                onChange={(value) => patch({ setpointProfileId: value })}
+                inheritedLabel={`${draft.hydroStyle}-Standard`}
+                hint="Gilt fuer jeden Grow in diesem System. Einzelne Laeufe duerfen abweichen."
+              />
             </div>
           </section>
 

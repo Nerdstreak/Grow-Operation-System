@@ -73,6 +73,9 @@ public sealed partial class GrowExportsApiController
             TentId: snapshot.TentId,
             TentName: snapshot.TentName,
             HydroStyle: Enum.TryParse<HydroStyle>(snapshot.HydroStyle, out var hydroStyle) ? hydroStyle : HydroStyle.None,
+            // Ein Schnappschuss haelt fest, wie es DAMALS war — das Profil gehoert
+            // zur laufenden Einstellung, nicht zur Momentaufnahme.
+            SetpointProfileId: null,
             PotCount: snapshot.PotCount,
             PotSizeLiters: snapshot.PotSizeLiters,
             ReservoirLiters: snapshot.ReservoirLiters,

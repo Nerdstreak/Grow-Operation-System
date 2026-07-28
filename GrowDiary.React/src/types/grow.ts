@@ -41,6 +41,7 @@ export interface GrowSummary {
   flipDate: string | null
   /** Geplante Veg-Dauer in Tagen ab Bewurzelung (ohne die: ab Start). */
   plannedVegDays: number | null
+  setpointProfileId?: string | null
   /** Verweis in die Sorten-Bibliothek; null = nur freier Text. */
   strainId: number | null
   breederFlowerWeeksMin: number | null
@@ -200,6 +201,7 @@ export interface GrowDetail {
   breederFlowerWeeksMin: number | null
   breederFlowerWeeksMax: number | null
   plannedVegDays: number | null
+  setpointProfileId?: string | null
   strainId: number | null
   plantCount: number | null
   phenoNumber: number | null
@@ -240,6 +242,7 @@ export interface GrowUpsertPayload {
   breederFlowerWeeksMin: number | null
   breederFlowerWeeksMax: number | null
   plannedVegDays: number | null
+  setpointProfileId?: string | null
   strainId: number | null
   hydroStyle: HydroStyle
   plantCount: number | null

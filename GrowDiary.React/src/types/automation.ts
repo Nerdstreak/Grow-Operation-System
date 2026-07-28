@@ -270,6 +270,8 @@ export interface CreateTentRequest {
 }
 
 export interface HydroSetupDto {
+  /** Sollwert-Profil dieses Systems; null heisst „nach Anbaustil". */
+  setpointProfileId?: string | null
   id: number
   name: string
   tentId: number | null
@@ -297,6 +299,8 @@ export interface HydroSetupDto {
 }
 
 export interface CreateHydroSetupRequest {
+  /** Sollwert-Profil dieses Systems; null heisst „nach Anbaustil". */
+  setpointProfileId?: string | null
   tentId: number | null
   name: string
   hydroStyle: SelectableHydroStyle

@@ -122,7 +122,7 @@ public sealed class GrowCoreRepository : RepositoryBase
                 TentId, SystemId, SetupId, Name, StrainId, Strain, Breeder, Status, MediumType, FeedingStyle, HydroStyle, MediumDetail,
                 Environment, Light, ContainerSize, ReservoirSize, IrrigationStyle, IrrigationType, WaterSource,
                 SeedType, StartMaterial, GerminationMethod, CloneSource, CloneIsRooted,
-                BreederFlowerWeeksMin, BreederFlowerWeeksMax, PlannedVegDays, PlantCount, PhenoNumber,
+                BreederFlowerWeeksMin, BreederFlowerWeeksMax, PlannedVegDays, SetpointProfileId, PlantCount, PhenoNumber,
                 PropagationMedium, HasChiller, EntryPoint, DaysAlreadyInPhase,
                 AutoflowerDaysSinceGermination, FlipDate, GerminatedAt, RootedAt,
                 Nutrients, Notes, StartDate, EndDate, CreatedAtUtc, UpdatedAtUtc,
@@ -133,7 +133,7 @@ public sealed class GrowCoreRepository : RepositoryBase
                 $tentId, $systemId, $setupId, $name, $strainId, $strain, $breeder, $status, $mediumType, $feedingStyle, $hydroStyle, $mediumDetail,
                 $environment, $light, $containerSize, $reservoirSize, $irrigationStyle, $irrigationType, $waterSource,
                 $seedType, $startMaterial, $germinationMethod, $cloneSource, $cloneIsRooted,
-                $breederFlowerWeeksMin, $breederFlowerWeeksMax, $plannedVegDays, $plantCount, $phenoNumber,
+                $breederFlowerWeeksMin, $breederFlowerWeeksMax, $plannedVegDays, $setpointProfileId, $plantCount, $phenoNumber,
                 $propagationMedium, $hasChiller, $entryPoint, $daysAlreadyInPhase,
                 $autoflowerDaysSinceGermination, $flipDate, $germinatedAt, $rootedAt,
                 $nutrients, $notes, $startDate, $endDate, $createdAtUtc, $updatedAtUtc,
@@ -181,6 +181,7 @@ public sealed class GrowCoreRepository : RepositoryBase
                 BreederFlowerWeeksMin = $breederFlowerWeeksMin,
                 BreederFlowerWeeksMax = $breederFlowerWeeksMax,
                 PlannedVegDays = $plannedVegDays,
+                SetpointProfileId = $setpointProfileId,
                 StrainId = $strainId,
                 PlantCount = $plantCount,
                 PhenoNumber = $phenoNumber,
@@ -563,6 +564,7 @@ public sealed class GrowCoreRepository : RepositoryBase
             BreederFlowerWeeksMax = reader["BreederFlowerWeeksMax"] is DBNull or null ? null : Convert.ToInt32(reader["BreederFlowerWeeksMax"], CultureInfo.InvariantCulture),
             StrainId = HasColumn(reader, "StrainId") && reader["StrainId"] is not (DBNull or null) ? Convert.ToInt32(reader["StrainId"], CultureInfo.InvariantCulture) : null,
             PlannedVegDays = HasColumn(reader, "PlannedVegDays") && reader["PlannedVegDays"] is not (DBNull or null) ? Convert.ToInt32(reader["PlannedVegDays"], CultureInfo.InvariantCulture) : null,
+            SetpointProfileId = HasColumn(reader, "SetpointProfileId") ? NullString(reader["SetpointProfileId"]) : null,
             PlantCount = reader["PlantCount"] is DBNull or null ? null : Convert.ToInt32(reader["PlantCount"], CultureInfo.InvariantCulture),
             PhenoNumber = reader["PhenoNumber"] is DBNull or null ? null : Convert.ToInt32(reader["PhenoNumber"], CultureInfo.InvariantCulture),
             PropagationMedium = reader["PropagationMedium"] is DBNull or null ? null : Enum.TryParse<PropagationMedium>(reader["PropagationMedium"]?.ToString(), out var pm) ? pm : null,
@@ -693,6 +695,7 @@ public sealed class GrowCoreRepository : RepositoryBase
         command.Parameters.AddWithValue("$breederFlowerWeeksMin", (object?)grow.BreederFlowerWeeksMin ?? DBNull.Value);
         command.Parameters.AddWithValue("$breederFlowerWeeksMax", (object?)grow.BreederFlowerWeeksMax ?? DBNull.Value);
         command.Parameters.AddWithValue("$plannedVegDays", (object?)grow.PlannedVegDays ?? DBNull.Value);
+        command.Parameters.AddWithValue("$setpointProfileId", (object?)grow.SetpointProfileId ?? DBNull.Value);
         command.Parameters.AddWithValue("$strainId", (object?)grow.StrainId ?? DBNull.Value);
         command.Parameters.AddWithValue("$plantCount", (object?)grow.PlantCount ?? DBNull.Value);
         command.Parameters.AddWithValue("$phenoNumber", (object?)grow.PhenoNumber ?? DBNull.Value);

@@ -36,6 +36,9 @@ public sealed class GrowFormViewModel
     /// </summary>
     public int? PlannedVegDays { get; set; }
 
+    /// <summary>Sollwert-Profil dieses Laufs; null heisst „vom System geerbt".</summary>
+    public string? SetpointProfileId { get; set; }
+
     /// <summary>Sorte aus der Bibliothek; leer = nur freier Text.</summary>
     public int? StrainId { get; set; }
 
@@ -101,6 +104,7 @@ public sealed class GrowFormViewModel
             BreederFlowerWeeksMin = grow.BreederFlowerWeeksMin,
             BreederFlowerWeeksMax = grow.BreederFlowerWeeksMax,
             PlannedVegDays = grow.PlannedVegDays,
+            SetpointProfileId = grow.SetpointProfileId,
             StrainId = grow.StrainId,
             PlantCount = grow.PlantCount,
             PropagationMedium = grow.PropagationMedium,
@@ -165,6 +169,7 @@ public sealed class GrowFormViewModel
             BreederFlowerWeeksMin = IsAutoflower ? null : BreederFlowerWeeksMin,
             BreederFlowerWeeksMax = IsAutoflower ? null : BreederFlowerWeeksMax,
             PlannedVegDays = IsAutoflower ? null : PlannedVegDays,
+            SetpointProfileId = string.IsNullOrWhiteSpace(SetpointProfileId) ? null : SetpointProfileId,
             StrainId = StrainId,
             PlantCount = PlantCount,
             PropagationMedium = PropagationMedium,

@@ -12,6 +12,8 @@ public sealed class GrowDashboardComposer
     private readonly WeekCounterService _weekCounter;
     private readonly TargetValueService _targetValues;
     private readonly AlertRuleRepository? _alertRules;
+    private readonly HydroSetupRepository? _hydroSetups;
+    private readonly SetpointProfileRepository? _setpointProfiles;
     private readonly ILogger<GrowDashboardComposer> _logger;
 
     public GrowDashboardComposer(
@@ -20,13 +22,17 @@ public sealed class GrowDashboardComposer
         WeekCounterService weekCounter,
         TargetValueService targetValues,
         ILogger<GrowDashboardComposer> logger,
-        AlertRuleRepository? alertRules = null)
+        AlertRuleRepository? alertRules = null,
+        HydroSetupRepository? hydroSetups = null,
+        SetpointProfileRepository? setpointProfiles = null)
     {
         _chartService = chartService;
         _deviationAnalyzer = deviationAnalyzer;
         _weekCounter = weekCounter;
         _targetValues = targetValues;
         _alertRules = alertRules;
+        _hydroSetups = hydroSetups;
+        _setpointProfiles = setpointProfiles;
         _logger = logger;
     }
 
@@ -75,9 +81,20 @@ public sealed class GrowDashboardComposer
         // eingetragen hat, weiss es besser als jede Rechnung.
         var activeGrow = tent.ActiveGrows.FirstOrDefault();
         var stage = latest?.Stage ?? (activeGrow is null ? (GrowStage?)null : GrowStageResolver.Resolve(activeGrow, DateTime.Today));
-        var targets = activeGrow is null || stage is null
+
+        // Welches Profil gilt: der Grow, sonst sein Hydro-System, sonst der
+        // Anbaustil. Ohne diese Kette griffe immer nur der Anbaustil, und ein
+        // eigenes Profil bliebe wirkungslos.
+        var resolved = activeGrow is null
             ? null
-            : _targetValues.GetTargets(activeGrow.HydroStyle, stage.Value);
+            : SetpointProfileResolver.Resolve(
+                activeGrow.SetpointProfileId,
+                SystemProfileFor(activeGrow),
+                activeGrow.HydroStyle);
+
+        var targets = activeGrow is null || stage is null || resolved is null
+            ? null
+            : _targetValues.GetTargets(resolved.ProfileId, stage.Value);
 
         MetricCard Build(string label, string key, Func<Measurement?, double?> fallback, string tone = "default", string? explicitUnit = null)
         {
@@ -190,6 +207,9 @@ public sealed class GrowDashboardComposer
 
         ApplyClimateBands(cards, targets, tent.LeafTempOffsetC);
 
+        // Der Profilname auf die Kacheln, solange es nicht das Mitgelieferte ist.
+        ApplyProfileNote(cards, resolved);
+
         // Zuletzt und damit ueber allem: was der Nutzer selbst eingetragen hat.
         // Erst hier, damit es auch die zurueckgerechneten Klimabaender schlaegt.
         ApplyUserTargets(cards, tent.Id);
@@ -210,6 +230,34 @@ public sealed class GrowDashboardComposer
     /// Ohne den Partnerwert gibt es kein Band: ein Temperaturziel ohne bekannte
     /// Feuchte wäre geraten.
     /// </remarks>
+    /// <summary>Das Profil des Hydro-Systems, an dem der Grow hängt.</summary>
+    private string? SystemProfileFor(GrowRun grow)
+        => grow.SystemId is { } systemId ? _hydroSetups?.GetSystem(systemId)?.SetpointProfileId : null;
+
+    /// <summary>
+    /// Schreibt den Profilnamen auf die Kacheln, wenn ein eigenes Profil gilt.
+    /// </summary>
+    /// <remarks>
+    /// Nur bei Abweichung vom Mitgelieferten. Stünde der Name überall, wäre er
+    /// auf jeder Kachel Text, der nichts beantwortet — dieselbe Regel wie bei
+    /// „dein Wert".
+    /// </remarks>
+    private void ApplyProfileNote(List<MetricCard> cards, ResolvedProfile? resolved)
+    {
+        if (resolved is null) return;
+        if (SetpointProfile.IdFromReference(resolved.ProfileId) is not { } customId) return;
+
+        var name = _setpointProfiles?.Get(customId)?.Name;
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        foreach (var card in cards)
+        {
+            if (card.TargetMin is null && card.TargetMax is null) continue;
+            if (card.TargetNote is not null) continue;   // zurueckgerechnete Baender behalten ihren Zusatz
+            card.TargetNote = name;
+        }
+    }
+
     /// <summary>
     /// Der eingetragene Wert des Nutzers gewinnt — über dem Wissen und über
     /// jedem zurückgerechneten Band.
