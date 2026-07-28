@@ -1,5 +1,48 @@
 # Changelog
 
+## 2.0.0-beta.17
+
+**Beta.** A pass over the app's real-world logic — how a grow actually behaves,
+not how the code does.
+
+- Fixed — **nighttime is no longer "off target".** Tiles, score and alerts
+  compared value against target with no idea of the light cycle: PPFD 0 at
+  lights-off is correct, CO₂ falls to ambient because the plant consumes none,
+  and VPD targets mean the day. Grow OS now asks the light sensor first, then
+  the tent's light schedule; at lights-off, PPFD/CO₂/VPD carry no verdict and
+  send no alarms. Nightly false alarms are how real alarms stop being believed.
+- New — **dosing safety from the real reservoir.** Nobody doses into still
+  water: a confirmed-stopped circulation pump now blocks even a manual dose,
+  and the automation requires confirmed *running* circulation — a dead
+  circulation pump is often the very reason the values drift. The mixing pause
+  now belongs to the reservoir, not the pump: after *any* dose into the same
+  water the reading says nothing for a while, whoever dosed. While a second
+  nutrient half is outstanding, the whole tent holds; the automation doses
+  nutrients before pH and at most once per tent per tick.
+- New — **a mold ceiling on the humidity advice.** The VPD inversion knows only
+  physics; in warm flower air it recommended humidity where grey mold becomes
+  likely. Each phase now has a ceiling (seedling 80 % … finish 55 %); when the
+  ceiling eats the whole band, the tile says the honest thing: lower the
+  temperature, don't raise the humidity.
+- Fixed — **a rooted clone is veg from day one.** It never had cotyledons; the
+  seedling phase belongs to seeds. Before, every clone got 14 estimated
+  seedling days with seedling EC.
+- Fixed — **a CO₂ sensor is not CO₂ enrichment.** Without a burner, ambient
+  ~420 ppm sat forever "off target". New tent switch "CO₂-Anreicherung"; without
+  it the tile carries no target and explains why.
+- New — **doses scale with the fill level.** The learned effect per ml comes
+  from a full reservoir; in half the water the same dose works nearly twice as
+  hard. Doses now shrink with the level (never grow). And the learning window
+  cuts at the last water change — fresh water buffers differently.
+- New — **drying is watched.** After harvest the tent becomes a drying room —
+  the highest mold risk of the whole cycle, and the app used to look away.
+  While the last grow is harvested, less than three weeks old and has no dry
+  weight entered, the temperature and humidity tiles carry the 60/60 targets.
+- New — **"Finish beginnt"** on the grow page: flushing starts when the
+  trichomes say so, not when the breeder's weeks run out. Works for
+  autoflowers too — the current phase now comes from one resolver for buttons
+  and tiles alike.
+
 ## 2.0.0-beta.16
 
 **Beta.** The main navigation moves to the top on phones.
