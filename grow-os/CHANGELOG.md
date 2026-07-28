@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.0.0-beta.12
+
+**Beta.** A QR code that puts Grow OS on your phone's home screen.
+
+- New — **Anlage → Aufs Handy holen.** Scan the code with your phone, log into
+  Home Assistant once, then "Add to Home Screen". You get an icon that opens
+  straight into Grow OS.
+- The obvious route is the broken one: the address in your address bar carries
+  an ingress token that changes on every request, so a bookmark on it is dead
+  the next day. The code points at the stable sidebar path instead
+  (`/hassio/ingress/<slug>`), which Grow OS asks the Supervisor for — the slug
+  differs depending on how the add-on was installed and cannot be guessed.
+- The page builds the full address in your browser, because the server only
+  knows Home Assistant as `http://supervisor/core` and has no idea what name
+  you reach it under. Enter a different one if you need to; `localhost` is
+  refused (on a phone it points at the phone), and a `.local` name gets a note
+  about Android rather than a ban.
+- Said plainly on the page: this does not remove Home Assistant's frame around
+  Grow OS, and the home-screen icon belongs to Home Assistant. That would need
+  an open port, and then Grow OS would need a login of its own.
+
 ## 2.0.0-beta.11
 
 **Beta.** Calibrate a pump by volume, not by stopwatch — and your own limits
