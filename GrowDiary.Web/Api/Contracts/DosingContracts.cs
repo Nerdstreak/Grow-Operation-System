@@ -29,7 +29,15 @@ public sealed record DosingPumpDto(
     /// <summary>Wie viele ausgewertete Dosen dahinterstehen.</summary>
     int LearnedFromDoses,
     /// <summary>Was gerade dagegen spricht zu dosieren; null = frei.</summary>
-    string? BlockedReason);
+    string? BlockedReason,
+    /// <summary>Die zweite Pumpe eines Zweikomponenten-Düngers; null = keine.</summary>
+    int? PartnerPumpId,
+    /// <summary>Wie viel der Partner je Milliliter bekommt — 1,0 heisst 1:1.</summary>
+    double PartnerRatio,
+    /// <summary>Minuten zwischen A und B; konzentriert dürfen sie sich nicht begegnen.</summary>
+    int PartnerDelayMinutes,
+    /// <summary>Steht für dieses Paar noch eine zweite Hälfte aus?</summary>
+    bool PartnerPending);
 
 public sealed class DosingPumpUpsertRequest
 {
@@ -52,6 +60,9 @@ public sealed class DosingPumpUpsertRequest
     public bool SimulationMode { get; set; }
     /// <summary>Setzt das Schlauchdatum auf jetzt — „Schlauch gewechselt".</summary>
     public bool TubeChangedNow { get; set; }
+    public int? PartnerPumpId { get; set; }
+    public double? PartnerRatio { get; set; }
+    public int? PartnerDelayMinutes { get; set; }
 }
 
 /// <summary>
@@ -108,3 +119,28 @@ public sealed record DoseResultDto(
     double Ml,
     double Seconds,
     string Reason);
+
+/// <summary>
+/// Was Grow OS jetzt geben würde — und woraus es das schliesst.
+/// </summary>
+/// <remarks>
+/// Die Herkunft steht bewusst mit drin. „3,4 ml" allein ist eine Zahl, der man
+/// nur glauben oder nicht glauben kann. Mit „Ist 6,42 vom Sensor, vor 4 Minuten,
+/// Ziel 6,05 aus deinem Grenzwert, gelernt −0,11 pH je ml aus 7 Dosen" lässt sie
+/// sich nachrechnen — und wer sie für falsch hält, sieht sofort, an welcher
+/// Stelle.
+/// </remarks>
+public sealed record DoseSuggestionDto(
+    bool Allowed,
+    double Ml,
+    double Seconds,
+    string Reason,
+    double? Reading,
+    /// <summary>„sensor", „manual" oder „none".</summary>
+    string ReadingFrom,
+    int? ReadingAgeMinutes,
+    double? Target,
+    /// <summary>„user", „profile" oder „none".</summary>
+    string TargetFrom,
+    double? LearnedChangePerMl,
+    int LearnedFromDoses);

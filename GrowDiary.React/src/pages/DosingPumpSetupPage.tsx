@@ -24,8 +24,13 @@ type Form = {
   maxDosesPerDay: string
   maxMlPerDay: string
   hasHomeAssistantAutoOff: boolean
+  automationEnabled: boolean
+  maxReadingAgeMinutes: string
   simulationMode: boolean
   tubeChangedNow: boolean
+  partnerPumpId: string
+  partnerRatio: string
+  partnerDelayMinutes: string
 }
 
 const PURPOSES = [
@@ -41,7 +46,9 @@ function leer(): Form {
     tentId: null, name: '', purpose: 'PhDown', agent: '', concentrationPercent: '',
     haEntityId: '', maxSingleDoseMl: '5', minIntervalMinutes: '18',
     maxDosesPerDay: '6', maxMlPerDay: '25', hasHomeAssistantAutoOff: false,
+    automationEnabled: false, maxReadingAgeMinutes: '10',
     simulationMode: false, tubeChangedNow: false,
+    partnerPumpId: '', partnerRatio: '1', partnerDelayMinutes: '5',
   }
 }
 
@@ -57,6 +64,8 @@ function DosingPumpSetupPage() {
   const [form, setForm] = useState<Form>(leer())
   const [tents, setTents] = useState<TentDto[]>([])
   const [entities, setEntities] = useState<HaEntity[]>([])
+  // Die uebrigen Pumpen desselben Zelts — nur die kommen als Partner infrage.
+  const [alle, setAlle] = useState<Array<{ id: number; name: string; tentId: number }>>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,14 +74,16 @@ function DosingPumpSetupPage() {
     const controller = new AbortController()
     async function laden() {
       try {
-        const [tentData, entityData, pump] = await Promise.all([
+        const [tentData, entityData, pumps, pump] = await Promise.all([
           apiFetch<TentDto[]>('/api/settings/tents', { signal: controller.signal }),
           apiFetch<HaEntity[]>('/api/home-assistant/entities', { signal: controller.signal }).catch(() => []),
+          apiFetch<Array<{ id: number; name: string; tentId: number }>>('/api/dosing/pumps', { signal: controller.signal }).catch(() => []),
           bearbeiten ? apiFetch<Record<string, unknown>>(`/api/dosing/pumps/${pumpId}`, { signal: controller.signal }) : Promise.resolve(null),
         ])
         if (controller.signal.aborted) return
         setTents(tentData)
         setEntities(entityData)
+        setAlle(pumps)
         if (pump) {
           setForm({
             tentId: pump.tentId as number,
@@ -86,6 +97,11 @@ function DosingPumpSetupPage() {
             maxDosesPerDay: String(pump.maxDosesPerDay ?? 6),
             maxMlPerDay: String(pump.maxMlPerDay ?? 25),
             hasHomeAssistantAutoOff: Boolean(pump.hasHomeAssistantAutoOff),
+            automationEnabled: Boolean(pump.automationEnabled),
+            maxReadingAgeMinutes: String(pump.maxReadingAgeMinutes ?? 10),
+            partnerPumpId: pump.partnerPumpId ? String(pump.partnerPumpId) : '',
+            partnerRatio: String(pump.partnerRatio ?? 1).replace('.', ','),
+            partnerDelayMinutes: String(pump.partnerDelayMinutes ?? 5),
             simulationMode: Boolean(pump.simulationMode),
             tubeChangedNow: false,
           })
@@ -127,7 +143,11 @@ function DosingPumpSetupPage() {
       minIntervalMinutes: zahlOderNull(form.minIntervalMinutes),
       maxDosesPerDay: zahlOderNull(form.maxDosesPerDay),
       maxMlPerDay: zahlOderNull(form.maxMlPerDay),
-      automationEnabled: false,   // Stufe 1: nichts laeuft von allein
+      automationEnabled: form.automationEnabled,
+      maxReadingAgeMinutes: Number(form.maxReadingAgeMinutes) || 10,
+      partnerPumpId: form.partnerPumpId ? Number(form.partnerPumpId) : null,
+      partnerRatio: Number(form.partnerRatio.replace(',', '.')) || 1,
+      partnerDelayMinutes: Number(form.partnerDelayMinutes) || 5,
       hasHomeAssistantAutoOff: form.hasHomeAssistantAutoOff,
       simulationMode: form.simulationMode,
       tubeChangedNow: form.tubeChangedNow,
@@ -158,6 +178,10 @@ function DosingPumpSetupPage() {
 
   const schaltbar = entities.filter((entity) =>
     entity.domain === 'switch' || entity.domain === 'input_boolean' || entity.domain === 'light')
+
+  // Ein Paar ueber zwei Zelte hinweg liesse B in ein anderes Becken laufen —
+  // solche Pumpen stehen hier gar nicht erst zur Wahl.
+  const andere = alle.filter((other) => other.id !== Number(pumpId) && other.tentId === form.tentId)
 
   return (
     <V1Page
@@ -279,6 +303,67 @@ function DosingPumpSetupPage() {
               onChange={(checked) => patch({ hasHomeAssistantAutoOff: checked })}
               hint="Ohne diesen Haken bleibt die spätere Automatik gesperrt. Von Hand dosieren geht trotzdem."
             />
+          </div>
+        </V1Card>
+      </V1Section>
+
+      <V1Section title="Zweikomponenten-Dünger (A und B)">
+        <V1Card>
+          <div className="dz-warn">
+            <div>
+              <b>A und B dürfen sich nicht konzentriert begegnen.</b> Das Calcium aus A fällt mit den
+              Sulfaten und Phosphaten aus B als Gips aus. Was ausgeflockt ist, kommt bei der Pflanze
+              nie an — im Becken schwimmen weiße Flocken, und der EC steigt trotz Dünger kaum.
+              Deshalb läuft hier nie beides gleichzeitig: diese Pumpe gibt, dann vergeht die
+              Trennzeit, dann gibt der Partner nach. Auch über einen Neustart hinweg.
+            </div>
+          </div>
+          <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
+            <V1Field label="Partnerpumpe" hint="Leer lassen, wenn diese Pumpe allein arbeitet.">
+              <select value={form.partnerPumpId} onChange={(event) => patch({ partnerPumpId: event.target.value })}>
+                <option value="">— keine —</option>
+                {andere.map((other) => <option key={other.id} value={other.id}>{other.name}</option>)}
+              </select>
+            </V1Field>
+            {form.partnerPumpId && (
+              <>
+                <V1Field label="Verhältnis" hint="Wie viel der Partner je Milliliter dieser Pumpe bekommt. 1 heißt 1:1.">
+                  <input inputMode="decimal" value={form.partnerRatio}
+                    onChange={(event) => patch({ partnerRatio: event.target.value })} />
+                </V1Field>
+                <V1Field label="Trennzeit (Minuten)" hint="So lange verteilt sich A, bevor B nachkommt.">
+                  <input inputMode="numeric" value={form.partnerDelayMinutes}
+                    onChange={(event) => patch({ partnerDelayMinutes: event.target.value })} />
+                </V1Field>
+              </>
+            )}
+          </div>
+        </V1Card>
+      </V1Section>
+
+      <V1Section title="Automatik">
+        <V1Card>
+          <div className="dz-warn">
+            <div>
+              <b>Eingeschaltet dosiert Grow OS ohne Rückfrage.</b> Es rechnet aus dem, was diese Pumpe
+              an früheren Dosen gelernt hat, und gibt jeweils den halben Weg zum Ziel. Alle Anschläge
+              von oben gelten weiter — dazu drei, die nur hier greifen: ohne Abschaltung in Home
+              Assistant bleibt sie gesperrt, gegen einen alten Messwert wird nicht dosiert, und eine
+              nie oder überfällig kalibrierte Sonde sperrt ebenfalls. Eine driftende Sonde meldet 6,0,
+              während 5,4 im Becken steht — die Automatik dosierte dann überzeugt in die falsche Richtung.
+            </div>
+          </div>
+          <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
+            <V1Switch
+              label="Automatik einschalten"
+              checked={form.automationEnabled}
+              onChange={(checked) => patch({ automationEnabled: checked })}
+              hint="Jede automatische Dosis geht zusätzlich als Nachricht raus."
+            />
+            <V1Field label="Messwert höchstens (Minuten) alt" hint="Älter heißt: es wird nicht dosiert.">
+              <input inputMode="numeric" value={form.maxReadingAgeMinutes}
+                onChange={(event) => patch({ maxReadingAgeMinutes: event.target.value })} />
+            </V1Field>
           </div>
         </V1Card>
       </V1Section>

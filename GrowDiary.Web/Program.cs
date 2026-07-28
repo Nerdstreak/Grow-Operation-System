@@ -86,6 +86,7 @@ builder.Services.AddScoped<WatchdogService>();
 builder.Services.AddSingleton<SetpointProfileRepository>();
 builder.Services.AddScoped<DosingRepository>();
 builder.Services.AddScoped<DosingService>();
+builder.Services.AddScoped<DosingContextBuilder>();
 builder.Services.AddScoped<AlertEvaluationService>();
 builder.Services.AddSingleton<NotificationSettingsRepository>();
 builder.Services.AddSingleton<AppSettingsRepository>();
@@ -98,6 +99,7 @@ builder.Services.AddScoped<DigestService>();
 builder.Services.AddHostedService<HomeAssistantSnapshotWorker>();
 builder.Services.AddHostedService<AlertWatchWorker>();
 builder.Services.AddHostedService<AutoMeasurementWorker>();
+builder.Services.AddHostedService<DosingWorker>();
 
 var defaultUrls = builder.Configuration["Hosting:DefaultUrls"];
 if (!string.IsNullOrWhiteSpace(defaultUrls))
@@ -139,6 +141,40 @@ if (DemoData.IsEnabled)
             }
 
             demoLogger.LogInformation("Testdaten: {Count} Messwerte fuer Zelt {TentId} nachgetragen.", anzahl, tent.Id);
+        }
+
+        // Eine kalibrierte pH-Sonde, sonst bleibt die Automatik gesperrt.
+        var hardware = demoScope.ServiceProvider.GetRequiredService<GrowRepository>();
+        foreach (var tent in tents)
+        {
+            var hatSonde = hardware.GetHardwareItemsByTent(tent.Id)
+                .Any(item => item.MetricType == GrowDiary.Web.Models.SensorMetricType.ReservoirPh);
+            if (hatSonde) continue;
+
+            var (probe, calibration) = DemoData.SeedProbe(tent.Id, nowUtc);
+            var angelegt = hardware.CreateHardwareItem(probe);
+            calibration.HardwareItemId = angelegt.Id;
+            hardware.CreateCalibrationEvent(calibration);
+            demoLogger.LogInformation("Testdaten: kalibrierte pH-Sonde fuer Zelt {TentId} angelegt.", tent.Id);
+        }
+
+        // Dazu ein paar zurueckliegende Dosen mit Wirkung. Ohne die hat keine
+        // Pumpe je etwas gelernt, und der Vorschlag aus Stufe 2 sagt auf dem
+        // Entwicklungsrechner immer nur „noch keine Erfahrung".
+        var dosing = demoScope.ServiceProvider.GetRequiredService<DosingRepository>();
+        foreach (var pump in dosing.GetPumps())
+        {
+            if (dosing.GetEvents(pumpId: pump.Id, limit: 200)
+                .Any(dose => dose.Outcome == GrowDiary.Web.Models.DoseOutcome.Done && !dose.Simulated && dose.ValueAfter is not null))
+            {
+                continue;
+            }
+
+            foreach (var dose in DemoData.SeedDoses(pump.Id, pump.TentId, nowUtc))
+            {
+                dosing.InsertEvent(dose);
+            }
+            demoLogger.LogInformation("Testdaten: Dosier-Historie fuer Pumpe {Pump} nachgetragen.", pump.Name);
         }
     }
     catch (Exception ex)

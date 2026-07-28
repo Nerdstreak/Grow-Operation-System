@@ -50,6 +50,32 @@ public sealed class SensorReadingRepository
         return ReadReadings(cmd);
     }
 
+    /// <summary>
+    /// Der jüngste Wert dieser Messgröße in diesem Zelt — null, wenn es keinen gibt.
+    /// </summary>
+    /// <remarks>
+    /// Für die Dosierung: dort zählt der aktuelle Wert und sein Alter, nicht der
+    /// Verlauf. Über <see cref="GetReadings"/> mit einem Zeitfenster zu gehen
+    /// hiesse raten, wie weit man zurückschauen muss, und bei einem stehenden
+    /// Sensor käme leer zurück statt „der letzte Wert ist drei Tage alt" — genau
+    /// der Unterschied, an dem die Automatik abbrechen muss.
+    /// </remarks>
+    public TentSensorReading? GetNewestReading(int tentId, string metricKey)
+    {
+        using var connection = OpenConnection();
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            SELECT Id, TentId, MetricKey, Value, Unit, CapturedAtUtc
+            FROM TentSensorReadings
+            WHERE TentId = $tentId AND MetricKey = $metricKey
+            ORDER BY CapturedAtUtc DESC
+            LIMIT 1;
+            """;
+        cmd.Parameters.AddWithValue("$tentId", tentId);
+        cmd.Parameters.AddWithValue("$metricKey", metricKey);
+        return ReadReadings(cmd).FirstOrDefault();
+    }
+
     public IReadOnlyList<TentSensorReading> GetReadingsForDay(
         int tentId, string metricKey, DateOnly date)
     {

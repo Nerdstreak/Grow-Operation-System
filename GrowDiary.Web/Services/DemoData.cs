@@ -231,4 +231,86 @@ public static class DemoData
         BaseUrl = "http://demo.invalid",
         AccessToken = "demo",
     };
+
+    /// <summary>
+    /// Ein paar zurückliegende Dosen mit Wirkung — damit die Pumpe etwas gelernt hat.
+    /// </summary>
+    /// <remarks>
+    /// Ohne das lässt sich Stufe 2 auf dem Entwicklungsrechner gar nicht ansehen.
+    /// Gelernt wird aus Dosen mit Wert davor und danach, und simulierte Dosen
+    /// lehren bewusst nichts: im Testbetrieb ist nichts geflossen, jede Änderung
+    /// danach hat eine andere Ursache. Diese hier sind deshalb als echt
+    /// eingetragen — im Testdatenmodus ist ohnehin die ganze Datenbank erfunden,
+    /// von den Messwerten an, und der Streifen „Testdaten" steht über jeder Seite.
+    ///
+    /// Die Wirkung ist bewusst nicht exakt gleich: −0,10 bis −0,12 pH je ml. Eine
+    /// perfekt konstante Wirkung gibt es an keinem echten Becken, und ein
+    /// Vorschlag, der aus makellosen Zahlen entsteht, prüft nichts.
+    /// </remarks>
+    public static IEnumerable<DoseEvent> SeedDoses(int pumpId, int tentId, DateTime nowUtc)
+    {
+        var muster = new[]
+        {
+            (Stunden: 52.0, Ml: 3.5, Vorher: 6.42, Wirkung: -0.11),
+            (Stunden: 34.0, Ml: 2.0, Vorher: 6.28, Wirkung: -0.12),
+            (Stunden: 22.0, Ml: 3.0, Vorher: 6.35, Wirkung: -0.10),
+            (Stunden: 9.0,  Ml: 2.5, Vorher: 6.31, Wirkung: -0.11),
+        };
+
+        foreach (var (stunden, ml, vorher, wirkung) in muster)
+        {
+            yield return new DoseEvent
+            {
+                PumpId = pumpId,
+                TentId = tentId,
+                OccurredAtUtc = nowUtc.AddHours(-stunden),
+                Trigger = DoseTrigger.Manual,
+                Outcome = DoseOutcome.Done,
+                RequestedMl = ml,
+                DosedMl = ml,
+                SecondsRun = Math.Round(ml / 45.0 * 60, 2),
+                ValueBefore = vorher,
+                ValueAfter = Math.Round(vorher + ml * wirkung, 3),
+                Reason = "Testdaten: zurückliegende Dosis mit gemessener Wirkung.",
+                Simulated = false,
+            };
+        }
+    }
+
+    /// <summary>
+    /// Eine kalibrierte pH-Sonde — sonst bleibt die Automatik im Testbetrieb gesperrt.
+    /// </summary>
+    /// <remarks>
+    /// Die Automatik verlangt eine Sonde, die kalibriert und nicht überfällig
+    /// ist. Das ist keine Formalie: eine driftende Sonde meldet 6,0, während 5,4
+    /// im Becken steht, und dosiert wird dann überzeugt in die falsche Richtung.
+    /// Auf dem Entwicklungsrechner gibt es keine Sonde, also auch keine
+    /// Kalibrierung — und ohne die liesse sich Stufe 3 nirgends durchspielen.
+    /// </remarks>
+    public static (HardwareItem Probe, CalibrationEvent Calibration) SeedProbe(int tentId, DateTime nowUtc)
+    {
+        var probe = new HardwareItem
+        {
+            Name = "Demo pH-Sonde",
+            Category = "Sonde",
+            DeviceKind = HardwareDeviceKind.FixedSensor,
+            MetricType = SensorMetricType.ReservoirPh,
+            TentId = tentId,
+            Status = HardwareItemStatus.Active,
+            CalibrationIntervalDays = 14,
+            Notes = "Testdaten — diese Sonde gibt es nicht.",
+        };
+
+        var calibration = new CalibrationEvent
+        {
+            CalibrationType = CalibrationEventType.Ph,
+            Status = CalibrationEventStatus.Completed,
+            Result = CalibrationResult.Passed,
+            Title = "Testdaten: pH-Kalibrierung",
+            PerformedAtUtc = nowUtc.AddDays(-3),
+            NextDueAtUtc = nowUtc.AddDays(11),
+        };
+
+        return (probe, calibration);
+    }
 }

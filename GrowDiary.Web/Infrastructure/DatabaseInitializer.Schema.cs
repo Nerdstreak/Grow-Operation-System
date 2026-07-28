@@ -223,6 +223,11 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "DosingPumps", "SimulationMode", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "DoseEvents", "Simulated", "INTEGER NOT NULL DEFAULT 0");
 
+        // Zweikomponenten-Duenger: A und B als Paar mit Verhaeltnis und Trennzeit.
+        EnsureColumn(connection, "DosingPumps", "PartnerPumpId", "INTEGER NULL");
+        EnsureColumn(connection, "DosingPumps", "PartnerRatio", "REAL NOT NULL DEFAULT 1");
+        EnsureColumn(connection, "DosingPumps", "PartnerDelayMinutes", "INTEGER NOT NULL DEFAULT 5");
+
     }
 
 

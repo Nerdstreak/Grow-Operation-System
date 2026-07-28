@@ -40,6 +40,20 @@ type Pump = {
   blockedReason: string | null
 }
 
+type Suggestion = {
+  allowed: boolean
+  ml: number
+  seconds: number
+  reason: string
+  reading: number | null
+  readingFrom: 'sensor' | 'manual' | 'none'
+  readingAgeMinutes: number | null
+  target: number | null
+  targetFrom: 'user' | 'profile' | 'none'
+  learnedChangePerMl: number | null
+  learnedFromDoses: number
+}
+
 type DoseEvent = {
   id: number
   pumpName: string
@@ -95,6 +109,7 @@ function DosingPage() {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [doseMl, setDoseMl] = useState<Record<number, string>>({})
+  const [suggestions, setSuggestions] = useState<Record<number, Suggestion>>({})
   const [calibrating, setCalibrating] = useState<number | null>(null)
   const [calibMl, setCalibMl] = useState('')
   // Die Sekunden des letzten Laufs — die Foerdermenge rechnet sich daraus.
@@ -157,6 +172,27 @@ function DosingPage() {
       laden()
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Dosieren fehlgeschlagen.')
+    } finally {
+      setBusyPumpId(null)
+    }
+  }
+
+  /**
+   * Stufe 2: rechnen, nicht dosieren.
+   *
+   * Der Vorschlag geht durch dieselben Anschläge wie eine echte Dosis — hier
+   * steht also nie eine Menge, die beim Druck auf „Dosieren" abgelehnt würde.
+   * Übernommen wird sie trotzdem nur, wenn jemand drückt.
+   */
+  async function vorschlagen(pump: Pump) {
+    setBusyPumpId(pump.id)
+    setError(null)
+    try {
+      const result = await apiFetch<Suggestion>(`/api/dosing/pumps/${pump.id}/suggestion`)
+      setSuggestions((current) => ({ ...current, [pump.id]: result }))
+      if (result.allowed) setDoseMl((current) => ({ ...current, [pump.id]: String(result.ml).replace('.', ',') }))
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Der Vorschlag liess sich nicht berechnen.')
     } finally {
       setBusyPumpId(null)
     }
@@ -331,6 +367,9 @@ function DosingPage() {
                           <V1Button variant="primary" onClick={() => void dosieren(pump)} disabled={dosing}>
                             {dosing ? 'Dosiert…' : 'Dosieren'}
                           </V1Button>
+                          <V1Button onClick={() => void vorschlagen(pump)} disabled={dosing}>
+                            Was wäre jetzt nötig?
+                          </V1Button>
                           <V1Button onClick={() => void kalibrierlauf(pump, { targetMl: targetForPump(pump.mlPerMinute) })} disabled={dosing}>
                             {dosing
                               ? `Läuft… noch ${restSekunden ?? 0} s`
@@ -343,6 +382,8 @@ function DosingPage() {
                       )}
                       <V1LinkButton to={`/dosierung/${pump.id}`} variant="ghost">Einstellen</V1LinkButton>
                     </div>
+
+                    {suggestions[pump.id] && <SuggestionPanel suggestion={suggestions[pump.id]} />}
 
                     {calibrating === pump.id && (
                       <div className="dz-actions" style={{ borderTop: '1px solid var(--hair)', paddingTop: 10 }}>
@@ -422,6 +463,48 @@ function DosingPage() {
 /** Nur ein Fragment — die Zellen müssen direkte Grid-Kinder bleiben. */
 function LogRow({ children }: { children: React.ReactNode }) {
   return <>{children}</>
+}
+
+/**
+ * Der Vorschlag, aufgeschlüsselt.
+ *
+ * Bewusst nicht nur die Menge: eine Zahl, die eine Pumpe Säure ins Becken
+ * drücken lässt, muss nachrechenbar sein. Wer sie für falsch hält, soll auf
+ * einen Blick sehen, an welcher Stelle — am Messwert, am Ziel oder am Gelernten.
+ */
+function SuggestionPanel({ suggestion }: { suggestion: Suggestion }) {
+  const messwertHerkunft = suggestion.readingFrom === 'sensor' ? 'Sensor'
+    : suggestion.readingFrom === 'manual' ? 'von Hand' : null
+  const zielHerkunft = suggestion.targetFrom === 'user' ? 'dein Grenzwert'
+    : suggestion.targetFrom === 'profile' ? 'Sollwert-Profil' : null
+
+  return (
+    <div className={classNames('dz-suggestion', suggestion.allowed && 'is-allowed')}>
+      <div className="dz-suggestion-head">
+        {suggestion.allowed
+          ? <b>{zahl(suggestion.ml, 2)} ml · {zahl(suggestion.seconds, 1)} s</b>
+          : <b>Kein Vorschlag</b>}
+        <span>{suggestion.reason}</span>
+      </div>
+      <div className="dz-suggestion-facts">
+        <span>
+          Ist{' '}
+          {suggestion.reading != null ? zahl(suggestion.reading, 2) : '—'}
+          {messwertHerkunft && ` · ${messwertHerkunft}`}
+          {suggestion.readingAgeMinutes != null && ` · vor ${suggestion.readingAgeMinutes} min`}
+        </span>
+        <span>
+          Ziel {suggestion.target != null ? zahl(suggestion.target, 2) : '—'}
+          {zielHerkunft && ` · ${zielHerkunft}`}
+        </span>
+        <span>
+          {suggestion.learnedChangePerMl != null
+            ? `Gelernt ${zahl(suggestion.learnedChangePerMl, 3)} je ml · aus ${suggestion.learnedFromDoses} Dosen`
+            : 'Noch nichts gelernt'}
+        </span>
+      </div>
+    </div>
+  )
 }
 
 export default DosingPage

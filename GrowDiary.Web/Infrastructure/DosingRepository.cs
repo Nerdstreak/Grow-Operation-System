@@ -46,12 +46,14 @@ public sealed class DosingRepository : RepositoryBase
                 (TentId, Name, Purpose, Agent, ConcentrationPercent, HaEntityId, MlPerMinute,
                  CalibratedAtUtc, TubeChangedAtUtc, CalibrationIntervalDays, TubeIntervalDays,
                  MaxSingleDoseMl, MinIntervalMinutes, MaxDosesPerDay, MaxMlPerDay, MaxReadingAgeMinutes,
-                 AutomationEnabled, HasHomeAssistantAutoOff, SimulationMode, CreatedAtUtc, UpdatedAtUtc)
+                 AutomationEnabled, HasHomeAssistantAutoOff, SimulationMode,
+                 PartnerPumpId, PartnerRatio, PartnerDelayMinutes, CreatedAtUtc, UpdatedAtUtc)
             VALUES
                 ($tentId, $name, $purpose, $agent, $concentration, $entity, $mlPerMinute,
                  $calibratedAt, $tubeChangedAt, $calInterval, $tubeInterval,
                  $maxSingle, $minInterval, $maxDoses, $maxMl, $maxAge,
-                 $automation, $autoOff, $simulation, $now, $now);
+                 $automation, $autoOff, $simulation,
+                 $partnerId, $partnerRatio, $partnerDelay, $now, $now);
             SELECT last_insert_rowid();
         """;
         BindPump(command, pump);
@@ -73,6 +75,8 @@ public sealed class DosingRepository : RepositoryBase
                    MaxDosesPerDay = $maxDoses, MaxMlPerDay = $maxMl, MaxReadingAgeMinutes = $maxAge,
                    AutomationEnabled = $automation, HasHomeAssistantAutoOff = $autoOff,
                    SimulationMode = $simulation,
+                   PartnerPumpId = $partnerId, PartnerRatio = $partnerRatio,
+                   PartnerDelayMinutes = $partnerDelay,
                    UpdatedAtUtc = $now
              WHERE Id = $id;
         """;
@@ -191,6 +195,81 @@ public sealed class DosingRepository : RepositoryBase
         command.ExecuteNonQuery();
     }
 
+    // ---------- Ausstehende zweite Haelfte ----------
+
+    public int InsertPending(PendingDose pending)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO PendingDoses (PumpId, Ml, DueAtUtc, SourceDoseEventId, Reason, CreatedAtUtc)
+            VALUES ($pumpId, $ml, $due, $source, $reason, $created);
+            SELECT last_insert_rowid();
+        """;
+        command.Parameters.AddWithValue("$pumpId", pending.PumpId);
+        command.Parameters.AddWithValue("$ml", pending.Ml);
+        command.Parameters.AddWithValue("$due", ToStorageUtc(pending.DueAtUtc));
+        AddNullable(command, "$source", (double?)pending.SourceDoseEventId);
+        command.Parameters.AddWithValue("$reason", (object?)pending.Reason ?? DBNull.Value);
+        command.Parameters.AddWithValue("$created", ToStorageUtc(pending.CreatedAtUtc));
+        return Convert.ToInt32(command.ExecuteScalar());
+    }
+
+    /// <summary>Alles, was jetzt faellig ist — aelteste zuerst.</summary>
+    public List<PendingDose> GetDuePending(DateTime nowUtc)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT Id, PumpId, Ml, DueAtUtc, SourceDoseEventId, Reason, CreatedAtUtc
+            FROM PendingDoses
+            WHERE DueAtUtc <= $now
+            ORDER BY DueAtUtc ASC;
+        """;
+        command.Parameters.AddWithValue("$now", ToStorageUtc(nowUtc));
+
+        var result = new List<PendingDose>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read()) result.Add(MapPending(reader));
+        return result;
+    }
+
+    public List<PendingDose> GetPendingForPump(int pumpId)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT Id, PumpId, Ml, DueAtUtc, SourceDoseEventId, Reason, CreatedAtUtc
+            FROM PendingDoses WHERE PumpId = $pumpId ORDER BY DueAtUtc ASC;
+        """;
+        command.Parameters.AddWithValue("$pumpId", pumpId);
+
+        var result = new List<PendingDose>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read()) result.Add(MapPending(reader));
+        return result;
+    }
+
+    public void DeletePending(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM PendingDoses WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    private static PendingDose MapPending(SqliteDataReader reader) => new()
+    {
+        Id = Convert.ToInt32(reader["Id"]),
+        PumpId = Convert.ToInt32(reader["PumpId"]),
+        Ml = Convert.ToDouble(reader["Ml"]),
+        DueAtUtc = ParseStoredUtcDateTime(NullString(reader["DueAtUtc"])) ?? DateTime.UtcNow,
+        SourceDoseEventId = (int?)NullableDouble(reader["SourceDoseEventId"]),
+        Reason = NullString(reader["Reason"]),
+        CreatedAtUtc = ParseStoredUtcDateTime(NullString(reader["CreatedAtUtc"])) ?? DateTime.UtcNow,
+    };
+
     // ---------- Abbildung ----------
 
     private static void BindPump(SqliteCommand command, DosingPump pump)
@@ -214,6 +293,9 @@ public sealed class DosingRepository : RepositoryBase
         command.Parameters.AddWithValue("$automation", pump.AutomationEnabled ? 1 : 0);
         command.Parameters.AddWithValue("$autoOff", pump.HasHomeAssistantAutoOff ? 1 : 0);
         command.Parameters.AddWithValue("$simulation", pump.SimulationMode ? 1 : 0);
+        AddNullable(command, "$partnerId", (double?)pump.PartnerPumpId);
+        command.Parameters.AddWithValue("$partnerRatio", pump.PartnerRatio);
+        command.Parameters.AddWithValue("$partnerDelay", pump.PartnerDelayMinutes);
     }
 
     private static DosingPump MapPump(SqliteDataReader reader) => new()
@@ -238,6 +320,9 @@ public sealed class DosingRepository : RepositoryBase
         AutomationEnabled = Convert.ToInt32(reader["AutomationEnabled"]) == 1,
         HasHomeAssistantAutoOff = Convert.ToInt32(reader["HasHomeAssistantAutoOff"]) == 1,
         SimulationMode = HasColumn(reader, "SimulationMode") && Convert.ToInt32(reader["SimulationMode"]) == 1,
+        PartnerPumpId = HasColumn(reader, "PartnerPumpId") ? (int?)NullableDouble(reader["PartnerPumpId"]) : null,
+        PartnerRatio = HasColumn(reader, "PartnerRatio") ? Convert.ToDouble(reader["PartnerRatio"]) : 1,
+        PartnerDelayMinutes = HasColumn(reader, "PartnerDelayMinutes") ? Convert.ToInt32(reader["PartnerDelayMinutes"]) : 5,
         CreatedAtUtc = ParseStoredUtcDateTime(NullString(reader["CreatedAtUtc"])) ?? DateTime.UtcNow,
         UpdatedAtUtc = ParseStoredUtcDateTime(NullString(reader["UpdatedAtUtc"])) ?? DateTime.UtcNow,
     };

@@ -20,7 +20,9 @@ public enum DoseTrigger
 {
     Manual,
     Calibration,
-    Automatic
+    Automatic,
+    /// <summary>Die zweite Hälfte eines Zweikomponenten-Düngers, zeitversetzt gegeben.</summary>
+    Partner
 }
 
 /// <summary>Wie eine Dosieranfrage ausgegangen ist.</summary>
@@ -128,6 +130,31 @@ public sealed class DosingPump
     /// „gelernt" eine Zahl, hinter der nie ein Tropfen war.
     /// </remarks>
     public bool SimulationMode { get; set; }
+
+    /// <summary>
+    /// Die zweite Pumpe eines Zweikomponenten-Düngers (A und B).
+    /// </summary>
+    /// <remarks>
+    /// Zweikomponenten-Dünger dürfen sich <b>nicht konzentriert begegnen</b>:
+    /// das Calcium aus A fällt mit den Sulfaten und Phosphaten aus B als Gips
+    /// aus, und was ausgeflockt ist, kommt bei der Pflanze nicht mehr an — man
+    /// sieht weisse Flocken und einen EC, der nicht steigt. Deshalb wird nie
+    /// gleichzeitig dosiert: A läuft, dann vergeht die Trennzeit, dann B.
+    /// </remarks>
+    public int? PartnerPumpId { get; set; }
+
+    /// <summary>Wie viel der Partner je Milliliter dieser Pumpe bekommt — 1,0 heisst 1:1.</summary>
+    public double PartnerRatio { get; set; } = 1;
+
+    /// <summary>
+    /// Minuten zwischen A und B.
+    /// </summary>
+    /// <remarks>
+    /// Getrennt von der Mischpause: die fragt „sagt der Messwert schon etwas",
+    /// diese hier fragt „ist A weit genug verteilt, dass B nicht darauf trifft".
+    /// Die zweite ist kürzer und hat einen anderen Grund.
+    /// </remarks>
+    public int PartnerDelayMinutes { get; set; } = 5;
 
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }

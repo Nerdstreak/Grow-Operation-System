@@ -706,6 +706,22 @@ public sealed partial class DatabaseInitializer
             );
             CREATE INDEX IF NOT EXISTS IX_DosingPumps_TentId ON DosingPumps(TentId);
 
+            -- Die zweite Haelfte eines Zweikomponenten-Duengers wartet hier, bis
+            -- die Trennzeit um ist. Bewusst in der Datenbank und nicht im
+            -- Speicher: ein Neustart zwischen A und B wuerde B sonst wortlos
+            -- verschlucken, und im Becken staende A ohne B.
+            CREATE TABLE IF NOT EXISTS PendingDoses (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                PumpId INTEGER NOT NULL,
+                Ml REAL NOT NULL,
+                DueAtUtc TEXT NOT NULL,
+                SourceDoseEventId INTEGER NULL,
+                Reason TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (PumpId) REFERENCES DosingPumps(Id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS IX_PendingDoses_DueAtUtc ON PendingDoses(DueAtUtc);
+
             CREATE TABLE IF NOT EXISTS DoseEvents (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 PumpId INTEGER NOT NULL,
