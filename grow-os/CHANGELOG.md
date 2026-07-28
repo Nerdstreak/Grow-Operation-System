@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.0.0-beta.11
+
+**Beta.** Calibrate a pump by volume, not by stopwatch — and your own limits
+now reach the diagnosis too.
+
+- New — **calibrate to 100 ml.** The old way ran the pump for 30 seconds and
+  asked what was in the cup. At 23 ml, misreading by 1 ml is a 4 % error, and
+  that error sits inside every dose afterwards. Grow OS now runs until roughly
+  100 ml has come out, where the same misreading is worth 1 %. A brand-new pump
+  still starts with the timed run — before the first calibration nobody knows
+  how long 100 ml takes. On a slow pump the target drops to 50 or 25 ml so the
+  run still fits inside the allowed time.
+- New — the button counts down. A 100 ml run takes over two minutes; without a
+  number on screen that looks like a crash.
+- Fixed — **your own thresholds now count in the diagnosis.** They were handed
+  to the analysis and then dropped on the floor: the field was never assigned,
+  so the diagnosis kept reading only the shipped knowledge while the alerts
+  already used your values. The same measurement got two different verdicts on
+  two pages.
+- Fixed — a pH range you enter yourself is now binding, even when it is
+  narrower than the comfort zone. The shipped number is a mix-to target and is
+  deliberately widened to avoid noise; a number you type is a threshold. Anyone
+  deliberately running tighter than the comfort zone was told nothing at all.
+
 ## 2.0.0-beta.10
 
 **Beta.** DWC gets its own targets, and you can write your own.
