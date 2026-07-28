@@ -1,5 +1,54 @@
 # Changelog
 
+## 2.0.0-beta.13
+
+**Beta.** Dosing that suggests and then acts, a report for your own AI, and a
+dashboard you can rearrange with your thumb.
+
+- Fixed — **no pump had ever learned anything.** Every dose recorded the value
+  before it and nothing wrote the value after, so the calculation that derives
+  the effect per millilitre skipped every row. Grow OS now fills it in once the
+  solution has mixed. The window is one mixing period wide: earlier you measure
+  a streak, later you measure the plants drinking, and a wrongly attributed
+  effect would sit inside every dose that follows.
+- New — **"What would be needed now?"** on the dosing page. Grow OS computes the
+  amount from what that pump has learned and shows its reasoning: the reading and
+  where it came from, its age, the target and where *that* came from. The
+  suggestion passes the same limits as a real dose, so it never shows an amount
+  that would be refused.
+- Fixed — that calculation used to read only your last hand-entered measurement
+  and only a threshold you had typed yourself. It now takes the sensor value
+  when that is the newer one, and falls back to your phase profile for the
+  target. Without both, most setups got no suggestion at all.
+- New — **automatic dosing.** Off by default, per pump. It requires an auto-off
+  in Home Assistant, refuses to dose against a stale reading, and stays locked
+  while the probe is uncalibrated or overdue — a drifting probe reports 6.0 while
+  5.4 sits in the reservoir, and the pump would confidently dose the wrong way.
+  Every unattended dose also goes out as a notification.
+- New — **two-part nutrients (A and B).** Pair two pumps with a ratio; A runs,
+  the separation time passes, then B. They must never meet concentrated:
+  calcium from A precipitates with the sulphates and phosphates from B, and what
+  flocculates never reaches the plant. The waiting half is stored in the
+  database, so a restart between A and B cannot silently swallow it.
+- New — **a report for your own AI agent**, on the grow page. Phase and day,
+  current values with their targets and where each target came from, open
+  issues, recent doses and journal entries. Grow OS sends nothing: you download
+  the file and decide who sees it. There is still no AI inside the app.
+- Fixed — **the hardware form never offered the wear templates.** All twelve
+  existed in the knowledge base; none was reachable, so every device you added
+  had an empty lifespan and the maintenance reminder that hangs off it never
+  fired. A UV-C lamp keeps glowing past 9000 hours and stops clarifying — exactly
+  the case nobody notices without a reminder.
+- New — **airflow at leaf level** as a measurement, in m/min (RDWC 90–120,
+  otherwise 60–90). It belongs with VPD: airflow breaks up the humid boundary
+  layer at the leaf, and when that layer sits still your hygrometer reads a
+  number the leaf never experiences. **Water flow** is deliberately a three-way
+  choice, not a number — the source says "moderate, not strong" and names no
+  throughput.
+- New — **rearrange dashboard tiles with your finger.** HTML5 drag-and-drop has
+  no touch support, so on a phone you could previously only add, remove and
+  rename. Drag by the handle; the rest of the tile still scrolls.
+
 ## 2.0.0-beta.12
 
 **Beta.** A QR code that puts Grow OS on your phone's home screen.
