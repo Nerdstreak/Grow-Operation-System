@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.0-beta.16
+
+**Beta.** The main navigation moves to the top on phones.
+
+- Fixed — **the bottom bar was cut off inside the Home Assistant app**, leaving
+  only the top edge of the active item on screen. Not a contrast problem, a
+  geometric one: under ingress Grow OS runs in an iframe whose height comes from
+  the *large* viewport, so it extends below what the phone actually shows — and
+  `position: fixed; bottom: 0` sticks to that iframe's bottom edge, not the
+  screen's. Nothing inside the frame can measure how much is cut off. The four
+  main entries now sit in their own row directly under the header, where the top
+  edge is always visible.
+
 ## 2.0.0-beta.15
 
 **Beta.** The seedling phase is now something you observe, not something the
