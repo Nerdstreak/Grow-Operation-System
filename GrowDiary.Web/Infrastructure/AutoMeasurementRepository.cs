@@ -315,8 +315,8 @@ public sealed class AutoMeasurementRepository : RepositoryBase
             DelayMinutes = reader["DelayMinutes"] is DBNull or null ? null : Convert.ToInt32(reader["DelayMinutes"], CultureInfo.InvariantCulture),
             WindowMinutes = Convert.ToInt32(reader["WindowMinutes"], CultureInfo.InvariantCulture),
             CaptureSnapshot = reader["CaptureSnapshot"] is not DBNull and not null && Convert.ToInt32(reader["CaptureSnapshot"], CultureInfo.InvariantCulture) == 1,
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 
@@ -330,8 +330,8 @@ public sealed class AutoMeasurementRepository : RepositoryBase
             MetricKey = reader["MetricKey"]?.ToString() ?? string.Empty,
             Aggregation = ParseEnum(reader["Aggregation"]?.ToString(), AutoMeasurementAggregation.Latest),
             IsRequired = reader["IsRequired"] is not DBNull and not null && Convert.ToInt32(reader["IsRequired"], CultureInfo.InvariantCulture) == 1,
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 
@@ -343,12 +343,12 @@ public sealed class AutoMeasurementRepository : RepositoryBase
             ConfigId = Convert.ToInt32(reader["ConfigId"], CultureInfo.InvariantCulture),
             GrowId = Convert.ToInt32(reader["GrowId"], CultureInfo.InvariantCulture),
             TriggerKind = ParseEnum(reader["TriggerKind"]?.ToString(), AutoMeasurementTriggerKind.Manual),
-            ScheduledForUtc = ParseStoredDateTime(reader["ScheduledForUtc"]?.ToString()) ?? DateTime.UtcNow,
+            ScheduledForUtc = ParseStoredUtcDateTime(reader["ScheduledForUtc"]?.ToString()) ?? DateTime.UtcNow,
             MeasurementId = reader["MeasurementId"] is DBNull or null ? null : Convert.ToInt32(reader["MeasurementId"], CultureInfo.InvariantCulture),
             Status = ParseEnum(reader["Status"]?.ToString(), AutoMeasurementRunStatus.Pending),
             ErrorMessage = NullString(reader["ErrorMessage"]),
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 

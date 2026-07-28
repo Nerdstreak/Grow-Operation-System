@@ -498,8 +498,8 @@ public sealed class TentRepository : RepositoryBase
             HaEntityId = reader["HaEntityId"]?.ToString() ?? string.Empty,
             DisplayLabel = NullString(reader["DisplayLabel"]),
             IsActive = reader["IsActive"] is not DBNull and not null && Convert.ToInt32(reader["IsActive"], CultureInfo.InvariantCulture) == 1,
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 
@@ -512,7 +512,7 @@ public sealed class TentRepository : RepositoryBase
             MetricKey = reader["MetricKey"]?.ToString() ?? string.Empty,
             Value = Convert.ToDouble(reader["Value"], CultureInfo.InvariantCulture),
             Unit = NullString(reader["Unit"]),
-            CapturedAtUtc = ParseStoredDateTime(reader["CapturedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CapturedAtUtc = ParseStoredUtcDateTime(reader["CapturedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 

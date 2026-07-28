@@ -319,8 +319,8 @@ public sealed class HydroSetupRepository : RepositoryBase
             HasUvSterilizer = Convert.ToInt32(reader["HasUvSterilizer"], CultureInfo.InvariantCulture) != 0,
             Notes = NullString(reader["Notes"]),
             DisplayOrder = Convert.ToInt32(reader["DisplayOrder"], CultureInfo.InvariantCulture),
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(NullString(reader["UpdatedAtUtc"])) ?? ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(NullString(reader["UpdatedAtUtc"])) ?? ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             ActiveGrowCount = reader["ActiveGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ActiveGrowCount"], CultureInfo.InvariantCulture)
         };
     }

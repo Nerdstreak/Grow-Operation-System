@@ -249,8 +249,8 @@ public sealed class LightRepository : RepositoryBase
             LightsOffTime = reader["LightsOffTime"]?.ToString() ?? string.Empty,
             TimeZoneId = NullString(reader["TimeZoneId"]),
             Source = ParseEnum(reader["Source"]?.ToString(), LightSource.Manual),
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 

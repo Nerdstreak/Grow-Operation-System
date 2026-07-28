@@ -89,7 +89,7 @@ public sealed class PhotoRepository : RepositoryBase
             Tag = ParseEnum(reader["Tag"]?.ToString(), PhotoTag.Overview),
             Source = ParseEnum(reader["Source"]?.ToString(), ValueOrigin.Manual),
             IsReferenceShot = reader["IsReferenceShot"] is not DBNull && Convert.ToInt32(reader["IsReferenceShot"], CultureInfo.InvariantCulture) == 1,
-            TakenAtUtc = ParseStoredDateTime(reader["TakenAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            TakenAtUtc = ParseStoredUtcDateTime(reader["TakenAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 }

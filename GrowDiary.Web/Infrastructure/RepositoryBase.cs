@@ -52,9 +52,22 @@ public abstract class RepositoryBase
         return false;
     }
 
+    /// <summary>
+    /// Liest einen Zeitpunkt als <b>Ortszeit</b>.
+    /// </summary>
+    /// <remarks>
+    /// Nur für Spalten, die auch Ortszeit meinen — etwa das Keimdatum, das der
+    /// Nutzer am Kalender abliest. <b>Nicht</b> für Spalten, die „…Utc" heißen:
+    /// dort steht ein Wert mit „Z", und dieser Parser rechnet ihn in Ortszeit
+    /// um. Für die Anzeige fällt das nicht auf, beim Rechnen gegen
+    /// <c>DateTime.UtcNow</c> ist das Ergebnis um den Zeitzonen-Versatz
+    /// daneben. Dafür gibt es <see cref="ParseStoredUtcDateTime"/>; ein Test
+    /// wacht darüber (UtcColumnReadTests).
+    /// </remarks>
     protected static DateTime? ParseStoredDateTime(string? value)
         => DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal | DateTimeStyles.AllowWhiteSpaces, out var result) ? result : null;
 
+    /// <summary>Liest einen Zeitpunkt als UTC — für alle „…Utc"-Spalten.</summary>
     protected static DateTime? ParseStoredUtcDateTime(string? value)
         => DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal | DateTimeStyles.AllowWhiteSpaces, out var result) ? result : null;
 

@@ -260,14 +260,14 @@ public sealed partial class HardwareRepository
             Manufacturer = NullString(reader["Manufacturer"]),
             Model = NullString(reader["Model"]),
             SerialNumber = NullString(reader["SerialNumber"]),
-            InstalledAtUtc = ParseStoredDateTime(reader["InstalledAtUtc"]?.ToString()),
-            RetiredAtUtc = ParseStoredDateTime(reader["RetiredAtUtc"]?.ToString()),
+            InstalledAtUtc = ParseStoredUtcDateTime(reader["InstalledAtUtc"]?.ToString()),
+            RetiredAtUtc = ParseStoredUtcDateTime(reader["RetiredAtUtc"]?.ToString()),
             ExpectedLifespanDays = reader["ExpectedLifespanDays"] is DBNull or null ? null : Convert.ToInt32(reader["ExpectedLifespanDays"], CultureInfo.InvariantCulture),
             InspectionIntervalDays = reader["InspectionIntervalDays"] is DBNull or null ? null : Convert.ToInt32(reader["InspectionIntervalDays"], CultureInfo.InvariantCulture),
             CalibrationIntervalDays = reader["CalibrationIntervalDays"] is DBNull or null ? null : Convert.ToInt32(reader["CalibrationIntervalDays"], CultureInfo.InvariantCulture),
             Notes = NullString(reader["Notes"]),
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 

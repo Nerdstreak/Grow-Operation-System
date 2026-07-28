@@ -587,8 +587,8 @@ public sealed class GrowCoreRepository : RepositoryBase
             Notes = NullString(reader["Notes"]),
             StartDate = ParseStoredDate(reader["StartDate"]?.ToString()) ?? DateTime.Today,
             EndDate = ParseStoredDate(reader["EndDate"]?.ToString()),
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             TentSnapshotJson = HasColumn(reader, "TentSnapshotJson") ? NullString(reader["TentSnapshotJson"]) : null,
             HydroSetupSnapshotJson = HasColumn(reader, "HydroSetupSnapshotJson") ? NullString(reader["HydroSetupSnapshotJson"]) : null,
             SnapshotsCapturedAtUtc = ParseStoredDateTimeIfColumn(reader, "SnapshotsCapturedAtUtc"),
@@ -640,8 +640,8 @@ public sealed class GrowCoreRepository : RepositoryBase
             HaEntityId = reader["HaEntityId"]?.ToString() ?? string.Empty,
             DisplayLabel = NullString(reader["DisplayLabel"]),
             IsActive = reader["IsActive"] is not DBNull and not null && Convert.ToInt32(reader["IsActive"], CultureInfo.InvariantCulture) == 1,
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 
@@ -669,8 +669,8 @@ public sealed class GrowCoreRepository : RepositoryBase
             HasUvSterilizer = Convert.ToInt32(reader["HasUvSterilizer"], CultureInfo.InvariantCulture) != 0,
             Notes = NullString(reader["Notes"]),
             DisplayOrder = Convert.ToInt32(reader["DisplayOrder"], CultureInfo.InvariantCulture),
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(NullString(reader["UpdatedAtUtc"])) ?? ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(NullString(reader["UpdatedAtUtc"])) ?? ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             ActiveGrowCount = reader["ActiveGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ActiveGrowCount"], CultureInfo.InvariantCulture)
         };
     }

@@ -510,9 +510,9 @@ public sealed class SopRepository : RepositoryBase
             Source = ParseEnum(reader["Source"]?.ToString(), SopStartSource.Manual),
             SourceRecommendationKey = NullString(reader["SourceRecommendationKey"]),
             TreatmentRecommendationStableKey = NullString(reader["TreatmentRecommendationStableKey"]),
-            StartedAtUtc = ParseStoredDateTime(reader["StartedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            CompletedAtUtc = ParseStoredDateTime(reader["CompletedAtUtc"]?.ToString()),
-            CancelledAtUtc = ParseStoredDateTime(reader["CancelledAtUtc"]?.ToString()),
+            StartedAtUtc = ParseStoredUtcDateTime(reader["StartedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            CompletedAtUtc = ParseStoredUtcDateTime(reader["CompletedAtUtc"]?.ToString()),
+            CancelledAtUtc = ParseStoredUtcDateTime(reader["CancelledAtUtc"]?.ToString()),
             DueAtUtc = ParseStoredDateTimeIfColumn(reader, "DueAtUtc"),
             NextStepDueAtUtc = ParseStoredDateTimeIfColumn(reader, "NextStepDueAtUtc"),
             RecurrenceIntervalDays = HasColumn(reader, "RecurrenceIntervalDays") && reader["RecurrenceIntervalDays"] is not DBNull
@@ -521,8 +521,8 @@ public sealed class SopRepository : RepositoryBase
             IsRecurring = HasColumn(reader, "IsRecurring") && reader["IsRecurring"] is not DBNull
                 && Convert.ToInt32(reader["IsRecurring"], CultureInfo.InvariantCulture) == 1,
             Notes = NullString(reader["Notes"]),
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             StepCount = HasColumn(reader, "StepCount") && reader["StepCount"] is not DBNull
                 ? Convert.ToInt32(reader["StepCount"], CultureInfo.InvariantCulture)
                 : 0
@@ -551,15 +551,15 @@ public sealed class SopRepository : RepositoryBase
             ReminderTaskId = HasColumn(reader, "ReminderTaskId") && reader["ReminderTaskId"] is not DBNull
                 ? Convert.ToInt32(reader["ReminderTaskId"], CultureInfo.InvariantCulture)
                 : null,
-            StartedAtUtc = ParseStoredDateTime(reader["StartedAtUtc"]?.ToString()),
-            CompletedAtUtc = ParseStoredDateTime(reader["CompletedAtUtc"]?.ToString()),
-            SkippedAtUtc = ParseStoredDateTime(reader["SkippedAtUtc"]?.ToString()),
+            StartedAtUtc = ParseStoredUtcDateTime(reader["StartedAtUtc"]?.ToString()),
+            CompletedAtUtc = ParseStoredUtcDateTime(reader["CompletedAtUtc"]?.ToString()),
+            SkippedAtUtc = ParseStoredUtcDateTime(reader["SkippedAtUtc"]?.ToString()),
             Notes = NullString(reader["Notes"]),
             MeasurementId = reader["MeasurementId"] is DBNull or null ? null : Convert.ToInt32(reader["MeasurementId"], CultureInfo.InvariantCulture),
             JournalEntryId = reader["JournalEntryId"] is DBNull or null ? null : Convert.ToInt32(reader["JournalEntryId"], CultureInfo.InvariantCulture),
             PhotoAssetId = reader["PhotoAssetId"] is DBNull or null ? null : Convert.ToInt32(reader["PhotoAssetId"], CultureInfo.InvariantCulture),
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 

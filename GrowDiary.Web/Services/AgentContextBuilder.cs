@@ -199,14 +199,16 @@ public sealed class AgentContextBuilder
             .Where(risk => risk.Status is RiskEventStatus.Open or RiskEventStatus.Acknowledged)
             .OrderByDescending(risk => risk.CreatedAtUtc)
             .Take(10)
-            .Select(risk => $"{risk.CreatedAtUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} · {risk.Severity} · {risk.Title}")
+            // Ortszeit, nicht UTC: der Bericht wird von einem Menschen gelesen,
+            // und kurz vor Mitternacht stuende sonst der falsche Tag da.
+            .Select(risk => $"{risk.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} · {risk.Severity} · {risk.Title}")
             .ToList();
 
     private List<string> BuildJournal(GrowRun grow)
         => _journal.GetForGrow(grow.Id)
             .OrderByDescending(entry => entry.OccurredAtUtc)
             .Take(8)
-            .Select(entry => $"{entry.OccurredAtUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} · {Kurz(entry.Title, 60)}{(string.IsNullOrWhiteSpace(entry.Body) ? "" : " — " + Kurz(entry.Body, 200))}")
+            .Select(entry => $"{entry.OccurredAtUtc.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} · {Kurz(entry.Title, 60)}{(string.IsNullOrWhiteSpace(entry.Body) ? "" : " — " + Kurz(entry.Body, 200))}")
             .ToList();
 
     private List<string> BuildDoses(GrowRun grow, DateTime nowUtc)
@@ -222,7 +224,7 @@ public sealed class AgentContextBuilder
                     ? $", {vor.ToString("0.00", Deutsch)} → {nach.ToString("0.00", Deutsch)}"
                     : string.Empty;
                 var test = dose.Simulated ? " (Testbetrieb, nichts geflossen)" : string.Empty;
-                return $"{dose.OccurredAtUtc.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)} · {namen.GetValueOrDefault(dose.PumpId, "Pumpe")} · {dose.DosedMl.ToString("0.##", Deutsch)} ml{wirkung}{test}";
+                return $"{dose.OccurredAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)} · {namen.GetValueOrDefault(dose.PumpId, "Pumpe")} · {dose.DosedMl.ToString("0.##", Deutsch)} ml{wirkung}{test}";
             })
             .ToList();
     }

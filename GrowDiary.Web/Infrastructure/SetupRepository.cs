@@ -459,8 +459,8 @@ public sealed class SetupRepository : RepositoryBase
             QuarantineStartedAt = ParseStoredDateTime(reader["QuarantineStartedAt"]?.ToString()),
             QuarantinePlannedEndAt = ParseStoredDateTime(reader["QuarantinePlannedEndAt"]?.ToString()),
             QuarantineResult = NullString(reader["QuarantineResult"]),
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 
@@ -478,8 +478,8 @@ public sealed class SetupRepository : RepositoryBase
             NutrientDemandFactor = NullableDouble(reader["NutrientDemandFactor"]),
             StretchFactor = NullableDouble(reader["StretchFactor"]),
             VpdPreferenceShift = NullableDouble(reader["VpdPreferenceShift"]),
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 
@@ -500,8 +500,8 @@ public sealed class SetupRepository : RepositoryBase
             EndedAt = ParseStoredDateTime(reader["EndedAt"]?.ToString()),
             Notes = NullString(reader["Notes"]),
             StrainName = NullString(reader["StrainName"]),
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
-            UpdatedAtUtc = ParseStoredDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 
