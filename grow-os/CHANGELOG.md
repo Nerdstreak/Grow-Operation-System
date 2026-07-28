@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.0.0-beta.22
+
+**Beta.** Unreadable badges in light mode, and a test that catches the next one.
+
+- Fixed — **"Kritisch" and "Info" on the diagnosis page** carried hard-coded
+  light colours chosen for dark mode. In light mode the measured contrast was
+  1.1 — effectively invisible. The text colour now comes from the theme:
+  measured 5.5 in light, 10.7 in dark.
+- Added — **a readability check in both themes.** It measures the contrast that
+  is actually painted, compositing semi-transparent surfaces over what is beneath
+  them; without that, a badge tinted at 10 % opacity reads as its own colour and
+  the check reports nonsense. Two passes, because one is not enough: walking the
+  routes only sees what renders without a backend, and empty pages have no
+  badges — that pass ran green against the reinstated bug. The tone-carrying
+  building blocks are therefore also placed into a real page and measured there.
+
 ## 2.0.0-beta.21
 
 **Beta.** Light mode on the grow pages.
