@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.0-beta.21
+
+**Beta.** Light mode on the grow pages.
+
+- Fixed — **the grow picker and every input field were dark on dark in light
+  mode.** Their background colour was hard-coded to near-black while the text
+  colour follows the theme. Both now use the `--sunk` token, which exists for
+  both themes and whose dark value matches what was there before.
+- Fixed — **the grow name appeared twice, one line under the other:** once in
+  the picker, once in the back link below it. The link now reads "Zur
+  Grow-Übersicht".
+- Fixed — **"Verlauf8 gesamt".** The card header was a block, so both labels
+  sat flush against each other. Title left, count right.
+- Fixed — **the edit button had a minimum height but nothing centring its
+  label,** so the text stuck to the top edge and cut visually into the line
+  above it.
+
 ## 2.0.0-beta.20
 
 **Beta.** Timestamps that say UTC now come back as UTC.
