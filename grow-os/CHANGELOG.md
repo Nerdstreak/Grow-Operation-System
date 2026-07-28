@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.0-beta.18
+
+**Beta.** Second reality pass over beta.17's new behaviour.
+
+- Fixed — **reservoir alarms kept running during drying.** The reservoir is
+  drained, the pH probe sits in air reading nonsense — and it would have
+  alarmed through exactly the critical drying days. Reservoir rules now pause
+  during the drying window, and only there: someone running a reservoir
+  without a grow record who sets rules means them.
+- Fixed — **the second nutrient half never checked circulation.** A required
+  confirmed circulation, B ran unchecked five minutes later. If the pump dies
+  in between, B now waits for the next tick instead of dosing into still
+  water — and the whole tent holds while it waits.
+
 ## 2.0.0-beta.17
 
 **Beta.** A pass over the app's real-world logic — how a grow actually behaves,
