@@ -63,6 +63,15 @@ public static class GrowStageResolver
             return GrowStage.Clone;
         }
 
+        // Ein bewurzelter Klon ist ab Tag 1 vegetativ. Er hat nie Keimblätter
+        // gehabt — die Sämlingsphase ist ein Kapitel, das nur Samen kennen.
+        // Vorher bekam er trotzdem 14 geschätzte Sämlingstage, weil der
+        // Startpunkt jedes neuen Grows auf „Keimung" steht.
+        if (grow.StartMaterial == StartMaterial.Clone)
+        {
+            return GrowStage.Veg;
+        }
+
         if (grow.StartMaterial == StartMaterial.Seed && grow.GerminatedAt is null)
         {
             // Ohne Keimdatum zählt der Einstiegspunkt: wer mitten im Lauf
@@ -128,6 +137,15 @@ public static class GrowStageResolver
     private static GrowStage FlowerStageFor(GrowRun grow, DateTime flip, DateTime heute)
     {
         var tageInBluete = (heute - flip).Days;
+
+        // Beobachtet schlaegt gerechnet — wie beim Saemling. Wer die Trichome
+        // gesehen und „Finish beginnt" gedrueckt hat, weiss es besser als die
+        // Breeder-Wochen auf der Packung.
+        if (grow.FinishStartedAt is { } finish && heute >= finish.Date)
+        {
+            return GrowStage.Finish;
+        }
+
         if (tageInBluete < TransitionDays)
         {
             return GrowStage.Transition;

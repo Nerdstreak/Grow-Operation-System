@@ -34,6 +34,9 @@ public sealed record GrowSummaryDto(
     DateTime? GerminatedAt,
     DateTime? RootedAt,
     DateTime? VegStartedAt,
+    DateTime? FinishStartedAt,
+    /// <summary>Die Phase von HEUTE, aus dem Resolver — auch die Listen zeigen sie.</summary>
+    string CurrentStage,
     int MeasurementCount,
     string? LatestPhotoPath,
     GrowStage? LatestStage,

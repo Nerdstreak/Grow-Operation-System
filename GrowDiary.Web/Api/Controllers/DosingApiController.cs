@@ -24,19 +24,49 @@ public sealed class DosingApiController : ApiControllerBase
     private readonly AlertRuleRepository _alertRules;
     private readonly DosingService _service;
     private readonly DosingContextBuilder _situations;
+    private readonly HomeAssistantService _homeAssistant;
 
     public DosingApiController(
         GrowRepository repository,
         DosingRepository dosing,
         AlertRuleRepository alertRules,
         DosingService service,
-        DosingContextBuilder situations)
+        DosingContextBuilder situations,
+        HomeAssistantService homeAssistant)
     {
         _repository = repository;
         _dosing = dosing;
         _alertRules = alertRules;
         _service = service;
         _situations = situations;
+        _homeAssistant = homeAssistant;
+    }
+
+    /// <summary>
+    /// Live-Zustaende des Zelts — daraus liest der Waechter die Umwaelzung.
+    /// </summary>
+    /// <remarks>
+    /// Vor einer echten Dosis lohnt der frische Blick: eine stehende
+    /// Umwaelzpumpe heisst Konzentrat an einer Stelle. Nicht erreichbar heisst
+    /// unbekannt, und unbekannt blockt die Hand-Dosis nicht — wer selbst
+    /// drueckt, steht daneben.
+    /// </remarks>
+    private async Task<IReadOnlyDictionary<string, HomeAssistantState>?> LiveStatesAsync(
+        DosingPump pump, CancellationToken cancellationToken)
+    {
+        if (pump.SimulationMode) return null;
+
+        try
+        {
+            var settings = _repository.GetEffectiveHomeAssistantSettings();
+            var tent = _repository.GetTent(pump.TentId);
+            if (!settings.IsConfigured || tent is null) return null;
+            return await _homeAssistant.GetStatesAsync(settings, tent, cancellationToken);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     // ---------- Pumpen ----------
@@ -167,16 +197,8 @@ public sealed class DosingApiController : ApiControllerBase
         if (pump is null) return NotFoundError("pump_not_found", $"Pumpe {id} existiert nicht.");
 
         var nowUtc = DateTime.UtcNow;
-        var context = _situations.Build(pump, nowUtc).Context;
+        var context = _situations.Build(pump, nowUtc, await LiveStatesAsync(pump, cancellationToken)).Context;
         var decision = DosingGuard.Evaluate(pump, request.Ml, context, nowUtc);
-
-        // Wartet noch eine zweite Haelfte, darf keine der beiden Pumpen des
-        // Paares erneut starten — sonst laeuft A ein zweites Mal, waehrend das
-        // erste B noch aussteht.
-        if (decision.Allowed && PartnerDosing.IsBlockedByPending(PendingForPair(pump)))
-        {
-            decision = DosingDecision.No("Die zweite Hälfte steht noch aus — erst wird sie gegeben, dann geht es weiter.");
-        }
 
         if (!decision.Allowed)
         {
@@ -289,18 +311,21 @@ public sealed class DosingApiController : ApiControllerBase
     /// </remarks>
     [HttpGet("pumps/{id:int}/suggestion")]
     [ProducesResponseType(typeof(DoseSuggestionDto), StatusCodes.Status200OK)]
-    public ActionResult<DoseSuggestionDto> Suggestion(int id)
+    public async Task<ActionResult<DoseSuggestionDto>> Suggestion(int id, CancellationToken cancellationToken)
     {
         var pump = _dosing.GetPump(id);
         if (pump is null) return NotFoundError("pump_not_found", $"Pumpe {id} existiert nicht.");
 
         var nowUtc = DateTime.UtcNow;
-        var situation = _situations.Build(pump, nowUtc);
+        var situation = _situations.Build(pump, nowUtc, await LiveStatesAsync(pump, cancellationToken));
         var history = _dosing.GetEvents(pumpId: pump.Id, limit: 50);
-        var gelernt = DosingCalculator.LearnedChangePerMl(history);
+        // Gelernt wird nur aus Dosen seit dem letzten Wasserwechsel — frisches
+        // Wasser puffert anders, Dosen davor beschreiben ein anderes Becken.
+        var gelernt = DosingCalculator.LearnedChangePerMl(history, situation.LearnSinceUtc);
         var gelerntAus = history.Count(dose =>
             dose.Outcome == DoseOutcome.Done && !dose.Simulated
-            && dose.DosedMl > 0 && dose.ValueBefore is not null && dose.ValueAfter is not null);
+            && dose.DosedMl > 0 && dose.ValueBefore is not null && dose.ValueAfter is not null
+            && (situation.LearnSinceUtc is not { } schnitt || dose.OccurredAtUtc >= schnitt));
 
         DoseSuggestionDto Antwort(bool allowed, double ml, double seconds, string reason) => new(
             allowed, ml, seconds, reason,
@@ -332,8 +357,15 @@ public sealed class DosingApiController : ApiControllerBase
                 : "Nichts zu tun: der Wert liegt schon richtig, oder diese Pumpe wirkt andersherum."));
         }
 
-        var decision = DosingGuard.Evaluate(pump, ml.Value, situation.Context, nowUtc);
-        return Ok(Antwort(decision.Allowed, decision.Ml, decision.Seconds, decision.Reason));
+        // Halb leeres Becken, halbe Dosis: die gelernte Wirkung stammt aus dem
+        // vollen Becken, in weniger Wasser wirkt dieselbe Menge staerker.
+        var skaliert = Math.Round(ml.Value * situation.VolumeFactor, 2);
+
+        var decision = DosingGuard.Evaluate(pump, skaliert, situation.Context, nowUtc);
+        var begruendung = situation.VolumeFactor < 0.95
+            ? $"{decision.Reason} Becken ist zu {situation.VolumeFactor:P0} voll — Dosis entsprechend verkleinert."
+            : decision.Reason;
+        return Ok(Antwort(decision.Allowed, decision.Ml, decision.Seconds, begruendung));
     }
 
     private static string Bezeichnung(ReadingSource source) => source switch
@@ -426,11 +458,15 @@ public sealed class DosingApiController : ApiControllerBase
     private DosingPumpDto ToDto(DosingPump pump)
     {
         var history = _dosing.GetEvents(pumpId: pump.Id, limit: 50);
-        var auswertbar = history.Count(dose =>
-            dose.Outcome == DoseOutcome.Done && dose.DosedMl > 0 && dose.ValueBefore is not null && dose.ValueAfter is not null);
 
         var nowUtc = DateTime.UtcNow;
-        var decision = DosingGuard.Evaluate(pump, 0.1, _situations.Build(pump, nowUtc).Context, nowUtc);
+        var situation = _situations.Build(pump, nowUtc);
+        var auswertbar = history.Count(dose =>
+            dose.Outcome == DoseOutcome.Done && !dose.Simulated
+            && dose.DosedMl > 0 && dose.ValueBefore is not null && dose.ValueAfter is not null
+            && (situation.LearnSinceUtc is not { } schnitt || dose.OccurredAtUtc >= schnitt));
+
+        var decision = DosingGuard.Evaluate(pump, 0.1, situation.Context, nowUtc);
 
         return new DosingPumpDto(
             pump.Id, pump.TentId, pump.Name, pump.Purpose.ToString(), pump.Agent, pump.ConcentrationPercent,
@@ -439,7 +475,7 @@ public sealed class DosingApiController : ApiControllerBase
             pump.MaxSingleDoseMl, pump.MinIntervalMinutes, pump.MaxDosesPerDay, pump.MaxMlPerDay,
             pump.MaxReadingAgeMinutes, pump.AutomationEnabled, pump.HasHomeAssistantAutoOff, pump.SimulationMode,
             pump.MetricKey,
-            DosingCalculator.LearnedChangePerMl(history),
+            DosingCalculator.LearnedChangePerMl(history, situation.LearnSinceUtc),
             auswertbar,
             decision.Allowed ? null : decision.Reason,
             pump.PartnerPumpId, pump.PartnerRatio, pump.PartnerDelayMinutes,

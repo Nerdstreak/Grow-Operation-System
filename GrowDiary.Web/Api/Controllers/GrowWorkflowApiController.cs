@@ -376,6 +376,53 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
     /// Bis hierhin schaetzt <see cref="GrowStageResolver"/> ueber die Tage.
     /// Danach zaehlt dieses Datum, und die Zielwerte springen auf Veg.
     /// </remarks>
+    /// <summary>
+    /// Finish beginnt — am Trichom entschieden, nicht am Kalender.
+    /// </summary>
+    /// <remarks>
+    /// Real schaut man mit der Lupe: ueberwiegend milchige Trichome, erste
+    /// bernsteinfarbene — dann wird gespuelt. Die Breeder-Wochen sind nur die
+    /// Schaetzung, bis jemand hingesehen hat. Ab dem Druck gelten die
+    /// Finish-Ziele (weniger EC, kuehler, trockener).
+    /// </remarks>
+    [HttpPost("{id:int}/actions/confirm-finish")]
+    [ProducesResponseType(typeof(GrowActionResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<GrowActionResultDto> ConfirmFinish(int id)
+    {
+        var grow = _repository.GetGrow(id);
+        if (grow is null)
+        {
+            return NotFoundError("grow_not_found", $"Grow mit Id {id} existiert nicht.");
+        }
+
+        // Die Phase sagt der Resolver — dieselbe Quelle wie Kacheln und Ziele.
+        // Eine Nebenrechnung hier draussen waere die naechste Stelle, die
+        // irgendwann widerspricht. (Der erste Wurf prüfte nur „Autoflower?" —
+        // damit waere eine drei Tage alte Auto schon finish-faehig gewesen.)
+        var stage = GrowStageResolver.Resolve(grow, DateTime.Today);
+        if (stage is not (GrowStage.Transition or GrowStage.Flower or GrowStage.Finish))
+        {
+            return BadRequestError("invalid_action", "Finish gibt es erst in der Bluete.");
+        }
+
+        if (!grow.FinishStartedAt.HasValue)
+        {
+            grow.FinishStartedAt = DateTime.Now;
+            _repository.UpdateGrow(grow);
+            _journalRepository.Create(new JournalEntry
+            {
+                GrowId = id,
+                EntryType = JournalEntryType.FinishStarted,
+                Body = "Trichome sind so weit — Finish beginnt, es wird gespuelt.",
+                OccurredAtUtc = DateTime.UtcNow
+            });
+        }
+
+        return Ok(new GrowActionResultDto(_repository.GetGrow(id)!.ToDetailDto(), "Finish festgehalten."));
+    }
+
     [HttpPost("{id:int}/actions/confirm-veg")]
     [ProducesResponseType(typeof(GrowActionResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]

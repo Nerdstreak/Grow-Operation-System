@@ -243,7 +243,7 @@ function RunStep({ form, patch, strains }: { form: GrowUpsertPayload; patch: (va
         </V1Field>
 
         <V1Field label="Startmaterial">
-          <select value={form.startMaterial} onChange={(event) => patch({ startMaterial: event.target.value as StartMaterial })}>
+          <select value={form.startMaterial} onChange={(event) => patch({ startMaterial: event.target.value as StartMaterial, entryPoint: (event.target.value === 'Clone' ? 'Veg' : form.entryPoint) as GrowEntryPoint })}>
             {startMaterials.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>
         </V1Field>

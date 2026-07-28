@@ -14,15 +14,18 @@ public sealed class AlertEvaluationService
 {
     private readonly AlertRuleRepository _rules;
     private readonly NotificationService _notifications;
+    private readonly LightRepository? _lights;
     private readonly ILogger<AlertEvaluationService> _logger;
 
     public AlertEvaluationService(
         AlertRuleRepository rules,
         NotificationService notifications,
-        ILogger<AlertEvaluationService> logger)
+        ILogger<AlertEvaluationService> logger,
+        LightRepository? lights = null)
     {
         _rules = rules;
         _notifications = notifications;
+        _lights = lights;
         _logger = logger;
     }
 
@@ -71,8 +74,23 @@ public sealed class AlertEvaluationService
         }
 
         var nowUtc = DateTime.UtcNow;
+
+        // PPFD, CO₂ und VPD haben nachts kein Ziel: 0 µmol ist bei Licht aus der
+        // Sollzustand, CO₂ faellt ohne Verbrauch auf Umgebungsluft, und die
+        // VPD-Baender aller Quellen meinen den Tag. Vorher klingelte das Handy
+        // jede Nacht — und wer jede Nacht falschen Alarm bekommt, glaubt auch
+        // dem echten nicht mehr. Ohne Licht-Sensor und ohne Lichtplan bleibt es
+        // beim alten Verhalten.
+        states.TryGetValue("light-status", out var lightNow);
+        var lights = LightClock.Resolve(lightNow, _lights?.GetActiveLightScheduleForTent(tent.Id), nowUtc);
+
         foreach (var rule in rules)
         {
+            if (lights == LightsNow.Off && LightClock.IsDaytimeOnly(rule.MetricKey))
+            {
+                continue;
+            }
+
             if (!states.TryGetValue(rule.MetricKey, out var state) || state.NumericValue is not { } value)
             {
                 continue;

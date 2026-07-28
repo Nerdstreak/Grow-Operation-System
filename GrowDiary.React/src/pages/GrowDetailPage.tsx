@@ -93,7 +93,13 @@ function GrowDetailPage() {
   // Der Übergang zur Veg hängt am Aussehen, nicht am Kalender — echte gezackte
   // Blätter statt der zwei runden Keimblätter. Also ein Knopf, solange noch
   // nichts eingetragen ist und noch nicht geflippt wurde.
-  const canConfirmVeg = !grow.vegStartedAt && !grow.flipDate && grow.status === 'Running'
+  // Beide Knöpfe hängen an der Phase, die der Server ausrechnet — dieselbe
+  // Quelle wie die Zielwerte. „Sämling ist durch" gibt es nur im Sämling
+  // (Klone haben nie einen), „Finish beginnt" nur in der Blüte — auch bei
+  // Autoflowern, die keinen Flip kennen.
+  const canConfirmVeg = grow.currentStage === 'Seedling' && !grow.vegStartedAt && grow.status === 'Running'
+  const canConfirmFinish = ['Transition', 'Flower'].includes(grow.currentStage)
+    && !grow.finishStartedAt && grow.status === 'Running'
   const canHarvest = ['Flower', 'Finish', 'Dry'].includes(latest?.stage ?? grow.entryPoint ?? '')
   const timeline = buildPhaseTimeline(grow)
   const lastMeasurements = [...bundle.measurements]
@@ -117,6 +123,11 @@ function GrowDetailPage() {
             {canFlip && (
               <V1Button disabled={Boolean(saving)} onClick={() => void handleGrowAction('flip')}>
                 {saving === 'flip' ? 'Trägt ein…' : 'Flip 12/12'}
+              </V1Button>
+            )}
+            {canConfirmFinish && (
+              <V1Button disabled={Boolean(saving)} onClick={() => void handleGrowAction('finish')}>
+                {saving === 'action-finish' ? 'Trägt ein…' : 'Finish beginnt'}
               </V1Button>
             )}
             {canHarvest && <V1LinkButton to={`/grows/${grow.id}/harvest`} variant="primary">Ernte</V1LinkButton>}

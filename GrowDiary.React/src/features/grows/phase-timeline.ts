@@ -54,6 +54,8 @@ export type PhaseTimelineInput = {
   rootedAt?: string | null
   /** Wann der Sämling zur Veg wurde — beobachtet, nicht gerechnet. */
   vegStartedAt?: string | null
+  /** Klone haben keine Sämlingsphase: bewurzelt heisst vegetativ. */
+  startMaterial?: string | null
   /** Nach so vielen Tagen ohne Eintrag gilt der Sämling als durch (Schätzung). */
   seedlingDays?: number
   plannedVegDays?: number | null
@@ -101,8 +103,11 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
   const saemlingTage = grow.seedlingDays ?? 14
   const vegEingetragen = parse(grow.vegStartedAt)
   const vegGeschaetzt = new Date(saemlingStart + saemlingTage * TAG)
-  const vegBeginn = vegEingetragen ?? vegGeschaetzt
-  const imSaemling = flip == null && jetzt < vegBeginn.getTime()
+  // Ein Klon hat nie Keimblätter gehabt: bewurzelt heisst vegetativ, die
+  // Sämlingsphase entfällt komplett.
+  const istKlon = grow.startMaterial === 'Clone'
+  const vegBeginn = istKlon ? new Date(saemlingStart) : (vegEingetragen ?? vegGeschaetzt)
+  const imSaemling = !istKlon && flip == null && jetzt < vegBeginn.getTime()
 
   // Blütedauer aus den Breeder-Angaben; ohne sie der übliche Richtwert von acht
   // Wochen. Das Erntedatum trägt deshalb ein „~" — es ist eine Schätzung.
@@ -143,7 +148,7 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
   }
 
   // ---------- Sämling ----------
-  {
+  if (!istKlon) {
     const dauer = tage(saemlingStart, vegBeginn.getTime())
     const gelaufen = tage(saemlingStart, Math.min(jetzt, vegBeginn.getTime()))
     const geschaetzt = vegEingetragen == null

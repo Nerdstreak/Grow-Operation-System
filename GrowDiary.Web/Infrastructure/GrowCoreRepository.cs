@@ -124,7 +124,7 @@ public sealed class GrowCoreRepository : RepositoryBase
                 SeedType, StartMaterial, GerminationMethod, CloneSource, CloneIsRooted,
                 BreederFlowerWeeksMin, BreederFlowerWeeksMax, PlannedVegDays, SetpointProfileId, PlantCount, PhenoNumber,
                 PropagationMedium, HasChiller, EntryPoint, DaysAlreadyInPhase,
-                AutoflowerDaysSinceGermination, FlipDate, GerminatedAt, RootedAt, VegStartedAt,
+                AutoflowerDaysSinceGermination, FlipDate, GerminatedAt, RootedAt, VegStartedAt, FinishStartedAt,
                 Nutrients, Notes, StartDate, EndDate, CreatedAtUtc, UpdatedAtUtc,
                 TentSnapshotJson, HydroSetupSnapshotJson, SnapshotsCapturedAtUtc
             )
@@ -135,7 +135,7 @@ public sealed class GrowCoreRepository : RepositoryBase
                 $seedType, $startMaterial, $germinationMethod, $cloneSource, $cloneIsRooted,
                 $breederFlowerWeeksMin, $breederFlowerWeeksMax, $plannedVegDays, $setpointProfileId, $plantCount, $phenoNumber,
                 $propagationMedium, $hasChiller, $entryPoint, $daysAlreadyInPhase,
-                $autoflowerDaysSinceGermination, $flipDate, $germinatedAt, $rootedAt, $vegStartedAt,
+                $autoflowerDaysSinceGermination, $flipDate, $germinatedAt, $rootedAt, $vegStartedAt, $finishStartedAt,
                 $nutrients, $notes, $startDate, $endDate, $createdAtUtc, $updatedAtUtc,
                 $tentSnapshotJson, $hydroSetupSnapshotJson, $snapshotsCapturedAtUtc
             );
@@ -194,6 +194,7 @@ public sealed class GrowCoreRepository : RepositoryBase
                 GerminatedAt = $germinatedAt,
                 RootedAt = $rootedAt,
                 VegStartedAt = $vegStartedAt,
+                FinishStartedAt = $finishStartedAt,
                 Nutrients = $nutrients,
                 Notes = $notes,
                 StartDate = $startDate,
@@ -579,6 +580,9 @@ public sealed class GrowCoreRepository : RepositoryBase
             VegStartedAt = !HasColumn(reader, "VegStartedAt") || reader["VegStartedAt"] is DBNull or null
                 ? null
                 : (DateTime.TryParse(reader["VegStartedAt"]?.ToString(), out var vs) ? vs : (DateTime?)null),
+            FinishStartedAt = !HasColumn(reader, "FinishStartedAt") || reader["FinishStartedAt"] is DBNull or null
+                ? null
+                : (DateTime.TryParse(reader["FinishStartedAt"]?.ToString(), out var fs) ? fs : (DateTime?)null),
             Nutrients = NullString(reader["Nutrients"]),
             Notes = NullString(reader["Notes"]),
             StartDate = ParseStoredDate(reader["StartDate"]?.ToString()) ?? DateTime.Today,
@@ -712,6 +716,7 @@ public sealed class GrowCoreRepository : RepositoryBase
         command.Parameters.AddWithValue("$germinatedAt", grow.GerminatedAt.HasValue ? ToStorageUtc(grow.GerminatedAt.Value) : DBNull.Value);
         command.Parameters.AddWithValue("$rootedAt", grow.RootedAt.HasValue ? ToStorageUtc(grow.RootedAt.Value) : DBNull.Value);
         command.Parameters.AddWithValue("$vegStartedAt", grow.VegStartedAt.HasValue ? ToStorageUtc(grow.VegStartedAt.Value) : DBNull.Value);
+        command.Parameters.AddWithValue("$finishStartedAt", grow.FinishStartedAt.HasValue ? ToStorageUtc(grow.FinishStartedAt.Value) : DBNull.Value);
         command.Parameters.AddWithValue("$nutrients", (object?)grow.Nutrients ?? DBNull.Value);
         command.Parameters.AddWithValue("$notes", (object?)grow.Notes ?? DBNull.Value);
         command.Parameters.AddWithValue("$startDate", ToStorage(grow.StartDate.Date));

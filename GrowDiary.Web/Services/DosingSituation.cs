@@ -34,7 +34,11 @@ public sealed record DosingSituation(
     DosingContext Context,
     double? Target,
     TargetSource TargetFrom,
-    ReadingSource ReadingFrom)
+    ReadingSource ReadingFrom,
+    /// <summary>Skaliert die Dosis auf den Fuellstand: halb leer = halbe Menge.</summary>
+    double VolumeFactor = 1,
+    /// <summary>Ab wann Dosen zaehlen — geschnitten am letzten Wasserwechsel.</summary>
+    DateTime? LearnSinceUtc = null)
 {
     public static DosingSituation Empty(IReadOnlyList<DoseEvent> dosesToday)
         => new(new DosingContext(null, null, null, false, dosesToday, null),

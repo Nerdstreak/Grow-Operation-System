@@ -244,7 +244,7 @@ export function useGrowDetailMutations({
     }
   }
 
-  async function handleGrowAction(action: 'germination' | 'rooting' | 'veg' | 'flip') {
+  async function handleGrowAction(action: 'germination' | 'rooting' | 'veg' | 'finish' | 'flip') {
     if (!growId) return
 
     const route = action === 'germination'
@@ -253,7 +253,9 @@ export function useGrowDetailMutations({
         ? 'confirm-rooting'
         : action === 'veg'
           ? 'confirm-veg'
-          : 'flip-to-flower'
+          : action === 'finish'
+            ? 'confirm-finish'
+            : 'flip-to-flower'
 
     setSaving(`action-${action}`)
     try {

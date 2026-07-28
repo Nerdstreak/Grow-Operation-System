@@ -16,7 +16,25 @@ public sealed record DosingContext(
     /// <summary>Bereits gelaufene Dosen dieser Pumpe seit Mitternacht.</summary>
     IReadOnlyList<DoseEvent> DosesToday,
     /// <summary>Füllstand über dem Minimum? null = unbekannt, dann kein Hindernis.</summary>
-    bool? WaterLevelOk);
+    bool? WaterLevelOk,
+    /// <summary>
+    /// Die jüngste Dosis IRGENDEINER Pumpe dieses Zelts. Die Mischpause gehört
+    /// dem Becken, nicht der Pumpe: nach jeder Dosis in dasselbe Wasser sagt
+    /// der Messwert erst einmal nichts — egal, wer dosiert hat.
+    /// </summary>
+    DateTime? LastTentDoseUtc = null,
+    /// <summary>
+    /// Wartet im Zelt noch eine zweite Dünger-Hälfte (A gegeben, B steht aus)?
+    /// Solange ja, dosiert hier NIEMAND — sonst korrigiert eine pH-Dosis einen
+    /// Zustand, den B gleich wieder verschiebt.
+    /// </summary>
+    bool TentHasPendingDose = false,
+    /// <summary>
+    /// Läuft die Umwälzpumpe? null = unbekannt (kein Sensor gemappt oder Wert
+    /// veraltet). In stehendes Wasser dosiert niemand: ohne Umwälzung verteilt
+    /// sich nichts, ein Topf bekommt das Konzentrat ab.
+    /// </summary>
+    bool? CirculationOn = null);
 
 /// <summary>Das Urteil vor einer Dosis.</summary>
 public sealed record DosingDecision(bool Allowed, double Ml, double Seconds, string Reason)
@@ -73,7 +91,13 @@ public static class DosingCalculator
     /// Also wird gemessen statt gerechnet: nur Dosen mit Wert davor UND danach
     /// zählen, und erst ab dreien überhaupt.
     /// </remarks>
-    public static double? LearnedChangePerMl(IEnumerable<DoseEvent> history)
+    /// <param name="sinceUtc">
+    /// Schneidet das Lernfenster — in der Regel am letzten Wasserwechsel.
+    /// Frisches Wasser hat frische Puffer: der pH-Down-Bedarf ist direkt nach
+    /// dem Wechsel hoeher und sinkt ueber die Standzeit. Dosen von davor
+    /// beschreiben ein anderes Wasser und wuerden den Schnitt verwaessern.
+    /// </param>
+    public static double? LearnedChangePerMl(IEnumerable<DoseEvent> history, DateTime? sinceUtc = null)
     {
         var brauchbar = history
             .Where(dose => dose.Outcome == DoseOutcome.Done && dose.DosedMl > 0)
@@ -81,11 +105,32 @@ public static class DosingCalculator
             // danach hat eine andere Ursache. Sonst stuende hier spaeter eine
             // Zahl, hinter der nie ein Tropfen war.
             .Where(dose => !dose.Simulated)
+            .Where(dose => sinceUtc is not { } schnitt || dose.OccurredAtUtc >= schnitt)
             .Where(dose => dose.ValueBefore is not null && dose.ValueAfter is not null)
             .Select(dose => (dose.ValueAfter!.Value - dose.ValueBefore!.Value) / dose.DosedMl)
             .ToList();
 
         return brauchbar.Count < 3 ? null : Math.Round(brauchbar.Average(), 4);
+    }
+
+    /// <summary>
+    /// Skaliert eine Dosis auf den aktuellen Fuellstand.
+    /// </summary>
+    /// <remarks>
+    /// Die gelernte Wirkung je ml stammt aus Dosen ins volle Becken. Ist das
+    /// Becken nur halb voll, wirkt dieselbe Menge fast doppelt — die Dosis muss
+    /// also mit dem Fuellstand schrumpfen (ml · aktuell/voll). Nach oben wird
+    /// nie skaliert: ein uebervolles Becken macht eine Dosis nur schwaecher,
+    /// und schwaecher ist die sichere Richtung. Unter 30 % wird nicht weiter
+    /// verkleinert, sondern beim Faktor 0,3 gedeckelt — bei so wenig Wasser
+    /// stimmt meist etwas anderes nicht.
+    /// </remarks>
+    public static double VolumeFactor(double? currentLiters, double? referenceLiters)
+    {
+        if (currentLiters is not { } aktuell || referenceLiters is not { } voll) return 1;
+        if (aktuell <= 0 || voll <= 0) return 1;
+
+        return Math.Clamp(aktuell / voll, 0.3, 1.0);
     }
 
     /// <summary>
@@ -136,6 +181,23 @@ public static class DosingGuard
             return DosingDecision.No("Keine Home-Assistant-Entität hinterlegt.");
         }
 
+        // Wartet im Zelt noch eine zweite Dünger-Hälfte, dosiert hier niemand —
+        // auch keine andere Pumpe. Sonst korrigiert pH einen Zustand, den B
+        // gleich wieder verschiebt, oder A läuft doppelt, bevor B je kam.
+        if (context.TentHasPendingDose)
+        {
+            return DosingDecision.No("Im Becken steht noch eine zweite Dünger-Hälfte aus — erst wird die Düngung vollständig.");
+        }
+
+        // In stehendes Wasser dosiert niemand: ohne Umwälzung verteilt sich
+        // nichts, ein Topf bekommt das Konzentrat ab und die Wurzeln darin den
+        // Schaden. Unbekannt (kein Sensor) blockt von Hand nicht — wer selbst
+        // drückt, steht daneben und hört die Pumpe.
+        if (context.CirculationOn == false)
+        {
+            return DosingDecision.No("Die Umwälzpumpe steht — ohne Umwälzung bliebe die Dosis als Konzentrat an einer Stelle.");
+        }
+
         if (pump.MlPerMinute is not { } mlPerMinute || mlPerMinute <= 0)
         {
             return DosingDecision.No("Pumpe ist nicht kalibriert — ohne Fördermenge sind Milliliter keine Laufzeit.");
@@ -175,10 +237,15 @@ public static class DosingGuard
             return DosingDecision.No($"Tagesmenge erreicht: schon {heuteMl:0.#} ml.");
         }
 
-        var letzte = gelaufen.MaxBy(dose => dose.OccurredAtUtc);
-        if (letzte is not null)
+        // Die Mischpause gehört dem Becken, nicht der Pumpe: nach JEDER Dosis
+        // in dasselbe Wasser sagt der Messwert erst einmal nichts — egal, wer
+        // dosiert hat. Vorher zählte nur die eigene Historie, und eine Minute
+        // nach der B-Hälfte hätte die pH-Pumpe in die Schliere gemessen.
+        var letzteEigene = gelaufen.MaxBy(dose => dose.OccurredAtUtc)?.OccurredAtUtc;
+        var letzteImBecken = new[] { letzteEigene, context.LastTentDoseUtc }.Max();
+        if (letzteImBecken is { } zuletzt)
         {
-            var seit = nowUtc - letzte.OccurredAtUtc;
+            var seit = nowUtc - zuletzt;
             if (seit < TimeSpan.FromMinutes(pump.MinIntervalMinutes))
             {
                 var rest = (int)Math.Ceiling((TimeSpan.FromMinutes(pump.MinIntervalMinutes) - seit).TotalMinutes);
@@ -223,6 +290,15 @@ public static class DosingGuard
         if (!pump.SimulationMode && !pump.HasHomeAssistantAutoOff)
         {
             return DosingDecision.No("Ohne Abschaltung in Home Assistant bleibt die Automatik gesperrt.");
+        }
+
+        // Unbeaufsichtigt reicht „unbekannt" nicht: eine stehende Umwälzpumpe
+        // ist oft genau der Grund, warum die Werte driften, die die Automatik
+        // korrigieren will. Sie dosiert nur bei BESTÄTIGT laufender Umwälzung —
+        // im Testbetrieb entfällt das, dort fliesst nichts.
+        if (!pump.SimulationMode && context.CirculationOn != true)
+        {
+            return DosingDecision.No("Automatik dosiert nur bei bestätigt laufender Umwälzung — Umwälzpumpe in Home Assistant mappen.");
         }
 
         if (context.Reading is null)

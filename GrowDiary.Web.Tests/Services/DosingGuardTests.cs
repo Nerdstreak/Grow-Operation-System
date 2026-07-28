@@ -46,7 +46,10 @@ public sealed class DosingGuardTests
             probeCalibrated ? Now.AddDays(-9) : null,
             probeOverdue,
             today ?? [],
-            waterOk);
+            waterOk,
+            // Die Umwaelzung laeuft in diesen Tests: geprueft wird hier anderes,
+            // und die Automatik verlangt sie seit dem Realitaets-Audit.
+            CirculationOn: true);
 
     private static DoseEvent Done(double ml, DateTime at) => new()
     {

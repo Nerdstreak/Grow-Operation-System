@@ -52,6 +52,10 @@ public sealed record GrowDetailDto(
     DateTime? RootedAt,
     /// <summary>Wann der Saemling zur Veg wurde — beobachtet, nicht gerechnet.</summary>
     DateTime? VegStartedAt,
+    /// <summary>Wann das Finish (Spuelen) begann — beobachtet am Trichom, nicht gerechnet.</summary>
+    DateTime? FinishStartedAt,
+    /// <summary>Die Phase von HEUTE, wie der Resolver sie sieht — damit Knöpfe und Kacheln aus derselben Quelle urteilen.</summary>
+    string CurrentStage,
     string? Nutrients,
     string? Notes,
     int MeasurementCount,

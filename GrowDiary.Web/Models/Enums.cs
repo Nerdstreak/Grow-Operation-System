@@ -82,7 +82,9 @@ public enum JournalEntryType
     CloneRooted,
     /// <summary>Saemling vorbei — echte Blaetter da, ab hier Veg.</summary>
     VegStarted,
-    FlipToFlower
+    FlipToFlower,
+    /// <summary>Trichome so weit — Finish beginnt, es wird gespuelt.</summary>
+    FinishStarted
 }
 
 public enum GrowCounterState

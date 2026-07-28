@@ -132,6 +132,7 @@ public static class RequestMapping
         HvacController = Enum.TryParse<HvacControllerType>(request.HvacController, out var hc) ? hc : (HvacControllerType?)null,
         HvacControllerEntityId = Normalize(request.HvacControllerEntityId),
         Co2Available = request.Co2Available,
+        HasCo2Enrichment = request.HasCo2Enrichment,
         CameraEntityId = Normalize(request.CameraEntityId)
     };
 
@@ -157,6 +158,7 @@ public static class RequestMapping
         HvacController = Enum.TryParse<HvacControllerType>(request.HvacController, out var hc) ? hc : (HvacControllerType?)null,
         HvacControllerEntityId = Normalize(request.HvacControllerEntityId),
         Co2Available = request.Co2Available,
+        HasCo2Enrichment = request.HasCo2Enrichment,
         CameraEntityId = Normalize(request.CameraEntityId)
     };
 

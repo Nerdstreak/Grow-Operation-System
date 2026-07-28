@@ -156,6 +156,84 @@ public sealed class DosingCalculatorTests
         Assert.Equal(-0.1, DosingCalculator.LearnedChangePerMl(doses)!.Value, 3);
     }
 
+    // ---------- Volumen und Wasserwechsel ----------
+
+    [Fact]
+    public void AHalfEmptyReservoir_HalvesTheDose()
+    {
+        // Die gelernte Wirkung je ml stammt aus dem vollen Becken. In der
+        // Haelfte Wasser wirkt dieselbe Menge fast doppelt — die Dosis muss
+        // mitschrumpfen.
+        Assert.Equal(0.5, DosingCalculator.VolumeFactor(12.5, 25), 2);
+    }
+
+    [Fact]
+    public void AnOverfullReservoir_NeverScalesUp()
+    {
+        // Mehr Wasser macht die Dosis nur schwaecher — schwaecher ist die
+        // sichere Richtung, hochskaliert wird nie.
+        Assert.Equal(1.0, DosingCalculator.VolumeFactor(30, 25), 2);
+    }
+
+    [Fact]
+    public void BelowThirtyPercent_TheFactorStopsShrinking()
+    {
+        // Bei so wenig Wasser stimmt meist etwas anderes nicht.
+        Assert.Equal(0.3, DosingCalculator.VolumeFactor(2, 25), 2);
+    }
+
+    [Fact]
+    public void WithoutAFillLevel_TheFactorIsOne()
+    {
+        Assert.Equal(1.0, DosingCalculator.VolumeFactor(null, 25), 2);
+        Assert.Equal(1.0, DosingCalculator.VolumeFactor(12, null), 2);
+        Assert.Equal(1.0, DosingCalculator.VolumeFactor(0, 25), 2);
+    }
+
+    [Fact]
+    public void LearningIsCutAtTheLastWaterChange()
+    {
+        // Frisches Wasser puffert anders: Dosen aus dem alten Wasser wuerden
+        // den Schnitt verwaessern. Vor dem Wechsel wirkte 1 ml −0,2; danach
+        // −0,1 — gelernt werden darf nur das Danach.
+        var wechsel = new DateTime(2026, 7, 20, 12, 0, 0, DateTimeKind.Utc);
+        var doses = new[]
+        {
+            Alt(wechsel.AddDays(-3), 2, 6.4, 6.0),
+            Alt(wechsel.AddDays(-2), 2, 6.4, 6.0),
+            Alt(wechsel.AddDays(-1), 2, 6.4, 6.0),
+            Alt(wechsel.AddDays(1), 2, 6.4, 6.2),
+            Alt(wechsel.AddDays(2), 2, 6.4, 6.2),
+            Alt(wechsel.AddDays(3), 2, 6.4, 6.2),
+        };
+
+        Assert.Equal(-0.1, DosingCalculator.LearnedChangePerMl(doses, wechsel)!.Value, 3);
+        // Ohne Schnitt mischt sich beides.
+        Assert.Equal(-0.15, DosingCalculator.LearnedChangePerMl(doses)!.Value, 3);
+    }
+
+    [Fact]
+    public void TooFewDosesSinceTheChange_MeansNoClaim()
+    {
+        // Nach dem Wechsel erst zwei Dosen: lieber „keine Erfahrung" als eine
+        // Zahl aus dem alten Wasser.
+        var wechsel = new DateTime(2026, 7, 20, 12, 0, 0, DateTimeKind.Utc);
+        var doses = new[]
+        {
+            Alt(wechsel.AddDays(-2), 2, 6.4, 6.0),
+            Alt(wechsel.AddDays(-1), 2, 6.4, 6.0),
+            Alt(wechsel.AddDays(1), 2, 6.4, 6.2),
+            Alt(wechsel.AddDays(2), 2, 6.4, 6.2),
+        };
+
+        Assert.Null(DosingCalculator.LearnedChangePerMl(doses, wechsel));
+    }
+
+    private static DoseEvent Alt(DateTime at, double ml, double before, double after) => new()
+    {
+        OccurredAtUtc = at, Outcome = DoseOutcome.Done, DosedMl = ml, ValueBefore = before, ValueAfter = after,
+    };
+
     // ---------- Menge bis zum Ziel ----------
 
     [Fact]

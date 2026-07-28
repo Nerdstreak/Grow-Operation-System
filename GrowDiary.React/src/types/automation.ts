@@ -197,6 +197,7 @@ export interface TentDto {
   hvacController: HvacControllerType | null
   hvacControllerEntityId: string | null
   co2Available: boolean
+  hasCo2Enrichment: boolean
   cameraEntityId: string | null
   cameras: string[]
   leafTempOffsetC: number
@@ -236,6 +237,7 @@ export interface UpdateTentRequest {
   hvacController: HvacControllerType | null
   hvacControllerEntityId: string | null
   co2Available: boolean
+  hasCo2Enrichment: boolean
   cameraEntityId: string | null
   cameras?: string[]
   leafTempOffsetC?: number
@@ -263,6 +265,7 @@ export interface CreateTentRequest {
   hvacController: HvacControllerType | null
   hvacControllerEntityId: string | null
   co2Available: boolean
+  hasCo2Enrichment: boolean
   cameraEntityId: string | null
   cameras?: string[]
   leafTempOffsetC?: number

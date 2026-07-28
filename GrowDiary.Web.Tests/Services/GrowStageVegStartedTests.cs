@@ -132,6 +132,40 @@ public sealed class GrowStageVegStartedTests
     }
 
     [Fact]
+    public void ARootedClone_IsVegFromDayOne()
+    {
+        // Ein Klon hat nie Keimblaetter gehabt — die Saemlingsphase ist ein
+        // Kapitel, das nur Samen kennen. Vorher bekam er trotzdem 14 geschaetzte
+        // Saemlingstage samt Saemlings-EC.
+        var klon = new GrowRun
+        {
+            Id = 3,
+            Name = "Klon",
+            StartDate = Start,
+            EntryPoint = GrowEntryPoint.Germination,
+            StartMaterial = StartMaterial.Clone,
+            CloneIsRooted = true,
+        };
+
+        Assert.Equal(GrowStage.Veg, GrowStageResolver.Resolve(klon, Start.AddDays(2)));
+    }
+
+    [Fact]
+    public void AnUnrootedClone_IsStillAClone()
+    {
+        var klon = new GrowRun
+        {
+            Id = 4,
+            Name = "Klon",
+            StartDate = Start,
+            StartMaterial = StartMaterial.Clone,
+            CloneIsRooted = false,
+        };
+
+        Assert.Equal(GrowStage.Clone, GrowStageResolver.Resolve(klon, Start.AddDays(2)));
+    }
+
+    [Fact]
     public void GerminationDateShiftsTheEstimate()
     {
         // Ohne Keimdatum zaehlt der Start, mit Keimdatum die Keimung — der

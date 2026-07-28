@@ -22,6 +22,7 @@ public sealed record TentDto(
     string? HvacController,
     string? HvacControllerEntityId,
     bool Co2Available,
+    bool HasCo2Enrichment,
     string? CameraEntityId,
     int ActiveGrowCount,
     int ArchivedGrowCount,

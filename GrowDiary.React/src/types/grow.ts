@@ -49,6 +49,9 @@ export interface GrowSummary {
   germinatedAt: string | null
   rootedAt: string | null
   vegStartedAt: string | null
+  finishStartedAt: string | null
+  /** Die Phase von heute, aus dem Resolver — eine Quelle für alle Knöpfe. */
+  currentStage: string
   measurementCount: number
   latestPhotoPath: string | null
   latestStage: GrowStage | null
@@ -226,6 +229,8 @@ export interface GrowDetail {
   germinatedAt: string | null
   rootedAt: string | null
   vegStartedAt: string | null
+  finishStartedAt: string | null
+  currentStage: string
   nutrients: string | null
   notes: string | null
   measurementCount: number

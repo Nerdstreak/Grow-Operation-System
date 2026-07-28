@@ -68,6 +68,8 @@ public sealed class DosingWorker : BackgroundService
         var situations = scope.ServiceProvider.GetRequiredService<DosingContextBuilder>();
         var service = scope.ServiceProvider.GetRequiredService<DosingService>();
         var notifications = scope.ServiceProvider.GetRequiredService<NotificationService>();
+        var grows = scope.ServiceProvider.GetRequiredService<GrowRepository>();
+        var homeAssistant = scope.ServiceProvider.GetRequiredService<HomeAssistantService>();
 
         var nowUtc = DateTime.UtcNow;
 
@@ -75,17 +77,69 @@ public sealed class DosingWorker : BackgroundService
         // fehlt noch. Das hat Vorrang vor allem, was neu dazukaeme.
         await GivePendingAsync(dosing, service, situations, pump: null, nowUtc, cancellationToken);
 
-        foreach (var pump in dosing.GetPumps())
+        // Reihenfolge wie am echten Becken: erst Duenger, dann pH. Duenger
+        // verschiebt den pH von selbst — eine pH-Dosis davor korrigiert etwas,
+        // das sich gleich wieder aendert.
+        var pumps = dosing.GetPumps()
+            .OrderBy(pump => pump.Purpose is DosingPurpose.PhDown or DosingPurpose.PhUp ? 1 : 0)
+            .ToList();
+
+        // Live-Zustaende je Zelt einmal holen — daraus kommt die Umwaelzung.
+        var statesByTent = new Dictionary<int, IReadOnlyDictionary<string, HomeAssistantState>?>();
+
+        // Nach einer Dosis ist der Kontext der uebrigen Pumpen dieses Zelts
+        // veraltet (Mischpause!). Der Rest des Zelts wartet auf den naechsten
+        // Takt — die Mischpause haette ihn ohnehin abgelehnt, aber mit einem
+        // Kontext von VOR der Dosis wuesste er das nicht.
+        var dosedTents = new HashSet<int>();
+
+        foreach (var pump in pumps)
         {
-            var situation = situations.Build(pump, nowUtc);
+            var liveStates = pump.AutomationEnabled && !pump.SimulationMode
+                ? await StatesForTentAsync(statesByTent, grows, homeAssistant, pump.TentId, cancellationToken)
+                : null;
+
+            var situation = situations.Build(pump, nowUtc, liveStates);
 
             RecordEffects(dosing, pump, situation, nowUtc);
 
-            if (pump.AutomationEnabled)
+            if (pump.AutomationEnabled && !dosedTents.Contains(pump.TentId))
             {
-                await DoseIfNeededAsync(dosing, service, notifications, pump, situation, nowUtc, cancellationToken);
+                var dosed = await DoseIfNeededAsync(dosing, service, notifications, pump, situation, nowUtc, cancellationToken);
+                if (dosed) dosedTents.Add(pump.TentId);
             }
         }
+    }
+
+    /// <summary>Live-Zustaende eines Zelts, einmal je Takt — nicht je Pumpe.</summary>
+    private async Task<IReadOnlyDictionary<string, HomeAssistantState>?> StatesForTentAsync(
+        Dictionary<int, IReadOnlyDictionary<string, HomeAssistantState>?> cache,
+        GrowRepository grows,
+        HomeAssistantService homeAssistant,
+        int tentId,
+        CancellationToken cancellationToken)
+    {
+        if (cache.TryGetValue(tentId, out var cached)) return cached;
+
+        IReadOnlyDictionary<string, HomeAssistantState>? states = null;
+        try
+        {
+            var settings = grows.GetEffectiveHomeAssistantSettings();
+            var tent = grows.GetTent(tentId);
+            if (settings.IsConfigured && tent is not null)
+            {
+                states = await homeAssistant.GetStatesAsync(settings, tent, cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Kein Zustand ist eine gueltige Antwort: die Umwaelzung bleibt dann
+            // unbekannt, und die Automatik dosiert nicht. Genau richtig.
+            _logger.LogDebug(ex, "Live-Zustaende fuer Zelt {TentId} nicht erreichbar.", tentId);
+        }
+
+        cache[tentId] = states;
+        return states;
     }
 
     /// <summary>
@@ -182,7 +236,7 @@ public sealed class DosingWorker : BackgroundService
         }
     }
 
-    private async Task DoseIfNeededAsync(
+    private async Task<bool> DoseIfNeededAsync(
         DosingRepository dosing,
         DosingService service,
         NotificationService notifications,
@@ -191,18 +245,22 @@ public sealed class DosingWorker : BackgroundService
         DateTime nowUtc,
         CancellationToken cancellationToken)
     {
-        if (situation.Context.Reading is not { } ist || situation.Target is not { } ziel) return;
+        if (situation.Context.Reading is not { } ist || situation.Target is not { } ziel) return false;
 
-        var gelernt = DosingCalculator.LearnedChangePerMl(dosing.GetEvents(pumpId: pump.Id, limit: 50));
-        if (DosingCalculator.MlToReach(ist, ziel, gelernt) is not { } ml) return;
+        // Lernen seit dem letzten Wasserwechsel, Dosis auf den Fuellstand
+        // skaliert — halb leeres Becken heisst halbe Menge.
+        var gelernt = DosingCalculator.LearnedChangePerMl(
+            dosing.GetEvents(pumpId: pump.Id, limit: 50), situation.LearnSinceUtc);
+        if (DosingCalculator.MlToReach(ist, ziel, gelernt) is not { } ml) return false;
 
-        var decision = DosingGuard.EvaluateAutomatic(pump, ml, situation.Context, nowUtc);
+        var skaliert = Math.Round(ml * situation.VolumeFactor, 2);
+        var decision = DosingGuard.EvaluateAutomatic(pump, skaliert, situation.Context, nowUtc);
         if (!decision.Allowed)
         {
             // Kein Protokolleintrag: die Automatik prueft jede Minute, und
             // „Mischpause laeuft noch" waere sonst 18 Zeilen pro Dosis.
             _logger.LogDebug("Automatik {Pump}: {Reason}", pump.Name, decision.Reason);
-            return;
+            return false;
         }
 
         var ok = await service.RunForSecondsAsync(pump, decision.Seconds, cancellationToken);
@@ -227,7 +285,7 @@ public sealed class DosingWorker : BackgroundService
         if (!ok)
         {
             _logger.LogError("Automatik {Pump}: Home Assistant hat nicht geschaltet.", pump.Name);
-            return;
+            return false;
         }
 
         _logger.LogInformation("Automatik {Pump}: {Ml:0.##} ml, {Ist:0.00} → Ziel {Ziel:0.00}.", pump.Name, decision.Ml, ist, ziel);
@@ -238,5 +296,6 @@ public sealed class DosingWorker : BackgroundService
             $"{decision.Ml:0.##} ml automatisch gegeben. Wert war {ist:0.00}, Ziel {ziel:0.00}."
                 + (pump.SimulationMode ? " (Testbetrieb — es ist nichts geflossen.)" : string.Empty),
             cancellationToken);
+        return true;
     }
 }

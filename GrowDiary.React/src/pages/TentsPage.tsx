@@ -25,6 +25,7 @@ type TentDraft = {
   exhaustM3h: string
   circulationFanCount: string
   co2Available: boolean
+  hasCo2Enrichment: boolean
   leafTempOffsetC: string
   notes: string
 }
@@ -243,7 +244,8 @@ function TentsPage() {
               <V1Field label="Abluft Anzahl"><input type="number" value={draft.exhaustFanCount} onChange={(event) => setDraft((current) => ({ ...current, exhaustFanCount: event.target.value }))} /></V1Field>
               <V1Field label="Abluft m³/h"><input type="number" value={draft.exhaustM3h} onChange={(event) => setDraft((current) => ({ ...current, exhaustM3h: event.target.value }))} /></V1Field>
               <V1Field label="Umluft Anzahl"><input type="number" value={draft.circulationFanCount} onChange={(event) => setDraft((current) => ({ ...current, circulationFanCount: event.target.value }))} /></V1Field>
-              <V1Switch label="CO₂ vorhanden" checked={draft.co2Available} onChange={(checked) => setDraft((current) => ({ ...current, co2Available: checked }))} />
+              <V1Switch label="CO₂-Sensor vorhanden" checked={draft.co2Available} onChange={(checked) => setDraft((current) => ({ ...current, co2Available: checked }))} />
+              <V1Switch label="CO₂-Anreicherung (Brenner/Flasche)" checked={draft.hasCo2Enrichment} onChange={(checked) => setDraft((current) => ({ ...current, hasCo2Enrichment: checked }))} hint="Nur mit Anreicherung bekommt die CO₂-Kachel ein Ziel — ein Sensor allein misst Umgebungsluft, und die ist bei ~400–500 ppm normal." />
               <V1Field label="Blatt kühler als Luft (°C)" hint="Für die VPD-Berechnung. Blätter sind durch Verdunstung meist 1–3 °C kühler als die Luft; unter LED ohne Infrarot eher 2–3. 0 = mit Lufttemperatur rechnen.">
                 <input type="number" step="0.5" min="0" max="10" value={draft.leafTempOffsetC} onChange={(event) => setDraft((current) => ({ ...current, leafTempOffsetC: event.target.value }))} />
               </V1Field>
@@ -565,15 +567,15 @@ function countHydroForTent(items: HydroSetupDto[], tentId: number) { return item
 function getHydroForTent(items: HydroSetupDto[], tentId: number) { return items.filter((setup) => setup.tentId === tentId && setup.status === 'Active') }
 function getGrowsForTent(items: GrowSummary[], tentId: number) { return items.filter((grow) => grow.tentId === tentId && (grow.status === 'Running' || grow.status === 'Planning')) }
 function mapSensors(tent: TentDto): UpdateTentSensorRequest[] { return tent.sensors.map((sensor) => ({ id: sensor.id, metricType: sensor.metricType, haEntityId: sensor.haEntityId, displayLabel: sensor.displayLabel, isActive: sensor.isActive })) }
-function createDraft(displayOrder = 1): TentDraft { return { name: '', kind: 'Grow Tent', tentType: 'Production', notes: '', displayOrder: String(displayOrder), widthCm: '', depthCm: '', tentHeightCm: '', lightType: '', lightWatt: '', exhaustFanCount: '', exhaustM3h: '', circulationFanCount: '', co2Available: false, leafTempOffsetC: '2' } }
-function createDraftFromTent(tent: TentDto): TentDraft { return { name: tent.name, kind: tent.kind, tentType: tent.tentType, notes: tent.notes ?? '', displayOrder: String(tent.displayOrder), widthCm: String(tent.widthCm ?? ''), depthCm: String(tent.depthCm ?? ''), tentHeightCm: String(tent.tentHeightCm ?? ''), lightType: tent.lightType ?? '', lightWatt: String(tent.lightWatt ?? ''), exhaustFanCount: String(tent.exhaustFanCount ?? ''), exhaustM3h: String(tent.exhaustM3h ?? ''), circulationFanCount: String(tent.circulationFanCount ?? ''), co2Available: tent.co2Available, leafTempOffsetC: String(tent.leafTempOffsetC ?? 0) } }
+function createDraft(displayOrder = 1): TentDraft { return { name: '', kind: 'Grow Tent', tentType: 'Production', notes: '', displayOrder: String(displayOrder), widthCm: '', depthCm: '', tentHeightCm: '', lightType: '', lightWatt: '', exhaustFanCount: '', exhaustM3h: '', circulationFanCount: '', co2Available: false, hasCo2Enrichment: false, leafTempOffsetC: '2' } }
+function createDraftFromTent(tent: TentDto): TentDraft { return { name: tent.name, kind: tent.kind, tentType: tent.tentType, notes: tent.notes ?? '', displayOrder: String(tent.displayOrder), widthCm: String(tent.widthCm ?? ''), depthCm: String(tent.depthCm ?? ''), tentHeightCm: String(tent.tentHeightCm ?? ''), lightType: tent.lightType ?? '', lightWatt: String(tent.lightWatt ?? ''), exhaustFanCount: String(tent.exhaustFanCount ?? ''), exhaustM3h: String(tent.exhaustM3h ?? ''), circulationFanCount: String(tent.circulationFanCount ?? ''), co2Available: tent.co2Available, hasCo2Enrichment: tent.hasCo2Enrichment, leafTempOffsetC: String(tent.leafTempOffsetC ?? 0) } }
 // The leaf offset is a decimal (e.g. 2.5 °C), so it must not go through the int helper.
 function parseOffset(value: string): number {
   const parsed = Number.parseFloat(value.replace(',', '.'))
   return Number.isFinite(parsed) ? Math.min(10, Math.max(0, parsed)) : 0
 }
 
-function draftToRequest(draft: TentDraft) { return { name: draft.name.trim(), kind: draft.kind.trim() || 'Grow Tent', tentType: draft.tentType, notes: toNullableString(draft.notes), displayOrder: toNullableInt(draft.displayOrder) ?? 0, accentColor: '#22c55e', widthCm: toNullableInt(draft.widthCm), depthCm: toNullableInt(draft.depthCm), tentHeightCm: toNullableInt(draft.tentHeightCm), lightType: toNullableString(draft.lightType), lightWatt: toNullableInt(draft.lightWatt), lightController: null, lightControllerEntityId: null, exhaustFanCount: toNullableInt(draft.exhaustFanCount), exhaustM3h: toNullableInt(draft.exhaustM3h), circulationFanCount: toNullableInt(draft.circulationFanCount), hvacController: null, hvacControllerEntityId: null, co2Available: draft.co2Available, cameraEntityId: null, leafTempOffsetC: parseOffset(draft.leafTempOffsetC) } }
+function draftToRequest(draft: TentDraft) { return { name: draft.name.trim(), kind: draft.kind.trim() || 'Grow Tent', tentType: draft.tentType, notes: toNullableString(draft.notes), displayOrder: toNullableInt(draft.displayOrder) ?? 0, accentColor: '#22c55e', widthCm: toNullableInt(draft.widthCm), depthCm: toNullableInt(draft.depthCm), tentHeightCm: toNullableInt(draft.tentHeightCm), lightType: toNullableString(draft.lightType), lightWatt: toNullableInt(draft.lightWatt), lightController: null, lightControllerEntityId: null, exhaustFanCount: toNullableInt(draft.exhaustFanCount), exhaustM3h: toNullableInt(draft.exhaustM3h), circulationFanCount: toNullableInt(draft.circulationFanCount), hvacController: null, hvacControllerEntityId: null, co2Available: draft.co2Available, hasCo2Enrichment: draft.hasCo2Enrichment, cameraEntityId: null, leafTempOffsetC: parseOffset(draft.leafTempOffsetC) } }
 function formatTentType(value: TentType) { return value === 'Production' ? 'Blüte / Run' : value === 'Mother' ? 'Mutter' : value === 'Propagation' ? 'Anzucht' : value === 'Quarantine' ? 'Quarantäne' : 'Mehrzweck' }
 function liveValue(live: TentLivePayload | null, key: LiveMetricKey) {
   const metric = live?.metrics.find((item) => item.key === key)

@@ -179,6 +179,20 @@ describe('buildPhaseTimeline', () => {
     expect(strahl.phases.find((phase) => phase.state === 'current')!.label).toBe('Veg · Tag 10')
   })
 
+  it('gibt einem Klon keine Sämlingsphase', () => {
+    // Bewurzelt heisst vegetativ — Keimblätter gab es nie.
+    const strahl = buildPhaseTimeline({
+      startDate: vorTagen(10),
+      rootedAt: vorTagen(8),
+      startMaterial: 'Clone',
+    }, JETZT)
+
+    expect(strahl.phases.some((phase) => phase.name === 'Sämling')).toBe(false)
+    const laufend = strahl.phases.find((phase) => phase.state === 'current')!
+    expect(laufend.name).toBe('Veg')
+    expect(laufend.label).toBe('Veg · Tag 8')
+  })
+
   it('lässt die Sämlingsdauer einstellen', () => {
     // Die 14 Tage sind ein Richtwert, kein Gesetz — typisch sind ein bis drei
     // Wochen. Wer es besser weiss, traegt den Uebergang ein; wer eine andere

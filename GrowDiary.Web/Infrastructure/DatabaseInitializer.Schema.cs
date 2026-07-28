@@ -235,6 +235,11 @@ public sealed partial class DatabaseInitializer
         // Der beobachtete Uebergang Saemling -> Veg. Vorher wurde er nur
         // gerechnet, und die Anzeige widersprach den Zielwerten.
         EnsureColumn(connection, "Grows", "VegStartedAt", "TEXT NULL");
+        EnsureColumn(connection, "Grows", "FinishStartedAt", "TEXT NULL");
+
+        // Anreicherung ist nicht Sensor: nur mit Brenner/Flasche gibt es ein
+        // CO2-Ziel. Default 0 — wer anreichert, schaltet es bewusst ein.
+        EnsureColumn(connection, "Tents", "HasCo2Enrichment", "INTEGER NOT NULL DEFAULT 0");
 
     }
 

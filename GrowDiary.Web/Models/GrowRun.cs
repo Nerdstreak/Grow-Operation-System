@@ -78,6 +78,16 @@ public sealed class GrowRun
     /// besser als jede Rechnung. Dieselbe Regel wie beim Flip.
     /// </remarks>
     public DateTime? VegStartedAt { get; set; }
+
+    /// <summary>
+    /// Wann das Finish (Spuelen) begann — beobachtet, nicht gerechnet.
+    /// </summary>
+    /// <remarks>
+    /// Real entscheidet der Blick auf die Trichome, nicht die Breeder-Wochen:
+    /// milchig mit ersten bernsteinfarbenen heisst bald ernten, also spuelen.
+    /// Ohne Eintrag schaetzt der Resolver weiter ueber die Breeder-Angabe.
+    /// </remarks>
+    public DateTime? FinishStartedAt { get; set; }
     public string? Nutrients { get; set; }
     public string? Notes { get; set; }
     public DateTime StartDate { get; set; } = DateTime.Today;

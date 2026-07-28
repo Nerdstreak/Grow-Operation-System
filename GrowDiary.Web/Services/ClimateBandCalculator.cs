@@ -25,8 +25,18 @@ public static class ClimateBandCalculator
     /// Das Feuchteband (in %), das bei dieser Lufttemperatur im VPD-Ziel landet.
     /// Geschlossen lösbar: VPD hängt linear von der Feuchte ab.
     /// </summary>
+    /// <param name="maxHumidityPercent">
+    /// Der Schimmeldeckel der Phase (<see cref="MoldGuard"/>). Ohne ihn kannte
+    /// diese Rechnung nur Physik: bei 32 °C in der Blüte kam „64–68 % RLF"
+    /// heraus — korrekt gerechnet und trotzdem gefährlicher Rat, weil ab ~60 %
+    /// in dichten Blüten Grauschimmel wahrscheinlich wird. Drückt der Deckel
+    /// das Band auf nichts zusammen, ist die Antwort ehrlich: bei dieser
+    /// Temperatur gibt es keine sichere Feuchte für dieses VPD-Ziel — die
+    /// Temperatur muss runter, nicht die Feuchte rauf.
+    /// </param>
     public static (double? Min, double? Max) HumidityBand(
-        double airTemperatureC, double vpdMin, double vpdMax, double leafOffsetC)
+        double airTemperatureC, double vpdMin, double vpdMax, double leafOffsetC,
+        double? maxHumidityPercent = null)
     {
         if (vpdMin > vpdMax) (vpdMin, vpdMax) = (vpdMax, vpdMin);
 
@@ -41,7 +51,7 @@ public static class ClimateBandCalculator
         var max = 100.0 * (blatt - vpdMin) / luft;
 
         min = Math.Clamp(min, 0, 100);
-        max = Math.Clamp(max, 0, 100);
+        max = Math.Clamp(max, 0, Math.Min(100, maxHumidityPercent ?? 100));
         return min >= max ? (null, null) : (Math.Round(min, 1), Math.Round(max, 1));
     }
 

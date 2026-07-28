@@ -35,6 +35,7 @@ public static class SettingsMapping
         HvacController: tent.HvacController?.ToString(),
         HvacControllerEntityId: tent.HvacControllerEntityId,
         Co2Available: tent.Co2Available,
+        HasCo2Enrichment: tent.HasCo2Enrichment,
         CameraEntityId: tent.CameraEntityId,
         ActiveGrowCount: tent.ActiveGrowCount,
         ArchivedGrowCount: tent.ArchivedGrowCount,

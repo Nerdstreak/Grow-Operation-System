@@ -14,6 +14,9 @@ public sealed class GrowDashboardComposer
     private readonly AlertRuleRepository? _alertRules;
     private readonly HydroSetupRepository? _hydroSetups;
     private readonly SetpointProfileRepository? _setpointProfiles;
+    private readonly LightRepository? _lights;
+    private readonly GrowRepository? _grows;
+    private readonly HarvestRepository? _harvests;
     private readonly ILogger<GrowDashboardComposer> _logger;
 
     public GrowDashboardComposer(
@@ -24,7 +27,10 @@ public sealed class GrowDashboardComposer
         ILogger<GrowDashboardComposer> logger,
         AlertRuleRepository? alertRules = null,
         HydroSetupRepository? hydroSetups = null,
-        SetpointProfileRepository? setpointProfiles = null)
+        SetpointProfileRepository? setpointProfiles = null,
+        LightRepository? lights = null,
+        GrowRepository? grows = null,
+        HarvestRepository? harvests = null)
     {
         _chartService = chartService;
         _deviationAnalyzer = deviationAnalyzer;
@@ -33,6 +39,9 @@ public sealed class GrowDashboardComposer
         _alertRules = alertRules;
         _hydroSetups = hydroSetups;
         _setpointProfiles = setpointProfiles;
+        _lights = lights;
+        _grows = grows;
+        _harvests = harvests;
         _logger = logger;
     }
 
@@ -143,7 +152,22 @@ public sealed class GrowDashboardComposer
         };
 
         if (tent.Co2Available || measurements.Any(m => m.Co2Ppm.HasValue))
-            cards.Add(Build("CO2", "co2", m => m?.Co2Ppm, explicitUnit: "ppm"));
+        {
+            var co2 = Build("CO2", "co2", m => m?.Co2Ppm, explicitUnit: "ppm");
+
+            // Ein Sensor misst nur. Ohne Anreicherung steht die Luft bei
+            // ~400-500 ppm, und das Profilziel (800-1400) stuende fuer immer
+            // „daneben" — die Kachel war dann dauerhaft rot, obwohl alles
+            // normal ist. Ohne Brenner also kein Ziel, mit Erklaerung.
+            if (!tent.HasCo2Enrichment)
+            {
+                co2.TargetMin = null;
+                co2.TargetMax = null;
+                co2.Hint = "Ohne CO₂-Anreicherung ist Umgebungsluft (~400–500 ppm) normal";
+            }
+
+            cards.Add(co2);
+        }
 
         var hasActiveHydro = tent.ActiveGrows.Any(g => g.IrrigationType == IrrigationType.ActiveHydro);
 
@@ -205,14 +229,48 @@ public sealed class GrowDashboardComposer
         if (hasActiveHydro || states.ContainsKey("reservoir-temp") || measurements.Any(m => m.ReservoirWaterTempC.HasValue))
             cards.Add(Build("Wassertemp.", "reservoir-temp", m => m?.ReservoirWaterTempC, explicitUnit: "°C"));
 
-        ApplyClimateBands(cards, targets, tent.LeafTempOffsetC);
+        // Ist im Zelt gerade Tag? Nachts ist PPFD 0 richtig, CO₂ bei
+        // Umgebungsluft richtig, und VPD-Ziele gelten für die Lichtphase.
+        // Vorher malte jede Nacht rote Kacheln, der Score sank grundlos, und
+        // genau so entsteht Alarm-Müdigkeit. Unbekannt heisst: wie bisher —
+        // lieber ein unnötiges Nacht-Urteil als ein unterdrücktes Tag-Urteil.
+        states.TryGetValue("light-status", out var lightNow);
+        var lights = LightClock.Resolve(lightNow, _lights?.GetActiveLightScheduleForTent(tent.Id), DateTime.UtcNow);
+
+        if (lights == LightsNow.Off)
+        {
+            foreach (var card in cards.Where(card => LightClock.IsDaytimeOnly(card.Key)))
+            {
+                card.TargetMin = null;
+                card.TargetMax = null;
+                card.TargetNote = null;
+                card.TargetDerived = false;
+                card.Hint = card.Key switch
+                {
+                    "ppfd" => "Licht aus — 0 ist hier richtig",
+                    "co2" => "Licht aus — nachts braucht die Pflanze kein CO₂",
+                    _ => "Licht aus — das VPD-Ziel gilt bei Licht an",
+                };
+            }
+        }
+        else
+        {
+            // Die abgeleiteten Klima-Bänder hängen am VPD-Ziel und damit am Tag.
+            ApplyClimateBands(cards, targets, tent.LeafTempOffsetC, stage);
+        }
+
+        // Nach der Ernte wird das Zelt zum Trockenraum — 7 bis 14 Tage, und es
+        // ist das hoechste Schimmelrisiko des ganzen Zyklus. Vorher schaute die
+        // App ab der Ernte einfach weg: Grow abgeschlossen, keine Ziele mehr,
+        // obwohl die Sensoren weiter haengen und genau jetzt zaehlen.
+        ApplyDryingTargets(cards, tent, activeGrow);
 
         // Der Profilname auf die Kacheln, solange es nicht das Mitgelieferte ist.
         ApplyProfileNote(cards, resolved);
 
         // Zuletzt und damit ueber allem: was der Nutzer selbst eingetragen hat.
         // Erst hier, damit es auch die zurueckgerechneten Klimabaender schlaegt.
-        ApplyUserTargets(cards, tent.Id);
+        ApplyUserTargets(cards, tent.Id, lights);
 
         return cards;
     }
@@ -267,13 +325,62 @@ public sealed class GrowDashboardComposer
     /// Zahl, die von den mitgelieferten abweicht, ohne dass jemand erkennen
     /// könnte warum — genau die Verwirrung, die das hier abstellt.
     /// </remarks>
-    private void ApplyUserTargets(List<MetricCard> cards, int tentId)
+    /// <summary>
+    /// Trocknungs-Klima auf Temperatur und Feuchte, solange im Zelt frisch
+    /// geerntet haengt.
+    /// </summary>
+    /// <remarks>
+    /// Trocknung liegt vor, wenn kein Grow mehr laeuft, der letzte in den
+    /// vergangenen drei Wochen geerntet wurde und noch kein Trockengewicht
+    /// eingetragen ist — das Gewicht ist der natuerliche Abschluss: gewogen
+    /// wird nach dem Trocknen.
+    /// </remarks>
+    private void ApplyDryingTargets(List<MetricCard> cards, Tent tent, GrowRun? activeGrow)
+    {
+        if (activeGrow is not null || _grows is null || _harvests is null) return;
+
+        var geerntet = _grows.GetAllGrows()
+            .Where(grow => grow.TentId == tent.Id
+                && grow.Status == GrowStatus.Completed
+                && grow.EndDate is { } ende
+                && (DateTime.Today - ende.Date).TotalDays <= MoldGuard.DryingWindowDays)
+            .OrderByDescending(grow => grow.EndDate)
+            .FirstOrDefault();
+        if (geerntet is null) return;
+
+        var ernte = _harvests.GetForGrow(geerntet.Id);
+        if (ernte is null || ernte.DryWeightG is not null) return;
+
+        var tag = (int)(DateTime.Today - geerntet.EndDate!.Value.Date).TotalDays + 1;
+
+        if (cards.FirstOrDefault(card => card.Key == "temperature") is { } temperatur)
+        {
+            temperatur.TargetMin = MoldGuard.DryingTempMinC;
+            temperatur.TargetMax = MoldGuard.DryingTempMaxC;
+            temperatur.TargetNote = $"Trocknung · Tag {tag}";
+            temperatur.TargetDerived = false;
+        }
+
+        if (cards.FirstOrDefault(card => card.Key == "humidity") is { } feuchte)
+        {
+            feuchte.TargetMin = MoldGuard.DryingHumidityMin;
+            feuchte.TargetMax = MoldGuard.DryingHumidityMax;
+            feuchte.TargetNote = $"Trocknung · Tag {tag}";
+            feuchte.TargetDerived = false;
+        }
+    }
+
+    private void ApplyUserTargets(List<MetricCard> cards, int tentId, LightsNow lights = LightsNow.Unknown)
     {
         var rules = _alertRules?.GetForTent(tentId);
         if (rules is null || rules.Count == 0) return;
 
         foreach (var card in cards)
         {
+            // Auch der eigene Grenzwert für PPFD/CO₂/VPD meint den Tag — bei
+            // Licht aus würde er jede Nacht anschlagen.
+            if (lights == LightsNow.Off && LightClock.IsDaytimeOnly(card.Key)) continue;
+
             if (UserTargets.For(card.Key, rules) is not { } eigene) continue;
 
             card.TargetMin = eigene.Min;
@@ -286,7 +393,7 @@ public sealed class GrowDashboardComposer
         }
     }
 
-    private static void ApplyClimateBands(List<MetricCard> cards, HydroTargetValues? targets, double leafOffsetC)
+    private static void ApplyClimateBands(List<MetricCard> cards, HydroTargetValues? targets, double leafOffsetC, GrowStage? stage)
     {
         if (targets is null) return;
 
@@ -298,15 +405,30 @@ public sealed class GrowDashboardComposer
         var luft = temperature?.NumericValue;
         var feuchte = humidity?.NumericValue;
 
+        // Der Schimmeldeckel der Phase begrenzt jede Feuchte-Empfehlung. Die
+        // reine VPD-Rückrechnung kennt nur Physik — in der Blüte bei 32 °C käme
+        // sonst „64–68 %" heraus, und ab ~60 % droht dort Grauschimmel.
+        var deckel = stage is { } phase ? MoldGuard.MaxHumidityPercent(phase) : (double?)null;
+
         if (luft is { } l && humidity is not null && humidity.TargetMin is null)
         {
-            var (min, max) = ClimateBandCalculator.HumidityBand(l, targets.VpdMin, targets.VpdMax, leafOffsetC);
+            var (min, max) = ClimateBandCalculator.HumidityBand(l, targets.VpdMin, targets.VpdMax, leafOffsetC, deckel);
             if (min is not null)
             {
                 humidity.TargetMin = min;
                 humidity.TargetMax = max;
-                humidity.TargetNote = $"bei {l.ToString("0.#", AppCulture.German)} °C";
+                var gedeckelt = deckel is { } cap && max >= cap;
+                humidity.TargetNote = gedeckelt
+                    ? $"bei {l.ToString("0.#", AppCulture.German)} °C · Schimmelschutz: höchstens {deckel.Value.ToString("0", AppCulture.German)} %"
+                    : $"bei {l.ToString("0.#", AppCulture.German)} °C";
                 humidity.TargetDerived = true;
+            }
+            else if (ClimateBandCalculator.HumidityBand(l, targets.VpdMin, targets.VpdMax, leafOffsetC).Min is not null)
+            {
+                // Ohne Deckel gäbe es ein Band — der Schimmelschutz hat es
+                // geschluckt. Dann ist die ehrliche Ansage: nicht die Feuchte
+                // hochziehen, sondern die Temperatur senken.
+                humidity.Hint = $"Fürs VPD-Ziel bräuchte es mehr als {deckel!.Value.ToString("0", AppCulture.German)} % — ab da droht Schimmel. Besser die Temperatur senken.";
             }
         }
 

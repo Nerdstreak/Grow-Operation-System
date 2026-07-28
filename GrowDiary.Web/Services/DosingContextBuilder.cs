@@ -29,6 +29,7 @@ public sealed class DosingContextBuilder
     private readonly AlertRuleRepository _alertRules;
     private readonly TargetValueService _targetValues;
     private readonly HydroSetupRepository _hydroSetups;
+    private readonly AddbackRepository? _addback;
 
     public DosingContextBuilder(
         GrowRepository repository,
@@ -36,7 +37,8 @@ public sealed class DosingContextBuilder
         SensorReadingRepository readings,
         AlertRuleRepository alertRules,
         TargetValueService targetValues,
-        HydroSetupRepository hydroSetups)
+        HydroSetupRepository hydroSetups,
+        AddbackRepository? addback = null)
     {
         _repository = repository;
         _dosing = dosing;
@@ -44,9 +46,19 @@ public sealed class DosingContextBuilder
         _alertRules = alertRules;
         _targetValues = targetValues;
         _hydroSetups = hydroSetups;
+        _addback = addback;
     }
 
-    public DosingSituation Build(DosingPump pump, DateTime nowUtc)
+    /// <param name="liveStates">
+    /// Live-Zustände aus Home Assistant, wenn der Aufrufer sie hat. Daraus
+    /// kommt die Umwälzung: an/aus-Zustände landen nicht im Messwert-Speicher
+    /// (der hält nur Zahlen), also gibt es sie nur live. Ohne sie bleibt die
+    /// Umwälzung unbekannt.
+    /// </param>
+    public DosingSituation Build(
+        DosingPump pump,
+        DateTime nowUtc,
+        IReadOnlyDictionary<string, HomeAssistantState>? liveStates = null)
     {
         var heute = _dosing.GetDosesSince(pump.Id, nowUtc.Date);
 
@@ -61,8 +73,94 @@ public sealed class DosingContextBuilder
         var (kalibriert, ueberfaellig) = ProbeFor(tent.Id, key, nowUtc);
 
         return new DosingSituation(
-            new DosingContext(wert, alter, kalibriert, ueberfaellig, heute, WaterLevelOk: null),
-            ziel, zielHerkunft, herkunft);
+            new DosingContext(wert, alter, kalibriert, ueberfaellig, heute, WaterLevelOk: null,
+                LastTentDoseUtc: LastTentDose(tent.Id, pump.Id),
+                TentHasPendingDose: TentHasPending(tent.Id),
+                CirculationOn: CirculationFrom(liveStates)),
+            ziel, zielHerkunft, herkunft,
+            VolumeFactor: VolumeFactorFor(tent),
+            LearnSinceUtc: LastSolutionChangeUtc(tent));
+    }
+
+    /// <summary>
+    /// Halb leeres Becken, halbe Dosis: die gelernte Wirkung je ml stammt aus
+    /// dem vollen Becken. Ohne frischen Fuellstand in Litern bleibt es bei 1.
+    /// </summary>
+    private double VolumeFactorFor(Tent tent)
+    {
+        var pegel = _readings.GetNewestReading(tent.Id, "reservoir-level");
+        if (pegel is null || DateTime.UtcNow - pegel.CapturedAtUtc > TimeSpan.FromHours(2))
+        {
+            return 1;
+        }
+
+        var voll = tent.ActiveGrows.FirstOrDefault()?.SystemId is { } systemId
+            ? _hydroSetups.GetSystem(systemId)?.ReservoirLiters
+            : null;
+
+        return DosingCalculator.VolumeFactor(pegel.Value, voll);
+    }
+
+    /// <summary>
+    /// Der letzte Wasserwechsel — dort wird das Lernfenster geschnitten.
+    /// Frisches Wasser puffert anders; Dosen von davor beschreiben ein anderes
+    /// Becken. Beide Quellen zaehlen: die Messung mit Haken „Loesungswechsel"
+    /// und der Wasserwechsel-Assistent.
+    /// </summary>
+    private DateTime? LastSolutionChangeUtc(Tent tent)
+    {
+        if (tent.ActiveGrows.FirstOrDefault() is not { } grow) return null;
+
+        var ausMessung = _repository.GetMeasurementsForGrow(grow.Id)
+            .Where(measurement => measurement.SolutionChange)
+            .Select(measurement => (DateTime?)measurement.TakenAt.ToUniversalTime())
+            .FirstOrDefault();
+
+        var ausWechsel = _addback?.GetChangeoutsForGrow(grow.Id)
+            .Select(entry => (DateTime?)entry.PerformedAtUtc)
+            .Max();
+
+        return new[] { ausMessung, ausWechsel }.Max();
+    }
+
+    /// <summary>
+    /// Die jüngste Dosis einer ANDEREN Pumpe dieses Zelts — für die Mischpause,
+    /// die dem Becken gehört, nicht der Pumpe.
+    /// </summary>
+    private DateTime? LastTentDose(int tentId, int ownPumpId)
+        => _dosing.GetEvents(tentId: tentId, limit: 10)
+            .Where(dose => dose.PumpId != ownPumpId
+                && dose.Outcome == DoseOutcome.Done
+                && dose.Trigger != DoseTrigger.Calibration)
+            .Select(dose => (DateTime?)dose.OccurredAtUtc)
+            .FirstOrDefault();
+
+    /// <summary>Wartet für irgendeine Pumpe dieses Zelts noch eine zweite Hälfte?</summary>
+    private bool TentHasPending(int tentId)
+        => _dosing.GetPumps(tentId).Any(pump => _dosing.GetPendingForPump(pump.Id).Count > 0);
+
+    /// <summary>
+    /// Läuft die Umwälzung? Nur aus Live-Zuständen zu beantworten: an/aus wird
+    /// nicht als Messwert gespeichert. Kein Zustand da → unbekannt.
+    /// </summary>
+    private static bool? CirculationFrom(IReadOnlyDictionary<string, HomeAssistantState>? states)
+    {
+        if (states is null || !states.TryGetValue("pump-circulation", out var state))
+        {
+            return null;
+        }
+
+        if (state.NumericValue is { } zahl)
+        {
+            return zahl > 0.5;
+        }
+
+        return LightStateNormalizer.Normalize(state.State) switch
+        {
+            LightState.On => true,
+            LightState.Off => false,
+            _ => null,
+        };
     }
 
     private (double? Value, TimeSpan? Age, ReadingSource From) ReadingFor(int tentId, string key, DateTime nowUtc)

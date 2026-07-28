@@ -24,6 +24,17 @@ public sealed class Tent
     public HvacControllerType? HvacController { get; set; }
     public string? HvacControllerEntityId { get; set; }
     public bool Co2Available { get; set; }
+
+    /// <summary>
+    /// Gibt es eine CO₂-ANREICHERUNG (Brenner, Flasche, Generator)?
+    /// </summary>
+    /// <remarks>
+    /// Nicht dasselbe wie ein CO₂-Sensor: der misst nur. Ohne Anreicherung
+    /// steht die Luft bei ~400–500 ppm, und ein Anreicherungsziel von
+    /// 800–1400 ppm stuende fuer immer „daneben" — die Kachel bekommt dann
+    /// kein Ziel statt ein unerreichbares.
+    /// </remarks>
+    public bool HasCo2Enrichment { get; set; }
     public string? CameraEntityId { get; set; }
 
     /// <summary>
