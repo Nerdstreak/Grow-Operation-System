@@ -49,7 +49,13 @@ public static class DemoData
         ["reservoir-ph"] = (5.85, 0.06, 6, 0.012, null, "Demo pH"),
         ["reservoir-ec"] = (1.52, 0.04, 8, 0.006, "mS/cm", "Demo EC"),
         ["reservoir-temp"] = (19.6, 0.7, 24, 0, "°C", "Demo Wassertemperatur"),
-        ["reservoir-level"] = (118, 1.5, 24, -0.35, "L", "Demo Wasserstand"),
+        // Kein erfundener Liter-Sensor: ein Becken misst entweder Liter ODER
+        // Zentimeter. Solange hier beides stand, gewann der Liter-Wert — und
+        // der ganze Weg „eTape kalibrieren, dann Liter sehen" war im
+        // Vorfuehrmodus unsichtbar.
+        // Ein cm-Pegel wie ein eTape — damit sich der Kalibrier-Assistent ohne
+        // Hardware durchspielen laesst. Faellt langsam, wie ein trinkendes Becken.
+        ["reservoir-level-cm"] = (31, 0.4, 24, -0.09, "cm", "Demo eTape"),
         ["orp"] = (352, 28, 10, 0, "mV", "Demo ORP"),
         ["dissolved-oxygen"] = (7.6, 0.5, 9, 0, "mg/L", "Demo Sauerstoff"),
     };

@@ -143,6 +143,8 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "Grows", "SetpointProfileId", "TEXT NULL");
         EnsureColumn(connection, "GrowSystems", "SetpointProfileId", "TEXT NULL");
 
+        EnsureFeatureColumns(connection);
+
         RecordSchemaVersion(connection);
     }
 
@@ -216,7 +218,20 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "AppliedSchemaMigrations", "IsDestructive", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "AppliedSchemaMigrations", "Checksum", "TEXT NULL");
         EnsureColumn(connection, "AppliedSchemaMigrations", "EngineVersion", "TEXT NOT NULL DEFAULT 'migration-engine.v1'");
+    }
 
+
+    /// <summary>
+    /// Spalten, die nach dem ersten Ausliefern dazukamen.
+    /// </summary>
+    /// <remarks>
+    /// Ein CREATE TABLE erreicht nur frische Datenbanken; bestehende
+    /// Installationen brauchen den Nachtrag hier. Diese Methode laeuft am ENDE
+    /// von <c>EnsureSchema</c>, wenn jede Tabelle existiert — ALTER TABLE auf
+    /// eine Tabelle, die es noch nicht gibt, bricht den ganzen Start ab.
+    /// </remarks>
+    private static void EnsureFeatureColumns(SqliteConnection connection)
+    {
         // Testbetrieb der Dosierpumpen. Die Tabellen entstanden eine Version
         // frueher — im CREATE TABLE nachzutragen erreicht nur frische
         // Datenbanken, bestehende brauchen den Zusatz hier.
@@ -241,6 +256,12 @@ public sealed partial class DatabaseInitializer
         // CO2-Ziel. Default 0 — wer anreichert, schaltet es bewusst ein.
         EnsureColumn(connection, "Tents", "HasCo2Enrichment", "INTEGER NOT NULL DEFAULT 0");
 
+        // Pegelsensor in Liter umrechnen: zwei gemessene Punkte plus die
+        // Litermenge, die beim Fuellen wirklich hineinging.
+        EnsureColumn(connection, "GrowSystems", "LevelSensorEmptyRaw", "REAL NULL");
+        EnsureColumn(connection, "GrowSystems", "LevelSensorFullRaw", "REAL NULL");
+        EnsureColumn(connection, "GrowSystems", "LevelSensorFullLiters", "REAL NULL");
+        EnsureColumn(connection, "GrowSystems", "LevelCalibratedAtUtc", "TEXT NULL");
     }
 
 

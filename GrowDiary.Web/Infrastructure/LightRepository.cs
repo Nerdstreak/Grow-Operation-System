@@ -261,10 +261,15 @@ public sealed class LightRepository : RepositoryBase
             Id = Convert.ToInt32(reader["Id"], CultureInfo.InvariantCulture),
             TentId = Convert.ToInt32(reader["TentId"], CultureInfo.InvariantCulture),
             Kind = ParseEnum(reader["Kind"]?.ToString(), LightTransitionKind.LightOn),
-            OccurredAtUtc = ParseStoredDateTime(reader["OccurredAtUtc"]?.ToString()) ?? DateTime.UtcNow,
+            // Gespeichert wird UTC (siehe ToStorageUtc), also muss auch UTC
+            // herauskommen. Mit dem ortszeit-Parser wurde aus 04:00 UTC beim
+            // Lesen 06:00 Ortszeit — und die Zeitzone kam beim Anzeigen ein
+            // zweites Mal drauf: „an 08:00" fuer eine Lampe, die um 06:00
+            // angeht.
+            OccurredAtUtc = ParseStoredUtcDateTime(reader["OccurredAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             Source = ParseEnum(reader["Source"]?.ToString(), LightSource.HomeAssistant),
             RawState = NullString(reader["RawState"]),
-            CreatedAtUtc = ParseStoredDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 

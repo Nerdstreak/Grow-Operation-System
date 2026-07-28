@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { GrowSummary, HydroSetupDto } from '../types'
 import { V1Alert, V1Badge, V1Card, V1Empty, V1LinkButton, V1Page, V1Section } from '../components/v1'
+import { LevelCalibrationPanel } from '../features/hydro/LevelCalibrationPanel'
 import { formatNumber } from '../utils'
 
 function HydroDetailPage() {
@@ -11,6 +12,8 @@ function HydroDetailPage() {
   const [grows, setGrows] = useState<GrowSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Nach einer Kalibrierung neu laden — sonst stuenden die alten Werte da.
+  const [refresh, setRefresh] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -34,7 +37,7 @@ function HydroDetailPage() {
     }
     void load()
     return () => controller.abort()
-  }, [setupId])
+  }, [setupId, refresh])
 
   const linkedGrows = useMemo(() => setup ? grows.filter((grow) => grow.setupId === setup.id) : [], [grows, setup])
 
@@ -46,7 +49,19 @@ function HydroDetailPage() {
       {error && <V1Alert message={error} tone="warn" />}
       <section className="v1-kpi-grid">
         <V1Card><span className="v1-card-kicker">Zelt</span><h2>{setup.tentName ?? 'offen'}</h2><p>{setup.status}</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Volumen</span><h2>{formatNumber(setup.totalVolumeLiters, 0)} L</h2><p>Gesamt</p></V1Card>
+        {/* Gemessen schlaegt gerechnet. Die Summe aus Topf- und Tankgroesse ist
+            eine Nennweite; sie unterstellt randvolle Toepfe und vergisst
+            Schlaeuche. Wer einmal mit der Wasseruhr gefuellt hat, hat die
+            bessere Zahl — und soll nicht raten muessen, welche der beiden gilt. */}
+        <V1Card>
+          <span className="v1-card-kicker">Volumen</span>
+          <h2>{formatNumber(setup.levelSensorFullLiters ?? setup.totalVolumeLiters, 0)} L</h2>
+          <p>{setup.levelSensorFullLiters == null
+            ? 'Gesamt'
+            : weichtAb(setup.levelSensorFullLiters, setup.totalVolumeLiters)
+              ? `Gemessen · gerechnet ${formatNumber(setup.totalVolumeLiters, 0)} L`
+              : 'Gemessen'}</p>
+        </V1Card>
         <V1Card><span className="v1-card-kicker">Sites</span><h2>{setup.potCount ?? '–'}</h2><p>{setup.layoutType}</p></V1Card>
         <V1Card tone={setup.status === 'Active' ? 'ok' : 'neutral'}><span className="v1-card-kicker">Status</span><h2>{setup.status === 'Active' ? 'aktiv' : 'Archiv'}</h2><p>{setup.reservoirPosition}</p></V1Card>
       </section>
@@ -65,6 +80,29 @@ function HydroDetailPage() {
         </V1Card>
       </V1Section>
 
+      <V1Section title="Volumen-Kalibrierung">
+        {setup.levelCalibratedAtUtc ? (
+          <V1Card>
+            <div className="v1-info-grid compact">
+              <Info label="Leer bei" value={formatRaw(setup.levelSensorEmptyRaw)} />
+              <Info label="Voll bei" value={formatRaw(setup.levelSensorFullRaw)} />
+              <Info label="Das sind" value={formatLiters(setup.levelSensorFullLiters)} />
+              <Info label="Kalibriert" value={new Date(setup.levelCalibratedAtUtc).toLocaleDateString('de-DE')} />
+            </div>
+            <p className="lk-intro" style={{ marginTop: 10 }}>
+              Der Wasserstand steht damit überall in Litern — Kachel, Verlauf, Grenzwerte, und die
+              Dosierung rechnet mit dem echten Volumen: halb leeres Becken heißt halbe Dosis.
+            </p>
+            <LevelCalibrationPanel
+              systemId={setup.id}
+              bereitsKalibriert
+              onDone={() => setRefresh((value) => value + 1)} />
+          </V1Card>
+        ) : (
+          <LevelCalibrationPanel systemId={setup.id} onDone={() => setRefresh((value) => value + 1)} />
+        )}
+      </V1Section>
+
       <V1Section title="Verknüpfte Grows">
         {linkedGrows.length === 0 ? <V1Empty title="Keine aktiven Grows verknüpft" /> : <div className="v1-list">{linkedGrows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>{grow.tentName ?? 'ohne Zelt'} · {grow.status}</span><V1Badge>{grow.latestStage ?? grow.status}</V1Badge></Link>)}</div>}
       </V1Section>
@@ -74,5 +112,19 @@ function HydroDetailPage() {
 
 function Info({ label, value }: { label: string; value: string }) { return <div className="v1-info"><span>{label}</span><strong>{value}</strong></div> }
 function formatLiters(value: number | null | undefined) { return value == null ? '–' : `${value.toLocaleString('de-DE', { maximumFractionDigits: 1 })} L` }
+/**
+ * Lohnt es sich, beide Zahlen zu nennen?
+ *
+ * Ein paar Liter Unterschied sind normal — Schlaeuche, Restwasser, ein nicht
+ * ganz randvoller Topf. Erst ab einem Zehntel wird daraus eine Aussage, die
+ * jemanden interessiert.
+ */
+function weichtAb(gemessen: number, gerechnet: number | null | undefined) {
+  if (gerechnet == null || gerechnet <= 0) return false
+  return Math.abs(gemessen - gerechnet) / gerechnet > 0.1
+}
+
+/** Der rohe Sensorwert — Einheit bewusst offen: meist cm, aber nicht zwingend. */
+function formatRaw(value: number | null | undefined) { return value == null ? '–' : value.toLocaleString('de-DE', { maximumFractionDigits: 2 }) }
 
 export default HydroDetailPage

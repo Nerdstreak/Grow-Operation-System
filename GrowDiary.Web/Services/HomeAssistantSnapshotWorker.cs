@@ -84,6 +84,7 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
         var sensorRepo  = scope.ServiceProvider.GetRequiredService<SensorReadingRepository>();
         var haService   = scope.ServiceProvider.GetRequiredService<HomeAssistantService>();
         var lightStatus = scope.ServiceProvider.GetRequiredService<LightStatusTransitionService>();
+        var lightWatch = scope.ServiceProvider.GetRequiredService<LightWatchService>();
         var notifications = scope.ServiceProvider.GetRequiredService<NotificationService>();
         var heartbeat   = scope.ServiceProvider.GetRequiredService<SystemHeartbeat>();
 
@@ -118,7 +119,16 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
                 // Kamera-Snapshot täglich nach 12:00 Uhr
                 if (states.TryGetValue(TentSensorMetricKeyMap.Resolve(SensorMetricType.LightStatus), out var lightState))
                 {
-                    lightStatus.Process(tent.Id, lightState, capturedAt);
+                    var flanke = lightStatus.Process(tent.Id, lightState, capturedAt);
+
+                    // Licht AN mitten in der Dunkelphase der Blüte: das kostet
+                    // die Ernte (Rückwuchs oder Zwitter) und faellt sonst erst
+                    // Wochen spaeter auf. Die Flanke lag hier schon immer vor —
+                    // gelesen hat sie nur nie jemand.
+                    if (flanke is not null)
+                    {
+                        await lightWatch.CheckIntrusionAsync(tent, flanke, cancellationToken);
+                    }
                 }
 
                 // Grenzwert-Alarme laufen jetzt im dedizierten AlertWatchWorker (jede Minute),

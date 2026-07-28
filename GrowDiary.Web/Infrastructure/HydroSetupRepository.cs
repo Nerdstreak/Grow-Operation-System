@@ -92,12 +92,14 @@ public sealed class HydroSetupRepository : RepositoryBase
         command.CommandText = """
             INSERT INTO GrowSystems (
                 TentId, Name, HydroStyle, SetpointProfileId, PotCount, PotSizeLiters, ReservoirLiters,
+                LevelSensorEmptyRaw, LevelSensorFullRaw, LevelSensorFullLiters, LevelCalibratedAtUtc,
                 Status, LayoutType, ReservoirPosition,
                 HasCirculationPump, CirculationPumpNotes, HasAirPump, AirPumpNotes, AirStoneCount,
                 HasChiller, HasUvSterilizer, Notes, DisplayOrder, CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
                 $tentId, $name, $hydroStyle, $setpointProfileId, $potCount, $potSizeLiters, $reservoirLiters,
+                $levelEmptyRaw, $levelFullRaw, $levelFullLiters, $levelCalibratedAt,
                 $status, $layoutType, $reservoirPosition,
                 $hasCirculationPump, $circulationPumpNotes, $hasAirPump, $airPumpNotes, $airStoneCount,
                 $hasChiller, $hasUvSterilizer, $notes, $displayOrder, $createdAtUtc, $updatedAtUtc
@@ -130,6 +132,10 @@ public sealed class HydroSetupRepository : RepositoryBase
                 PotCount = $potCount,
                 PotSizeLiters = $potSizeLiters,
                 ReservoirLiters = $reservoirLiters,
+                LevelSensorEmptyRaw = $levelEmptyRaw,
+                LevelSensorFullRaw = $levelFullRaw,
+                LevelSensorFullLiters = $levelFullLiters,
+                LevelCalibratedAtUtc = $levelCalibratedAt,
                 Status = $status,
                 LayoutType = $layoutType,
                 ReservoirPosition = $reservoirPosition,
@@ -297,6 +303,10 @@ public sealed class HydroSetupRepository : RepositoryBase
             PotCount = reader["PotCount"] is DBNull or null ? null : Convert.ToInt32(reader["PotCount"], CultureInfo.InvariantCulture),
             PotSizeLiters = reader["PotSizeLiters"] is DBNull or null ? null : Convert.ToDouble(reader["PotSizeLiters"], CultureInfo.InvariantCulture),
             ReservoirLiters = reader["ReservoirLiters"] is DBNull or null ? null : Convert.ToDouble(reader["ReservoirLiters"], CultureInfo.InvariantCulture),
+            LevelSensorEmptyRaw = !HasColumn(reader, "LevelSensorEmptyRaw") || reader["LevelSensorEmptyRaw"] is DBNull or null ? null : Convert.ToDouble(reader["LevelSensorEmptyRaw"], CultureInfo.InvariantCulture),
+            LevelSensorFullRaw = !HasColumn(reader, "LevelSensorFullRaw") || reader["LevelSensorFullRaw"] is DBNull or null ? null : Convert.ToDouble(reader["LevelSensorFullRaw"], CultureInfo.InvariantCulture),
+            LevelSensorFullLiters = !HasColumn(reader, "LevelSensorFullLiters") || reader["LevelSensorFullLiters"] is DBNull or null ? null : Convert.ToDouble(reader["LevelSensorFullLiters"], CultureInfo.InvariantCulture),
+            LevelCalibratedAtUtc = !HasColumn(reader, "LevelCalibratedAtUtc") ? null : ParseStoredUtcDateTime(NullString(reader["LevelCalibratedAtUtc"])),
             Status = ParseEnum(NullString(reader["Status"]), HydroSetupStatus.Active),
             LayoutType = ParseEnum(NullString(reader["LayoutType"]), HydroSetupLayoutType.SingleBucket),
             ReservoirPosition = ParseEnum(NullString(reader["ReservoirPosition"]), ReservoirPosition.None),
@@ -324,6 +334,10 @@ public sealed class HydroSetupRepository : RepositoryBase
         command.Parameters.AddWithValue("$potCount", (object?)system.PotCount ?? DBNull.Value);
         command.Parameters.AddWithValue("$potSizeLiters", (object?)system.PotSizeLiters ?? DBNull.Value);
         command.Parameters.AddWithValue("$reservoirLiters", (object?)system.ReservoirLiters ?? DBNull.Value);
+        command.Parameters.AddWithValue("$levelEmptyRaw", (object?)system.LevelSensorEmptyRaw ?? DBNull.Value);
+        command.Parameters.AddWithValue("$levelFullRaw", (object?)system.LevelSensorFullRaw ?? DBNull.Value);
+        command.Parameters.AddWithValue("$levelFullLiters", (object?)system.LevelSensorFullLiters ?? DBNull.Value);
+        command.Parameters.AddWithValue("$levelCalibratedAt", system.LevelCalibratedAtUtc.HasValue ? ToStorageUtc(system.LevelCalibratedAtUtc.Value) : DBNull.Value);
         command.Parameters.AddWithValue("$status", system.Status.ToString());
         command.Parameters.AddWithValue("$layoutType", system.LayoutType.ToString());
         command.Parameters.AddWithValue("$reservoirPosition", system.ReservoirPosition.ToString());

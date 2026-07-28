@@ -70,7 +70,13 @@ builder.Services.AddSingleton<WeekCounterService>();
 builder.Services.AddSingleton<ChartService>();
 builder.Services.AddSingleton<HomeAssistantService>();
 builder.Services.AddSingleton<SupervisorInfoService>();
+// Der Kalibrierlauf haelt seine Sitzung im Speicher — deshalb Singleton.
+builder.Services.AddSingleton<LevelCalibrationService>();
 builder.Services.AddSingleton<LightStatusTransitionService>();
+// Lesen ist zustandslos und darf Singleton sein; melden braucht den
+// Benachrichtigungsdienst und lebt deshalb je Anfrage.
+builder.Services.AddSingleton<LightCycleReader>();
+builder.Services.AddScoped<LightWatchService>();
 builder.Services.AddSingleton<AutoMeasurementValueGuard>();
 builder.Services.AddSingleton<AutoMeasurementStatusService>();
 builder.Services.AddSingleton<PhotoStorageService>();

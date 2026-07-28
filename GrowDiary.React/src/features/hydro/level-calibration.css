@@ -1,0 +1,34 @@
+/* Volumen-Kalibrierung: Live-Werte gross, Fortschritt darunter. */
+@layer features {
+
+  .lk-intro { margin: 0 0 10px; max-width: 68ch; font: 400 12px/1.6 var(--font-mono); color: var(--muted); }
+  .lk-list {
+    margin: 0 0 14px; padding-left: 18px; display: grid; gap: 5px;
+    font: 400 12px/1.55 var(--font-mono); color: var(--muted);
+  }
+  .lk-list b { color: var(--ink); font-weight: 500; }
+
+  /* Die drei Zahlen, auf die es beim Füllen ankommt — gross genug, um sie vom
+     Becken aus zu lesen. */
+  .lk-live { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 12px; }
+  .lk-value { display: grid; gap: 3px; }
+  .lk-value strong { font: 600 22px/1 var(--font-mono); color: var(--ink); }
+  .lk-label {
+    font: 500 9.5px/1 var(--font-mono); letter-spacing: .12em;
+    text-transform: uppercase; color: var(--faint);
+  }
+
+  .lk-bar {
+    height: 4px; border-radius: 2px; background: var(--sunk);
+    overflow: hidden; margin-bottom: 10px;
+  }
+  .lk-bar span { display: block; height: 100%; background: var(--accent); transition: width .4s linear; }
+
+  .lk-message { margin: 0 0 12px; font: 400 12px/1.6 var(--font-mono); color: var(--ink); max-width: 68ch; }
+
+  .lk-confirm { display: grid; gap: 10px; margin-bottom: 12px; }
+  .lk-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .lk-hint { font: 400 11px/1.4 var(--font-mono); color: var(--faint); }
+
+  .lk-again { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+}

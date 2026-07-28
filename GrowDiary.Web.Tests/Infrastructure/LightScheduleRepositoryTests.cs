@@ -120,6 +120,38 @@ public sealed class LightScheduleRepositoryTests : IDisposable
         Assert.Equal(LightTransitionKind.LightOff, repo.GetLatestLightTransitionForTent(tent.Id)!.Kind);
     }
 
+    /// <summary>
+    /// Eine Lichtflanke kommt so zurück, wie sie hineinging — in UTC.
+    /// </summary>
+    /// <remarks>
+    /// Vorher las das Repository die Spalte mit dem Ortszeit-Parser: aus 04:00
+    /// UTC wurde beim Lesen 06:00 Ortszeit. Der gelernte Zyklus rechnete die
+    /// Zeitzone dann noch einmal drauf und meldete „an 08:00" für eine Lampe,
+    /// die um 06:00 angeht. Auf einem Rechner in UTC wäre das nie aufgefallen —
+    /// deshalb prüft der Test die Differenz und nicht nur die Zahl.
+    /// </remarks>
+    [Fact]
+    public void LightTransition_KeepsItsUtcInstant()
+    {
+        var repo = new GrowRepository(_paths);
+        var tent = repo.GetTents().Single();
+        var occurredAt = new DateTime(2026, 7, 20, 4, 0, 0, DateTimeKind.Utc);
+
+        repo.CreateLightTransitionIfNotDuplicate(new LightTransitionEvent
+        {
+            TentId = tent.Id,
+            Kind = LightTransitionKind.LightOn,
+            OccurredAtUtc = occurredAt,
+            Source = LightSource.HomeAssistant,
+            RawState = "on"
+        });
+
+        var gelesen = repo.GetLightTransitionsByTent(tent.Id).Single().OccurredAtUtc;
+
+        Assert.Equal(occurredAt, gelesen.ToUniversalTime());
+        Assert.Equal(4, gelesen.Hour);
+    }
+
     private SqliteConnection OpenConnection()
     {
         var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = _paths.DatabasePath }.ToString());

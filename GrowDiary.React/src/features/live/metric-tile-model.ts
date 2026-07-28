@@ -145,6 +145,10 @@ export function decimalsForMetric(key: string): number {
     case 'temperature':
     case 'reservoir-temp':
     case 'dissolved-oxygen':
+    case 'reservoir-level-cm':
+      // Das Zehntel wegen des eTape: in dieser Größenordnung bewegt sich der
+      // Wasserstand überhaupt. Auf ganze Zentimeter gerundet stünde die Kachel
+      // den halben Tag still.
       return 1
     default:
       return 0

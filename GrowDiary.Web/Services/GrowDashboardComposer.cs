@@ -17,6 +17,7 @@ public sealed class GrowDashboardComposer
     private readonly LightRepository? _lights;
     private readonly GrowRepository? _grows;
     private readonly HarvestRepository? _harvests;
+    private readonly LightCycleReader? _lightCycles;
     private readonly ILogger<GrowDashboardComposer> _logger;
 
     public GrowDashboardComposer(
@@ -30,7 +31,8 @@ public sealed class GrowDashboardComposer
         SetpointProfileRepository? setpointProfiles = null,
         LightRepository? lights = null,
         GrowRepository? grows = null,
-        HarvestRepository? harvests = null)
+        HarvestRepository? harvests = null,
+        LightCycleReader? lightCycles = null)
     {
         _chartService = chartService;
         _deviationAnalyzer = deviationAnalyzer;
@@ -42,6 +44,7 @@ public sealed class GrowDashboardComposer
         _lights = lights;
         _grows = grows;
         _harvests = harvests;
+        _lightCycles = lightCycles;
         _logger = logger;
     }
 
@@ -147,7 +150,7 @@ public sealed class GrowDashboardComposer
             Build("Temperatur", "temperature", m => m?.AirTemperatureC, explicitUnit: "°C"),
             Build("Luftfeuchte", "humidity", m => m?.HumidityPercent, explicitUnit: "%"),
             BuildVpdMetric(tent, states, latest, targets),
-            BuildLightCycleMetric(tent, states),
+            BuildLightCycleMetric(tent, states, _lightCycles),
             BuildPpfdMetric(tent, states, latest)
         };
 
@@ -200,6 +203,10 @@ public sealed class GrowDashboardComposer
                 Value = levelState is not null
                     ? levelState.NumericValue?.ToString("0.0") ?? levelState.State
                     : latest?.ReservoirLevelLiters?.ToString("0.0") ?? "–",
+                // Als Zahl, nicht nur als Text: sonst haelt die Kachel den Wert
+                // fuer eine Beschriftung, laesst die Einheit weg — und „72"
+                // ohne „L" ist neben einem cm-Sensor schlicht zweideutig.
+                NumericValue = levelState?.NumericValue ?? latest?.ReservoirLevelLiters,
                 Unit = levelState?.UnitOfMeasurement ?? "L",
                 Tone = "info",
                 Hint = levelState is not null
@@ -218,6 +225,7 @@ public sealed class GrowDashboardComposer
                 Value = levelCmState is not null
                     ? levelCmState.NumericValue?.ToString("0.0") ?? levelCmState.State
                     : latest?.ReservoirLevelCm?.ToString("0.0") ?? "–",
+                NumericValue = levelCmState?.NumericValue ?? latest?.ReservoirLevelCm,
                 Unit = levelCmState?.UnitOfMeasurement ?? "cm",
                 Tone = "info",
                 Hint = levelCmState is not null
@@ -404,9 +412,8 @@ public sealed class GrowDashboardComposer
             {
                 humidity.TargetMin = min;
                 humidity.TargetMax = max;
-                var gedeckelt = deckel is { } cap && max >= cap;
-                humidity.TargetNote = gedeckelt
-                    ? $"bei {l.ToString("0.#", AppCulture.German)} °C · Schimmelschutz: höchstens {deckel.Value.ToString("0", AppCulture.German)} %"
+                humidity.TargetNote = deckel is { } cap && max >= cap
+                    ? $"bei {l.ToString("0.#", AppCulture.German)} °C · Schimmelschutz: höchstens {cap.ToString("0", AppCulture.German)} %"
                     : $"bei {l.ToString("0.#", AppCulture.German)} °C";
                 humidity.TargetDerived = true;
             }
@@ -685,8 +692,13 @@ public sealed class GrowDashboardComposer
         };
     }
 
-    private static MetricCard BuildLightCycleMetric(Tent tent, Dictionary<string, HomeAssistantState> states)
+    private static MetricCard BuildLightCycleMetric(
+        Tent tent, Dictionary<string, HomeAssistantState> states, LightCycleReader? lightCycles)
     {
+        // Der gelernte Zyklus aus den beobachteten Flanken — „18/6", „12/12".
+        // Das TODO von Sprint B1b ist damit erledigt: niemand traegt den Zyklus
+        // ein, Grow OS liest ihn aus dem, was ohnehin aufgezeichnet wird.
+        var cycle = lightCycles?.CycleFor(tent.Id, DateTime.UtcNow);
         // Show the live light on/off state from the mapped LightStatus entity.
         if (states.TryGetValue(TentSensorMetricKeyMap.Resolve(SensorMetricType.LightStatus), out var lightState))
         {
@@ -700,19 +712,22 @@ public sealed class GrowDashboardComposer
                     Label = "Licht",
                     Value = isOn ? "An" : "Aus",
                     Tone = isOn ? "accent" : "info",
-                    Hint = lightState.FriendlyName ?? (isOn ? "Licht eingeschaltet" : "Licht ausgeschaltet")
+                    Hint = cycle is not null
+                        ? $"{cycle.Label} · an {cycle.OnAt:HH:mm}, aus {cycle.OffAt:HH:mm}"
+                        : lightState.FriendlyName ?? (isOn ? "Licht eingeschaltet" : "Licht ausgeschaltet")
                 };
             }
         }
 
-        var cycle = ResolveLightCycle(tent);
         return new MetricCard
         {
             Key = "light-cycle",
             Label = "Lichtzyklus",
-            Value = cycle ?? "–",
+            Value = cycle?.Label ?? "–",
             Tone = "info",
-            Hint = states.Count == 0 ? "Nicht mit Home Assistant verbunden" : "Kein Licht-Sensor gemappt"
+            Hint = cycle is not null
+                ? $"aus den letzten {cycle.Days} Schaltvorgängen gelesen"
+                : states.Count == 0 ? "Nicht mit Home Assistant verbunden" : "Kein Licht-Sensor gemappt"
         };
     }
 

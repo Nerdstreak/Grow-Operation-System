@@ -81,6 +81,11 @@ public sealed partial class GrowExportsApiController
             PotCount: snapshot.PotCount,
             PotSizeLiters: snapshot.PotSizeLiters,
             ReservoirLiters: snapshot.ReservoirLiters,
+            // Aeltere Schnappschuesse kennen die Pegel-Kalibrierung nicht.
+            LevelSensorEmptyRaw: null,
+            LevelSensorFullRaw: null,
+            LevelSensorFullLiters: null,
+            LevelCalibratedAtUtc: null,
             TotalVolumeLiters: snapshot.TotalVolumeLiters,
             LayoutType: snapshot.LayoutType,
             ReservoirPosition: snapshot.ReservoirPosition,

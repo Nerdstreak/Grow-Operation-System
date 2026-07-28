@@ -1,3 +1,4 @@
+using GrowDiary.Web.Infrastructure;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -12,12 +13,17 @@ public sealed class HomeAssistantService
     private static readonly TimeSpan BackoffWindow = TimeSpan.FromSeconds(20);
 
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly HydroSetupRepository? _hydroSetups;
     private readonly ILogger<HomeAssistantService> _logger;
     private long _circuitOpenUntilTicks;
 
-    public HomeAssistantService(IHttpClientFactory httpClientFactory, ILogger<HomeAssistantService> logger)
+    public HomeAssistantService(
+        IHttpClientFactory httpClientFactory,
+        ILogger<HomeAssistantService> logger,
+        HydroSetupRepository? hydroSetups = null)
     {
         _httpClientFactory = httpClientFactory;
+        _hydroSetups = hydroSetups;
         _logger = logger;
     }
 
@@ -31,7 +37,12 @@ public sealed class HomeAssistantService
         // zugeordnet ist — und dann bliebe der Bildschirm leer.
         if (DemoData.IsEnabled)
         {
-            return DemoData.StatesFor(DateTime.UtcNow);
+            // Auch die Testdaten laufen durch die Umrechnung. Sonst verhielte
+            // sich der Vorfuehrmodus anders als der Betrieb, und genau dort
+            // schaut man hin, bevor man etwas anschliesst.
+            var demo = DemoData.StatesFor(DateTime.UtcNow);
+            AddLitersFromCentimeters(demo, tent);
+            return demo;
         }
 
         if (!settings.IsConfigured || tent.Sensors.Count == 0)
@@ -69,6 +80,13 @@ public sealed class HomeAssistantService
             var states = results
                 .Where(result => result.State is not null)
                 .ToDictionary(result => result.Key, result => result.State!);
+
+            // Zentimeter in Liter, sobald das System kalibriert ist — und zwar
+            // HIER, an der Quelle. Dann sehen Kacheln, Verlauf, Alarme und der
+            // Dosier-Faktor alle dasselbe, und niemand muss den Sonderfall
+            // „cm-Sensor" kennen. Genau daran scheiterte der Volumenfaktor
+            // vorher: er las nur `reservoir-level` in Litern.
+            AddLitersFromCentimeters(states, tent);
 
             if (results.Any(result => result.TransportFailure))
             {
@@ -473,6 +491,40 @@ public sealed class HomeAssistantService
         return separator > 0
             ? (trimmed[..separator], trimmed[(separator + 1)..])
             : ("notify", trimmed);
+    }
+
+    /// <summary>
+    /// Ergaenzt einen Liter-Zustand aus dem cm-Sensor, wenn das Hydro-System
+    /// des Zelts kalibriert ist.
+    /// </summary>
+    /// <remarks>
+    /// Ein vorhandener echter Liter-Sensor gewinnt: wer beides hat, misst
+    /// direkt und braucht keine Gerade.
+    /// </remarks>
+    private void AddLitersFromCentimeters(Dictionary<string, HomeAssistantState> states, Tent tent)
+    {
+        if (_hydroSetups is null) return;
+        if (states.ContainsKey("reservoir-level")) return;
+        if (!states.TryGetValue("reservoir-level-cm", out var cm) || cm.NumericValue is not { } wert) return;
+
+        var system = _hydroSetups.GetHydroSetupsByTent(tent.Id).FirstOrDefault(
+            setup => ReservoirVolume.IsCalibrated(setup.LevelSensorEmptyRaw, setup.LevelSensorFullRaw, setup.LevelSensorFullLiters));
+        if (system is null) return;
+
+        if (ReservoirVolume.Liters(wert, system.LevelSensorEmptyRaw, system.LevelSensorFullRaw, system.LevelSensorFullLiters) is not { } liter)
+        {
+            return;
+        }
+
+        states["reservoir-level"] = new HomeAssistantState
+        {
+            EntityId = cm.EntityId,
+            State = liter.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture),
+            NumericValue = liter,
+            UnitOfMeasurement = "L",
+            FriendlyName = cm.FriendlyName is { } name ? $"{name} (aus cm gerechnet)" : "Wasserstand (aus cm gerechnet)",
+            LastChanged = cm.LastChanged,
+        };
     }
 
     private HttpClient CreateClient(HomeAssistantSettings settings)

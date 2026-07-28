@@ -283,6 +283,10 @@ export interface HydroSetupDto {
   potCount: number | null
   potSizeLiters: number | null
   reservoirLiters: number | null
+  levelSensorEmptyRaw: number | null
+  levelSensorFullRaw: number | null
+  levelSensorFullLiters: number | null
+  levelCalibratedAtUtc: string | null
   totalVolumeLiters: number | null
   layoutType: HydroSetupLayoutType
   reservoirPosition: ReservoirPosition

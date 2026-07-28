@@ -13,6 +13,13 @@ public sealed record HydroSetupDto(
     int? PotCount,
     double? PotSizeLiters,
     double? ReservoirLiters,
+    /// <summary>Sensorwert bei leerem System — der Nullpunkt des Pegelsensors.</summary>
+    double? LevelSensorEmptyRaw,
+    /// <summary>Sensorwert bei vollem System.</summary>
+    double? LevelSensorFullRaw,
+    /// <summary>Was beim Füllen wirklich hineinging, an der Wasseruhr abgelesen.</summary>
+    double? LevelSensorFullLiters,
+    DateTime? LevelCalibratedAtUtc,
     double? TotalVolumeLiters,
     HydroSetupLayoutType LayoutType,
     ReservoirPosition ReservoirPosition,
