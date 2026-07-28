@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.0.0-beta.10
+
+**Beta.** DWC gets its own targets, and you can write your own.
+
+- New — **DWC has its own setpoint profile.** Until now there was one shipped
+  set of values, for RDWC, and DWC was produced from it by multiplying EC in
+  code — only EC, so everything else was identical, and NFT or aeroponics
+  quietly got RDWC values with nothing saying so. DWC now carries its own
+  numbers per phase (EC about 30 % higher, the smaller buffer), and profiles
+  are picked by growing style.
+- New — **Wissen → Sollwert-Profile**: copy a shipped profile and write your
+  own experience into it, per phase. Only what you actually change becomes
+  yours; everything you leave alone keeps receiving our updates. A full copy
+  would have cut you off from every later improvement at the first save.
+- New — **choose a profile where it belongs.** The hydro system sets the
+  default, because DWC or RDWC is a property of your hardware — set it once
+  and every grow in it inherits. A single grow may differ, because setpoints
+  describe how you run *that* plant. Two runs in the same reservoir are
+  allowed to differ.
+- New — the tile names the profile when it is not the shipped one, the same
+  way it already says "dein Wert". A threshold you enter on the tent still
+  beats every profile.
+
+
 ## 2.0.0-beta.9
 
 **Beta.** Your own limits now win — everywhere, and the tile says so.
