@@ -1,5 +1,37 @@
 # Changelog
 
+## 2.0.0-beta.19
+
+**Beta.** Two numbers the rig already knows, no longer typed in by hand.
+
+- New — **guided volume calibration.** The level sensor (eTape) reports
+  centimetres, but dosing needs litres, and the sum of pot and tank size is
+  only a nameplate figure. Grow OS now reads the sensor every second while you
+  fill: 15 s of a steady level in the empty system marks the zero point, 60 s
+  of steady level afterwards raises the question "full?". You confirm by hand,
+  because a pause in filling looks exactly like finished to a sensor. From the
+  two points and the litres off your water meter comes the line — and the
+  conversion sits at the source, so tiles, history, thresholds and the dosing
+  factor all see litres.
+- New — **the light cycle is learned, not entered.** The Home Assistant entity
+  only knows on and off; the cycle follows from the last five days of
+  transitions (median over the full on-phases, so one forgotten lamp cannot
+  skew it). That makes two things visible that nobody would otherwise catch:
+  18/6 during flower prevents flowering, and light in the middle of the dark
+  phase causes revegetation or hermaphrodites.
+- Fixed — **the water level arrived as text instead of a number.** The tile
+  took it for a label, dropped the unit and drew no trend line. Next to a
+  centimetre sensor, "72" without "L" is simply ambiguous.
+- Fixed — **light transitions were read as local time although stored as UTC.**
+  The time zone was applied twice: "on at 08:00" for a lamp that comes on at
+  06:00.
+- Fixed — **new columns ran before their tables existed.** They sat in the
+  block for migration metadata, which runs early; they now have their own
+  place at the end of schema setup.
+- Changed — **the calibration run survives a page reload.** Standing at the
+  reservoir with a hose, a locked screen would otherwise have cost the zero
+  point.
+
 ## 2.0.0-beta.18
 
 **Beta.** Second reality pass over beta.17's new behaviour.
