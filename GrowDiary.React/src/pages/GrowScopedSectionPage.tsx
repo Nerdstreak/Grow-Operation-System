@@ -21,11 +21,11 @@ export function GrowScopedSectionPage({ title, section, eyebrow = 'Grow', intro 
       action={<GrowScopePicker grows={grows} growId={growId} onChange={setGrowId} />}
     >
       {/* Diese Seiten waren Einbahnstraßen: aus dem Grow-Detail führen Tabs
-          hierher, zurück führte nichts — und weil oben ein eigener Umschalter
-          sitzt, konnte man unbemerkt auf einem anderen Grow landen als dem,
-          aus dem man kam. Der Rückverweis nennt deshalb den Namen. */}
+          hierher, zurück führte nichts. Den Namen trägt der Umschalter eine
+          Zeile darüber — ihn hier zu wiederholen hiess, denselben Grow zweimal
+          untereinander zu schreiben. */}
       {grow && (
-        <Link className="ls-btn is-small gs-back" to={`/grows/${grow.id}`}>← {grow.name}</Link>
+        <Link className="ls-btn is-small gs-back" to={`/grows/${grow.id}`}>← Zur Grow-Übersicht</Link>
       )}
       {error && <V1Alert message={error} tone="critical" />}
       {loading ? (

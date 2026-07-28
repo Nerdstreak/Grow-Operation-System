@@ -75,7 +75,12 @@
    chrome. Scope the alignment to .v1-page so only the V1 grow pages get it — the Harvest
    and MeasurementEdit pages also use .card but are NOT inside a .v1-page. */
 .v1-page .card { background: var(--v1-panel); border: 1px solid var(--v1-line); border-radius: 16px; box-shadow: none; }
-.v1-page .card-header { background: transparent; border-bottom: 1px solid var(--v1-line); padding: 14px 18px; }
+/* Titel links, Zaehler rechts. Ohne Flex standen beide als Inline-Elemente
+   direkt aneinander — auf dem Bildschirm stand „Verlauf8 gesamt". */
+.v1-page .card-header {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  background: transparent; border-bottom: 1px solid var(--v1-line); padding: 14px 18px;
+}
 .v1-page .card-title, .v1-page .section-label { color: var(--v1-muted); font-size: 11px; letter-spacing: 0.2em; }
 .v1-page .empty-hint { color: var(--v1-muted); }
 .v1-page .tl-title { color: var(--v1-text); }
@@ -83,10 +88,19 @@
 .v1-page .badge { border-radius: 999px; border: 1px solid var(--v1-line); background: transparent; color: var(--v1-muted); min-height: 26px; }
 .v1-page .badge.badge-ok { color: #8effa1; border-color: rgba(67, 212, 90, 0.36); background: rgba(67, 212, 90, 0.10); }
 .v1-page .badge.badge-warn { color: #ffe08a; border-color: rgba(245, 200, 75, 0.44); background: rgba(245, 200, 75, 0.08); }
-.v1-page .btn { min-height: 40px; border-radius: 12px; border: 1px solid var(--v1-line-strong); background: rgba(255, 255, 255, 0.02); color: var(--v1-text); font-weight: 800; }
+/* Der Knopf hatte eine Mindesthoehe, aber nichts, was die Beschriftung darin
+   zentriert: die Zeile klebte oben an der Kante und schnitt optisch in den
+   Text darueber. Ein Knopf ohne Zentrierung sieht aus wie ein Fehler im
+   Layout — deshalb inline-flex statt block. */
+.v1-page .btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 40px; padding: 0 14px;
+  border-radius: 12px; border: 1px solid var(--v1-line-strong);
+  background: var(--v1-panel-2); color: var(--v1-text); font-weight: 800;
+}
 .v1-page .btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.05); }
 .v1-page .btn-primary { background: var(--v1-green); border-color: var(--v1-green); color: #001905; }
-.v1-page .meas-input, .v1-page .field input, .v1-page .field textarea, .v1-page .field select { border-radius: 12px; border: 1px solid var(--v1-line); background: #010703; color: var(--v1-text); }
+.v1-page .meas-input, .v1-page .field input, .v1-page .field textarea, .v1-page .field select { border-radius: 12px; border: 1px solid var(--v1-line); background: var(--sunk); color: var(--v1-text); }
 
 /* On mobile the grow name is already shown in the mobile summary card, so hide the
    hero's title/subtitle (keep its KPI grid) to avoid showing the name twice. */
