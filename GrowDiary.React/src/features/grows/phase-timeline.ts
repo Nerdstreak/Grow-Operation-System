@@ -21,7 +21,7 @@
 
 export type PhaseState = 'done' | 'current' | 'planned'
 
-export type PhaseName = 'Keim' | 'Veg' | 'Blüte'
+export type PhaseName = 'Keim' | 'Sämling' | 'Veg' | 'Blüte'
 
 export type Phase = {
   /** Für kurze Anzeigen („Veg Tag 20") — ohne den Text zerlegen zu müssen. */
@@ -52,6 +52,10 @@ export type PhaseTimelineInput = {
   flipDate?: string | null
   germinatedAt?: string | null
   rootedAt?: string | null
+  /** Wann der Sämling zur Veg wurde — beobachtet, nicht gerechnet. */
+  vegStartedAt?: string | null
+  /** Nach so vielen Tagen ohne Eintrag gilt der Sämling als durch (Schätzung). */
+  seedlingDays?: number
   plannedVegDays?: number | null
   breederFlowerWeeksMin?: number | null
   breederFlowerWeeksMax?: number | null
@@ -81,16 +85,32 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
   if (!grow || !start) return EMPTY
 
   const flip = parse(grow.flipDate)
-  // Bewurzelt schlägt gekeimt: ab da wächst sie wirklich vegetativ.
+  // Bewurzelt schlägt gekeimt: ab da hört das Keimen auf.
   const keimEnde = parse(grow.rootedAt) ?? parse(grow.germinatedAt)
+
+  // Der Sämling: zwischen Keimung und den ersten echten Blättern. Er stand
+  // vorher nicht im Strahl, obwohl die Zielwerte ihn längst kannten — der
+  // Balken sagte „Veg Tag 8", die Kacheln zeigten Sämlings-Ziele. Zwei
+  // Phasenmodelle nebeneinander, und keins verriet das andere.
+  //
+  // Der Übergang hängt nicht am Kalender, sondern am Aussehen: echte gezackte
+  // Blätter statt der zwei runden Keimblätter, dickerer Stängel, regelmäßig
+  // neue Blattpaare. Steht kein Eintrag, wird geschätzt — und das steht dann
+  // auch dran.
+  const saemlingStart = keimEnde?.getTime() ?? start.getTime()
+  const saemlingTage = grow.seedlingDays ?? 14
+  const vegEingetragen = parse(grow.vegStartedAt)
+  const vegGeschaetzt = new Date(saemlingStart + saemlingTage * TAG)
+  const vegBeginn = vegEingetragen ?? vegGeschaetzt
+  const imSaemling = flip == null && jetzt < vegBeginn.getTime()
 
   // Blütedauer aus den Breeder-Angaben; ohne sie der übliche Richtwert von acht
   // Wochen. Das Erntedatum trägt deshalb ein „~" — es ist eine Schätzung.
   const bluetewochen = grow.breederFlowerWeeksMax ?? grow.breederFlowerWeeksMin ?? 8
   const bluetetage = bluetewochen * 7
 
-  // Veg beginnt mit der Bewurzelung; ohne dieses Datum mit dem Grow-Start.
-  const vegStart = keimEnde?.getTime() ?? start.getTime()
+  // Veg beginnt, wo der Sämling endet.
+  const vegStart = vegBeginn.getTime()
 
   // Der Flip: entweder erfolgt, oder aus der geplanten Veg-Dauer errechnet.
   // Die Dauer zählt ab Beginn der Veg-Phase — gefragt war „wie lange will ich
@@ -122,6 +142,29 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
     phases.push({ name: 'Keim', label: 'Keim · nicht erfasst', short: 'Keim —', days: 0, state: 'done' })
   }
 
+  // ---------- Sämling ----------
+  {
+    const dauer = tage(saemlingStart, vegBeginn.getTime())
+    const gelaufen = tage(saemlingStart, Math.min(jetzt, vegBeginn.getTime()))
+    const geschaetzt = vegEingetragen == null
+    phases.push(imSaemling
+      ? {
+          name: 'Sämling',
+          label: geschaetzt ? `Sämling · Tag ${gelaufen} (geschätzt)` : `Sämling · Tag ${gelaufen}`,
+          short: `Sämling ${gelaufen}`,
+          days: dauer,
+          state: 'current',
+          dayInPhase: gelaufen,
+        }
+      : {
+          name: 'Sämling',
+          label: `Sämling ${dauer} T`,
+          short: `Sämling ${dauer} T`,
+          days: dauer,
+          state: 'done',
+        })
+  }
+
   // ---------- Veg ----------
   if (inBluete && flip) {
     const dauer = tage(vegStart, flip.getTime())
@@ -129,15 +172,24 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
   } else {
     const gelaufen = tage(vegStart, jetzt)
     const geplant = flipFuerRechnung ? tage(vegStart, flipFuerRechnung.getTime()) : null
-    phases.push({
-      name: 'Veg',
-      label: geplant ? `Veg · Tag ${gelaufen} von ${geplant}` : `Veg · Tag ${gelaufen}`,
-      short: geplant ? `Veg ${gelaufen}/${geplant}` : `Veg ${gelaufen} T`,
-      days: geplant ?? gelaufen,
-      state: 'current',
-      progress: geplant ? Math.min(1, gelaufen / geplant) : undefined,
-      dayInPhase: gelaufen,
-    })
+    phases.push(imSaemling
+      ? {
+          // Noch im Sämling: die Veg steht bevor, sie läuft nicht.
+          name: 'Veg',
+          label: geplant ? `Veg · ${geplant} T geplant` : 'Veg · offen',
+          short: geplant ? `Veg ${geplant} T` : 'Veg —',
+          days: geplant ?? 0,
+          state: 'planned',
+        }
+      : {
+          name: 'Veg',
+          label: geplant ? `Veg · Tag ${gelaufen} von ${geplant}` : `Veg · Tag ${gelaufen}`,
+          short: geplant ? `Veg ${gelaufen}/${geplant}` : `Veg ${gelaufen} T`,
+          days: geplant ?? gelaufen,
+          state: 'current',
+          progress: geplant ? Math.min(1, gelaufen / geplant) : undefined,
+          dayInPhase: gelaufen,
+        })
   }
 
   // ---------- Blüte ----------

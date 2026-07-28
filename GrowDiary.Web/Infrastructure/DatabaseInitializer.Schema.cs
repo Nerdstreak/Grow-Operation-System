@@ -232,6 +232,10 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "Measurements", "AirflowAtLeafMPerMin", "REAL NULL");
         EnsureColumn(connection, "Measurements", "WaterFlow", "TEXT NULL");
 
+        // Der beobachtete Uebergang Saemling -> Veg. Vorher wurde er nur
+        // gerechnet, und die Anzeige widersprach den Zielwerten.
+        EnsureColumn(connection, "Grows", "VegStartedAt", "TEXT NULL");
+
     }
 
 

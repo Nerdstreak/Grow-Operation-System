@@ -50,8 +50,7 @@ public static class GrowStageResolver
             var keim = grow.GerminatedAt?.Date ?? grow.StartDate.Date;
             var tage = (heute - keim).Days + (grow.AutoflowerDaysSinceGermination ?? 0);
             if (tage >= 28) return FlowerStageFor(grow, keim.AddDays(28), heute);
-            if (tage < SeedlingDays) return GrowStage.Seedling;
-            return GrowStage.Veg;
+            return SeedlingOrVeg(grow, heute, tage);
         }
 
         // 3. Noch nicht geflippt: hat der Nutzer eine Veg-Dauer geplant, ist der
@@ -68,24 +67,61 @@ public static class GrowStageResolver
         {
             // Ohne Keimdatum zählt der Einstiegspunkt: wer mitten im Lauf
             // einsteigt, hat nichts zu keimen.
-            return grow.EntryPoint switch
+            //
+            // Für Keimung/Sämling wird NICHT einfach „Sämling" zurückgegeben:
+            // das galt sonst ewig. Wer das Keimdatum nie eingetragen hat — und
+            // das ist der Normalfall — steckte nach drei Monaten immer noch in
+            // Sämlings-Zielen, mit einem EC, den eine ausgewachsene Pflanze
+            // längst überholt hat. Stattdessen wird ab dem Startdatum
+            // geschätzt, genau wie mit Keimdatum; nur der Anker ist ein anderer.
+            switch (grow.EntryPoint)
             {
-                GrowEntryPoint.Germination or GrowEntryPoint.Seedling => GrowStage.Seedling,
-                GrowEntryPoint.Veg => GrowStage.Veg,
-                GrowEntryPoint.Flower => GrowStage.Flower,
-                GrowEntryPoint.Flush => GrowStage.Finish,
-                _ => GrowStage.Veg,
-            };
+                case GrowEntryPoint.Veg:
+                    return GrowStage.Veg;
+                case GrowEntryPoint.Flower:
+                    return GrowStage.Flower;
+                case GrowEntryPoint.Flush:
+                    return GrowStage.Finish;
+            }
         }
 
-        // 5. Gekeimt/bewurzelt: die ersten Tage Sämling, danach Veg.
+        // 5. Die ersten Tage Sämling, danach Veg — eine Schätzung, kein Befund.
+        //    Der echte Übergang hängt am Aussehen (echte gezackte Blätter statt
+        //    Keimblättern, dickerer Stängel, regelmäßig neue Blattpaare), und
+        //    der steht oben in VegStartedAt, sobald jemand hingesehen hat.
+        //    Typisch sind ein bis drei Wochen; SeedlingDays liegt in der Mitte.
         var seitStart = (heute - vegStart).Days + (grow.DaysAlreadyInPhase ?? 0);
-        if (grow.EntryPoint == GrowEntryPoint.Germination && seitStart < SeedlingDays)
+        return grow.EntryPoint is GrowEntryPoint.Germination or GrowEntryPoint.Seedling
+            ? SeedlingOrVeg(grow, heute, seitStart)
+            : GrowStage.Veg;
+    }
+
+    /// <summary>
+    /// Sämling oder schon Veg — die einzige Stelle, an der das entschieden wird.
+    /// </summary>
+    /// <remarks>
+    /// <para>Hat jemand den Übergang festgehalten, gilt der, und zwar in beide
+    /// Richtungen: davor Sämling, ab dann Veg. Der Wechsel hängt nicht am
+    /// Kalender, sondern am Aussehen — echte gezackte Blätter statt der zwei
+    /// runden Keimblätter, dickerer Stängel, regelmäßig neue Blattpaare,
+    /// Seitentriebe an den Knoten, spürbar mehr Wasserverbrauch. Wer davorsteht,
+    /// weiss es besser als jede Tagesrechnung.</para>
+    ///
+    /// <para>Ohne Eintrag wird geschätzt. Typisch ist ein bis drei Wochen nach
+    /// der Keimung; <see cref="SeedlingDays"/> liegt in der Mitte.</para>
+    ///
+    /// <para>Bewusst NICHT ganz oben in <see cref="Resolve"/>: dort hätte der
+    /// Eintrag auch eine blühende Autoflower zurück in die Veg gezogen. Er
+    /// entscheidet nur dort, wo Sämling und Veg wirklich auseinandergehen.</para>
+    /// </remarks>
+    private static GrowStage SeedlingOrVeg(GrowRun grow, DateTime heute, int tageSeitStart)
+    {
+        if (grow.VegStartedAt is { } vegAb)
         {
-            return GrowStage.Seedling;
+            return heute >= vegAb.Date ? GrowStage.Veg : GrowStage.Seedling;
         }
 
-        return GrowStage.Veg;
+        return tageSeitStart < SeedlingDays ? GrowStage.Seedling : GrowStage.Veg;
     }
 
     /// <summary>Übergang, Blüte oder Finish — je nachdem, wie weit nach dem Flip.</summary>

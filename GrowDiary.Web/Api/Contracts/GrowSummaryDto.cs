@@ -33,6 +33,7 @@ public sealed record GrowSummaryDto(
     int? BreederFlowerWeeksMax,
     DateTime? GerminatedAt,
     DateTime? RootedAt,
+    DateTime? VegStartedAt,
     int MeasurementCount,
     string? LatestPhotoPath,
     GrowStage? LatestStage,

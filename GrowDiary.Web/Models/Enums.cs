@@ -80,6 +80,8 @@ public enum JournalEntryType
     ReservoirChange,
     GerminationConfirmed,
     CloneRooted,
+    /// <summary>Saemling vorbei — echte Blaetter da, ab hier Veg.</summary>
+    VegStarted,
     FlipToFlower
 }
 

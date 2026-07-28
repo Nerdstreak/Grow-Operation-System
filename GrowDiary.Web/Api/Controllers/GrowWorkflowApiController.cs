@@ -362,6 +362,58 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         return Ok(new GrowActionResultDto(_repository.GetGrow(id)!.ToDetailDto(), "Keimung bestaetigt."));
     }
 
+    /// <summary>
+    /// Der Saemling ist durch — ab hier Veg.
+    /// </summary>
+    /// <remarks>
+    /// Bewusst ein Knopf und keine Rechnung: der Uebergang haengt am Aussehen,
+    /// nicht am Kalender. Echte gezackte Blaetter statt der zwei runden
+    /// Keimblaetter, dickerer Stengel, regelmaessig neue Blattpaare,
+    /// Seitentriebe an den Knoten, spuerbar mehr Wasserverbrauch — das sieht
+    /// nur, wer davorsteht. Typisch ein bis drei Wochen nach der Keimung, aber
+    /// eben typisch.
+    ///
+    /// Bis hierhin schaetzt <see cref="GrowStageResolver"/> ueber die Tage.
+    /// Danach zaehlt dieses Datum, und die Zielwerte springen auf Veg.
+    /// </remarks>
+    [HttpPost("{id:int}/actions/confirm-veg")]
+    [ProducesResponseType(typeof(GrowActionResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<GrowActionResultDto> ConfirmVeg(int id)
+    {
+        var grow = _repository.GetGrow(id);
+        if (grow is null)
+        {
+            return NotFoundError("grow_not_found", $"Grow mit Id {id} existiert nicht.");
+        }
+
+        if (grow.FlipDate.HasValue)
+        {
+            return BadRequestError("invalid_action", "Dieser Grow ist bereits in der Bluete.");
+        }
+
+        if (!grow.VegStartedAt.HasValue)
+        {
+            grow.VegStartedAt = DateTime.Now;
+            if (grow.Status == GrowStatus.Planning)
+            {
+                grow.Status = GrowStatus.Running;
+            }
+
+            _repository.UpdateGrow(grow);
+            _journalRepository.Create(new JournalEntry
+            {
+                GrowId = id,
+                EntryType = JournalEntryType.VegStarted,
+                Body = "Saemling vorbei — echte Blaetter da, ab hier Veg.",
+                OccurredAtUtc = DateTime.UtcNow
+            });
+        }
+
+        return Ok(new GrowActionResultDto(_repository.GetGrow(id)!.ToDetailDto(), "Veg-Phase festgehalten."));
+    }
+
     [HttpPost("{id:int}/actions/confirm-rooting")]
     [ProducesResponseType(typeof(GrowActionResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]

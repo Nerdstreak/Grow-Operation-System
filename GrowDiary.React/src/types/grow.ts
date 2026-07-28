@@ -48,6 +48,7 @@ export interface GrowSummary {
   breederFlowerWeeksMax: number | null
   germinatedAt: string | null
   rootedAt: string | null
+  vegStartedAt: string | null
   measurementCount: number
   latestPhotoPath: string | null
   latestStage: GrowStage | null
@@ -224,6 +225,7 @@ export interface GrowDetail {
   flipDate: string | null
   germinatedAt: string | null
   rootedAt: string | null
+  vegStartedAt: string | null
   nutrients: string | null
   notes: string | null
   measurementCount: number

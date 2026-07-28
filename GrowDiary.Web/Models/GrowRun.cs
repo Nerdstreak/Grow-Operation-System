@@ -62,6 +62,22 @@ public sealed class GrowRun
     public DateTime? FlipDate { get; set; }
     public DateTime? GerminatedAt { get; set; }
     public DateTime? RootedAt { get; set; }
+
+    /// <summary>
+    /// Wann der Saemling zur Veg wurde — beobachtet, nicht gerechnet.
+    /// </summary>
+    /// <remarks>
+    /// Der Uebergang haengt nicht am Kalender, sondern am Aussehen: echte
+    /// gezackte Blaetter statt der zwei runden Keimblaetter, dickerer Stengel,
+    /// regelmaessig neue Blattpaare, Seitentriebe an den Knoten, spuerbar mehr
+    /// Wasserverbrauch. Typisch ein bis drei Wochen nach der Keimung — aber eben
+    /// typisch, nicht sicher.
+    ///
+    /// Solange hier nichts steht, schaetzt <see cref="Services.GrowStageResolver"/>
+    /// ueber die Tage. Steht etwas, gewinnt es: wer hingesehen hat, weiss es
+    /// besser als jede Rechnung. Dieselbe Regel wie beim Flip.
+    /// </remarks>
+    public DateTime? VegStartedAt { get; set; }
     public string? Nutrients { get; set; }
     public string? Notes { get; set; }
     public DateTime StartDate { get; set; } = DateTime.Today;

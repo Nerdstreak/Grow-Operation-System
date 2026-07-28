@@ -50,6 +50,8 @@ public sealed record GrowDetailDto(
     DateTime? FlipDate,
     DateTime? GerminatedAt,
     DateTime? RootedAt,
+    /// <summary>Wann der Saemling zur Veg wurde — beobachtet, nicht gerechnet.</summary>
+    DateTime? VegStartedAt,
     string? Nutrients,
     string? Notes,
     int MeasurementCount,

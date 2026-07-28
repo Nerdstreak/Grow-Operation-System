@@ -90,6 +90,10 @@ function GrowDetailPage() {
   const canArchiveGrow = grow.status === 'Planning' || grow.status === 'Running'
   const statusTone = grow.status === 'Running' ? 'ok' : grow.status === 'Planning' ? 'warn' : 'neutral'
   const canFlip = grow.status === 'Running' && !grow.flipDate
+  // Der Übergang zur Veg hängt am Aussehen, nicht am Kalender — echte gezackte
+  // Blätter statt der zwei runden Keimblätter. Also ein Knopf, solange noch
+  // nichts eingetragen ist und noch nicht geflippt wurde.
+  const canConfirmVeg = !grow.vegStartedAt && !grow.flipDate && grow.status === 'Running'
   const canHarvest = ['Flower', 'Finish', 'Dry'].includes(latest?.stage ?? grow.entryPoint ?? '')
   const timeline = buildPhaseTimeline(grow)
   const lastMeasurements = [...bundle.measurements]
@@ -105,6 +109,11 @@ function GrowDetailPage() {
           <div className="v1-action-row" data-audit="grow-management-actions">
             <V1Badge tone={statusTone}>{formatGrowStatus(grow.status)}</V1Badge>
             <V1LinkButton to={`/grows/${grow.id}/addback`}>Addback</V1LinkButton>
+            {canConfirmVeg && (
+              <V1Button disabled={Boolean(saving)} onClick={() => void handleGrowAction('veg')}>
+                {saving === 'action-veg' ? 'Trägt ein…' : 'Sämling ist durch'}
+              </V1Button>
+            )}
             {canFlip && (
               <V1Button disabled={Boolean(saving)} onClick={() => void handleGrowAction('flip')}>
                 {saving === 'flip' ? 'Trägt ein…' : 'Flip 12/12'}
