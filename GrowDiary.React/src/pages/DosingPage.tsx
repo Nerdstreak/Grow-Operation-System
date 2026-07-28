@@ -3,6 +3,7 @@ import { apiFetch } from '../api'
 import type { TentDto } from '../types'
 import { V1Alert, V1Button, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { PumpGraphic } from '../features/dosing/PumpGraphic'
+import { runSecondsForPump, secondsForTarget, targetForPump } from '../features/dosing/calibration'
 import '../features/dosing/dosing.css'
 import { classNames } from '../utils'
 
@@ -96,6 +97,20 @@ function DosingPage() {
   const [doseMl, setDoseMl] = useState<Record<number, string>>({})
   const [calibrating, setCalibrating] = useState<number | null>(null)
   const [calibMl, setCalibMl] = useState('')
+  // Die Sekunden des letzten Laufs — die Foerdermenge rechnet sich daraus.
+  const [calibSeconds, setCalibSeconds] = useState(30)
+  // Restzeit des laufenden Kalibrierlaufs. Zwei Minuten „Läuft…" ohne Zahl
+  // sehen aus wie ein Absturz — also zählt der Knopf herunter.
+  const [restSekunden, setRestSekunden] = useState<number | null>(null)
+
+  const laeuft = restSekunden != null
+  useEffect(() => {
+    if (!laeuft) return
+    // Bei 1 auf null: das stoppt den Takt von selbst, ohne zweiten Zustand.
+    const id = window.setInterval(
+      () => setRestSekunden((value) => (value == null || value <= 1 ? null : value - 1)), 1000)
+    return () => window.clearInterval(id)
+  }, [laeuft])
 
   // Nach jeder Aktion einmal hochzählen — laden passiert nur im Effekt, damit
   // kein setState direkt aus dem Effektkörper heraus Kaskaden auslöst.
@@ -147,19 +162,35 @@ function DosingPage() {
     }
   }
 
-  async function kalibrierlauf(pump: Pump, seconds: number) {
+  /**
+   * Kalibrierlauf — entweder auf eine Zielmenge oder auf eine feste Zeit.
+   *
+   * Die Zielmenge ist genauer: 1 ml Ablesefehler wiegt bei 100 ml viermal
+   * weniger als bei 23 ml. Sie setzt aber eine grobe Foerdermenge voraus, die
+   * es beim allerersten Mal noch nicht gibt — dann laeuft es ueber die Zeit.
+   */
+  async function kalibrierlauf(pump: Pump, options: { seconds?: number; targetMl?: number }) {
     setBusyPumpId(pump.id)
     setError(null)
     setMessage(null)
+    // Die Sekunden merken, mit denen wirklich gelaufen wurde — daraus rechnet
+    // der Server spaeter die Foerdermenge.
+    const geschaetzt = options.targetMl != null
+      ? secondsForTarget(options.targetMl, pump.mlPerMinute) ?? options.seconds ?? 30
+      : options.seconds ?? 30
+    setCalibSeconds(geschaetzt)
+    setRestSekunden(Math.ceil(geschaetzt))
     try {
-      const result = await apiFetch<{ dosed: boolean; reason: string }>(
-        `/api/dosing/pumps/${pump.id}/calibration/run`, { method: 'POST', body: JSON.stringify({ seconds }) })
-      if (result.dosed) { setMessage(result.reason); setCalibrating(pump.id) }
+      const result = await apiFetch<{ dosed: boolean; seconds: number; reason: string }>(
+        `/api/dosing/pumps/${pump.id}/calibration/run`,
+        { method: 'POST', body: JSON.stringify({ seconds: options.seconds ?? 30, targetMl: options.targetMl ?? null }) })
+      if (result.dosed) { setCalibSeconds(result.seconds); setMessage(result.reason); setCalibrating(pump.id) }
       else setError(result.reason)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Kalibrierlauf fehlgeschlagen.')
     } finally {
       setBusyPumpId(null)
+      setRestSekunden(null)
     }
   }
 
@@ -275,11 +306,11 @@ function DosingPage() {
                     <div className="dz-actions">
                       {pump.mlPerMinute == null ? (
                         <>
-                          <V1Button onClick={() => void kalibrierlauf(pump, 30)} disabled={dosing}>
-                            {dosing ? 'Läuft…' : '30 s Kalibrierlauf'}
+                          <V1Button onClick={() => void kalibrierlauf(pump, { seconds: 30 })} disabled={dosing}>
+                            {dosing ? `Läuft… noch ${restSekunden ?? 0} s` : '30 s Kalibrierlauf'}
                           </V1Button>
                           <span style={{ font: '400 11px/1.4 var(--font-mono)', color: 'var(--faint)' }}>
-                            Schlauchende in den Messbecher
+                            Schlauchende in den Messbecher — beim ersten Mal über die Zeit
                           </span>
                         </>
                       ) : (
@@ -295,7 +326,14 @@ function DosingPage() {
                           <V1Button variant="primary" onClick={() => void dosieren(pump)} disabled={dosing}>
                             {dosing ? 'Dosiert…' : 'Dosieren'}
                           </V1Button>
-                          <V1Button onClick={() => void kalibrierlauf(pump, 30)} disabled={dosing}>Neu kalibrieren</V1Button>
+                          <V1Button onClick={() => void kalibrierlauf(pump, { targetMl: targetForPump(pump.mlPerMinute) })} disabled={dosing}>
+                            {dosing
+                              ? `Läuft… noch ${restSekunden ?? 0} s`
+                              : `Genau kalibrieren · ${targetForPump(pump.mlPerMinute)} ml`}
+                          </V1Button>
+                          <span style={{ font: '400 11px/1.4 var(--font-mono)', color: 'var(--faint)' }}>
+                            läuft {zahl(runSecondsForPump(pump.mlPerMinute), 0)} s in den Messbecher
+                          </span>
                         </>
                       )}
                       <V1LinkButton to={`/dosierung/${pump.id}`} variant="ghost">Einstellen</V1LinkButton>
@@ -304,7 +342,7 @@ function DosingPage() {
                     {calibrating === pump.id && (
                       <div className="dz-actions" style={{ borderTop: '1px solid var(--hair)', paddingTop: 10 }}>
                         <span style={{ font: '400 11.5px/1.4 var(--font-mono)', color: 'var(--muted)' }}>
-                          Was steht im Becher?
+                          Was steht wirklich im Becher? ({calibSeconds.toFixed(1).replace('.', ',')} s gelaufen)
                         </span>
                         <input
                           className="dz-dose-input"
@@ -314,7 +352,7 @@ function DosingPage() {
                           onChange={(event) => setCalibMl(event.target.value)}
                           aria-label="Gemessene Menge in Millilitern"
                         />
-                        <V1Button variant="primary" onClick={() => void kalibrierungSpeichern(pump, 30)} disabled={dosing}>
+                        <V1Button variant="primary" onClick={() => void kalibrierungSpeichern(pump, calibSeconds)} disabled={dosing}>
                           Übernehmen
                         </V1Button>
                         <V1Button onClick={() => { setCalibrating(null); setCalibMl('') }}>Abbrechen</V1Button>

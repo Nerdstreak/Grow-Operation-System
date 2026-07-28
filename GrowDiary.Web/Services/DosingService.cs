@@ -44,6 +44,20 @@ public static class DosingCalculator
         => Math.Round(seconds / 60.0 * mlPerMinute, 3);
 
     /// <summary>
+    /// Wie lange die Pumpe laufen muss, um ungefähr die Zielmenge auszugeben.
+    /// </summary>
+    /// <remarks>
+    /// Nur eine Schätzung für den Kalibrierlauf — sie muss nicht stimmen. Was
+    /// zählt, ist die Menge, die danach wirklich im Becher steht: daraus wird
+    /// die Fördermenge gerechnet. Die Schätzung sorgt nur dafür, dass man in
+    /// einem gut ablesbaren Bereich landet.
+    /// </remarks>
+    public static double? SecondsForTarget(double targetMl, double? mlPerMinute)
+        => mlPerMinute is { } rate && rate > 0 && targetMl > 0
+            ? Math.Round(targetMl / rate * 60.0, 1)
+            : null;
+
+    /// <summary>
     /// Fördermenge aus einem Kalibrierlauf: gemessene Milliliter auf die Minute
     /// hochgerechnet.
     /// </summary>
@@ -98,8 +112,19 @@ public static class DosingCalculator
 /// <summary>Prüft die Anschläge — getrennt vom Rechnen, damit jeder Riegel einzeln belegt ist.</summary>
 public static class DosingGuard
 {
-    /// <summary>Kein Lauf ist je länger, egal was die Rechnung sagt.</summary>
+    /// <summary>Keine DOSIS ist je länger, egal was die Rechnung sagt.</summary>
     public const double AbsoluteMaxSeconds = 60;
+
+    /// <summary>
+    /// Der Kalibrierlauf darf länger — er geht in den Messbecher, nicht ins Becken.
+    /// </summary>
+    /// <remarks>
+    /// Für die Genauigkeit ist das entscheidend. Wer 23 ml abliest, liest sich
+    /// leicht um 1 ml — das sind 4 % Fehler, die in jeder späteren Dosis
+    /// stecken. Bei 100 ml ist derselbe Ablesefehler 1 %. Mit der Dosis-Grenze
+    /// von 60 s käme man bei 46 ml/min nie über 46 ml hinaus.
+    /// </remarks>
+    public const double MaxCalibrationSeconds = 300;
 
     public static DosingDecision Evaluate(DosingPump pump, double requestedMl, DosingContext context, DateTime nowUtc)
     {
@@ -254,9 +279,9 @@ public sealed class DosingService
     /// ganzen Add-ons — dagegen hilft nur die Abschaltung in Home Assistant und
     /// der Auswurf beim Start (<see cref="TurnAllOffAsync"/>).
     /// </remarks>
-    public async Task<bool> RunForSecondsAsync(DosingPump pump, double seconds, CancellationToken cancellationToken = default)
+    public async Task<bool> RunForSecondsAsync(DosingPump pump, double seconds, CancellationToken cancellationToken = default, double? maxSeconds = null)
     {
-        var kappt = Math.Clamp(seconds, 0, DosingGuard.AbsoluteMaxSeconds);
+        var kappt = Math.Clamp(seconds, 0, maxSeconds ?? DosingGuard.AbsoluteMaxSeconds);
         if (kappt <= 0) return false;
 
         // Testbetrieb: die Zeit vergeht wirklich, damit die Anzeige die echte

@@ -41,6 +41,42 @@ public sealed class DosingCalculatorTests
     }
 
     [Fact]
+    public void TargetVolume_TurnsIntoARunTime()
+    {
+        // 100 ml bei 46 ml/min sind 130,4 s — deutlich mehr als die 60-s-Grenze
+        // einer Dosis. Genau deshalb hat der Kalibrierlauf eine eigene.
+        Assert.Equal(130.4, DosingCalculator.SecondsForTarget(100, 46)!.Value, 1);
+        Assert.True(DosingCalculator.SecondsForTarget(100, 46) > DosingGuard.AbsoluteMaxSeconds);
+        Assert.True(DosingCalculator.SecondsForTarget(100, 46) < DosingGuard.MaxCalibrationSeconds);
+    }
+
+    [Fact]
+    public void WithoutAKnownRate_ThereIsNoTargetTime()
+    {
+        // Beim allerersten Mal weiss niemand, wie lange 100 ml dauern — dann
+        // laeuft es ueber die Zeit, nicht ueber die Menge.
+        Assert.Null(DosingCalculator.SecondsForTarget(100, null));
+        Assert.Null(DosingCalculator.SecondsForTarget(100, 0));
+        Assert.Null(DosingCalculator.SecondsForTarget(0, 46));
+    }
+
+    [Fact]
+    public void ALargerCalibrationVolume_IsMoreForgivingOfMisreading()
+    {
+        // Der eigentliche Grund fuer die Zielmenge: 1 ml Ablesefehler wiegt bei
+        // 23 ml viermal so schwer wie bei 100 ml.
+        var kleinFalsch = DosingCalculator.MlPerMinuteFrom(23 + 1, 30)!.Value;
+        var kleinRichtig = DosingCalculator.MlPerMinuteFrom(23, 30)!.Value;
+        var grossFalsch = DosingCalculator.MlPerMinuteFrom(100 + 1, 130.4)!.Value;
+        var grossRichtig = DosingCalculator.MlPerMinuteFrom(100, 130.4)!.Value;
+
+        var fehlerKlein = Math.Abs(kleinFalsch - kleinRichtig) / kleinRichtig;
+        var fehlerGross = Math.Abs(grossFalsch - grossRichtig) / grossRichtig;
+
+        Assert.True(fehlerGross < fehlerKlein / 3, $"{fehlerGross:P1} muesste deutlich unter {fehlerKlein:P1} liegen.");
+    }
+
+    [Fact]
     public void Calibration_RefusesNonsense()
     {
         Assert.Null(DosingCalculator.MlPerMinuteFrom(0, 30));

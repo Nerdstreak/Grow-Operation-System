@@ -54,16 +54,30 @@ public sealed class DosingPumpUpsertRequest
     public bool TubeChangedNow { get; set; }
 }
 
-/// <summary>Der Kalibrierlauf: so viele Sekunden laufen lassen.</summary>
+/// <summary>
+/// Der Kalibrierlauf — entweder eine Zielmenge oder eine feste Zeit.
+/// </summary>
+/// <remarks>
+/// Die Zielmenge ist der genauere Weg: wer 23 ml abliest, liest sich leicht um
+/// 1 ml, das sind 4 % Fehler in jeder späteren Dosis. Bei 100 ml ist derselbe
+/// Ablesefehler 1 %. Sie setzt aber eine grobe Fördermenge voraus — beim
+/// allerersten Mal weiss niemand, wie lange 100 ml dauern. Dann läuft es über
+/// die Zeit, und ab der zweiten Runde über die Menge.
+/// </remarks>
 public sealed class CalibrationRunRequest
 {
     public double Seconds { get; set; } = 30;
+
+    /// <summary>Wenn gesetzt und die Fördermenge grob bekannt ist: so lange laufen, bis ungefähr so viel heraus ist.</summary>
+    public double? TargetMl { get; set; }
 }
 
 /// <summary>Was im Messbecher stand, nach einem Lauf über <see cref="Seconds"/>.</summary>
 public sealed class CalibrationResultRequest
 {
     public double Seconds { get; set; } = 30;
+
+    /// <summary>Was wirklich im Becher stand — daraus wird gerechnet, nicht aus der Zielmenge.</summary>
     public double MeasuredMl { get; set; }
 }
 

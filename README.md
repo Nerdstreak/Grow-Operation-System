@@ -29,13 +29,26 @@ your own hardware. No cloud, no account, no SaaS.
 ## Features
 
 - 📊 **Live instrument dashboard** — climate, VPD, reservoir, light status and a
-  system score at a glance, with a near-live tent camera.
+  system score at a glance, with a near-live tent camera. Arrange the tiles the way
+  you read them; each one carries its 24 h curve and says where its target came from.
 - 💧 **Addback & water-change assistant** — measure, target, dose, re-check; nothing
   blind.
+- ⚗️ **Dosing pumps** — drive peristaltic pumps for pH and nutrients through Home
+  Assistant. Calibrate by volume (run until 100 ml is in the cup), then dose in
+  millilitres. Every dose is capped, spaced by a mixing pause and logged; nothing
+  runs on its own.
+- 🎚️ **Setpoints that are yours** — shipped per-phase targets for RDWC and DWC, a
+  threshold you type beats them everywhere, and you can write your own profile from
+  your own experience. Only what you change becomes yours; the rest keeps receiving
+  updates.
+- 🔔 **Threshold alerts** — push straight to your phone through Home Assistant when a
+  value leaves the band you set.
 - 🧪 **Auto-measurements** — capture sensor readings (and camera snapshots) on a
   trigger, e.g. *30 min after lights-on*.
 - 🩺 **Diagnosis & risk tracking** — deviations become symptoms with likely causes and
   linked treatments/SOPs; power/pump/DO emergencies get guided recovery SOPs.
+- 🐕 **Watchdog** — tells you when Grow OS itself has gone quiet, per tent, so a tent
+  that stopped reporting can't hide behind one that still does.
 - 📚 **Knowledge base** — searchable guides, SOPs, treatments, symptoms, pathogens,
   target values and nutrient programs.
 - 🔧 **Hardware & maintenance** — lifespan, inspection and per-sensor calibration

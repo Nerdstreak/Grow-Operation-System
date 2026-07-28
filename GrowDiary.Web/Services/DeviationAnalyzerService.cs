@@ -40,6 +40,7 @@ public sealed class DeviationAnalyzerService
     public DeviationAnalyzerService(TargetValueService targetValues, AlertRuleRepository? alertRules = null)
     {
         _targetValues = targetValues;
+        _alertRules = alertRules;
     }
 
     /// <param name="leafTempOffsetC">
@@ -74,12 +75,11 @@ public sealed class DeviationAnalyzerService
         // Live-Kacheln. Vorher las die Diagnose nur das Wissen und widersprach
         // damit den Alarmen, die schon immer die Werte des Nutzers nahmen.
         var wissen = _targetValues.GetTargets(grow.HydroStyle, latest.Stage);
-        var targets = wissen is null || grow.TentId is not { } tentId
-            ? wissen
-            : UserTargets.Overlay(wissen, _alertRules?.GetForTent(tentId));
+        var regeln = grow.TentId is { } tentId ? _alertRules?.GetForTent(tentId) : null;
+        var targets = wissen is null ? null : UserTargets.Overlay(wissen, regeln);
         var deviations = new List<GrowDeviation>();
 
-        CheckPh(grow, sorted, targets, deviations);
+        CheckPh(grow, sorted, targets, UserTargets.IsUserSet("reservoir-ph", regeln), deviations);
         CheckEc(grow, sorted, targets, deviations);
         CheckPhDriftRate(grow, sorted, deviations);
         CheckOrp(grow, sorted, deviations);
@@ -92,7 +92,11 @@ public sealed class DeviationAnalyzerService
         return deviations;
     }
 
-    private static void CheckPh(GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, List<GrowDeviation> result)
+    /// <param name="phIsUserSet">
+    /// Ob die Grenzen von Hand eingetragen wurden. Das ändert ihre Bedeutung: der
+    /// mitgelieferte Wert ist ein Anmischziel, der eingetragene eine Grenze.
+    /// </param>
+    private static void CheckPh(GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, bool phIsUserSet, List<GrowDeviation> result)
     {
         sorted = sorted.Where(measurement => measurement.ReservoirPh.HasValue).ToList();
         if (sorted.Count == 0 || sorted[0].ReservoirPh is not { } actual)
@@ -104,8 +108,17 @@ public sealed class DeviationAnalyzerService
         // growplan is explicit: inside the comfort zone the pH may drift on its own (from
         // flower week 4 deliberately so), and you only intervene once it leaves it. Warning
         // on every small drift produced noise and advised the opposite of the plan.
-        var actionMin = Math.Min(targets?.PhMin ?? PhComfortMin, PhComfortMin);
-        var actionMax = Math.Max(targets?.PhMax ?? PhComfortMax, PhComfortMax);
+        //
+        // Ausser jemand hat die Grenzen selbst eingetragen. Dann ist die Zahl
+        // keine Empfehlung mehr, sondern eine Ansage: „darunter/darüber will ich
+        // es wissen". Wer bewusst enger fährt als die Komfortzone, bekam vorher
+        // nichts zu sehen — die Zone hat seine Grenzen einfach aufgesogen.
+        var actionMin = phIsUserSet && targets is not null
+            ? targets.PhMin
+            : Math.Min(targets?.PhMin ?? PhComfortMin, PhComfortMin);
+        var actionMax = phIsUserSet && targets is not null
+            ? targets.PhMax
+            : Math.Max(targets?.PhMax ?? PhComfortMax, PhComfortMax);
         var critical = actual < PhCriticalMin || actual > PhCriticalMax;
         var actionable = actual < actionMin || actual > actionMax;
         if (!actionable && !critical)

@@ -102,8 +102,14 @@ public sealed class DosingApiController : ApiControllerBase
         var pump = _dosing.GetPump(id);
         if (pump is null) return NotFoundError("pump_not_found", $"Pumpe {id} existiert nicht.");
 
-        var seconds = Math.Clamp(request.Seconds, 5, DosingGuard.AbsoluteMaxSeconds);
-        var ok = await _service.RunForSecondsAsync(pump, seconds, cancellationToken);
+        // Zielmenge schlaegt feste Zeit, sobald eine grobe Foerdermenge bekannt
+        // ist. Der Kalibrierlauf darf laenger als eine Dosis — er geht in den
+        // Messbecher, nicht ins Becken.
+        var gewuenscht = request.TargetMl is { } ziel
+            ? DosingCalculator.SecondsForTarget(ziel, pump.MlPerMinute) ?? request.Seconds
+            : request.Seconds;
+        var seconds = Math.Clamp(gewuenscht, 5, DosingGuard.MaxCalibrationSeconds);
+        var ok = await _service.RunForSecondsAsync(pump, seconds, cancellationToken, DosingGuard.MaxCalibrationSeconds);
 
         _dosing.InsertEvent(new DoseEvent
         {
@@ -122,7 +128,7 @@ public sealed class DosingApiController : ApiControllerBase
         });
 
         return Ok(new DoseResultDto(ok, 0, ok ? seconds : 0,
-            ok ? $"{seconds:0.#} s gelaufen — jetzt den Messbecher ablesen."
+            ok ? $"{seconds:0.#} s gelaufen — jetzt genau ablesen, was im Becher steht."
                : "Home Assistant hat die Pumpe nicht geschaltet."));
     }
 
