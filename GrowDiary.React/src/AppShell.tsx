@@ -79,6 +79,32 @@ export function AppShell({ children, counts }: Props) {
         </button>
       </header>
 
+      {/*
+        Die Hauptnavigation sitzt oben, nicht unten.
+
+        Unten funktioniert sie im Home-Assistant-Ingress nicht: dort steckt
+        Grow OS in einem iframe, das hoeher ist als das, was auf dem Schirm
+        Platz hat. `position: fixed; bottom: 0` klebt an der Unterkante DIESES
+        iframes — und die liegt unterhalb des sichtbaren Bereichs. Auf dem
+        Telefon ragte nur noch die Oberkante der aktiven Kachel ins Bild.
+
+        Von innen laesst sich nicht messen, wie viel abgeschnitten ist: das
+        iframe kennt seine eigene Hoehe, nicht die des Fensters darum. Oben gibt
+        es das Problem nicht — die Oberkante liegt immer im Bild.
+      */}
+      <nav className="v1-mobile-nav" aria-label="Hauptnavigation">
+        {mobilePrimaryNav.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={isNavLeafActive(item, location.pathname) ? 'v1-mobile-nav-item active' : 'v1-mobile-nav-item'}
+          >
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+
       {moreOpen && (
         <div className="v1-mobile-more-panel" data-audit="mobile-more-menu">
           <AppSearch pages={searchablePages} />
@@ -134,18 +160,6 @@ export function AppShell({ children, counts }: Props) {
         {children}
       </main>
 
-      <nav className="v1-bottom-nav" aria-label="Hauptnavigation">
-        {mobilePrimaryNav.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={isNavLeafActive(item, location.pathname) ? 'v1-bottom-item active' : 'v1-bottom-item'}
-          >
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
     </div>
   )
 }

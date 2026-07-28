@@ -70,12 +70,14 @@
   .v1-route-frame { min-width: 0; display: flex; flex-direction: column; }
 
   /* ---------- Mobile ---------- */
-  .v1-mobile-topbar, .v1-bottom-nav, .v1-mobile-more-panel { display: none; }
+  .v1-mobile-topbar, .v1-mobile-nav, .v1-mobile-more-panel { display: none; }
 
   @media (max-width: 860px) {
     .v1-app-shell { grid-template-columns: 1fr; }
     .v1-desktop-nav { display: none; }
-    .v1-route-frame { padding-top: 58px; padding-bottom: 76px; }
+    /* Kopfzeile plus Navigationsreihe, beide oben angeschlagen. Unten
+       braucht nichts mehr freigehalten zu werden. */
+    .v1-route-frame { padding-top: 108px; padding-bottom: var(--s-5); }
     .v1-page { padding: var(--s-3) var(--s-3) var(--s-5); }
     .v1-mobile-topbar {
       display: flex; position: fixed; inset: 0 0 auto; z-index: 30;
@@ -91,8 +93,8 @@
       font: 500 12px/1 var(--font-mono); cursor: pointer;
     }
     .v1-mobile-more-panel {
-      display: block; position: fixed; inset: 58px 0 auto; z-index: 29;
-      max-height: calc(100vh - 58px); overflow: auto;
+      display: block; position: fixed; inset: 107px 0 auto; z-index: 29;
+      max-height: calc(100dvh - 107px); overflow: auto;
       padding: var(--s-3); background: var(--bg); border-bottom: 1px solid var(--hair);
     }
     .v1-mobile-more-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--s-2); }
@@ -103,19 +105,19 @@
       font: 500 12px/1 var(--font-mono); text-decoration: none;
     }
     .v1-more-tile.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-    .v1-bottom-nav {
-      display: grid; grid-template-columns: repeat(4, 1fr);
-      position: fixed; inset: auto 0 0; z-index: 35;
-      min-height: 64px; padding: var(--s-1) var(--s-2);
-      padding-bottom: max(var(--s-1), env(safe-area-inset-bottom));
-      border-top: 1px solid var(--hair); background: var(--panel);
-      backdrop-filter: blur(12px);
+    /* Die Hauptnavigation direkt unter der Kopfzeile — siehe AppShell.tsx:
+       unten wird sie im Ingress vom iframe abgeschnitten. */
+    .v1-mobile-nav {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-1);
+      position: fixed; inset: 58px 0 auto; z-index: 30;
+      min-height: 48px; align-items: center; padding: var(--s-1) var(--s-2);
+      border-bottom: 1px solid var(--hair-2); background: #16241d;
     }
-    .v1-bottom-item {
-      display: grid; place-items: center; border-radius: var(--r-sm);
+    .v1-mobile-nav-item {
+      min-height: 40px; display: grid; place-items: center; border-radius: var(--r-sm);
       color: var(--muted); font: 500 12px/1 var(--font-mono); text-decoration: none;
     }
-    .v1-bottom-item.active { background: var(--accent); color: var(--accent-ink); }
+    .v1-mobile-nav-item.active { background: var(--accent); color: var(--accent-ink); }
     .gos-contextbar { padding: 0 var(--s-3); gap: var(--s-2); overflow-x: auto; }
   }
 

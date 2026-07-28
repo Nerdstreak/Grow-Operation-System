@@ -16,16 +16,10 @@
       grid-template-columns: 1fr;
     }
     .v1-form-actions {
-      margin-bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 18px);
+      margin-bottom: var(--s-4);
     }
     .v1-form-actions {
-      margin-bottom: calc(var(--rc2-bottom-nav-height) + env(safe-area-inset-bottom) + 22px) !important;
-    }
-    .v1-bottom-nav {
-      position: static !important;
-      inset: auto !important;
-      background: #031008 !important;
-      margin: 8px 8px env(safe-area-inset-bottom);
+      margin-bottom: var(--s-4) !important;
     }
 }
 
@@ -34,7 +28,7 @@
 .v1-eyebrow,
 .v1-tab strong,
 .v1-wizard-step strong,
-.v1-bottom-item {
+.v1-mobile-nav-item {
   white-space: nowrap;
 }
 .v1-alert {
@@ -63,27 +57,6 @@
   text-overflow: ellipsis;
 }
 @media (max-width: 860px) {
-    .v1-bottom-nav {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      position: fixed;
-      inset: auto 0 0 0 !important;
-      min-height: calc(var(--rc2-bottom-nav-height) + max(0px, env(safe-area-inset-bottom)));
-      margin: 0 !important;
-      padding: 8px 10px max(8px, env(safe-area-inset-bottom)) !important;
-      border: 1px solid var(--v1-line-strong);
-      border-right: 0;
-      border-bottom: 0;
-      border-left: 0;
-      border-radius: 18px 18px 0 0 !important;
-      /* Die Leiste muss sich vom Seitenhintergrund abheben. rgb(3,16,8) auf
-         #04070a war Kontrast 1,04 — praktisch derselbe Farbton, und uebrig
-         blieb ein 1-px-Rand. Am Handy im Zelt sah man die Leiste dann kaum.
-         Jetzt eine echte Flaeche, dazu ein deutlicherer oberer Rand. */
-      background: #16241d !important;
-      border-top-color: #5ee7a080;
-      box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.55);
-    }
 }
 
 @media (max-width: 767px) {
@@ -98,39 +71,11 @@
       padding: 0 10px;
       text-align: center;
     }
-    .v1-bottom-nav {
-      box-sizing: border-box;
-      display: grid !important;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      position: fixed !important;
-      inset: auto 0 0 0 !important;
-      min-height: 0 !important;
-      align-items: center;
-      margin: 0 !important;
-      padding: 6px max(10px, var(--safe-right)) max(var(--safe-bottom), 8px) max(10px, var(--safe-left)) !important;
-      border: 1px solid var(--v1-line-strong);
-      border-right: 0;
-      border-bottom: 0;
-      border-left: 0;
-      border-radius: 18px 18px 0 0 !important;
-      /* Die Leiste muss sich vom Seitenhintergrund abheben. rgb(3,16,8) auf
-         #04070a war Kontrast 1,04 — praktisch derselbe Farbton, und uebrig
-         blieb ein 1-px-Rand. Am Handy im Zelt sah man die Leiste dann kaum.
-         Jetzt eine echte Flaeche, dazu ein deutlicherer oberer Rand. */
-      background: #16241d !important;
-      border-top-color: #5ee7a080;
-      box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.55);
-      z-index: 45;
     }
-    .v1-bottom-item {
-      min-width: 44px;
-      min-height: 44px;
-    }
-}
 
 @media (min-width: 768px) {
     .v1-mobile-topbar,
-    .v1-bottom-nav,
+    .v1-mobile-nav,
     .v1-mobile-more-panel {
       display: none !important;
     }
