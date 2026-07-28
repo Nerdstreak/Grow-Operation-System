@@ -864,9 +864,4 @@ public sealed class GrowDashboardComposer
         };
     }
 
-    private static string? ResolveLightCycle(Tent tent)
-    {
-        // TODO Sprint B1b: LightCycle aus Setup/Phase laden
-        return null;
-    }
 }
