@@ -337,21 +337,8 @@ public sealed class GrowDashboardComposer
     /// </remarks>
     private void ApplyDryingTargets(List<MetricCard> cards, Tent tent, GrowRun? activeGrow)
     {
-        if (activeGrow is not null || _grows is null || _harvests is null) return;
-
-        var geerntet = _grows.GetAllGrows()
-            .Where(grow => grow.TentId == tent.Id
-                && grow.Status == GrowStatus.Completed
-                && grow.EndDate is { } ende
-                && (DateTime.Today - ende.Date).TotalDays <= MoldGuard.DryingWindowDays)
-            .OrderByDescending(grow => grow.EndDate)
-            .FirstOrDefault();
-        if (geerntet is null) return;
-
-        var ernte = _harvests.GetForGrow(geerntet.Id);
-        if (ernte is null || ernte.DryWeightG is not null) return;
-
-        var tag = (int)(DateTime.Today - geerntet.EndDate!.Value.Date).TotalDays + 1;
+        if (activeGrow is not null) return;
+        if (DryingWindow.DayFor(_grows, _harvests, tent.Id, DateTime.Today) is not { } tag) return;
 
         if (cards.FirstOrDefault(card => card.Key == "temperature") is { } temperatur)
         {

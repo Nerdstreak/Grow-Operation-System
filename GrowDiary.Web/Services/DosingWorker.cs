@@ -73,9 +73,12 @@ public sealed class DosingWorker : BackgroundService
 
         var nowUtc = DateTime.UtcNow;
 
+        // Live-Zustaende je Zelt einmal holen — daraus kommt die Umwaelzung.
+        var statesByTent = new Dictionary<int, IReadOnlyDictionary<string, HomeAssistantState>?>();
+
         // Zuerst die ausstehenden zweiten Haelften: A steht schon im Becken, B
         // fehlt noch. Das hat Vorrang vor allem, was neu dazukaeme.
-        await GivePendingAsync(dosing, service, situations, pump: null, nowUtc, cancellationToken);
+        await GivePendingAsync(dosing, service, situations, grows, homeAssistant, statesByTent, nowUtc, cancellationToken);
 
         // Reihenfolge wie am echten Becken: erst Duenger, dann pH. Duenger
         // verschiebt den pH von selbst — eine pH-Dosis davor korrigiert etwas,
@@ -83,9 +86,6 @@ public sealed class DosingWorker : BackgroundService
         var pumps = dosing.GetPumps()
             .OrderBy(pump => pump.Purpose is DosingPurpose.PhDown or DosingPurpose.PhUp ? 1 : 0)
             .ToList();
-
-        // Live-Zustaende je Zelt einmal holen — daraus kommt die Umwaelzung.
-        var statesByTent = new Dictionary<int, IReadOnlyDictionary<string, HomeAssistantState>?>();
 
         // Nach einer Dosis ist der Kontext der uebrigen Pumpen dieses Zelts
         // veraltet (Mischpause!). Der Rest des Zelts wartet auf den naechsten
@@ -163,17 +163,36 @@ public sealed class DosingWorker : BackgroundService
         DosingRepository dosing,
         DosingService service,
         DosingContextBuilder situations,
-        DosingPump? pump,
+        GrowRepository grows,
+        HomeAssistantService homeAssistant,
+        Dictionary<int, IReadOnlyDictionary<string, HomeAssistantState>?> statesByTent,
         DateTime nowUtc,
         CancellationToken cancellationToken)
     {
         foreach (var pending in dosing.GetDuePending(nowUtc))
         {
-            var ziel = pump?.Id == pending.PumpId ? pump : dosing.GetPump(pending.PumpId);
+            var ziel = dosing.GetPump(pending.PumpId);
             if (ziel is null)
             {
                 dosing.DeletePending(pending.Id);
                 continue;
+            }
+
+            // Auch die zweite Haelfte geht nicht in stehendes Wasser. Ist die
+            // Umwaelzung BESTAETIGT aus, bleibt B liegen und der naechste Takt
+            // versucht es wieder — solange haelt TentHasPendingDose das ganze
+            // Zelt an. Unbekannt laesst B durch: die meisten Anlagen haben
+            // keinen Umwaelz-Sensor, und ein ewig gestrandetes B hiesse A ohne
+            // B im Becken.
+            if (!ziel.SimulationMode)
+            {
+                var states = await StatesForTentAsync(statesByTent, grows, homeAssistant, ziel.TentId, cancellationToken);
+                if (DosingContextBuilder.CirculationFrom(states) == false)
+                {
+                    _logger.LogWarning(
+                        "Zweite Hälfte für {Pump} wartet: Umwälzpumpe steht.", ziel.Name);
+                    continue;
+                }
             }
 
             var sekunden = DosingCalculator.SecondsFor(pending.Ml, ziel.MlPerMinute ?? 0);

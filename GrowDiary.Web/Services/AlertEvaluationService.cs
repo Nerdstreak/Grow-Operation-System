@@ -15,17 +15,23 @@ public sealed class AlertEvaluationService
     private readonly AlertRuleRepository _rules;
     private readonly NotificationService _notifications;
     private readonly LightRepository? _lights;
+    private readonly GrowRepository? _grows;
+    private readonly HarvestRepository? _harvests;
     private readonly ILogger<AlertEvaluationService> _logger;
 
     public AlertEvaluationService(
         AlertRuleRepository rules,
         NotificationService notifications,
         ILogger<AlertEvaluationService> logger,
-        LightRepository? lights = null)
+        LightRepository? lights = null,
+        GrowRepository? grows = null,
+        HarvestRepository? harvests = null)
     {
         _rules = rules;
         _notifications = notifications;
         _lights = lights;
+        _grows = grows;
+        _harvests = harvests;
         _logger = logger;
     }
 
@@ -84,9 +90,22 @@ public sealed class AlertEvaluationService
         states.TryGetValue("light-status", out var lightNow);
         var lights = LightClock.Resolve(lightNow, _lights?.GetActiveLightScheduleForTent(tent.Id), nowUtc);
 
+        // Waehrend der Trocknung ist das Reservoir abgelassen: die Sonden
+        // liegen trocken und melden Unsinn — eine pH-Sonde an der Luft zeigt
+        // irgendwas um 7 und haette genau in den kritischen Trocknungstagen
+        // Alarm um Alarm geschickt. Bewusst NUR im Trocknungsfenster, nicht
+        // pauschal „ohne Grow": wer ein Reservoir ohne Grow-Eintrag faehrt und
+        // sich Regeln setzt, meint sie ernst.
+        var trocknung = DryingWindow.DayFor(_grows, _harvests, tent.Id, DateTime.Today) is not null;
+
         foreach (var rule in rules)
         {
             if (lights == LightsNow.Off && LightClock.IsDaytimeOnly(rule.MetricKey))
+            {
+                continue;
+            }
+
+            if (trocknung && DryingWindow.IsReservoirKey(rule.MetricKey))
             {
                 continue;
             }

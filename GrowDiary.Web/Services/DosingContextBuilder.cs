@@ -143,7 +143,7 @@ public sealed class DosingContextBuilder
     /// Läuft die Umwälzung? Nur aus Live-Zuständen zu beantworten: an/aus wird
     /// nicht als Messwert gespeichert. Kein Zustand da → unbekannt.
     /// </summary>
-    private static bool? CirculationFrom(IReadOnlyDictionary<string, HomeAssistantState>? states)
+    public static bool? CirculationFrom(IReadOnlyDictionary<string, HomeAssistantState>? states)
     {
         if (states is null || !states.TryGetValue("pump-circulation", out var state))
         {
