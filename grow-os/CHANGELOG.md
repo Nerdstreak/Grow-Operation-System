@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.0.0-beta.23
+
+**Beta.** Bring an RDWC advisor home — the knowledge, not just the readings.
+
+- New — **the advisor folder.** Until now the export carried your measurements
+  but not the material they are measured against, which leaves an assistant
+  guessing from forum knowledge. The folder adds what already lives in Grow OS:
+  11 procedures, 30 treatments, 20 symptoms, 8 pathogens, 37 rules and the
+  setpoints, written out as readable text instead of JSON. Nine files, around
+  120 KB — small enough for a Claude project, a GPT, or a local model via
+  Ollama. Grow OS still sends nothing and needs no key.
+- New — **four test questions with model answers**, so you can check the
+  advisor before you trust it. A language model sounds equally certain when it
+  is right and when it is inventing; the difference can only be tested, not
+  heard.
+- New — **the instruction sets four limits**: invent no numbers, do not
+  overrule the operator's own setpoints, switch nothing, and ask rather than
+  guess when the deciding value is missing. Dosing and automation stay in Grow
+  OS behind their interlocks.
+- Fixed — **journal entries without a title** printed as "2026-07-28 · — text"
+  in the report, with a dash leading nowhere.
+
 ## 2.0.0-beta.22
 
 **Beta.** Unreadable badges in light mode, and a test that catches the next one.
