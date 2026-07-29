@@ -208,7 +208,18 @@ public sealed class AgentContextBuilder
         => _journal.GetForGrow(grow.Id)
             .OrderByDescending(entry => entry.OccurredAtUtc)
             .Take(8)
-            .Select(entry => $"{entry.OccurredAtUtc.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} · {Kurz(entry.Title, 60)}{(string.IsNullOrWhiteSpace(entry.Body) ? "" : " — " + Kurz(entry.Body, 200))}")
+            // Ein Titel ist freiwillig — die meisten Eintraege sind blosser Text.
+            // Fehlt er, stand hier vorher „2026-07-28 ·  — Trichome sind so weit",
+            // mit Gedankenstrich ins Leere.
+            .Select(entry =>
+            {
+                var datum = entry.OccurredAtUtc.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                var titel = Kurz(entry.Title, 60);
+                var text = Kurz(entry.Body, 200);
+                return string.IsNullOrWhiteSpace(titel)
+                    ? $"{datum} · {text}"
+                    : string.IsNullOrWhiteSpace(text) ? $"{datum} · {titel}" : $"{datum} · {titel} — {text}";
+            })
             .ToList();
 
     private List<string> BuildDoses(GrowRun grow, DateTime nowUtc)
