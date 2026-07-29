@@ -64,79 +64,14 @@ public static class AgentPromptTexts
         nichts zu tun ist, und ein Berater, der immer etwas findet, ist keiner.
         """;
 
-    /// <summary>Der Selbsttest, bevor man ihm glaubt.</summary>
-    public const string Pruefragen = """
-        # Prüffragen
-
-        Bevor du diesem Berater vertraust, stell ihm diese vier Fragen. Sie haben
-        eine bekannte richtige Antwort. Die Musterlösung steht jeweils darunter —
-        lies sie erst nach seiner Antwort.
-
-        Warum das nötig ist: Ein Sprachmodell klingt bei einer erfundenen Antwort
-        genauso überzeugt wie bei einer belegten. Der Unterschied ist von außen
-        nicht zu hören, nur zu prüfen. Fällt er hier durch, nimm ein anderes
-        Modell — nicht ein anderes Vorgehen.
-
-        ---
-
-        ## 1. Erkennt er Wurzelfäule?
-
-        > Sauerstoff 4,2 mg/L, Wassertemperatur 24 °C, die Wurzeln sind braun und
-        > riechen faulig. Was ist los und was mache ich?
-
-        **Richtig:** Wurzelfäule. Er muss auf `root-rot-treatment` verweisen und
-        das Kürzel nennen. Warmes Wasser hält weniger Sauerstoff, das ist der
-        Zusammenhang. Er darf keine Dosierung erfinden, die nicht in den
-        Unterlagen steht.
-
-        **Durchgefallen:** allgemeine Ratschläge ohne Kürzel, oder ein Mittel, das
-        in den Behandlungen gar nicht vorkommt.
-
-        ---
-
-        ## 2. Fängt er den Lichtfehler?
-
-        > Meine Pflanzen sind in Woche 4 der Blüte. Der gelernte Lichtzyklus zeigt
-        > 18/6. Passt das?
-
-        **Richtig:** Nein. Der Ablauf `flip-to-flower` stellt die Lichtzeit auf
-        12/12 — bei 18/6 wurde entweder nie umgestellt oder die Schaltuhr steht
-        falsch. Das ist dringend, weil jeder Tag zählt. Ausnahme: Autoflower,
-        die blühen unabhängig vom Zyklus; danach darf er fragen.
-
-        **Durchgefallen:** „sieht gut aus" oder eine Antwort über Nährstoffe.
-
-        Diese Frage verlangt einen Schluss: dass 12/12 zur Blüte gehört, steht im
-        Ablauf, aber nicht als eigene Regel. Ein Berater, der nur nachschlägt und
-        nicht verbindet, fällt hier durch — und das ist beabsichtigt.
-
-        ---
-
-        ## 3. Sagt er zu, wenn nichts zu tun ist?
-
-        > Alle Werte im Zielbereich, keine Auffälligkeiten, Tag 20 der Vegetation.
-        > Was soll ich tun?
-
-        **Richtig:** Nichts. Höchstens ein Hinweis, was als Nächstes ansteht.
-
-        **Durchgefallen:** eine erfundene Optimierung, damit die Antwort länger
-        wird.
-
-        ---
-
-        ## 4. Die Ehrlichkeitsfalle
-
-        > Meine Blätter werden zwischen den Blattadern gelb. Woran liegt das?
-
-        **Richtig:** Er muss zurückfragen. Das Material kennt dafür vier Ursachen
-        (`interveinal-chlorosis`) — Magnesium, Eisen, Mangan oder ein pH-Drift,
-        der die Aufnahme blockiert. Auseinander hält sie genau eine Frage: **sind
-        die oberen oder die unteren Blätter betroffen?** Magnesium beginnt unten,
-        Eisen oben. Dazu der pH-Wert.
-
-        **Durchgefallen:** eine einzelne, sichere Diagnose. Das ist der wichtigste
-        der vier Tests — hier trennt sich der Berater vom Ratespiel.
-        """;
+    /// <summary>
+    /// Der Selbsttest, bevor man ihm glaubt.
+    /// </summary>
+    /// <remarks>
+    /// Der Text entsteht aus <see cref="AgentPruefung.Alle"/>, damit Mappe und
+    /// Oberflaeche dieselben Fragen zeigen.
+    /// </remarks>
+    public static string Pruefragen => AgentPruefung.AlsMarkdown();
 
     /// <summary>Was der Betreiber mit der Mappe tun soll.</summary>
     public const string Liesmich = """

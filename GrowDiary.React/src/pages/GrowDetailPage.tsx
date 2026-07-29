@@ -9,7 +9,6 @@ import { V1Alert, V1Badge, V1Button, V1Empty, V1LinkButton, V1Page, V1Section, V
 import { buildPhaseTimeline, flipLabel } from '../features/grows/phase-timeline'
 import type { GrowDeviationDto } from '../types'
 import { apiFetch } from '../api'
-import { resolveUrl } from '../base'
 
 const noop = async () => {}
 
@@ -148,6 +147,7 @@ function GrowDetailPage() {
           <Link className="gd-tab" to={`/sops${scope}`}>SOPs</Link>
           <Link className="gd-tab" to={`/journal${scope}`}>Journal & Fotos</Link>
           <Link className="gd-tab" to={`/regeln${scope}&tab=automatik`}>Automatik</Link>
+          <Link className="gd-tab" to={`/berater${scope}`}>KI-Berater</Link>
         </nav>
 
         {/* Phasen-Timeline — dieselbe Rechnung wie auf der Live-Seite. */}
@@ -247,35 +247,6 @@ function GrowDetailPage() {
             )}
           </section>
         </div>
-
-        {/* Für einen eigenen Assistenten. In Grow OS selbst steckt keine KI und
-            soll auch keine stecken — wer einen fragen will, nimmt diese Datei
-            mit und entscheidet selbst, wem er sie vorlegt. */}
-        <V1Section title="Für einen eigenen KI-Berater">
-          <p style={{ margin: '0 0 10px', font: '400 12px/1.6 var(--font-mono)', color: 'var(--muted)', maxWidth: '68ch' }}>
-            Die <b>Berater-Mappe</b> macht aus einem beliebigen Sprachassistenten einen Berater für
-            deine Anlage: den Lagebericht dieses Grows, dazu das ganze Fachwissen aus Grow OS —
-            Abläufe, Behandlungen, Symptome, Regeln, Sollwerte — und vier Prüffragen, mit denen du
-            ihn testest, bevor du ihm glaubst. Ohne dieses Material ist ein Assistent nur ein Modell
-            mit Forenwissen.
-          </p>
-          <p style={{ margin: '0 0 10px', font: '400 12px/1.6 var(--font-mono)', color: 'var(--muted)', maxWidth: '68ch' }}>
-            Grow OS verschickt nichts und braucht keinen Schlüssel — die Dateien landen bei dir, und
-            du entscheidest, wem du sie gibst. Der Berater schaltet auch nichts: Dosierung und
-            Automatik bleiben hier, mit ihren Sperren.
-          </p>
-          <div className="v1-action-row">
-            <a className="v1-button" href={resolveUrl(`/api/agent-export/grows/${grow.id}/paket`)}>
-              Berater-Mappe herunterladen
-            </a>
-            <a className="v1-button" href={resolveUrl(`/api/agent-export/grows/${grow.id}/download`)}>
-              Nur den Lagebericht
-            </a>
-            <a className="v1-button" href={resolveUrl(`/api/agent-export/grows/${grow.id}`)} target="_blank" rel="noreferrer">
-              Vorher ansehen
-            </a>
-          </div>
-        </V1Section>
 
         {/* Verwaltung unten — Beenden und Löschen gehören nicht neben die
             täglichen Handlungen in der Kopfzeile. */}

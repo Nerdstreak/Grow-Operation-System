@@ -66,6 +66,9 @@ export const navGroups: NavGroup[] = [
       // durchsuchbare Sammlung. Laufende SOPs wohnen bei den Aufgaben und im
       // Grow-Detail; die Ersten Schritte öffnet man aus den Einstellungen.
       { to: '/wissen', label: 'SOPs & Bibliothek', end: true, keywords: 'sop anleitung ablauf prozedur checkliste nachschlagen growplan quellen doku symptome bibliothek wissen' },
+      // Das Fachwissen zum Mitnehmen. Stand vorher unten auf der Grow-Seite und
+      // war damit unauffindbar — wer nicht weiss, dass es etwas gibt, sucht nicht.
+      { to: '/berater', label: 'Eigener KI-Berater', end: true, keywords: 'ki agent assistent chatgpt claude ollama mappe export lagebericht prompt prueffragen berater' },
     ],
   },
 ]

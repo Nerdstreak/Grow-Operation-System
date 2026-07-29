@@ -42,6 +42,7 @@ import { AppShell } from './AppShell'
 import { legacyRedirects } from './navigation'
 import { useNavCounts } from './useNavCounts'
 import { RulesCollectionPage } from './pages/collections'
+import AdvisorPage from './pages/AdvisorPage'
 import StrainsPage from './pages/StrainsPage'
 import ArchivePage from './pages/ArchivePage'
 
@@ -118,6 +119,7 @@ function App() {
           {/* Sammelseiten: verwandte Bereiche unter Tabs statt als eigene Menuepunkte. */}
           <Route path="/regeln" element={<RulesCollectionPage />} />
           <Route path="/sorten" element={<StrainsPage />} />
+          <Route path="/berater" element={<AdvisorPage />} />
           <Route path="/archiv" element={<ArchivePage />} />
 
           {/* Alte Pfade bleiben gueltig — Lesezeichen und Links aus HA-Dashboards. */}

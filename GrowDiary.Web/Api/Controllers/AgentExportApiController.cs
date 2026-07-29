@@ -60,6 +60,35 @@ public sealed class AgentExportApiController : ApiControllerBase
     }
 
     /// <summary>
+    /// Was in der Mappe steht — zum Ansehen, ohne sie herunterzuladen.
+    /// </summary>
+    /// <remarks>
+    /// Die Anweisung und die Prüffragen sind das, was den Berater begrenzt.
+    /// Sie in einem ZIP zu verstecken hiesse, dass niemand sie liest — und
+    /// ungelesene Grenzen sind keine.
+    /// </remarks>
+    [HttpGet("mappe")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult Folder()
+        => Ok(new
+        {
+            anweisung = AgentPromptTexts.Systemanweisung,
+            pruefungen = AgentPruefung.Alle,
+            dateien = new[]
+            {
+                new { name = "LIESMICH.md", inhalt = "Was zu tun ist, in fünf Schritten." },
+                new { name = "00-anweisung.md", inhalt = "Die Rolle und die Grenzen. Als Systemanweisung einsetzen." },
+                new { name = "10-lagebericht.md", inhalt = "Deine Anlage im Moment des Exports." },
+                new { name = "20-wissen-ablaeufe.md", inhalt = "Die Abläufe mit allen Schritten und Verzweigungen." },
+                new { name = "21-wissen-behandlungen.md", inhalt = "Behandlungen mit Dosierung, Verboten und Konflikten." },
+                new { name = "22-wissen-symptome.md", inhalt = "Symptome mit Ursachen, dazu die Erreger." },
+                new { name = "23-wissen-regeln.md", inhalt = "Kurze Regeln aus dem Quellmaterial." },
+                new { name = "24-wissen-sollwerte.md", inhalt = "Sollwerte je Phase und Nährstoffprogramme." },
+                new { name = "90-pruefragen.md", inhalt = "Der Selbsttest mit Musterlösungen." },
+            },
+        });
+
+    /// <summary>
     /// Die ganze Berater-Mappe als ZIP: Anweisung, Lage, Wissen, Selbsttest.
     /// </summary>
     /// <remarks>
