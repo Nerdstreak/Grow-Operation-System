@@ -1,5 +1,11 @@
 # Änderungen — Grow Berater
 
+## 0.1.1
+
+- Der Berater teilt sich die Anbindung an Grow OS jetzt mit dem neuen Add-on
+  **Grow MCP**. Für dich ändert sich nichts, ausser dass die gefundene Adresse
+  gemerkt wird statt bei jeder Frage neu gesucht.
+
 ## 0.1.0
 
 Erste Fassung.
