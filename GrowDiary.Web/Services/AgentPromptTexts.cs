@@ -89,41 +89,43 @@ public static class AgentPromptTexts
     public const string Liesmich = """
         # Grow OS — Berater-Mappe
 
-        Diese Mappe macht aus einem beliebigen Sprachassistenten einen Berater für
-        deine Anlage. Sie enthält keinen Programmcode und schickt nichts irgendwo
-        hin — es sind Textdateien.
+        Mit diesen Dateien antwortet ein KI-Assistent auf Grundlage des Fachwissens
+        aus Grow OS statt aus dem Internet. Es sind reine Textdateien: kein
+        Programm, keine Verbindung nach draußen.
 
-        ## So benutzt du sie
+        ## Anleitung
 
-        1. Leg bei deinem Assistenten ein Projekt an (Claude: „Projekt",
-           ChatGPT: „GPT" oder ein Chat mit Anhängen; lokal: Ollama mit
-           Dateikontext).
-        2. Häng **alle** Dateien aus dieser Mappe an.
-        3. Setz den Inhalt von `00-anweisung.md` als Systemanweisung ein.
-        4. Stell ihm zuerst die vier Fragen aus `90-pruefragen.md`.
-        5. Erst danach: frag ihn zu deiner Anlage.
+        1. Einen neuen Chat öffnen — bei ChatGPT, Claude oder einem lokalen Modell
+           wie Ollama. Wer öfter fragt, legt besser ein Projekt an (ChatGPT: ein
+           eigenes GPT, Claude: ein Projekt).
+        2. **Alle Dateien** aus diesem Ordner anhängen.
+        3. Den Inhalt von `00-anweisung.md` als Erstes einfügen. In einem Projekt
+           gehört er in das Feld für die Systemanweisung.
+        4. Die vier Fragen aus `90-pruefragen.md` stellen und die Antworten mit den
+           Musterlösungen vergleichen.
+        5. Danach kannst du zu deiner Anlage fragen.
 
-        ## Was drin ist
+        ## Die Dateien
 
         | Datei | Inhalt |
         |---|---|
-        | `00-anweisung.md` | Die Rolle und die Grenzen. Als Systemanweisung einsetzen. |
-        | `10-lagebericht.md` | Deine Anlage im Moment des Exports. |
-        | `20-wissen-ablaeufe.md` | Die Abläufe (SOPs) mit allen Schritten. |
-        | `21-wissen-behandlungen.md` | Behandlungen mit Dosierung und Konflikten. |
-        | `22-wissen-symptome.md` | Symptome und Erreger. |
-        | `23-wissen-regeln.md` | Kurze Regeln aus dem Quellmaterial. |
+        | `00-anweisung.md` | Rolle und Grenzen des Assistenten. Als Systemanweisung einsetzen. |
+        | `10-lagebericht.md` | Der Stand deines Grows zum Zeitpunkt des Herunterladens. |
+        | `20-wissen-ablaeufe.md` | Abläufe (SOPs) mit allen Schritten. |
+        | `21-wissen-behandlungen.md` | Behandlungen mit Dosierung, Verboten und Wechselwirkungen. |
+        | `22-wissen-symptome.md` | Symptome mit möglichen Ursachen, dazu die Erreger. |
+        | `23-wissen-regeln.md` | Kurze Regeln aus dem Fachmaterial. |
         | `24-wissen-sollwerte.md` | Sollwerte je Phase und Nährstoffprogramme. |
-        | `90-pruefragen.md` | Der Selbsttest mit Musterlösungen. |
+        | `90-pruefragen.md` | Vier Testfragen mit Musterlösungen. |
 
-        ## Zwei Dinge, die du wissen solltest
+        ## Wichtig
 
-        **Der Lagebericht ist ein Standbild.** Er zeigt, wie es im Moment des
-        Exports aussah. Für eine neue Lage lädst du die Mappe neu herunter — oder
-        du hängst nur den frischen Lagebericht nach.
+        **Der Lagebericht ist eine Momentaufnahme.** Er zeigt die Werte vom
+        Zeitpunkt des Herunterladens. Für einen aktuellen Stand lädst du die Mappe
+        erneut herunter oder hängst nur den neuen Lagebericht nach.
 
-        **Der Berater schaltet nichts.** Er kennt deine Anlage nur aus diesen
-        Dateien und hat keinen Zugriff darauf. Dosieren, Automatik und alles
-        andere passiert in Grow OS, mit dessen Sperren.
+        **Der Assistent kann nichts schalten.** Er kennt deine Anlage nur aus
+        diesen Dateien und hat keinen Zugriff darauf. Dosierung, Automatik und
+        alles Weitere passiert in Grow OS.
         """;
 }

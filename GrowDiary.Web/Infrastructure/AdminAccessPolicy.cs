@@ -96,11 +96,61 @@ public static class AdminAccessPolicy
     }
 
     /// <summary>
+    /// Das interne Add-on-Netz von Home Assistant.
+    /// </summary>
+    /// <remarks>
+    /// Der Supervisor legt dafür eine eigene Docker-Brücke an; darin steckt nur,
+    /// was der Betreiber selbst als Add-on installiert hat. Von aussen ist das
+    /// Netz nicht erreichbar — Grow OS veröffentlicht keinen Port.
+    /// Quelle: Home-Assistant-Dokumentation zur Add-on-Kommunikation.
+    /// </remarks>
+    private static readonly (IPAddress Netz, int Bits)[] AddonNetworks =
+    [
+        (IPAddress.Parse("172.30.32.0"), 23),
+        (IPAddress.Parse("fd0c:ac1e:2100::"), 48),
+    ];
+
+    /// <summary>
     /// Access is allowed for loopback requests and for requests proxied through the
     /// Home Assistant ingress (which Home Assistant has already authenticated).
     /// </summary>
+    /// <remarks>
+    /// Dazu kommt ein dritter Weg: <b>lesende</b> Anfragen aus dem internen
+    /// Add-on-Netz. Ohne ihn könnte ein zweites Add-on — etwa der Grow-Berater —
+    /// nichts abrufen, denn es ist weder Loopback noch Ingress. Bewusst nur
+    /// lesend: mitlesen kann ein Nachbar-Add-on damit, schalten oder dosieren
+    /// nicht. Für einen Schlüssel hat sich der Betreiber ausdrücklich nicht
+    /// entschieden; das Netz enthält nur selbst installierte Software.
+    /// </remarks>
     public static bool CanAccess(HttpContext context)
-        => IsLocalRequest(context) || IsIngressRequest(context);
+        => IsLocalRequest(context) || IsIngressRequest(context) || IsInternalAddonRead(context);
+
+    /// <summary>Eine lesende Anfrage eines anderen Add-ons im internen Netz.</summary>
+    public static bool IsInternalAddonRead(HttpContext context)
+        => HttpMethods.IsGet(context.Request.Method)
+           && context.Connection.RemoteIpAddress is { } ip
+           && AddonNetworks.Any(bereich => IsInSubnet(ip, bereich.Netz, bereich.Bits));
+
+    /// <summary>Liegt die Adresse im angegebenen Netz?</summary>
+    private static bool IsInSubnet(IPAddress adresse, IPAddress netz, int bits)
+    {
+        // Eine per IPv4-mapped-IPv6 hereinkommende Adresse (::ffff:172.30.33.2)
+        // sonst nie erkannt worden — Kestrel liefert die je nach Aufbau.
+        if (adresse.IsIPv4MappedToIPv6) adresse = adresse.MapToIPv4();
+        if (adresse.AddressFamily != netz.AddressFamily) return false;
+
+        var links = adresse.GetAddressBytes();
+        var rechts = netz.GetAddressBytes();
+        if (links.Length != rechts.Length) return false;
+
+        for (var i = 0; i < links.Length && bits > 0; i++, bits -= 8)
+        {
+            var maske = bits >= 8 ? (byte)0xFF : (byte)(0xFF << (8 - bits));
+            if ((links[i] & maske) != (rechts[i] & maske)) return false;
+        }
+
+        return true;
+    }
 
     /// <summary>True when the request is proxied through the Home Assistant ingress.</summary>
     public static bool IsIngressRequest(HttpContext context)

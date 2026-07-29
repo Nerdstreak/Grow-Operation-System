@@ -69,7 +69,7 @@ function AdvisorPage() {
     <V1Page
       eyebrow="Wissen"
       title="Eigener KI-Berater"
-      subtitle="Das Fachwissen dieser Anlage als Mappe für einen Assistenten deiner Wahl."
+      subtitle="Lade das Fachwissen deiner Anlage herunter und gib es einem KI-Assistenten deiner Wahl."
       action={<GrowScopePicker grows={grows} growId={growId} onChange={setGrowId} />}
     >
       {error && <V1Alert message={error} tone="critical" />}
@@ -78,15 +78,16 @@ function AdvisorPage() {
       <V1Section title="Die Berater-Mappe">
         <V1Card>
           <p className="ab-text">
-            Ein Sprachassistent allein ist ein Modell mit Forenwissen. Was ihn zum Fachmann für
-            deine Anlage macht, liegt hier: die Abläufe, die Behandlungen mit Dosierung und
-            Verboten, die Symptome mit ihren Ursachen, die Regeln und die Sollwerte. Die Mappe
-            packt das zusammen mit dem Lagebericht deines Grows.
+            Die Mappe ist ein ZIP mit neun Textdateien. Darin: der aktuelle Stand deines Grows und
+            das komplette Fachwissen von Grow OS — Abläufe, Behandlungen samt Dosierung, Symptome,
+            Regeln und Sollwerte. Hängst du diese Dateien bei ChatGPT, Claude oder einem lokalen
+            Modell an, antwortet der Assistent auf Grundlage dieses Materials statt aus dem
+            Internet.
           </p>
           <p className="ab-text">
-            Grow OS verschickt nichts und braucht keinen Schlüssel — die Dateien landen bei dir,
-            und du entscheidest, wem du sie gibst. Der Berater schaltet auch nichts: Dosierung und
-            Automatik bleiben hier, mit ihren Sperren.
+            Du brauchst dafür keinen Schlüssel in Grow OS zu hinterlegen, und Grow OS verschickt
+            nichts. Der Assistent kann nichts schalten — Dosierung und Automatik laufen weiter nur
+            hier.
           </p>
 
           {loading && <p className="ab-text">Lade die Grows…</p>}
@@ -113,11 +114,15 @@ function AdvisorPage() {
           <V1Section title="So benutzt du sie">
             <V1Card>
               <ol className="ab-schritte">
-                <li>Bei deinem Assistenten ein Projekt anlegen — bei ChatGPT ein eigenes GPT oder
-                  einfach einen Chat mit Anhängen, bei Claude ein Projekt, lokal etwa Ollama.</li>
-                <li><b>Alle</b> Dateien aus der Mappe anhängen.</li>
-                <li>Den Text der Anweisung unten als Systemanweisung einsetzen.</li>
-                <li>Zuerst die Prüffragen stellen — erst danach Fragen zu deiner Anlage.</li>
+                <li>Mappe herunterladen und das ZIP entpacken.</li>
+                <li>Einen neuen Chat öffnen und <b>alle neun Dateien</b> anhängen. Wer öfter fragt,
+                  legt besser ein Projekt an: bei ChatGPT ein eigenes GPT, bei Claude ein Projekt.</li>
+                <li>Die Anweisung weiter unten kopieren und als Erstes einfügen. In einem Projekt
+                  gehört sie in das Feld für die Systemanweisung.</li>
+                <li>Die vier Prüffragen stellen und die Antworten mit den Musterlösungen
+                  vergleichen. Erst danach Fragen zu deiner Anlage.</li>
+                <li>Ändert sich der Stand, lädst du die Mappe neu herunter — sie enthält immer die
+                  Werte vom Zeitpunkt des Herunterladens.</li>
               </ol>
               <table className="ab-dateien">
                 <tbody>
@@ -132,12 +137,13 @@ function AdvisorPage() {
             </V1Card>
           </V1Section>
 
-          <V1Section title="Prüffragen — testen, bevor du ihm glaubst">
+          <V1Section title="Prüffragen: teste den Assistenten">
             <V1Card>
               <p className="ab-text">
-                Ein Sprachmodell klingt bei einer erfundenen Antwort genauso überzeugt wie bei einer
-                belegten. Der Unterschied ist nicht zu hören, nur zu prüfen. Fällt dein Assistent
-                hier durch, nimm ein anderes Modell.
+                KI-Assistenten klingen bei einer erfundenen Antwort genauso sicher wie bei einer
+                belegten. Man hört den Unterschied nicht — man muss ihn prüfen. Diese vier Fragen
+                haben eine bekannte richtige Antwort. Beantwortet dein Assistent sie falsch,
+                probier ein anderes Modell aus, bevor du dich auf ihn verlässt.
               </p>
             </V1Card>
             <div className="ab-fragen">
@@ -162,8 +168,9 @@ function AdvisorPage() {
           <V1Section title="Die Anweisung">
             <V1Card>
               <p className="ab-text">
-                Das ist der Text, der dem Assistenten seine Rolle und seine Grenzen gibt. Er steckt
-                auch in der Mappe — hier steht er offen, weil ungelesene Grenzen keine sind.
+                Dieser Text sagt dem Assistenten, welche Rolle er hat und was er nicht darf: keine
+                Werte erfinden, deine eigenen Sollwerte nicht überstimmen, nichts schalten und bei
+                fehlenden Angaben nachfragen statt raten. Er liegt auch als Datei in der Mappe.
               </p>
               <div className="v1-action-row">
                 <button type="button" className="v1-button" onClick={() => void anweisungKopieren()}>

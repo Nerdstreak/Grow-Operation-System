@@ -97,6 +97,65 @@ public sealed class AdminAccessPolicyTests
         Assert.True(AdminAccessPolicy.CanAccess(context));
     }
 
+    /// <summary>
+    /// Ein Nachbar-Add-on darf lesen — und nur lesen.
+    /// </summary>
+    /// <remarks>
+    /// Ohne diesen Weg käme der Grow-Berater als zweites Add-on nicht an die
+    /// Daten: er ist weder Loopback noch Ingress. Die Beschränkung auf GET ist
+    /// die eigentliche Zusage — mitlesen ja, schalten oder dosieren nie.
+    /// </remarks>
+    [Theory]
+    [InlineData("172.30.32.1")]   // der Supervisor-Gateway
+    [InlineData("172.30.33.7")]   // ein Add-on-Container
+    [InlineData("172.30.32.0")]
+    [InlineData("172.30.33.255")]
+    public void CanAccess_AllowsReadingFromTheInternalAddonNetwork(string ip)
+    {
+        var context = CreateContext(IPAddress.Parse(ip), IPAddress.Parse("172.30.33.2"));
+        context.Request.Method = HttpMethods.Get;
+
+        Assert.True(AdminAccessPolicy.CanAccess(context));
+    }
+
+    [Theory]
+    [InlineData("POST")]
+    [InlineData("PUT")]
+    [InlineData("PATCH")]
+    [InlineData("DELETE")]
+    public void CanAccess_RejectsWritesFromTheInternalAddonNetwork(string methode)
+    {
+        var context = CreateContext(IPAddress.Parse("172.30.33.7"), IPAddress.Parse("172.30.33.2"));
+        context.Request.Method = methode;
+
+        Assert.False(AdminAccessPolicy.CanAccess(context));
+    }
+
+    [Theory]
+    [InlineData("172.30.34.1")]     // knapp ausserhalb des /23
+    [InlineData("172.30.31.255")]   // knapp davor
+    [InlineData("192.168.1.50")]    // das Heimnetz
+    [InlineData("10.0.0.5")]
+    public void CanAccess_RejectsReadsFromOutsideThatNetwork(string ip)
+    {
+        var context = CreateContext(IPAddress.Parse(ip), IPAddress.Parse("192.168.1.20"));
+        context.Request.Method = HttpMethods.Get;
+
+        Assert.False(AdminAccessPolicy.CanAccess(context));
+    }
+
+    [Fact]
+    public void CanAccess_RecognisesTheNetworkThroughAnIPv4MappedAddress()
+    {
+        // Je nach Aufbau reicht Kestrel die Adresse als ::ffff:172.30.33.7
+        // durch. Ohne Entpacken wäre der Berater genau dort ausgesperrt, wo er
+        // laufen soll — und der Fehler waere schwer zu finden.
+        var context = CreateContext(IPAddress.Parse("::ffff:172.30.33.7"), IPAddress.Parse("172.30.33.2"));
+        context.Request.Method = HttpMethods.Get;
+
+        Assert.True(AdminAccessPolicy.CanAccess(context));
+    }
+
     private static DefaultHttpContext CreateContext(IPAddress remoteIp, IPAddress localIp)
     {
         var context = new DefaultHttpContext();

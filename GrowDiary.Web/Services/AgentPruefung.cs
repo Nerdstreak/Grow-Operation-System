@@ -49,9 +49,9 @@ public sealed record AgentPruefung(
                    + "Ausnahme: Autoflower blühen unabhängig vom Zyklus; danach darf er fragen.",
             Durchgefallen: "„Sieht gut aus“ — oder eine Antwort über Nährstoffe.",
             Kuerzel: "flip-to-flower",
-            Hinweis: "Diese Frage verlangt einen Schluss: dass 12/12 zur Blüte gehört, steht im Ablauf, aber "
-                   + "nicht als eigene Regel. Ein Berater, der nur nachschlägt und nicht verbindet, fällt hier "
-                   + "durch — und das ist beabsichtigt."),
+            Hinweis: "Diese Frage ist schwerer als sie aussieht: Dass zur Blüte 12/12 gehört, steht in den "
+                   + "Unterlagen nur im Ablauf zum Flip. Der Assistent muss die Angabe also selbst mit deiner "
+                   + "Situation verbinden und nicht bloß nachschlagen."),
 
         new(
             Titel: "Sagt er zu, wenn nichts zu tun ist?",
@@ -67,7 +67,8 @@ public sealed record AgentPruefung(
                    + "die oberen oder die unteren Blätter betroffen? Magnesium beginnt unten, Eisen oben. Dazu der pH-Wert.",
             Durchgefallen: "Eine einzelne, sichere Diagnose.",
             Kuerzel: "interveinal-chlorosis",
-            Hinweis: "Der wichtigste der vier Tests — hier trennt sich der Berater vom Ratespiel."),
+            Hinweis: "Der wichtigste der vier Tests. Ein Assistent, der hier eine einzelne Ursache nennt, "
+                   + "wird dir auch bei deiner Anlage eine plausible Antwort geben, die falsch ist."),
     ];
 
     /// <summary>Dieselben Fragen als Datei für die Mappe.</summary>
