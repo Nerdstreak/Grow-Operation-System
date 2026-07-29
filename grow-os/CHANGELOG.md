@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.0.0-beta.24
+
+**Beta.** The advisor gets a door — and a second add-on to walk through it.
+
+- New — **Grow Berater, a separate add-on.** The folder from beta.23 works, but
+  it has to be carried somewhere by hand. The advisor add-on skips the errand:
+  a chat page in the Home Assistant sidebar that fetches the situation and the
+  knowledge from Grow OS on every question. Same source as the download, so the
+  two cannot drift apart. Anthropic, OpenAI or Ollama — with Ollama nothing
+  leaves the house. Install it or don't: Grow OS itself still has no AI and no
+  key.
+- New — **read access from the internal add-on network** (172.30.32.0/23), which
+  is what lets one add-on ask the other. GET only, and no shared secret — the
+  admin key was removed on purpose and is not coming back. Nothing is reachable
+  from outside Home Assistant.
+- Changed — **the advisor page speaks to whoever opens it.** The old copy was
+  written for someone who had already built the thing: "an advisor that only
+  looks things up and does not connect them fails here" says nothing about what
+  you are about to see. Page, readme and the hints on the four test questions
+  now say what happens and how to spot a bad answer.
+- Changed — **the instruction now permits documented numbers.** It forbade
+  inventing them, which a careful assistant read as "give no numbers at all" —
+  so it withheld a dosage that was printed in the material in front of it. The
+  rule is now the one that was meant: quote what is documented, name where it
+  comes from, invent nothing.
+
 ## 2.0.0-beta.23
 
 **Beta.** Bring an RDWC advisor home — the knowledge, not just the readings.
