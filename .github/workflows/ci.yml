@@ -30,14 +30,17 @@ jobs:
       - name: Restore backend
         run: dotnet restore GrowDiary.slnx
 
+      # Die ganze Mappe statt einzelner Projekte: seit den beiden Add-ons haengen
+      # Berater und MCP-Server mit an der gemeinsamen Bibliothek, und ein Bruch
+      # dort soll hier auffallen und nicht erst beim Image-Bau.
       - name: Build backend
-        run: dotnet build GrowDiary.Web/GrowDiary.Web.csproj --configuration Release --no-restore
-
-      - name: Build backend tests
-        run: dotnet build GrowDiary.Web.Tests/GrowDiary.Web.Tests.csproj --configuration Release --no-restore
+        run: dotnet build GrowDiary.slnx --configuration Release --no-restore
 
       - name: Test backend
         run: dotnet test GrowDiary.Web.Tests/GrowDiary.Web.Tests.csproj --configuration Release --no-build --verbosity minimal
+
+      - name: Test add-ons
+        run: dotnet test GrowMcp.Tests/GrowMcp.Tests.csproj --configuration Release --no-build --verbosity minimal
 
       - name: Install frontend
         working-directory: GrowDiary.React

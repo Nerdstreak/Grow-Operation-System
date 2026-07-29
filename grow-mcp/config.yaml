@@ -1,0 +1,34 @@
+name: Grow MCP
+version: "0.1.0"
+slug: grow_mcp
+description: Grow OS als Werkzeugkasten fuer Claude und andere MCP-Klienten im eigenen Netz
+url: https://github.com/Nerdstreak/Grow-Operation-System
+image: ghcr.io/nerdstreak/grow-operation-system-mcp
+arch:
+  - aarch64
+  - armv7
+  - amd64
+# Eigener dotnet-ENTRYPOINT, die s6-Schicht wird nicht gebraucht.
+init: false
+# Die Einrichtungsseite in der HA-Seitenleiste; HA besitzt hier die Anmeldung.
+ingress: true
+ingress_port: 5078
+panel_icon: mdi:tools
+panel_title: Grow MCP
+# Die EINZIGE Tuer ins Heimnetz. Dahinter liegt nur die MCP-Schnittstelle, und
+# die verlangt den Schluessel, der auf der Ingress-Seite steht. Die Seite selbst
+# ist ueber diesen Port bewusst NICHT erreichbar — sonst koennte sich jeder im
+# Netz den Schluessel abholen.
+ports:
+  5079/tcp: 5079
+ports_description:
+  5079/tcp: MCP-Schnittstelle fuer Claude Code und Claude Desktop (Schluessel noetig)
+# Nur fuer eine einzige Frage: wie heisse ich selbst? Aus dem eigenen Namen folgt
+# der von Grow OS. Bewusst KEIN `hassio_role: manager` — das erlaubte, jedes
+# andere Add-on zu starten, zu stoppen und zu deinstallieren.
+hassio_api: true
+options:
+  grow_os_adresse: ""
+schema:
+  # Nur noetig, wenn der Server Grow OS nicht von selbst findet.
+  grow_os_adresse: str?
