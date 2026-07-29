@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Services;
@@ -20,10 +21,12 @@ namespace GrowDiary.Web.Api.Controllers;
 public sealed class AgentExportApiController : ApiControllerBase
 {
     private readonly AgentContextBuilder _builder;
+    private readonly AgentPackageBuilder _package;
 
-    public AgentExportApiController(AgentContextBuilder builder)
+    public AgentExportApiController(AgentContextBuilder builder, AgentPackageBuilder package)
     {
         _builder = builder;
+        _package = package;
     }
 
     /// <summary>Der Lagebericht als Text — zum Ansehen in der App.</summary>
@@ -54,6 +57,44 @@ public sealed class AgentExportApiController : ApiControllerBase
         var markdown = AgentContextBuilder.ToMarkdown(context);
         var name = $"grow-os-lagebericht-{Dateiname(context.GrowName)}-{DateTime.Now:yyyy-MM-dd}.md";
         return File(Encoding.UTF8.GetBytes(markdown), "text/markdown; charset=utf-8", name);
+    }
+
+    /// <summary>
+    /// Die ganze Berater-Mappe als ZIP: Anweisung, Lage, Wissen, Selbsttest.
+    /// </summary>
+    /// <remarks>
+    /// Der Lagebericht allein macht aus einem Assistenten noch keinen Berater —
+    /// er kennt dann die Messwerte, aber nicht das Material, an dem sie zu
+    /// messen sind. Erst mit den Abläufen, Behandlungen und Regeln nennt er
+    /// Kürzel statt Meinungen.
+    /// </remarks>
+    [HttpGet("grows/{growId:int}/paket")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public IActionResult Package(int growId)
+    {
+        var nowUtc = DateTime.UtcNow;
+        if (_package.Build(growId, nowUtc) is not { } paket)
+        {
+            return NotFoundError("grow_not_found", $"Grow {growId} existiert nicht.");
+        }
+
+        using var speicher = new MemoryStream();
+        // In einem eigenen Block, damit das Archiv geschlossen ist, bevor die
+        // Bytes gelesen werden — sonst fehlt das Verzeichnis am Ende.
+        using (var archiv = new ZipArchive(speicher, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            foreach (var datei in paket.Files)
+            {
+                var eintrag = archiv.CreateEntry(datei.Name, CompressionLevel.Optimal);
+                using var strom = eintrag.Open();
+                using var schreiber = new StreamWriter(strom, new UTF8Encoding(false));
+                schreiber.Write(datei.Markdown);
+            }
+        }
+
+        var name = $"grow-os-berater-{Dateiname(paket.GrowName)}-{DateTime.Now:yyyy-MM-dd}.zip";
+        return File(speicher.ToArray(), "application/zip", name);
     }
 
     /// <summary>

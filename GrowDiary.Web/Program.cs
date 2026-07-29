@@ -94,6 +94,7 @@ builder.Services.AddScoped<DosingRepository>();
 builder.Services.AddScoped<DosingService>();
 builder.Services.AddScoped<DosingContextBuilder>();
 builder.Services.AddScoped<AgentContextBuilder>();
+builder.Services.AddScoped<AgentPackageBuilder>();
 builder.Services.AddScoped<AlertEvaluationService>();
 builder.Services.AddSingleton<NotificationSettingsRepository>();
 builder.Services.AddSingleton<AppSettingsRepository>();

@@ -251,16 +251,25 @@ function GrowDetailPage() {
         {/* Für einen eigenen Assistenten. In Grow OS selbst steckt keine KI und
             soll auch keine stecken — wer einen fragen will, nimmt diese Datei
             mit und entscheidet selbst, wem er sie vorlegt. */}
-        <V1Section title="Lagebericht für einen eigenen KI-Agenten">
+        <V1Section title="Für einen eigenen KI-Berater">
           <p style={{ margin: '0 0 10px', font: '400 12px/1.6 var(--font-mono)', color: 'var(--muted)', maxWidth: '68ch' }}>
-            Eine kurze Datei mit dem Stand dieses Grows: Phase und Tag, die aktuellen Werte mit
-            Zielbereich und der Angabe, woher das Ziel stammt, offene Auffälligkeiten, die letzten
-            Dosen und Journal-Einträge. Grow OS verschickt nichts — die Datei landet bei dir, und du
-            entscheidest, wem du sie gibst.
+            Die <b>Berater-Mappe</b> macht aus einem beliebigen Sprachassistenten einen Berater für
+            deine Anlage: den Lagebericht dieses Grows, dazu das ganze Fachwissen aus Grow OS —
+            Abläufe, Behandlungen, Symptome, Regeln, Sollwerte — und vier Prüffragen, mit denen du
+            ihn testest, bevor du ihm glaubst. Ohne dieses Material ist ein Assistent nur ein Modell
+            mit Forenwissen.
+          </p>
+          <p style={{ margin: '0 0 10px', font: '400 12px/1.6 var(--font-mono)', color: 'var(--muted)', maxWidth: '68ch' }}>
+            Grow OS verschickt nichts und braucht keinen Schlüssel — die Dateien landen bei dir, und
+            du entscheidest, wem du sie gibst. Der Berater schaltet auch nichts: Dosierung und
+            Automatik bleiben hier, mit ihren Sperren.
           </p>
           <div className="v1-action-row">
+            <a className="v1-button" href={resolveUrl(`/api/agent-export/grows/${grow.id}/paket`)}>
+              Berater-Mappe herunterladen
+            </a>
             <a className="v1-button" href={resolveUrl(`/api/agent-export/grows/${grow.id}/download`)}>
-              Lagebericht herunterladen
+              Nur den Lagebericht
             </a>
             <a className="v1-button" href={resolveUrl(`/api/agent-export/grows/${grow.id}`)} target="_blank" rel="noreferrer">
               Vorher ansehen
