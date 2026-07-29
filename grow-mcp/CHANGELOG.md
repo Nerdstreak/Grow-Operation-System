@@ -1,5 +1,16 @@
 # Änderungen — Grow MCP
 
+## 0.1.2
+
+- Behoben — **`wissen_liste` war keine Übersicht.** Bei Abläufen und
+  Behandlungen kam jeder Eintrag vollständig zurück, mit allen Schritten,
+  Materiallisten und Quellen: elf Abläufe auf einen Schlag, rund 15.000 Tokens.
+  Genau der Papierstapel, den dieses Add-on gegenüber der Mappe vermeiden soll.
+  Jetzt kommen nur die Kopfdaten; den ganzen Eintrag holt `wissen_nachschlagen`.
+  Symptome, Erreger und Sollwerte bleiben vollständig — sie sind kurz und haben
+  keinen Einzelabruf.
+- Umlaute kommen als Umlaute zurück statt als `ä`.
+
 ## 0.1.1
 
 - Behoben — **Grow OS wurde nicht gefunden.** Der Server leitete den Namen von

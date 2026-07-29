@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using GrowOsAccess;
 using ModelContextProtocol.Server;
@@ -127,13 +129,26 @@ public sealed class GrowTools(GrowOsReader reader)
         => SicherAsync(() => reader.LesenAsync($"api/grows/{growId}/journal", cancellationToken));
 
     [McpServerTool(Name = "wissen_liste")]
-    [Description("Das Fachwissen in Grow OS als Übersicht — die Kürzel, mit denen sich dann einzelne Einträge nachschlagen lassen.")]
+    [Description("Das Fachwissen in Grow OS als Übersicht — die Kürzel, mit denen sich dann einzelne Einträge nachschlagen lassen. Bei sops und treatments kommen nur die Kopfdaten; den ganzen Eintrag holt wissen_nachschlagen.")]
     public Task<string> WissenListeAsync(
         [Description("Eine von: sops, treatments, symptoms, pathogens, setpoints")] string art,
         CancellationToken cancellationToken = default)
-        => SicherAsync(() => Bereich(art) is { } pfad
-            ? reader.LesenAsync($"api/knowledge/{pfad}", cancellationToken)
-            : Task.FromResult($"„{art}\" gibt es nicht. Möglich sind: sops, treatments, symptoms, pathogens, setpoints."));
+        => SicherAsync(async () =>
+        {
+            if (Bereich(art) is not { } pfad)
+            {
+                return $"„{art}\" gibt es nicht. Möglich sind: sops, treatments, symptoms, pathogens, setpoints.";
+            }
+
+            var liste = await reader.LesenAsync($"api/knowledge/{pfad}", cancellationToken);
+
+            // Abläufe und Behandlungen bringen jeder Dutzende Schritte mit — die
+            // ganze Liste waere ein Papierstapel von der Sorte, die dieses Add-on
+            // gerade vermeiden soll. Gekuerzt wird nur, wo es auch einen Weg zum
+            // vollen Eintrag gibt; Symptome, Erreger und Sollwerte haben keinen
+            // Einzelabruf und sind ohnehin kurz.
+            return pfad is "sops" or "treatments" ? NurKopfdaten(liste) : liste;
+        });
 
     [McpServerTool(Name = "wissen_nachschlagen")]
     [Description("Einen einzelnen Eintrag im Fachwissen vollständig lesen, etwa den Ablauf 'root-rot-treatment'. Kürzel vorher mit wissen_liste oder suchen finden.")]
@@ -205,6 +220,52 @@ public sealed class GrowTools(GrowOsReader reader)
         {
             return ex.Message;
         }
+    }
+
+    /// <summary>
+    /// Aus jedem Eintrag nur die einfachen Felder behalten.
+    /// </summary>
+    /// <remarks>
+    /// Die Regel ist absichtlich stumpf: Text, Zahl und Ja/Nein bleiben, alles
+    /// Verschachtelte fliegt raus. Damit überlebt jede Übersicht auch ein neues
+    /// Feld im Wissen, ohne dass hier jemand nachziehen muss — und Schritte,
+    /// Quellen und Materiallisten landen erst dann im Gespräch, wenn jemand den
+    /// Eintrag wirklich aufschlägt.
+    /// <para>Öffentlich, damit die Kürzung geprüft werden kann — sie ist der
+    /// Unterschied zwischen einer Übersicht und einem Papierstapel.</para>
+    /// </remarks>
+    public static string NurKopfdaten(string listeAlsJson)
+    {
+        using var json = JsonDocument.Parse(listeAlsJson);
+        if (json.RootElement.ValueKind != JsonValueKind.Array) return listeAlsJson;
+
+        using var speicher = new MemoryStream();
+
+        // Umlaute bleiben Umlaute. Die Vorgabe schreibt „Wurzelfäule" — gueltig,
+        // aber laenger und schlechter zu lesen. „Unsafe" heisst hier nur: nicht fuer
+        // HTML gedacht, und das ist eine Werkzeugantwort auch nicht.
+        var einstellungen = new JsonWriterOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
+        using (var schreiber = new Utf8JsonWriter(speicher, einstellungen))
+        {
+            schreiber.WriteStartArray();
+            foreach (var eintrag in json.RootElement.EnumerateArray())
+            {
+                schreiber.WriteStartObject();
+                foreach (var feld in eintrag.EnumerateObject())
+                {
+                    if (feld.Value.ValueKind is JsonValueKind.String or JsonValueKind.Number
+                        or JsonValueKind.True or JsonValueKind.False)
+                    {
+                        feld.WriteTo(schreiber);
+                    }
+                }
+                schreiber.WriteEndObject();
+            }
+            schreiber.WriteEndArray();
+        }
+
+        return Encoding.UTF8.GetString(speicher.ToArray());
     }
 
     /// <summary>Steht dieses Kürzel in der übergebenen Liste?</summary>
