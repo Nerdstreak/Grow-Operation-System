@@ -39,8 +39,15 @@ claude mcp add --transport http grow-os http://homeassistant.local:5079/mcp --he
 | `messwert_verlauf` | pH, EC, Temperatur & Co. über Tage oder Wochen |
 | `trends` | Was Grow OS selbst an Bewegung erkannt hat |
 | `abweichungen` | Wo es vom Sollwert weg läuft, mit Vorschlägen |
+| `alarme` | Offene Risiken und die eingestellten Grenzwerte |
+| `dosierungen` | Pumpen am Zelt und Protokoll der letzten Dosen |
+| `dosier_vorschlag` | Was Grow OS jetzt dosieren würde, und warum — oder warum nicht |
+| `ablauf_fortschritt` | Welche Abläufe laufen und wie weit |
+| `licht` | Eingestellter Zyklus gegen tatsächliche Schaltzeiten |
+| `technik` | Geräte, anstehende Wartungen und Kalibrierungen |
 | `anlage` | Volumen, Pumpen, Kühler, UV, Topfzahl |
 | `sorte` | Blütewochen, Stretch, Düngerbedarf |
+| `pflanzen` | Einzelne Pflanzen, dazu der Pheno Hunt |
 | `journal` | Deine eigenen Einträge |
 | `wissen_liste`, `wissen_nachschlagen` | Abläufe, Behandlungen, Symptome, Erreger, Sollwerte |
 | `suchen` | Volltextsuche, wenn das Kürzel noch fehlt |

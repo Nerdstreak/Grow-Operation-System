@@ -8,7 +8,20 @@ namespace GrowOsAccess;
 /// kann statt als Stapelverfolgung. Ein Modell, das „404" liest, rät weiter; eines,
 /// das „Grow mit Id 7 existiert nicht" liest, fragt nach.
 /// </remarks>
-public sealed class GrowOsException(string message) : Exception(message);
+public sealed class GrowOsException(string message, bool nichtGefunden = false) : Exception(message)
+{
+    /// <summary>
+    /// Grow OS lief, kannte den Weg aber nicht.
+    /// </summary>
+    /// <remarks>
+    /// Der Unterschied entscheidet, ob ein Werkzeug weitermachen darf. „Zu
+    /// diesem Grow gibt es keinen Pheno Hunt" ist eine Antwort und soll die
+    /// Pflanzenliste daneben nicht mitreissen. „Grow OS ist nicht erreichbar"
+    /// dagegen muss durchschlagen — sonst sieht ein halb leeres Ergebnis aus wie
+    /// ein vollstaendiges.
+    /// </remarks>
+    public bool NichtGefunden { get; } = nichtGefunden;
+}
 
 /// <summary>
 /// Liest bei Grow OS — mehr nicht.
@@ -35,7 +48,7 @@ public sealed class GrowOsReader(HttpClient http, GrowOsDiscovery discovery)
 
         if (antwort.StatusCode == HttpStatusCode.NotFound)
         {
-            throw new GrowOsException($"Grow OS kennt das nicht: {pfad}");
+            throw new GrowOsException($"Grow OS kennt das nicht: {pfad}", nichtGefunden: true);
         }
 
         if (!antwort.IsSuccessStatusCode)

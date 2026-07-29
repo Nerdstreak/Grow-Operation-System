@@ -79,7 +79,7 @@ public sealed class GrowTools(GrowOsReader reader)
         {
             var befunde = await reader.LesenAsync($"api/trends/{growId}", cancellationToken);
             var stabilitaet = await reader.LesenAsync($"api/trends/{growId}/stability", cancellationToken);
-            return $"{{\"befunde\":{befunde},\"stabilitaet\":{stabilitaet}}}";
+            return Zusammen(("befunde", befunde), ("stabilitaet", stabilitaet));
         });
 
     [McpServerTool(Name = "abweichungen")]
@@ -92,7 +92,7 @@ public sealed class GrowTools(GrowOsReader reader)
             var abweichungen = await reader.LesenAsync($"api/grows/{growId}/deviations", cancellationToken);
             var vorschlaege = await reader.LesenAsync(
                 $"api/grows/{growId}/treatment-recommendations", cancellationToken);
-            return $"{{\"abweichungen\":{abweichungen},\"vorschlaege\":{vorschlaege}}}";
+            return Zusammen(("abweichungen", abweichungen), ("vorschlaege", vorschlaege));
         });
 
     [McpServerTool(Name = "anlage")]
@@ -119,6 +119,112 @@ public sealed class GrowTools(GrowOsReader reader)
             return Zahl(grow, "strainId") is { } sortenId
                 ? await reader.LesenAsync($"api/strains/{sortenId}", cancellationToken)
                 : $"Dem Grow {growId} ist keine Sorte aus der Sortenliste zugeordnet.";
+        });
+
+    [McpServerTool(Name = "alarme")]
+    [Description("Was Grow OS als Problem führt: offene Risiko-Ereignisse zu diesem Grow und die Grenzwerte, die für sein Zelt eingestellt sind. Der Griff für „ist gerade etwas im Argen?\".")]
+    public Task<string> AlarmeAsync(
+        [Description("Die Id des Grows")] int growId,
+        [Description("false, um auch bereits erledigte Risiko-Ereignisse zu sehen")] bool nurOffene = true,
+        CancellationToken cancellationToken = default)
+        => SicherAsync(async () =>
+        {
+            var risiken = await reader.LesenAsync(
+                $"api/risk-events?growId={growId}&openOnly={(nurOffene ? "true" : "false")}", cancellationToken);
+
+            if (await ZeltAsync(growId, cancellationToken) is not { } zeltId)
+            {
+                return Zusammen(("risiken", risiken));
+            }
+
+            var grenzwerte = await DarfFehlenAsync($"api/alerts/tents/{zeltId}", cancellationToken);
+            return Zusammen(("risiken", risiken), ("grenzwerte", grenzwerte));
+        });
+
+    [McpServerTool(Name = "dosierungen")]
+    [Description("Die Dosierpumpen am Zelt und das Protokoll der letzten Dosen — was wann und wie viel eingebracht wurde.")]
+    public Task<string> DosierungenAsync(
+        [Description("Die Id des Grows")] int growId,
+        [Description("Wie viele Protokolleinträge, höchstens 200")] int anzahl = 30,
+        CancellationToken cancellationToken = default)
+        => SicherAsync(async () =>
+        {
+            if (await ZeltAsync(growId, cancellationToken) is not { } zeltId)
+            {
+                return $"Der Grow {growId} hängt an keinem Zelt, deshalb gibt es keine Pumpen dazu.";
+            }
+
+            var grenze = Math.Clamp(anzahl, 1, 200);
+            var pumpen = await reader.LesenAsync($"api/dosing/pumps?tentId={zeltId}", cancellationToken);
+            var protokoll = await reader.LesenAsync(
+                $"api/dosing/log?tentId={zeltId}&limit={grenze}", cancellationToken);
+
+            return Zusammen(("pumpen", pumpen), ("protokoll", protokoll));
+        });
+
+    [McpServerTool(Name = "dosier_vorschlag")]
+    [Description("Was Grow OS für diese Pumpe gerade dosieren würde, samt Begründung und den Sperren, die dabei greifen. Rechnet nur — es wird nichts geschaltet. Pumpen-Id kommt aus dosierungen.")]
+    public Task<string> DosierVorschlagAsync(
+        [Description("Die Id der Pumpe aus dem Werkzeug dosierungen")] int pumpeId,
+        CancellationToken cancellationToken = default)
+        => SicherAsync(() => reader.LesenAsync($"api/dosing/pumps/{pumpeId}/suggestion", cancellationToken));
+
+    [McpServerTool(Name = "ablauf_fortschritt")]
+    [Description("Welche Abläufe für diesen Grow gestartet sind und wie weit sie sind. Mit einer Instanz-Id kommen die einzelnen Schritte mit ihrem Zustand.")]
+    public Task<string> AblaufFortschrittAsync(
+        [Description("Die Id des Grows")] int growId,
+        [Description("Die Id einer laufenden Ablauf-Instanz; weglassen, um alle zu sehen")] int? instanzId = null,
+        CancellationToken cancellationToken = default)
+        => SicherAsync(() => instanzId is { } id
+            ? reader.LesenAsync($"api/sop-instances/{id}/steps", cancellationToken)
+            : reader.LesenAsync($"api/sop-instances?growId={growId}", cancellationToken));
+
+    [McpServerTool(Name = "pflanzen")]
+    [Description("Die einzelnen Pflanzen dieses Grows und, falls ein Pheno Hunt läuft, deren Bewertung im Vergleich.")]
+    public Task<string> PflanzenAsync(
+        [Description("Die Id des Grows")] int growId,
+        CancellationToken cancellationToken = default)
+        => SicherAsync(async () =>
+        {
+            var pflanzen = await reader.LesenAsync($"api/plants?growId={growId}", cancellationToken);
+            var hunt = await DarfFehlenAsync($"api/pheno/grows/{growId}", cancellationToken);
+            return Zusammen(("pflanzen", pflanzen), ("phenoHunt", hunt));
+        });
+
+    [McpServerTool(Name = "licht")]
+    [Description("Der eingestellte Lichtzyklus des Zelts und die tatsächlich beobachteten An- und Aus-Zeitpunkte. Zeigt, ob die Lampe wirklich tut, was der Plan sagt.")]
+    public Task<string> LichtAsync(
+        [Description("Die Id des Grows")] int growId,
+        CancellationToken cancellationToken = default)
+        => SicherAsync(async () =>
+        {
+            if (await ZeltAsync(growId, cancellationToken) is not { } zeltId)
+            {
+                return $"Der Grow {growId} hängt an keinem Zelt, deshalb gibt es keinen Lichtplan.";
+            }
+
+            var plan = await reader.LesenAsync($"api/light-schedules?tentId={zeltId}", cancellationToken);
+            var beobachtet = await reader.LesenAsync($"api/light-transitions?tentId={zeltId}", cancellationToken);
+            return Zusammen(("plan", plan), ("beobachtet", beobachtet));
+        });
+
+    [McpServerTool(Name = "technik")]
+    [Description("Die Geräte am Zelt mit ihrem Zustand, dazu anstehende Wartungen und Sonden-Kalibrierungen. Der Griff für „was ist bald fällig?\".")]
+    public Task<string> TechnikAsync(
+        [Description("Die Id des Grows")] int growId,
+        CancellationToken cancellationToken = default)
+        => SicherAsync(async () =>
+        {
+            if (await ZeltAsync(growId, cancellationToken) is not { } zeltId)
+            {
+                return $"Der Grow {growId} hängt an keinem Zelt, deshalb gibt es keine Geräte dazu.";
+            }
+
+            var geraete = await reader.LesenAsync($"api/hardware-items?tentId={zeltId}", cancellationToken);
+            var wartung = await reader.LesenAsync("api/maintenance-events", cancellationToken);
+            var kalibrierung = await reader.LesenAsync("api/calibration-events", cancellationToken);
+
+            return Zusammen(("geraete", geraete), ("wartung", wartung), ("kalibrierung", kalibrierung));
         });
 
     [McpServerTool(Name = "journal")]
@@ -200,6 +306,60 @@ public sealed class GrowTools(GrowOsReader reader)
         var roh = await reader.LesenAsync($"api/grows/{growId}", cancellationToken);
         using var json = JsonDocument.Parse(roh);
         return json.RootElement.Clone();
+    }
+
+    /// <summary>
+    /// Einen Teil holen, der auch fehlen darf.
+    /// </summary>
+    /// <remarks>
+    /// Kennt Grow OS den Weg nicht — kein Pheno Hunt, keine Grenzwerte
+    /// eingestellt —, kommt <c>null</c> zurück und der Rest des Ergebnisses
+    /// bleibt stehen. Ist Grow OS dagegen gar nicht erreichbar, fliegt der Fehler
+    /// weiter: ein halbes Ergebnis, das aussieht wie ein ganzes, wäre schlimmer
+    /// als gar keins.
+    /// </remarks>
+    private async Task<string> DarfFehlenAsync(string pfad, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await reader.LesenAsync(pfad, cancellationToken);
+        }
+        catch (GrowOsException ex) when (ex.NichtGefunden)
+        {
+            return "null";
+        }
+    }
+
+    /// <summary>Das Zelt zu einem Grow — oder <c>null</c>, wenn keins zugeordnet ist.</summary>
+    /// <remarks>
+    /// Vieles hängt in Grow OS am Zelt und nicht am Grow: Messreihen, Grenzwerte,
+    /// Pumpen, Licht, Geräte. Das Modell soll davon nichts wissen müssen, es
+    /// kennt nur den Grow.
+    /// </remarks>
+    private async Task<int?> ZeltAsync(int growId, CancellationToken cancellationToken)
+        => Zahl(await DetailAsync(growId, cancellationToken), "tentId");
+
+    /// <summary>
+    /// Mehrere Antworten zu einem Objekt zusammenfassen.
+    /// </summary>
+    /// <remarks>
+    /// Die Teile sind bereits gültiges JSON und werden roh eingesetzt, statt sie
+    /// zu zerlegen und neu zu schreiben — das spart einen Umbau, bei dem nur
+    /// etwas verlorengehen kann.
+    /// <para>Öffentlich, damit geprüft werden kann, dass dabei gültiges JSON
+    /// herauskommt. Ein zusammengeklebtes Ergebnis, das sich nicht lesen lässt,
+    /// wäre für ein Modell schlimmer als eine Fehlermeldung.</para>
+    /// </remarks>
+    public static string Zusammen(params (string Name, string Json)[] teile)
+    {
+        var text = new StringBuilder("{");
+        for (var i = 0; i < teile.Length; i++)
+        {
+            if (i > 0) text.Append(',');
+            text.Append('"').Append(teile[i].Name).Append("\":").Append(teile[i].Json);
+        }
+
+        return text.Append('}').ToString();
     }
 
     /// <summary>

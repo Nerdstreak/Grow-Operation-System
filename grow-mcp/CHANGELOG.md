@@ -1,5 +1,25 @@
 # Änderungen — Grow MCP
 
+## 0.1.3
+
+Sieben Werkzeuge mehr. Bisher war nur ein Bruchteil dessen angeschlossen, was
+Grow OS ohnehin weiss — nicht aus Vorsicht, sondern weil es beim Bauen
+untergegangen ist. Gelesen wird weiterhin ausschliesslich.
+
+- `alarme` — offene Risiko-Ereignisse und die eingestellten Grenzwerte.
+- `dosierungen` — die Pumpen am Zelt und das Protokoll der letzten Dosen.
+- `dosier_vorschlag` — was Grow OS für eine Pumpe jetzt dosieren würde, samt
+  Begründung und den Sperren, die dabei greifen. Es wird nur gerechnet.
+- `ablauf_fortschritt` — welche Abläufe laufen und wie weit sie sind.
+- `pflanzen` — die einzelnen Pflanzen, dazu der Pheno Hunt, falls einer läuft.
+- `licht` — der eingestellte Zyklus und die tatsächlich beobachteten
+  Schaltzeitpunkte. Zeigt, ob die Lampe tut, was der Plan sagt.
+- `technik` — Geräte mit Zustand, anstehende Wartungen und Kalibrierungen.
+
+Fehlt ein Teil, weil es ihn für diesen Grow gar nicht gibt — etwa kein Pheno
+Hunt —, steht dieser Teil auf `null` und der Rest bleibt lesbar. Vorher hätte das
+die ganze Antwort mitgerissen.
+
 ## 0.1.2
 
 - Behoben — **`wissen_liste` war keine Übersicht.** Bei Abläufen und
