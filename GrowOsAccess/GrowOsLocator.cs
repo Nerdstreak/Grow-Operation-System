@@ -1,4 +1,4 @@
-namespace GrowAgent.Services;
+namespace GrowOsAccess;
 
 /// <summary>Wo Grow OS steckt — oder warum es nicht gefunden wurde.</summary>
 public sealed record GrowOsFund(string? Slug, string? Host, string Meldung, bool Gefunden);

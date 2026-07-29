@@ -28,28 +28,11 @@ public sealed record GrowKurz(int Id, string Name);
 public sealed class GrowOsClient
 {
     private readonly HttpClient _http;
-    private readonly ILogger<GrowOsClient> _logger;
 
-    public GrowOsClient(HttpClient http, ILogger<GrowOsClient> logger)
+    public GrowOsClient(HttpClient http)
     {
         _http = http;
-        _logger = logger;
         _http.Timeout = TimeSpan.FromSeconds(30);
-    }
-
-    /// <summary>Antwortet Grow OS unter dieser Adresse?</summary>
-    public async Task<bool> ErreichbarAsync(string baseUrl, CancellationToken cancellationToken)
-    {
-        try
-        {
-            using var antwort = await _http.GetAsync($"{baseUrl}/api/agent-export/mappe", cancellationToken);
-            return antwort.IsSuccessStatusCode;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Grow OS unter {BaseUrl} nicht erreichbar.", baseUrl);
-            return false;
-        }
     }
 
     /// <summary>Die laufenden Grows.</summary>

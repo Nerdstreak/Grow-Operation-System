@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>GrowOsAccess</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Bringt HttpClient-Fabrik, Protokollierung und die DI-Registrierung mit.
+         8.0.0, nicht neuer: 8.0.1 zieht Logging.Abstractions 8.0.2 nach und
+         schiebt damit das Testprojekt in ein Paket-Downgrade. -->
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+  </ItemGroup>
+</Project>

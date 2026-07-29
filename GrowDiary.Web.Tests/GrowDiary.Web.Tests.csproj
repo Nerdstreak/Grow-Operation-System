@@ -25,7 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GrowDiary.Web\GrowDiary.Web.csproj" />
-    <ProjectReference Include="..\GrowAgent\GrowAgent.csproj" />
+    <ProjectReference Include="..\GrowOsAccess\GrowOsAccess.csproj" />
   </ItemGroup>
 
 </Project>

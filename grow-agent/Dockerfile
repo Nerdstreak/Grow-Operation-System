@@ -6,9 +6,11 @@
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS publish
 WORKDIR /src
 
+COPY GrowOsAccess/GrowOsAccess.csproj GrowOsAccess/
 COPY GrowAgent/GrowAgent.csproj GrowAgent/
 RUN dotnet restore GrowAgent/GrowAgent.csproj
 
+COPY GrowOsAccess/ GrowOsAccess/
 COPY GrowAgent/ GrowAgent/
 RUN dotnet publish GrowAgent/GrowAgent.csproj -c Release -o /app/publish --no-restore /p:UseAppHost=false
 

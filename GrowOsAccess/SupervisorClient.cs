@@ -1,6 +1,7 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
-namespace GrowAgent.Services;
+namespace GrowOsAccess;
 
 /// <summary>
 /// Der Draht zum Home-Assistant-Supervisor.
@@ -16,25 +17,10 @@ namespace GrowAgent.Services;
 /// <c>hassio_role: manager</c>, und damit dürfte dieses Add-on jedes andere
 /// starten, stoppen und deinstallieren.</para>
 /// </remarks>
-public sealed class SupervisorClient
+public sealed class SupervisorClient(IHttpClientFactory fabrik, ILogger<SupervisorClient> logger)
 {
-    private readonly HttpClient _http;
-    private readonly ILogger<SupervisorClient> _logger;
-
-    public SupervisorClient(HttpClient http, ILogger<SupervisorClient> logger)
-    {
-        _http = http;
-        _logger = logger;
-
-        var token = Environment.GetEnvironmentVariable("SUPERVISOR_TOKEN");
-        if (!string.IsNullOrWhiteSpace(token))
-        {
-            _http.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
-        }
-
-        _http.BaseAddress = new Uri("http://supervisor/");
-        _http.Timeout = TimeSpan.FromSeconds(10);
-    }
+    /// <summary>Der Name des Klienten, der zum Supervisor spricht.</summary>
+    public const string HttpClientName = "ha-supervisor";
 
     /// <summary>Läuft dieses Programm überhaupt als Add-on?</summary>
     public static bool ImAddon => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SUPERVISOR_TOKEN"));
@@ -44,7 +30,17 @@ public sealed class SupervisorClient
     {
         try
         {
-            using var antwort = await _http.GetAsync("addons/self/info", cancellationToken);
+            using var klient = fabrik.CreateClient(HttpClientName);
+
+            // Der Token wird pro Anfrage gesetzt, nicht einmal beim Bauen: der
+            // Supervisor tauscht ihn im laufenden Betrieb aus.
+            var token = Environment.GetEnvironmentVariable("SUPERVISOR_TOKEN");
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                klient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+            }
+
+            using var antwort = await klient.GetAsync("addons/self/info", cancellationToken);
             antwort.EnsureSuccessStatusCode();
 
             using var strom = await antwort.Content.ReadAsStreamAsync(cancellationToken);
@@ -52,7 +48,7 @@ public sealed class SupervisorClient
 
             if (!json.RootElement.TryGetProperty("data", out var daten))
             {
-                _logger.LogWarning("Die Antwort des Supervisors enthielt keine Angaben zu diesem Add-on.");
+                logger.LogWarning("Die Antwort des Supervisors enthielt keine Angaben zu diesem Add-on.");
                 return null;
             }
 
@@ -63,7 +59,7 @@ public sealed class SupervisorClient
         {
             // Kein Beinbruch: ohne Auskunft werden die festen Namen probiert,
             // und zur Not traegt der Betreiber die Adresse selbst ein.
-            _logger.LogWarning(ex, "Der Supervisor war nicht erreichbar.");
+            logger.LogWarning(ex, "Der Supervisor war nicht erreichbar.");
             return null;
         }
     }

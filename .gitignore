@@ -39,6 +39,12 @@ GrowDiary.Web/bin/
 GrowDiary.Web/obj/
 GrowAgent/bin/
 GrowAgent/obj/
+GrowOsAccess/bin/
+GrowOsAccess/obj/
+GrowMcp/bin/
+GrowMcp/obj/
+GrowMcp.Tests/bin/
+GrowMcp.Tests/obj/
 GrowDiary.React/node_modules/
 GrowDiary.React/dist/
 GrowDiary.React/test-results/

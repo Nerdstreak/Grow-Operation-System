@@ -9,4 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Anthropic" Version="12.39.0" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GrowOsAccess\GrowOsAccess.csproj" />
+  </ItemGroup>
 </Project>
