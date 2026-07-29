@@ -152,6 +152,24 @@ public sealed class AgentPackageTests
         Assert.Contains("vom Nutzer eingetragen", AgentPromptTexts.Systemanweisung);
     }
 
+    /// <summary>
+    /// Ein Verbot allein macht den Berater stumm.
+    /// </summary>
+    /// <remarks>
+    /// Im ersten echten Test mit ChatGPT ging genau das schief: Auf die Frage
+    /// nach Wurzelfaeule nannte es die richtigen Behandlungen, verschwieg aber
+    /// deren Dosierung — „ich nenne bewusst keine Dosierungen". Die Menge stand
+    /// in der Mappe. Die Anweisung kannte nur das Verbot, nie die Erlaubnis;
+    /// wer am Becken steht, braucht aber die Zahl und nicht den Hinweis, dass
+    /// es eine gibt.
+    /// </remarks>
+    [Fact]
+    public void TheInstructionAlsoAllowsQuotingDocumentedNumbers()
+    {
+        Assert.Contains("nenne sie", AgentPromptTexts.Systemanweisung);
+        Assert.Contains("Zurückhalten hilft niemandem", AgentPromptTexts.Systemanweisung);
+    }
+
     private static string FindProjectRoot()
     {
         var dir = AppContext.BaseDirectory;
