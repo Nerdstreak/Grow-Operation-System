@@ -1,5 +1,10 @@
 # Änderungen — Grow Berater
 
+## 0.1.2
+
+- Die Meldung, wenn Grow OS nicht erreichbar ist, nennt jetzt auch die nötige
+  Mindestversion (2.0.0-beta.24) statt nur zu sagen, dass nichts antwortet.
+
 ## 0.1.1
 
 - Der Berater teilt sich die Anbindung an Grow OS jetzt mit dem neuen Add-on

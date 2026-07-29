@@ -1,5 +1,17 @@
 # Änderungen — Grow MCP
 
+## 0.1.1
+
+- Behoben — **Grow OS wurde nicht gefunden.** Der Server leitete den Namen von
+  Grow OS aus seinem eigenen ab, suchte dabei aber nach dem Namen des
+  Berater-Add-ons. Kam Grow OS aus dem Store, ging die Suche darum immer leer
+  aus.
+- Behoben — **die Seite bot den Verbindungsbefehl an, obwohl nichts erreichbar
+  war.** Wer ihn ausführte, verband sich erfolgreich mit einem Server, bei dem
+  danach jede Frage ins Leere lief. Jetzt steht dort erst eine Prüfliste.
+- Die Meldung nennt jetzt auch, dass Grow OS mindestens **2.0.0-beta.24** sein
+  muss — ältere Fassungen lassen andere Add-ons nicht mitlesen.
+
 ## 0.1.0
 
 Erste Fassung.
