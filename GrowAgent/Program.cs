@@ -15,7 +15,9 @@ var einstellungen = AgentEinstellungen.Laden(
     LoggerFactory.Create(bau => bau.AddConsole()).CreateLogger<AgentEinstellungen>());
 
 builder.Services.AddSingleton(einstellungen);
-builder.Services.AddGrowOsAccess(einstellungen.GrowOsAdresse);
+// Der eigene Slug steht in grow-agent/config.yaml; aus ihm folgt der Name von
+// Grow OS im internen Netz.
+builder.Services.AddGrowOsAccess(einstellungen.GrowOsAdresse, eigenerSlug: "grow_agent");
 builder.Services.AddHttpClient<GrowOsClient>();
 builder.Services.AddHttpClient<ModellClient>();
 

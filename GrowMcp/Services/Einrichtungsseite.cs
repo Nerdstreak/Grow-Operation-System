@@ -28,6 +28,34 @@ public static class Einrichtungsseite
 
         var zustand = verbindung.Erreichbar ? "gut" : "schlecht";
 
+        // Solange Grow OS nicht antwortet, ist der Verbindungsbefehl eine Falle:
+        // er funktioniert, aber jedes Werkzeug laeuft danach ins Leere. Also erst
+        // sagen, was fehlt.
+        var befehlsKarte = verbindung.Erreichbar
+            ? $"""
+              <section>
+                <h2>So verbindest du dich</h2>
+                <p>Diesen Befehl auf dem Rechner ausführen, auf dem Claude Code läuft:</p>
+                <pre id="befehl">{WebUtility.HtmlEncode(befehl)}</pre>
+                <button type="button" onclick="kopieren()">Befehl kopieren</button>
+              </section>
+              """
+            : """
+              <section>
+                <h2>So verbindest du dich</h2>
+                <p>Erst muss Grow OS erreichbar sein — sonst verbindet sich Claude zwar,
+                   aber jede Frage läuft ins Leere. Prüf der Reihe nach:</p>
+                <ul>
+                  <li>Läuft das Add-on <strong>Grow OS</strong>?</li>
+                  <li>Ist es mindestens <strong>2.0.0-beta.24</strong>? Erst ab da lässt es
+                      andere Add-ons mitlesen.</li>
+                  <li>Sonst: Adresse aus <em>Grow OS → Info → Hostname</em> oben unter
+                      <code>grow_os_adresse</code> eintragen, mit <code>:5076</code> am Ende.</li>
+                </ul>
+                <p>Danach diese Seite neu laden — dann steht der Befehl hier.</p>
+              </section>
+              """;
+
         var html = $$"""
             <!doctype html>
             <html lang="de">
@@ -87,12 +115,7 @@ public static class Einrichtungsseite
                 <p class="zustand {{zustand}}">{{WebUtility.HtmlEncode(verbindung.Meldung)}}</p>
               </section>
 
-              <section>
-                <h2>So verbindest du dich</h2>
-                <p>Diesen Befehl auf dem Rechner ausführen, auf dem Claude Code läuft:</p>
-                <pre id="befehl">{{WebUtility.HtmlEncode(befehl)}}</pre>
-                <button type="button" onclick="kopieren()">Befehl kopieren</button>
-              </section>
+              {{befehlsKarte}}
 
               <section>
                 <h2>Was du wissen solltest</h2>
@@ -106,7 +129,9 @@ public static class Einrichtungsseite
             </main>
             <script>
               function kopieren() {
-                navigator.clipboard.writeText(document.getElementById('befehl').textContent);
+                const befehl = document.getElementById('befehl');
+                if (!befehl) return;
+                navigator.clipboard.writeText(befehl.textContent);
                 const knopf = document.querySelector('button');
                 knopf.textContent = 'Kopiert';
                 setTimeout(() => knopf.textContent = 'Befehl kopieren', 1500);

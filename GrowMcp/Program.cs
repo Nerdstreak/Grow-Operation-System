@@ -33,7 +33,11 @@ var einstellungen = McpEinstellungen.Laden(
 
 builder.Services.AddSingleton(einstellungen);
 builder.Services.AddSingleton<TokenSpeicher>();
-builder.Services.AddGrowOsAccess(einstellungen.GrowOsAdresse);
+// Der eigene Slug steht in grow-mcp/config.yaml; aus ihm folgt der Name von
+// Grow OS im internen Netz. Stand hier "grow_agent", fand dieses Add-on ein
+// Grow OS aus dem Store gar nicht — genau so ist es beim ersten Einsatz
+// gescheitert.
+builder.Services.AddGrowOsAccess(einstellungen.GrowOsAdresse, eigenerSlug: "grow_mcp");
 
 builder.Services.AddMcpServer()
     // Zustandslos: dieser Server haelt nichts zwischen zwei Aufrufen fest, also

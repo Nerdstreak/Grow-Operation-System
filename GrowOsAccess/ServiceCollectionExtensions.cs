@@ -9,9 +9,18 @@ public static class ServiceCollectionExtensions
     /// <param name="adresse">
     /// Eine von Hand eingetragene Grow-OS-Adresse; leer lassen, wenn gesucht werden soll.
     /// </param>
-    public static IServiceCollection AddGrowOsAccess(this IServiceCollection services, string? adresse)
+    /// <param name="eigenerSlug">
+    /// Der Slug dieses Add-ons aus seiner <c>config.yaml</c> — <c>grow_agent</c>
+    /// oder <c>grow_mcp</c>. Daraus wird der Name von Grow OS abgeleitet.
+    /// </param>
+    public static IServiceCollection AddGrowOsAccess(
+        this IServiceCollection services, string? adresse, string eigenerSlug)
     {
-        services.AddSingleton(new GrowOsOptions { Adresse = adresse ?? string.Empty });
+        services.AddSingleton(new GrowOsOptions
+        {
+            Adresse = adresse ?? string.Empty,
+            EigenerSlug = eigenerSlug,
+        });
         services.AddHttpClient(SupervisorClient.HttpClientName, klient =>
         {
             klient.BaseAddress = new Uri("http://supervisor/");

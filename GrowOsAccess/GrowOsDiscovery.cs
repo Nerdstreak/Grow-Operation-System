@@ -12,6 +12,16 @@ public sealed class GrowOsOptions
 {
     /// <summary>Eine von Hand eingetragene Adresse, sonst leer.</summary>
     public string Adresse { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Der eigene Slug ohne Repository-Vorsatz, so wie er in der
+    /// <c>config.yaml</c> dieses Add-ons steht — <c>grow_agent</c>, <c>grow_mcp</c>.
+    /// </summary>
+    /// <remarks>
+    /// Daraus wird der Name von Grow OS abgeleitet. Wer ihn falsch angibt, findet
+    /// ein Grow OS aus dem Store nicht mehr.
+    /// </remarks>
+    public string EigenerSlug { get; init; } = string.Empty;
 }
 
 /// <summary>Das Ergebnis der Suche: erreichbar unter welcher Adresse.</summary>
@@ -122,7 +132,7 @@ public sealed class GrowOsDiscovery
         _gemerkt = null;
 
         var eigener = await _supervisor.EigenerSlugAsync(cancellationToken);
-        foreach (var kandidat in GrowOsLocator.Kandidaten(eigener))
+        foreach (var kandidat in GrowOsLocator.Kandidaten(eigener, _optionen.EigenerSlug))
         {
             var basis = GrowOsLocator.BaseUrl(GrowOsLocator.Hostname(kandidat));
             if (!await ErreichbarAsync(basis, cancellationToken)) continue;

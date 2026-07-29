@@ -28,9 +28,6 @@ public static class GrowOsLocator
     /// <summary>Der Slug von Grow OS, ohne den Repository-Teil davor.</summary>
     public const string Slug = "grow_os";
 
-    /// <summary>Der eigene Slug, ohne den Repository-Teil davor.</summary>
-    public const string AgentSlug = "grow_agent";
-
     /// <summary>Der Port, auf dem Grow OS im Container lauscht.</summary>
     public const int Port = 5076;
 
@@ -38,22 +35,36 @@ public static class GrowOsLocator
     /// Die Namen, unter denen Grow OS stecken kann — in der Reihenfolge, in der
     /// es sich lohnt, anzuklopfen.
     /// </summary>
+    /// <param name="vollerSlug">
+    /// Der eigene Slug samt Repository-Vorsatz, wie ihn der Supervisor meldet,
+    /// etwa <c>a1b2c3d4_grow_mcp</c>.
+    /// </param>
+    /// <param name="eigenerBasisSlug">
+    /// Der eigene Slug OHNE Vorsatz, wie er in der <c>config.yaml</c> steht —
+    /// <c>grow_agent</c> oder <c>grow_mcp</c>.
+    /// </param>
     /// <remarks>
-    /// Zuerst der abgeleitete Name: gleicher Store, gleicher Vorsatz, das ist der
-    /// Normalfall. Danach die beiden Namen, die ohne jede Auskunft feststehen —
-    /// wer Grow OS aus dem Ordner heraus installiert hat, findet es unter
-    /// <c>local_grow_os</c>. Angeklopft wird nacheinander; wer nicht antwortet,
-    /// fällt raus.
+    /// <para>Zuerst der abgeleitete Name: gleicher Store, gleicher Vorsatz, das
+    /// ist der Normalfall. Danach die beiden Namen, die ohne jede Auskunft
+    /// feststehen — wer Grow OS aus dem Ordner heraus installiert hat, findet es
+    /// unter <c>local_grow_os</c>. Angeklopft wird nacheinander; wer nicht
+    /// antwortet, fällt raus.</para>
+    ///
+    /// <para>Der eigene Basis-Slug wird übergeben und steht nicht fest im Code:
+    /// als hier noch <c>grow_agent</c> fest verdrahtet war, griff die Ableitung
+    /// beim MCP-Add-on nicht — und Grow OS aus dem Store blieb unauffindbar,
+    /// weil dessen Vorsatz nur aus dem eigenen Namen zu holen ist.</para>
     /// </remarks>
-    public static IReadOnlyList<string> Kandidaten(string? eigenerSlug)
+    public static IReadOnlyList<string> Kandidaten(string? vollerSlug, string eigenerBasisSlug)
     {
         var namen = new List<string>();
 
-        if (!string.IsNullOrWhiteSpace(eigenerSlug) &&
-            eigenerSlug.EndsWith(AgentSlug, StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(vollerSlug) &&
+            !string.IsNullOrWhiteSpace(eigenerBasisSlug) &&
+            vollerSlug.EndsWith(eigenerBasisSlug, StringComparison.Ordinal))
         {
-            // "a1b2c3d4_grow_agent" -> "a1b2c3d4_" -> "a1b2c3d4_grow_os"
-            namen.Add(string.Concat(eigenerSlug.AsSpan(0, eigenerSlug.Length - AgentSlug.Length), Slug));
+            // "a1b2c3d4_grow_mcp" -> "a1b2c3d4_" -> "a1b2c3d4_grow_os"
+            namen.Add(string.Concat(vollerSlug.AsSpan(0, vollerSlug.Length - eigenerBasisSlug.Length), Slug));
         }
 
         namen.Add("local_" + Slug);
@@ -65,8 +76,9 @@ public static class GrowOsLocator
     /// <summary>Die Meldung, wenn unter keinem Namen jemand antwortet.</summary>
     public static GrowOsFund NichtGefunden { get; } = new(
         null, null,
-        "Grow OS ist von hier aus nicht erreichbar. Läuft das Add-on? " +
-        "Sonst trag seine Adresse in den Einstellungen des Beraters ein.",
+        "Grow OS ist von hier aus nicht erreichbar. Läuft das Add-on, und ist es "
+        + "mindestens Version 2.0.0-beta.24? Sonst trag seine Adresse in den "
+        + "Einstellungen dieses Add-ons ein.",
         false);
 
     /// <summary>Aus dem Slug den DNS-Namen im internen Netz machen.</summary>
