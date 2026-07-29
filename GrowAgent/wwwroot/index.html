@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grow-Berater</title>
+<style>
+  :root { color-scheme: light dark; --rand: #d7ddd8; --grund: #f5f7f5; --ich: #e7f0e9; }
+  @media (prefers-color-scheme: dark) {
+    :root { --rand: #1d2a22; --grund: #0d120f; --ich: #16241b; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px; background: var(--grund);
+    font: 400 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; height: 100dvh; gap: 12px;
+  }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  select, textarea, button {
+    font: inherit; padding: 9px 12px; border-radius: 10px;
+    border: 1px solid var(--rand); background: transparent; color: inherit;
+  }
+  button { cursor: pointer; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: default; }
+  #lage { font-size: 13px; opacity: .75; }
+  #verlauf { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .zug { padding: 11px 14px; border-radius: 12px; border: 1px solid var(--rand); white-space: pre-wrap; }
+  .zug.ich { background: var(--ich); align-self: flex-end; max-width: 85%; }
+  .zug.er { max-width: 95%; }
+  form { display: flex; gap: 8px; align-items: flex-end; }
+  textarea { flex: 1; resize: vertical; min-height: 52px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Grow-Berater</h1>
+    <select id="grow" aria-label="Grow auswählen"></select>
+    <span id="lage">Verbindung wird geprüft…</span>
+  </header>
+
+  <div id="verlauf" aria-live="polite"></div>
+
+  <form id="formular">
+    <textarea id="frage" placeholder="Frag etwas zu deiner Anlage — zum Beispiel: Der EC steigt seit drei Tagen, was tun?" aria-label="Deine Frage"></textarea>
+    <button type="submit" id="senden" disabled>Fragen</button>
+  </form>
+
+<script>
+const verlaufEl = document.getElementById('verlauf')
+const growEl = document.getElementById('grow')
+const lageEl = document.getElementById('lage')
+const frageEl = document.getElementById('frage')
+const sendenEl = document.getElementById('senden')
+const verlauf = []
+
+function zeigen(rolle, text) {
+  const el = document.createElement('div')
+  el.className = 'zug ' + (rolle === 'user' ? 'ich' : 'er')
+  el.textContent = text
+  verlaufEl.appendChild(el)
+  verlaufEl.scrollTop = verlaufEl.scrollHeight
+}
+
+async function start() {
+  try {
+    const verbindung = await (await fetch('api/verbindung')).json()
+    lageEl.textContent = verbindung.meldung
+    if (!verbindung.gefunden || !verbindung.erreichbar) return
+
+    const grows = await (await fetch('api/grows')).json()
+    if (grows.length === 0) {
+      lageEl.textContent = 'Grow OS läuft, aber es gibt keinen aktiven Grow.'
+      return
+    }
+    for (const grow of grows) {
+      const option = document.createElement('option')
+      option.value = grow.id
+      option.textContent = grow.name
+      growEl.appendChild(option)
+    }
+    sendenEl.disabled = false
+  } catch (fehler) {
+    lageEl.textContent = 'Der Berater konnte sich nicht mit Grow OS verbinden.'
+  }
+}
+
+document.getElementById('formular').addEventListener('submit', async (ereignis) => {
+  ereignis.preventDefault()
+  const text = frageEl.value.trim()
+  if (!text) return
+
+  frageEl.value = ''
+  sendenEl.disabled = true
+  zeigen('user', text)
+  verlauf.push({ rolle: 'user', text })
+
+  const wartet = document.createElement('div')
+  wartet.className = 'zug er'
+  wartet.textContent = 'Denkt nach…'
+  verlaufEl.appendChild(wartet)
+
+  try {
+    const antwort = await (await fetch('api/frage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ growId: Number(growEl.value), verlauf }),
+    })).json()
+    wartet.remove()
+    zeigen('assistant', antwort.antwort)
+    verlauf.push({ rolle: 'assistant', text: antwort.antwort })
+  } catch (fehler) {
+    wartet.remove()
+    zeigen('assistant', 'Da ging etwas schief. Läuft das Modell, und stimmt der Schlüssel?')
+  } finally {
+    sendenEl.disabled = false
+    frageEl.focus()
+  }
+})
+
+start()
+</script>
+</body>
+</html>

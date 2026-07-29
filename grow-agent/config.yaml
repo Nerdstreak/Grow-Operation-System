@@ -1,0 +1,39 @@
+name: Grow Berater
+version: "0.1.0"
+slug: grow_agent
+description: Ein KI-Berater fuer deine RDWC/DWC-Anlage, gespeist aus dem Fachwissen von Grow OS
+url: https://github.com/Nerdstreak/Grow-Operation-System
+image: ghcr.io/nerdstreak/grow-operation-system-agent
+arch:
+  - aarch64
+  - armv7
+  - amd64
+# Eigener dotnet-ENTRYPOINT, die s6-Schicht wird nicht gebraucht.
+init: false
+# Oberflaeche in der HA-Seitenleiste; HA besitzt die Anmeldung.
+ingress: true
+ingress_port: 5077
+panel_icon: mdi:robot-happy-outline
+panel_title: Grow Berater
+# Nur fuer eine einzige Frage: wie heisse ich selbst? Aus dem eigenen Namen
+# folgt der von Grow OS, denn beide kommen aus demselben Repository und tragen
+# denselben Hash-Vorsatz. Dafuer genuegt die Standardrolle — bewusst KEIN
+# `hassio_role: manager`, das erlaubte naemlich, jedes andere Add-on zu starten,
+# zu stoppen und zu deinstallieren.
+hassio_api: true
+options:
+  anbieter: anthropic
+  modell: claude-opus-5
+  schluessel: ""
+  adresse: ""
+  grow_os_adresse: ""
+schema:
+  # anthropic | openai | ollama — wer die Fragen beantwortet.
+  anbieter: list(anthropic|openai|ollama)
+  modell: str
+  # Der Schluessel des gewaehlten Anbieters. Bei Ollama leer lassen.
+  schluessel: password?
+  # Abweichende Adresse des Modell-Dienstes, etwa http://192.168.1.10:11434
+  adresse: str?
+  # Nur noetig, wenn der Berater Grow OS nicht von selbst findet.
+  grow_os_adresse: str?
