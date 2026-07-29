@@ -15,14 +15,20 @@ namespace GrowDiary.Web.Tests.Services;
 /// Supervisor nach seinem eigenen Namen und tauscht den hinteren Teil aus. Genau
 /// das erspart die Manager-Rolle.</para>
 ///
-/// <para>Die Tests fahren beide Add-ons durch, nicht nur eines. Als der eigene
-/// Slug hier noch fest <c>grow_agent</c> war, sah alles gruen aus — und das
-/// MCP-Add-on fand ein Grow OS aus dem Store trotzdem nicht.</para>
+/// <para>Die Tests fahren jedes Add-on durch, nicht nur das erste. Als der eigene
+/// Slug hier noch fest verdrahtet war und auf ein anderes Add-on zeigte, sah
+/// alles gruen aus — und Grow OS aus dem Store wurde trotzdem nicht gefunden.</para>
 /// </remarks>
 public sealed class GrowOsLocatorTests
 {
-    /// <summary>Die Slugs, unter denen Add-ons dieses Repositories laufen.</summary>
-    public static TheoryData<string> Addons => ["grow_agent", "grow_mcp"];
+    /// <summary>
+    /// Die Slugs, unter denen Add-ons dieses Repositories laufen.
+    /// </summary>
+    /// <remarks>
+    /// Kommt ein Add-on dazu, gehört sein Slug hier hinein — sonst wiederholt
+    /// sich genau der Fehler, der diese Liste ueberhaupt erst hervorgebracht hat.
+    /// </remarks>
+    public static TheoryData<string> Addons => ["grow_mcp"];
 
     [Theory]
     [MemberData(nameof(Addons))]
@@ -39,11 +45,11 @@ public sealed class GrowOsLocatorTests
     [Fact]
     public void TheNameOfAnotherAddonDoesNotDeriveAnything()
     {
-        // Der Fehler, der in freier Wildbahn zugeschlagen hat: das MCP-Add-on
-        // heisst „…_grow_mcp", suchte aber nach der Endung „grow_agent". Ohne
+        // Der Fehler, der in freier Wildbahn zugeschlagen hat: das Add-on heisst
+        // „…_grow_mcp", gesucht wurde aber nach der Endung eines anderen. Ohne
         // Treffer bleiben nur die Namen ohne Hash — und die gibt es bei einer
         // Installation aus dem Store nicht.
-        var namen = GrowOsLocator.Kandidaten("a1b2c3d4_grow_mcp", eigenerBasisSlug: "grow_agent");
+        var namen = GrowOsLocator.Kandidaten("a1b2c3d4_grow_mcp", eigenerBasisSlug: "grow_anderes");
 
         Assert.DoesNotContain("a1b2c3d4_grow_os", namen);
         Assert.Equal(["local_grow_os", "grow_os"], namen);
@@ -84,7 +90,7 @@ public sealed class GrowOsLocatorTests
     [Fact]
     public void AnUnexpectedOwnNameFallsBackInsteadOfInventingAHost()
     {
-        var namen = GrowOsLocator.Kandidaten("irgendwas_anderes", "grow_agent");
+        var namen = GrowOsLocator.Kandidaten("irgendwas_anderes", "grow_mcp");
 
         Assert.Equal(["local_grow_os", "grow_os"], namen);
     }

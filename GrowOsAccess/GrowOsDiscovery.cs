@@ -15,7 +15,7 @@ public sealed class GrowOsOptions
 
     /// <summary>
     /// Der eigene Slug ohne Repository-Vorsatz, so wie er in der
-    /// <c>config.yaml</c> dieses Add-ons steht — <c>grow_agent</c>, <c>grow_mcp</c>.
+    /// <c>config.yaml</c> dieses Add-ons steht, derzeit <c>grow_mcp</c>.
     /// </summary>
     /// <remarks>
     /// Daraus wird der Name von Grow OS abgeleitet. Wer ihn falsch angibt, findet

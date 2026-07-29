@@ -18,9 +18,9 @@ Erste Fassung.
 
 - Elf lesende Werkzeuge auf Grow OS: Grows, Lagebericht, Messwert-Verlauf,
   Trends, Abweichungen, Anlage, Sorte, Journal, Fachwissen und Volltextsuche.
-- Der Verlauf ist der eigentliche Grund für dieses Add-on. Der **Grow Berater**
-  bekommt einen Textblock mit dem Stand von jetzt; hier fragt das Modell selbst
-  nach, wie sich ein Wert über Tage bewegt hat.
+- Der Verlauf ist der eigentliche Grund für dieses Add-on. Die Berater-Mappe zum
+  Herunterladen hält den Stand von jetzt fest; hier fragt das Modell selbst nach,
+  wie sich ein Wert über Tage bewegt hat.
 - Einrichtungsseite in der Seitenleiste mit fertigem Verbindungsbefehl. Der
   Schlüssel wird beim ersten Start erzeugt und muss nicht abgeschrieben werden.
 - Zwei getrennte Türen: die Seite mit dem Schlüssel hängt am Ingress, die

@@ -7,9 +7,10 @@ using GrowOsAccess;
 // Grow MCP: Grow OS als Werkzeugkasten fuer einen beliebigen MCP-Klienten —
 // Claude Code, Claude Desktop, was auch immer im eigenen Netz laeuft.
 //
-// Der Unterschied zum Berater-Add-on: dort bekommt das Modell EINEN fertigen
-// Stapel Papier, hier bekommt es Griffe und fragt gezielt nach. Das ist der
-// einzige Weg zu Verlaufsfragen — ein Momentwert zeigt keine Bewegung.
+// Der Unterschied zur Berater-Mappe, die Grow OS zum Herunterladen anbietet: die
+// ist EIN fertiger Stapel Papier mit dem Stand von jetzt. Hier bekommt das Modell
+// Griffe und fragt gezielt nach — der einzige Weg zu Verlaufsfragen, denn ein
+// Momentwert zeigt keine Bewegung.
 //
 // Zwei Tueren, mit Absicht getrennt:
 //   Port 5078  Ingress. Die Seite, auf der der Schluessel steht. Home Assistant
@@ -34,9 +35,9 @@ var einstellungen = McpEinstellungen.Laden(
 builder.Services.AddSingleton(einstellungen);
 builder.Services.AddSingleton<TokenSpeicher>();
 // Der eigene Slug steht in grow-mcp/config.yaml; aus ihm folgt der Name von
-// Grow OS im internen Netz. Stand hier "grow_agent", fand dieses Add-on ein
-// Grow OS aus dem Store gar nicht — genau so ist es beim ersten Einsatz
-// gescheitert.
+// Grow OS im internen Netz. Stand hier einmal der Slug eines anderen Add-ons,
+// fand dieses hier ein Grow OS aus dem Store gar nicht — genau so ist es beim
+// ersten Einsatz gescheitert.
 builder.Services.AddGrowOsAccess(einstellungen.GrowOsAdresse, eigenerSlug: "grow_mcp");
 
 builder.Services.AddMcpServer()

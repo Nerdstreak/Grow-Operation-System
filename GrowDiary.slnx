@@ -1,5 +1,4 @@
 <Solution>
-  <Project Path="GrowAgent/GrowAgent.csproj" />
   <Project Path="GrowMcp/GrowMcp.csproj" />
   <Project Path="GrowMcp.Tests/GrowMcp.Tests.csproj" />
   <Project Path="GrowOsAccess/GrowOsAccess.csproj" />

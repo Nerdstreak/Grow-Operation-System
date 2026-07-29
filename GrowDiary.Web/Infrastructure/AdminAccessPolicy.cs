@@ -116,7 +116,7 @@ public static class AdminAccessPolicy
     /// </summary>
     /// <remarks>
     /// Dazu kommt ein dritter Weg: <b>lesende</b> Anfragen aus dem internen
-    /// Add-on-Netz. Ohne ihn könnte ein zweites Add-on — etwa der Grow-Berater —
+    /// Add-on-Netz. Ohne ihn könnte ein zweites Add-on — etwa Grow MCP —
     /// nichts abrufen, denn es ist weder Loopback noch Ingress. Bewusst nur
     /// lesend: mitlesen kann ein Nachbar-Add-on damit, schalten oder dosieren
     /// nicht. Für einen Schlüssel hat sich der Betreiber ausdrücklich nicht

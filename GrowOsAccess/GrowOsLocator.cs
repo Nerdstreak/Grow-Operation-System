@@ -12,12 +12,12 @@ public sealed record GrowOsFund(string? Slug, string? Host, string Meldung, bool
 /// Repositories davor, etwa <c>a1b2c3d4_grow_os</c>. Als DNS-Name werden die
 /// Unterstriche zu Bindestrichen. Der Hash ist von aussen nicht vorhersagbar.</para>
 ///
-/// <para>Geraten wird er trotzdem nicht — er wird abgeleitet: Berater und Grow OS
-/// kommen aus demselben Repository und tragen deshalb denselben Vorsatz. Der
-/// Berater fragt den Supervisor nach seinem <em>eigenen</em> Namen und tauscht den
-/// hinteren Teil aus. Das genügt der Standardrolle. Die vollständige Add-on-Liste
-/// verlangte <c>hassio_role: manager</c>, und die erlaubt nebenbei, jedes andere
-/// Add-on zu starten, zu stoppen und zu entfernen — zu viel Recht für eine
+/// <para>Geraten wird er trotzdem nicht — er wird abgeleitet: alle Add-ons aus
+/// diesem Repository tragen denselben Vorsatz. Ein Add-on fragt den Supervisor
+/// nach seinem <em>eigenen</em> Namen und tauscht den hinteren Teil aus. Das
+/// genügt der Standardrolle. Die vollständige Add-on-Liste verlangte
+/// <c>hassio_role: manager</c>, und die erlaubt nebenbei, jedes andere Add-on zu
+/// starten, zu stoppen und zu entfernen — zu viel Recht für eine
 /// Namensauskunft.</para>
 ///
 /// <para>Reine Auswahllogik, ohne Netzwerk: was hineingegeben wird, bestimmt das
@@ -40,8 +40,8 @@ public static class GrowOsLocator
     /// etwa <c>a1b2c3d4_grow_mcp</c>.
     /// </param>
     /// <param name="eigenerBasisSlug">
-    /// Der eigene Slug OHNE Vorsatz, wie er in der <c>config.yaml</c> steht —
-    /// <c>grow_agent</c> oder <c>grow_mcp</c>.
+    /// Der eigene Slug OHNE Vorsatz, wie er in der <c>config.yaml</c> steht,
+    /// derzeit <c>grow_mcp</c>.
     /// </param>
     /// <remarks>
     /// <para>Zuerst der abgeleitete Name: gleicher Store, gleicher Vorsatz, das
@@ -50,10 +50,11 @@ public static class GrowOsLocator
     /// unter <c>local_grow_os</c>. Angeklopft wird nacheinander; wer nicht
     /// antwortet, fällt raus.</para>
     ///
-    /// <para>Der eigene Basis-Slug wird übergeben und steht nicht fest im Code:
-    /// als hier noch <c>grow_agent</c> fest verdrahtet war, griff die Ableitung
-    /// beim MCP-Add-on nicht — und Grow OS aus dem Store blieb unauffindbar,
-    /// weil dessen Vorsatz nur aus dem eigenen Namen zu holen ist.</para>
+    /// <para>Der eigene Basis-Slug wird übergeben und steht nicht fest im Code.
+    /// Als hier noch der Slug eines anderen Add-ons verdrahtet war, griff die
+    /// Ableitung nicht — und Grow OS aus dem Store blieb unauffindbar, weil
+    /// dessen Vorsatz nur aus dem eigenen Namen zu holen ist. Kommt je ein
+    /// weiteres Add-on dazu, bleibt das ein Parameter.</para>
     /// </remarks>
     public static IReadOnlyList<string> Kandidaten(string? vollerSlug, string eigenerBasisSlug)
     {

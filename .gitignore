@@ -37,8 +37,6 @@ GrowDiary.Web/App_Data_backup/
 # Build/runtime artifacts
 GrowDiary.Web/bin/
 GrowDiary.Web/obj/
-GrowAgent/bin/
-GrowAgent/obj/
 GrowOsAccess/bin/
 GrowOsAccess/obj/
 GrowMcp/bin/

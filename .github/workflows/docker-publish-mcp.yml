@@ -1,7 +1,7 @@
 name: Docker image (MCP)
 
-# Eigener Ablauf, weil der MCP-Server seine eigene Versionsnummer hat: weder
-# Grow OS noch der Berater sollen sich mitbewegen, nur weil hier etwas erscheint.
+# Eigener Ablauf, weil der MCP-Server seine eigene Versionsnummer hat: Grow OS
+# soll sich nicht mitbewegen, nur weil hier etwas erscheint.
 on:
   push:
     tags:

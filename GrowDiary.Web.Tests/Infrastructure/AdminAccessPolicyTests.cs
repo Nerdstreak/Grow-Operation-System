@@ -101,9 +101,9 @@ public sealed class AdminAccessPolicyTests
     /// Ein Nachbar-Add-on darf lesen — und nur lesen.
     /// </summary>
     /// <remarks>
-    /// Ohne diesen Weg käme der Grow-Berater als zweites Add-on nicht an die
-    /// Daten: er ist weder Loopback noch Ingress. Die Beschränkung auf GET ist
-    /// die eigentliche Zusage — mitlesen ja, schalten oder dosieren nie.
+    /// Ohne diesen Weg käme Grow MCP als zweites Add-on nicht an die Daten: es
+    /// ist weder Loopback noch Ingress. Die Beschränkung auf GET ist die
+    /// eigentliche Zusage — mitlesen ja, schalten oder dosieren nie.
     /// </remarks>
     [Theory]
     [InlineData("172.30.32.1")]   // der Supervisor-Gateway
@@ -148,8 +148,8 @@ public sealed class AdminAccessPolicyTests
     public void CanAccess_RecognisesTheNetworkThroughAnIPv4MappedAddress()
     {
         // Je nach Aufbau reicht Kestrel die Adresse als ::ffff:172.30.33.7
-        // durch. Ohne Entpacken wäre der Berater genau dort ausgesperrt, wo er
-        // laufen soll — und der Fehler waere schwer zu finden.
+        // durch. Ohne Entpacken waere das Nachbar-Add-on genau dort ausgesperrt,
+        // wo es laufen soll — und der Fehler waere schwer zu finden.
         var context = CreateContext(IPAddress.Parse("::ffff:172.30.33.7"), IPAddress.Parse("172.30.33.2"));
         context.Request.Method = HttpMethods.Get;
 

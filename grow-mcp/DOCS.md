@@ -1,12 +1,13 @@
 # Grow MCP — Home Assistant Add-on
 
 Gibt Claude auf deinem Rechner Zugriff auf deine Anlage. Nicht als fertigen
-Textblock wie beim **Grow Berater**, sondern als Werkzeuge: Claude fragt gezielt
-nach, was es gerade braucht — den Lagebericht, den EC-Verlauf der letzten zwei
-Wochen, einen bestimmten Ablauf aus dem Fachwissen.
+Textblock wie bei der **Berater-Mappe**, die Grow OS zum Herunterladen anbietet,
+sondern als Werkzeuge: Claude fragt gezielt nach, was es gerade braucht — den
+Lagebericht, den EC-Verlauf der letzten zwei Wochen, einen bestimmten Ablauf aus
+dem Fachwissen.
 
-Genau das kann der Berater nicht. Er bekommt den Stand von *jetzt*. „Wie hat sich
-mein pH die letzten 14 Tage bewegt?" beantwortet nur dieses Add-on.
+Genau das kann die Mappe nicht. Sie hält den Stand von *jetzt* fest. „Wie hat
+sich mein pH die letzten 14 Tage bewegt?" beantwortet nur dieses Add-on.
 
 ## Voraussetzungen
 

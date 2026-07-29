@@ -30,9 +30,9 @@ jobs:
       - name: Restore backend
         run: dotnet restore GrowDiary.slnx
 
-      # Die ganze Mappe statt einzelner Projekte: seit den beiden Add-ons haengen
-      # Berater und MCP-Server mit an der gemeinsamen Bibliothek, und ein Bruch
-      # dort soll hier auffallen und nicht erst beim Image-Bau.
+      # Die ganze Mappe statt einzelner Projekte: das MCP-Add-on haengt mit an
+      # der gemeinsamen Bibliothek, und ein Bruch dort soll hier auffallen und
+      # nicht erst beim Image-Bau.
       - name: Build backend
         run: dotnet build GrowDiary.slnx --configuration Release --no-restore
 
