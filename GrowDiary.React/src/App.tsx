@@ -43,6 +43,7 @@ import { legacyRedirects } from './navigation'
 import { useNavCounts } from './useNavCounts'
 import { RulesCollectionPage } from './pages/collections'
 import AdvisorPage from './pages/AdvisorPage'
+import WaterProfilePage from './pages/WaterProfilePage'
 import StrainsPage from './pages/StrainsPage'
 import ArchivePage from './pages/ArchivePage'
 
@@ -109,6 +110,7 @@ function App() {
           <Route path="/sensoren" element={<HardwarePage />} />
 
           <Route path="/sollwerte" element={<SetpointProfilesPage />} />
+          <Route path="/wasser" element={<WaterProfilePage />} />
 
           {/* Dosierung: Liste, neu, bearbeiten. Reihenfolge zaehlt — „neu" muss
               vor „:pumpId" stehen, sonst wird es als Id gelesen. */}

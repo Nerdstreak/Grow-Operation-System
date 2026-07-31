@@ -75,7 +75,12 @@ public sealed class StartSopInstanceRequest
 }
 
 /// <summary>What has to be known before an SOP can be planned.</summary>
-public sealed record SopChoiceDto(string Key, string? Prompt, IReadOnlyList<string> Options);
+/// <param name="Suggested">
+/// The option the app would pick from what it already knows — e.g. the
+/// waterSource answer derived from the grow's water source. The UI preselects
+/// it; the user can still override. Null when the app has no basis to suggest.
+/// </param>
+public sealed record SopChoiceDto(string Key, string? Prompt, IReadOnlyList<string> Options, string? Suggested = null);
 
 /// <summary>The questions and repeat subjects of one SOP, so the UI can ask up front.</summary>
 public sealed record SopPlanQuestionsDto(

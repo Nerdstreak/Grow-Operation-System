@@ -14,7 +14,7 @@ type SopCatalogEntry = {
   steps?: unknown[]
 }
 
-type SopChoice = { key: string; prompt: string | null; options: string[] }
+type SopChoice = { key: string; prompt: string | null; options: string[]; suggested?: string | null }
 type SopPlanQuestions = { sopId: string; choices: SopChoice[]; repeatSubjects: string[] }
 
 function meta(entry: SopCatalogEntry): string {
@@ -67,13 +67,17 @@ export function SopCatalog({
     setBusy(sopId)
     setError(null)
     try {
-      const questions = await apiFetch<SopPlanQuestions>(`/api/sop-instances/plan-questions/${encodeURIComponent(sopId)}`)
+      // Mit growId, damit die Wasserfrage aus dem Grow vorbeantwortet kommt —
+      // beim Anlegen wurde sie schon einmal gestellt.
+      const questions = await apiFetch<SopPlanQuestions>(
+        `/api/sop-instances/plan-questions/${encodeURIComponent(sopId)}?growId=${encodeURIComponent(growId)}`,
+      )
       if (questions.choices.length === 0 && questions.repeatSubjects.length === 0) {
         await send(sopId, {}, {})
         return
       }
       setPending(questions)
-      setAnswers(Object.fromEntries(questions.choices.map((choice) => [choice.key, choice.options[0] ?? ''])))
+      setAnswers(Object.fromEntries(questions.choices.map((choice) => [choice.key, choice.suggested ?? choice.options[0] ?? ''])))
       setCounts(Object.fromEntries(questions.repeatSubjects.map((subject) => [subject, 1])))
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Routine konnte nicht vorbereitet werden.')

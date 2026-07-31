@@ -26,6 +26,7 @@ public sealed record AgentContext(
     string HydroStyle,
     string ProfileName,
     double? ReservoirLiters,
+    IReadOnlyList<string> WaterNotes,
     IReadOnlyList<AgentMetricLine> Metrics,
     IReadOnlyList<string> OpenIssues,
     IReadOnlyList<string> RecentJournal,
@@ -72,6 +73,7 @@ public sealed class AgentContextBuilder
     private readonly SetpointProfileRepository _profiles;
     private readonly DosingRepository _dosing;
     private readonly JournalRepository _journal;
+    private readonly WaterProfileStore _waterProfile;
 
     public AgentContextBuilder(
         GrowRepository repository,
@@ -81,7 +83,8 @@ public sealed class AgentContextBuilder
         HydroSetupRepository hydroSetups,
         SetpointProfileRepository profiles,
         DosingRepository dosing,
-        JournalRepository journal)
+        JournalRepository journal,
+        WaterProfileStore waterProfile)
     {
         _repository = repository;
         _readings = readings;
@@ -91,6 +94,7 @@ public sealed class AgentContextBuilder
         _profiles = profiles;
         _dosing = dosing;
         _journal = journal;
+        _waterProfile = waterProfile;
     }
 
     /// <summary>Die Messgrößen, die in das Paket gehören — Reihenfolge wie im Kopf eines Growers.</summary>
@@ -129,11 +133,73 @@ public sealed class AgentContextBuilder
             HydroStyle: grow.HydroStyle.ToString(),
             ProfileName: ProfileLabel(resolved),
             ReservoirLiters: grow.SystemId is { } id ? _hydroSetups.GetSystem(id)?.ReservoirLiters : null,
+            WaterNotes: BuildWaterNotes(grow),
             Metrics: BuildMetrics(grow, targets, rules, nowUtc),
             OpenIssues: BuildIssues(grow),
             RecentJournal: BuildJournal(grow),
             RecentDoses: BuildDoses(grow, nowUtc),
             GeneratedAtUtc: nowUtc);
+    }
+
+    /// <summary>
+    /// Was das Ausgangswasser mitbringt — nur bei Leitungs- oder Mischwasser.
+    /// </summary>
+    /// <remarks>
+    /// <para>Ohne diese Zeilen liest ein Berater „EC 0,28 vor dem Düngen" als
+    /// Rest-Salz und rät zum Wasserwechsel. Mit ihnen weiss er: das ist das
+    /// Wasser selbst.</para>
+    ///
+    /// <para>Nur Fakten aus dem Bericht, keine Ratschläge — die Härte-Einordnung
+    /// (weich/mittel/hart) folgt den gesetzlichen Bereichen des Wasch- und
+    /// Reinigungsmittelgesetzes, nicht einer eigenen Meinung.</para>
+    /// </remarks>
+    private List<string> BuildWaterNotes(GrowRun grow)
+    {
+        if (grow.WaterSource == WaterSource.RO) return [];
+        if (_waterProfile.Get() is not { HasAnyValue: true } wasser) return [];
+
+        var zeilen = new List<string>();
+        var quelle = grow.WaterSource == WaterSource.Mixed ? "Leitungswasser (gemischt mit RO)" : "Leitungswasser";
+        var herkunft = string.IsNullOrWhiteSpace(wasser.SourceLabel) ? "" : $" — Quelle: {wasser.SourceLabel}";
+        zeilen.Add($"{quelle}{herkunft}");
+
+        if (wasser.ConductivityUsCm is { } us)
+        {
+            zeilen.Add($"Start-EC {(us / 1000).ToString("0.00", Deutsch)} mS/cm — "
+                + "ein Messwert in dieser Höhe vor dem Düngen ist das Wasser selbst, kein Rest-Salz.");
+        }
+
+        if (wasser.TotalHardnessDh is { } haerte)
+        {
+            var bereich = haerte < 8.4 ? "weich" : haerte <= 14 ? "mittel" : "hart";
+            zeilen.Add($"Gesamthärte {haerte.ToString("0.#", Deutsch)} °dH (Härtebereich {bereich})"
+                + (wasser.CarbonateHardnessDh is { } kh
+                    ? $", Karbonathärte {kh.ToString("0.#", Deutsch)} °dH"
+                    : ""));
+        }
+
+        if (wasser.CalciumMgL is not null || wasser.MagnesiumMgL is not null
+            || wasser.SodiumMgL is not null || wasser.NitrateMgL is not null)
+        {
+            var teile = new List<string>();
+            if (wasser.CalciumMgL is { } c) teile.Add($"Calcium {c.ToString("0.#", Deutsch)} mg/L");
+            if (wasser.MagnesiumMgL is { } mg) teile.Add($"Magnesium {mg.ToString("0.#", Deutsch)} mg/L");
+            if (wasser.SodiumMgL is { } na) teile.Add($"Natrium {na.ToString("0.#", Deutsch)} mg/L");
+            if (wasser.NitrateMgL is { } no3) teile.Add($"Nitrat {no3.ToString("0.#", Deutsch)} mg/L");
+            zeilen.Add(string.Join(" · ", teile));
+        }
+
+        if (wasser.Ph is { } ph)
+        {
+            zeilen.Add($"pH des Leitungswassers {ph.ToString("0.0", Deutsch)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(wasser.Disinfection))
+        {
+            zeilen.Add($"Desinfektion laut Bericht: {wasser.Disinfection}");
+        }
+
+        return zeilen;
     }
 
     private List<AgentMetricLine> BuildMetrics(
@@ -298,6 +364,19 @@ public sealed class AgentContextBuilder
             + (context.ReservoirLiters is { } liter ? $" · {liter.ToString("0.#", Deutsch)} L Reservoir" : string.Empty));
         text.AppendLine($"Sollwert-Profil: {context.ProfileName}");
         text.AppendLine();
+
+        // Vor den Messwerten, nicht dahinter: wer die Werte liest, muss vorher
+        // wissen, was davon schon das Ausgangswasser ist.
+        if (context.WaterNotes.Count > 0)
+        {
+            text.AppendLine("## Ausgangswasser");
+            text.AppendLine();
+            foreach (var zeile in context.WaterNotes)
+            {
+                text.AppendLine($"- {zeile}");
+            }
+            text.AppendLine();
+        }
 
         text.AppendLine("## Aktuelle Werte");
         text.AppendLine();

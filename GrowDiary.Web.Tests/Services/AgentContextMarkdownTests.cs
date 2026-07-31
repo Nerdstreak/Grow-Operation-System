@@ -21,7 +21,8 @@ public sealed class AgentContextMarkdownTests
         IReadOnlyList<AgentMetricLine>? metrics = null,
         IReadOnlyList<string>? issues = null,
         IReadOnlyList<string>? journal = null,
-        IReadOnlyList<string>? doses = null)
+        IReadOnlyList<string>? doses = null,
+        IReadOnlyList<string>? water = null)
         => new(
             GrowName: "Purple Lemonade #1",
             Stage: "Blüte",
@@ -30,6 +31,7 @@ public sealed class AgentContextMarkdownTests
             HydroStyle: "RDWC",
             ProfileName: "Meine RDWC-Werte (am Grow gesetzt)",
             ReservoirLiters: 25,
+            WaterNotes: water ?? [],
             Metrics: metrics ?? [],
             OpenIssues: issues ?? [],
             RecentJournal: journal ?? [],
@@ -52,6 +54,29 @@ public sealed class AgentContextMarkdownTests
         Assert.Contains("RDWC", text);
         Assert.Contains("25 L", text);
         Assert.Contains("Meine RDWC-Werte (am Grow gesetzt)", text);
+    }
+
+    [Fact]
+    public void TapWaterShowsUpBeforeTheReadings()
+    {
+        // Wer die Messwerte liest, muss vorher wissen, was davon schon das
+        // Ausgangswasser ist — sonst wird EC 0,28 vor dem Düngen zum Rest-Salz
+        // erklärt und ein Wasserwechsel empfohlen, der nichts ändern würde.
+        var text = AgentContextBuilder.ToMarkdown(Context(
+            water: ["Leitungswasser — Quelle: EBW Solingen", "Start-EC 0,28 mS/cm"]));
+
+        Assert.Contains("## Ausgangswasser", text);
+        var wasser = text.IndexOf("## Ausgangswasser", StringComparison.Ordinal);
+        var werte = text.IndexOf("## Aktuelle Werte", StringComparison.Ordinal);
+        Assert.True(wasser < werte, "Das Ausgangswasser gehört VOR die Messwerte.");
+        Assert.Contains("EBW Solingen", text);
+    }
+
+    [Fact]
+    public void AnRoGrowCarriesNoWaterSection()
+    {
+        // RO bringt nichts mit; ein leerer Abschnitt wäre nur Rauschen.
+        Assert.DoesNotContain("## Ausgangswasser", AgentContextBuilder.ToMarkdown(Context()));
     }
 
     [Fact]

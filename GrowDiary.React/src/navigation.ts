@@ -50,6 +50,8 @@ export const navGroups: NavGroup[] = [
     items: [
       { to: '/zelte', label: 'Zelte & Räume', end: false, keywords: 'tent kamera lichtzyklus klima abluft' },
       { to: '/hydro', label: 'Hydro-Systeme', end: false, keywords: 'rdwc dwc reservoir tank pumpe sites layout' },
+      // Was aus dem Hahn kommt, gehört zur Anlage wie das Reservoir selbst.
+      { to: '/wasser', label: 'Leitungswasser', end: true, keywords: 'wasser wasserprofil trinkwasser stadtwerk bericht härte calcium magnesium leitfähigkeit ec kalk weich hart' },
       { to: '/sensoren', label: 'Sensoren & Wartung', end: true, keywords: 'hardware geräte kalibrierung inventar' },
       { to: '/dosierung', label: 'Dosierung', end: false, keywords: 'pumpe peristaltik ph minus plus säure nährstoff dosieren kalibrieren' },
       { to: '/regeln', label: 'Regeln & Automatik', end: true, keywords: 'grenzwerte schwellen alarm push zeitplan automation' },

@@ -110,7 +110,7 @@ public sealed class SopInstancesApiController : ApiControllerBase
     [HttpGet("plan-questions/{sopId}")]
     [ProducesResponseType(typeof(SopPlanQuestionsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
-    public ActionResult<SopPlanQuestionsDto> PlanQuestions(string sopId)
+    public ActionResult<SopPlanQuestionsDto> PlanQuestions(string sopId, [FromQuery] int? growId = null)
     {
         var sop = _knowledgeBase.Sops.FirstOrDefault(item => string.Equals(item.Id, sopId, StringComparison.OrdinalIgnoreCase));
         if (sop is null)
@@ -118,8 +118,21 @@ public sealed class SopInstancesApiController : ApiControllerBase
             return NotFoundError("sop_not_found", $"SOP mit Id '{sopId}' existiert nicht.");
         }
 
+        // Der Grow weiss laengst, womit angemischt wird — das Feld WaterSource
+        // wird beim Anlegen abgefragt. Die waterSource-Frage der Ablaeufe jedes
+        // Mal neu zu stellen hiess, eine gegebene Antwort zu ignorieren.
+        var wasserVorschlag = growId is { } id ? WasserVorschlag(_repository.GetGrow(id)?.WaterSource) : null;
+
         var choices = SopStepPlanner.RequiredChoices(sop)
-            .Select(choice => new SopChoiceDto(choice.Key, choice.Prompt, choice.Options))
+            .Select(choice => new SopChoiceDto(
+                choice.Key,
+                choice.Prompt,
+                choice.Options,
+                Suggested: string.Equals(choice.Key, "waterSource", StringComparison.OrdinalIgnoreCase)
+                    && wasserVorschlag is { } vorschlag
+                    && choice.Options.Contains(vorschlag, StringComparer.OrdinalIgnoreCase)
+                        ? vorschlag
+                        : null))
             .ToList();
 
         var subjects = sop.Steps
@@ -130,6 +143,22 @@ public sealed class SopInstancesApiController : ApiControllerBase
 
         return Ok(new SopPlanQuestionsDto(sop.Id, choices, subjects));
     }
+
+    /// <summary>
+    /// Übersetzt die Wasserquelle des Grows in die Option der Abläufe.
+    /// </summary>
+    /// <remarks>
+    /// Die Abläufe kennen zwei Wege: <c>ro</c> und <c>soft</c> („Weichwasser
+    /// oder gemischtes Leitungswasser"). Leitungs- und Mischwasser werden also
+    /// auf <c>soft</c> abgebildet. Öffentlich statisch, damit die Zuordnung
+    /// testbar ist — sie entscheidet, welche Mischreihenfolge vorausgewählt wird.
+    /// </remarks>
+    public static string? WasserVorschlag(WaterSource? quelle) => quelle switch
+    {
+        WaterSource.RO => "ro",
+        WaterSource.Tap or WaterSource.Mixed => "soft",
+        _ => null,
+    };
 
     [HttpPost("start")]
     [ProducesResponseType(typeof(SopInstanceDto), StatusCodes.Status201Created)]

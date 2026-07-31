@@ -98,6 +98,7 @@ builder.Services.AddScoped<AgentPackageBuilder>();
 builder.Services.AddScoped<AlertEvaluationService>();
 builder.Services.AddSingleton<NotificationSettingsRepository>();
 builder.Services.AddSingleton<AppSettingsRepository>();
+builder.Services.AddSingleton<WaterProfileStore>();
 builder.Services.AddSingleton<SolutionStabilityAnalyzer>();
 builder.Services.AddScoped<TrendWatchRunner>();
 builder.Services.AddSingleton<TentSensorHardwareSyncService>();

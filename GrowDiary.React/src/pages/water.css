@@ -1,0 +1,45 @@
+/* Leitungswasser-Seite. Farben kommen aus den Tokens — beide Themes,
+   nichts hartkodiert (die Falle vom hellen Thema schnappt sonst wieder zu). */
+
+.wp-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--s-3);
+}
+
+.wp-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wp-summary strong {
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.wp-summary span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.wp-updated {
+  color: var(--muted);
+  font-size: 0.85rem;
+  align-self: center;
+}
+
+.wp-effects {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: var(--s-2);
+}
+
+.wp-effects li {
+  color: var(--muted);
+}
+
+.wp-effects strong {
+  color: var(--ink);
+}
