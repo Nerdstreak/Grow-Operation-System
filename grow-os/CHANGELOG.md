@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.0.0-beta.25
+
+**Beta.** Tap water gets a profile — and a long-dead field gets a job.
+
+- New — **the tap-water profile** under *Anlage → Leitungswasser*. Every city
+  publishes a drinking-water report; enter its values once and Grow OS knows
+  what your water brings before the first drop of nutrients: starting EC,
+  hardness (classified soft/medium/hard along the legal bands), Ca/Mg, the pH
+  buffer, the disinfectant. The fields follow a real report — lay your PDF next
+  to the form and every number has a place.
+- New — **the situation report opens with the source water.** Without it, an
+  advisor reads "EC 0.28 before feeding" as residual salt and recommends a
+  water change that would change nothing. The advisor folder and the Claude
+  connection get this automatically.
+- Fixed — **the water question your procedures kept asking.** A grow has
+  carried a water source (tap/RO/mixed) since forever — entered on creation,
+  read by nothing. Now the "what are you mixing with?" question at the start of
+  a procedure comes pre-answered from the grow. Preselected, not enforced.
+
 ## 2.0.0-beta.24
 
 **Beta.** The advisor gets a door — and a second add-on to walk through it.
