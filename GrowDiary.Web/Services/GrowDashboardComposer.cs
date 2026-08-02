@@ -484,16 +484,18 @@ public sealed class GrowDashboardComposer
             }
             else
             {
-                // Es gibt keine Temperatur, die bei dieser Luftfeuchte das
-                // VPD-Ziel trifft — bei 40 % RLF liegt das VPD schon bei 5 °C
-                // über einem Ziel von 0,40 kPa, und tiefer wird nicht gesucht.
-                //
-                // Vorher blieb die Kachel dann einfach leer, und man rätselte,
-                // warum ausgerechnet dort nichts steht. Die Rechnung kennt den
-                // Grund; also sagt sie ihn. Und sie sagt gleich, an welcher
-                // Schraube man wirklich drehen muss: die Luftfeuchte ist zu weit
-                // weg, nicht die Temperatur.
-                temperature.Hint = $"Kein Ziel möglich bei {f.ToString("0.#", AppCulture.German)} % RLF — erst die Luftfeuchte angehen.";
+                // Kein empfehlbares Temperatur-Ziel bei dieser Feuchte. Das hat
+                // zwei moegliche Gruende — physikalisch keine Loesung, oder die
+                // Loesung laege ausserhalb dessen, was ein Growraum sein kann
+                // (Keimlings-Ziel bei 54 % RLF: rechnerisch 5 °C). Die Antwort
+                // ist in beiden Faellen dieselbe: der Hebel ist die Feuchte,
+                // nicht die Temperatur. Bei Keimlingen mit dem konkreten
+                // Werkzeug dazu — niemand soll raten, WIE die Feuchte hoch soll.
+                var werkzeug = stage is GrowStage.Seedling or GrowStage.Clone
+                    ? " Bei Keimlingen: Haube drauf oder Luftbefeuchter."
+                    : string.Empty;
+                temperature.Hint = $"Kein sinnvolles Temperatur-Ziel bei {f.ToString("0.#", AppCulture.German)} % RLF"
+                    + $" — hier muss die Luftfeuchte rauf, nicht die Temperatur runter.{werkzeug}";
             }
         }
     }

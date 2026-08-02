@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.0-beta.28
+
+**Beta.** No more 5 °C advice for seedlings.
+
+- Fixed — **the derived temperature target could recommend absurd cold.** The
+  temperature band is back-calculated from the VPD target and the measured
+  humidity. Physics found "5.3 °C" for a seedling at 54 % RH — correctly
+  computed, agronomically nonsense. Temperatures outside 18–32 °C are no
+  longer recommended; a band reaching into that range is trimmed (every value
+  inside still hits the VPD target). Where no sensible target exists, the tile
+  now names the real lever: raise the humidity — for seedlings, with the
+  concrete tool (dome or humidifier).
+
 ## 2.0.0-beta.27
 
 **Beta.** What did this grow cost — and the Blended kit gets its own path.

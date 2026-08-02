@@ -29,15 +29,42 @@ public sealed class ClimateBandUnreachableTests
     }
 
     [Fact]
-    public void TheSameAirWithAHigherTarget_DoesHaveASolution()
+    public void AnUnusablyColdSolutionIsNoRecommendation()
     {
-        // Dieselben 40 %, aber das Veg-Ziel: dann gibt es eine Antwort — sie ist
-        // nur unbrauchbar kalt, was für sich schon die Aussage ist.
+        // Dieselben 40 %, aber das Veg-Ziel: physikalisch gibt es eine Antwort
+        // bei 12–17 °C. Frueher wurde sie angezeigt — „unbrauchbar kalt ist
+        // fuer sich die Aussage". Der Betreiber hat das Gegenteil bewiesen: auf
+        // seiner Keimlings-Kachel stand „5,3 °C empfohlen", und er las es als
+        // das, was es aussah — als Empfehlung. Unter 18 °C wird nichts mehr
+        // empfohlen; die Kachel sagt stattdessen, dass die Feuchte der Hebel ist.
         var (min, max) = ClimateBandCalculator.TemperatureBand(40, 0.70, 0.90, LeafOffset);
 
+        Assert.Null(min);
+        Assert.Null(max);
+    }
+
+    [Fact]
+    public void TheSeedlingCaseFromTheField_GetsNoFiveDegreeAdvice()
+    {
+        // Der gemeldete Fall woertlich: Saemlings-Ziel 0,4–0,5 kPa bei 53,7 %
+        // Raumfeuchte ergab „5,3 °C empfohlen".
+        var (min, max) = ClimateBandCalculator.TemperatureBand(53.7, 0.40, 0.50, LeafOffset);
+
+        Assert.Null(min);
+        Assert.Null(max);
+    }
+
+    [Fact]
+    public void ABandReachingIntoTheRoomIsTrimmedNotDropped()
+    {
+        // Bei 80 % laeuft das Saemlings-Band von ~17,5 bis ~21 °C. Der Teil
+        // unter 18 wird beschnitten, der Rest bleibt — jede Temperatur darin
+        // trifft das VPD-Ziel weiterhin, beschneiden erfindet nichts.
+        var (min, max) = ClimateBandCalculator.TemperatureBand(80, 0.40, 0.50, LeafOffset);
+
         Assert.NotNull(min);
-        Assert.InRange(min!.Value, 12, 14);
-        Assert.InRange(max!.Value, 15, 18);
+        Assert.True(min!.Value >= ClimateBandCalculator.RecommendMinC);
+        Assert.True(max!.Value > min.Value);
     }
 
     [Fact]

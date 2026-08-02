@@ -22,6 +22,21 @@ public static class ClimateBandCalculator
     private const double MaxTempC = 45;
 
     /// <summary>
+    /// Was als Temperatur EMPFOHLEN werden darf — enger als die Suche.
+    /// </summary>
+    /// <remarks>
+    /// Die Rückrechnung ist reine Physik, und Physik kennt keine Pflanze: beim
+    /// Keimlings-Ziel von 0,4 kPa und 54 % Raumfeuchte landet sie bei 5 °C —
+    /// korrekt gerechnet und trotzdem Unsinn, denn bei 5 °C wächst nichts. Der
+    /// richtige Hebel ist dort die Feuchte (Haube), nie die Kälte. Was
+    /// ausserhalb dieser Spanne liegt, wird deshalb nicht empfohlen; ein in die
+    /// Spanne ragendes Band wird beschnitten — jede Temperatur darin trifft das
+    /// VPD-Ziel weiterhin, das Beschneiden erfindet nichts.
+    /// </remarks>
+    public const double RecommendMinC = 18;
+    public const double RecommendMaxC = 32;
+
+    /// <summary>
     /// Das Feuchteband (in %), das bei dieser Lufttemperatur im VPD-Ziel landet.
     /// Geschlossen lösbar: VPD hängt linear von der Feuchte ab.
     /// </summary>
@@ -70,7 +85,14 @@ public static class ClimateBandCalculator
         var max = SolveTemperature(humidityPercent, vpdMax, leafOffsetC);
         if (min is null || max is null || min >= max) return (null, null);
 
-        return (Math.Round(min.Value, 1), Math.Round(max.Value, 1));
+        // Nur empfehlen, was ein Growraum sein kann. Liegt das ganze Band
+        // ausserhalb, gibt es kein Temperatur-Ziel — der Aufrufer sagt dann,
+        // dass die Feuchte der Hebel ist.
+        var geschnittenMin = Math.Max(min.Value, RecommendMinC);
+        var geschnittenMax = Math.Min(max.Value, RecommendMaxC);
+        if (geschnittenMin >= geschnittenMax) return (null, null);
+
+        return (Math.Round(geschnittenMin, 1), Math.Round(geschnittenMax, 1));
     }
 
     /// <summary>Die Temperatur, bei der sich genau dieses VPD einstellt; null, wenn keine im Raum liegt.</summary>
