@@ -47,13 +47,13 @@ public sealed class DosingRepository : RepositoryBase
                  CalibratedAtUtc, TubeChangedAtUtc, CalibrationIntervalDays, TubeIntervalDays,
                  MaxSingleDoseMl, MinIntervalMinutes, MaxDosesPerDay, MaxMlPerDay, MaxReadingAgeMinutes,
                  AutomationEnabled, HasHomeAssistantAutoOff, SimulationMode,
-                 PartnerPumpId, PartnerRatio, PartnerDelayMinutes, CreatedAtUtc, UpdatedAtUtc)
+                 PartnerPumpId, PartnerRatio, PartnerDelayMinutes, CostPerLiterEur, CreatedAtUtc, UpdatedAtUtc)
             VALUES
                 ($tentId, $name, $purpose, $agent, $concentration, $entity, $mlPerMinute,
                  $calibratedAt, $tubeChangedAt, $calInterval, $tubeInterval,
                  $maxSingle, $minInterval, $maxDoses, $maxMl, $maxAge,
                  $automation, $autoOff, $simulation,
-                 $partnerId, $partnerRatio, $partnerDelay, $now, $now);
+                 $partnerId, $partnerRatio, $partnerDelay, $costPerLiter, $now, $now);
             SELECT last_insert_rowid();
         """;
         BindPump(command, pump);
@@ -77,6 +77,7 @@ public sealed class DosingRepository : RepositoryBase
                    SimulationMode = $simulation,
                    PartnerPumpId = $partnerId, PartnerRatio = $partnerRatio,
                    PartnerDelayMinutes = $partnerDelay,
+                   CostPerLiterEur = $costPerLiter,
                    UpdatedAtUtc = $now
              WHERE Id = $id;
         """;
@@ -281,6 +282,7 @@ public sealed class DosingRepository : RepositoryBase
         AddNullable(command, "$concentration", pump.ConcentrationPercent);
         command.Parameters.AddWithValue("$entity", pump.HaEntityId);
         AddNullable(command, "$mlPerMinute", pump.MlPerMinute);
+        AddNullable(command, "$costPerLiter", pump.CostPerLiterEur);
         command.Parameters.AddWithValue("$calibratedAt", pump.CalibratedAtUtc.HasValue ? ToStorageUtc(pump.CalibratedAtUtc.Value) : (object)DBNull.Value);
         command.Parameters.AddWithValue("$tubeChangedAt", pump.TubeChangedAtUtc.HasValue ? ToStorageUtc(pump.TubeChangedAtUtc.Value) : (object)DBNull.Value);
         AddNullable(command, "$calInterval", (double?)pump.CalibrationIntervalDays);
@@ -308,6 +310,7 @@ public sealed class DosingRepository : RepositoryBase
         ConcentrationPercent = NullableDouble(reader["ConcentrationPercent"]),
         HaEntityId = reader["HaEntityId"].ToString() ?? string.Empty,
         MlPerMinute = NullableDouble(reader["MlPerMinute"]),
+        CostPerLiterEur = NullableDouble(reader["CostPerLiterEur"]),
         CalibratedAtUtc = ParseStoredUtcDateTime(NullString(reader["CalibratedAtUtc"])),
         TubeChangedAtUtc = ParseStoredUtcDateTime(NullString(reader["TubeChangedAtUtc"])),
         CalibrationIntervalDays = (int?)NullableDouble(reader["CalibrationIntervalDays"]),

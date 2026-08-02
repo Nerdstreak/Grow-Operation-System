@@ -21,6 +21,8 @@ function SettingsPage() {
   const [grows, setGrows] = useState<GrowSummary[]>([])
   const [health, setHealth] = useState<BackendHealth | null>(null)
   const [importFileName, setImportFileName] = useState('')
+  const [strompreis, setStrompreis] = useState('')
+  const [strompreisSaving, setStrompreisSaving] = useState(false)
   const [importText, setImportText] = useState('')
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [loading, setLoading] = useState(true)
@@ -38,6 +40,10 @@ function SettingsPage() {
           apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }),
           apiFetch<BackendHealth>('/api/system/backend-health', { signal: controller.signal }).catch(() => null),
         ])
+        const kosten = await apiFetch<{ strompreisCentProKwh: number | null }>('/api/costs/settings', { signal: controller.signal }).catch(() => null)
+        if (!controller.signal.aborted && kosten?.strompreisCentProKwh != null) {
+          setStrompreis(String(kosten.strompreisCentProKwh).replace('.', ','))
+        }
         if (controller.signal.aborted) return
         setSettings(overview)
         setGrows(activeGrows)
@@ -118,6 +124,21 @@ function SettingsPage() {
     inspectImport(text, file.name)
   }
 
+  async function saveStrompreis() {
+    setStrompreisSaving(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const wert = strompreis.trim() === '' ? null : Number(strompreis.replace(',', '.'))
+      await apiFetch('/api/costs/settings', { method: 'PUT', body: JSON.stringify({ strompreisCentProKwh: Number.isFinite(wert as number) ? wert : null }) })
+      setMessage('Strompreis gespeichert — das Archiv rechnet damit die Kosten je Grow.')
+    } catch (caught) {
+      setError(formatApiError(caught, 'Strompreis konnte nicht gespeichert werden.'))
+    } finally {
+      setStrompreisSaving(false)
+    }
+  }
+
   function inspectImport(text = importText, name = importFileName) {
     try {
       const parsed = JSON.parse(text) as Record<string, unknown>
@@ -181,6 +202,16 @@ function SettingsPage() {
                 <div className="co-row-sub">Diagnose-Export für Fehlerberichte</div>
               </div>
               <div className="co-row-end"><button type="button" className="ls-btn is-small" onClick={exportSystemIndex}>Erzeugen</button></div>
+            </div>
+            <div className="co-row">
+              <div style={{ minWidth: 0 }}>
+                <div className="co-row-title">Strompreis</div>
+                <div className="co-row-sub">ct/kWh — für die berechneten Kosten je Grow im Archiv</div>
+              </div>
+              <div className="co-row-end st-strompreis">
+                <input inputMode="decimal" value={strompreis} onChange={(event) => setStrompreis(event.target.value)} placeholder="z. B. 32,5" aria-label="Strompreis in Cent je kWh" style={{ width: 90 }} />
+                <button type="button" className="ls-btn is-small" disabled={strompreisSaving} onClick={() => void saveStrompreis()}>{strompreisSaving ? 'Speichert…' : 'Speichern'}</button>
+              </div>
             </div>
             <div className="co-row st-import">
               <div style={{ minWidth: 0, flex: 1 }}>

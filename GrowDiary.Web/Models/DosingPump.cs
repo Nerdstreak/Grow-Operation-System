@@ -68,6 +68,16 @@ public sealed class DosingPump
     /// </summary>
     public double? MlPerMinute { get; set; }
 
+    /// <summary>
+    /// Preis des Mittels in Euro je Liter — fuer die Kostenrechnung je Grow.
+    /// </summary>
+    /// <remarks>
+    /// Am Etikett steht der Flaschenpreis; je Liter eingetragen rechnet das
+    /// Dosier-Protokoll (ml) direkt in Euro um. Optional: ohne Preis fehlt in
+    /// der Kostenaufstellung schlicht dieser Posten, mit Hinweis.
+    /// </remarks>
+    public double? CostPerLiterEur { get; set; }
+
     public DateTime? CalibratedAtUtc { get; set; }
 
     /// <summary>

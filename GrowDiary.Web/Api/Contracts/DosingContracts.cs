@@ -9,6 +9,8 @@ public sealed record DosingPumpDto(
     double? ConcentrationPercent,
     string HaEntityId,
     double? MlPerMinute,
+    /// <summary>Preis des Mittels in Euro je Liter — fuer die Kostenrechnung.</summary>
+    double? CostPerLiterEur,
     DateTime? CalibratedAtUtc,
     DateTime? TubeChangedAtUtc,
     int? CalibrationIntervalDays,
@@ -46,6 +48,7 @@ public sealed class DosingPumpUpsertRequest
     public string Purpose { get; set; } = "Custom";
     public string? Agent { get; set; }
     public double? ConcentrationPercent { get; set; }
+    public double? CostPerLiterEur { get; set; }
     public string HaEntityId { get; set; } = string.Empty;
     public int? CalibrationIntervalDays { get; set; }
     public int? TubeIntervalDays { get; set; }

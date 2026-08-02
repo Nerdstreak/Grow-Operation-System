@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.0-beta.27
+
+**Beta.** What did this grow cost — and the Blended kit gets its own path.
+
+- New — **cost per grow.** Enter your electricity price (Einstellungen) and a
+  price per litre on each dosing pump; the archive then shows what a finished
+  run cost, down to €/g next to the yield. Everything is calculated and says
+  so: power is lamp watts × light hours × days (a lower bound — side consumers
+  are excluded on purpose), nutrients come from the dosing log. Hand additions
+  are in no log, and the report says that too.
+- Changed — **the soft-water mixing procedure knows Athena Blended.** Blended
+  Balance contains silicate; running it alongside a separate potassium
+  silicate would double-dose. The procedure now asks which you run: with
+  Balance, it moves to the FRONT of the mixing order (per Athena) and the
+  separate silicate step disappears. Sourced from Athena's own Balance
+  documents. The addback procedure carries the same warning.
+
 ## 2.0.0-beta.26
 
 **Beta.** For growers without permanent probes — the app now carries both worlds.

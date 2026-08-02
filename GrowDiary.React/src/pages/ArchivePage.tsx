@@ -2,6 +2,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowDetail, GrowSummary, HarvestDto } from '../types'
+
+type GrowKosten = {
+  stromEur: number | null
+  stromHerkunft: string | null
+  duengerEur: number | null
+  duengerHerkunft: string | null
+  pumpenOhnePreis: string[]
+  summeEur: number | null
+  eurProGramm: number | null
+}
 import { formatNumber } from '../utils'
 import { V1Alert, V1Empty, V1Page, V1Skeleton } from '../components/v1'
 
@@ -16,6 +26,7 @@ import { V1Alert, V1Empty, V1Page, V1Skeleton } from '../components/v1'
 function ArchivePage() {
   const [grows, setGrows] = useState<GrowSummary[]>([])
   const [harvestByGrow, setHarvestByGrow] = useState<Map<number, HarvestDto>>(new Map())
+  const [kostenByGrow, setKostenByGrow] = useState<Map<number, GrowKosten>>(new Map())
   const [compareIds, setCompareIds] = useState<number[]>([])
   const [compareDetails, setCompareDetails] = useState<GrowDetail[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,6 +46,13 @@ function ArchivePage() {
         const map = new Map<number, HarvestDto>()
         data.forEach((grow, index) => { const harvest = harvests[index]; if (harvest) map.set(grow.id, harvest) })
         setHarvestByGrow(map)
+        const kosten = await Promise.all(data.map((grow) =>
+          apiFetch<GrowKosten>(`/api/grows/${grow.id}/costs`, { signal: controller.signal }).catch(() => null),
+        ))
+        if (controller.signal.aborted) return
+        const kostenMap = new Map<number, GrowKosten>()
+        data.forEach((grow, index) => { const k = kosten[index]; if (k) kostenMap.set(grow.id, k) })
+        setKostenByGrow(kostenMap)
       } catch (caught) {
         if (!controller.signal.aborted) setError(caught instanceof ApiRequestError ? caught.message : 'Archiv konnte nicht geladen werden.')
       } finally {
@@ -82,12 +100,15 @@ function ArchivePage() {
       ) : (
         <>
           <section className="ls-panel co-table-wrap" data-audit="grows-archive">
-            <div className="co-table" style={{ gridTemplateColumns: '1.2fr .9fr .8fr .8fr .8fr 1fr' }}>
+            <div className="co-table" style={{ gridTemplateColumns: '1.2fr .9fr .7fr .7fr .7fr .9fr 1fr' }}>
               <div className="co-th">Grow</div>
               <div className="co-th">Geerntet</div>
               <div className="co-th">Dauer</div>
               <div className="co-th">Trocken</div>
               <div className="co-th">g/Pflanze</div>
+              {/* Berechnete Kosten — Strom aus Watt x Lichtstunden, Duenger aus dem
+                  Protokoll. Der Titel sagt es, die Zelle bleibt eine Zahl. */}
+              <div className="co-th" title="berechnet: Licht-Strom + Dünger aus dem Dosier-Protokoll">Kosten ~</div>
               <div className="co-th">Aktion</div>
               {grows.map((grow) => {
                 const harvest = harvestByGrow.get(grow.id)
@@ -100,6 +121,7 @@ function ArchivePage() {
                     <div className="co-td">{durationDays(grow) ?? '—'}</div>
                     <div className="co-td">{harvest?.dryWeightG != null ? `${formatNumber(harvest.dryWeightG, 0)} g` : '—'}</div>
                     <div className={perPlant != null ? 'co-td is-good' : 'co-td'}>{perPlant != null ? formatNumber(perPlant, 0) : '—'}</div>
+                    <div className="co-td" title={kostenTitel(kostenByGrow.get(grow.id))}>{kostenZelle(kostenByGrow.get(grow.id))}</div>
                     <div className="co-td">
                       <button type="button" className={`ls-btn is-small${selected ? ' is-primary' : ''}`} style={{ marginLeft: 0 }} onClick={() => toggleCompare(grow.id)}>
                         {selected ? 'Gewählt' : 'Vergleichen'}
@@ -138,6 +160,18 @@ function ArchivePage() {
 /** Nur ein Fragment — die Zellen müssen direkte Grid-Kinder bleiben. */
 function RowCells({ children }: { children: React.ReactNode }) {
   return <>{children}</>
+}
+
+/** „128 € · 0,42 €/g" — oder ein ehrliches Minus, wenn Preise fehlen. */
+function kostenZelle(kosten: GrowKosten | undefined) {
+  if (!kosten || kosten.summeEur == null) return '—'
+  const summe = `${formatNumber(kosten.summeEur, 0)} €`
+  return kosten.eurProGramm != null ? `${summe} · ${formatNumber(kosten.eurProGramm, 2)} €/g` : summe
+}
+
+function kostenTitel(kosten: GrowKosten | undefined) {
+  if (!kosten) return undefined
+  return [kosten.stromHerkunft, kosten.duengerHerkunft].filter(Boolean).join(' · ') || undefined
 }
 
 function sortByHarvest(items: GrowSummary[]) {

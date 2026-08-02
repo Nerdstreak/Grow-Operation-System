@@ -18,6 +18,7 @@ type Form = {
   purpose: string
   agent: string
   concentrationPercent: string
+  costPerLiterEur: string
   haEntityId: string
   maxSingleDoseMl: string
   minIntervalMinutes: string
@@ -43,7 +44,7 @@ const PURPOSES = [
 
 function leer(): Form {
   return {
-    tentId: null, name: '', purpose: 'PhDown', agent: '', concentrationPercent: '',
+    tentId: null, name: '', purpose: 'PhDown', agent: '', concentrationPercent: '', costPerLiterEur: '',
     haEntityId: '', maxSingleDoseMl: '5', minIntervalMinutes: '18',
     maxDosesPerDay: '6', maxMlPerDay: '25', hasHomeAssistantAutoOff: false,
     automationEnabled: false, maxReadingAgeMinutes: '10',
@@ -91,6 +92,7 @@ function DosingPumpSetupPage() {
             purpose: (pump.purpose as string) ?? 'Custom',
             agent: (pump.agent as string) ?? '',
             concentrationPercent: pump.concentrationPercent != null ? String(pump.concentrationPercent) : '',
+            costPerLiterEur: pump.costPerLiterEur != null ? String(pump.costPerLiterEur).replace('.', ',') : '',
             haEntityId: (pump.haEntityId as string) ?? '',
             maxSingleDoseMl: String(pump.maxSingleDoseMl ?? 5),
             minIntervalMinutes: String(pump.minIntervalMinutes ?? 18),
@@ -138,6 +140,7 @@ function DosingPumpSetupPage() {
       purpose: form.purpose,
       agent: form.agent.trim() || null,
       concentrationPercent: zahlOderNull(form.concentrationPercent),
+      costPerLiterEur: zahlOderNull(form.costPerLiterEur),
       haEntityId: form.haEntityId.trim(),
       maxSingleDoseMl: zahlOderNull(form.maxSingleDoseMl),
       minIntervalMinutes: zahlOderNull(form.minIntervalMinutes),
@@ -220,6 +223,10 @@ function DosingPumpSetupPage() {
             <V1Field label="Konzentration in %" hint="Steht auf dem Kanister.">
               <input inputMode="decimal" value={form.concentrationPercent}
                 onChange={(event) => patch({ concentrationPercent: event.target.value })} placeholder="59" />
+            </V1Field>
+            <V1Field label="Preis (€ je Liter)" hint="Flaschenpreis geteilt durch Liter — daraus rechnet das Archiv die Düngerkosten je Grow.">
+              <input inputMode="decimal" value={form.costPerLiterEur}
+                onChange={(event) => patch({ costPerLiterEur: event.target.value })} placeholder="z. B. 18,50" />
             </V1Field>
             <V1Field
               label="Schaltet in Home Assistant"

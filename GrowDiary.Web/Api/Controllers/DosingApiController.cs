@@ -438,6 +438,7 @@ public sealed class DosingApiController : ApiControllerBase
         pump.Purpose = Enum.TryParse<DosingPurpose>(request.Purpose, ignoreCase: true, out var purpose) ? purpose : DosingPurpose.Custom;
         pump.Agent = string.IsNullOrWhiteSpace(request.Agent) ? null : request.Agent.Trim();
         pump.ConcentrationPercent = request.ConcentrationPercent;
+        pump.CostPerLiterEur = request.CostPerLiterEur is > 0 ? request.CostPerLiterEur : null;
         pump.HaEntityId = request.HaEntityId.Trim();
         pump.CalibrationIntervalDays = request.CalibrationIntervalDays;
         pump.TubeIntervalDays = request.TubeIntervalDays;
@@ -470,7 +471,7 @@ public sealed class DosingApiController : ApiControllerBase
 
         return new DosingPumpDto(
             pump.Id, pump.TentId, pump.Name, pump.Purpose.ToString(), pump.Agent, pump.ConcentrationPercent,
-            pump.HaEntityId, pump.MlPerMinute, pump.CalibratedAtUtc, pump.TubeChangedAtUtc,
+            pump.HaEntityId, pump.MlPerMinute, pump.CostPerLiterEur, pump.CalibratedAtUtc, pump.TubeChangedAtUtc,
             pump.CalibrationIntervalDays, pump.TubeIntervalDays,
             pump.MaxSingleDoseMl, pump.MinIntervalMinutes, pump.MaxDosesPerDay, pump.MaxMlPerDay,
             pump.MaxReadingAgeMinutes, pump.AutomationEnabled, pump.HasHomeAssistantAutoOff, pump.SimulationMode,
