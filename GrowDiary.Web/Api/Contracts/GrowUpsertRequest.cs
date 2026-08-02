@@ -43,6 +43,8 @@ public sealed class GrowUpsertRequest
 
     /// <summary>Duengerprogramm des Laufs (Id aus dem Wissen); null = keins.</summary>
     public string? FeedProgramId { get; set; }
+
+    public bool UseFeedChartTargets { get; set; }
     public string? Nutrients { get; set; }
 
     [Required]

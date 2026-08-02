@@ -50,6 +50,15 @@ public sealed class GrowRun
     /// Ansetzen konkrete Milliliter nennen.
     /// </remarks>
     public string? FeedProgramId { get; set; }
+
+    /// <summary>Ob die Wochen-Ziele des Feedcharts als Sollwerte gelten.</summary>
+    /// <remarks>
+    /// Bewusst ein eigener Schalter und nicht die blosse Folge der
+    /// Programmwahl: das Chart ist ein Vorschlag des Herstellers, kein Befehl.
+    /// Wer sein Programm nur zum Mischen nutzt und bei den Zielen des
+    /// Phasenprofils bleiben will, soll das duerfen.
+    /// </remarks>
+    public bool UseFeedChartTargets { get; set; }
     public SeedType SeedType { get; set; } = SeedType.Feminized;
     public StartMaterial StartMaterial { get; set; } = StartMaterial.Seed;
     public GerminationMethod? GerminationMethod { get; set; }

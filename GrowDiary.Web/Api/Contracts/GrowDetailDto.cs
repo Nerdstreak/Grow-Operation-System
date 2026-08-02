@@ -20,6 +20,7 @@ public sealed record GrowDetailDto(
     IrrigationType IrrigationType,
     WaterSource WaterSource,
     string? FeedProgramId,
+    bool UseFeedChartTargets,
     GrowEnvironment Environment,
     string? Light,
     string? ContainerSize,

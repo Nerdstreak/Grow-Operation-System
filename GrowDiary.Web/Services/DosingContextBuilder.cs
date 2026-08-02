@@ -1,5 +1,6 @@
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services.Knowledge;
 
 namespace GrowDiary.Web.Services;
 
@@ -30,6 +31,7 @@ public sealed class DosingContextBuilder
     private readonly TargetValueService _targetValues;
     private readonly HydroSetupRepository _hydroSetups;
     private readonly AddbackRepository? _addback;
+    private readonly KnowledgeBaseLoader? _knowledge;
 
     public DosingContextBuilder(
         GrowRepository repository,
@@ -38,7 +40,8 @@ public sealed class DosingContextBuilder
         AlertRuleRepository alertRules,
         TargetValueService targetValues,
         HydroSetupRepository hydroSetups,
-        AddbackRepository? addback = null)
+        AddbackRepository? addback = null,
+        KnowledgeBaseLoader? knowledge = null)
     {
         _repository = repository;
         _dosing = dosing;
@@ -47,6 +50,7 @@ public sealed class DosingContextBuilder
         _targetValues = targetValues;
         _hydroSetups = hydroSetups;
         _addback = addback;
+        _knowledge = knowledge;
     }
 
     /// <param name="liveStates">
@@ -200,6 +204,13 @@ public sealed class DosingContextBuilder
                 grow.SetpointProfileId, SystemProfileFor(grow), grow.HydroStyle);
             if (_targetValues.GetTargets(resolved.ProfileId, stage) is { } targets)
             {
+                // Gegen dasselbe Ziel dosieren, das der Betreiber sieht.
+                if (_knowledge is not null
+                    && MischplanService.ZielSpalteFuerGrow(grow, _knowledge.NutrientPrograms) is { } chartZiel)
+                {
+                    targets = MischplanService.MitFeedchart(targets, chartZiel.Spalte);
+                }
+
                 ausProfil = key switch
                 {
                     "reservoir-ph" => (targets.PhMin, targets.PhMax),

@@ -19,6 +19,22 @@ type WaterProfile = {
   updatedAtUtc?: string
 }
 
+/** Ein bewerteter Wert — mit der Quelle, aus der die Schwelle stammt. */
+type AmpelPunkt = {
+  feld: string
+  label: string
+  stufe: 'gut' | 'hinweis' | 'warnung'
+  wert: string
+  aussage: string
+  quelle: string
+}
+
+type Ampel = {
+  stufe: 'gut' | 'hinweis' | 'warnung'
+  zusammenfassung: string
+  punkte: AmpelPunkt[]
+}
+
 /** Die Felder als Text-Entwürfe — Komma erlaubt, leer erlaubt. */
 type Draft = Record<keyof Omit<WaterProfile, 'sourceLabel' | 'disinfection' | 'updatedAtUtc'>, string> & {
   sourceLabel: string
@@ -58,6 +74,16 @@ function WaterProfilePage() {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
+  const [ampel, setAmpel] = useState<Ampel | null>(null)
+
+  // 204 heisst „noch nichts erfasst" — kein Fehler, nur keine Ampel.
+  async function ladeAmpel(signal?: AbortSignal) {
+    try {
+      setAmpel(await apiFetch<Ampel>('/api/water-profile/rating', { signal }))
+    } catch {
+      setAmpel(null)
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -80,6 +106,7 @@ function WaterProfilePage() {
           disinfection: profile.disinfection ?? '',
         })
         setUpdatedAt(profile.updatedAtUtc && profile.updatedAtUtc !== '0001-01-01T00:00:00' ? profile.updatedAtUtc : null)
+        await ladeAmpel(controller.signal)
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatError(caught))
       } finally {
@@ -117,6 +144,7 @@ function WaterProfilePage() {
         }),
       })
       setUpdatedAt(saved.updatedAtUtc ?? null)
+      await ladeAmpel()
       setMessage('Wasserprofil gespeichert. Es fließt ab jetzt in den Lagebericht und die Wasserfrage der Abläufe ein.')
     } catch (caught) {
       setError(formatError(caught))
@@ -153,6 +181,37 @@ function WaterProfilePage() {
               </div>
             </V1Card>
           </V1Section>
+
+          {ampel && (
+            <V1Section title="Taugt dein Wasser?">
+              <V1Card>
+                <div className="wp-ampel" data-audit="water-rating" data-stufe={ampel.stufe}>
+                  <p className="wp-ampel-summary">
+                    <span className={`wp-dot wp-dot--${ampel.stufe}`} aria-hidden="true" />
+                    {ampel.zusammenfassung}
+                  </p>
+                  <ul className="wp-ampel-list">
+                    {ampel.punkte.map((punkt) => (
+                      <li key={punkt.feld} className={`wp-ampel-item wp-ampel-item--${punkt.stufe}`}>
+                        <div className="wp-ampel-head">
+                          <span className={`wp-dot wp-dot--${punkt.stufe}`} aria-hidden="true" />
+                          <strong>{punkt.label}</strong>
+                          <span className="wp-ampel-wert">{punkt.wert}</span>
+                        </div>
+                        <p className="wp-ampel-aussage">{punkt.aussage}</p>
+                        <p className="wp-ampel-quelle">Schwelle: {punkt.quelle}</p>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="wp-ampel-fuss">
+                    Bewertet wird nur, was du eingetragen hast. Calcium, Magnesium und Nitrat
+                    bekommen bewusst kein Urteil — im Kreislauf liefert sie dein Dünger, nicht
+                    dein Wasser; sie zählen nur mit.
+                  </p>
+                </div>
+              </V1Card>
+            </V1Section>
+          )}
 
           <V1Section title="Werte aus dem Bericht">
             <V1Card>

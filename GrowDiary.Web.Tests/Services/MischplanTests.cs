@@ -91,4 +91,51 @@ public sealed class MischplanTests
         var langeVeg = new GrowRun { StartDate = DateTime.Today.AddDays(-45), VegStartedAt = DateTime.Today.AddDays(-45) };
         Assert.Equal("veg-w4", MischplanService.SpalteFuer(chart, langeVeg)!.Id);
     }
+
+    [Fact]
+    public void TheChartTargetsOnlyApplyWhenTheGrowAsksForThem()
+    {
+        var chart = GeliefertesChart();
+        var grow = new GrowRun
+        {
+            StartDate = DateTime.Today.AddDays(-60),
+            FlipDate = DateTime.Today.AddDays(-15),
+            FeedProgramId = "athena",
+        };
+        var programme = new[] { new NutrientProgramDefinition { Id = "athena", Name = "Athena Blended", FeedChart = chart } };
+
+        // Standard: das Chart mischt, entscheidet aber nicht ueber die Sollwerte.
+        Assert.Null(MischplanService.ZielSpalteFuerGrow(grow, programme));
+
+        grow.UseFeedChartTargets = true;
+        var ziel = MischplanService.ZielSpalteFuerGrow(grow, programme);
+        Assert.NotNull(ziel);
+        Assert.Equal("flower-w3", ziel!.Value.Spalte.Id);
+        Assert.Contains("Athena Blended", ziel.Value.Herkunft);
+    }
+
+    [Fact]
+    public void TheChartMovesTheEcBandButKeepsItsWidth()
+    {
+        // Das Chart nennt EINE Zahl. Ein Ziel ohne Breite waere unbrauchbar —
+        // jede Messung laege daneben. Also wandert das Band, es schrumpft nicht.
+        var basis = new HydroTargetValues(
+            PhMin: 5.5, PhMax: 6.5, EcMin: 1.8, EcMax: 2.2, OrpMin: 250, OrpMax: 350,
+            WaterTempDayC: 20, WaterTempNightC: 19, VpdMin: 1.0, VpdMax: 1.4,
+            PpfdMin: 600, PpfdMax: 900, Co2Min: 400, Co2Max: 800);
+
+        var spalte = new FeedChartColumn { Id = "x", Label = "Test", EcTarget = 2.6, PhMin = 6.0, PhMax = 6.4 };
+        var mitChart = MischplanService.MitFeedchart(basis, spalte);
+
+        Assert.Equal(2.4, mitChart.EcMin, 3);
+        Assert.Equal(2.8, mitChart.EcMax, 3);
+        Assert.Equal(0.4, mitChart.EcMax - mitChart.EcMin, 3); // Breite unveraendert
+        Assert.Equal(6.0, mitChart.PhMin);
+        Assert.Equal(6.4, mitChart.PhMax);
+
+        // Wovon das Chart nichts weiss, bleibt unangetastet.
+        Assert.Equal(basis.OrpMin, mitChart.OrpMin);
+        Assert.Equal(basis.WaterTempDayC, mitChart.WaterTempDayC);
+        Assert.Equal(basis.PpfdMax, mitChart.PpfdMax);
+    }
 }

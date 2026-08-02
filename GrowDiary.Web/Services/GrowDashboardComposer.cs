@@ -1,6 +1,7 @@
 using System.Globalization;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services.Knowledge;
 using Microsoft.Extensions.Logging;
 
 namespace GrowDiary.Web.Services;
@@ -18,6 +19,7 @@ public sealed class GrowDashboardComposer
     private readonly GrowRepository? _grows;
     private readonly HarvestRepository? _harvests;
     private readonly LightCycleReader? _lightCycles;
+    private readonly KnowledgeBaseLoader? _knowledge;
     private readonly ILogger<GrowDashboardComposer> _logger;
 
     public GrowDashboardComposer(
@@ -32,8 +34,10 @@ public sealed class GrowDashboardComposer
         LightRepository? lights = null,
         GrowRepository? grows = null,
         HarvestRepository? harvests = null,
-        LightCycleReader? lightCycles = null)
+        LightCycleReader? lightCycles = null,
+        KnowledgeBaseLoader? knowledge = null)
     {
+        _knowledge = knowledge;
         _chartService = chartService;
         _deviationAnalyzer = deviationAnalyzer;
         _weekCounter = weekCounter;
@@ -127,6 +131,15 @@ public sealed class GrowDashboardComposer
         var targets = activeGrow is null || stage is null || resolved is null
             ? null
             : _targetValues.GetTargets(resolved.ProfileId, stage.Value);
+
+        // Will der Grow die Wochen-Ziele seines Feedcharts, gelten sie hier —
+        // sonst stuende beim Mischen EC 1,5 und auf dem Bildschirm etwas anderes.
+        if (targets is not null && activeGrow is not null
+            && _knowledge is not null
+            && MischplanService.ZielSpalteFuerGrow(activeGrow, _knowledge.NutrientPrograms) is { } chartZiel)
+        {
+            targets = MischplanService.MitFeedchart(targets, chartZiel.Spalte);
+        }
 
         MetricCard Build(string label, string key, Func<Measurement?, double?> fallback, string tone = "default", string? explicitUnit = null)
         {

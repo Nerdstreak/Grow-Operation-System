@@ -437,3 +437,29 @@
 .ab-mischplan-dose { font-variant-numeric: tabular-nums; font-weight: 500; }
 .ab-mischplan-per { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
 .ab-mischplan-source { color: var(--muted); font-size: 0.8rem; margin: 10px 0 0; }
+
+/* Der Haken, mit dem die Chart-Ziele auch auf dem Bildschirm gelten. Er sitzt
+   unter dem Plan, weil dort die Zahl steht, um die es geht. */
+.ab-mischplan-adopt {
+  display: flex;
+  gap: var(--s-2);
+  align-items: flex-start;
+  margin-top: var(--s-3);
+  cursor: pointer;
+}
+
+.ab-mischplan-adopt input {
+  margin-top: 3px;
+  flex: 0 0 auto;
+}
+
+.ab-mischplan-adopt span {
+  display: grid;
+  gap: 2px;
+}
+
+.ab-mischplan-adopt em {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-style: normal;
+}

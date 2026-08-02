@@ -16,11 +16,25 @@ namespace GrowDiary.Web.Api.Controllers;
 public sealed class WaterProfileApiController : ApiControllerBase
 {
     private readonly WaterProfileStore _store;
+    private readonly WasserAmpelService _ampel;
 
-    public WaterProfileApiController(WaterProfileStore store)
+    public WaterProfileApiController(WaterProfileStore store, WasserAmpelService ampel)
     {
         _store = store;
+        _ampel = ampel;
     }
+
+    /// <summary>Die Bewertung des Profils — was die Zahlen für den Grow bedeuten.</summary>
+    /// <remarks>
+    /// Eigener Endpunkt statt eines Feldes am Profil: das Profil ist das, was im
+    /// Bericht der Stadt steht, und die Bewertung ist unsere Lesart davon. Wer
+    /// das Profil speichert, soll nicht aus Versehen ein Urteil mitschicken.
+    /// </remarks>
+    [HttpGet("rating")]
+    [ProducesResponseType(typeof(WasserAmpel), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public ActionResult<WasserAmpel> Rating()
+        => _ampel.Aktuell() is { } ampel ? Ok(ampel) : NoContent();
 
     /// <summary>The stored profile — an empty one if none was saved yet.</summary>
     /// <remarks>

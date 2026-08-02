@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services.Knowledge;
 
 namespace GrowDiary.Web.Services;
 
@@ -74,6 +75,7 @@ public sealed class AgentContextBuilder
     private readonly DosingRepository _dosing;
     private readonly JournalRepository _journal;
     private readonly WaterProfileStore _waterProfile;
+    private readonly KnowledgeBaseLoader _knowledge;
 
     public AgentContextBuilder(
         GrowRepository repository,
@@ -84,7 +86,8 @@ public sealed class AgentContextBuilder
         SetpointProfileRepository profiles,
         DosingRepository dosing,
         JournalRepository journal,
-        WaterProfileStore waterProfile)
+        WaterProfileStore waterProfile,
+        KnowledgeBaseLoader knowledge)
     {
         _repository = repository;
         _readings = readings;
@@ -95,6 +98,7 @@ public sealed class AgentContextBuilder
         _dosing = dosing;
         _journal = journal;
         _waterProfile = waterProfile;
+        _knowledge = knowledge;
     }
 
     /// <summary>Die Messgrößen, die in das Paket gehören — Reihenfolge wie im Kopf eines Growers.</summary>
@@ -123,6 +127,14 @@ public sealed class AgentContextBuilder
             grow.SystemId is { } systemId ? _hydroSetups.GetSystem(systemId)?.SetpointProfileId : null,
             grow.HydroStyle);
         var targets = _targetValues.GetTargets(resolved.ProfileId, stage);
+
+        // Dasselbe Ziel wie auf dem Bildschirm — ein Berater, der ein anderes
+        // EC-Ziel liest als der Betreiber sieht, raet konsequent daneben.
+        if (targets is not null
+            && MischplanService.ZielSpalteFuerGrow(grow, _knowledge.NutrientPrograms) is { } chartZiel)
+        {
+            targets = MischplanService.MitFeedchart(targets, chartZiel.Spalte);
+        }
         var rules = grow.TentId is { } tentId ? _alertRules.GetForTent(tentId) : null;
 
         return new AgentContext(
@@ -197,6 +209,16 @@ public sealed class AgentContextBuilder
         if (!string.IsNullOrWhiteSpace(wasser.Disinfection))
         {
             zeilen.Add($"Desinfektion laut Bericht: {wasser.Disinfection}");
+        }
+
+        // Die Bewertung zum Schluss, und nur wenn es etwas zu sagen gibt: die
+        // Zeilen darueber sind Fakten aus dem Bericht, das hier ist unsere
+        // Lesart davon — deshalb steht die Quelle der Schwelle dabei.
+        foreach (var punkt in WasserAmpelService.Bewerten(wasser).Punkte)
+        {
+            if (punkt.Stufe == "gut") continue;
+            var marke = punkt.Stufe == "warnung" ? "Achtung" : "Hinweis";
+            zeilen.Add($"{marke} — {punkt.Label} ({punkt.Wert}): {punkt.Aussage} [Schwelle: {punkt.Quelle}]");
         }
 
         return zeilen;

@@ -54,6 +54,8 @@ public sealed class GrowFormViewModel
     // Schritt 3 – Nährstoffe & Wasser
     public WaterSource WaterSource { get; set; } = WaterSource.RO;
     public string? FeedProgramId { get; set; }
+
+    public bool UseFeedChartTargets { get; set; }
     public string? Nutrients { get; set; }
     public List<string> NutrientSuggestions { get; set; } = new();
 
@@ -97,6 +99,7 @@ public sealed class GrowFormViewModel
             ReservoirSize = grow.ReservoirSize,
             WaterSource = grow.WaterSource,
             FeedProgramId = grow.FeedProgramId,
+            UseFeedChartTargets = grow.UseFeedChartTargets,
             SeedType = grow.SeedType,
             StartMaterial = grow.StartMaterial,
             GerminationMethod = grow.GerminationMethod,
@@ -163,6 +166,7 @@ public sealed class GrowFormViewModel
             IrrigationType = IrrigationType.ActiveHydro,
             WaterSource = WaterSource,
             FeedProgramId = FeedProgramId,
+            UseFeedChartTargets = UseFeedChartTargets,
             SeedType = SeedType,
             StartMaterial = StartMaterial,
             GerminationMethod = StartMaterial == StartMaterial.Seed ? GerminationMethod : null,

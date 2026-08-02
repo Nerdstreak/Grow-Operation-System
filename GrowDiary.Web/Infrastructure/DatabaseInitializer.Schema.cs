@@ -41,6 +41,7 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "Grows", "IrrigationType", "TEXT NOT NULL DEFAULT 'Manual'");
         EnsureColumn(connection, "Grows", "WaterSource", "TEXT NOT NULL DEFAULT 'Tap'");
         EnsureColumn(connection, "Grows", "FeedProgramId", "TEXT NULL");
+        EnsureColumn(connection, "Grows", "UseFeedChartTargets", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "Grows", "SeedType",                       "TEXT NOT NULL DEFAULT 'Feminized'");
         EnsureColumn(connection, "Grows", "StartMaterial",                  "TEXT NOT NULL DEFAULT 'Seed'");
         EnsureColumn(connection, "Grows", "GerminationMethod",              "TEXT NULL");

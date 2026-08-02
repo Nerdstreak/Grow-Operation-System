@@ -11,10 +11,33 @@ namespace GrowDiary.Web.Api.Controllers;
 public sealed class MixingPlanApiController : ApiControllerBase
 {
     private readonly MischplanService _mischplan;
+    private readonly Infrastructure.GrowRepository _grows;
 
-    public MixingPlanApiController(MischplanService mischplan)
+    public MixingPlanApiController(MischplanService mischplan, Infrastructure.GrowRepository grows)
     {
         _mischplan = mischplan;
+        _grows = grows;
+    }
+
+    /// <summary>Schaltet die Wochen-Ziele des Charts als Sollwerte an oder aus.</summary>
+    /// <remarks>
+    /// Der Schalter sitzt bewusst hier und nicht im Grow-Formular: er gehört an
+    /// die Stelle, an der man die Ziele sieht. Wer beim Mischen liest „Ziel
+    /// EC 1,5" und auf dem Bildschirm etwas anderes stehen hat, will genau dort
+    /// entscheiden können, welches gilt.
+    /// </remarks>
+    [HttpPut("use-targets")]
+    [ProducesResponseType(typeof(Mischplan), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<Mischplan> UseTargets(int growId, [FromBody] UseTargetsRequest request)
+    {
+        var grow = _grows.GetGrow(growId);
+        if (grow is null) return NotFoundError("grow_not_found", $"Grow mit Id {growId} existiert nicht.");
+
+        grow.UseFeedChartTargets = request.Use;
+        _grows.UpdateGrow(grow);
+
+        return Ok(_mischplan.FuerGrow(growId)!);
     }
 
     [HttpGet("")]
@@ -26,5 +49,10 @@ public sealed class MixingPlanApiController : ApiControllerBase
         return plan is null
             ? NotFoundError("grow_not_found", $"Grow mit Id {growId} existiert nicht.")
             : Ok(plan);
+    }
+
+    public sealed class UseTargetsRequest
+    {
+        public bool Use { get; set; }
     }
 }

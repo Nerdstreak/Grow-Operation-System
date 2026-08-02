@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.0.0-beta.30
+
+**Beta.** Your tap water gets an opinion, and the feed chart can set the targets.
+
+- New — **the water traffic light.** Your water profile held numbers and said
+  nothing about them. Now every value you entered gets a sentence: what a
+  carbonate hardness of 10 °dH does to your pH through the week, what a source
+  EC of 1,4 mS/cm leaves you for fertilizer, whether that sodium figure matters.
+  **Every threshold names its source** — Penn State Extension for the
+  horticultural limits, the German detergent law (WRMG § 9) for soft/medium/hard
+  — because a traffic light that turns red without cause sends you shopping for
+  a reverse-osmosis unit you don't need.
+  - Soft water reads as an **advantage**, not a deficiency: the greenhouse
+    guidance assumes irrigation water is your calcium source; in a recirculating
+    system your feed program is. Only without a CalMag-carrying program does the
+    note appear.
+  - Calcium, magnesium and nitrate deliberately get **no verdict** — just the
+    reminder to count them toward your feed instead of adding on top.
+  - Anything you left blank stays silent. A half-filled report is the normal case.
+- New — **the feed chart can set your targets.** Under the mixing plan there is
+  now a checkbox: use these weekly targets on screen too. Off by default — the
+  chart is a manufacturer's suggestion, not a rule. Switched on, its EC and pH
+  reach the live tiles, the advisory report and the dosing suggestion, so you
+  never read "target EC 1,5" while mixing and something else on the dashboard.
+  Only EC and pH are adopted; temperature, ORP and light stay with your phase
+  profile, which is all the chart knows. The single EC number moves your
+  existing target band without narrowing it — a target with no width would
+  put every reading off-target.
+
 ## 2.0.0-beta.29
 
 **Beta.** The app stops hoarding its knowledge.

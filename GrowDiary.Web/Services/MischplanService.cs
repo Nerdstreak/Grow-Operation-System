@@ -26,7 +26,9 @@ public sealed record Mischplan(
     double? PhMin,
     double? PhMax,
     string? Herkunft,
-    string? Luecke);
+    string? Luecke,
+    /// <summary>Ob diese Wochen-Ziele auch als Sollwerte gelten.</summary>
+    bool ZieleAktiv = false);
 
 /// <summary>
 /// Rechnet das Wochen-Chart des Programms auf das Betriebsvolumen des Grows um.
@@ -57,6 +59,64 @@ public sealed class MischplanService
         _setups = setups;
         _wissen = wissen;
         _wochen = wochen;
+    }
+
+    /// <summary>
+    /// Legt die Wochen-Ziele des Feedcharts über die Sollwerte des Phasenprofils.
+    /// </summary>
+    /// <remarks>
+    /// <para>Nur wenn der Grow es ausdrücklich will — das Chart ist der
+    /// Vorschlag eines Herstellers, kein Gesetz.</para>
+    ///
+    /// <para><b>Was übernommen wird und was nicht:</b> das Chart nennt EINE
+    /// EC-Zahl je Woche, kein Band. Ein Ziel ohne Breite wäre unbrauchbar — jede
+    /// Messung läge daneben. Deshalb wird das Band des Phasenprofils um die
+    /// Chart-Zahl herum <b>zentriert</b>, seine Breite bleibt. Der pH kommt als
+    /// echtes Band aus dem Chart, weil er dort als Spanne steht. Temperatur,
+    /// ORP, VPD, PPFD und CO₂ rührt das Chart nicht an — davon weiss es nichts.</para>
+    /// </remarks>
+    public static HydroTargetValues MitFeedchart(HydroTargetValues basis, FeedChartColumn spalte)
+    {
+        var ergebnis = basis;
+
+        if (spalte.EcTarget is { } ec)
+        {
+            var halbeBreite = (basis.EcMax - basis.EcMin) / 2;
+            ergebnis = ergebnis with { EcMin = ec - halbeBreite, EcMax = ec + halbeBreite };
+        }
+
+        if (spalte.PhMin is { } phMin && spalte.PhMax is { } phMax)
+        {
+            ergebnis = ergebnis with { PhMin = phMin, PhMax = phMax };
+        }
+
+        return ergebnis;
+    }
+
+    /// <summary>
+    /// Die Chart-Spalte, die für diesen Grow gerade gilt — oder null, wenn kein
+    /// Programm gewählt ist, es kein Chart hat oder der Grow es nicht will.
+    /// </summary>
+    public (FeedChartColumn Spalte, string Herkunft)? ZielSpalteFuerGrow(GrowRun grow)
+        => ZielSpalteFuerGrow(grow, _wissen.NutrientPrograms);
+
+    /// <inheritdoc cref="ZielSpalteFuerGrow(GrowRun)"/>
+    /// <remarks>
+    /// Statisch, weil der Live-Bildschirm ein Singleton ist: haenge ich ihn an
+    /// den Scoped-Mischplan, faellt genau das auf die Fuesse, was hier keiner
+    /// sucht — ein Dienst, der die erste Anfrage fuer immer festhaelt.
+    /// </remarks>
+    public static (FeedChartColumn Spalte, string Herkunft)? ZielSpalteFuerGrow(
+        GrowRun grow, IEnumerable<NutrientProgramDefinition> programme)
+    {
+        if (!grow.UseFeedChartTargets || string.IsNullOrWhiteSpace(grow.FeedProgramId)) return null;
+
+        var programm = programme.FirstOrDefault(
+            p => string.Equals(p.Id, grow.FeedProgramId, StringComparison.OrdinalIgnoreCase));
+        if (programm?.FeedChart is not { Columns.Count: > 0 } chart) return null;
+
+        var spalte = SpalteFuer(chart, grow);
+        return spalte is null ? null : (spalte, $"{programm.Name} · {spalte.Label}");
     }
 
     public Mischplan? FuerGrow(int growId)
@@ -119,7 +179,8 @@ public sealed class MischplanService
             spalte.PhMin,
             spalte.PhMax,
             herkunft,
-            volumen is null ? "Kein Volumen an der Anlage hinterlegt — die Spalten zeigen deshalb nur ml je Liter." : null);
+            volumen is null ? "Kein Volumen an der Anlage hinterlegt — die Spalten zeigen deshalb nur ml je Liter." : null,
+            grow.UseFeedChartTargets);
     }
 
     private static Mischplan Leer(string luecke, string? programmName = null)
