@@ -55,6 +55,7 @@ public static class GrowMapping
         HydroStyle: grow.HydroStyle,
         IrrigationType: grow.IrrigationType,
         WaterSource: grow.WaterSource,
+        FeedProgramId: grow.FeedProgramId,
         Environment: grow.Environment,
         Light: grow.Light,
         ContainerSize: grow.ContainerSize,

@@ -39,6 +39,17 @@ public sealed class GrowRun
     public string? IrrigationStyle { get; set; }
     public IrrigationType IrrigationType { get; set; } = IrrigationType.ActiveHydro;
     public WaterSource WaterSource { get; set; } = WaterSource.Tap;
+
+    /// <summary>
+    /// Das Duengerprogramm dieses Laufs — die Id eines nutrient-programs aus dem
+    /// Wissen (etwa <c>athena</c>), null heisst „keins gewaehlt".
+    /// </summary>
+    /// <remarks>
+    /// Am Grow, nicht global: ein Vergleichslauf darf ein anderes Programm
+    /// fahren. Traegt das Programm ein Wochen-Chart, kann der Mischplan beim
+    /// Ansetzen konkrete Milliliter nennen.
+    /// </remarks>
+    public string? FeedProgramId { get; set; }
     public SeedType SeedType { get; set; } = SeedType.Feminized;
     public StartMaterial StartMaterial { get; set; } = StartMaterial.Seed;
     public GerminationMethod? GerminationMethod { get; set; }

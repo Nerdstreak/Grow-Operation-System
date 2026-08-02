@@ -92,7 +92,9 @@ function GrowSetupPage() {
     setSaving(true)
     setError(null)
     try {
-      const payload = { ...form, nutrients: form.nutrients || customProgram || null, setupId: form.setupId ?? null }
+      // Die Programmkarte waehlte bisher nur einen NAMEN — jetzt traegt sie auch
+      // die Id ins Wissen, und erst die macht den Mischplan moeglich.
+      const payload = { ...form, nutrients: form.nutrients || customProgram || null, setupId: form.setupId ?? null, feedProgramId: selectedProgram?.key ?? null }
       const saved = await apiFetch<GrowDetail>(isEditing && growId ? `/api/grows/${growId}` : '/api/grows', { method: isEditing ? 'PUT' : 'POST', body: JSON.stringify(payload) })
       navigate(`/grows/${saved.id}`)
     } catch (caught) {

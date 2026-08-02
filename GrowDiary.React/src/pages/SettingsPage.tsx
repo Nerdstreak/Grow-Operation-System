@@ -22,6 +22,7 @@ function SettingsPage() {
   const [health, setHealth] = useState<BackendHealth | null>(null)
   const [importFileName, setImportFileName] = useState('')
   const [strompreis, setStrompreis] = useState('')
+  const [begleitung, setBegleitung] = useState<'full' | 'important' | 'expert'>('full')
   const [strompreisSaving, setStrompreisSaving] = useState(false)
   const [importText, setImportText] = useState('')
   const [preview, setPreview] = useState<ImportPreview | null>(null)
@@ -44,6 +45,8 @@ function SettingsPage() {
         if (!controller.signal.aborted && kosten?.strompreisCentProKwh != null) {
           setStrompreis(String(kosten.strompreisCentProKwh).replace('.', ','))
         }
+        const companion = await apiFetch<{ level: 'full' | 'important' | 'expert' }>('/api/companion/settings', { signal: controller.signal }).catch(() => null)
+        if (!controller.signal.aborted && companion) setBegleitung(companion.level)
         if (controller.signal.aborted) return
         setSettings(overview)
         setGrows(activeGrows)
@@ -124,6 +127,20 @@ function SettingsPage() {
     inspectImport(text, file.name)
   }
 
+  async function saveBegleitung(level: 'full' | 'important' | 'expert') {
+    setBegleitung(level)
+    try {
+      await apiFetch('/api/companion/settings', { method: 'PUT', body: JSON.stringify({ level }) })
+      setMessage(level === 'expert'
+        ? 'Expertenmodus: keine unaufgeforderten Erinnerungen mehr — nur deine eigenen Alarme.'
+        : level === 'important'
+          ? 'Nur Wichtiges: Erinnerungen kommen erst, wenn etwas kritisch überfällig ist.'
+          : 'Volle Begleitung: die App erinnert an alles, was ihre Abläufe kennen.')
+    } catch (caught) {
+      setError(formatApiError(caught, 'Begleitungsstufe konnte nicht gespeichert werden.'))
+    }
+  }
+
   async function saveStrompreis() {
     setStrompreisSaving(true)
     setError(null)
@@ -177,6 +194,17 @@ function SettingsPage() {
             <div className="co-row">
               <span className="co-row-text">Sprache</span>
               <span className="co-row-value">Deutsch</span>
+            </div>
+            <div className="co-row">
+              <div style={{ minWidth: 0 }}>
+                <div className="co-row-title">Begleitung</div>
+                <div className="co-row-sub">Wie eng die App erinnert — Experten bekommen nur ihre eigenen Alarme</div>
+              </div>
+              <div className="co-row-end st-theme" role="group" aria-label="Begleitungsstufe">
+                <button type="button" className={`ls-btn is-small${begleitung === 'full' ? ' is-primary' : ''}`} onClick={() => void saveBegleitung('full')}>Voll</button>
+                <button type="button" className={`ls-btn is-small${begleitung === 'important' ? ' is-primary' : ''}`} onClick={() => void saveBegleitung('important')}>Wichtiges</button>
+                <button type="button" className={`ls-btn is-small${begleitung === 'expert' ? ' is-primary' : ''}`} onClick={() => void saveBegleitung('expert')}>Experte</button>
+              </div>
             </div>
           </section>
 

@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.0.0-beta.29
+
+**Beta.** The app stops hoarding its knowledge.
+
+- New — **the mixing plan.** Pick your nutrient program on the grow (the
+  program card now actually binds) and the addback page tells you what goes
+  into the bucket: "Bloom A 137 ml · PK 341 ml" — computed from the program's
+  week chart and your system volume, with EC and pH target for that week.
+  The Athena Blended chart ships digitized (mL/gal converted to mL/L, source
+  named). Weeks beyond the chart keep the last column instead of going silent.
+- New — **the due-routine watch.** Your procedures have always carried their
+  rhythms ("water change every 7 days, warn after 8, critical after 10") —
+  and nothing ever read them. Now the app does: with a running grow, overdue
+  routines appear under Aufgaben by themselves. "Last done" comes from what
+  you already record — the solution-change mark of a measurement, or a
+  completed procedure.
+- New — **companion level.** Full guidance (default), important-only, or
+  expert. The expert gets no unsolicited reminders — only the alarms they set
+  themselves. Nothing is hidden; nothing is pushed.
+- Fixed — **the beta.27 Blended procedure change never actually shipped.** It
+  was written to the runtime knowledge copy instead of the shipped defaults —
+  the changelog promised it, installations never received it. Both it and the
+  new feed chart now live in the shipped defaults, guarded by a test that
+  reads exactly there.
+
 ## 2.0.0-beta.28
 
 **Beta.** No more 5 °C advice for seedlings.

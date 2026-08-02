@@ -133,7 +133,7 @@
       "order": 10,
       "title": "Restliche Komponenten zugeben",
       "stepType": "Action",
-      "description": "CalMag beziehungsweise Kaliumsilikat als letzte Komponente zugeben — je nachdem, welche am Anfang stand. Wieder zwischen den Zugaben rühren.",
+      "description": "CalMag beziehungsweise Kaliumsilikat als letzte Komponente zugeben — je nachdem, welche am Anfang stand. Wieder zwischen den Zugaben rühren. Wer Athena Blended Balance fährt, lässt das Kaliumsilikat weg — Balance enthält es bereits (Quelle: Athena Balance Mixing).",
       "photoRequired": false,
       "photoRecommended": false
     },
@@ -195,6 +195,12 @@
       "type": "UserDocument",
       "title": "SOP-RDWC-CAN-N1: pH- & Nährstoff-Stabilisierung",
       "reference": "Mischreihenfolge",
+      "credibility": "High"
+    },
+    {
+      "type": "UserDocument",
+      "title": "Athena — Pro Balance & Blended Balance Mixing (EN) V1",
+      "reference": "If using Blended Balance, do not use an additional potassium silicate product.",
       "credibility": "High"
     }
   ]

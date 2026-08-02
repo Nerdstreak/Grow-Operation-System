@@ -74,5 +74,507 @@
     "bloom b",
     "balance",
     "cleanse"
-  ]
+  ],
+  "feedChart": {
+    "unit": "mlPerLiter",
+    "note": "Quelle: Athena — Blended & Pro Feed Schedules (Master), EN Imperial, Feed Program (mL per gallon), umgerechnet in mL je Liter (÷ 3,785) und auf zwei Stellen gerundet. Athena selbst: Baseline-Empfehlung, sortenabhängig anpassen. Balance nach Bedarf als pH-Up — Menge nach dem Balance-Verfahren ausmessen, kein zusätzliches Silikat.",
+    "columns": [
+      {
+        "id": "clone-presoak",
+        "label": "Klon · Vorweichen",
+        "stage": "Clone",
+        "week": null,
+        "items": [
+          {
+            "component": "Bloom A",
+            "minMlPerLiter": 1.32,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Bloom B",
+            "minMlPerLiter": 1.32,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.26,
+            "maxMlPerLiter": 0.26
+          }
+        ],
+        "ecTarget": 0.9,
+        "phMin": 5.6,
+        "phMax": 5.6
+      },
+      {
+        "id": "clone-feed",
+        "label": "Klon · Anfüttern",
+        "stage": "Clone",
+        "week": null,
+        "items": [
+          {
+            "component": "Bloom A",
+            "minMlPerLiter": 2.64,
+            "maxMlPerLiter": 2.64
+          },
+          {
+            "component": "Bloom B",
+            "minMlPerLiter": 2.64,
+            "maxMlPerLiter": 2.64
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.26,
+            "maxMlPerLiter": 0.26
+          }
+        ],
+        "ecTarget": 1.7,
+        "phMin": 5.6,
+        "phMax": 5.6
+      },
+      {
+        "id": "veg-w1",
+        "label": "Veg · Woche 1",
+        "stage": "Veg",
+        "week": 1,
+        "items": [
+          {
+            "component": "Grow A",
+            "minMlPerLiter": 2.91,
+            "maxMlPerLiter": 2.91
+          },
+          {
+            "component": "Grow B",
+            "minMlPerLiter": 2.91,
+            "maxMlPerLiter": 2.91
+          },
+          {
+            "component": "CaMg",
+            "minMlPerLiter": 0.79,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 2.1,
+        "phMin": 5.8,
+        "phMax": 6.2
+      },
+      {
+        "id": "veg-w2",
+        "label": "Veg · Woche 2",
+        "stage": "Veg",
+        "week": 2,
+        "items": [
+          {
+            "component": "Grow A",
+            "minMlPerLiter": 2.91,
+            "maxMlPerLiter": 2.91
+          },
+          {
+            "component": "Grow B",
+            "minMlPerLiter": 2.91,
+            "maxMlPerLiter": 2.91
+          },
+          {
+            "component": "CaMg",
+            "minMlPerLiter": 0.79,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 2.1,
+        "phMin": 5.8,
+        "phMax": 6.2
+      },
+      {
+        "id": "veg-w3",
+        "label": "Veg · Woche 3",
+        "stage": "Veg",
+        "week": 3,
+        "items": [
+          {
+            "component": "Grow A",
+            "minMlPerLiter": 2.91,
+            "maxMlPerLiter": 2.91
+          },
+          {
+            "component": "Grow B",
+            "minMlPerLiter": 2.91,
+            "maxMlPerLiter": 2.91
+          },
+          {
+            "component": "CaMg",
+            "minMlPerLiter": 0.79,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 2.1,
+        "phMin": 5.8,
+        "phMax": 6.2
+      },
+      {
+        "id": "veg-w4",
+        "label": "Veg · Woche 4",
+        "stage": "Veg",
+        "week": 4,
+        "items": [
+          {
+            "component": "Grow A",
+            "minMlPerLiter": 2.91,
+            "maxMlPerLiter": 2.91
+          },
+          {
+            "component": "Grow B",
+            "minMlPerLiter": 2.91,
+            "maxMlPerLiter": 2.91
+          },
+          {
+            "component": "CaMg",
+            "minMlPerLiter": 0.79,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 2.1,
+        "phMin": 5.8,
+        "phMax": 6.2
+      },
+      {
+        "id": "flower-w1",
+        "label": "Blüte · Woche 1",
+        "stage": "Flower",
+        "week": 1,
+        "items": [
+          {
+            "component": "Bloom A",
+            "minMlPerLiter": 3.17,
+            "maxMlPerLiter": 3.17
+          },
+          {
+            "component": "Bloom B",
+            "minMlPerLiter": 3.17,
+            "maxMlPerLiter": 3.17
+          },
+          {
+            "component": "CaMg",
+            "minMlPerLiter": 0.79,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 2.3,
+        "phMin": 5.8,
+        "phMax": 6.2
+      },
+      {
+        "id": "flower-w2",
+        "label": "Blüte · Woche 2",
+        "stage": "Flower",
+        "week": 2,
+        "items": [
+          {
+            "component": "Bloom A",
+            "minMlPerLiter": 3.17,
+            "maxMlPerLiter": 3.17
+          },
+          {
+            "component": "Bloom B",
+            "minMlPerLiter": 3.17,
+            "maxMlPerLiter": 3.17
+          },
+          {
+            "component": "CaMg",
+            "minMlPerLiter": 0.79,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 2.3,
+        "phMin": 5.8,
+        "phMax": 6.2
+      },
+      {
+        "id": "flower-w3",
+        "label": "Blüte · Woche 3",
+        "stage": "Flower",
+        "week": 3,
+        "items": [
+          {
+            "component": "Bloom A",
+            "minMlPerLiter": 3.17,
+            "maxMlPerLiter": 3.17
+          },
+          {
+            "component": "Bloom B",
+            "minMlPerLiter": 3.17,
+            "maxMlPerLiter": 3.17
+          },
+          {
+            "component": "PK",
+            "minMlPerLiter": 1.06,
+            "maxMlPerLiter": 1.06
+          },
+          {
+            "component": "CaMg",
+            "minMlPerLiter": 0.79,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 2.5,
+        "phMin": 5.8,
+        "phMax": 6.2
+      },
+      {
+        "id": "flower-w4",
+        "label": "Blüte · Woche 4",
+        "stage": "Flower",
+        "week": 4,
+        "items": [
+          {
+            "component": "Bloom A",
+            "minMlPerLiter": 3.17,
+            "maxMlPerLiter": 3.17
+          },
+          {
+            "component": "Bloom B",
+            "minMlPerLiter": 3.17,
+            "maxMlPerLiter": 3.17
+          },
+          {
+            "component": "PK",
+            "minMlPerLiter": 1.59,
+            "maxMlPerLiter": 1.59
+          },
+          {
+            "component": "CaMg",
+            "minMlPerLiter": 0.79,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 2.6,
+        "phMin": 5.8,
+        "phMax": 6.2
+      },
+      {
+        "id": "flower-w5",
+        "label": "Blüte · Woche 5",
+        "stage": "Flower",
+        "week": 5,
+        "items": [
+          {
+            "component": "Bloom A",
+            "minMlPerLiter": 2.64,
+            "maxMlPerLiter": 2.64
+          },
+          {
+            "component": "Bloom B",
+            "minMlPerLiter": 2.64,
+            "maxMlPerLiter": 2.64
+          },
+          {
+            "component": "PK",
+            "minMlPerLiter": 2.38,
+            "maxMlPerLiter": 2.38
+          },
+          {
+            "component": "CaMg",
+            "minMlPerLiter": 0.79,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 2.4,
+        "phMin": 5.8,
+        "phMax": 6.2
+      },
+      {
+        "id": "flower-w6",
+        "label": "Blüte · Woche 6",
+        "stage": "Flower",
+        "week": 6,
+        "items": [
+          {
+            "component": "Bloom A",
+            "minMlPerLiter": 2.38,
+            "maxMlPerLiter": 2.38
+          },
+          {
+            "component": "Bloom B",
+            "minMlPerLiter": 2.38,
+            "maxMlPerLiter": 2.38
+          },
+          {
+            "component": "PK",
+            "minMlPerLiter": 2.64,
+            "maxMlPerLiter": 2.64
+          },
+          {
+            "component": "CaMg",
+            "minMlPerLiter": 0.79,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 2.3,
+        "phMin": 5.8,
+        "phMax": 6.2
+      },
+      {
+        "id": "flower-w7",
+        "label": "Blüte · Woche 7",
+        "stage": "Flower",
+        "week": 7,
+        "items": [
+          {
+            "component": "Bloom A",
+            "minMlPerLiter": 1.32,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Bloom B",
+            "minMlPerLiter": 1.32,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "PK",
+            "minMlPerLiter": 3.17,
+            "maxMlPerLiter": 3.17
+          },
+          {
+            "component": "CaMg",
+            "minMlPerLiter": 0.79,
+            "maxMlPerLiter": 1.32
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 1.7,
+        "phMin": 5.8,
+        "phMax": 6.2
+      },
+      {
+        "id": "flower-w8",
+        "label": "Blüte · Woche 8",
+        "stage": "Flower",
+        "week": 8,
+        "items": [
+          {
+            "component": "Bloom A",
+            "minMlPerLiter": 1.06,
+            "maxMlPerLiter": 1.06
+          },
+          {
+            "component": "Bloom B",
+            "minMlPerLiter": 1.06,
+            "maxMlPerLiter": 1.06
+          },
+          {
+            "component": "PK",
+            "minMlPerLiter": 2.64,
+            "maxMlPerLiter": 2.64
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 1.5,
+        "phMin": 5.8,
+        "phMax": 6.2
+      },
+      {
+        "id": "flower-w9",
+        "label": "Blüte · Woche 9",
+        "stage": "Flower",
+        "week": 9,
+        "items": [
+          {
+            "component": "Bloom A",
+            "minMlPerLiter": 1.06,
+            "maxMlPerLiter": 1.06
+          },
+          {
+            "component": "Bloom B",
+            "minMlPerLiter": 1.06,
+            "maxMlPerLiter": 1.06
+          },
+          {
+            "component": "PK",
+            "minMlPerLiter": 2.64,
+            "maxMlPerLiter": 2.64
+          },
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 0.53,
+            "maxMlPerLiter": 1.32
+          }
+        ],
+        "ecTarget": 1.5,
+        "phMin": 6.0,
+        "phMax": 6.4
+      },
+      {
+        "id": "flush",
+        "label": "Flush",
+        "stage": "Finish",
+        "week": null,
+        "items": [
+          {
+            "component": "Cleanse",
+            "minMlPerLiter": 2.64,
+            "maxMlPerLiter": 2.64
+          }
+        ],
+        "ecTarget": 0.1,
+        "phMin": 6.0,
+        "phMax": 6.4
+      }
+    ]
+  }
 }

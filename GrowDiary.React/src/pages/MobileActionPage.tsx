@@ -7,8 +7,9 @@ import { classNames } from '../utils'
 import { RiskActionCard } from '../features/risks/RiskActionCard'
 import { TASKS_CHANGED_EVENT } from '../useNavCounts'
 
-type ActionState = { grows: GrowSummary[]; risks: RiskEventDto[]; tasks: GrowTaskDto[]; maintenance: MaintenanceEventDto[]; calibration: CalibrationEventDto[]; sops: SopInstanceDto[]; hardware: HardwareItemDto[]; issues: string[] }
-const initial: ActionState = { grows: [], risks: [], tasks: [], maintenance: [], calibration: [], sops: [], hardware: [], issues: [] }
+type FaelligeRoutine = { sopId: string; name: string; severity: string; tageSeit: number; intervallTage: number; meldung: string }
+type ActionState = { grows: GrowSummary[]; risks: RiskEventDto[]; tasks: GrowTaskDto[]; maintenance: MaintenanceEventDto[]; calibration: CalibrationEventDto[]; sops: SopInstanceDto[]; hardware: HardwareItemDto[]; dueByGrow: Array<{ grow: GrowSummary; items: FaelligeRoutine[] }>; issues: string[] }
+const initial: ActionState = { grows: [], risks: [], tasks: [], maintenance: [], calibration: [], sops: [], hardware: [], dueByGrow: [], issues: [] }
 const riskRank: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 }
 
 function MobileActionPage() {
@@ -37,8 +38,14 @@ function MobileActionPage() {
       const activeGrows = grows.filter((grow) => grow.status === 'Running' || grow.status === 'Planning')
       const taskLists = await Promise.all(activeGrows.map((grow) => safe<GrowTaskDto[]>(`Tasks ${grow.id}`, `/api/grows/${grow.id}/tasks`, [])))
       const sopLists = await Promise.all(activeGrows.map((grow) => safe<SopInstanceDto[]>(`SOP ${grow.id}`, `/api/sop-instances?growId=${grow.id}`, [])))
+      // Die ueberfaelligen Routinen aus den Zeitplaenen des Wissens — der Teil,
+      // der frueher nur in der Mappe stand und den niemand las.
+      const dueLists = await Promise.all(activeGrows.map((grow) => safe<FaelligeRoutine[]>(`Faellig ${grow.id}`, `/api/grows/${grow.id}/due-sops`, [])))
+      const dueByGrow = activeGrows
+        .map((grow, index) => ({ grow, items: dueLists[index] ?? [] }))
+        .filter((entry) => entry.items.length > 0)
       if (controller.signal.aborted) return
-      setState({ grows, risks: risks.filter((risk) => risk.status === 'Open' || risk.status === 'Acknowledged'), maintenance: maintenance.filter((item) => item.status === 'Planned'), calibration: calibration.filter((item) => item.status === 'Planned'), tasks: taskLists.flat().filter((task) => task.status === 'Open'), sops: sopLists.flat().filter((sop) => sop.status === 'Active'), hardware, issues })
+      setState({ grows, risks: risks.filter((risk) => risk.status === 'Open' || risk.status === 'Acknowledged'), maintenance: maintenance.filter((item) => item.status === 'Planned'), calibration: calibration.filter((item) => item.status === 'Planned'), tasks: taskLists.flat().filter((task) => task.status === 'Open'), sops: sopLists.flat().filter((sop) => sop.status === 'Active'), hardware, dueByGrow, issues })
       setLoading(false)
     }
     void load()
@@ -88,6 +95,30 @@ function MobileActionPage() {
 
       {loading ? <V1Skeleton tiles={3} rows={4} label="Lade Aufgaben" /> : (
         <div className="af-cols" data-audit="open-action-list">
+          {/* Ueberfaellige Routinen aus den Zeitplaenen des Wissens. Vor den
+              Risiken: wer den Wasserwechsel nachholt, verhindert das Risiko,
+              statt es spaeter zu bestaetigen. Im Expertenmodus kommt die Liste
+              leer zurueck und das Panel verschwindet von selbst. */}
+          {state.dueByGrow.length > 0 && (
+            <section className="ls-panel af-col" data-audit="due-sops-section">
+              <div className="ls-panel-head">
+                <span className="ls-label">Fällige Routinen</span>
+              </div>
+              <div className="ls-panel-body">
+                {state.dueByGrow.map(({ grow, items }) => (
+                  <div key={grow.id} className="af-due-grow">
+                    <div className="co-row-title">{grow.name}</div>
+                    {items.map((item) => (
+                      <div key={item.sopId} className="co-row">
+                        <span className={item.severity === 'critical' ? 'co-row-text is-due' : 'co-row-text'}>{item.meldung}</span>
+                        <div className="co-row-end"><Link className="ls-btn is-small" to={`/grows/${grow.id}`}>Öffnen</Link></div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
           {/* Risiken zuerst — mit ihrer einen Hauptaktion. Die Karten bringen
               Bestätigen/Erledigen bereits mit. */}
           <section className="ls-panel af-col" data-audit="risk-action-section">

@@ -37,6 +37,25 @@ interface ComponentDraft {
 
 const genericComponents = ['Silikat / Stabilisator', 'CalMag / Basis', 'Base A', 'Base B', 'PK / Additiv', 'pH-Korrektur']
 
+type MischplanDto = {
+  programmName: string | null
+  spalteLabel: string | null
+  volumenLiter: number | null
+  zeilen: Array<{ komponente: string; mlProLiter: string; mlGesamtMin: number; mlGesamtMax: number }>
+  ecZiel: number | null
+  phMin: number | null
+  phMax: number | null
+  herkunft: string | null
+  luecke: string | null
+}
+
+/** „255 ml" oder „204–340 ml" — die Spanne nur, wo das Chart eine nennt. */
+function mlSpanne(min: number, max: number) {
+  const links = min.toLocaleString('de-DE', { maximumFractionDigits: 0 })
+  if (min === max) return `${links} ml`
+  return `${links}–${max.toLocaleString('de-DE', { maximumFractionDigits: 0 })} ml`
+}
+
 function AddbackPage() {
   const { growId } = useParams()
   const [defaults, setDefaults] = useState<AddbackDefaultsDto | null>(null)
@@ -57,6 +76,7 @@ function AddbackPage() {
   })
   const [components, setComponents] = useState<ComponentDraft[]>(createComponents(genericComponents))
   const [result, setResult] = useState<AddbackResultDto | null>(null)
+  const [mischplan, setMischplan] = useState<MischplanDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [calculating, setCalculating] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -72,11 +92,12 @@ function AddbackPage() {
       setError(null)
       setSuccess(null)
       try {
-        const [nextDefaults, nextGrow, nextLogs, nextKnowledge] = await Promise.all([
+        const [nextDefaults, nextGrow, nextLogs, nextKnowledge, nextPlan] = await Promise.all([
           apiFetch<AddbackDefaultsDto>(`/api/grows/${growId}/addback`, { signal: controller.signal }),
           apiFetch<GrowDetail>(`/api/grows/${growId}`, { signal: controller.signal }),
           apiFetch<AddbackLogDto[]>(`/api/grows/${growId}/addback/logs`, { signal: controller.signal }).catch(() => []),
           apiFetch<KnowledgeOverviewDto>('/api/knowledge', { signal: controller.signal }).catch(() => null),
+          apiFetch<MischplanDto>(`/api/grows/${growId}/mixing-plan`, { signal: controller.signal }).catch(() => null),
         ])
 
         if (controller.signal.aborted) return
@@ -85,6 +106,7 @@ function AddbackPage() {
         setGrow(nextGrow)
         setLogs(nextLogs)
         setKnowledge(nextKnowledge)
+        setMischplan(nextPlan)
 
         const matchedProgram = matchProgram(nextKnowledge?.programs ?? [], nextGrow.nutrients)
         const initialProgramKey = matchedProgram?.key ?? 'custom'
@@ -345,6 +367,38 @@ function AddbackPage() {
             </aside>
 
             <section className="addback-step-panel">
+              {mischplan && (mischplan.zeilen.length > 0 || mischplan.luecke) && (
+                  <V1Section title={`Mischplan${mischplan.spalteLabel ? ` · ${mischplan.spalteLabel}` : ''}`}>
+                    <V1Card>
+                      {mischplan.luecke
+                        ? <V1Alert tone="neutral" message={mischplan.luecke} />
+                        : (
+                          <>
+                            <div className="ab-mischplan" data-audit="mixing-plan">
+                              {mischplan.zeilen.map((zeile) => (
+                                <div key={zeile.komponente} className="ab-mischplan-row">
+                                  <span>{zeile.komponente}</span>
+                                  <span className="ab-mischplan-dose">{mischplan.volumenLiter != null ? mlSpanne(zeile.mlGesamtMin, zeile.mlGesamtMax) : `${zeile.mlProLiter} ml/L`}</span>
+                                  {mischplan.volumenLiter != null && <span className="ab-mischplan-per">{zeile.mlProLiter} ml/L</span>}
+                                </div>
+                              ))}
+                              {(mischplan.ecZiel != null || mischplan.phMin != null) && (
+                                <div className="ab-mischplan-row is-target">
+                                  <span>Ziel</span>
+                                  <span className="ab-mischplan-dose">
+                                    {mischplan.ecZiel != null ? `EC ${mischplan.ecZiel.toLocaleString('de-DE')}` : ''}
+                                    {mischplan.phMin != null ? ` · pH ${mischplan.phMin.toLocaleString('de-DE')}${mischplan.phMax != null && mischplan.phMax !== mischplan.phMin ? `–${mischplan.phMax.toLocaleString('de-DE')}` : ''}` : ''}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            {mischplan.herkunft && <p className="ab-mischplan-source">{mischplan.herkunft}</p>}
+                          </>
+                        )}
+                    </V1Card>
+                  </V1Section>
+              )}
+
               {(
                 <V1Section title="Grow & Reservoir">
                   <div className="addback-summary-grid">

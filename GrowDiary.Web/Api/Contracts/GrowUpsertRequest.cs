@@ -40,6 +40,9 @@ public sealed class GrowUpsertRequest
     public string? Light { get; set; }
     public bool HasChiller { get; set; }
     public WaterSource WaterSource { get; set; } = WaterSource.RO;
+
+    /// <summary>Duengerprogramm des Laufs (Id aus dem Wissen); null = keins.</summary>
+    public string? FeedProgramId { get; set; }
     public string? Nutrients { get; set; }
 
     [Required]

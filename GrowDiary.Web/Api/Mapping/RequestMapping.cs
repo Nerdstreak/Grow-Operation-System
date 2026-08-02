@@ -34,6 +34,7 @@ public static class RequestMapping
         Light = request.Light,
         HasChiller = request.HasChiller,
         WaterSource = request.WaterSource,
+        FeedProgramId = string.IsNullOrWhiteSpace(request.FeedProgramId) ? null : request.FeedProgramId.Trim(),
         Nutrients = request.Nutrients,
         StartDate = request.StartDate,
         EntryPoint = request.EntryPoint,

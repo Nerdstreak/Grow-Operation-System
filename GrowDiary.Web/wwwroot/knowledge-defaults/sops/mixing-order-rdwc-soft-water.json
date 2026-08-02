@@ -47,8 +47,24 @@
       "photoRecommended": false
     },
     {
-      "id": "s3",
+      "id": "s2b",
       "order": 3,
+      "title": "Blended Balance zuerst zugeben",
+      "stepType": "Action",
+      "description": "Balance gehört bei Athena an den ANFANG der Mischreihenfolge. Die einmal ausgemessene Menge zugeben (Balance-Verfahren: an einem Testansatz messen, wie viel bis zum Ziel-pH nötig ist, und die Menge notieren). WICHTIG: Kein zusätzliches Kaliumsilikat — Blended Balance enthält es bereits.",
+      "photoRequired": false,
+      "photoRecommended": false,
+      "condition": {
+        "key": "balance",
+        "equals": [
+          "mit-balance"
+        ],
+        "prompt": "Fährst du Athena Blended Balance? (enthält Silikat — der separate Silikat-Schritt entfällt dann)"
+      }
+    },
+    {
+      "id": "s3",
+      "order": 4,
       "title": "CalMag zuerst zugeben",
       "stepType": "Action",
       "description": "Phasen-Dosis CalMag zugeben: Veg 0,3 ml/L / Stretch 0,5 ml/L / Flower 0,7 ml/L. Bei Weichwasser zuerst — sonst Ausfällung mit Silikat.",
@@ -57,7 +73,7 @@
     },
     {
       "id": "s4",
-      "order": 4,
+      "order": 5,
       "title": "pH nach CalMag korrigieren",
       "stepType": "Measurement",
       "description": "pH wieder auf 6,0 einstellen.",
@@ -69,7 +85,7 @@
     },
     {
       "id": "s5",
-      "order": 5,
+      "order": 6,
       "title": "Hauptkomponenten zugeben",
       "stepType": "Action",
       "description": "Komponenten A + B nach Plan. 1–2 Min durchmischen.",
@@ -78,7 +94,7 @@
     },
     {
       "id": "s6",
-      "order": 6,
+      "order": 7,
       "title": "pH nach Hauptnährstoffen korrigieren",
       "stepType": "Measurement",
       "description": "pH auf 6,0 eichen.",
@@ -90,7 +106,7 @@
     },
     {
       "id": "s7",
-      "order": 7,
+      "order": 8,
       "title": "PK zugeben (Blüte)",
       "stepType": "Action",
       "description": "PK 13/14 nur in der Blütephase zugeben. In Veg diesen Schritt überspringen.",
@@ -99,16 +115,23 @@
     },
     {
       "id": "s8",
-      "order": 8,
+      "order": 9,
       "title": "Kaliumsilikat zuletzt zugeben",
       "stepType": "Action",
-      "description": "Silikat immer als letzten Nährstoff zugeben. Phasen-Dosis: Veg 0,15 ml/L / Stretch 0,3 ml/L / Flower 0,4 ml/L. 5–10 Min Standzeit.",
+      "description": "Silikat immer als letzten Nährstoff zugeben. Phasen-Dosis: Veg 0,15 ml/L / Stretch 0,3 ml/L / Flower 0,4 ml/L. 5–10 Min Standzeit. Nur bei separatem Kaliumsilikat — wer Blended Balance fährt, überspringt diesen Schritt (Balance enthält Silikat).",
       "photoRequired": false,
-      "photoRecommended": false
+      "photoRecommended": false,
+      "condition": {
+        "key": "balance",
+        "equals": [
+          "ohne-balance"
+        ],
+        "prompt": "Fährst du Athena Blended Balance? (enthält Silikat — der separate Silikat-Schritt entfällt dann)"
+      }
     },
     {
       "id": "s9",
-      "order": 9,
+      "order": 10,
       "title": "pH-Final korrigieren",
       "stepType": "Measurement",
       "description": "Final-pH auf 6,0 einstellen.",
@@ -120,7 +143,7 @@
     },
     {
       "id": "s10",
-      "order": 10,
+      "order": 11,
       "title": "HOCl bis ORP-Ziel",
       "stepType": "Measurement",
       "description": "HOCl iterativ zugeben bis ORP 350–450 mV. Final-Werte dokumentieren.",
@@ -145,6 +168,18 @@
       "type": "UserDocument",
       "title": "RDWC Growplan Canna Aqua Rev.01",
       "reference": "Punkt 3: Weichwasser-Aufbereitung",
+      "credibility": "High"
+    },
+    {
+      "type": "UserDocument",
+      "title": "Athena — Pro Balance & Blended Balance Mixing (EN) V1",
+      "reference": "If using Blended Balance, do not use an additional potassium silicate product.",
+      "credibility": "High"
+    },
+    {
+      "type": "UserDocument",
+      "title": "Athena — Balance Application Rate Procedure (EN)",
+      "reference": "Balance is always first in the mixing order; Anwendungsmenge am Testansatz ausmessen.",
       "credibility": "High"
     }
   ]

@@ -19,6 +19,7 @@ public sealed record GrowDetailDto(
     HydroStyle HydroStyle,
     IrrigationType IrrigationType,
     WaterSource WaterSource,
+    string? FeedProgramId,
     GrowEnvironment Environment,
     string? Light,
     string? ContainerSize,

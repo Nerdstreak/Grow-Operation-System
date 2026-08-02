@@ -120,7 +120,7 @@ public sealed class GrowCoreRepository : RepositoryBase
             INSERT INTO Grows
             (
                 TentId, SystemId, SetupId, Name, StrainId, Strain, Breeder, Status, MediumType, FeedingStyle, HydroStyle, MediumDetail,
-                Environment, Light, ContainerSize, ReservoirSize, IrrigationStyle, IrrigationType, WaterSource,
+                Environment, Light, ContainerSize, ReservoirSize, IrrigationStyle, IrrigationType, WaterSource, FeedProgramId,
                 SeedType, StartMaterial, GerminationMethod, CloneSource, CloneIsRooted,
                 BreederFlowerWeeksMin, BreederFlowerWeeksMax, PlannedVegDays, SetpointProfileId, PlantCount, PhenoNumber,
                 PropagationMedium, HasChiller, EntryPoint, DaysAlreadyInPhase,
@@ -131,7 +131,7 @@ public sealed class GrowCoreRepository : RepositoryBase
             VALUES
             (
                 $tentId, $systemId, $setupId, $name, $strainId, $strain, $breeder, $status, $mediumType, $feedingStyle, $hydroStyle, $mediumDetail,
-                $environment, $light, $containerSize, $reservoirSize, $irrigationStyle, $irrigationType, $waterSource,
+                $environment, $light, $containerSize, $reservoirSize, $irrigationStyle, $irrigationType, $waterSource, $feedProgramId,
                 $seedType, $startMaterial, $germinationMethod, $cloneSource, $cloneIsRooted,
                 $breederFlowerWeeksMin, $breederFlowerWeeksMax, $plannedVegDays, $setpointProfileId, $plantCount, $phenoNumber,
                 $propagationMedium, $hasChiller, $entryPoint, $daysAlreadyInPhase,
@@ -173,6 +173,7 @@ public sealed class GrowCoreRepository : RepositoryBase
                 IrrigationStyle = $irrigationStyle,
                 IrrigationType = $irrigationType,
                 WaterSource = $waterSource,
+                FeedProgramId = $feedProgramId,
                 SeedType = $seedType,
                 StartMaterial = $startMaterial,
                 GerminationMethod = $germinationMethod,
@@ -557,6 +558,7 @@ public sealed class GrowCoreRepository : RepositoryBase
             IrrigationStyle = NullString(reader["IrrigationStyle"]),
             IrrigationType = ParseEnum(reader["IrrigationType"]?.ToString(), IrrigationType.ActiveHydro),
             WaterSource = ParseEnum(reader["WaterSource"]?.ToString(), WaterSource.Tap),
+            FeedProgramId = !HasColumn(reader, "FeedProgramId") || reader["FeedProgramId"] is DBNull ? null : reader["FeedProgramId"]?.ToString(),
             SeedType = ParseEnum(reader["SeedType"]?.ToString(), SeedType.Feminized),
             StartMaterial = ParseEnum(reader["StartMaterial"]?.ToString(), StartMaterial.Seed),
             GerminationMethod = reader["GerminationMethod"] is DBNull or null ? null : Enum.TryParse<GerminationMethod>(reader["GerminationMethod"]?.ToString(), out var gm) ? gm : null,
@@ -695,6 +697,7 @@ public sealed class GrowCoreRepository : RepositoryBase
         command.Parameters.AddWithValue("$irrigationStyle", (object?)grow.IrrigationStyle ?? DBNull.Value);
         command.Parameters.AddWithValue("$irrigationType", grow.IrrigationType.ToString());
         command.Parameters.AddWithValue("$waterSource", grow.WaterSource.ToString());
+        command.Parameters.AddWithValue("$feedProgramId", (object?)grow.FeedProgramId ?? DBNull.Value);
         command.Parameters.AddWithValue("$seedType", grow.SeedType.ToString());
         command.Parameters.AddWithValue("$startMaterial", grow.StartMaterial.ToString());
         command.Parameters.AddWithValue("$germinationMethod", (object?)grow.GerminationMethod?.ToString() ?? DBNull.Value);

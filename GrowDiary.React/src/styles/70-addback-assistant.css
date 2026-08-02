@@ -428,3 +428,12 @@
     white-space: nowrap;
   }
 }
+
+/* Der Mischplan: Komponente, Menge, je-Liter-Spalte. Muted fuer die Herkunft —
+   die Zahlen sind die Nachricht, der Rechenweg ist die Fussnote. */
+.ab-mischplan { display: grid; gap: 6px; }
+.ab-mischplan-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: baseline; }
+.ab-mischplan-row.is-target { border-top: 1px solid var(--hair); padding-top: 6px; margin-top: 2px; }
+.ab-mischplan-dose { font-variant-numeric: tabular-nums; font-weight: 500; }
+.ab-mischplan-per { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.ab-mischplan-source { color: var(--muted); font-size: 0.8rem; margin: 10px 0 0; }
