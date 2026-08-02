@@ -8,7 +8,7 @@ import { TrendWatchPanel } from './TrendWatchPanel'
 import { DashboardBands } from './DashboardBands'
 import { DashboardEditorBar } from './DashboardEditor'
 import type { DashboardLayout, EntityValue } from './dashboard-layout'
-import { buildScore } from './live-model'
+import { buildScore, metricProvenance } from './live-model'
 import { classNames } from '../../utils'
 import { flipLabel, type Phase } from '../grows/phase-timeline'
 
@@ -283,21 +283,26 @@ function MetricBand({ title, metrics, trends }: { title: string; metrics: Metric
         <i />
       </div>
       <div className="gos-metric-row">
-        {metrics.map((metric) => (
-          <MetricTile
-            key={metric.key}
-            label={metric.label}
-            value={metric.numericValue}
-            unit={metric.unit}
-            targetMin={metric.targetMin}
-            targetMax={metric.targetMax}
-            decimals={decimalsForMetric(metric.key)}
-            display={metric.numericValue == null && metric.value !== '–' ? metric.value : undefined}
-            footer={metric.targetMin == null && metric.targetMax == null ? (metric.hint ?? undefined) : undefined}
-            trend={trends.get(metric.key)}
-            targetNote={metric.targetNote}
-          />
-        ))}
+        {metrics.map((metric) => {
+          const herkunft = metricProvenance(metric)
+          return (
+            <MetricTile
+              key={metric.key}
+              label={metric.label}
+              value={metric.numericValue}
+              unit={metric.unit}
+              targetMin={metric.targetMin}
+              targetMax={metric.targetMax}
+              decimals={decimalsForMetric(metric.key)}
+              display={metric.numericValue == null && metric.value !== '–' ? metric.value : undefined}
+              footer={metric.targetMin == null && metric.targetMax == null ? (metric.hint ?? undefined) : undefined}
+              trend={trends.get(metric.key)}
+              targetNote={metric.targetNote}
+              sourceNote={herkunft.sourceNote}
+              stale={herkunft.stale}
+            />
+          )
+        })}
       </div>
     </>
   )

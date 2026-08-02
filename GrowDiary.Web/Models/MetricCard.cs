@@ -22,6 +22,19 @@ public sealed class MetricCard
     public double? TargetMax { get; set; }
 
     /// <summary>
+    /// Woher der WERT kommt: <c>live</c> (Sensor) oder <c>hand</c> (erfasste Messung).
+    /// </summary>
+    /// <remarks>
+    /// Dasselbe Herkunfts-Prinzip wie beim Ziel. Viele Betreiber haben nur
+    /// Handmessgeraete — deren Werte sollen auf der Kachel stehen, aber nie so
+    /// aussehen, als kaemen sie gerade aus einem Sensor.
+    /// </remarks>
+    public string? ValueSource { get; set; }
+
+    /// <summary>Alter der Handmessung in Minuten; null bei Live-Werten.</summary>
+    public int? MeasuredAgeMinutes { get; set; }
+
+    /// <summary>
     /// Woran der Zielbereich haengt, wenn er aus einem anderen Wert stammt —
     /// „bei 46 % RLF". Ohne den Zusatz liest sich „Ziel 15,8–19,6 °C" als
     /// Aufforderung zu kuehlen, obwohl in Wahrheit die Feuchte zu niedrig ist.

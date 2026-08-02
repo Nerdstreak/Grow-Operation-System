@@ -94,6 +94,10 @@ public sealed partial class GrowExportsApiController
             CirculationPumpNotes: snapshot.CirculationPumpNotes,
             HasAirPump: snapshot.HasAirPump,
             AirPumpNotes: snapshot.AirPumpNotes,
+            // Aeltere Schnappschuesse kennen die Pumpenleistung nicht — und ein
+            // Rueckblick braucht auch keine frische Einschaetzung.
+            AirPumpLitersPerHour: null,
+            Aeration: null,
             AirStoneCount: snapshot.AirStoneCount,
             HasChiller: snapshot.HasChiller,
             HasUvSterilizer: snapshot.HasUvSterilizer,

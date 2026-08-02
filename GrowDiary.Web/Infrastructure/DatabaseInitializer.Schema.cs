@@ -111,6 +111,7 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "GrowSystems", "HasAirPump", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "GrowSystems", "AirPumpNotes", "TEXT NULL");
         EnsureColumn(connection, "GrowSystems", "AirStoneCount", "INTEGER NULL");
+        EnsureColumn(connection, "GrowSystems", "AirPumpLitersPerHour", "REAL NULL");
         EnsureColumn(connection, "GrowSystems", "HasChiller", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "GrowSystems", "HasUvSterilizer", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "GrowSystems", "UpdatedAtUtc", "TEXT NULL");

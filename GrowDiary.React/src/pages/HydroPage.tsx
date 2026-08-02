@@ -230,11 +230,20 @@ function HydroDetail({ setup, linkedGrows, deleteBlocked, saving, savingKey, onE
         <div className="hydro-detail__tech">
           <div className="v1-chip-row">
             {setup.hasCirculationPump && <span>Umwälzpumpe</span>}
-            {setup.hasAirPump && <span>Luftpumpe</span>}
+            {setup.hasAirPump && <span>Luftpumpe{setup.airPumpLitersPerHour ? ` · ${formatNumber(setup.airPumpLitersPerHour, 0)} L/h` : ''}</span>}
             {setup.hasChiller && <span>Chiller</span>}
             {setup.hasUvSterilizer && <span>UV-C</span>}
             {!setup.hasCirculationPump && !setup.hasAirPump && !setup.hasChiller && !setup.hasUvSterilizer && <span>Technik offen</span>}
           </div>
+          {/* Die Einschätzung ist gerechnet, nicht gemessen — und sagt das dazu.
+              Wer ein DO-Messgerät hat, glaubt dem Messwert, nicht dieser Zeile. */}
+          {setup.aeration && (
+            <V1Alert
+              tone={setup.aeration.stufe === 'gut' ? 'ok' : setup.aeration.stufe === 'zu_wenig' ? 'warn' : 'neutral'}
+              title={`Belüftung: ${setup.aeration.stufe === 'gut' ? 'im grünen Bereich' : setup.aeration.stufe === 'knapp' ? 'knapp' : setup.aeration.stufe === 'sehr_hoch' ? 'sehr hoch' : 'zu wenig'} (berechnet, Faustregel)`}
+              message={setup.aeration.satz}
+            />
+          )}
         </div>
 
         {/* Hier stand eine zweite Liste der verknüpften Grows, die rc2-overrides per

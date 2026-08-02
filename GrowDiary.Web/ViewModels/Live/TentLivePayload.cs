@@ -27,4 +27,10 @@ public sealed class MetricPayload
 
     /// <summary>Zurueckgerechnet statt aus dem Wissen: wird gezeigt, zaehlt aber nicht extra im Score.</summary>
     public bool TargetDerived { get; set; }
+
+    /// <summary>Woher der Wert kommt: live (Sensor) oder hand (erfasste Messung).</summary>
+    public string? ValueSource { get; set; }
+
+    /// <summary>Alter der Handmessung in Minuten; null bei Live-Werten.</summary>
+    public int? MeasuredAgeMinutes { get; set; }
 }

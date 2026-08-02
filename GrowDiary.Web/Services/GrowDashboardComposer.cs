@@ -81,6 +81,26 @@ public sealed class GrowDashboardComposer
         // blank out pH/EC/ORP that an earlier manual measurement recorded.
         var latest = BuildLatestComposite(measurements);
 
+        // Fuer die Herkunft am Wert: die Verbund-Messung oben verschmilzt Werte
+        // aus MEHREREN Messungen, traegt aber nur den juengsten Zeitstempel. Ein
+        // pH von vor fuenf Tagen saehe damit aus wie von heute — genau die
+        // Sorte Ehrlichkeit, um die es hier geht. Also je Messgroesse einzeln
+        // nachsehen, aus welcher Messung der Wert wirklich stammt.
+        var geordnet = measurements
+            .OrderByDescending(measurement => measurement.TakenAt)
+            .ThenByDescending(measurement => measurement.Id)
+            .ToList();
+
+        (double? Wert, DateTime? Zeit) LetzteMessung(Func<Measurement, double?> selector)
+        {
+            foreach (var messung in geordnet)
+            {
+                if (selector(messung) is { } wert) return (wert, messung.TakenAt);
+            }
+
+            return (null, null);
+        }
+
         // Die Phase des aktivsten Grows im Zelt bestimmt die Sollwerte. Ohne
         // aktiven Grow gibt es keinen Zielbereich — dann zeigen die Kacheln nur
         // die Zahl, was richtig ist: ein leeres Zelt hat kein Ziel.
@@ -123,12 +143,13 @@ public sealed class GrowDashboardComposer
                     Tone = tone,
                     Hint = state.FriendlyName,
                     NumericValue = state.NumericValue,
+                    ValueSource = "live",
                     TargetMin = TargetFor(key, targets).Min,
                     TargetMax = TargetFor(key, targets).Max
                 };
             }
 
-            var value = fallback(latest);
+            var (value, gemessenAm) = LetzteMessung(m => fallback(m));
             return new MetricCard
             {
                 Key = key,
@@ -140,6 +161,13 @@ public sealed class GrowDashboardComposer
                     ? "Letzte Messung"
                     : states.Count == 0 ? "Noch nicht mit Home Assistant verbunden" : "Kein Entity gemappt",
                 NumericValue = value,
+                ValueSource = value.HasValue ? "hand" : null,
+                // TakenAt ist Ortszeit (so wird sie erfasst und gelesen), also
+                // gegen DateTime.Now rechnen — gegen UtcNow waere der Wert um
+                // die Zeitzone zu alt. Die Falle aus beta.20, andersherum.
+                MeasuredAgeMinutes = gemessenAm is { } zeit
+                    ? Math.Max(0, (int)(DateTime.Now - zeit).TotalMinutes)
+                    : null,
                 TargetMin = TargetFor(key, targets).Min,
                 TargetMax = TargetFor(key, targets).Max
             };
@@ -189,7 +217,25 @@ public sealed class GrowDashboardComposer
             cards.Add(Build("ORP", "orp", m => m?.OrpMv, explicitUnit: "mV"));
 
         if (hasActiveHydro || states.ContainsKey("dissolved-oxygen") || measurements.Any(m => m.DissolvedOxygenMgL.HasValue))
-            cards.Add(Build("DO", "dissolved-oxygen", m => m?.DissolvedOxygenMgL, explicitUnit: "mg/L"));
+        {
+            var doKarte = Build("DO", "dissolved-oxygen", m => m?.DissolvedOxygenMgL, explicitUnit: "mg/L");
+
+            // Ohne DO-Messwert wenigstens die Physik: wie viel Sauerstoff das
+            // Wasser bei seiner Temperatur ueberhaupt halten KANN. Das ist keine
+            // Messung und heisst auch nicht so — aber es zeigt den oft
+            // uebersehenen Hebel: warmes Wasser haelt wenig, egal wie gross die
+            // Pumpe ist.
+            var wasserTemp = states.TryGetValue("reservoir-temp", out var tempState)
+                ? tempState.NumericValue
+                : LetzteMessung(m => m.ReservoirWaterTempC).Wert;
+            if (doKarte.NumericValue is null && wasserTemp is { } temp)
+            {
+                doKarte.Hint = $"max. ~{AerationCheck.SaettigungMgL(temp).ToString("0.0", AppCulture.German)} mg/L "
+                    + $"bei {temp.ToString("0.0", AppCulture.German)} °C möglich (berechnet)";
+            }
+
+            cards.Add(doKarte);
+        }
 
         // Water level can be measured in liters (scale/flow) or centimeters (distance
         // sensor) — two separate mapping slots so units are always unambiguous.

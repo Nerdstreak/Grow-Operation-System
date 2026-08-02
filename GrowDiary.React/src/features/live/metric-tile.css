@@ -73,6 +73,9 @@
 
   .gos-metric-target { margin-top: 6px; font: 400 10px/1 var(--font-mono); color: var(--faint); }
   .gos-metric-stale { margin-top: 3px; font: 400 10px/1 var(--font-mono); color: var(--warn-text); }
+  /* Herkunft ist Auskunft, keine Warnung — deshalb gedeckt statt amber.
+     --muted statt --faint: die Zeile traegt Bedeutung, nicht Dekor. */
+  .gos-metric-source { margin-top: 3px; font: 400 10px/1 var(--font-mono); color: var(--muted); }
 }
 
 /* Mehrere Kameras: eine Bühne, darunter der Streifen zum Umschalten. */

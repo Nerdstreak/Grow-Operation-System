@@ -1,5 +1,6 @@
 using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
 
 namespace GrowDiary.Web.Api.Mapping;
 
@@ -27,6 +28,10 @@ public static class HydroSetupMapping
         CirculationPumpNotes: system.CirculationPumpNotes,
         HasAirPump: system.HasAirPump,
         AirPumpNotes: system.AirPumpNotes,
+        AirPumpLitersPerHour: system.AirPumpLitersPerHour,
+        Aeration: AerationCheck.Beurteilen(
+            system.AirPumpLitersPerHour,
+            CalculateTotalVolumeLiters(system.PotCount, system.PotSizeLiters, system.ReservoirLiters)),
         AirStoneCount: system.AirStoneCount,
         HasChiller: system.HasChiller,
         HasUvSterilizer: system.HasUvSterilizer,
@@ -53,6 +58,7 @@ public static class HydroSetupMapping
         CirculationPumpNotes = Normalize(request.CirculationPumpNotes),
         HasAirPump = request.HasAirPump,
         AirPumpNotes = Normalize(request.AirPumpNotes),
+        AirPumpLitersPerHour = request.AirPumpLitersPerHour,
         AirStoneCount = request.AirStoneCount,
         HasChiller = request.HasChiller,
         HasUvSterilizer = request.HasUvSterilizer,
@@ -77,6 +83,7 @@ public static class HydroSetupMapping
         CirculationPumpNotes = Normalize(request.CirculationPumpNotes),
         HasAirPump = request.HasAirPump,
         AirPumpNotes = Normalize(request.AirPumpNotes),
+        AirPumpLitersPerHour = request.AirPumpLitersPerHour,
         AirStoneCount = request.AirStoneCount,
         HasChiller = request.HasChiller,
         HasUvSterilizer = request.HasUvSterilizer,

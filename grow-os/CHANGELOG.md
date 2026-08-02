@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.0.0-beta.26
+
+**Beta.** For growers without permanent probes — the app now carries both worlds.
+
+- New — **every value shows where it came from.** Tiles have always fallen back
+  to your hand measurements when no sensor is mapped; what was missing was the
+  honesty. A hand-measured value now reads "Hand · vor 2 Std" — and after 36
+  hours it turns into "Hand · vor 3 Tagen — nachmessen?". A pH from last week
+  no longer poses as live data. Each metric carries its own age: a merged
+  report used to stamp everything with the newest timestamp.
+- New — **the aeration check.** Most growers have no DO meter, but everyone
+  knows the number on the pump box. Enter your air pump's L/h on the hydro
+  system and Grow OS tells you whether it is enough for your volume — green,
+  tight, too little, or too much (throttle it: excessive turbulence damages
+  young roots). Clearly labelled as a calculated rule of thumb, never shown as
+  a measured mg/L.
+- New — **the DO tile knows physics.** Without a DO reading it now shows the
+  ceiling: how much oxygen your water can hold at its current temperature
+  (USGS solubility table). Warm water holds little — cooling first often beats
+  buying a bigger pump.
+
 ## 2.0.0-beta.25
 
 **Beta.** Tap water gets a profile — and a long-dead field gets a job.

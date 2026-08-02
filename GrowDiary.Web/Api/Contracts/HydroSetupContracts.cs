@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
 
 namespace GrowDiary.Web.Api.Contracts;
 
@@ -28,6 +29,10 @@ public sealed record HydroSetupDto(
     string? CirculationPumpNotes,
     bool HasAirPump,
     string? AirPumpNotes,
+    /// <summary>Foerderleistung der Luftpumpe laut Datenblatt, L/h.</summary>
+    double? AirPumpLitersPerHour,
+    /// <summary>Belueftung eingeschaetzt aus Pumpe und Volumen — gerechnet, nicht gemessen.</summary>
+    BelueftungsUrteil? Aeration,
     int? AirStoneCount,
     bool HasChiller,
     bool HasUvSterilizer,
@@ -58,6 +63,7 @@ public class CreateHydroSetupRequest
     public string? CirculationPumpNotes { get; set; }
     public bool HasAirPump { get; set; }
     public string? AirPumpNotes { get; set; }
+    public double? AirPumpLitersPerHour { get; set; }
     public int? AirStoneCount { get; set; }
     public bool HasChiller { get; set; }
     public bool HasUvSterilizer { get; set; }

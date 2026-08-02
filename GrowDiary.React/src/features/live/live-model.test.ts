@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildScore } from './live-model'
+import { buildScore, metricProvenance } from './live-model'
 import type { MetricPayload, TentDto } from '../../types'
 
 /**
@@ -132,5 +132,32 @@ describe('buildScore', () => {
     // Drei weit daneben -> 40: kritisch.
     werte[2] = metrik('temperature', 40, 24, 27)
     expect(buildScore([...werte], zelt)).toMatchObject({ value: 40, tone: 'critical' })
+  })
+})
+
+describe('metricProvenance', () => {
+  const basis = { key: 'reservoir-ph', label: 'pH', value: '6,1', unit: null, tone: 'default', hint: null, numericValue: 6.1, targetMin: null, targetMax: null }
+
+  it('lässt Live-Werte unkommentiert — sie sind der Normalfall', () => {
+    expect(metricProvenance({ ...basis, valueSource: 'live' })).toEqual({})
+    expect(metricProvenance({ ...basis })).toEqual({})
+  })
+
+  it('beschriftet frische Handwerte neutral, ohne Mahnung', () => {
+    const zeilen = metricProvenance({ ...basis, valueSource: 'hand', measuredAgeMinutes: 120 })
+    expect(zeilen.sourceNote).toBe('Hand · vor 2 Std')
+    expect(zeilen.stale).toBeUndefined()
+  })
+
+  it('mahnt ab 36 Stunden zur Nachmessung', () => {
+    // Die tägliche Messroutine ist auf 24 h getaktet; 36 h lassen einen halben
+    // Tag Luft, bevor die Kachel mahnt.
+    const zeilen = metricProvenance({ ...basis, valueSource: 'hand', measuredAgeMinutes: 3 * 24 * 60 })
+    expect(zeilen.stale).toBe('Hand · vor 3 Tagen — nachmessen?')
+    expect(zeilen.sourceNote).toBeUndefined()
+  })
+
+  it('bleibt knapp unter der Schwelle noch neutral', () => {
+    expect(metricProvenance({ ...basis, valueSource: 'hand', measuredAgeMinutes: 35 * 60 }).stale).toBeUndefined()
   })
 })

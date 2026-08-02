@@ -295,6 +295,10 @@ export interface HydroSetupDto {
   circulationPumpNotes: string | null
   hasAirPump: boolean
   airPumpNotes: string | null
+  /** Foerderleistung der Luftpumpe laut Datenblatt, L/h. */
+  airPumpLitersPerHour: number | null
+  /** Belueftung aus Pumpe und Volumen eingeschaetzt — gerechnet, nicht gemessen. */
+  aeration: { stufe: string; satz: string; literLuftJeMinuteJeLiter: number } | null
   airStoneCount: number | null
   hasChiller: boolean
   hasUvSterilizer: boolean
@@ -320,6 +324,7 @@ export interface CreateHydroSetupRequest {
   circulationPumpNotes?: string | null
   hasAirPump: boolean
   airPumpNotes?: string | null
+  airPumpLitersPerHour?: number | null
   airStoneCount: number | null
   hasChiller: boolean
   hasUvSterilizer: boolean
@@ -352,6 +357,10 @@ export interface MetricPayload {
   targetNote?: string | null
   /** Zurueckgerechnet statt aus dem Wissen: wird gezeigt, zaehlt aber nicht extra im Score. */
   targetDerived?: boolean
+  /** Woher der WERT kommt: 'live' (Sensor) oder 'hand' (erfasste Messung). */
+  valueSource?: string | null
+  /** Alter der Handmessung in Minuten; null bei Live-Werten. */
+  measuredAgeMinutes?: number | null
 }
 
 export interface TentLivePayload {

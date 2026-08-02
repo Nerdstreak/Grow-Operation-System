@@ -94,14 +94,14 @@ public sealed class HydroSetupRepository : RepositoryBase
                 TentId, Name, HydroStyle, SetpointProfileId, PotCount, PotSizeLiters, ReservoirLiters,
                 LevelSensorEmptyRaw, LevelSensorFullRaw, LevelSensorFullLiters, LevelCalibratedAtUtc,
                 Status, LayoutType, ReservoirPosition,
-                HasCirculationPump, CirculationPumpNotes, HasAirPump, AirPumpNotes, AirStoneCount,
+                HasCirculationPump, CirculationPumpNotes, HasAirPump, AirPumpNotes, AirPumpLitersPerHour, AirStoneCount,
                 HasChiller, HasUvSterilizer, Notes, DisplayOrder, CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
                 $tentId, $name, $hydroStyle, $setpointProfileId, $potCount, $potSizeLiters, $reservoirLiters,
                 $levelEmptyRaw, $levelFullRaw, $levelFullLiters, $levelCalibratedAt,
                 $status, $layoutType, $reservoirPosition,
-                $hasCirculationPump, $circulationPumpNotes, $hasAirPump, $airPumpNotes, $airStoneCount,
+                $hasCirculationPump, $circulationPumpNotes, $hasAirPump, $airPumpNotes, $airPumpLitersPerHour, $airStoneCount,
                 $hasChiller, $hasUvSterilizer, $notes, $displayOrder, $createdAtUtc, $updatedAtUtc
             );
             SELECT last_insert_rowid();
@@ -143,6 +143,7 @@ public sealed class HydroSetupRepository : RepositoryBase
                 CirculationPumpNotes = $circulationPumpNotes,
                 HasAirPump = $hasAirPump,
                 AirPumpNotes = $airPumpNotes,
+                AirPumpLitersPerHour = $airPumpLitersPerHour,
                 AirStoneCount = $airStoneCount,
                 HasChiller = $hasChiller,
                 HasUvSterilizer = $hasUvSterilizer,
@@ -314,6 +315,9 @@ public sealed class HydroSetupRepository : RepositoryBase
             CirculationPumpNotes = NullString(reader["CirculationPumpNotes"]),
             HasAirPump = Convert.ToInt32(reader["HasAirPump"], CultureInfo.InvariantCulture) != 0,
             AirPumpNotes = NullString(reader["AirPumpNotes"]),
+            AirPumpLitersPerHour = !HasColumn(reader, "AirPumpLitersPerHour") || reader["AirPumpLitersPerHour"] is DBNull or null
+                ? null
+                : Convert.ToDouble(reader["AirPumpLitersPerHour"], CultureInfo.InvariantCulture),
             AirStoneCount = reader["AirStoneCount"] is DBNull or null ? null : Convert.ToInt32(reader["AirStoneCount"], CultureInfo.InvariantCulture),
             HasChiller = Convert.ToInt32(reader["HasChiller"], CultureInfo.InvariantCulture) != 0,
             HasUvSterilizer = Convert.ToInt32(reader["HasUvSterilizer"], CultureInfo.InvariantCulture) != 0,
@@ -344,6 +348,7 @@ public sealed class HydroSetupRepository : RepositoryBase
         command.Parameters.AddWithValue("$hasCirculationPump", system.HasCirculationPump ? 1 : 0);
         command.Parameters.AddWithValue("$circulationPumpNotes", (object?)system.CirculationPumpNotes ?? DBNull.Value);
         command.Parameters.AddWithValue("$hasAirPump", system.HasAirPump ? 1 : 0);
+        command.Parameters.AddWithValue("$airPumpLitersPerHour", (object?)system.AirPumpLitersPerHour ?? DBNull.Value);
         command.Parameters.AddWithValue("$airPumpNotes", (object?)system.AirPumpNotes ?? DBNull.Value);
         command.Parameters.AddWithValue("$airStoneCount", (object?)system.AirStoneCount ?? DBNull.Value);
         command.Parameters.AddWithValue("$hasChiller", system.HasChiller ? 1 : 0);

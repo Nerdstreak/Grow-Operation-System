@@ -37,6 +37,39 @@ export function mapMetrics(items: MetricPayload[], definitions: readonly (readon
   })
 }
 
+/**
+ * Ab wann eine Handmessung als veraltet gilt: 36 Stunden.
+ *
+ * Die tägliche Messroutine ist auf 24 Stunden getaktet; 36 lässt einen halben
+ * Tag Luft, bevor die Kachel mahnt — wer abends statt morgens misst, wird nicht
+ * sofort angezählt.
+ */
+const handVeraltetAbMinuten = 36 * 60
+
+/** „Hand · vor 2 Std“ — die Herkunftszeile einer Handmessung, lesbar statt exakt. */
+export function handHerkunft(ageMinutes: number): string {
+  const rel = ageMinutes < 1 ? 'gerade eben'
+    : ageMinutes < 60 ? `vor ${ageMinutes} Min`
+      : ageMinutes < 48 * 60 ? `vor ${Math.round(ageMinutes / 60)} Std`
+        : `vor ${Math.round(ageMinutes / (24 * 60))} Tagen`
+  return `Hand · ${rel}`
+}
+
+export function handVeraltet(ageMinutes: number): boolean {
+  return ageMinutes > handVeraltetAbMinuten
+}
+
+/**
+ * Die beiden Zeilen unter der Kachel: Herkunft (neutral) oder Veraltet (mahnend).
+ * Live-Werte bekommen keine — sie sind der Normalfall, den niemand erklärt braucht.
+ */
+export function metricProvenance(metric: MetricPayload): { sourceNote?: string; stale?: string } {
+  if (metric.valueSource !== 'hand' || metric.measuredAgeMinutes == null) return {}
+  return handVeraltet(metric.measuredAgeMinutes)
+    ? { stale: `${handHerkunft(metric.measuredAgeMinutes)} — nachmessen?` }
+    : { sourceNote: handHerkunft(metric.measuredAgeMinutes) }
+}
+
 export function findMetric(items: MetricPayload[], keys: string[]) {
   return keys.map((key) => items.find((item) => item.key === key)).find((item): item is MetricPayload => Boolean(item)) ?? null
 }

@@ -3,6 +3,7 @@ import type { MetricPayload } from '../../types'
 import type { HistoryPoint } from '../../components/SensorChart'
 import { MetricTile } from './MetricTile'
 import { decimalsForMetric } from './metric-tile-model'
+import { metricProvenance } from './live-model'
 import { SectionHead } from './DashboardEditor'
 import {
   encodeDropTarget,
@@ -123,6 +124,8 @@ export function DashboardBands({
                     footer={metric.targetMin == null && metric.targetMax == null ? (metric.hint ?? undefined) : undefined}
                     trend={trend}
                     targetNote={metric.targetNote}
+                    sourceNote={metricProvenance(metric).sourceNote}
+                    stale={metricProvenance(metric).stale}
                   />
                   {editing && (
                     <span className="ls-tile-tools">

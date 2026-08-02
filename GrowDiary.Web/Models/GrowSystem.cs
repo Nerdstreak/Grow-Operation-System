@@ -53,6 +53,17 @@ public sealed class GrowSystem
     public string? CirculationPumpNotes { get; set; }
     public bool HasAirPump { get; set; }
     public string? AirPumpNotes { get; set; }
+
+    /// <summary>
+    /// Foerderleistung der Luftpumpe laut Datenblatt, in Litern je Stunde.
+    /// </summary>
+    /// <remarks>
+    /// Zusammen mit <see cref="ReservoirLiters"/> die Grundlage fuer die
+    /// Belueftungs-Einschaetzung: viele Betreiber haben kein DO-Messgeraet, aber
+    /// jeder kennt die Zahl auf dem Pumpenkarton.
+    /// </remarks>
+    public double? AirPumpLitersPerHour { get; set; }
+
     public int? AirStoneCount { get; set; }
     public bool HasChiller { get; set; }
     public bool HasUvSterilizer { get; set; }

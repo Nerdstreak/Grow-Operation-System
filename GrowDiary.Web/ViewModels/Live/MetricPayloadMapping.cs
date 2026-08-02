@@ -17,6 +17,8 @@ public static class MetricPayloadMapping
             TargetMin = metric.TargetMin,
             TargetMax = metric.TargetMax,
             TargetNote = metric.TargetNote,
-            TargetDerived = metric.TargetDerived
+            TargetDerived = metric.TargetDerived,
+            ValueSource = metric.ValueSource,
+            MeasuredAgeMinutes = metric.MeasuredAgeMinutes
         };
 }
