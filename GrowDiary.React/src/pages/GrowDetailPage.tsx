@@ -170,7 +170,11 @@ function GrowDetailPage() {
                 {flipLabel(timeline.flipIsPlanned, timeline.daysToFlip, timeline.dates.flip)}
               </span>
               <span>{timeline.dates.harvest === '—' ? 'Ernte offen' : `Ernte ~${timeline.dates.harvest}`}</span>
+              {/* Die Frage, die der Strahl bisher offen liess: wann ist es fertig?
+                  Zwischen Ernte und rauchbar liegen Wochen. */}
+              {timeline.dates.ready !== '—' && <span title={timeline.readyNote}>Fertig ~{timeline.dates.ready}</span>}
             </div>
+            {timeline.dates.ready !== '—' && <p className="gd-ready-note">{timeline.readyNote}</p>}
             {/* Ohne Plan bleibt der Strahl offen — dann steht hier, wo man ihn
                 setzt, statt dass drei Striche ohne Erklaerung dastehen. */}
             {timeline.dates.flip === '—' && (

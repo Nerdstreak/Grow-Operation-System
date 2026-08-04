@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildPhaseTimeline, flipLabel } from './phase-timeline'
+import { buildPhaseTimeline, flipLabel, shortDate } from './phase-timeline'
 
 /** 1. Juni 2026, damit die Tagesrechnung nachvollziehbar bleibt. */
 const JETZT = new Date('2026-06-01T12:00:00Z').getTime()
@@ -14,7 +14,7 @@ describe('buildPhaseTimeline', () => {
     expect(buildPhaseTimeline({ startDate: 'kein Datum' }, JETZT).phases).toEqual([])
   })
 
-  it('zeigt immer alle vier Phasen — auch die, für die nichts feststeht', () => {
+  it('zeigt immer alle sechs Phasen — auch die, für die nichts feststeht', () => {
     const strahl = buildPhaseTimeline({ startDate: vorTagen(20) }, JETZT)
 
     // Genau das fehlte: ohne Flip und ohne Plan stand da nur ein Balken „Veg".
@@ -25,11 +25,17 @@ describe('buildPhaseTimeline', () => {
       'Sämling 14 T',
       'Veg · Tag 6',
       'Blüte · offen',
+      // Trocknen und Aushaerten kamen dazu, weil der Strahl an der Ernte endete
+      // — und damit vor der Frage, wann es wirklich fertig ist.
+      'Trocknen 10 T',
+      'Aushärten 30 T',
     ])
     expect(strahl.phases[0].days).toBe(0)
     expect(strahl.phases[3].days).toBe(0)
     expect(strahl.dates.flip).toBe('—')
     expect(strahl.dates.harvest).toBe('—')
+    // Ohne Erntedatum gibt es auch kein Fertig-Datum — geraten wird nichts.
+    expect(strahl.dates.ready).toBe('—')
     expect(strahl.daysToFlip).toBeNull()
   })
 
@@ -210,5 +216,47 @@ describe('flipLabel', () => {
     expect(flipLabel(true, 8, '09.06.')).toBe('Flip geplant 09.06. · in 8 T')
     expect(flipLabel(true, 0, '01.06.')).toBe('Flip heute geplant')
     expect(flipLabel(true, -3, '29.05.')).toBe('Flip überfällig seit 3 T')
+  })
+
+  describe('nach der Ernte', () => {
+    it('rechnet vom Erntetag bis fertig und nennt die Herkunft der Dauern', () => {
+      // Vor 3 Tagen geerntet: das Trocknen laeuft, das Aushaerten steht bevor.
+      const strahl = buildPhaseTimeline(
+        { startDate: vorTagen(120), flipDate: vorTagen(70), endDate: vorTagen(3) }, JETZT)
+
+      const trocknen = strahl.phases.find((phase) => phase.name === 'Trocknen')!
+      expect(trocknen.state).toBe('current')
+      expect(trocknen.label).toBe('Trocknen · Tag 4 von 10')
+
+      const aushaerten = strahl.phases.find((phase) => phase.name === 'Aushärten')!
+      expect(aushaerten.state).toBe('planned')
+
+      // 3 Tage geerntet + 10 Trocknen + 30 Aushaerten = 37 Tage nach heute.
+      expect(strahl.dates.ready).toBe(shortDate(new Date(JETZT + 37 * TAG)))
+      // Die Zahlen sind Richtwerte — das muss dabeistehen.
+      expect(strahl.readyNote).toContain('7–14')
+      expect(strahl.readyNote).toContain('keine Termine')
+    })
+
+    it('schaltet nach dem Trocknen auf Aushaerten um', () => {
+      const strahl = buildPhaseTimeline(
+        { startDate: vorTagen(150), flipDate: vorTagen(100), endDate: vorTagen(25) }, JETZT)
+
+      expect(strahl.phases.find((phase) => phase.name === 'Trocknen')!.state).toBe('done')
+      const aushaerten = strahl.phases.find((phase) => phase.name === 'Aushärten')!
+      expect(aushaerten.state).toBe('current')
+      expect(aushaerten.label).toBe('Aushärten · Tag 16 von 30')
+    })
+
+    it('laesst einen bluehenden Grow nicht ins Trocknen rutschen', () => {
+      // Ohne Erntedatum bleiben beide Vorschau — sonst stuende „Trocknen Tag 3"
+      // an einem Grow, der noch in der Bluete haengt.
+      const strahl = buildPhaseTimeline({ startDate: vorTagen(120), flipDate: vorTagen(70) }, JETZT)
+
+      expect(strahl.phases.find((phase) => phase.name === 'Trocknen')!.state).toBe('planned')
+      expect(strahl.phases.find((phase) => phase.name === 'Aushärten')!.state).toBe('planned')
+      // Der Erntetermin ist geschaetzt, also auch das Fertig-Datum — aber es steht da.
+      expect(strahl.dates.ready).not.toBe('—')
+    })
   })
 })

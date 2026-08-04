@@ -50,7 +50,10 @@ const MESSUNG = `() => {
     return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
   }
   const funde = []
-  for (const el of document.querySelectorAll('main *')) {
+  // Navigation und Kopfzeile MUESSEN mit hinein: sie standen ausserhalb von
+  // <main> und waren dadurch fuer diese Pruefung nie sichtbar — genau dort ist
+  // der Fehler dann ein drittes Mal aufgetreten.
+  for (const el of document.querySelectorAll('main *, nav *, header *')) {
     if (el.children.length || !el.textContent.trim()) continue
     const s = getComputedStyle(el)
     if (s.visibility === 'hidden' || s.display === 'none' || Number(s.opacity) < 0.3) continue
@@ -126,6 +129,35 @@ for (const schema of ['light', 'dark'] as const) {
         const funde: string[] = await page.evaluate(`(${MESSUNG})()`)
 
         expect(funde, `Unlesbare Schrift auf ${route} (${schema}):\n` + funde.join('\n')).toEqual([])
+      })
+    }
+  })
+}
+
+/**
+ * Dasselbe noch einmal am Handy — denn genau dort ist der Fehler ein drittes
+ * Mal durchgekommen.
+ *
+ * Der Durchgang oben laeuft in Desktop-Breite. Die Hauptnavigation am Handy
+ * (`.v1-mobile-nav`) existiert erst unterhalb des Umbruchs und war damit fuer
+ * die Pruefung schlicht unsichtbar: ihr Balken trug ein festverdrahtetes
+ * Dunkelgruen, waehrend die Beschriftungen dem Thema folgten — in der hellen
+ * Ansicht gemessene 1,15, also unlesbar. Auf der Flaeche, die im
+ * Home-Assistant-Handy als Erstes erscheint.
+ */
+for (const schema of ['light', 'dark'] as const) {
+  test.describe(`Lesbarkeit am Handy in der ${schema === 'light' ? 'hellen' : 'dunklen'} Ansicht`, () => {
+    test.use({ colorScheme: schema, viewport: { width: 390, height: 844 } })
+
+    for (const route of ['/', '/aufgaben', '/messungen']) {
+      test(`${route} ist am Handy lesbar`, async ({ page }) => {
+        await page.goto(route)
+        await page.waitForLoadState('networkidle')
+        await page.waitForTimeout(400)
+
+        const funde: string[] = await page.evaluate(`(${MESSUNG})()`)
+
+        expect(funde, `Unlesbare Schrift am Handy auf ${route} (${schema}):\n` + funde.join('\n')).toEqual([])
       })
     }
   })

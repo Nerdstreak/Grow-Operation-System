@@ -103,6 +103,8 @@ builder.Services.AddScoped<GrowCostService>();
 builder.Services.AddScoped<MischplanService>();
 builder.Services.AddScoped<SopDueService>();
 builder.Services.AddSingleton<WasserAmpelService>();
+builder.Services.AddScoped<PumpWatchNotifier>();
+builder.Services.AddScoped<WartungDueService>();
 builder.Services.AddSingleton<SolutionStabilityAnalyzer>();
 builder.Services.AddScoped<TrendWatchRunner>();
 builder.Services.AddSingleton<TentSensorHardwareSyncService>();

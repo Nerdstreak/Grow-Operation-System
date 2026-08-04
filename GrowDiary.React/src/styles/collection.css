@@ -177,3 +177,13 @@
   .co-cand-sub { margin-top: 6px; font: 400 11px/1.5 var(--font-mono); color: var(--muted); }
   .co-cand .ls-btn { margin-top: 8px; }
 }
+
+/* Herkunft unter einem Pumpen-Befund: woran der Waechter es erkannt hat.
+   Leise, aber vorhanden — eine Warnung ohne Begruendung glaubt man einmal. */
+.af-pump-source {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: normal;
+}

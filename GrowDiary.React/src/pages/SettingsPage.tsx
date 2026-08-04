@@ -24,6 +24,8 @@ function SettingsPage() {
   const [strompreis, setStrompreis] = useState('')
   const [begleitung, setBegleitung] = useState<'full' | 'important' | 'expert'>('full')
   const [strompreisSaving, setStrompreisSaving] = useState(false)
+  const [pumpSchonfrist, setPumpSchonfrist] = useState('')
+  const [pumpSaving, setPumpSaving] = useState(false)
   const [importText, setImportText] = useState('')
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [loading, setLoading] = useState(true)
@@ -47,6 +49,8 @@ function SettingsPage() {
         }
         const companion = await apiFetch<{ level: 'full' | 'important' | 'expert' }>('/api/companion/settings', { signal: controller.signal }).catch(() => null)
         if (!controller.signal.aborted && companion) setBegleitung(companion.level)
+        const pumpe = await apiFetch<{ minutes: number }>('/api/pump-watch/grace', { signal: controller.signal }).catch(() => null)
+        if (!controller.signal.aborted && pumpe) setPumpSchonfrist(String(pumpe.minutes))
         if (controller.signal.aborted) return
         setSettings(overview)
         setGrows(activeGrows)
@@ -138,6 +142,25 @@ function SettingsPage() {
           : 'Volle Begleitung: die App erinnert an alles, was ihre Abläufe kennen.')
     } catch (caught) {
       setError(formatApiError(caught, 'Begleitungsstufe konnte nicht gespeichert werden.'))
+    }
+  }
+
+  async function savePumpSchonfrist() {
+    setPumpSaving(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const minutes = Number(pumpSchonfrist.replace(',', '.'))
+      const gespeichert = await apiFetch<{ minutes: number }>('/api/pump-watch/grace', {
+        method: 'PUT',
+        body: JSON.stringify({ minutes: Number.isFinite(minutes) ? Math.round(minutes) : 15 }),
+      })
+      setPumpSchonfrist(String(gespeichert.minutes))
+      setMessage(`Schonfrist gespeichert: erst nach ${gespeichert.minutes} Minuten Stillstand wird gewarnt.`)
+    } catch (caught) {
+      setError(formatApiError(caught, 'Schonfrist konnte nicht gespeichert werden.'))
+    } finally {
+      setPumpSaving(false)
     }
   }
 
@@ -239,6 +262,16 @@ function SettingsPage() {
               <div className="co-row-end st-strompreis">
                 <input inputMode="decimal" value={strompreis} onChange={(event) => setStrompreis(event.target.value)} placeholder="z. B. 32,5" aria-label="Strompreis in Cent je kWh" style={{ width: 90 }} />
                 <button type="button" className="ls-btn is-small" disabled={strompreisSaving} onClick={() => void saveStrompreis()}>{strompreisSaving ? 'Speichert…' : 'Speichern'}</button>
+              </div>
+            </div>
+            <div className="co-row">
+              <div style={{ minWidth: 0 }}>
+                <div className="co-row-title">Pumpen-Schonfrist</div>
+                <div className="co-row-sub">Minuten Stillstand, bevor gewarnt wird. Wer die Umwälzung im Intervall fährt, stellt sie höher. Faustregel: 15.</div>
+              </div>
+              <div className="co-row-end st-strompreis">
+                <input inputMode="numeric" value={pumpSchonfrist} onChange={(event) => setPumpSchonfrist(event.target.value)} placeholder="15" aria-label="Pumpen-Schonfrist in Minuten" style={{ width: 90 }} />
+                <button type="button" className="ls-btn is-small" disabled={pumpSaving} onClick={() => void savePumpSchonfrist()}>{pumpSaving ? 'Speichert…' : 'Speichern'}</button>
               </div>
             </div>
             <div className="co-row st-import">

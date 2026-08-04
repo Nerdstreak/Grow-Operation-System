@@ -53,4 +53,30 @@ public sealed class SystemHeartbeat
         get { lock (_gate) { return _notifiedCode; } }
         set { lock (_gate) { _notifiedCode = value; } }
     }
+
+    private readonly Dictionary<int, string> _pumpMeldungen = [];
+
+    /// <summary>
+    /// Welche Pumpen-Lage dem Betreiber je Zelt zuletzt gemeldet wurde.
+    /// </summary>
+    /// <remarks>
+    /// Je Zelt getrennt, aus demselben Grund, aus dem der Watchdog die dunklen
+    /// Zelte im Schlüssel führt: fällt im zweiten Zelt auch die Pumpe aus, ist
+    /// das eine neue Lage und verdient eine eigene Nachricht, statt sich hinter
+    /// der alten zu verstecken. Nur im Speicher — nach einem Neustart wird neu
+    /// bewertet und im Zweifel einmal zu viel gewarnt.
+    /// </remarks>
+    public string? PumpMeldung(int tentId)
+    {
+        lock (_gate) { return _pumpMeldungen.TryGetValue(tentId, out var v) ? v : null; }
+    }
+
+    public void SetPumpMeldung(int tentId, string? schluessel)
+    {
+        lock (_gate)
+        {
+            if (schluessel is null) _pumpMeldungen.Remove(tentId);
+            else _pumpMeldungen[tentId] = schluessel;
+        }
+    }
 }

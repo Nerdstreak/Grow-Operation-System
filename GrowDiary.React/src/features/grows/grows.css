@@ -239,3 +239,11 @@
   .gd-plan-hint .gc-facts { margin: 0; flex: 1 1 260px; min-width: 0; }
   .gd-plan-hint .ls-btn { margin-left: 0; }
 }
+
+/* Woher „Fertig ~12.09." kommt. Die Dauern fuer Trocknen und Aushaerten sind
+   Richtwerte aus der Literatur, keine Termine — das gehoert sichtbar dazu. */
+.gd-ready-note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}

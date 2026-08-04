@@ -22,6 +22,8 @@ public static class TentSensorMetricKeyMap
             SensorMetricType.ReservoirLevelCm => "reservoir-level-cm",
             SensorMetricType.PumpCirculation => "pump-circulation",
             SensorMetricType.PumpAir => "pump-air",
+            SensorMetricType.PumpCirculationPower => "pump-circulation-power",
+            SensorMetricType.PumpAirPower => "pump-air-power",
             SensorMetricType.Chiller => "chiller",
             SensorMetricType.UpsBattery => "ups-battery",
             SensorMetricType.UpsStatus => "ups-status",

@@ -8,8 +8,11 @@ import { RiskActionCard } from '../features/risks/RiskActionCard'
 import { TASKS_CHANGED_EVENT } from '../useNavCounts'
 
 type FaelligeRoutine = { sopId: string; name: string; severity: string; tageSeit: number; intervallTage: number; meldung: string }
-type ActionState = { grows: GrowSummary[]; risks: RiskEventDto[]; tasks: GrowTaskDto[]; maintenance: MaintenanceEventDto[]; calibration: CalibrationEventDto[]; sops: SopInstanceDto[]; hardware: HardwareItemDto[]; dueByGrow: Array<{ grow: GrowSummary; items: FaelligeRoutine[] }>; issues: string[] }
-const initial: ActionState = { grows: [], risks: [], tasks: [], maintenance: [], calibration: [], sops: [], hardware: [], dueByGrow: [], issues: [] }
+type PumpBefund = { schluessel: string; name: string; stufe: string; meldung: string; herkunft: string }
+type PumpZeltLage = { tentId: number; tentName: string; befunde: PumpBefund[] }
+type WartungsPunkt = { bereich: string; titel: string; stufe: string; meldung: string; herkunft: string }
+type ActionState = { grows: GrowSummary[]; risks: RiskEventDto[]; tasks: GrowTaskDto[]; maintenance: MaintenanceEventDto[]; calibration: CalibrationEventDto[]; sops: SopInstanceDto[]; hardware: HardwareItemDto[]; dueByGrow: Array<{ grow: GrowSummary; items: FaelligeRoutine[] }>; pumpen: PumpZeltLage[]; wartung: WartungsPunkt[]; issues: string[] }
+const initial: ActionState = { grows: [], risks: [], tasks: [], maintenance: [], calibration: [], sops: [], hardware: [], dueByGrow: [], pumpen: [], wartung: [], issues: [] }
 const riskRank: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 }
 
 function MobileActionPage() {
@@ -35,6 +38,12 @@ function MobileActionPage() {
         safe<CalibrationEventDto[]>('Kalibrierung', `/api/calibration-events?dueBeforeUtc=${encodeURIComponent(dueBeforeUtc)}`, []),
         safe<HardwareItemDto[]>('Hardware', '/api/hardware-items', []),
       ])
+      // Die stehende Pumpe zuerst: das ist die einzige Meldung hier, bei der
+      // Stunden ueber den ganzen Lauf entscheiden.
+      const pumpen = await safe<PumpZeltLage[]>('Pumpen', '/api/pump-watch', [])
+      // Verschleiss, Pruefung, Sicherung — die Termine, die aus den Angaben am
+      // Geraet selbst folgen und die frueher niemand las.
+      const wartung = await safe<WartungsPunkt[]>('Wartung faellig', '/api/maintenance-due', [])
       const activeGrows = grows.filter((grow) => grow.status === 'Running' || grow.status === 'Planning')
       const taskLists = await Promise.all(activeGrows.map((grow) => safe<GrowTaskDto[]>(`Tasks ${grow.id}`, `/api/grows/${grow.id}/tasks`, [])))
       const sopLists = await Promise.all(activeGrows.map((grow) => safe<SopInstanceDto[]>(`SOP ${grow.id}`, `/api/sop-instances?growId=${grow.id}`, [])))
@@ -45,7 +54,7 @@ function MobileActionPage() {
         .map((grow, index) => ({ grow, items: dueLists[index] ?? [] }))
         .filter((entry) => entry.items.length > 0)
       if (controller.signal.aborted) return
-      setState({ grows, risks: risks.filter((risk) => risk.status === 'Open' || risk.status === 'Acknowledged'), maintenance: maintenance.filter((item) => item.status === 'Planned'), calibration: calibration.filter((item) => item.status === 'Planned'), tasks: taskLists.flat().filter((task) => task.status === 'Open'), sops: sopLists.flat().filter((sop) => sop.status === 'Active'), hardware, dueByGrow, issues })
+      setState({ grows, risks: risks.filter((risk) => risk.status === 'Open' || risk.status === 'Acknowledged'), maintenance: maintenance.filter((item) => item.status === 'Planned'), calibration: calibration.filter((item) => item.status === 'Planned'), tasks: taskLists.flat().filter((task) => task.status === 'Open'), sops: sopLists.flat().filter((sop) => sop.status === 'Active'), hardware, dueByGrow, pumpen, wartung, issues })
       setLoading(false)
     }
     void load()
@@ -95,6 +104,31 @@ function MobileActionPage() {
 
       {loading ? <V1Skeleton tiles={3} rows={4} label="Lade Aufgaben" /> : (
         <div className="af-cols" data-audit="open-action-list">
+          {/* Ganz oben, vor allem anderen: eine stehende Luftpumpe kostet in
+              rund zwei Tagen den ganzen Lauf. Alles darunter kann warten. */}
+          {state.pumpen.some((zelt) => zelt.befunde.some((b) => b.stufe !== 'ok')) && (
+            <section className="ls-panel af-col" data-audit="pump-watch-section">
+              <div className="ls-panel-head">
+                <span className="ls-label">Pumpen</span>
+              </div>
+              <div className="ls-panel-body">
+                {state.pumpen.map((zelt) => (
+                  <div key={zelt.tentId} className="af-due-grow">
+                    <div className="co-row-title">{zelt.tentName}</div>
+                    {zelt.befunde.filter((b) => b.stufe !== 'ok').map((befund) => (
+                      <div key={befund.schluessel} className="co-row">
+                        <span className={befund.stufe === 'kritisch' ? 'co-row-text is-due' : 'co-row-text'}>
+                          {befund.meldung}
+                          <em className="af-pump-source">{befund.herkunft}</em>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Ueberfaellige Routinen aus den Zeitplaenen des Wissens. Vor den
               Risiken: wer den Wasserwechsel nachholt, verhindert das Risiko,
               statt es spaeter zu bestaetigen. Im Expertenmodus kommt die Liste
@@ -180,13 +214,17 @@ function MobileActionPage() {
   )
 }
 
-type AfItem = { id: string; when: string; due: boolean; title: string; to: string; action: string; taskId?: number }
+/** `note` traegt die Herkunft: woher ein Termin kommt, gehoert an den Termin. */
+type AfItem = { id: string; when: string; due: boolean; title: string; to: string; action: string; taskId?: number; note?: string }
 
 function AfRow({ item, busy, onDone }: { item: AfItem; busy?: boolean; onDone?: () => void }) {
   return (
     <li className="af-row">
       <span className={classNames('af-when', item.due && 'is-due')}>{item.when}</span>
-      <span className="af-title">{item.title}</span>
+      <span className="af-title">
+        {item.title}
+        {item.note && <em className="af-pump-source">{item.note}</em>}
+      </span>
       {/* Eine Hauptaktion je Zeile: eine Aufgabe hakt man ab, einen laufenden
           SOP setzt man fort. */}
       {onDone ? (
@@ -232,6 +270,17 @@ function buildTermine(state: ActionState): AfItem[] {
 /** Wartung, Kalibrierung und Hardware, die Aufmerksamkeit braucht. */
 function buildWartung(state: ActionState): AfItem[] {
   const rows: AfItem[] = [
+    // Was sich aus den Angaben am Geraet selbst ergibt — Lebensdauer,
+    // Pruefintervall, Alter der Sicherung. Zuvor stand das nur da.
+    ...state.wartung.map((punkt) => ({
+      id: `due-${punkt.bereich}-${punkt.titel}`,
+      when: punkt.stufe === 'kritisch' ? 'jetzt' : 'bald',
+      due: punkt.stufe === 'kritisch',
+      title: punkt.meldung,
+      to: punkt.bereich === 'Sicherung' ? '/einstellungen' : '/sensoren',
+      action: 'Öffnen',
+      note: punkt.herkunft,
+    })),
     ...state.maintenance.map((event) => {
       const when = dueInDays(event.dueAtUtc)
       return { id: `maintenance-${event.id}`, when: when.label, due: when.due, title: event.title, to: '/sensoren', action: 'Öffnen' }

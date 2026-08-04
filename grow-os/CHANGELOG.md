@@ -1,5 +1,40 @@
 # Changelog
 
+## 2.0.0-beta.31
+
+**Beta.** Three watchers, and the timeline finally reaches the end.
+
+- New — **the pump watch.** `pump-air` had been a configured metric since
+  forever and no service ever read it. Worse: a threshold rule on it could
+  never have fired, because alert evaluation needs a numeric value and an
+  on/off state has none — the rule would save, display, and stay silent. Now
+  a stopped pump raises the alarm within a minute, on your phone and in the
+  app. It reads **both signals**: the state from Home Assistant, and the
+  power draw of a metering socket when you have one — that second signal
+  catches the pump that reports "on" and moves nothing. The message says what
+  it costs and what to do right now. A grace period (default 15 minutes,
+  adjustable) keeps interval operation quiet. **This one ignores your
+  companion level:** unsubscribing from reminders is not unsubscribing from
+  the warning that saves the run.
+- New — **wear, inspection and backup are watched too.** Every device carries
+  an expected lifespan and an inspection interval; both were only ever
+  prefilled from the template and stored. Now they produce due items by
+  themselves, computed from *your* numbers and the install date — the app
+  invents no lifespans. Plus a backup reminder: without one, everything since
+  the last copy hangs on a single SD card.
+- New — **the timeline runs to the end.** It used to stop at harvest, which is
+  not when a run is finished. Drying and curing are now part of it, with an
+  estimated ready date. The durations are sourced (drying 7–14 days, curing
+  14 days minimum and 30–60 typical) and labelled as guide values, not
+  deadlines.
+- Fixed — **the mobile navigation was unreadable in the light theme.** The bar
+  carried a hardcoded dark green while the labels followed the theme:
+  measured contrast 1.12 where 4.5 is the minimum. It hit the primary mobile
+  surface. The contrast test that exists for exactly this trap was measuring
+  `main *` only — navigation and header sit outside it and had never been
+  checked in any width or theme. Both are fixed: the colour, and the test's
+  reach.
+
 ## 2.0.0-beta.30
 
 **Beta.** Your tap water gets an opinion, and the feed chart can set the targets.

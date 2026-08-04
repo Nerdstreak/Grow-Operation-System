@@ -75,12 +75,19 @@ public sealed class AlertWatchWorker : BackgroundService
             return;
         }
 
+        var pumpen = scope.ServiceProvider.GetRequiredService<PumpWatchNotifier>();
+
         foreach (var tent in repository.GetTents())
         {
             try
             {
                 var states = await haService.GetStatesAsync(settings, tent, cancellationToken);
                 await alertEval.EvaluateAsync(tent, states, cancellationToken);
+
+                // Reitet auf denselben Zustaenden mit: sie sind gerade geholt,
+                // und eine stehende Pumpe darf keine Minute laenger warten als
+                // ein ueberschrittener Grenzwert.
+                await pumpen.PruefenUndMeldenAsync(tent, states, DateTime.UtcNow, cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

@@ -111,7 +111,11 @@
       display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-1);
       position: fixed; inset: 58px 0 auto; z-index: 30;
       min-height: 48px; align-items: center; padding: var(--s-1) var(--s-2);
-      border-bottom: 1px solid var(--hair-2); background: #16241d;
+      /* NICHT festverdrahten. Hier stand `#16241d` — in der dunklen Ansicht
+         schoen, in der hellen dunkler Text auf dunklem Grund (gemessener
+         Kontrast 1,15). Dieselbe Falle wie zweimal zuvor, diesmal in der
+         Navigation, die am Handy jeder als Erstes sieht. */
+      border-bottom: 1px solid var(--hair-2); background: var(--panel);
     }
     .v1-mobile-nav-item {
       min-height: 40px; display: grid; place-items: center; border-radius: var(--r-sm);

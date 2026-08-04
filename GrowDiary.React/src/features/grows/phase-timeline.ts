@@ -21,7 +21,7 @@
 
 export type PhaseState = 'done' | 'current' | 'planned'
 
-export type PhaseName = 'Keim' | 'Sämling' | 'Veg' | 'Blüte'
+export type PhaseName = 'Keim' | 'Sämling' | 'Veg' | 'Blüte' | 'Trocknen' | 'Aushärten'
 
 export type Phase = {
   /** Für kurze Anzeigen („Veg Tag 20") — ohne den Text zerlegen zu müssen. */
@@ -39,7 +39,9 @@ export type Phase = {
 
 export type PhaseTimeline = {
   phases: Phase[]
-  dates: { start: string; flip: string; harvest: string }
+  dates: { start: string; flip: string; harvest: string; ready: string }
+  /** Woher die Dauern für Trocknen und Aushärten stammen — gehört an die Zahl. */
+  readyNote: string
   /** true, sobald der Flip nur geplant und noch nicht erfolgt ist. */
   flipIsPlanned: boolean
   /** Tage bis zum geplanten Flip; negativ heißt überfällig. Null ohne Plan. */
@@ -61,12 +63,37 @@ export type PhaseTimelineInput = {
   plannedVegDays?: number | null
   breederFlowerWeeksMin?: number | null
   breederFlowerWeeksMax?: number | null
+  /** Wann wirklich geerntet wurde — ab da laufen Trocknen und Aushärten echt. */
+  endDate?: string | null
 }
+
+/**
+ * Trocknen und Aushärten: die Zeit nach der Ernte.
+ *
+ * Der Strahl endete bisher an der Ernte — und damit vor der Frage, die den
+ * Betreiber wirklich umtreibt: wann ist es fertig? Zwischen „geerntet" und
+ * „rauchbar" liegen Wochen, und die standen nirgends.
+ *
+ * Die Dauern sind belegt, nicht geschätzt:
+ * - Trocknen: 7–14 Tage bei 58–62 % rF; hier gerechnet mit 10.
+ * - Aushärten: 14 Tage Minimum, 30–60 Tage der eigentliche Bereich; hier 30.
+ * Quellen: budtrainer.com „The 62% RH Jar Curing Guide", atmosiscience.com
+ * „How Long & How to Burp Cannabis Jars".
+ *
+ * Beide sind Richtwerte und keine Termine — wer länger aushärtet, macht nichts
+ * falsch. Deshalb steht die Herkunft als `readyNote` mit im Ergebnis.
+ */
+export const TROCKNEN_TAGE = 10
+export const AUSHAERTEN_TAGE = 30
+const READY_NOTE =
+  `Rechnung: ${TROCKNEN_TAGE} Tage Trocknen (Bereich 7–14) und ${AUSHAERTEN_TAGE} Tage Aushärten `
+  + '(Minimum 14, üblich 30–60) nach der Ernte. Richtwerte aus der Curing-Literatur, keine Termine.'
 
 const TAG = 86_400_000
 const EMPTY: PhaseTimeline = {
   phases: [],
-  dates: { start: '—', flip: '—', harvest: '—' },
+  dates: { start: '—', flip: '—', harvest: '—', ready: '—' },
+  readyNote: READY_NOTE,
   flipIsPlanned: false,
   daysToFlip: null,
 }
@@ -215,13 +242,71 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
     phases.push({ name: 'Blüte', label: 'Blüte · offen', short: 'Blüte —', days: 0, state: 'planned' })
   }
 
+  // ---------- Trocknen und Aushaerten ----------
+  // Ab hier endete der Strahl. „Geerntet" ist aber nicht „fertig": erst nach
+  // Trocknen und Aushaerten ist der Lauf wirklich durch, und genau danach
+  // fragt man, wenn man vor dem Zelt steht.
+  const geerntet = parse(grow.endDate)
+  const trockenStart = geerntet ?? harvest
+  const trockenEnde = trockenStart ? new Date(trockenStart.getTime() + TROCKNEN_TAGE * TAG) : null
+  const fertig = trockenEnde ? new Date(trockenEnde.getTime() + AUSHAERTEN_TAGE * TAG) : null
+
+  // Nur ein WIRKLICH geernteter Grow laeuft durch diese Phasen; vorher sind sie
+  // Vorschau. Sonst stuende „Trocknen Tag 3" an einem Grow, der noch bluet.
+  const imTrocknen = geerntet !== null && jetzt < (trockenEnde?.getTime() ?? 0)
+  const imAushaerten = geerntet !== null && trockenEnde !== null && jetzt >= trockenEnde.getTime()
+
+  if (imTrocknen && geerntet) {
+    const tagImTrocknen = Math.floor((jetzt - geerntet.getTime()) / TAG) + 1
+    phases.push({
+      name: 'Trocknen',
+      label: `Trocknen · Tag ${tagImTrocknen} von ${TROCKNEN_TAGE}`,
+      short: `Trocknen ${tagImTrocknen}/${TROCKNEN_TAGE}`,
+      days: TROCKNEN_TAGE,
+      state: 'current',
+      progress: Math.min(1, tagImTrocknen / TROCKNEN_TAGE),
+      dayInPhase: tagImTrocknen,
+    })
+  } else {
+    phases.push({
+      name: 'Trocknen',
+      label: `Trocknen ${TROCKNEN_TAGE} T`,
+      short: `Trocknen ${TROCKNEN_TAGE} T`,
+      days: TROCKNEN_TAGE,
+      state: imAushaerten ? 'done' : 'planned',
+    })
+  }
+
+  if (imAushaerten && trockenEnde) {
+    const tagImCure = Math.floor((jetzt - trockenEnde.getTime()) / TAG) + 1
+    phases.push({
+      name: 'Aushärten',
+      label: `Aushärten · Tag ${tagImCure} von ${AUSHAERTEN_TAGE}`,
+      short: `Aushärten ${tagImCure}/${AUSHAERTEN_TAGE}`,
+      days: AUSHAERTEN_TAGE,
+      state: 'current',
+      progress: Math.min(1, tagImCure / AUSHAERTEN_TAGE),
+      dayInPhase: tagImCure,
+    })
+  } else {
+    phases.push({
+      name: 'Aushärten',
+      label: `Aushärten ${AUSHAERTEN_TAGE} T`,
+      short: `Aushärten ${AUSHAERTEN_TAGE} T`,
+      days: AUSHAERTEN_TAGE,
+      state: 'planned',
+    })
+  }
+
   return {
     phases,
     dates: {
       start: shortDate(start),
       flip: shortDate(flipFuerRechnung),
-      harvest: shortDate(harvest),
+      harvest: shortDate(geerntet ?? harvest),
+      ready: shortDate(fertig),
     },
+    readyNote: READY_NOTE,
     flipIsPlanned,
     daysToFlip: flipIsPlanned && flipFuerRechnung
       ? Math.round((flipFuerRechnung.getTime() - jetzt) / TAG)

@@ -490,6 +490,10 @@ public enum SensorMetricType
     ReservoirLevelCm,
     PumpCirculation,
     PumpAir,
+    /// <summary>Leistungsaufnahme der Umwaelzpumpe in Watt — verraet die Pumpe, die „an" meldet und nichts tut.</summary>
+    PumpCirculationPower,
+    /// <summary>Leistungsaufnahme der Luftpumpe in Watt.</summary>
+    PumpAirPower,
     Chiller,
     UpsBattery,
     UpsStatus
