@@ -105,6 +105,7 @@ builder.Services.AddScoped<SopDueService>();
 builder.Services.AddSingleton<WasserAmpelService>();
 builder.Services.AddScoped<PumpWatchNotifier>();
 builder.Services.AddScoped<WartungDueService>();
+builder.Services.AddScoped<NachtabsenkungWriter>();
 builder.Services.AddSingleton<SolutionStabilityAnalyzer>();
 builder.Services.AddScoped<TrendWatchRunner>();
 builder.Services.AddSingleton<TentSensorHardwareSyncService>();

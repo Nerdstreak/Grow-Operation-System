@@ -3,6 +3,14 @@ namespace GrowDiary.Web.Models;
 public sealed class Tent
 {
     public int Id { get; set; }
+
+    /// <summary>Die Entität, in die der Wassertemperatur-Sollwert geschrieben wird.</summary>
+    /// <remarks>
+    /// Ein Thermostat (`climate.…`) oder ein Zahlenfeld (`number.…`,
+    /// `input_number.…`). Bewusst getrennt vom Chiller-SENSOR: das eine liest,
+    /// das andere stellt. Leer heisst: es wird nichts geschrieben.
+    /// </remarks>
+    public string? WaterTargetEntityId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Kind { get; set; } = "Grow Tent";
     public TentType TentType { get; set; } = TentType.MultiPurpose;

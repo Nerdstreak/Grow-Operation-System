@@ -85,6 +85,7 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
         var haService   = scope.ServiceProvider.GetRequiredService<HomeAssistantService>();
         var lightStatus = scope.ServiceProvider.GetRequiredService<LightStatusTransitionService>();
         var lightWatch = scope.ServiceProvider.GetRequiredService<LightWatchService>();
+        var nachtabsenkung = scope.ServiceProvider.GetRequiredService<NachtabsenkungWriter>();
         var notifications = scope.ServiceProvider.GetRequiredService<NotificationService>();
         var heartbeat   = scope.ServiceProvider.GetRequiredService<SystemHeartbeat>();
 
@@ -128,6 +129,13 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
                     if (flanke is not null)
                     {
                         await lightWatch.CheckIntrusionAsync(tent, flanke, cancellationToken);
+
+                        // Die Nachtabsenkung haengt sich an dieselbe Flanke: bei
+                        // Licht an der Tagwert, bei Licht aus der Nachtwert.
+                        // Zweimal am Tag ein Sollwert — mehr macht Grow OS hier
+                        // nicht, geregelt wird in Home Assistant.
+                        await nachtabsenkung.SchreibenAsync(
+                            tent, flanke.Kind == LightTransitionKind.LightOn, DateTime.Now, cancellationToken);
                     }
                 }
 

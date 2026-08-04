@@ -120,7 +120,7 @@ public sealed class GrowCoreRepository : RepositoryBase
             INSERT INTO Grows
             (
                 TentId, SystemId, SetupId, Name, StrainId, Strain, Breeder, Status, MediumType, FeedingStyle, HydroStyle, MediumDetail,
-                Environment, Light, ContainerSize, ReservoirSize, IrrigationStyle, IrrigationType, WaterSource, FeedProgramId, UseFeedChartTargets,
+                Environment, Light, ContainerSize, ReservoirSize, IrrigationStyle, IrrigationType, WaterSource, FeedProgramId, UseFeedChartTargets, NightRampEnabled, NightRampFloorC,
                 SeedType, StartMaterial, GerminationMethod, CloneSource, CloneIsRooted,
                 BreederFlowerWeeksMin, BreederFlowerWeeksMax, PlannedVegDays, SetpointProfileId, PlantCount, PhenoNumber,
                 PropagationMedium, HasChiller, EntryPoint, DaysAlreadyInPhase,
@@ -131,7 +131,7 @@ public sealed class GrowCoreRepository : RepositoryBase
             VALUES
             (
                 $tentId, $systemId, $setupId, $name, $strainId, $strain, $breeder, $status, $mediumType, $feedingStyle, $hydroStyle, $mediumDetail,
-                $environment, $light, $containerSize, $reservoirSize, $irrigationStyle, $irrigationType, $waterSource, $feedProgramId, $useFeedChartTargets,
+                $environment, $light, $containerSize, $reservoirSize, $irrigationStyle, $irrigationType, $waterSource, $feedProgramId, $useFeedChartTargets, $nightRampEnabled, $nightRampFloorC,
                 $seedType, $startMaterial, $germinationMethod, $cloneSource, $cloneIsRooted,
                 $breederFlowerWeeksMin, $breederFlowerWeeksMax, $plannedVegDays, $setpointProfileId, $plantCount, $phenoNumber,
                 $propagationMedium, $hasChiller, $entryPoint, $daysAlreadyInPhase,
@@ -175,6 +175,8 @@ public sealed class GrowCoreRepository : RepositoryBase
                 WaterSource = $waterSource,
                 FeedProgramId = $feedProgramId,
                 UseFeedChartTargets = $useFeedChartTargets,
+                NightRampEnabled = $nightRampEnabled,
+                NightRampFloorC = $nightRampFloorC,
                 SeedType = $seedType,
                 StartMaterial = $startMaterial,
                 GerminationMethod = $germinationMethod,
@@ -561,6 +563,8 @@ public sealed class GrowCoreRepository : RepositoryBase
             WaterSource = ParseEnum(reader["WaterSource"]?.ToString(), WaterSource.Tap),
             FeedProgramId = !HasColumn(reader, "FeedProgramId") || reader["FeedProgramId"] is DBNull ? null : reader["FeedProgramId"]?.ToString(),
             UseFeedChartTargets = HasColumn(reader, "UseFeedChartTargets") && reader["UseFeedChartTargets"] is not DBNull && Convert.ToInt64(reader["UseFeedChartTargets"]) != 0,
+            NightRampEnabled = HasColumn(reader, "NightRampEnabled") && reader["NightRampEnabled"] is not DBNull && Convert.ToInt64(reader["NightRampEnabled"]) != 0,
+            NightRampFloorC = !HasColumn(reader, "NightRampFloorC") || reader["NightRampFloorC"] is DBNull ? null : Convert.ToDouble(reader["NightRampFloorC"]),
             SeedType = ParseEnum(reader["SeedType"]?.ToString(), SeedType.Feminized),
             StartMaterial = ParseEnum(reader["StartMaterial"]?.ToString(), StartMaterial.Seed),
             GerminationMethod = reader["GerminationMethod"] is DBNull or null ? null : Enum.TryParse<GerminationMethod>(reader["GerminationMethod"]?.ToString(), out var gm) ? gm : null,
@@ -701,6 +705,8 @@ public sealed class GrowCoreRepository : RepositoryBase
         command.Parameters.AddWithValue("$waterSource", grow.WaterSource.ToString());
         command.Parameters.AddWithValue("$feedProgramId", (object?)grow.FeedProgramId ?? DBNull.Value);
         command.Parameters.AddWithValue("$useFeedChartTargets", grow.UseFeedChartTargets ? 1 : 0);
+        command.Parameters.AddWithValue("$nightRampEnabled", grow.NightRampEnabled ? 1 : 0);
+        command.Parameters.AddWithValue("$nightRampFloorC", (object?)grow.NightRampFloorC ?? DBNull.Value);
         command.Parameters.AddWithValue("$seedType", grow.SeedType.ToString());
         command.Parameters.AddWithValue("$startMaterial", grow.StartMaterial.ToString());
         command.Parameters.AddWithValue("$germinationMethod", (object?)grow.GerminationMethod?.ToString() ?? DBNull.Value);

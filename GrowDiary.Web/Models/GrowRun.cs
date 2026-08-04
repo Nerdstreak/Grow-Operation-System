@@ -59,6 +59,16 @@ public sealed class GrowRun
     /// Phasenprofils bleiben will, soll das duerfen.
     /// </remarks>
     public bool UseFeedChartTargets { get; set; }
+
+    /// <summary>Ob die Nachttemperatur je Blütewoche abgesenkt wird.</summary>
+    /// <remarks>
+    /// Aus, solange niemand es einschaltet. Das hier greift in die Kuehlung ein —
+    /// das darf nie eine Nebenwirkung einer anderen Einstellung sein.
+    /// </remarks>
+    public bool NightRampEnabled { get; set; }
+
+    /// <summary>Wo die Rampe stehen bleibt; ohne Angabe der Finish-Nachtwert des Profils.</summary>
+    public double? NightRampFloorC { get; set; }
     public SeedType SeedType { get; set; } = SeedType.Feminized;
     public StartMaterial StartMaterial { get; set; } = StartMaterial.Seed;
     public GerminationMethod? GerminationMethod { get; set; }

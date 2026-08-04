@@ -338,7 +338,8 @@ public sealed class HomeAssistantService
         string domain,
         string service,
         string entityId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IReadOnlyDictionary<string, object>? daten = null)
     {
         if (!settings.IsConfigured || string.IsNullOrWhiteSpace(domain)
             || string.IsNullOrWhiteSpace(service) || string.IsNullOrWhiteSpace(entityId))
@@ -351,13 +352,22 @@ public sealed class HomeAssistantService
         if (DemoData.IsEnabled)
         {
             _logger.LogInformation("Testdaten: {Domain}.{Service} fuer {Entity} — nicht wirklich geschaltet.", domain, service, entityId);
+            _ = daten;
             return true;
         }
 
         try
         {
             var client = CreateClient(settings);
-            var payload = JsonSerializer.Serialize(new { entity_id = entityId });
+            // Manche Dienste brauchen mehr als die Entitaet: ein Thermostat will
+            // `temperature`, ein Zahlenfeld `value`. Deshalb ein Woerterbuch statt
+            // eines festen Objekts.
+            var felder = new Dictionary<string, object> { ["entity_id"] = entityId };
+            if (daten is not null)
+            {
+                foreach (var (schluessel, wert) in daten) felder[schluessel] = wert;
+            }
+            var payload = JsonSerializer.Serialize(felder);
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var response = await client.PostAsync($"api/services/{domain}/{service}", content, cancellationToken);
             if (!response.IsSuccessStatusCode)

@@ -247,3 +247,39 @@
   color: var(--muted);
   font-size: 0.78rem;
 }
+
+/* Die Nachtabsenkung: der Plan als Kette von Wochen. Die laufende Woche traegt
+   den Akzent — man soll auf einen Blick sehen, was HEUTE gilt. */
+.nr-plan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: var(--s-3) 0 0;
+}
+
+.nr-week {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 8px 12px;
+  display: grid;
+  gap: 1px;
+  min-width: 118px;
+}
+
+.nr-week.is-now {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.nr-week-label { color: var(--muted); font-size: 0.75rem; }
+.nr-week-val { font-variant-numeric: tabular-nums; font-size: 0.95rem; }
+.nr-week-note { color: var(--muted); font-size: 0.72rem; }
+
+.nr-source,
+.nr-state {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.nr-source { margin: var(--s-2) 0 0; }
+.nr-state { align-self: center; }

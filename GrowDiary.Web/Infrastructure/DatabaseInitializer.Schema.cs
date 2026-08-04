@@ -42,6 +42,8 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "Grows", "WaterSource", "TEXT NOT NULL DEFAULT 'Tap'");
         EnsureColumn(connection, "Grows", "FeedProgramId", "TEXT NULL");
         EnsureColumn(connection, "Grows", "UseFeedChartTargets", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "Grows", "NightRampEnabled", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "Grows", "NightRampFloorC", "REAL NULL");
         EnsureColumn(connection, "Grows", "SeedType",                       "TEXT NOT NULL DEFAULT 'Feminized'");
         EnsureColumn(connection, "Grows", "StartMaterial",                  "TEXT NOT NULL DEFAULT 'Seed'");
         EnsureColumn(connection, "Grows", "GerminationMethod",              "TEXT NULL");
@@ -103,6 +105,7 @@ public sealed partial class DatabaseInitializer
         command.ExecuteNonQuery();
         EnsureColumn(connection, "Tents", "Status", "TEXT NOT NULL DEFAULT 'Active'");
         EnsureColumn(connection, "Tents", "CameraEntityIds", "TEXT NULL");
+        EnsureColumn(connection, "Tents", "WaterTargetEntityId", "TEXT NULL");
         EnsureColumn(connection, "Tents", "LeafTempOffsetC", "REAL NOT NULL DEFAULT 0");
         EnsureColumn(connection, "GrowSystems", "TentId", "INTEGER NULL");
         EnsureColumn(connection, "GrowSystems", "Status", "TEXT NOT NULL DEFAULT 'Active'");

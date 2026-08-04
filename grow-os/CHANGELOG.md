@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.0.0-beta.32
+
+**Beta.** Crop steering, the way it actually works in water.
+
+- New — **the night ramp.** In substrate you steer a crop with dry-backs. In
+  a recirculating system the roots never leave the water, so that lever does
+  not exist — the lever here is water temperature. The night target now drops
+  one degree per flowering week down to a floor, which is the method SKX (the
+  author of this app's RDWC procedures) calls the *cold morning routine*.
+  - **The whole plan is visible before anything is switched.** Week by week,
+    day and night, with the current week marked. An automation whose effect
+    you only notice at the chiller has no business in a grow room.
+  - **Grow OS plans, Home Assistant regulates.** Twice a day — at lights-on and
+    lights-off — Grow OS writes a setpoint to your thermostat or number entity.
+    The control loop with its hysteresis stays where the probe and the relay
+    are. If this add-on crashes or updates, Home Assistant keeps the last
+    setpoint and the ramp simply pauses; nothing swings.
+  - Off unless you switch it on, per grow. A floor you set, and a hard limit
+    of 12 °C the floor can never go below. Every write goes to the audit log.
+  - Before the flip, nothing is written — a guessed flowering week would move
+    a real chiller.
+
 ## 2.0.0-beta.31
 
 **Beta.** Three watchers, and the timeline finally reaches the end.

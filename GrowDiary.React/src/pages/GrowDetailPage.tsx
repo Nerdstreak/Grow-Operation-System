@@ -7,6 +7,7 @@ import { useGrowDetailMutations } from '../features/grow-detail/useGrowDetailMut
 import { formatGrowStatus } from '../features/grow-detail/grow-detail-model'
 import { V1Alert, V1Badge, V1Button, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { buildPhaseTimeline, flipLabel } from '../features/grows/phase-timeline'
+import { NightRampCard } from '../features/grows/NightRampCard'
 import type { GrowDeviationDto } from '../types'
 import { apiFetch } from '../api'
 
@@ -251,6 +252,10 @@ function GrowDetailPage() {
             )}
           </section>
         </div>
+
+        {/* Die Nachtabsenkung steht bei den Fakten, nicht bei der Verwaltung:
+            sie ist eine Anbau-Entscheidung, kein Aufräumen. */}
+        <NightRampCard growId={grow.id} />
 
         {/* Verwaltung unten — Beenden und Löschen gehören nicht neben die
             täglichen Handlungen in der Kopfzeile. */}

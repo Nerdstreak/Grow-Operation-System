@@ -89,14 +89,14 @@ public sealed class TentRepository : RepositoryBase
                 WidthCm, DepthCm, TentHeightCm, LightType, LightWatt,
                 LightController, LightControllerEntityId, ExhaustFanCount, ExhaustM3h,
                 CirculationFanCount, HvacController, HvacControllerEntityId,
-                Co2Available, HasCo2Enrichment, CameraEntityId, CameraEntityIds, LeafTempOffsetC, CreatedAtUtc, UpdatedAtUtc
+                Co2Available, HasCo2Enrichment, CameraEntityId, CameraEntityIds, WaterTargetEntityId, LeafTempOffsetC, CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
                 $name, $kind, $tentType, $status, $notes, $displayOrder, $accentColor,
                 $widthCm, $depthCm, $tentHeightCm, $lightType, $lightWatt,
                 $lightController, $lightControllerEntityId, $exhaustFanCount, $exhaustM3h,
                 $circulationFanCount, $hvacController, $hvacControllerEntityId,
-                $co2Available, $hasCo2Enrichment, $cameraEntityId, $cameraEntityIds, $leafTempOffsetC, datetime('now'), datetime('now')
+                $co2Available, $hasCo2Enrichment, $cameraEntityId, $cameraEntityIds, $waterTargetEntityId, $leafTempOffsetC, datetime('now'), datetime('now')
             );
             SELECT last_insert_rowid();
         """;
@@ -142,6 +142,7 @@ public sealed class TentRepository : RepositoryBase
                 HasCo2Enrichment = $hasCo2Enrichment,
                 CameraEntityId = $cameraEntityId,
                 CameraEntityIds = $cameraEntityIds,
+                WaterTargetEntityId = $waterTargetEntityId,
                 LeafTempOffsetC = $leafTempOffsetC,
                 UpdatedAtUtc = datetime('now')
             WHERE Id = $id;
@@ -480,6 +481,7 @@ public sealed class TentRepository : RepositoryBase
             HasCo2Enrichment = HasColumn(reader, "HasCo2Enrichment") && reader["HasCo2Enrichment"] is not DBNull and not null && Convert.ToInt32(reader["HasCo2Enrichment"], CultureInfo.InvariantCulture) == 1,
             CameraEntityId = NullString(reader["CameraEntityId"]),
             CameraEntityIds = HasColumn(reader, "CameraEntityIds") ? NullString(reader["CameraEntityIds"]) : null,
+            WaterTargetEntityId = HasColumn(reader, "WaterTargetEntityId") ? NullString(reader["WaterTargetEntityId"]) : null,
             LeafTempOffsetC = HasColumn(reader, "LeafTempOffsetC") ? Convert.ToDouble(reader["LeafTempOffsetC"] is DBNull ? 0d : reader["LeafTempOffsetC"]) : 0d,
             ActiveGrowCount = reader["ActiveGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ActiveGrowCount"], CultureInfo.InvariantCulture),
             ArchivedGrowCount = reader["ArchivedGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ArchivedGrowCount"], CultureInfo.InvariantCulture),
@@ -541,6 +543,7 @@ public sealed class TentRepository : RepositoryBase
         command.Parameters.AddWithValue("$hasCo2Enrichment", tent.HasCo2Enrichment ? 1 : 0);
         command.Parameters.AddWithValue("$cameraEntityId", (object?)tent.CameraEntityId ?? DBNull.Value);
         command.Parameters.AddWithValue("$cameraEntityIds", (object?)tent.CameraEntityIds ?? DBNull.Value);
+        command.Parameters.AddWithValue("$waterTargetEntityId", (object?)tent.WaterTargetEntityId ?? DBNull.Value);
         command.Parameters.AddWithValue("$leafTempOffsetC", tent.LeafTempOffsetC);
     }
 
