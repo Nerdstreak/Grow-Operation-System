@@ -12,11 +12,28 @@ public static class LightStateNormalizer
             return LightState.Unknown;
         }
 
-        return normalized.ToLowerInvariant() switch
+        var wort = normalized.ToLowerInvariant() switch
         {
             "on" or "true" or "1" or "open" => LightState.On,
             "off" or "false" or "0" or "closed" => LightState.Off,
             _ => LightState.Unknown
         };
+
+        if (wort != LightState.Unknown) return wort;
+
+        // Ein Helligkeitssensor meldet keine Schalterstellung, sondern eine Zahl:
+        // Lichtstärke in Prozent, Lux oder die Leistungsaufnahme der Lampe. Aus
+        // dem Feld: ein gemappter Sensor mit „100.0 %" galt als unlesbar, und die
+        // Kachel behauptete daraufhin, es sei gar keiner eingerichtet.
+        //
+        // Die Schwelle liegt bewusst knapp über null statt in der Mitte: eine
+        // gedimmte Lampe ist an, eine dunkle Kammer misst nichts.
+        if (double.TryParse(normalized, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var zahl))
+        {
+            return zahl >= 1 ? LightState.On : LightState.Off;
+        }
+
+        return LightState.Unknown;
     }
 }

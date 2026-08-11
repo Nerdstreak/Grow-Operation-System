@@ -75,6 +75,69 @@ public sealed class DeviationRiskEventSyncServiceTests : IDisposable
         Assert.All(risks, risk => Assert.NotNull(risk.ResolvedAtUtc));
     }
 
+    /// <summary>
+    /// „Erledigt" muss halten — sonst ist der Knopf eine Lüge.
+    /// </summary>
+    /// <remarks>
+    /// Aus dem Feld: „Diese WasserTemp-Abweichung bekomme ich nicht weg, egal ob
+    /// ich Erledigt oder Bestätigt markiere." Die Dedup-Suche kannte nur offene
+    /// Ereignisse; ein erledigtes fand sie nicht und legte beim naechsten
+    /// Durchlauf ein neues an, weil die Abweichung aus derselben unveraenderten
+    /// Messung weiterhin folgte.
+    /// </remarks>
+    [Fact]
+    public void SyncActiveGrowDeviations_KeepsResolvedRisksClosedUntilNewDataArrives()
+    {
+        var growId = CreateHydroGrow("Abgehakt Hydro");
+        AddMeasurement(growId, Utc(2026, 5, 20), ec: 3.2, orp: 700, waterTemp: 25);
+        _service.SyncActiveGrowDeviations();
+
+        var offen = _repository.GetRiskEventsByGrow(growId)
+            .Where(risk => risk.Source == RiskEventSource.Deviation)
+            .ToList();
+        foreach (var risk in offen)
+        {
+            _repository.ResolveRiskEvent(risk.Id, Utc(2026, 5, 20).AddHours(1), "vom Betreiber erledigt");
+        }
+
+        // Kein neuer Messwert: der Durchlauf darf nichts wiederbeleben.
+        _service.SyncActiveGrowDeviations();
+        _service.SyncActiveGrowDeviations();
+
+        var danach = _repository.GetRiskEventsByGrow(growId)
+            .Where(risk => risk.Source == RiskEventSource.Deviation)
+            .ToList();
+
+        Assert.Equal(offen.Count, danach.Count);
+        Assert.All(danach, risk => Assert.Equal(RiskEventStatus.Resolved, risk.Status));
+    }
+
+    [Fact]
+    public void SyncActiveGrowDeviations_ReportsAgainWhenANewerMeasurementStillShowsIt()
+    {
+        var growId = CreateHydroGrow("Wieder da Hydro");
+        AddMeasurement(growId, Utc(2026, 5, 20), ec: 3.2, orp: 700, waterTemp: 25);
+        _service.SyncActiveGrowDeviations();
+
+        foreach (var risk in _repository.GetRiskEventsByGrow(growId).Where(r => r.Source == RiskEventSource.Deviation))
+        {
+            _repository.ResolveRiskEvent(risk.Id, Utc(2026, 5, 20).AddHours(1), "erledigt");
+        }
+
+        // Eine NEUE Messung zeigt dieselbe Abweichung erneut — das ist eine
+        // Neuigkeit und muss sich wieder melden, sonst verschweigt die App
+        // ein weiterbestehendes Problem.
+        AddMeasurement(growId, Utc(2026, 5, 22), ec: 3.2, orp: 700, waterTemp: 25);
+        _service.SyncActiveGrowDeviations();
+
+        var wiederOffen = _repository.GetRiskEventsByGrow(growId)
+            .Where(risk => risk.Source == RiskEventSource.Deviation)
+            .Where(risk => risk.Status == RiskEventStatus.Open)
+            .ToList();
+
+        Assert.NotEmpty(wiederOffen);
+    }
+
     private int CreateHydroGrow(string name)
     {
         var tent = _repository.GetTents().Single();

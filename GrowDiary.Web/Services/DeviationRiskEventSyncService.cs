@@ -47,9 +47,38 @@ public sealed class DeviationRiskEventSyncService
             .GroupBy(recommendation => recommendation.DeviationStableKey, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
+        // Was der Betreiber abgehakt hat, und wann.
+        //
+        // Aus dem Feld gemeldet: „Diese WasserTemp-Abweichung bekomme ich nicht
+        // weg, egal ob ich Erledigt oder Bestätigt markiere." Der Grund stand
+        // hier: die Dedup-Suche kennt nur offene Ereignisse, ein erledigtes fand
+        // sie nicht — und legte beim nächsten Durchlauf ein neues an, weil die
+        // Abweichung aus derselben unveränderten Messung weiterhin folgte. Der
+        // Knopf tat sichtbar nichts.
+        //
+        // Jetzt gilt: erledigt heisst erledigt, BIS es neue Daten gibt. Kommt
+        // eine Messung, die dieselbe Abweichung erneut zeigt, meldet sie sich
+        // wieder — sie ist dann ja auch wieder eine Neuigkeit.
+        var erledigtAm = _repository.GetRiskEventsByGrow(grow.Id)
+            .Where(risk => risk.Source == RiskEventSource.Deviation)
+            .Where(risk => risk.Status == RiskEventStatus.Resolved)
+            .Where(risk => risk.ResolvedAtUtc is not null && !string.IsNullOrWhiteSpace(risk.DedupeKey))
+            .GroupBy(risk => risk.DedupeKey!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                gruppe => gruppe.Key,
+                gruppe => gruppe.Max(risk => risk.ResolvedAtUtc!.Value.ToUniversalTime()),
+                StringComparer.OrdinalIgnoreCase);
+
         var changed = 0;
         foreach (var deviation in deviations)
         {
+            var zuletztGesehen = (deviation.LastDetectedAtUtc ?? DateTime.UtcNow).ToUniversalTime();
+            if (erledigtAm.TryGetValue(DedupeKey(grow.Id, deviation.StableKey), out var abgehakt)
+                && abgehakt >= zuletztGesehen)
+            {
+                continue;
+            }
+
             recommendations.TryGetValue(deviation.StableKey, out var recommendation);
             var beforeCount = _repository.GetRiskEvents().Count;
             _repository.CreateRiskEvent(ToRiskEvent(grow, deviation, recommendation));

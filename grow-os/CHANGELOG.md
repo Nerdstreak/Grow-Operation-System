@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.0-beta.33
+
+**Beta.** Two bugs a tester found, both real.
+
+- Fixed — **a mapped light sensor read as "no sensor mapped".** If your light
+  entity reports a brightness (`100.0` %, lux, watts) instead of on/off, the
+  tile showed nothing and then claimed nothing was mapped — sending you back to
+  a mapping screen that was already correct. Brightness now counts: anything
+  from 1 upward is lights-on, below that is off. And when a value genuinely
+  can't be read, the tile says what arrived (`Sensor liefert „xy"`) instead of
+  denying the sensor exists.
+- Fixed — **"done" on a deviation did nothing.** Marking a deviation risk as
+  resolved dropped it out of the duplicate check, so the very next sync created
+  it again from the same unchanged measurement. The button was visibly
+  pointless; only adding a new measurement ever cleared it. Now resolved means
+  resolved until new data arrives — and if a **newer** measurement still shows
+  the deviation, it reports again, because that is news.
+
 ## 2.0.0-beta.32
 
 **Beta.** Crop steering, the way it actually works in water.

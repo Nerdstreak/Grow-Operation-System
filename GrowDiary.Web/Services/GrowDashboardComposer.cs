@@ -788,7 +788,15 @@ public sealed class GrowDashboardComposer
             Tone = "info",
             Hint = cycle is not null
                 ? $"aus den letzten {cycle.Days} Schaltvorgängen gelesen"
-                : states.Count == 0 ? "Nicht mit Home Assistant verbunden" : "Kein Licht-Sensor gemappt"
+                : states.Count == 0
+                    ? "Nicht mit Home Assistant verbunden"
+                    // „Kein Sensor gemappt" war hier gelogen, wenn einer gemappt
+                    // war und sein Wert nur nicht gelesen werden konnte. Wer den
+                    // Sensor gerade eingetragen hat, sucht dann an der falschen
+                    // Stelle. Also sagen, WAS ankommt.
+                    : states.TryGetValue(TentSensorMetricKeyMap.Resolve(SensorMetricType.LightStatus), out var roh)
+                        ? $"Sensor liefert „{roh.State}“ — daraus lässt sich kein An/Aus lesen."
+                        : "Kein Licht-Sensor gemappt"
         };
     }
 
