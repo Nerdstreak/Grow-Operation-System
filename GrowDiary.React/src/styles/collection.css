@@ -187,3 +187,49 @@
   font-size: 0.78rem;
   font-style: normal;
 }
+
+/* ---------- Diagnose von der Pflanze her ---------- */
+
+.og-bereiche { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: var(--s-3) 0 0; }
+
+.og-frage {
+  margin: var(--s-3) 0 var(--s-2);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.og-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+
+.og-eintrag {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  padding: 8px 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.og-eintrag:hover { color: var(--accent); }
+
+.og-detail {
+  display: grid;
+  gap: var(--s-3);
+  padding: 0 0 var(--s-3) var(--s-3);
+  border-left: 2px solid var(--accent);
+  margin: 0 0 var(--s-2) 2px;
+}
+
+.og-block-head {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.og-block ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 2px; }
+.og-art { color: var(--muted); font-size: 0.75rem; font-style: normal; }

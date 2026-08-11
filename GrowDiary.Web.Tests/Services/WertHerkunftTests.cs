@@ -112,6 +112,33 @@ public sealed class WertHerkunftTests
         Assert.Equal("knapp", AerationCheck.Beurteilen(600, 200)!.Stufe);
     }
 
+    /// <summary>
+    /// Zwei Faustregeln, die auseinandergehen — und keine wird verworfen.
+    /// </summary>
+    /// <remarks>
+    /// SKX nennt 0,5 L/min je Liter als Optimum und alles darüber als
+    /// schädlich; die DWC-Literatur setzt die untere Kante bei etwa 0,1. Die
+    /// App nennt beides: knapp über dem Optimum bleibt es grün (eine Faustregel
+    /// ist ein Ziel, keine Klippe), deutlich darüber kommt der Satz mit der
+    /// Begründung — aber ohne Aufforderung, eine laufende Anlage umzubauen.
+    /// </remarks>
+    [Fact]
+    public void AboveTheOptimumTheAppExplainsInsteadOfScolding()
+    {
+        // 1200 L/h auf 36 L = 0,56 je Liter: 11 % ueber dem Optimum. Gruen.
+        Assert.Equal("gut", AerationCheck.Beurteilen(1200, 36)!.Stufe);
+
+        // 1200 L/h auf 20 L = 1,0 je Liter: das ist der Whirlpool-Fall.
+        Assert.Equal("sehr_hoch", AerationCheck.Beurteilen(1200, 20)!.Stufe);
+
+        // 1200 L/h auf 25 L = 0,8 je Liter: deutlich ueber dem Optimum, aber
+        // kein Whirlpool — hier steht der erklaerende Satz.
+        var reichlich = AerationCheck.Beurteilen(1200, 25)!;
+        Assert.Equal("mehr_als_noetig", reichlich.Stufe);
+        Assert.Contains("Optimum", reichlich.Satz);
+        Assert.Contains("kein Grund umzubauen", reichlich.Satz);
+    }
+
     [Fact]
     public void WithoutPumpOrVolumeThereIsNoVerdictInsteadOfAGuess()
     {

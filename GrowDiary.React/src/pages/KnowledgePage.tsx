@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { KnowledgeOverviewDto, NutrientProgramDto, WearTemplateDto } from '../types'
 import { V1Page, V1Skeleton } from '../components/v1'
+import { ShoppingList } from '../features/knowledge/ShoppingList'
 import '../features/knowledge/knowledge.css'
 
 type TopicId = 'rdwc' | 'addback' | 'rootrot' | 'ph-ec' | 'athena' | 'canna' | 'sensors' | 'troubleshooting'
@@ -813,6 +814,9 @@ function KnowledgePage() {
       }
     >
       {body}
+      {/* Die Materiallisten der Ablaeufe, zusammengefuehrt — sie standen bisher
+          nur in der gedruckten Mappe. */}
+      <ShoppingList />
     </V1Page>
   )
 }

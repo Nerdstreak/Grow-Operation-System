@@ -1,3 +1,5 @@
+using GrowDiary.Web.Infrastructure;
+
 namespace GrowDiary.Web.Services;
 
 /// <summary>Die Einschätzung der Belüftung — ohne DO-Messgerät.</summary>
@@ -28,6 +30,23 @@ public sealed record BelueftungsUrteil(string Stufe, string Satz, double LiterLu
 /// </remarks>
 public static class AerationCheck
 {
+    /// <summary>Das Optimum in L Luft je Minute und Liter Wasser.</summary>
+    /// <remarks>
+    /// Von SKX, dem Autor der RDWC-Abläufe in dieser Wissensbasis: darüber wird
+    /// es schädlich. Die untere Kante (0,10) stammt aus der allgemeinen
+    /// DWC-Literatur — beide Zahlen stehen nebeneinander, keine ersetzt die
+    /// andere.
+    /// </remarks>
+    public const double OptimumJeLiter = 0.5;
+
+    /// <summary>Wie weit über dem Optimum es noch unbedenklich ist.</summary>
+    /// <remarks>
+    /// Eine Faustregel ist ein Ziel, keine Klippe. Wer bei 0,56 statt 0,50
+    /// liegt, bekommt sonst eine Belehrung für 11 % — und lernt, die Hinweise
+    /// zu überlesen. Erst ab der Hälfte darüber lohnt der Satz.
+    /// </remarks>
+    private const double ToleranzFaktor = 1.5;
+
     /// <summary>Sauerstoff-Sättigung (mg/L) je Wassertemperatur, USGS-Tabelle.</summary>
     private static readonly (double TempC, double MgL)[] Saettigung =
     [
@@ -70,11 +89,31 @@ public static class AerationCheck
         var jeLiter = Math.Round(lph / 60.0 / liter, 3);
         var basis = $"{lph:0} L/h auf {liter:0} L Wasser";
 
+        // Zwei Faustregeln, die nicht dasselbe sagen — und beide bleiben stehen:
+        //
+        //   0,10 L/min je Liter  = die untere Kante, ab der es laeuft (etwa
+        //                          „1 W Belueftung je Gallone" aus der
+        //                          DWC-Literatur).
+        //   0,50 L/min je Liter  = das Optimum nach SKX; darueber wird es
+        //                          schaedlich, weil sich zwischen Loesung und
+        //                          Deckel ein Luftpolster bildet, in dem
+        //                          freiliegende Wurzeln austrocknen.
+        //
+        // Die App verwirft keine der beiden. Sie nennt den gruenen Bereich enger
+        // als frueher und sagt beim Ueberschreiten, WESSEN Grenze das ist —
+        // damit niemand seine funktionierende Anlage wegen einer Zahl umbaut,
+        // die er nicht einordnen kann.
         return jeLiter switch
         {
             >= 1.0 => new BelueftungsUrteil(
                 "sehr_hoch",
                 $"Sehr viel Luft ({basis}). Eher drosseln oder auf mehrere Ausströmer verteilen — zu starke Verwirbelung schadet jungen Wurzeln.",
+                jeLiter),
+            > OptimumJeLiter * ToleranzFaktor => new BelueftungsUrteil(
+                "mehr_als_noetig",
+                $"Mehr als nötig ({basis}). Als Optimum gelten {OptimumJeLiter.ToString("0.##", AppCulture.German)} L/min je Liter — "
+                    + "darüber sammelt sich Luft zwischen Lösung und Deckel, und freiliegende Wurzeln können austrocknen. "
+                    + "Läuft es bei dir gut, ist das kein Grund umzubauen; beim nächsten Ausströmer aber die kleinere Nummer.",
                 jeLiter),
             >= 0.10 => new BelueftungsUrteil(
                 "gut",

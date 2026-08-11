@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ph-down-saeurewahl",
+  "title": "pH-Down passend zur Phase wählen: Salpetersäure in der Veg, Phosphorsäure in der Blüte",
+  "rule": "Nicht irgendein pH-Minus, sondern die Säure, deren Rest die Pflanze gerade braucht. In der Wachstumsphase Salpetersäure — sie bringt Stickstoff mit. In der Blüte Phosphorsäure — sie bringt Phosphor mit. Der Anteil ist klein, aber er landet nicht als Ballast in der Lösung, sondern als Nährstoff.",
+  "rationale": "Jede pH-Korrektur hinterlässt ihr Anion in der Nährlösung. Passt es zur Phase, wird es verwertet; passt es nicht, zählt es nur zum EC und verschiebt die Verhältnisse. Wer in der Blüte dauerhaft mit Salpetersäure korrigiert, schiebt Stickstoff nach, wo Phosphor gefragt ist — der pH driftet dann immer wieder in dieselbe Richtung.",
+  "commonMistake": "Ein einziges pH-Minus für den ganzen Lauf, ohne auf die Säure zu schauen. Einmalig ist das folgenlos; über Wochen macht es sich als wiederkehrender Drift bemerkbar.",
+  "metrics": ["ph"],
+  "stages": ["Veg", "Transition", "Flower"],
+  "applicableSetups": ["RDWC", "DWC"],
+  "sources": [
+    {
+      "type": "Interview",
+      "title": "Podcast Vince x SKX — RDWC (Autor der RDWC-SOPs)",
+      "reference": "Abschnitt pH-Down, ca. 1:01:00",
+      "credibility": "High"
+    }
+  ]
+}

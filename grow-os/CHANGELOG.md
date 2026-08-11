@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.0.0-beta.36
+
+**Beta.** Four things the app already knew but never said.
+
+- New — **diagnosis from the plant.** Everything on the diagnosis page argued
+  from numbers: pH speed, EC behaviour, oxygen, ORP. Someone looking at a
+  yellow leaf found nothing there — while twenty symptoms and thirty treatments
+  sat in the knowledge base, reachable only if you already knew what to search
+  for. Now you start where you actually start: **leaf · root · solution**, pick
+  what you see, and get the possible causes, what to check yourself, and what
+  helps. No AI — three questions and a list; the links have been in the symptom
+  files all along. Routine entries in those same categories (a preventive
+  measure, a cutting ready for the system) are not offered as findings: an
+  entry without possible causes is not something to diagnose.
+- New — **the shopping list.** Every procedure carries the materials it needs,
+  and they were only ever read when printing the binder. They are now one list:
+  each thing once, grouped the way you shop, with the procedure that needs it —
+  and what several procedures need comes first.
+- New — **two rules from the SOP author, written down.** *pH 5,8–6,2: let it
+  swing, don't correct* — the drift itself says whether the plant took cations
+  or anions, and a dosing pump held to one number erases that signal. And *pick
+  the acid to match the phase*: nitric acid in veg brings nitrogen, phosphoric
+  acid in flower brings phosphorus; the leftover becomes a nutrient instead of
+  ballast.
+- Changed — **the aeration check names both rules of thumb.** 0,10 L/min per
+  litre is the lower edge from the DWC literature, 0,5 the optimum per SKX.
+  Above the optimum the app now explains what happens (air pockets under the
+  lid, exposed roots drying) — with room, because a rule of thumb is a target
+  and not a cliff, and without telling you to rebuild a rig that works.
+
 ## 2.0.0-beta.35
 
 **Beta.** A history curve on the live screen, if you want one.

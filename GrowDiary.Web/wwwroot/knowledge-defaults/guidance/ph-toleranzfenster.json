@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ph-toleranzfenster",
+  "title": "pH 5,8–6,2: pendeln lassen, nicht nachregeln",
+  "rule": "Zwischen pH 5,8 und 6,2 wird NICHT eingegriffen — in diesem Fenster arbeitet die Pflanze selbst. Erst darüber hinaus wird auf den Wochenwert korrigiert (Veg 6,0 · Streckung 5,9 · Blüte 5,8). Die Richtung der Wanderung ist dabei die eigentliche Auskunft: steigt der pH, hat die Pflanze mehr Kationen gezogen (Stickstoff, Calcium, Magnesium); fällt er, mehr Anionen (Phosphor, Kalium).",
+  "rationale": "Wer jede Zehntelstelle zurückstellt, löscht das einzige tägliche Signal, das die Pflanze ohne Sensor sendet. Das Pendeln IST die Nachricht — nicht der Fehler. Bleibt der pH dagegen auffällig stehen oder springt er weit hinaus, stimmt etwas mit der Lösung nicht, und dann lohnt das Nachsehen.",
+  "commonMistake": "Eine pH-Dosierpumpe auf einen festen Wert stellen und damit jede Bewegung sofort wegregeln. Dann steht immer dieselbe Zahl da, die Pflanze ist nicht mehr lesbar, und in der Lösung sammelt sich ein Cocktail aus Säure und Base, der den nächsten Wasserwechsel erzwingt.",
+  "metrics": ["ph"],
+  "stages": [],
+  "applicableSetups": ["RDWC", "DWC"],
+  "sources": [
+    {
+      "type": "Interview",
+      "title": "Podcast Vince x SKX — RDWC (Autor der RDWC-SOPs)",
+      "reference": "Abschnitt pH-Drift, ca. 1:04:00",
+      "credibility": "High"
+    }
+  ]
+}

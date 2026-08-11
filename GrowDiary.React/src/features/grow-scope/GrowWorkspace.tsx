@@ -6,6 +6,7 @@ import { GrowDetailMeasurementsSection } from '../grow-detail/GrowDetailMeasurem
 import { GrowDetailSopSection } from '../grow-detail/GrowDetailSopSection'
 import { SopCatalog } from '../grow-detail/SopCatalog'
 import { SolutionStabilityPanel } from '../grow-detail/SolutionStabilityPanel'
+import { ObservationGuide } from '../grow-detail/ObservationGuide'
 import { useGrowDetailBundle } from '../grow-detail/useGrowDetailBundle'
 import { useGrowDetailMutations } from '../grow-detail/useGrowDetailMutations'
 import { useGrowDetailResources } from '../grow-detail/useGrowDetailResources'
@@ -139,6 +140,10 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
           onSubmit={handleMeasurementSubmit}
         />
       )}
+
+      {/* Der Einstieg von der Pflanze her — vor die Zahlen, weil wer
+          hierherkommt meist etwas GESEHEN hat und nicht gemessen. */}
+      {section === 'diagnosis' && <ObservationGuide />}
 
       {section === 'diagnosis' && <SolutionStabilityPanel growId={growId} />}
 
