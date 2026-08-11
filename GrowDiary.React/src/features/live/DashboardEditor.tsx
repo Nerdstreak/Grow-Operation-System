@@ -4,10 +4,12 @@ import {
   KNOWN_METRICS,
   addSection,
   addTile,
+  chartTile,
   entityTile,
   metricTile,
   type DashboardLayout,
 } from './dashboard-layout'
+import { VERLAUFS_METRIKEN } from './useTentSparklines'
 import { classNames } from '../../utils'
 
 type HaEntity = {
@@ -150,6 +152,32 @@ function AddTileDialog({
         </div>
 
         <div className="ls-dialog-body">
+          {/* Der Verlauf zuerst: er ist das Einzige im Dialog, das mehrere
+              Messwerte auf einmal mitnimmt — und genau danach wird gesucht,
+              wenn jemand „so ein Diagramm" haben will. */}
+          <div className="ls-dialog-cap">Verlauf</div>
+          <button
+            type="button"
+            className="ls-pick"
+            data-audit="add-history-chart"
+            onClick={() => {
+              const bereich = layout.sections.find((section) => section.id === sectionId)
+              // Nur Werte, hinter denen wirklich eine Kurve stehen kann —
+              // „Licht" ist ein Zustand und ergaebe eine leere Zusage.
+              const werte = (bereich?.tiles ?? [])
+                .filter((tile) => tile.kind === 'Metric' && tile.metricKey)
+                .map((tile) => tile.metricKey as string)
+                .filter((key) => (VERLAUFS_METRIKEN as readonly string[]).includes(key))
+              onAdd(sectionId, chartTile(werte.length > 0 ? werte : ['temperature', 'humidity', 'vpd']))
+            }}
+          >
+            <span className="dot" />
+            <span className="ls-pick-text">
+              Verlauf · 24 h
+              <em> — alle Werte dieses Bereichs in einem Bild</em>
+            </span>
+          </button>
+
           {metriken.length > 0 && (
             <>
               <div className="ls-dialog-cap">Grow OS kennt</div>

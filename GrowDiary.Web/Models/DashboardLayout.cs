@@ -10,7 +10,9 @@ public enum DashboardTileKind
     /// <summary>Any Home Assistant entity — including ones Grow OS knows nothing about.</summary>
     Entity,
     /// <summary>A camera entity, shown as a refreshing still image.</summary>
-    Camera
+    Camera,
+    /// <summary>Mehrere Messwerte als 24-Stunden-Verlauf in einem Bild.</summary>
+    Chart
 }
 
 public sealed class DashboardTile
@@ -23,6 +25,17 @@ public sealed class DashboardTile
 
     /// <summary>Set for <see cref="DashboardTileKind.Entity"/>.</summary>
     public string? EntityId { get; set; }
+
+    /// <summary>
+    /// Welche Messwerte die Verlaufs-Kachel zeichnet.
+    /// </summary>
+    /// <remarks>
+    /// Nur für <see cref="DashboardTileKind.Chart"/>. Eine eigene Liste statt
+    /// des einzelnen <see cref="MetricKey"/>, weil genau das Zusammensehen den
+    /// Nutzen ausmacht: Temperatur, Feuchte und VPD nebeneinander erzählen
+    /// etwas, das drei getrennte Kurven nicht erzählen.
+    /// </remarks>
+    public List<string>? MetricKeys { get; set; }
 
     /// <summary>Overrides the automatic caption; null keeps the default label.</summary>
     public string? Label { get; set; }

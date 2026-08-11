@@ -8,6 +8,10 @@ import { TabbedCollectionPage } from './TabbedCollectionPage'
  * Reihenfolge des Entwurfs — Grenzwerte zuerst, denn das ist der Bereich,
  * den man im Alltag anfasst.
  *
+ * Der Untertitel nennt ausdruecklich die beiden Automatiken, die NICHT hier
+ * sitzen. Wer Automatik sucht, kommt auf die Seite, die so heisst — und schloss
+ * bisher aus ihrem Inhalt, dass es die anderen nicht gibt.
+ *
  * Sorten und Archiv sind keine Tab-Sammlungen mehr: der Entwurf legt
  * Bibliothek + Pheno-Hunt bzw. Ertragstabelle + Vergleich auf je eine Seite.
  */
@@ -16,7 +20,7 @@ export function RulesCollectionPage() {
     <TabbedCollectionPage
       eyebrow="Anlage / Regeln"
       title="Regeln & Automatik"
-      subtitle="Grenzwerte, Auto-Messungen und Benachrichtigungen an einem Ort — vorher drei Seiten plus KI-Assistent."
+      subtitle="Grenzwerte, Auto-Messungen und Benachrichtigungen an einem Ort. Zwei Automatiken sitzen dort, wo sie wirken: die Dosierung bei den Pumpen und die Nachtabsenkung beim jeweiligen Grow."
       tabs={[
         { key: 'grenzwerte', label: 'Grenzwerte', render: () => <AlertsPage /> },
         { key: 'automatik', label: 'Auto-Messungen', render: () => <AutomationPage /> },

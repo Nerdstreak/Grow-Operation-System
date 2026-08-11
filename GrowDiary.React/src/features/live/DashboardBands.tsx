@@ -2,6 +2,7 @@ import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import type { MetricPayload } from '../../types'
 import type { HistoryPoint } from '../../components/SensorChart'
 import { MetricTile } from './MetricTile'
+import { HistoryChart } from './HistoryChart'
 import { decimalsForMetric } from './metric-tile-model'
 import { metricProvenance } from './live-model'
 import { SectionHead } from './DashboardEditor'
@@ -110,9 +111,26 @@ export function DashboardBands({
                     editing && 'is-draggable',
                     dragged?.sectionId === section.id && dragged.index === index && 'is-dragging',
                     over === encodeDropTarget(section.id, index) && 'is-over')}
-                  style={{ flex: `${Math.min(Math.max(tile.span, 1), 3)} 1 150px` }}
+                  // Ein Verlauf teilt sich die Zeile mit nichts: neben drei Kacheln
+                  // waere er ein Streifen, in dem man keine Kurve mehr erkennt.
+                  style={tile.kind === 'Chart'
+                    ? { flex: '1 1 100%' }
+                    : { flex: `${Math.min(Math.max(tile.span, 1), 3)} 1 150px` }}
                   data-drop-target={encodeDropTarget(section.id, index)}
                 >
+                  {tile.kind === 'Chart' ? (
+                    <div className="ls-chart-tile">
+                      <div className="ls-chart-head">{tile.label ?? 'Verlauf · 24 h'}</div>
+                      <HistoryChart
+                        lines={(tile.metricKeys ?? []).map((key) => ({
+                          key,
+                          label: metricsByKey.get(key)?.label ?? key,
+                          unit: metricsByKey.get(key)?.unit ?? null,
+                          points: trends.get(key) ?? [],
+                        }))}
+                      />
+                    </div>
+                  ) : (
                   <MetricTile
                     label={metric.label}
                     value={metric.numericValue}
@@ -127,6 +145,7 @@ export function DashboardBands({
                     sourceNote={metricProvenance(metric).sourceNote}
                     stale={metricProvenance(metric).stale}
                   />
+                  )}
                   {editing && (
                     <span className="ls-tile-tools">
                       <button

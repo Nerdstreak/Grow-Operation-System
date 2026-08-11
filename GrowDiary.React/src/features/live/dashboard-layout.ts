@@ -8,13 +8,15 @@ import type { MetricPayload } from '../../types'
  * Drag-and-Drop still danebengreift, und im DOM ist das nicht zu prüfen.
  */
 
-export type DashboardTileKind = 'Metric' | 'Entity' | 'Camera'
+export type DashboardTileKind = 'Metric' | 'Entity' | 'Camera' | 'Chart'
 
 export type DashboardTile = {
   id: string
   kind: DashboardTileKind
   metricKey: string | null
   entityId: string | null
+  /** Nur fuer 'Chart': welche Messwerte zusammen gezeichnet werden. */
+  metricKeys?: string[] | null
   label: string | null
   unit: string | null
   /** Wie viel Platz die Kachel bekommt, 1–3. Bestandslayouts tragen das schon. */
@@ -46,6 +48,28 @@ export const KNOWN_METRICS: ReadonlyArray<{ key: string; label: string }> = [
   { key: 'orp', label: 'ORP' },
   { key: 'dissolved-oxygen', label: 'Sauerstoff' },
 ]
+
+/**
+ * Eine Verlaufs-Kachel für die Messwerte eines Bereichs.
+ *
+ * Sie nimmt die Messwerte mit, die im Bereich ohnehin stehen — wer „Klima"
+ * einen Verlauf gibt, will Temperatur, Feuchte, VPD und CO₂ zusammen sehen und
+ * nicht noch einmal auswählen. Nachträglich lässt sich die Kachel entfernen
+ * wie jede andere.
+ */
+export function chartTile(metricKeys: string[], label = 'Verlauf · 24 h'): DashboardTile {
+  return {
+    id: newId(),
+    kind: 'Chart',
+    metricKey: null,
+    entityId: null,
+    metricKeys,
+    label,
+    unit: null,
+    // Ein Verlauf über eine Drittel-Breite waere unlesbar.
+    span: 3,
+  }
+}
 
 export function newId(): string {
   return Math.random().toString(36).slice(2, 10)

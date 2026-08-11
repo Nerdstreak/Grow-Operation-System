@@ -63,7 +63,12 @@ public sealed class DashboardApiController : ApiControllerBase
                     Id = string.IsNullOrWhiteSpace(section.Id) ? Guid.NewGuid().ToString("N")[..8] : section.Id,
                     Title = string.IsNullOrWhiteSpace(section.Title) ? "Bereich" : section.Title.Trim(),
                     Tiles = (section.Tiles ?? [])
-                        .Where(tile => !string.IsNullOrWhiteSpace(tile.MetricKey) || !string.IsNullOrWhiteSpace(tile.EntityId))
+                        // Eine Kachel muss zeigen KOENNEN, was sie verspricht: einen
+                        // Messwert, eine Entitaet — oder, beim Verlauf, mindestens eine
+                        // Linie. Ohne das waere sie ein leerer Kasten.
+                        .Where(tile => !string.IsNullOrWhiteSpace(tile.MetricKey)
+                            || !string.IsNullOrWhiteSpace(tile.EntityId)
+                            || (tile.MetricKeys?.Count ?? 0) > 0)
                         // Kameras haben auf dem Live-Bildschirm ihre eigene Bühne mit
                         // Umschaltleiste. Als Kachel daneben wären sie dasselbe Bild
                         // ein zweites Mal, nur kleiner.
@@ -79,6 +84,13 @@ public sealed class DashboardApiController : ApiControllerBase
                             Label = string.IsNullOrWhiteSpace(tile.Label) ? null : tile.Label.Trim(),
                             Unit = string.IsNullOrWhiteSpace(tile.Unit) ? null : tile.Unit.Trim(),
                             Span = Math.Clamp(tile.Span ?? 1, 1, 3),
+                            MetricKeys = (tile.MetricKeys?.Count ?? 0) == 0
+                                ? null
+                                : tile.MetricKeys!
+                                    .Where(key => !string.IsNullOrWhiteSpace(key))
+                                    .Select(key => key.Trim())
+                                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                                    .ToList(),
                         })
                         .ToList(),
                 })
@@ -139,7 +151,7 @@ public sealed class DashboardApiController : ApiControllerBase
             section.Id,
             section.Title,
             section.Tiles.Select(tile => new DashboardTileDto(
-                tile.Id, tile.Kind.ToString(), tile.MetricKey, tile.EntityId, tile.Label, tile.Unit, tile.Span)).ToList()
+                tile.Id, tile.Kind.ToString(), tile.MetricKey, tile.EntityId, tile.Label, tile.Unit, tile.Span, tile.MetricKeys)).ToList()
         )).ToList(),
         isCustom);
 }

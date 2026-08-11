@@ -7,7 +7,9 @@ public sealed record DashboardTileDto(
     string? EntityId,
     string? Label,
     string? Unit,
-    int? Span = 1);
+    int? Span = 1,
+    /// <summary>Nur für Kind = Chart: welche Messwerte zusammen gezeichnet werden.</summary>
+    List<string>? MetricKeys = null);
 
 public sealed record DashboardSectionDto(
     string? Id,

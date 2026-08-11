@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.0.0-beta.35
+
+**Beta.** A history curve on the live screen, if you want one.
+
+- New — **the 24-hour history tile.** Several readings in one picture, the way
+  a tester had built for himself outside the app: temperature, humidity, VPD
+  and CO₂ over the same time axis, with a cursor that puts the values of that
+  moment under the chart. **You add it yourself** in the customise mode — it is
+  never there uninvited — and it takes the readings of the section you put it
+  in. Each line is scaled to its own range, because 25 °C, 69 % and 0,64 kPa on
+  one axis makes VPD a flat line on the floor. Readings that can never draw a
+  curve (light is a state, not a number) are not offered.
+  - The tile needs no new data: the live screen already loads these 24 hours
+    for its sparklines.
+- Fixed — **"Regeln & Automatik" looked like it held every automation.** It
+  holds thresholds, automatic measurements and notifications; dosing sits with
+  the pumps and the night ramp with its grow. The page now names those two in
+  its own subtitle instead of leaving you to conclude they don't exist.
+
 ## 2.0.0-beta.34
 
 **Beta.** Saying which page does what.

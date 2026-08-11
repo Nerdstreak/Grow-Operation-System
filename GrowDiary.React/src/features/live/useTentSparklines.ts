@@ -2,11 +2,19 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '../../api'
 import type { HistoryPoint, TentHistory } from '../../components/SensorChart'
 
-// Die Werte, hinter denen eine 24-Stunden-Kurve stehen kann.
-const SPARK_METRICS = [
+/**
+ * Die Werte, hinter denen eine 24-Stunden-Kurve stehen kann.
+ *
+ * Exportiert, weil die Verlaufs-Kachel dieselbe Liste braucht: einen Wert
+ * anzubieten, der nie eine Linie ergibt (etwa „Licht", ein Zustand), waere eine
+ * leere Zusage.
+ */
+export const VERLAUFS_METRIKEN = [
   'temperature', 'humidity', 'vpd', 'co2', 'ppfd',
   'reservoir-ph', 'reservoir-ec', 'reservoir-temp', 'reservoir-level', 'orp', 'dissolved-oxygen',
-].join(',')
+] as const
+
+const SPARK_METRICS = VERLAUFS_METRIKEN.join(',')
 
 /**
  * Die letzten 24 Stunden je Messwert, in EINEM Abruf.
