@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../api'
 import type { AutoMeasurementConfigDto, AutoMeasurementFieldMappingUpsertRequest, AutoMeasurementTriggerKind } from '../types'
@@ -159,6 +160,14 @@ function AutomationPage() {
   return (
     <>
       <div className="co-tabhead">
+        {/* Diese Seite heisst „Regeln & Automatik", enthaelt aber nur die
+          automatischen Messungen. Die uebrigen Automatiken liegen woanders —
+          wer hier steht, sucht sie und findet sie sonst nicht. */}
+        <p className="gc-facts">
+          Auf dieser Seite: <strong>automatische Messungen</strong>. Die anderen Automatiken sitzen dort,
+          wo sie wirken — <Link to="/dosierung">Dosierung</Link> bei den Pumpen und die
+          <strong> Nachtabsenkung</strong> beim jeweiligen Grow.
+        </p>
         <p className="gc-facts">Schalte eine Automatik an, fertig. Sie erfasst automatisch die Werte deiner in Home Assistant zugeordneten Sensoren. Voraussetzung: dein Licht ist in Home Assistant als Status hinterlegt.</p>
         <GrowScopePicker grows={grows} growId={growId} onChange={setGrowId} />
       </div>

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.0-beta.34
+
+**Beta.** Saying which page does what.
+
+- Fixed — **"why can I assign sensors in two places?"** You couldn't, but the
+  page said you could: *Sensoren & Wartung* advertised "HA-Mapping" in its own
+  subtitle while its form deliberately cannot set one. The mapping has always
+  lived on the Home Assistant page, and measured sensors appear in the
+  inventory by themselves. Both pages now say what they are for and what the
+  other one is for, and the empty "nicht gemappt" cell is a link to the place
+  that can actually fix it instead of a dead end.
+- Fixed — **"Regeln & Automatik" holds only one of the automations.** The page
+  is about automatic measurements; dosing sits with the pumps and the night
+  ramp sits with its grow. It now says so and links there, instead of leaving
+  you to conclude the others don't exist.
+- Fixed — **"Release & Daten" had no link anywhere.** A full page reachable
+  only by typing the URL. It is now linked from Settings, next to Onboarding.
+
 ## 2.0.0-beta.33
 
 **Beta.** Two bugs a tester found, both real.

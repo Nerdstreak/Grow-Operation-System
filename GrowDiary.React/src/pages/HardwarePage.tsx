@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { CalibrationEventDto, CreateHardwareItemRequest, HardwareDeviceKind, HardwareItemCriticality, HardwareItemDto, HardwareItemStatus, HomeAssistantEntity, HydroSetupDto, MaintenanceEventDto, TentDto, UpdateHardwareItemRequest, WearTemplateDto } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
@@ -290,7 +291,7 @@ function HardwarePage() {
     <V1Page
       eyebrow="Anlage / Sensoren"
       title="Sensoren & Wartung"
-      subtitle="Inventar, Zeltzuordnung, HA-Mapping und Kalibrierung in einer Tabelle."
+      subtitle="Deine Geräte: was verbaut ist, wann es geprüft, kalibriert oder getauscht gehört. Welche Home-Assistant-Entität welchen Messwert liefert, stellst du unter Home Assistant ein — gemessene Sensoren erscheinen dann hier von selbst."
       action={<button type="button" className="ls-btn is-primary" onClick={openCreate}>+ Gerät anlegen</button>}
     >
       {error && <V1Alert title="Fehler" message={error} tone="warn" />}
@@ -434,7 +435,12 @@ function HardwareRowView({ row, liveState, saving, onStatus, onEdit, onDelete }:
       </td>
       <td data-label="Art">{deviceKindLabel(item.deviceKind) ?? item.category}</td>
       <td data-label="Zelt">{row.tentName ?? <span className="hw-empty">—</span>}</td>
-      <td data-label="HA-Entity">{item.haEntityId ? <code className="hw-entity">{item.haEntityId}</code> : <span className="hw-empty">nicht gemappt</span>}</td>
+      {/* Die Zuordnung wird hier NICHT gesetzt, sie kommt von der HA-Seite. Ein
+          blosses „nicht gemappt" laedt zum Ausfuellen ein, wo es nichts auszufuellen
+          gibt — deshalb der Weg dorthin statt einer Sackgasse. */}
+      <td data-label="HA-Entity">{item.haEntityId
+        ? <code className="hw-entity">{item.haEntityId}</code>
+        : <Link className="hw-empty" to="/home-assistant">zuordnen →</Link>}</td>
       <td data-label="Wert">{liveState ?? <span className="hw-empty">—</span>}</td>
       <td data-label="Kalibrierung">
         {row.nextCare ? (
