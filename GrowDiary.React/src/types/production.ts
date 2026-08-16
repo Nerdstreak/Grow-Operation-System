@@ -45,6 +45,15 @@ export interface UpdateSetupRequest {
 }
 
 export interface StrainDto {
+  seedKind: 'Feminized' | 'Automatic' | 'Regular' | null
+  thcPercent: number | null
+  cbdPercent: number | null
+  sativaPercent: number | null
+  taste: string | null
+  effect: string | null
+  aroma: string | null
+  yieldIndoorGm2: number | null
+  heightIndoorCm: number | null
   id: number
   name: string
   breeder: string | null

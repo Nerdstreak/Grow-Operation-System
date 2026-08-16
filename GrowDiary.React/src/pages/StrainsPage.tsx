@@ -17,7 +17,23 @@ type StrainDraft = {
   stretchFactor: string
   vpdPreferenceShift: string
   notes: string
+  seedKind: '' | 'Feminized' | 'Automatic' | 'Regular'
+  thcPercent: string
+  cbdPercent: string
+  sativaPercent: string
+  taste: string
+  effect: string
+  aroma: string
+  yieldIndoorGm2: string
+  heightIndoorCm: string
 }
+
+const SEED_KINDS: Array<{ value: '' | 'Feminized' | 'Automatic' | 'Regular'; label: string }> = [
+  { value: '', label: '—' },
+  { value: 'Feminized', label: 'Feminisiert' },
+  { value: 'Automatic', label: 'Automatic' },
+  { value: 'Regular', label: 'Regulär' },
+]
 
 const DOMINANCE: Array<{ value: StrainDominance; label: string }> = [
   { value: 'Unknown', label: 'Unbekannt' },
@@ -27,7 +43,7 @@ const DOMINANCE: Array<{ value: StrainDominance; label: string }> = [
 ]
 
 function emptyDraft(): StrainDraft {
-  return { name: '', breeder: '', dominance: 'Unknown', flowerWeeksMin: '', flowerWeeksMax: '', nutrientDemandFactor: '', stretchFactor: '', vpdPreferenceShift: '', notes: '' }
+  return { name: '', breeder: '', dominance: 'Unknown', flowerWeeksMin: '', flowerWeeksMax: '', nutrientDemandFactor: '', stretchFactor: '', vpdPreferenceShift: '', notes: '', seedKind: '', thcPercent: '', cbdPercent: '', sativaPercent: '', taste: '', effect: '', aroma: '', yieldIndoorGm2: '', heightIndoorCm: '' }
 }
 
 function draftFrom(strain: StrainDto): StrainDraft {
@@ -41,6 +57,15 @@ function draftFrom(strain: StrainDto): StrainDraft {
     stretchFactor: strain.stretchFactor != null ? String(strain.stretchFactor) : '',
     vpdPreferenceShift: strain.vpdPreferenceShift != null ? String(strain.vpdPreferenceShift) : '',
     notes: strain.notes ?? '',
+    seedKind: strain.seedKind ?? '',
+    thcPercent: strain.thcPercent != null ? String(strain.thcPercent).replace('.', ',') : '',
+    cbdPercent: strain.cbdPercent != null ? String(strain.cbdPercent).replace('.', ',') : '',
+    sativaPercent: strain.sativaPercent != null ? String(strain.sativaPercent) : '',
+    taste: strain.taste ?? '',
+    effect: strain.effect ?? '',
+    aroma: strain.aroma ?? '',
+    yieldIndoorGm2: strain.yieldIndoorGm2 != null ? String(strain.yieldIndoorGm2) : '',
+    heightIndoorCm: strain.heightIndoorCm != null ? String(strain.heightIndoorCm) : '',
   }
 }
 
@@ -65,6 +90,15 @@ function draftToRequest(draft: StrainDraft) {
     stretchFactor: num(draft.stretchFactor),
     vpdPreferenceShift: num(draft.vpdPreferenceShift),
     notes: draft.notes.trim() || null,
+    seedKind: draft.seedKind || null,
+    thcPercent: num(draft.thcPercent),
+    cbdPercent: num(draft.cbdPercent),
+    sativaPercent: int(draft.sativaPercent),
+    taste: draft.taste.trim() || null,
+    effect: draft.effect.trim() || null,
+    aroma: draft.aroma.trim() || null,
+    yieldIndoorGm2: int(draft.yieldIndoorGm2),
+    heightIndoorCm: int(draft.heightIndoorCm),
   }
 }
 
@@ -146,7 +180,33 @@ function StrainsPage() {
     return () => controller.abort()
   }, [reloadKey])
 
-  const sorted = useMemo(() => [...strains].sort((a, b) => a.name.localeCompare(b.name, 'de')), [strains])
+  // Der Filter ersetzt die Excel des Testers: Typ als harte Auswahl, Text
+  // ueber Geschmack/Effekt/Aroma/Name, Sortierung waehlbar.
+  const [filterKind, setFilterKind] = useState<'' | 'Feminized' | 'Automatic' | 'Regular'>('')
+  const [filterText, setFilterText] = useState('')
+  const [sortBy, setSortBy] = useState<'name' | 'thc' | 'flower' | 'yield'>('name')
+
+  const sorted = useMemo(() => {
+    const suchtext = filterText.trim().toLowerCase()
+    const gefiltert = strains
+      .filter((strain) => filterKind === '' || strain.seedKind === filterKind)
+      .filter((strain) => {
+        if (suchtext === '') return true
+        return [strain.name, strain.breeder, strain.taste, strain.effect, strain.aroma, strain.notes]
+          .some((feld) => feld?.toLowerCase().includes(suchtext))
+      })
+    // Beim Sortieren nach einer Zahl gehoert „keine Angabe" ans Ende, nicht
+    // zwischen die Werte — sonst wirkt eine ungepflegte Sorte wie die beste.
+    const zahl = (wert: number | null) => wert ?? Number.NEGATIVE_INFINITY
+    return gefiltert.sort((a, b) => {
+      switch (sortBy) {
+        case 'thc': return zahl(b.thcPercent) - zahl(a.thcPercent) || a.name.localeCompare(b.name, 'de')
+        case 'flower': return zahl(a.flowerWeeksMin != null ? -a.flowerWeeksMin : null) - zahl(b.flowerWeeksMin != null ? -b.flowerWeeksMin : null) || a.name.localeCompare(b.name, 'de')
+        case 'yield': return zahl(b.yieldIndoorGm2) - zahl(a.yieldIndoorGm2) || a.name.localeCompare(b.name, 'de')
+        default: return a.name.localeCompare(b.name, 'de')
+      }
+    })
+  }, [strains, filterKind, filterText, sortBy])
 
   const statsByStrain = useMemo(() => {
     const map = new Map<string, StrainStats>()
@@ -265,13 +325,35 @@ function StrainsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
             <V1Field label="Name"><input value={draft.name} onChange={(event) => setDraft((d) => ({ ...d, name: event.target.value }))} placeholder="z. B. Purple Lemonade" /></V1Field>
             <V1Field label="Züchter"><input value={draft.breeder} onChange={(event) => setDraft((d) => ({ ...d, breeder: event.target.value }))} placeholder="z. B. FastBuds" /></V1Field>
-            <V1Field label="Typ">
+            <V1Field label="Dominanz">
               <select value={draft.dominance} onChange={(event) => setDraft((d) => ({ ...d, dominance: event.target.value as StrainDominance }))}>
                 {DOMINANCE.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
             </V1Field>
             <V1Field label="Blüte von (Wochen)"><input inputMode="numeric" value={draft.flowerWeeksMin} onChange={(event) => setDraft((d) => ({ ...d, flowerWeeksMin: event.target.value }))} placeholder="8" /></V1Field>
             <V1Field label="Blüte bis (Wochen)"><input inputMode="numeric" value={draft.flowerWeeksMax} onChange={(event) => setDraft((d) => ({ ...d, flowerWeeksMax: event.target.value }))} placeholder="10" /></V1Field>
+          </div>
+
+          {/* Die Zuechter-Angaben von der Samenpackung — Feedback des Testers,
+              der sie bisher in einer eigenen Excel pflegte. Alles optional, und
+              alles ausdruecklich „laut Zuechter": es sind Werbeangaben. */}
+          <p className="gc-facts" style={{ margin: '14px 0 8px' }}>
+            Angaben laut Züchter — von der Samenpackung oder der Shopseite. Danach lässt sich die Bibliothek filtern.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
+            <V1Field label="Samen-Typ">
+              <select value={draft.seedKind} onChange={(event) => setDraft((d) => ({ ...d, seedKind: event.target.value as StrainDraft['seedKind'] }))}>
+                {SEED_KINDS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+            </V1Field>
+            <V1Field label="THC (%)"><input inputMode="decimal" value={draft.thcPercent} onChange={(event) => setDraft((d) => ({ ...d, thcPercent: event.target.value }))} placeholder="32" /></V1Field>
+            <V1Field label="CBD (%)"><input inputMode="decimal" value={draft.cbdPercent} onChange={(event) => setDraft((d) => ({ ...d, cbdPercent: event.target.value }))} placeholder="0,8" /></V1Field>
+            <V1Field label="Sativa-Anteil (%)" hint="Der Rest ist Indica."><input inputMode="numeric" value={draft.sativaPercent} onChange={(event) => setDraft((d) => ({ ...d, sativaPercent: event.target.value }))} placeholder="30" /></V1Field>
+            <V1Field label="Ertrag innen (g/m²)"><input inputMode="numeric" value={draft.yieldIndoorGm2} onChange={(event) => setDraft((d) => ({ ...d, yieldIndoorGm2: event.target.value }))} placeholder="600" /></V1Field>
+            <V1Field label="Höhe innen (cm)"><input inputMode="numeric" value={draft.heightIndoorCm} onChange={(event) => setDraft((d) => ({ ...d, heightIndoorCm: event.target.value }))} placeholder="150" /></V1Field>
+            <V1Field label="Geschmack" wide><input value={draft.taste} onChange={(event) => setDraft((d) => ({ ...d, taste: event.target.value }))} placeholder="Grapefruit, Zitrus, Melone, Banane" /></V1Field>
+            <V1Field label="Effekt" wide><input value={draft.effect} onChange={(event) => setDraft((d) => ({ ...d, effect: event.target.value }))} placeholder="Entspannt, Konzentriert, Beruhigend" /></V1Field>
+            <V1Field label="Aroma" wide><input value={draft.aroma} onChange={(event) => setDraft((d) => ({ ...d, aroma: event.target.value }))} placeholder="Zitrone, Würzig, Kirsche" /></V1Field>
           </div>
 
           <p className="gc-facts" style={{ margin: '14px 0 8px' }}>
@@ -306,6 +388,26 @@ function StrainsPage() {
         <V1Empty title="Noch keine Sorte" text="Leg deine erste Sorte an — danach kannst du Grows und Pflanzen darauf verweisen." action={<V1Button variant="primary" onClick={startNew}>Sorte anlegen</V1Button>} />
       ) : (
         <section className="ls-panel co-table-wrap" data-audit="strains-table">
+          <div className="st-filter" data-audit="strains-filter">
+            <input
+              value={filterText}
+              onChange={(event) => setFilterText(event.target.value)}
+              placeholder="Suchen: Name, Geschmack, Effekt, Aroma …"
+              aria-label="Sorten durchsuchen"
+            />
+            <select value={filterKind} onChange={(event) => setFilterKind(event.target.value as typeof filterKind)} aria-label="Nach Samen-Typ filtern">
+              <option value="">Alle Typen</option>
+              <option value="Feminized">Feminisiert</option>
+              <option value="Automatic">Automatic</option>
+              <option value="Regular">Regulär</option>
+            </select>
+            <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} aria-label="Sortierung">
+              <option value="name">Name A–Z</option>
+              <option value="thc">THC absteigend</option>
+              <option value="flower">Blütezeit kürzeste zuerst</option>
+              <option value="yield">Ertrag absteigend</option>
+            </select>
+          </div>
           <div className="co-table" style={{ gridTemplateColumns: '1.3fr .9fr .7fr .7fr .9fr 1fr' }}>
             <div className="co-th">Sorte</div>
             <div className="co-th">Züchter</div>
@@ -322,7 +424,10 @@ function StrainsPage() {
                     <button type="button" className="co-td-link" onClick={() => startEdit(strain)}>{strain.name}</button>
                   </div>
                   <div className="co-td is-muted">{strain.breeder ?? '—'}</div>
-                  <div className="co-td is-muted">{dominanceLabel(strain.dominance)}</div>
+                  <div className="co-td is-muted">
+                    {strain.seedKind ? (SEED_KINDS.find((k) => k.value === strain.seedKind)?.label ?? strain.seedKind) : dominanceLabel(strain.dominance)}
+                    {strain.thcPercent != null && <span className="st-thc"> · {strain.thcPercent.toLocaleString('de-DE')} % THC</span>}
+                  </div>
                   <div className="co-td">{stats?.runs ?? 0}</div>
                   <div className="co-td">{stats?.avgPerPlant != null ? `${formatNumber(stats.avgPerPlant, 0)} g/Pflanze` : '—'}</div>
                   <div className={keeper?.includes('Keeper') ? 'co-td is-good' : 'co-td is-muted'}>{keeper ?? '—'}</div>

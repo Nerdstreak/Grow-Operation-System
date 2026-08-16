@@ -44,6 +44,18 @@ public sealed class WaterProfile
     /// <summary>The disinfectant named in the report, e.g. "Chlordioxid".</summary>
     public string? Disinfection { get; set; }
 
+    /// <summary>EC des Wassers NACH der eigenen Aufbereitung, in µS/cm.</summary>
+    /// <remarks>
+    /// Aus dem Feld: wer eine Osmoseanlage fährt, mischt nicht mit dem Wasser
+    /// aus dem Stadtbericht, sondern mit dem dahinter. Beides gehört ins
+    /// Profil — der Bericht sagt, was ankommt, diese Felder sagen, womit
+    /// wirklich angesetzt wird.
+    /// </remarks>
+    public double? TreatedConductivityUsCm { get; set; }
+
+    /// <summary>pH des Wassers nach der eigenen Aufbereitung.</summary>
+    public double? TreatedPh { get; set; }
+
     public DateTime UpdatedAtUtc { get; set; }
 
     /// <summary>Is there anything in here worth showing?</summary>
@@ -51,5 +63,6 @@ public sealed class WaterProfile
         ConductivityUsCm is not null || Ph is not null || TotalHardnessDh is not null ||
         CarbonateHardnessDh is not null || CalciumMgL is not null || MagnesiumMgL is not null ||
         SodiumMgL is not null || NitrateMgL is not null || SulfateMgL is not null ||
-        ChlorideMgL is not null || !string.IsNullOrWhiteSpace(Disinfection);
+        ChlorideMgL is not null || !string.IsNullOrWhiteSpace(Disinfection) ||
+        TreatedConductivityUsCm is not null || TreatedPh is not null;
 }

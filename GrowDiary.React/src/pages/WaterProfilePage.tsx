@@ -16,6 +16,8 @@ type WaterProfile = {
   sulfateMgL: number | null
   chlorideMgL: number | null
   disinfection: string | null
+  treatedConductivityUsCm: number | null
+  treatedPh: number | null
   updatedAtUtc?: string
 }
 
@@ -53,6 +55,8 @@ const leer: Draft = {
   nitrateMgL: '',
   sulfateMgL: '',
   chlorideMgL: '',
+  treatedConductivityUsCm: '',
+  treatedPh: '',
   disinfection: '',
 }
 
@@ -103,6 +107,8 @@ function WaterProfilePage() {
           nitrateMgL: toDraft(profile.nitrateMgL),
           sulfateMgL: toDraft(profile.sulfateMgL),
           chlorideMgL: toDraft(profile.chlorideMgL),
+          treatedConductivityUsCm: toDraft(profile.treatedConductivityUsCm),
+          treatedPh: toDraft(profile.treatedPh),
           disinfection: profile.disinfection ?? '',
         })
         setUpdatedAt(profile.updatedAtUtc && profile.updatedAtUtc !== '0001-01-01T00:00:00' ? profile.updatedAtUtc : null)
@@ -140,6 +146,8 @@ function WaterProfilePage() {
           nitrateMgL: toNumber(draft.nitrateMgL),
           sulfateMgL: toNumber(draft.sulfateMgL),
           chlorideMgL: toNumber(draft.chlorideMgL),
+          treatedConductivityUsCm: toNumber(draft.treatedConductivityUsCm),
+          treatedPh: toNumber(draft.treatedPh),
           disinfection: draft.disinfection.trim() || null,
         }),
       })
@@ -248,6 +256,15 @@ function WaterProfilePage() {
                 </V1Field>
                 <V1Field label="Chlorid (mg/L)">
                   <input inputMode="decimal" value={draft.chlorideMgL} onChange={(e) => set('chlorideMgL', e.target.value)} placeholder="z. B. 16" />
+                </V1Field>
+                {/* Feedback des Testers: wer eine Osmoseanlage faehrt, setzt
+                    nicht mit dem Berichtswasser an, sondern mit dem dahinter.
+                    Beides gehoert ins Profil. */}
+                <V1Field label="EC nach deiner Aufbereitung (µS/cm)" hint="Was aus deiner Osmose/Entsalzung kommt — selbst gemessen. Damit setzt du wirklich an.">
+                  <input inputMode="decimal" value={draft.treatedConductivityUsCm} onChange={(e) => set('treatedConductivityUsCm', e.target.value)} placeholder="z. B. 12" />
+                </V1Field>
+                <V1Field label="pH nach deiner Aufbereitung">
+                  <input inputMode="decimal" value={draft.treatedPh} onChange={(e) => set('treatedPh', e.target.value)} placeholder="z. B. 6,5" />
                 </V1Field>
                 <V1Field label="Desinfektion" hint="Steht meist bei den Aufbereitungsstoffen — z. B. Chlordioxid oder Chlor.">
                   <input value={draft.disinfection} onChange={(e) => set('disinfection', e.target.value)} placeholder="z. B. Chlordioxid" />

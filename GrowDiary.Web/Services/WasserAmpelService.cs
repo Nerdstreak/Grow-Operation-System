@@ -112,6 +112,23 @@ public sealed class WasserAmpelService
                 $"{QuelleWrmg}; Ablagerungsgrenze aus {QuellePsu} (über 150 mg/L CaCO₃)"));
         }
 
+        // Wer selbst aufbereitet, mischt nicht mit dem Wasser aus dem Bericht,
+        // sondern mit dem dahinter. Dann zaehlt DAS als Startpunkt — der
+        // Bericht bleibt als Herkunft benannt, aber beurteilt wird, was
+        // wirklich ins Reservoir laeuft.
+        if (profil.TreatedConductivityUsCm is { } behandeltUs)
+        {
+            var behandeltMs = behandeltUs / 1000.0;
+            punkte.Add(new AmpelPunkt(
+                "treatedConductivityUsCm", "Leitfähigkeit nach deiner Aufbereitung",
+                behandeltMs < 0.5 ? "gut" : "hinweis",
+                $"{Zahl(behandeltUs, "0")} µS/cm = {Zahl(behandeltMs, "0.00")} mS/cm",
+                behandeltMs < 0.5
+                    ? "Damit setzt du an — der volle EC-Spielraum bleibt für den Dünger."
+                    : "Nach der Aufbereitung noch spürbar belastet — Filter oder Membran prüfen.",
+                "Dein eigener Messwert nach der Aufbereitung; er zählt vor dem Stadtbericht."));
+        }
+
         // Leitfähigkeit: was das Wasser schon mitbringt, fehlt dir spaeter im
         // Duenger-Budget. Der Gartenbau misst in mS/cm, der Bericht in µS/cm.
         if (profil.ConductivityUsCm is { } us)

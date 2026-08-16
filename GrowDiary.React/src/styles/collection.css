@@ -233,3 +233,15 @@
 
 .og-block ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 2px; }
 .og-art { color: var(--muted); font-size: 0.75rem; font-style: normal; }
+
+/* Filterleiste der Sorten-Bibliothek — ersetzt die Excel des Testers. */
+.st-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-3) 0;
+}
+
+.st-filter input { flex: 2 1 220px; }
+.st-filter select { flex: 1 1 150px; }
+.st-thc { color: var(--muted); font-size: 0.8rem; }

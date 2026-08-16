@@ -65,6 +65,7 @@ public sealed class WaterProfileApiController : ApiControllerBase
             (nameof(profile.NitrateMgL), profile.NitrateMgL),
             (nameof(profile.SulfateMgL), profile.SulfateMgL),
             (nameof(profile.ChlorideMgL), profile.ChlorideMgL),
+            (nameof(profile.TreatedConductivityUsCm), profile.TreatedConductivityUsCm),
         })
         {
             if (wert is < 0)
@@ -76,6 +77,11 @@ public sealed class WaterProfileApiController : ApiControllerBase
         if (profile.Ph is < 0 or > 14)
         {
             ModelState.AddModelError(nameof(profile.Ph), "pH liegt zwischen 0 und 14.");
+        }
+
+        if (profile.TreatedPh is < 0 or > 14)
+        {
+            ModelState.AddModelError(nameof(profile.TreatedPh), "pH liegt zwischen 0 und 14.");
         }
 
         if (!ModelState.IsValid)

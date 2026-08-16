@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.0.0-beta.37
+
+**Beta.** Second round of field feedback: one display bug that looked like data
+loss, and the strain library grows up.
+
+- Fixed — **the start date seemed to vanish when editing a grow.** Set a start
+  date, save, edit again: the field showed empty. The date was stored the whole
+  time — the API returns dates with a time part, and a date input can only
+  display `yyyy-MM-dd`; anything else renders as blank. The form now trims what
+  it loads (flip date too), and a round-trip test pins the format at both ends.
+  The lesson is bigger than the fix: nothing had ever tested
+  create → save → reopen.
+- New — **breeder specs on strains.** Seed type (feminized / automatic /
+  regular), THC %, CBD %, sativa share, taste, effect, aroma, indoor yield and
+  height — the fields from a seed shop page, so the separate spreadsheet one
+  tester kept can retire. All optional, all labelled as breeder claims.
+- New — **the strain library filters and sorts.** Search across name, taste,
+  effect and aroma; filter by seed type; sort by name, THC, flowering time or
+  yield. Strains without a value sort to the end — an unfilled strain must not
+  look like the best one.
+- New — **your water after treatment.** If you run RO or a desalination stage,
+  you mix with what comes out of it, not with what the city report describes.
+  The water profile now takes your own measured EC and pH after treatment; the
+  water rating judges that as the real starting point (and a treated EC that is
+  still high points at the filter or membrane), while the city report stays as
+  the reference it is.
+
 ## 2.0.0-beta.36
 
 **Beta.** Four things the app already knew but never said.

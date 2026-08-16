@@ -128,4 +128,35 @@ public sealed class WasserAmpelTests
         Assert.Equal("hinweis", Punkt(ampel, "chlorideMgL").Stufe);
         Assert.Contains("50 mg/L", Punkt(ampel, "sodiumMgL").Quelle);
     }
+
+    [Fact]
+    public void TreatedWaterIsJudgedAsTheRealStartingPoint()
+    {
+        // Der Tester faehrt eine Osmoseanlage: der Stadtbericht sagt 800 µS/cm,
+        // angesetzt wird aber mit 12. Beides erscheint — und das aufbereitete
+        // Wasser sagt ausdruecklich, dass ES vor dem Bericht zaehlt.
+        var ampel = WasserAmpelService.Bewerten(new WaterProfile
+        {
+            ConductivityUsCm = 800,
+            TreatedConductivityUsCm = 12,
+            TreatedPh = 6.5,
+        });
+
+        var behandelt = ampel.Punkte.Single(p => p.Feld == "treatedConductivityUsCm");
+        Assert.Equal("gut", behandelt.Stufe);
+        Assert.Contains("zählt vor dem Stadtbericht", behandelt.Quelle);
+
+        // Der Rohwert bleibt sichtbar — er erklaert, WARUM aufbereitet wird.
+        Assert.Contains(ampel.Punkte, p => p.Feld == "conductivityUsCm");
+    }
+
+    [Fact]
+    public void ATiredMembraneShowsUpInTheTreatedValue()
+    {
+        var ampel = WasserAmpelService.Bewerten(new WaterProfile { TreatedConductivityUsCm = 600 });
+
+        var behandelt = ampel.Punkte.Single();
+        Assert.Equal("hinweis", behandelt.Stufe);
+        Assert.Contains("Membran", behandelt.Aussage);
+    }
 }

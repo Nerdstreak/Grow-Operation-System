@@ -363,6 +363,14 @@ public enum PlantStatus
     Harvested
 }
 
+/// <summary>Wie der Züchter die Samen verkauft — die Filterachse Nummer eins des Testers.</summary>
+public enum SeedKind
+{
+    Feminized,
+    Automatic,
+    Regular
+}
+
 public enum StrainDominance
 {
     Unknown,

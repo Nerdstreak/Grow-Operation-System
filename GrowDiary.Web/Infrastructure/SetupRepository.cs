@@ -128,11 +128,15 @@ public sealed class SetupRepository : RepositoryBase
             INSERT INTO Strains (
                 Name, Breeder, Dominance, FlowerWeeksMin, FlowerWeeksMax, Notes,
                 NutrientDemandFactor, StretchFactor, VpdPreferenceShift,
+                SeedKind, ThcPercent, CbdPercent, SativaPercent, Taste, Effect, Aroma,
+                YieldIndoorGm2, HeightIndoorCm,
                 CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
                 $name, $breeder, $dominance, $flowerWeeksMin, $flowerWeeksMax, $notes,
                 $nutrientDemandFactor, $stretchFactor, $vpdPreferenceShift,
+                $seedKind, $thcPercent, $cbdPercent, $sativaPercent, $taste, $effect, $aroma,
+                $yieldIndoorGm2, $heightIndoorCm,
                 $createdAtUtc, $updatedAtUtc
             );
             SELECT last_insert_rowid();
@@ -159,6 +163,15 @@ public sealed class SetupRepository : RepositoryBase
                 NutrientDemandFactor = $nutrientDemandFactor,
                 StretchFactor = $stretchFactor,
                 VpdPreferenceShift = $vpdPreferenceShift,
+                SeedKind = $seedKind,
+                ThcPercent = $thcPercent,
+                CbdPercent = $cbdPercent,
+                SativaPercent = $sativaPercent,
+                Taste = $taste,
+                Effect = $effect,
+                Aroma = $aroma,
+                YieldIndoorGm2 = $yieldIndoorGm2,
+                HeightIndoorCm = $heightIndoorCm,
                 UpdatedAtUtc = $updatedAtUtc
             WHERE Id = $id;
         """;
@@ -478,6 +491,15 @@ public sealed class SetupRepository : RepositoryBase
             NutrientDemandFactor = NullableDouble(reader["NutrientDemandFactor"]),
             StretchFactor = NullableDouble(reader["StretchFactor"]),
             VpdPreferenceShift = NullableDouble(reader["VpdPreferenceShift"]),
+            SeedKind = HasColumn(reader, "SeedKind") && reader["SeedKind"] is not (DBNull or null) && Enum.TryParse<SeedKind>(reader["SeedKind"]?.ToString(), out var art) ? art : null,
+            ThcPercent = HasColumn(reader, "ThcPercent") ? NullableDouble(reader["ThcPercent"]) : null,
+            CbdPercent = HasColumn(reader, "CbdPercent") ? NullableDouble(reader["CbdPercent"]) : null,
+            SativaPercent = HasColumn(reader, "SativaPercent") && reader["SativaPercent"] is not (DBNull or null) ? Convert.ToInt32(reader["SativaPercent"], CultureInfo.InvariantCulture) : null,
+            Taste = HasColumn(reader, "Taste") ? NullString(reader["Taste"]) : null,
+            Effect = HasColumn(reader, "Effect") ? NullString(reader["Effect"]) : null,
+            Aroma = HasColumn(reader, "Aroma") ? NullString(reader["Aroma"]) : null,
+            YieldIndoorGm2 = HasColumn(reader, "YieldIndoorGm2") && reader["YieldIndoorGm2"] is not (DBNull or null) ? Convert.ToInt32(reader["YieldIndoorGm2"], CultureInfo.InvariantCulture) : null,
+            HeightIndoorCm = HasColumn(reader, "HeightIndoorCm") && reader["HeightIndoorCm"] is not (DBNull or null) ? Convert.ToInt32(reader["HeightIndoorCm"], CultureInfo.InvariantCulture) : null,
             CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow,
             UpdatedAtUtc = ParseStoredUtcDateTime(reader["UpdatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
@@ -533,6 +555,15 @@ public sealed class SetupRepository : RepositoryBase
         command.Parameters.AddWithValue("$nutrientDemandFactor", (object?)strain.NutrientDemandFactor ?? DBNull.Value);
         command.Parameters.AddWithValue("$stretchFactor", (object?)strain.StretchFactor ?? DBNull.Value);
         command.Parameters.AddWithValue("$vpdPreferenceShift", (object?)strain.VpdPreferenceShift ?? DBNull.Value);
+        command.Parameters.AddWithValue("$seedKind", (object?)strain.SeedKind?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$thcPercent", (object?)strain.ThcPercent ?? DBNull.Value);
+        command.Parameters.AddWithValue("$cbdPercent", (object?)strain.CbdPercent ?? DBNull.Value);
+        command.Parameters.AddWithValue("$sativaPercent", (object?)strain.SativaPercent ?? DBNull.Value);
+        command.Parameters.AddWithValue("$taste", (object?)strain.Taste ?? DBNull.Value);
+        command.Parameters.AddWithValue("$effect", (object?)strain.Effect ?? DBNull.Value);
+        command.Parameters.AddWithValue("$aroma", (object?)strain.Aroma ?? DBNull.Value);
+        command.Parameters.AddWithValue("$yieldIndoorGm2", (object?)strain.YieldIndoorGm2 ?? DBNull.Value);
+        command.Parameters.AddWithValue("$heightIndoorCm", (object?)strain.HeightIndoorCm ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(strain.CreatedAtUtc));
         command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(strain.UpdatedAtUtc));
     }

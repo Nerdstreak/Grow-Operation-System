@@ -14,6 +14,15 @@ public sealed record StrainDto(
     double? NutrientDemandFactor,
     double? StretchFactor,
     double? VpdPreferenceShift,
+    SeedKind? SeedKind,
+    double? ThcPercent,
+    double? CbdPercent,
+    int? SativaPercent,
+    string? Taste,
+    string? Effect,
+    string? Aroma,
+    int? YieldIndoorGm2,
+    int? HeightIndoorCm,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc
 );
@@ -30,6 +39,15 @@ public sealed class CreateStrainRequest
     public double? NutrientDemandFactor { get; set; }
     public double? StretchFactor { get; set; }
     public double? VpdPreferenceShift { get; set; }
+    public SeedKind? SeedKind { get; set; }
+    public double? ThcPercent { get; set; }
+    public double? CbdPercent { get; set; }
+    public int? SativaPercent { get; set; }
+    public string? Taste { get; set; }
+    public string? Effect { get; set; }
+    public string? Aroma { get; set; }
+    public int? YieldIndoorGm2 { get; set; }
+    public int? HeightIndoorCm { get; set; }
 }
 
 public sealed class UpdateStrainRequest
@@ -44,4 +62,13 @@ public sealed class UpdateStrainRequest
     public double? NutrientDemandFactor { get; set; }
     public double? StretchFactor { get; set; }
     public double? VpdPreferenceShift { get; set; }
+    public SeedKind? SeedKind { get; set; }
+    public double? ThcPercent { get; set; }
+    public double? CbdPercent { get; set; }
+    public int? SativaPercent { get; set; }
+    public string? Taste { get; set; }
+    public string? Effect { get; set; }
+    public string? Aroma { get; set; }
+    public int? YieldIndoorGm2 { get; set; }
+    public int? HeightIndoorCm { get; set; }
 }

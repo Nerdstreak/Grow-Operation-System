@@ -44,6 +44,16 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "Grows", "UseFeedChartTargets", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "Grows", "NightRampEnabled", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "Grows", "NightRampFloorC", "REAL NULL");
+
+        EnsureColumn(connection, "Strains", "SeedKind", "TEXT NULL");
+        EnsureColumn(connection, "Strains", "ThcPercent", "REAL NULL");
+        EnsureColumn(connection, "Strains", "CbdPercent", "REAL NULL");
+        EnsureColumn(connection, "Strains", "SativaPercent", "INTEGER NULL");
+        EnsureColumn(connection, "Strains", "Taste", "TEXT NULL");
+        EnsureColumn(connection, "Strains", "Effect", "TEXT NULL");
+        EnsureColumn(connection, "Strains", "Aroma", "TEXT NULL");
+        EnsureColumn(connection, "Strains", "YieldIndoorGm2", "INTEGER NULL");
+        EnsureColumn(connection, "Strains", "HeightIndoorCm", "INTEGER NULL");
         EnsureColumn(connection, "Grows", "SeedType",                       "TEXT NOT NULL DEFAULT 'Feminized'");
         EnsureColumn(connection, "Grows", "StartMaterial",                  "TEXT NOT NULL DEFAULT 'Seed'");
         EnsureColumn(connection, "Grows", "GerminationMethod",              "TEXT NULL");

@@ -16,6 +16,15 @@ public static class StrainPlantMapping
         NutrientDemandFactor: strain.NutrientDemandFactor,
         StretchFactor: strain.StretchFactor,
         VpdPreferenceShift: strain.VpdPreferenceShift,
+        SeedKind: strain.SeedKind,
+        ThcPercent: strain.ThcPercent,
+        CbdPercent: strain.CbdPercent,
+        SativaPercent: strain.SativaPercent,
+        Taste: strain.Taste,
+        Effect: strain.Effect,
+        Aroma: strain.Aroma,
+        YieldIndoorGm2: strain.YieldIndoorGm2,
+        HeightIndoorCm: strain.HeightIndoorCm,
         CreatedAtUtc: strain.CreatedAtUtc,
         UpdatedAtUtc: strain.UpdatedAtUtc
     );
@@ -30,7 +39,16 @@ public static class StrainPlantMapping
         Notes = Normalize(request.Notes),
         NutrientDemandFactor = request.NutrientDemandFactor,
         StretchFactor = request.StretchFactor,
-        VpdPreferenceShift = request.VpdPreferenceShift
+        VpdPreferenceShift = request.VpdPreferenceShift,
+        SeedKind = request.SeedKind,
+        ThcPercent = request.ThcPercent,
+        CbdPercent = request.CbdPercent,
+        SativaPercent = request.SativaPercent,
+        Taste = Normalize(request.Taste),
+        Effect = Normalize(request.Effect),
+        Aroma = Normalize(request.Aroma),
+        YieldIndoorGm2 = request.YieldIndoorGm2,
+        HeightIndoorCm = request.HeightIndoorCm
     };
 
     public static void ApplyTo(this UpdateStrainRequest request, Strain strain)
@@ -44,6 +62,15 @@ public static class StrainPlantMapping
         strain.NutrientDemandFactor = request.NutrientDemandFactor;
         strain.StretchFactor = request.StretchFactor;
         strain.VpdPreferenceShift = request.VpdPreferenceShift;
+        strain.SeedKind = request.SeedKind;
+        strain.ThcPercent = request.ThcPercent;
+        strain.CbdPercent = request.CbdPercent;
+        strain.SativaPercent = request.SativaPercent;
+        strain.Taste = Normalize(request.Taste);
+        strain.Effect = Normalize(request.Effect);
+        strain.Aroma = Normalize(request.Aroma);
+        strain.YieldIndoorGm2 = request.YieldIndoorGm2;
+        strain.HeightIndoorCm = request.HeightIndoorCm;
     }
 
     public static PlantInstanceDto ToDto(this PlantInstance plant) => new(
