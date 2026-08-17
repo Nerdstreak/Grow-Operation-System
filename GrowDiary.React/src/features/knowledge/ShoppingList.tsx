@@ -11,13 +11,16 @@ type Gruppe = { titel: string; posten: Posten[] }
  * Die Materiallisten stecken seit jeher in den Abläufen und wurden nur beim
  * Drucken der Mappe gelesen. Wer im Laden steht, hatte davon nichts.
  *
- * Zugeklappt, weil sie nicht der Zweck dieser Seite ist — aber auffindbar, und
- * jeder Posten nennt, wofür er gebraucht wird. Ohne diesen Grund wäre es eine
+ * Auf der Wissensseite zugeklappt, weil sie dort nicht der Zweck ist. Auf der
+ * eigenen Seite offen — wer sie über das Menü ansteuert, will sie lesen und
+ * nicht erst einen Knopf suchen.
+ *
+ * Jeder Posten nennt, wofür er gebraucht wird. Ohne diesen Grund wäre es eine
  * Liste, die man abnickt statt sie zu benutzen.
  */
-export function ShoppingList() {
+export function ShoppingList({ initialOffen = false }: { initialOffen?: boolean } = {}) {
   const [gruppen, setGruppen] = useState<Gruppe[] | null>(null)
-  const [offen, setOffen] = useState(false)
+  const [offen, setOffen] = useState(initialOffen)
 
   useEffect(() => {
     const controller = new AbortController()

@@ -87,7 +87,7 @@ function ArchivePage() {
 
   return (
     <V1Page
-      eyebrow="Grow / Ernte & Archiv"
+      eyebrow="Pflanzen / Ernte & Archiv"
       title="Ernte & Archiv"
       subtitle="Abgeschlossene Grows mit Ertrag — direkt vergleichbar, statt Archiv und Vergleich auf zwei Seiten."
     >

@@ -18,7 +18,7 @@ import { TabbedCollectionPage } from './TabbedCollectionPage'
 export function RulesCollectionPage() {
   return (
     <TabbedCollectionPage
-      eyebrow="Anlage / Regeln"
+      eyebrow="Betrieb / Regeln"
       title="Regeln & Automatik"
       subtitle="Grenzwerte, Auto-Messungen und Benachrichtigungen an einem Ort. Zwei Automatiken sitzen dort, wo sie wirken: die Dosierung bei den Pumpen und die Nachtabsenkung beim jeweiligen Grow."
       tabs={[

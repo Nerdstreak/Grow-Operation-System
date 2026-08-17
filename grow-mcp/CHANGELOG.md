@@ -1,5 +1,26 @@
 # Änderungen — Grow MCP
 
+## 0.1.4
+
+Bilder. Bisher konnte die eigene KI alles lesen, was Grow OS in Zahlen weiss,
+aber nichts davon sehen — dabei ist gerade die Pflanze das, was man ansieht,
+bevor man misst.
+
+- `fotos` — was für einen Grow fotografiert wurde: Motiv, Datum, Bildunterschrift
+  und die Messung, an der das Bild hängt.
+- `foto_ansehen` — das Bild selbst, dazu ein Satz, der sagt, was darauf zu sehen
+  sein soll: „Grow 4 · Motiv: Root · vor 3 Tagen aufgenommen · Notiz des
+  Betreibers: ‚Wurzeln wirken braun' · gehört zur Messung 12".
+
+Dieser Satz ist kein Beiwerk. Braune Wurzeln nach einem Wasserwechsel bedeuten
+etwas anderes als braune Wurzeln in Woche sieben, und ein Modell, das nur die
+Bildpunkte bekommt, kann diesen Unterschied nicht kennen. Was Grow OS über eine
+Aufnahme nicht weiss, steht auch nicht in dem Satz — lieber eine kurze Notiz als
+eine erfundene.
+
+Bilder über 6 MB werden abgelehnt, statt sie zu laden und dann zu verwerfen.
+Gelesen wird weiterhin ausschliesslich.
+
 ## 0.1.3
 
 Sieben Werkzeuge mehr. Bisher war nur ein Bruchteil dessen angeschlossen, was

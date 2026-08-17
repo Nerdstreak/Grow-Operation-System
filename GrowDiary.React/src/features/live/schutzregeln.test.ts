@@ -40,4 +40,28 @@ describe('Schutzregeln des Live-Layouts', () => {
     // Die Balkenlaengen SIND die Dauer — umbrechen wuerde die Aussage zerstoeren.
     expect(css).toMatch(/\.ls-timeline-wrap\s*\{[^}]*overflow-x:\s*auto/)
   })
+
+  it('stellt die Handlung im Quelltext vor die Kamera', () => {
+    // Beim Umbruch — also auf jedem Telefon — ist die Quelltext-Reihenfolge
+    // die Reihenfolge auf dem Schirm. Kritisches Risiko und „heute fällig“
+    // gehoeren dann vor ein Bild, das man auch spaeter noch ansehen kann.
+    const tsx = readFileSync(fileURLToPath(new URL('./LiveScreen.tsx', import.meta.url)), 'utf8')
+    const handlung = tsx.indexOf('ls-lower-right')
+    const kamera = tsx.indexOf('<CameraPanel')
+    expect(handlung, 'ls-lower-right nicht gefunden').toBeGreaterThan(-1)
+    expect(kamera, '<CameraPanel nicht gefunden').toBeGreaterThan(-1)
+    expect(handlung).toBeLessThan(kamera)
+  })
+
+  it('holt die Kamera nur dann nach links, wenn beide Spalten nebeneinander passen', () => {
+    // Ohne die Media-Abfrage wuerde `order` auch auf dem Telefon greifen und
+    // das Bild wieder nach oben ziehen — der ganze Umbau waere umsonst.
+    expect(css).toMatch(/@media\s*\(min-width:\s*9\d\dpx\)\s*\{\s*\.ls-cam\s*\{[^}]*order:\s*-1/)
+  })
+
+  it('laesst die Kamerabuehne schrumpfen, wenn gar keine Kamera zugeordnet ist', () => {
+    // 260 px grauer Klotz fuer den Satz „keine gemappt“ schoben auf dem
+    // Telefon alles Darunterliegende aus dem Bild.
+    expect(css).toMatch(/\.ls-cam-stage\.is-empty\s*\{[^}]*min-height:\s*0/)
+  })
 })

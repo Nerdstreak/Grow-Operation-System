@@ -204,7 +204,7 @@ function HomeAssistantPage() {
 
   return (
     <V1Page
-      eyebrow="Anlage / Home Assistant"
+      eyebrow="Einrichtung / Home Assistant"
       title="Home Assistant"
       subtitle="Hier legst du fest, welche Entität welchen Messwert liefert — das ist die einzige Stelle dafür. Die Geräte selbst, mit Wartung und Kalibrierung, stehen unter Sensoren &amp; Wartung."
     >

@@ -175,10 +175,16 @@ export function LiveScreen({
         )}
       </section>
 
-      {/* ---------- Kamera · Risiko · Aufgaben ---------- */}
+      {/* ---------- Risiko · Aufgaben · Kamera ---------- */}
+      {/* Die Handlung steht VOR dem Bild — im Quelltext, nicht auf dem Schirm.
+          Sobald die zwei Spalten umbrechen (unter ~924 px, also auf jedem
+          Telefon), zaehlt die Reihenfolge hier: vorher lag „kritisches Risiko“
+          und „heute fällig“ hinter der Kamerabuehne, die auch ohne
+          zugeordnete Kamera 260 px belegt — zusammen mit fuenf Kachelzeilen
+          eine gute Bildschirmhoehe unter dem Sichtbaren. Am breiten Schirm
+          holt `order` die Kamera nach links zurueck, dort aendert sich
+          nichts. */}
       <section className="ls-lower">
-        <CameraPanel tent={tent} onReload={onRefresh} />
-
         <div className="ls-lower-right">
           {topRisk ? (
             <article className={classNames('ls-panel', 'ls-risk', `is-${topRisk.severity.toLowerCase()}`)} data-audit="live-risk">
@@ -234,6 +240,8 @@ export function LiveScreen({
               gehoeren zu „heute fällig“ dazu: was sich ueber Tage anbahnt. */}
           <TrendWatchPanel growId={grow?.id ?? null} />
         </div>
+
+        <CameraPanel tent={tent} onReload={onRefresh} />
       </section>
 
       {/* ---------- Grow im Zelt ---------- */}

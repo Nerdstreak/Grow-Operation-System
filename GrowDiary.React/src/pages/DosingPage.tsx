@@ -272,7 +272,7 @@ function DosingPage() {
 
   return (
     <V1Page
-      eyebrow="Anlage"
+      eyebrow="Betrieb"
       title="Dosierung"
       subtitle="Grow OS schaltet deine Peristaltikpumpen über Home Assistant. Noch dosiert nichts von allein — jede Dosis löst du hier aus."
       action={pumps.length > 0

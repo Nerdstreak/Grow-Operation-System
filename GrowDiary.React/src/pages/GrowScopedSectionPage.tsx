@@ -9,7 +9,7 @@ import type { GrowDetailSection } from '../features/grow-detail/grow-detail-mode
 // A top-level, single-purpose page for one grow section (measurements, diagnosis,
 // journal, SOPs). V1 chrome with the grow switcher in the header action — works on
 // desktop and mobile; no drilling into a grow first.
-export function GrowScopedSectionPage({ title, section, eyebrow = 'Grow', intro }: { title: string; section: GrowDetailSection; eyebrow?: string; intro?: string }) {
+export function GrowScopedSectionPage({ title, section, eyebrow = 'Pflanzen', intro }: { title: string; section: GrowDetailSection; eyebrow?: string; intro?: string }) {
   const { grows, growId, setGrowId, loading, error } = useSelectedGrow()
   const grow = grows.find((item) => String(item.id) === String(growId)) ?? null
 

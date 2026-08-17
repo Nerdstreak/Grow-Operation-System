@@ -120,7 +120,7 @@ function GrowSetupPage() {
     }
   }
 
-  if (loading) return <V1Page eyebrow="Grow" title={isEditing ? 'Grow bearbeiten' : 'Grow starten'}><V1Skeleton rows={5} label="Lade Formular" /></V1Page>
+  if (loading) return <V1Page eyebrow="Pflanzen" title={isEditing ? 'Grow bearbeiten' : 'Grow starten'}><V1Skeleton rows={5} label="Lade Formular" /></V1Page>
 
   // Prüfung und Timeline rechnen bei jeder Eingabe mit — das ist der Grund,
   // warum die sechs Schritte zu einer Seite werden konnten.
@@ -141,7 +141,7 @@ function GrowSetupPage() {
   const allowed = canCreate(findings)
 
   return (
-    <V1Page eyebrow="Grow" title={isEditing ? 'Grow bearbeiten' : 'Grow starten'} className="grow-wizard-page" action={<Link className="v1-button is-ghost" to={isEditing && growId ? `/grows/${growId}` : '/grows'}>Zurück</Link>}>
+    <V1Page eyebrow="Pflanzen" title={isEditing ? 'Grow bearbeiten' : 'Grow starten'} className="grow-wizard-page" action={<Link className="v1-button is-ghost" to={isEditing && growId ? `/grows/${growId}` : '/grows'}>Zurück</Link>}>
       <div className="grow-wizard-mobile-surface" data-audit="grow-wizard">
       {error && <V1Alert message={error} tone="warn" />}
       {/* Eine Seite statt sechs Schritte: links eintragen, rechts sofort sehen.

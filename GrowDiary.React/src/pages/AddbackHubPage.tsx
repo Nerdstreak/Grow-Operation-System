@@ -82,7 +82,8 @@ function AddbackHubPage() {
   return (
     <V1Page
       eyebrow="Jetzt / Addback"
-      title="Reservoir"
+      title="Addback"
+      subtitle="Was das Reservoir gerade braucht — nachfüllen, aufdüngen, oder wechseln."
       action={hydroGrows.length > 1 ? (
         <select
           className="ls-tent-select"

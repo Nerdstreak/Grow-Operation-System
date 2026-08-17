@@ -207,7 +207,7 @@ function SetpointProfilesPage() {
 
   return (
     <V1Page
-      eyebrow="Wissen"
+      eyebrow="Betrieb"
       title="Sollwert-Profile"
       subtitle="Was Grow OS als Ziel ansieht — je Phase. Die mitgelieferten kannst du kopieren und mit deinen Erfahrungswerten überschreiben."
     >

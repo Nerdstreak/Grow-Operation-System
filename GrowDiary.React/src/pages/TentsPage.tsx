@@ -270,7 +270,7 @@ function TentsPage() {
   const selectedTent = tents.find((tent) => tent.id === selectedTentId && tent.status === 'Active') ?? activeTents[0] ?? tents[0] ?? null
 
   return (
-    <V1Page eyebrow="Anlage / Zelte" title="Zelte & Räume" action={<button type="button" className="ls-btn is-primary" onClick={openCreate}>+ Zelt anlegen</button>} className="tents-page">
+    <V1Page eyebrow="Einrichtung / Zelte" title="Zelte & Räume" action={<button type="button" className="ls-btn is-primary" onClick={openCreate}>+ Zelt anlegen</button>} className="tents-page">
       {error && <V1Alert message={error} tone="warn" />}
 
       {loading ? <V1Empty title="Lade Zelte..." /> : tents.length === 0 ? <V1Empty title="Noch kein Zelt" action={<V1Button variant="primary" onClick={openCreate}>Erstes Zelt anlegen</V1Button>} /> : (

@@ -86,7 +86,10 @@ export function CameraPanel({ tent, onReload }: { tent: TentDto | null; onReload
         )}
       </div>
 
-      <div className="ls-cam-stage">
+      {/* Ohne zugeordnete Kamera schrumpft die Buehne: 260 px grauer Klotz
+          fuer den Satz „keine gemappt“ schoben auf dem Telefon alles
+          darunter aus dem Bild. */}
+      <div className={`ls-cam-stage${cameras.length === 0 ? ' is-empty' : ''}`}>
         {shown ? (
           <img src={shown.src} alt={`Kamerabild ${current}`} />
         ) : (

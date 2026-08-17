@@ -167,9 +167,9 @@ function WaterProfilePage() {
 
   return (
     <V1Page
-      eyebrow="Anlage"
-      title="Leitungswasser"
-      subtitle="Was aus deinem Hahn kommt, steht im Trinkwasserbericht deiner Stadt — meist als PDF auf der Seite des Wasserversorgers. Trag die Werte hier ein; Grows mit Wasserquelle Leitungswasser oder Mischwasser rechnen damit."
+      eyebrow="Einrichtung"
+      title="Wasser"
+      subtitle="Dein Ausgangswasser — aus der Leitung und, wenn du aufbereitest, nach Osmose oder Entsalzung. Die Werte aus dem Trinkwasserbericht deiner Stadt stehen meist als PDF beim Versorger."
     >
       {error && <V1Alert title="Fehler" message={error} tone="warn" />}
       {message && <V1Alert message={message} tone="ok" />}

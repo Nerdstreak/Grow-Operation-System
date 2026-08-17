@@ -116,13 +116,17 @@ test('lässt das Tab-Ziel der Weiterleitung gewinnen', async ({ page }) => {
   expect(url.searchParams.get('growId')).toBe('3')
 })
 
-test('zeigt die vier Navigationsgruppen, ohne globale Kontextleiste', async ({ page }) => {
+test('zeigt die fuenf Navigationsgruppen, ohne globale Kontextleiste', async ({ page }) => {
   await page.goto('/', { waitUntil: 'networkidle' })
   await page.setViewportSize({ width: 1440, height: 900 })
 
+  // Sortiert nach Haeufigkeit. „Anlage" war vorher ein Sammelbecken mit acht
+  // Zielen — fuenf richtet man einmal ein, drei fasst man laufend an; die
+  // drei mussten dazwischen herausgesucht werden. Jetzt getrennt in
+  // „Betrieb" und „Einrichtung".
   const groups = page.locator('.v1-desktop-nav .v1-nav-group')
-  await expect(groups).toHaveCount(4)
-  for (const label of ['Jetzt', 'Grow', 'Anlage', 'Wissen']) {
+  await expect(groups).toHaveCount(5)
+  for (const label of ['Jetzt', 'Pflanzen', 'Betrieb', 'Einrichtung', 'Wissen']) {
     await expect(page.locator('.v1-nav-group-head', { hasText: label })).toBeVisible()
   }
 

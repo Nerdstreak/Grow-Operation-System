@@ -37,7 +37,7 @@ function GrowsPage() {
 
   return (
     <V1Page
-      eyebrow="Grow / Alle"
+      eyebrow="Pflanzen / Alle"
       title="Grows"
       action={<Link className="ls-btn is-primary" to="/grows/new">+ Grow anlegen</Link>}
     >
@@ -75,6 +75,9 @@ function GrowCard({ grow }: { grow: GrowSummary }) {
                 Beschriftung IM Balken, nicht darunter. Hier stand vorher eine
                 zweite, eigene Fassung: ein fest verdrahteter Keim-Balken plus
                 ein erfundener Blüte-Rest. */}
+            {/* Wischbar wie auf Live und im Detail — die dritte Stelle mit
+                derselben Achse, beim Handy-Zuschnitt zuerst uebersehen. */}
+            <div className="ls-timeline-wrap">
             <div className="ls-timeline is-compact">
               {timeline.phases.map((phase) => (
                 <div
@@ -89,6 +92,7 @@ function GrowCard({ grow }: { grow: GrowSummary }) {
                   <span>{phase.short}</span>
                 </div>
               ))}
+            </div>
             </div>
             <div className="gc-phasetext">
               {flipLabel(timeline.flipIsPlanned, timeline.daysToFlip, timeline.dates.flip)}

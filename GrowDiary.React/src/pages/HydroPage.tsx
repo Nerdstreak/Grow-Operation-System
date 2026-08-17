@@ -155,7 +155,7 @@ function HydroPage() {
   // /hydro/:id/edit rendern HydroEditorPage.
 
   return (
-    <V1Page eyebrow="DWC/RDWC-Systeme" title="Hydro" action={<V1Button variant="primary" onClick={openCreate}>Hydro-Setup anlegen</V1Button>} className="hydro-page">
+    <V1Page eyebrow="Einrichtung / Hydro" title="Hydro-Systeme" subtitle="Deine DWC- und RDWC-Systeme: Behälter, Volumen und was daran hängt." action={<V1Button variant="primary" onClick={openCreate}>Hydro-Setup anlegen</V1Button>} className="hydro-page">
       {error && <V1Alert message={error} tone="warn" />}
       <section className="v1-kpi-grid">
         <V1Stat label="Aktive Setups" value={activeSetups.length} />

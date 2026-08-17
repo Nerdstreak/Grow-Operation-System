@@ -814,9 +814,11 @@ function KnowledgePage() {
       }
     >
       {body}
-      {/* Die Materiallisten der Ablaeufe, zusammengefuehrt — sie standen bisher
-          nur in der gedruckten Mappe. */}
-      <ShoppingList />
+      {/* Die Materiallisten der Ablaeufe, zusammengefuehrt. Nur auf der
+          Uebersicht: unter einer geoeffneten SOP klebte sie bisher als
+          fremder Block am Fuss und gehoerte dort zu nichts. Der eigene
+          Weg dahin ist /einkaufsliste. */}
+      {!detailOpen && !listPanel && <ShoppingList />}
     </V1Page>
   )
 }

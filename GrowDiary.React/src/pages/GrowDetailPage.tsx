@@ -71,7 +71,7 @@ function GrowDetailPage() {
 
   if (loading) {
     return (
-      <V1Page eyebrow="Grow" title="Lade Daten...">
+      <V1Page eyebrow="Pflanzen" title="Lade Daten...">
         <V1Empty title="Einen Moment" />
       </V1Page>
     )
@@ -79,7 +79,7 @@ function GrowDetailPage() {
 
   if (!bundle.grow) {
     return (
-      <V1Page eyebrow="Grow" title="Nicht gefunden" action={<V1LinkButton to="/grows">Zu den Grows</V1LinkButton>}>
+      <V1Page eyebrow="Pflanzen" title="Nicht gefunden" action={<V1LinkButton to="/grows">Zu den Grows</V1LinkButton>}>
         <V1Alert title="Fehler" message={error ?? 'Diesen Grow gibt es nicht (mehr).'} tone="warn" />
       </V1Page>
     )
@@ -110,7 +110,7 @@ function GrowDetailPage() {
   return (
     <div className="ix-growdetail">
       <V1Page
-        eyebrow={`Grow / ${grow.name}`}
+        eyebrow={`Pflanzen / ${grow.name}`}
         title={grow.name}
         action={(
           <div className="v1-action-row" data-audit="grow-management-actions">
@@ -132,7 +132,6 @@ function GrowDetailPage() {
               </V1Button>
             )}
             {canHarvest && <V1LinkButton to={`/grows/${grow.id}/harvest`} variant="primary">Ernte</V1LinkButton>}
-            <a className="v1-button" href={`/grows/${grow.id}/export`}>Export</a>
           </div>
         )}
         className="grow-detail-page"
@@ -270,10 +269,14 @@ function GrowDetailPage() {
         <NightRampCard growId={grow.id} />
 
         {/* Verwaltung unten — Beenden und Löschen gehören nicht neben die
-            täglichen Handlungen in der Kopfzeile. */}
+            täglichen Handlungen in der Kopfzeile. Der Export ebenso wenig: er
+            stand dort und kostete auf dem Telefon eine Knopfbreite in der
+            Reihe, die man jeden Tag ansieht. Ein Dateidownload ist nichts,
+            was man taeglich tut. */}
         <V1Section title="Verwaltung">
           <div className="v1-action-row">
             <V1LinkButton to={`/grows/${grow.id}/setup`}>Bearbeiten</V1LinkButton>
+            <a className="v1-button" href={`/grows/${grow.id}/export`}>Export</a>
             <V1Button disabled={Boolean(saving) || !canArchiveGrow} onClick={() => void archiveGrow()}>
               {saving === 'grow-archive' ? 'Beendet...' : canArchiveGrow ? 'Beenden' : 'Beendet'}
             </V1Button>

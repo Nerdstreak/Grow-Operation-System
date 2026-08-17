@@ -17,6 +17,15 @@
   }
   .ha-entity-input::placeholder { color: var(--faint); }
 
+  /* Auf dem Telefon rutscht das Feld unter seine Beschriftung. Nebeneinander
+     blieben ihm 146 px — eine Entitaeten-ID wie „sensor.zelt_1_lufttemperatur“
+     braucht rund 266 px, man sah also gut die Haelfte nicht und musste im Feld
+     scrollen, um zu pruefen, was man eingetragen hat. */
+  @media (max-width: 560px) {
+    .ha-layout .co-row { flex-wrap: wrap; }
+    .ha-layout .ha-entity-input { flex: 1 1 100%; order: 1; }
+  }
+
   .ha-connect { padding: 12px 14px; display: grid; gap: 12px; }
 
   /* Kamera-Vorschauen: eigenes Raster unter den Zeilen. */

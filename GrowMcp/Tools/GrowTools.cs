@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using GrowOsAccess;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace GrowMcp.Tools;
@@ -299,6 +300,110 @@ public sealed class GrowTools(GrowOsReader reader)
         CancellationToken cancellationToken = default)
         => SicherAsync(() => reader.LesenAsync(
             $"api/search?q={Uri.EscapeDataString(begriff.Trim())}", cancellationToken));
+
+    /// <summary>
+    /// Wie gross ein Bild sein darf, bevor es abgelehnt wird.
+    /// </summary>
+    /// <remarks>
+    /// base64 blaeht Bytes um rund ein Drittel auf, und die Antwort muss durch
+    /// das Kontextfenster des Modells passen. 6 MB roh sind etwa 8 MB kodiert —
+    /// genug fuer jedes Handyfoto, das Grow OS ablegt, und weit genug von der
+    /// Grenze entfernt, an der eine Antwort nur noch aus einem Bild besteht.
+    /// </remarks>
+    private const long MaxBildBytes = 6L * 1024 * 1024;
+
+    [McpServerTool(Name = "fotos")]
+    [Description("Die Fotos eines Grows als Liste: Id, Aufnahmezeit, Motiv-Tag (Overview, Leaf, Root, Problem …) und Bildunterschrift. Liefert noch keine Bilder — mit foto_ansehen holt man das einzelne Bild.")]
+    public Task<string> FotosAsync(
+        [Description("Die Id des Grows")] int growId,
+        CancellationToken cancellationToken = default)
+        => SicherAsync(() => reader.LesenAsync($"api/grows/{growId}/photos", cancellationToken));
+
+    /// <summary>
+    /// Ein Foto so herausgeben, dass das Modell es wirklich ansehen kann.
+    /// </summary>
+    /// <remarks>
+    /// <para>Der Grund, warum es dieses Werkzeug gibt: Grow OS soll keine KI
+    /// enthalten — kein fremder Schlüssel, keine Bilder, die das Haus ungefragt
+    /// verlassen. Der Weg herum ist dieser: das Bild bleibt in Grow OS, und
+    /// wer ein Modell fragen will, holt es sich über seinen eigenen Zugang.
+    /// Die Entscheidung, ein Foto einem Modell zu zeigen, trifft damit der
+    /// Betreiber pro Bild, nicht eine Voreinstellung.</para>
+    ///
+    /// <para>Zurück kommen zwei Blöcke: das Bild und ein kurzer Text mit dem,
+    /// was Grow OS über die Aufnahme weiß. Ein Blatt ohne den Hinweis „Wurzel,
+    /// vor 3 Tagen, Grow 4" ist nur ein Blatt.</para>
+    /// </remarks>
+    [McpServerTool(Name = "foto_ansehen")]
+    [Description("Holt EIN Foto als Bild, damit du es wirklich ansehen kannst — für Fragen wie „was ist mit diesem Blatt?\". Die Id kommt aus fotos. Bilder über 6 MB werden abgelehnt.")]
+    public async Task<IEnumerable<ContentBlock>> FotoAnsehenAsync(
+        [Description("Die Id des Grows")] int growId,
+        [Description("Die Id des Fotos aus dem Werkzeug fotos")] int fotoId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var roh = await reader.LesenAsync($"api/grows/{growId}/photos", cancellationToken);
+            using var json = JsonDocument.Parse(roh);
+
+            var treffer = json.RootElement.EnumerateArray()
+                .FirstOrDefault(foto => foto.TryGetProperty("id", out var id) && id.GetInt32() == fotoId);
+
+            if (treffer.ValueKind != JsonValueKind.Object)
+            {
+                return [new TextContentBlock { Text = $"Zu Grow {growId} gibt es kein Foto mit der Id {fotoId}. Die vorhandenen Ids liefert das Werkzeug fotos." }];
+            }
+
+            var pfad = treffer.TryGetProperty("relativePath", out var p) ? p.GetString() : null;
+            if (string.IsNullOrWhiteSpace(pfad))
+            {
+                return [new TextContentBlock { Text = $"Foto {fotoId} hat keinen Dateipfad — es ist nur als Eintrag vorhanden." }];
+            }
+
+            var (bytes, medienTyp) = await reader.DateiLesenAsync(
+                $"uploads/{pfad.TrimStart('/')}", MaxBildBytes, cancellationToken);
+
+            return
+            [
+                ImageContentBlock.FromBytes(bytes, medienTyp),
+                new TextContentBlock { Text = Aufnahmenotiz(treffer, growId) },
+            ];
+        }
+        catch (GrowOsException ex)
+        {
+            return [new TextContentBlock { Text = ex.Message }];
+        }
+    }
+
+    /// <summary>Was Grow OS über die Aufnahme weiss — der Satz neben dem Bild.</summary>
+    public static string Aufnahmenotiz(JsonElement foto, int growId)
+    {
+        var teile = new List<string> { $"Grow {growId}" };
+
+        if (foto.TryGetProperty("tag", out var tag) && tag.GetString() is { Length: > 0 } motiv)
+        {
+            teile.Add($"Motiv: {motiv}");
+        }
+
+        if (foto.TryGetProperty("takenAtUtc", out var zeit) && zeit.GetString() is { Length: > 0 } aufgenommen
+            && DateTime.TryParse(aufgenommen, out var zeitpunkt))
+        {
+            var tage = (int)(DateTime.UtcNow - zeitpunkt.ToUniversalTime()).TotalDays;
+            teile.Add(tage <= 0 ? "heute aufgenommen" : tage == 1 ? "gestern aufgenommen" : $"vor {tage} Tagen aufgenommen");
+        }
+
+        if (foto.TryGetProperty("caption", out var text) && text.GetString() is { Length: > 0 } bildunterschrift)
+        {
+            teile.Add($"Notiz des Betreibers: „{bildunterschrift}\"");
+        }
+
+        if (foto.TryGetProperty("measurementId", out var mess) && mess.ValueKind == JsonValueKind.Number)
+        {
+            teile.Add($"gehört zur Messung {mess.GetInt32()} — deren Werte liefert lagebericht oder messwert_verlauf");
+        }
+
+        return string.Join(" · ", teile);
+    }
 
     /// <summary>Den Grow holen, um Zelt, Anlage und Sorte daraus zu lesen.</summary>
     private async Task<JsonElement> DetailAsync(int growId, CancellationToken cancellationToken)

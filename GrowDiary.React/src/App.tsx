@@ -17,6 +17,7 @@ import HydroDetailPage from './pages/HydroDetailPage'
 import HydroPage from './pages/HydroPage'
 import HydroEditorPage from './features/hydro/HydroEditorPage'
 import KnowledgePage from './pages/KnowledgePage'
+import ShoppingListPage from './pages/ShoppingListPage'
 import LiveDashboardPage from './pages/LiveDashboardPage'
 import ManualMeasurementPage from './pages/ManualMeasurementPage'
 import MeasurementEditPage from './pages/MeasurementEditPage'
@@ -102,6 +103,7 @@ function App() {
           <Route path="/journal" element={<GrowScopedSectionPage title="Journal & Fotos" section="journal" />} />
           <Route path="/sops" element={<GrowScopedSectionPage title="SOPs" section="sops" />} />
           <Route path="/wissen" element={<KnowledgePage />} />
+          <Route path="/einkaufsliste" element={<ShoppingListPage />} />
           <Route path="/release" element={<ReleasePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/start" element={<GettingStartedPage />} />

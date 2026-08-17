@@ -352,7 +352,7 @@ function ManualMeasurementPage() {
 
   return (
     <V1Page
-      eyebrow="Manuell"
+      eyebrow="Jetzt / Messen"
       title="Messung erfassen"
       subtitle="Werte, Foto, speichern."
       action={<Link className="v1-button is-ghost" to="/">Zurück</Link>}

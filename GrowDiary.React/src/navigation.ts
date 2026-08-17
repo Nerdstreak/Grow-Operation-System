@@ -1,6 +1,17 @@
 /* src/navigation.ts
-   Vorher: 7 Gruppen, 23 Einträge. Jetzt: 4 Gruppen, 14 Ziele.
-   Zusammengelegt:
+   Sortiert nach einer einzigen Frage: wie oft fasst man das an?
+
+   Jetzt        täglich          Live, Messen, Addback, Aufgaben
+   Pflanzen     mehrmals/Woche   Grows, Diagnose, Journal, Sorten, Archiv
+   Betrieb      alle paar Wochen Dosierung, Sensoren, Regeln, Sollwerte
+   Einrichtung  einmal           Zelte, Hydro, Wasser, Home Assistant, Handy
+   Wissen       zum Nachschlagen SOPs, Einkaufsliste, Mappe
+
+   Vorher lagen acht Ziele unter „Anlage" — fünf davon öffnet man nach der
+   ersten Woche nie wieder, drei (Dosierung, Sensoren, Regeln) fasst man
+   laufend an und musste sie dazwischen heraussuchen.
+
+   Zusammengelegt (bleibt so):
      Automatik + Grenzwerte + Benachrichtigungen  -> /regeln (Tabs)
      Sorten + Pheno-Hunt                          -> /sorten (Tabs)
      Ernte + Archiv                               -> /archiv (Tabs)
@@ -17,7 +28,7 @@ export type NavLeaf = {
 }
 
 export type NavGroup = {
-  id: 'now' | 'grow' | 'plant' | 'library'
+  id: 'now' | 'grow' | 'ops' | 'plant' | 'library'
   label: string
   items: NavLeaf[]
 }
@@ -34,8 +45,11 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    // Hiess „Grow" — also genauso wie ihr erster Eintrag. In der Seitenleiste
+    // stand „GROW / Grows" untereinander: eine Überschrift, die nichts sagt,
+    // was der Eintrag darunter nicht schon sagt.
     id: 'grow',
-    label: 'Grow',
+    label: 'Pflanzen',
     items: [
       { to: '/grows', label: 'Grows', end: false, keywords: 'lauf run pflanzen anbau' },
       { to: '/diagnose', label: 'Diagnose', end: true, keywords: 'problem mangel abweichung risiko krankheit sop' },
@@ -45,8 +59,21 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    // Was man anfasst, WÄHREND ein Grow läuft — nicht täglich, aber immer
+    // wieder. Lag vorher zwischen Zelten und Home Assistant begraben.
+    id: 'ops',
+    label: 'Betrieb',
+    items: [
+      { to: '/dosierung', label: 'Dosierung', end: false, keywords: 'pumpe peristaltik ph minus plus säure nährstoff dosieren kalibrieren' },
+      { to: '/sensoren', label: 'Sensoren & Wartung', end: true, keywords: 'hardware geräte kalibrierung inventar wechseln lebensdauer' },
+      { to: '/regeln', label: 'Regeln & Automatik', end: true, keywords: 'grenzwerte schwellen alarm push zeitplan automation' },
+      { to: '/sollwerte', label: 'Sollwert-Profile', end: true, keywords: 'zielwerte setpoints profil rdwc dwc phasen erfahrung eigene werte' },
+    ],
+  },
+  {
+    // Einmal einrichten, dann in Ruhe lassen. Deshalb steht die Gruppe unten.
     id: 'plant',
-    label: 'Anlage',
+    label: 'Einrichtung',
     items: [
       { to: '/zelte', label: 'Zelte & Räume', end: false, keywords: 'tent kamera lichtzyklus klima abluft' },
       { to: '/hydro', label: 'Hydro-Systeme', end: false, keywords: 'rdwc dwc reservoir tank pumpe sites layout' },
@@ -55,9 +82,6 @@ export const navGroups: NavGroup[] = [
       // eigenen Aufbereitung (Osmose/VE). Wer unter Anlage nach „Wasser"
       // sucht, soll es finden — genau das war die Rueckmeldung.
       { to: '/wasser', label: 'Wasser', end: true, keywords: 'wasser wasserprofil trinkwasser leitungswasser osmose ro umkehrosmose ve entsalzt stadtwerk bericht härte calcium magnesium leitfähigkeit ec kalk weich hart' },
-      { to: '/sensoren', label: 'Sensoren & Wartung', end: true, keywords: 'hardware geräte kalibrierung inventar' },
-      { to: '/dosierung', label: 'Dosierung', end: false, keywords: 'pumpe peristaltik ph minus plus säure nährstoff dosieren kalibrieren' },
-      { to: '/regeln', label: 'Regeln & Automatik', end: true, keywords: 'grenzwerte schwellen alarm push zeitplan automation' },
       { to: '/home-assistant', label: 'Home Assistant', end: true, keywords: 'ha entitäten verbindung integration mapping kamera' },
       { to: '/handy', label: 'Aufs Handy holen', end: true, keywords: 'mobil smartphone qr code startbildschirm lesezeichen app icon telefon' },
     ],
@@ -66,14 +90,18 @@ export const navGroups: NavGroup[] = [
     id: 'library',
     label: 'Wissen',
     items: [
-      { to: '/sollwerte', label: 'Sollwert-Profile', end: true, keywords: 'zielwerte setpoints profil rdwc dwc phasen erfahrung eigene werte' },
       // Ein Eintrag wie im Entwurf: SOPs, Bibliothek und Symptome sind EINE
       // durchsuchbare Sammlung. Laufende SOPs wohnen bei den Aufgaben und im
       // Grow-Detail; die Ersten Schritte öffnet man aus den Einstellungen.
       { to: '/wissen', label: 'SOPs & Bibliothek', end: true, keywords: 'sop anleitung ablauf prozedur checkliste nachschlagen growplan quellen doku symptome bibliothek wissen' },
-      // Das Fachwissen zum Mitnehmen. Stand vorher unten auf der Grow-Seite und
-      // war damit unauffindbar — wer nicht weiss, dass es etwas gibt, sucht nicht.
-      { to: '/berater', label: 'Eigener KI-Berater', end: true, keywords: 'ki agent assistent chatgpt claude ollama mappe export lagebericht prompt prueffragen berater' },
+      // Hing zugeklappt am Fuss der Wissensseite: kein Menuepunkt, kein
+      // Suchtreffer. Wer „Einkaufsliste" tippte, bekam „Nichts gefunden" —
+      // ausgerechnet in der Lage, fuer die die Liste gemacht ist.
+      { to: '/einkaufsliste', label: 'Einkaufsliste', end: true, keywords: 'einkauf einkaufen kaufen material besorgen laden bestellen vorrat zubehör liste posten was brauche ich' },
+      // Nicht „KI-Berater": in Grow OS steckt keine KI. Die Seite packt das
+      // Fachwissen der Anlage zum Mitnehmen zusammen — der Name muss das
+      // sagen, sonst sucht man eine Funktion, die es nicht gibt.
+      { to: '/berater', label: 'Mappe für eigene KI', end: true, keywords: 'ki agent assistent chatgpt claude ollama mappe export lagebericht prompt prueffragen berater' },
     ],
   },
 ]

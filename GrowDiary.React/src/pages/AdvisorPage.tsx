@@ -68,8 +68,8 @@ function AdvisorPage() {
   return (
     <V1Page
       eyebrow="Wissen"
-      title="Eigener KI-Berater"
-      subtitle="Lade das Fachwissen deiner Anlage herunter und gib es einem KI-Assistenten deiner Wahl."
+      title="Mappe für eigene KI"
+      subtitle="Grow OS rechnet selbst, ohne KI. Diese Seite packt das Fachwissen deiner Anlage in eine Datei — die gibst du einem KI-Assistenten deiner Wahl, wenn du einen willst."
       action={<GrowScopePicker grows={grows} growId={growId} onChange={setGrowId} />}
     >
       {error && <V1Alert message={error} tone="critical" />}

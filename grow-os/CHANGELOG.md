@@ -1,5 +1,57 @@
 # Changelog
 
+## 2.0.0-beta.42
+
+**Beta.** Two things a lot of features had quietly cost: the menu had grown
+past its own structure, and on the phone the picture stood in front of the
+action.
+
+- Changed — **the menu is sorted by how often you touch a thing.** "Anlage" had
+  become a catch-all with eight entries: five you set up once and never open
+  again, three you reach for while a grow is running. Those three sat buried
+  between the tent setup and the Home Assistant mapping. There are now five
+  groups — *Jetzt* (daily), *Pflanzen* (a few times a week), *Betrieb*
+  (dosing, sensors, rules, setpoints — the running grow), *Einrichtung* (tents,
+  hydro, water, Home Assistant, phone), *Wissen*. The phone's bottom bar is
+  unchanged; it is still the four daily targets.
+- Fixed — **on the phone, the critical risk stood behind the camera.** The
+  camera stage occupies 260 px whether or not a camera is even mapped, and on a
+  narrow screen the right-hand column drops below it — so "critical risk" and
+  "due today" sat a full screen height below the fold, behind a picture. The
+  source order now puts the action first and `order` pulls the camera back to
+  the left wherever both columns fit, so nothing changes on a wide screen. The
+  stage also collapses when no camera is mapped.
+- Fixed — **every page could be dragged wider than the phone.** Same trap as
+  the live screen in beta.40, one level up: `.v1-page` is a single-column grid,
+  and a grid child's minimum width is its content's. One long Home Assistant
+  entity name made the column 423 px wide on a 351 px screen. All 23 pages now
+  measure clean at 375 px.
+- Fixed — **Home Assistant entity fields showed a third of what you typed.**
+  144 px of a name that needs 266. On a phone the field now drops below its
+  label and takes the full width.
+- Added — **the shopping list has its own page and its own menu entry.** It
+  existed since beta.36, but folded shut at the foot of the knowledge page,
+  with no menu entry and no search keywords: typing "Einkaufsliste" into the
+  search box returned "Nichts gefunden" — in exactly the situation the list is
+  made for. It also no longer clings to the bottom of an opened SOP.
+- Fixed — **menu and page said different things.** The menu said "Wasser", the
+  page "Leitungswasser". The menu said "Eigener KI-Berater" while the tab next
+  to it said "Mappe für eigene KI", with a comment stating outright that Grow
+  OS contains no AI. "Addback" opened a page titled "Reservoir". All of these
+  now match, and a test walks every menu entry to check that the page's
+  breadcrumb names the group it was reached through — this mistake had already
+  happened three times.
+- Changed — **the grow's export button moved into Verwaltung.** A file download
+  is not a daily action, and in the header row it cost a button's width on the
+  phone, next to Addback and the phase buttons.
+- Added — **the MCP server can hand a photo to your own AI.** Two new tools:
+  `fotos` lists what has been photographed for a grow, `foto_ansehen` returns
+  the image itself together with a note saying what it shows — subject, age,
+  your caption, and the measurement it belongs to. Brown roots after a water
+  change mean something different from brown roots in week seven, and a model
+  that only gets pixels cannot know which one it is looking at. This keeps the
+  arrangement Grow OS is built on: the picture lives here, the AI sits outside.
+
 ## 2.0.0-beta.41
 
 **Beta.** A bug report with teeth: the multi-strain tent from beta.38 was only

@@ -69,7 +69,7 @@ function MobilePage() {
   }
 
   return (
-    <V1Page eyebrow="Anlage / Mobil" title="Aufs Handy holen">
+    <V1Page eyebrow="Einrichtung / Mobil" title="Aufs Handy holen">
       {error && <V1Alert message={error} tone="warn" />}
 
       {loading ? <V1Skeleton rows={3} label="Lade Panel-Pfad" /> : !access?.available ? (

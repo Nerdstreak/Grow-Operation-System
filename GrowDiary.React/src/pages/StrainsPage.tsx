@@ -389,7 +389,7 @@ function StrainsPage() {
 
   return (
     <V1Page
-      eyebrow="Grow / Sorten"
+      eyebrow="Pflanzen / Sorten"
       title="Sorten & Pheno-Hunt"
       action={<button type="button" className="ls-btn is-primary" onClick={startNew}>+ Sorte</button>}
     >

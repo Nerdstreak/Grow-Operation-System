@@ -23,6 +23,16 @@
     display: grid;
     gap: var(--s-3);
   }
+
+  /* Dieselbe Grid-Falle, die das Live-Dashboard auf dem Telefon zerlegt hat —
+     hier fuer JEDE andere Seite: ein Grid-Item hat `min-width: auto`, seine
+     Untergrenze ist also die min-content-Breite seines Inhalts. Diese Seiten
+     sind ein Grid mit einer einzigen Spalte, ein einziges breites Kind zieht
+     sie also auf und schiebt ALLES darueber hinaus.
+     Gemessen auf der Home-Assistant-Seite: 423 px Spalte bei 351 px Platz —
+     ein langer Entitaeten-Name reichte. Wer intern nicht schmaler kann,
+     scrollt jetzt in sich selbst, statt die Seite zu sprengen. */
+  .v1-page > * { min-width: 0; }
   .v1-hero {
     display: flex; align-items: flex-end; justify-content: space-between;
     gap: var(--s-4); flex-wrap: wrap;
