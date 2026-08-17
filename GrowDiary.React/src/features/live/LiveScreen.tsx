@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { GrowSummary, MetricPayload, RiskEventDto, TentDto } from '../../types'
 import type { HistoryPoint } from '../../components/SensorChart'
+import { SensorChart } from '../../components/SensorChart'
 import { MetricTile } from './MetricTile'
 import { decimalsForMetric } from './metric-tile-model'
 import { CameraPanel } from './CameraPanel'
@@ -286,8 +288,26 @@ export function LiveScreen({
 }
 
 /** Eine beschriftete Reihe Messwerte mit Haarlinie bis zum Rand. */
+/**
+ * Ein Band aus Kacheln — anklickbar, mit aufklappbarem Verlauf.
+ *
+ * <b>Der Fehler, der hier steckte.</b> Der Kachel-Klick kam in beta.38 und
+ * wurde nur in `DashboardBands` eingebaut — also in der Ansicht mit eigener
+ * Anordnung. Wer keine gespeichert hat, sieht dieses Band hier, und es reichte
+ * `onOpen` nie durch: die Kacheln sahen gleich aus und taten nichts. Das ist
+ * der Standardfall, also traf es die Mehrheit.
+ *
+ * Beide Ansichten zeigen jetzt denselben Verlauf an derselben Stelle: unter
+ * der Zeile, nicht als Fenster darüber — man will die Nachbarkacheln zum
+ * Vergleich weiter sehen.
+ */
 function MetricBand({ title, metrics, trends }: { title: string; metrics: MetricPayload[]; trends: Map<string, HistoryPoint[]> }) {
+  const [offeneMetrik, setOffeneMetrik] = useState<string | null>(null)
   if (metrics.length === 0) return null
+
+  const offene = offeneMetrik ? metrics.find((m) => m.key === offeneMetrik) : null
+  const punkte = offeneMetrik ? (trends.get(offeneMetrik) ?? []) : []
+
   return (
     <>
       <div className="ls-band-label">
@@ -297,6 +317,9 @@ function MetricBand({ title, metrics, trends }: { title: string; metrics: Metric
       <div className="gos-metric-row">
         {metrics.map((metric) => {
           const herkunft = metricProvenance(metric)
+          // Klickbar nur mit Verlauf: eine Kachel, die sich als Knopf anbietet
+          // und dann nichts zeigt, ist schlimmer als eine, die stumm bleibt.
+          const hatVerlauf = (trends.get(metric.key)?.length ?? 0) > 1
           return (
             <MetricTile
               key={metric.key}
@@ -312,10 +335,21 @@ function MetricBand({ title, metrics, trends }: { title: string; metrics: Metric
               targetNote={metric.targetNote}
               sourceNote={herkunft.sourceNote}
               stale={herkunft.stale}
+              onOpen={hatVerlauf ? () => setOffeneMetrik(offeneMetrik === metric.key ? null : metric.key) : undefined}
+              open={offeneMetrik === metric.key}
             />
           )
         })}
       </div>
+
+      {offene && punkte.length > 1 && (
+        <div className="ls-metric-detail" data-audit="metric-detail">
+          <SensorChart
+            series={{ metricKey: offene.key, label: offene.label, unit: offene.unit, points: punkte }}
+            target={{ min: offene.targetMin, max: offene.targetMax }}
+          />
+        </div>
+      )}
     </>
   )
 }

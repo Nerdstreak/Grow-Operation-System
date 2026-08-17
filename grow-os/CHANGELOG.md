@@ -38,6 +38,14 @@ taste like — now happens inside the app instead of beside it.
   the first two looked.
 - Added — **two more MCP tools**: `aushaerten` (jars, humidity, next burp) and
   `symptom_bilder` (your reference shots for a symptom). Twenty-two tools now.
+- Fixed — **clicking a tile did nothing.** Reported from the field: the tile
+  click that arrived in beta.38 was only ever wired into the *custom-arranged*
+  dashboard. Anyone who never saved an arrangement sees the plain metric band —
+  and that band never passed the handler down. The tiles looked identical and
+  did nothing, which is the default case, so it hit the majority. Both views now
+  open the same 24-hour chart in the same place: below the row, not over it, so
+  the neighbouring tiles stay visible for comparison. Tiles without history stay
+  silent rather than offering a click that shows nothing.
 - Fixed — **`foto_ansehen` never returned an image.** The path was assembled
   twice (`uploads/uploads/4/x.jpg`). It would not have surfaced as an error
   either: Grow OS answers any path outside `/api` with the start page and status

@@ -59,6 +59,21 @@ describe('Schutzregeln des Live-Layouts', () => {
     expect(css).toMatch(/@media\s*\(min-width:\s*9\d\dpx\)\s*\{\s*\.ls-cam\s*\{[^}]*order:\s*-1/)
   })
 
+  it('macht die Kacheln in BEIDEN Ansichten anklickbar', () => {
+    // Der Kachel-Klick kam in beta.38 — aber nur in `DashboardBands`, also in
+    // der Ansicht mit eigener Anordnung. Wer keine gespeichert hat, sieht das
+    // Band in LiveScreen, und dort wurde `onOpen` nie durchgereicht: die
+    // Kacheln sahen gleich aus und taten nichts. Das ist der Standardfall, es
+    // traf also die Mehrheit — gemeldet vom Tester, nicht von einem Test.
+    const lies = (datei: string) =>
+      readFileSync(fileURLToPath(new URL(datei, import.meta.url)), 'utf8')
+
+    for (const datei of ['LiveScreen.tsx', 'DashboardBands.tsx']) {
+      expect(lies(datei), `${datei} reicht onOpen nicht an MetricTile durch`).toMatch(/onOpen=\{/)
+      expect(lies(datei), `${datei} zeigt keinen aufgeklappten Verlauf`).toContain('metric-detail')
+    }
+  })
+
   it('laesst die Kamerabuehne schrumpfen, wenn gar keine Kamera zugeordnet ist', () => {
     // 260 px grauer Klotz fuer den Satz „keine gemappt“ schoben auf dem
     // Telefon alles Darunterliegende aus dem Bild.
