@@ -260,3 +260,49 @@ describe('flipLabel', () => {
     })
   })
 })
+/**
+ * Die App muss dieselbe Phase zeigen, die der Server rechnet.
+ *
+ * Zwei Fälle liefen auseinander, beide auf demselben Bildschirm sichtbar:
+ * ein Autoflower stand für immer in der Veg, während die Kachel daneben
+ * Blüte-Zielwerte zeigte; und ein Grow, den man mitten im Lauf eingetragen
+ * hatte, fing im Strahl bei Tag 1 an, obwohl die App intern längst weiterzählte.
+ */
+describe('Zeitstrahl und Server sagen dasselbe', () => {
+  const heute = new Date()
+  const vorTagen = (n: number) => new Date(heute.getTime() - n * 86_400_000).toISOString().slice(0, 10)
+
+  it('bringt einen Autoflower ohne Flip in die Blüte', () => {
+    // Der Server rechnet: 28 Tage nach der Keimung blüht ein Autoflower.
+    const timeline = buildPhaseTimeline({
+      startDate: vorTagen(50),
+      germinatedAt: vorTagen(50),
+      seedType: 'Autoflower',
+      flipDate: null,
+    })
+
+    const laufend = timeline.phases.find((phase) => phase.state === 'current')
+    expect(laufend?.name, 'Autoflower steht nach 50 Tagen immer noch nicht in der Blüte').toBe('Blüte')
+  })
+
+  it('lässt einen Photoperiod ohne Flip in der Veg', () => {
+    // Gegenprobe: ohne Autoflower gilt weiter, dass ein Flip nötig ist.
+    const timeline = buildPhaseTimeline({
+      startDate: vorTagen(50),
+      germinatedAt: vorTagen(50),
+      seedType: 'Feminized',
+      flipDate: null,
+    })
+
+    expect(timeline.phases.find((phase) => phase.state === 'current')?.name).not.toBe('Blüte')
+  })
+
+  it('zählt mitgebrachte Tage der Einstiegsphase mit', () => {
+    // „Ich trage einen Grow ein, der seit 20 Tagen in der Veg ist."
+    const ohne = buildPhaseTimeline({ startDate: vorTagen(1), entryPoint: 'Veg' })
+    const mit = buildPhaseTimeline({ startDate: vorTagen(1), entryPoint: 'Veg', daysAlreadyInPhase: 20 })
+
+    const tag = (t: typeof ohne) => t.phases.find((phase) => phase.state === 'current')?.dayInPhase ?? 0
+    expect(tag(mit), 'die mitgebrachten Tage werden ignoriert').toBeGreaterThan(tag(ohne))
+  })
+})

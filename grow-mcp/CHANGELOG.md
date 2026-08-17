@@ -1,5 +1,17 @@
 # Änderungen — Grow MCP
 
+## 0.1.7
+
+Zwei Auskuenfte, die in die Irre fuehrten — beide ohne Fehlermeldung.
+
+- **`pflanzen`** antwortete fuer einen Grow, den es gar nicht gibt, mit einer
+  leeren Liste. Das liest sich wie „dieser Grow hat keine Pflanzen" statt wie
+  „diese Id gibt es nicht".
+- **`sorte`** meldete „keine Sorte zugeordnet", waehrend `grows_auflisten` fuer
+  denselben Grow „Purple Lemonade / FastBuds" lieferte. Jetzt nennt es den
+  eingetragenen Namen und sagt, was wirklich fehlt: der Eintrag in der
+  Sortenliste, und damit Bluetewochen, Stretch und Notizen.
+
 ## 0.1.6
 
 Drei Werkzeuge haben eine andere Frage beantwortet als die gestellte. Keines

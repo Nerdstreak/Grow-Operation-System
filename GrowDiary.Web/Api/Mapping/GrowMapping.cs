@@ -33,6 +33,8 @@ public static class GrowMapping
         RootedAt: grow.RootedAt,
         VegStartedAt: grow.VegStartedAt,
         FinishStartedAt: grow.FinishStartedAt,
+        EntryPoint: grow.EntryPoint.ToString(),
+        DaysAlreadyInPhase: grow.DaysAlreadyInPhase,
         CurrentStage: Services.GrowStageResolver.Resolve(grow, DateTime.Today).ToString(),
         MeasurementCount: grow.MeasurementCount,
         LatestPhotoPath: grow.LatestPhotoPath,

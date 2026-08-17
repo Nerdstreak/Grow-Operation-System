@@ -30,6 +30,9 @@ export interface GrowSummary {
   environment: GrowEnvironment
   seedType: SeedType
   startMaterial: StartMaterial
+  /** Wo der Lauf einstieg — der Zeitstrahl der Liste braucht es wie der im Detail. */
+  entryPoint?: GrowEntryPoint
+  daysAlreadyInPhase?: number | null
   plantCount: number | null
   tentId: number | null
   systemId: number | null

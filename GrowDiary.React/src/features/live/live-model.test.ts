@@ -35,7 +35,9 @@ function sechsImZiel(): MetricPayload[] {
 describe('buildScore', () => {
   it('bleibt ohne Zelt und ohne Messwerte neutral', () => {
     expect(buildScore([], null).tone).toBe('neutral')
-    expect(buildScore([], zelt)).toMatchObject({ value: 0, tone: 'neutral', label: 'Einrichten' })
+    // `null`, nicht 0: die Null stand gross im Ring und las sich wie die
+    // schlechteste aller Noten, waehrend daneben „Einrichten" stand.
+    expect(buildScore([], zelt)).toMatchObject({ value: null, tone: 'neutral', label: 'Einrichten' })
   })
 
   it('benotet nicht, wenn kein Wert einen Zielbereich hat', () => {
@@ -49,7 +51,8 @@ describe('buildScore', () => {
       metrik('vpd', 1.41, null, null),
     ]
 
-    expect(buildScore(ohneZiel, zelt)).toMatchObject({ value: 0, tone: 'neutral', label: 'Nicht bewertet' })
+    // Nichts gemessen ist keine schlechte Bewertung, sondern gar keine.
+    expect(buildScore(ohneZiel, zelt)).toMatchObject({ value: null, tone: 'neutral', label: 'Nicht bewertet' })
   })
 
   it('zieht für ein Klimaproblem nur einmal ab, nicht dreimal', () => {

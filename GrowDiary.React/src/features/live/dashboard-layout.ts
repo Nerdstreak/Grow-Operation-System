@@ -164,8 +164,17 @@ export function layoutIsEmpty(layout: DashboardLayout): boolean {
 }
 
 /** Eine Kachel für einen Wert, den Grow OS selbst misst. */
-export function metricTile(metricKey: string): DashboardTile {
-  return { id: newId(), kind: 'Metric', metricKey, entityId: null, label: null, unit: null, span: 1 }
+/**
+ * Eine Kachel für einen Messwert, den Grow OS kennt.
+ *
+ * Das Label wird mitgegeben, obwohl `resolveTile` es normalerweise aus den
+ * aktuellen Messwerten holt. Grund: findet es den Schlüssel dort nicht, fiel
+ * die Kachel auf den Schlüssel selbst zurück und schrieb „co2" statt „CO₂" in
+ * die Oberfläche. Der Auswahldialog kennt den richtigen Namen — er soll ihn
+ * auch weitergeben, statt ihn wegzuwerfen.
+ */
+export function metricTile(metricKey: string, label: string | null = null): DashboardTile {
+  return { id: newId(), kind: 'Metric', metricKey, entityId: null, label, unit: null, span: 1 }
 }
 
 /** Eine Kachel für eine beliebige Home-Assistant-Entität. */

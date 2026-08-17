@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.0.0-beta.46
+
+**Beta.** The last of the 37 findings. All of them are now closed.
+
+- Fixed — **CO₂ could not be put on the start screen at all.** "+ Kachel"
+  offered it; the resulting tile then showed the raw key as its name ("co2") and
+  "—" as its value, while the actual reading sat right there in the same
+  response. The tile resolver only knew the two fixed bands, and CO₂ is in
+  neither. PPFD was hit whenever a light state was reported.
+- Fixed — **"Heute fällig" left out overdue routines**, so clicking "Alle" led to
+  a page listing items the start screen claimed did not exist.
+- Fixed — **the timeline counted differently than the server, twice.** An
+  autoflower never reached flowering, because the start of flowering came only
+  from the flip date — which an autoflower does not have; the same screen showed
+  "Veg day 70" beside flowering targets. And "days already in phase" was
+  ignored, so a grow entered mid-run started at day 1 on the bar while the app
+  counted on internally.
+- Fixed — **69 places showed raw developer identifiers.** The pathogen and
+  treatment files reference 65 symptom keys that have no entry, so
+  "slimy-roots-foul-smell" stood in the middle of German prose. All 65 are
+  translated and shown as keywords rather than dead links. Nothing was invented —
+  only the existing English term rendered in German. A test reads the shipped
+  knowledge base and fails as soon as a new keyword arrives without one.
+- Fixed — two charts could be open at once, one per tile row; "0 /100" filled
+  the score ring while "Nicht bewertet" stood beside it; the knowledge search now
+  folds umlauts; and two MCP tools gave misleading answers — `pflanzen` returned
+  an empty list for a grow that does not exist (reading as "has no plants"), and
+  `sorte` claimed no strain while `grows_auflisten` named one for the same grow.
+
 ## 2.0.0-beta.45
 
 **Beta.** The rest of the findings from the same pass.

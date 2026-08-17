@@ -35,6 +35,14 @@ public sealed record GrowSummaryDto(
     DateTime? RootedAt,
     DateTime? VegStartedAt,
     DateTime? FinishStartedAt,
+    /// <summary>
+    /// Wo der Lauf eingestiegen ist und wie viele Tage er dort schon hinter
+    /// sich hatte. Auch die Liste braucht beides: ihr Zeitstrahl rechnet sonst
+    /// anders als der auf der Detailseite, und zwei Zahlen zur selben Sache,
+    /// die sich widersprechen, sind schlimmer als eine ungenaue.
+    /// </summary>
+    string EntryPoint,
+    int? DaysAlreadyInPhase,
     /// <summary>Die Phase von HEUTE, aus dem Resolver — auch die Listen zeigen sie.</summary>
     string CurrentStage,
     int MeasurementCount,

@@ -131,9 +131,22 @@ public sealed class GrowTools(GrowOsReader reader)
         => SicherAsync(async () =>
         {
             var grow = await DetailAsync(growId, cancellationToken);
-            return Zahl(grow, "strainId") is { } sortenId
-                ? await reader.LesenAsync($"api/strains/{sortenId}", cancellationToken)
-                : $"Dem Grow {growId} ist keine Sorte aus der Sortenliste zugeordnet.";
+            if (Zahl(grow, "strainId") is { } sortenId)
+            {
+                return await reader.LesenAsync($"api/strains/{sortenId}", cancellationToken);
+            }
+
+            // Den eingetragenen Namen mitnennen, wenn es einen gibt. Vorher
+            // stand hier „keine Sorte zugeordnet", waehrend grows_auflisten fuer
+            // denselben Grow „Purple Lemonade / FastBuds" meldete — zwei
+            // Werkzeuge, die sich widersprechen, und die KI kann nicht wissen,
+            // welchem sie glauben soll. Gemeint ist: der Name steht als Text am
+            // Grow, aber es gibt keinen Eintrag in der Sortenliste.
+            var name = Text(grow, "strain");
+            return string.IsNullOrWhiteSpace(name)
+                ? $"Dem Grow {growId} ist keine Sorte zugeordnet."
+                : $"Der Grow {growId} nennt als Sorte \"{name}\", hat dafür aber keinen Eintrag in der Sortenliste — "
+                  + "Blütewochen, Stretch und Notizen liegen deshalb nicht vor.";
         });
 
     [McpServerTool(Name = "alarme")]
@@ -201,6 +214,16 @@ public sealed class GrowTools(GrowOsReader reader)
         CancellationToken cancellationToken = default)
         => SicherAsync(async () =>
         {
+            // Erst nachsehen, ob es den Grow ueberhaupt gibt: `api/plants?growId=`
+            // antwortet auch fuer eine erfundene Id mit einer leeren Liste und
+            // Status 200. Das liest sich wie „dieser Grow hat keine Pflanzen" —
+            // eine falsche Auskunft auf eine Frage, die gar nicht beantwortbar
+            // war.
+            if (Zahl(await DetailAsync(growId, cancellationToken), "id") is null)
+            {
+                return $"Einen Grow mit der Id {growId} gibt es nicht. Mit grows_auflisten bekommst du die gültigen Ids.";
+            }
+
             var pflanzen = await reader.LesenAsync($"api/plants?growId={growId}", cancellationToken);
             var hunt = await DarfFehlenAsync($"api/pheno/grows/{growId}", cancellationToken);
             return Zusammen(("pflanzen", pflanzen), ("phenoHunt", hunt));

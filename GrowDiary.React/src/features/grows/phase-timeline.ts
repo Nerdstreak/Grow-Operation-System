@@ -58,6 +58,26 @@ export type PhaseTimelineInput = {
   vegStartedAt?: string | null
   /** Klone haben keine Sämlingsphase: bewurzelt heisst vegetativ. */
   startMaterial?: string | null
+  /**
+   * Autoflower oder nicht.
+   *
+   * Ohne diese Angabe kam der Strahl bei einem Autoflower nie in die Blüte: er
+   * las den Blütebeginn ausschließlich aus `flipDate`, und ein Autoflower hat
+   * keines. Der Server rechnet dort längst anders (28 Tage nach der Keimung,
+   * <c>GrowStageResolver</c>) — auf demselben Bildschirm stand also „Veg Tag
+   * 70" neben Blüte-Zielwerten.
+   */
+  seedType?: string | null
+  /**
+   * Wo der Lauf eingestiegen ist, und wie viele Tage er in dieser Phase schon
+   * hinter sich hatte, als er angelegt wurde.
+   *
+   * Wer einen laufenden Grow einträgt, gibt beides an — der Strahl hat es
+   * bisher ignoriert und ab dem Anlegedatum bei null angefangen. Die App zählte
+   * damit intern anders, als sie anzeigte.
+   */
+  entryPoint?: string | null
+  daysAlreadyInPhase?: number | null
   /** Nach so vielen Tagen ohne Eintrag gilt der Sämling als durch (Schätzung). */
   seedlingDays?: number
   plannedVegDays?: number | null
@@ -126,14 +146,23 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
   // Blätter statt der zwei runden Keimblätter, dickerer Stängel, regelmäßig
   // neue Blattpaare. Steht kein Eintrag, wird geschätzt — und das steht dann
   // auch dran.
-  const saemlingStart = keimEnde?.getTime() ?? start.getTime()
+  // Mitgebrachte Tage verschieben den Beginn der Einstiegsphase nach hinten:
+  // wer „Veg, seit 20 Tagen" eintraegt, steht heute bei Veg Tag 20, nicht bei
+  // Tag 1. Genauso rechnet der Server (GrowStageResolver).
+  const mitgebracht = Math.max(0, grow.daysAlreadyInPhase ?? 0)
+  const saemlingStart = (keimEnde?.getTime() ?? start.getTime())
+    - (grow.entryPoint === 'Seedling' ? mitgebracht * TAG : 0)
   const saemlingTage = grow.seedlingDays ?? 14
   const vegEingetragen = parse(grow.vegStartedAt)
   const vegGeschaetzt = new Date(saemlingStart + saemlingTage * TAG)
   // Ein Klon hat nie Keimblätter gehabt: bewurzelt heisst vegetativ, die
   // Sämlingsphase entfällt komplett.
   const istKlon = grow.startMaterial === 'Clone'
-  const vegBeginn = istKlon ? new Date(saemlingStart) : (vegEingetragen ?? vegGeschaetzt)
+  const vegBeginn = istKlon
+    ? new Date(saemlingStart)
+    : (vegEingetragen ?? (grow.entryPoint === 'Veg' && mitgebracht > 0
+        ? new Date(start.getTime() - mitgebracht * TAG)
+        : vegGeschaetzt))
   const imSaemling = !istKlon && flip == null && jetzt < vegBeginn.getTime()
 
   // Blütedauer aus den Breeder-Angaben; ohne sie der übliche Richtwert von acht
@@ -150,8 +179,16 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
   const geplanterFlip = grow.plannedVegDays != null && grow.plannedVegDays > 0
     ? new Date(vegStart + grow.plannedVegDays * TAG)
     : null
-  const flipFuerRechnung = flip ?? geplanterFlip
-  const inBluete = flip != null && jetzt >= flip.getTime()
+  // Autoflower kennen keinen Flip — sie gehen nach Tagen in die Bluete. 28 Tage
+  // nach der Keimung, derselbe Richtwert wie in GrowStageResolver; ohne diesen
+  // Rueckfall blieb der Strahl fuer immer in der Veg.
+  const istAutoflower = grow.seedType === 'Autoflower'
+  const autoBlueteStart = istAutoflower
+    ? new Date((keimEnde?.getTime() ?? saemlingStart) + 28 * TAG)
+    : null
+  const flipFuerRechnung = flip ?? autoBlueteStart ?? geplanterFlip
+  const inBluete = flipFuerRechnung != null && jetzt >= flipFuerRechnung.getTime()
+    && (flip != null || istAutoflower)
   // Geplant ist alles, was noch nicht passiert ist — auch ein fest gesetztes
   // Datum in der Zukunft. Vorher stand unter dem Strahl "Geflippt 06.08.",
   // obwohl der 06.08. erst kommt.
@@ -198,8 +235,11 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
   }
 
   // ---------- Veg ----------
-  if (inBluete && flip) {
-    const dauer = tage(vegStart, flip.getTime())
+  // `flipFuerRechnung`, nicht `flip`: bei einem Autoflower gibt es kein
+  // Flip-Datum, wohl aber einen Bluetebeginn (28 Tage nach der Keimung). Mit
+  // `flip` blieb die Veg fuer immer die laufende Phase.
+  if (inBluete && flipFuerRechnung) {
+    const dauer = tage(vegStart, flipFuerRechnung.getTime())
     phases.push({ name: 'Veg', label: `Veg ${dauer} T`, short: `Veg ${dauer} T`, days: dauer, state: 'done' })
   } else {
     const gelaufen = tage(vegStart, jetzt)
@@ -225,8 +265,8 @@ export function buildPhaseTimeline(grow: PhaseTimelineInput | null, jetzt = Date
   }
 
   // ---------- Blüte ----------
-  if (inBluete && flip) {
-    const tagInBluete = Math.floor((jetzt - flip.getTime()) / TAG) + 1
+  if (inBluete && flipFuerRechnung) {
+    const tagInBluete = Math.floor((jetzt - flipFuerRechnung.getTime()) / TAG) + 1
     phases.push({
       name: 'Blüte',
       label: `Blüte · Tag ${tagInBluete} von ${bluetetage}`,

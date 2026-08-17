@@ -42,6 +42,16 @@ export type LiveScreenProps = {
   scoreParts: string
   climate: MetricPayload[]
   hydro: MetricPayload[]
+  /**
+   * Alles, was der Server fuer dieses Zelt meldet.
+   *
+   * Die zwei festen Baender zeigen nur eine Auswahl: CO₂ ist in keinem von
+   * beiden, PPFD faellt heraus sobald ein Licht-Zustand gemeldet wird, und von
+   * den zwei Fuellstand-Varianten ueberlebt nur die gewaehlte. Wer eine solche
+   * Kachel ueber „+ Kachel" hinzufuegte, bekam „—" als Wert und den rohen
+   * Schluessel als Namen — obwohl der Wert direkt daneben in der Antwort steht.
+   */
+  alleMetriken?: MetricPayload[]
   sensorsLive: number
   lastMeasurement: string | null
   stageLine: string | null
@@ -82,7 +92,7 @@ export type DashboardPanel = {
 }
 
 export function LiveScreen({
-  tent, grow, score, scoreParts, climate, hydro, sensorsLive,
+  tent, grow, score, scoreParts, climate, hydro, alleMetriken, sensorsLive,
   lastMeasurement, stageLine, risks, tasks, timeline, timelineDates, plantLine,
   flipIsPlanned, daysToFlip, tents, systemWarning, trends, dashboard, onTent, onRefresh,
 }: LiveScreenProps) {
@@ -90,7 +100,10 @@ export function LiveScreen({
   // Die eigene Anordnung zeichnet nur, wer eine hat oder gerade eine baut.
   // Sonst bleibt es bei den festen Reihen — Buchstabe fuer Buchstabe wie bisher.
   const eigeneAnordnung = dashboard && (dashboard.editing || dashboard.layout.isCustom)
-  const metricsByKey = new Map([...climate, ...hydro].map((metric) => [metric.key, metric]))
+  // Erst alles, was der Server kennt — dann die Baender darueber, denn deren
+  // Fassungen tragen die zurueckgerechneten Ziele.
+  const metricsByKey = new Map([...(alleMetriken ?? []), ...climate, ...hydro].map((metric) => [metric.key, metric]))
+  const [offeneMetrik, setOffeneMetrik] = useState<string | null>(null)
 
   return (
     <main className="ls" data-audit="live-screen">
@@ -171,8 +184,8 @@ export function LiveScreen({
           />
         ) : (
           <>
-            <MetricBand title="Klima" metrics={climate} trends={trends} />
-            <MetricBand title="Hydroponik · Nährlösung" metrics={hydro} trends={trends} />
+            <MetricBand title="Klima" metrics={climate} trends={trends} offeneMetrik={offeneMetrik} setOffeneMetrik={setOffeneMetrik} />
+            <MetricBand title="Hydroponik · Nährlösung" metrics={hydro} trends={trends} offeneMetrik={offeneMetrik} setOffeneMetrik={setOffeneMetrik} />
           </>
         )}
       </section>
@@ -301,8 +314,20 @@ export function LiveScreen({
  * der Zeile, nicht als Fenster darüber — man will die Nachbarkacheln zum
  * Vergleich weiter sehen.
  */
-function MetricBand({ title, metrics, trends }: { title: string; metrics: MetricPayload[]; trends: Map<string, HistoryPoint[]> }) {
-  const [offeneMetrik, setOffeneMetrik] = useState<string | null>(null)
+function MetricBand({ title, metrics, trends, offeneMetrik, setOffeneMetrik }: {
+  title: string
+  metrics: MetricPayload[]
+  trends: Map<string, HistoryPoint[]>
+  /**
+   * Welcher Verlauf offen ist — geteilt über BEIDE Bänder.
+   *
+   * Lag der Zustand in jedem Band für sich, konnten zwei Verläufe gleichzeitig
+   * aufgeklappt sein: einer im Klima, einer in der Nährlösung. Gemeint ist
+   * aber „der eine, den ich gerade ansehe".
+   */
+  offeneMetrik: string | null
+  setOffeneMetrik: (key: string | null) => void
+}) {
   if (metrics.length === 0) return null
 
   const offene = offeneMetrik ? metrics.find((m) => m.key === offeneMetrik) : null
@@ -365,8 +390,10 @@ function MetricBand({ title, metrics, trends }: { title: string; metrics: Metric
  * „Kritisch“ und der Kreis leuchtete trotzdem grün. Die Bewertung kommt schon
  * immer aus `buildScore`, sie wurde hier nur nicht benutzt.
  */
-function ScoreRing({ value, tone }: { value: number; tone: 'ok' | 'warn' | 'critical' | 'neutral' }) {
-  const clamped = Math.max(0, Math.min(100, value))
+function ScoreRing({ value, tone }: { value: number | null; tone: 'ok' | 'warn' | 'critical' | 'neutral' }) {
+  // null heisst „nicht bewertet" — der Ring bleibt dann leer, statt eine Null
+  // als Note auszugeben.
+  const clamped = value == null ? 0 : Math.max(0, Math.min(100, value))
   const farbe = tone === 'critical' ? 'var(--danger)'
     : tone === 'warn' ? 'var(--warn)'
       : tone === 'ok' ? 'var(--accent)'
@@ -376,11 +403,13 @@ function ScoreRing({ value, tone }: { value: number; tone: 'ok' | 'warn' | 'crit
       className={classNames('ls-ring', `is-${tone}`)}
       style={{ background: `conic-gradient(${farbe} 0 ${clamped}%, var(--sunk) ${clamped}% 100%)` }}
       role="img"
-      aria-label={`Grow-Score ${clamped} von 100`}
+      aria-label={value == null ? 'Grow-Score: nicht bewertet' : `Grow-Score ${clamped} von 100`}
     >
       <div className="ls-ring-inner">
-        <span>{clamped}</span>
-        <span className="ls-ring-max">/100</span>
+        {/* Ein Strich statt einer Null: „0 /100" sah aus wie die schlechteste
+            aller Noten, während daneben „Nicht bewertet" stand. */}
+        <span>{value == null ? '—' : clamped}</span>
+        {value != null && <span className="ls-ring-max">/100</span>}
       </div>
     </div>
   )

@@ -182,7 +182,7 @@ function AddTileDialog({
             <>
               <div className="ls-dialog-cap">Grow OS kennt</div>
               {metriken.map((metric) => (
-                <button key={metric.key} type="button" className="ls-pick" onClick={() => onAdd(sectionId, metricTile(metric.key))}>
+                <button key={metric.key} type="button" className="ls-pick" onClick={() => onAdd(sectionId, metricTile(metric.key, metric.label))}>
                   <span className="dot" />
                   <span className="ls-pick-text">{metric.label}</span>
                 </button>

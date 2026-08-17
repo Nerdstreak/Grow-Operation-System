@@ -6,6 +6,7 @@ import type { KnowledgeOverviewDto, NutrientProgramDto, WearTemplateDto } from '
 import { V1Page, V1Skeleton } from '../components/v1'
 import { ShoppingList } from '../features/knowledge/ShoppingList'
 import { SymptomPhotos } from '../features/knowledge/SymptomPhotos'
+import { stichwort } from '../features/knowledge/stichwoerter'
 import '../features/knowledge/knowledge.css'
 
 type TopicId = 'rdwc' | 'addback' | 'rootrot' | 'ph-ec' | 'athena' | 'canna' | 'sensors' | 'troubleshooting'
@@ -300,7 +301,11 @@ function RefChips({ ids, index, onNavigate }: { ids: string[]; index: Map<string
     <div className="ix-kb-refs">
       {ids.map((id) => {
         const hit = index.get(id)
-        if (!hit) return <span key={id} className="ix-kb-ref dead">{id}</span>
+        // Ohne Eintrag ist es kein toter Verweis, sondern ein Stichwort: die
+        // Wissensbasis nennt 65 Symptome, zu denen es keinen eigenen Datensatz
+        // gibt. Vorher stand hier der rohe Schluessel — „slimy-roots-foul-smell"
+        // mitten im deutschen Text, an 69 Stellen.
+        if (!hit) return <span key={id} className="ix-kb-ref dead" title="Stichwort ohne eigenen Eintrag">{stichwort(id)}</span>
         return (
           <button key={id} type="button" className="ix-kb-ref" onClick={() => onNavigate(id)}>
             {hit.title}<span className="arr">↗</span>
@@ -592,7 +597,19 @@ function KnowledgePage() {
     return map
   }, [categories])
 
-  const q = query.trim().toLowerCase()
+  /**
+   * Suchtext ohne Umlaute und ohne Scharf-s.
+   *
+   * „Wurzelfaeule" fand nichts, obwohl der Eintrag „Wurzelfäule" heißt — wer
+   * am Handy tippt oder sich die Umlaute spart, kam nicht ans Ziel. Die
+   * Faltung gilt für beide Seiten des Vergleichs, sonst hilft sie nur in eine
+   * Richtung.
+   */
+  const falte = (text: string) => text
+    .toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+
+  const q = falte(query.trim())
   const searchResults = useMemo(() => {
     if (!q) return []
     // Rank by match quality so exact/title hits come first and body-only matches
@@ -601,14 +618,14 @@ function KnowledgePage() {
     const scored: Array<{ cat: Category; entry: Entry; score: number }> = []
     for (const cat of categories) {
       for (const entry of cat.entries) {
-        const title = entry.title.toLowerCase()
+        const title = falte(entry.title)
         let score = 0
         if (title === q) score = 100
         else if (title.startsWith(q)) score = 80
         else if (title.includes(q)) score = 60
-        else if (entry.subtitle.toLowerCase().includes(q)) score = 40
-        else if (entry.preview.toLowerCase().includes(q)) score = 30
-        else if (entry.search.includes(q)) score = 15
+        else if (falte(entry.subtitle).includes(q)) score = 40
+        else if (falte(entry.preview).includes(q)) score = 30
+        else if (falte(entry.search).includes(q)) score = 15
         if (score > 0) scored.push({ cat, entry, score })
       }
     }

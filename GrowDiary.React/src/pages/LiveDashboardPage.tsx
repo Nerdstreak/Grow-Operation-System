@@ -63,6 +63,17 @@ function LiveDashboardPage() {
         }
       }
 
+      /**
+       * Faellige Routinen aus den Ablaeufen.
+       *
+       * Der Block „Heute faellig" speiste sich nur aus Addback-Bedarf und
+       * Risiken — die ueberfaelligen Routinen fehlten. Ein Klick auf „Alle"
+       * fuehrte dann auf eine Seite, die drei weitere Punkte zeigte, die es
+       * hier angeblich nicht gab. Zwei Zahlen zur selben Frage, die sich
+       * widersprechen.
+       */
+      type FaelligeRoutine = { sopId: string; name: string; severity: string; meldung: string }
+
       const [tentsResult, growsResult, risksResult, watchdogResult] = await Promise.all([
         attempt<TentDto[]>('Zelte', '/api/settings/tents'),
         attempt<GrowSummary[]>('Grows', '/api/grows?archived=false'),
@@ -76,6 +87,20 @@ function LiveDashboardPage() {
         : previous.tents
       const grows = growsResult.ok ? (growsResult.value ?? []) : previous.grows
       const risks = risksResult.ok ? (risksResult.value ?? []) : previous.risks
+
+      // Je laufendem Grow. Scheitert einer, bleibt seine Liste leer — der
+      // Rest der Seite haengt nicht daran.
+      const routinenJeGrow = new Map<number, FaelligeRoutine[]>()
+      await Promise.all(grows
+        .filter((grow) => grow.status === 'Running')
+        .map(async (grow) => {
+          try {
+            const liste = await apiFetch<FaelligeRoutine[]>(`/api/grows/${grow.id}/due-sops`, { signal: controller.signal })
+            routinenJeGrow.set(grow.id, liste)
+          } catch {
+            /* Eine fehlende Routinenliste ist kein Seitenfehler. */
+          }
+        }))
 
       const livePairs = await Promise.all(sorted.map(async (tent) => {
         try { return [tent.id, await apiFetch<TentLivePayload>(`/api/live/tents/${tent.id}`, { signal: controller.signal })] as const }
@@ -92,7 +117,7 @@ function LiveDashboardPage() {
         const merged = freshLive[tent.id] ?? previous.liveByTentId[tent.id]
         if (merged) liveByTentId[tent.id] = merged
       }
-      setState({ tents: sorted, grows, risks, liveByTentId, issues })
+      setState({ tents: sorted, grows, risks, liveByTentId, faelligeRoutinen: Object.fromEntries(routinenJeGrow), issues })
       setSystemWarning(watchdogResult?.isProblem ? { headline: watchdogResult.headline, detail: watchdogResult.detail } : null)
       setSelectedTentId((current) => current ?? chooseInitialTent(sorted, grows))
       setLoading(false)
@@ -190,6 +215,19 @@ function LiveDashboardPage() {
       })
     }
   }
+  // Ueberfaellige Routinen des angezeigten Grows. Sie standen bisher nur auf
+  // /aufgaben — hier fehlten sie, obwohl derselbe Block „Heute faellig" heisst.
+  for (const routine of (primaryGrow ? state.faelligeRoutinen[primaryGrow.id] ?? [] : []).slice(0, 3 - tasks.length)) {
+    tasks.push({
+      id: `routine-${routine.sopId}`,
+      when: routine.severity === 'critical' ? 'überfällig' : 'fällig',
+      title: routine.name,
+      action: 'Öffnen',
+      to: '/aufgaben',
+      due: true,
+    })
+  }
+
   for (const risk of risksForContext.slice(0, 3 - tasks.length)) {
     tasks.push({
       id: `risk-${risk.id}`,
@@ -359,6 +397,7 @@ function LiveDashboardPage() {
       scoreParts={scoreParts}
       climate={climateForScreen}
       hydro={hydroMetrics}
+      alleMetriken={live?.metrics ?? []}
       sensorsLive={sensorsLive}
       lastMeasurement={lastMeasurement}
       stageLine={stageLine}

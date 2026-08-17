@@ -5,10 +5,18 @@ export type LiveState = {
   liveByTentId: Record<number, TentLivePayload>
   grows: GrowSummary[]
   risks: import('../../types').RiskEventDto[]
+  /**
+   * Überfällige Routinen je Grow.
+   *
+   * Fehlte hier, und damit fehlten sie im Block „Heute fällig" — der Klick auf
+   * „Alle" führte dann auf eine Seite, die Punkte zeigte, die es auf der
+   * Startseite angeblich nicht gab.
+   */
+  faelligeRoutinen: Record<number, Array<{ sopId: string; name: string; severity: string; meldung: string }>>
   issues: string[]
 }
 
-export const initialLiveState: LiveState = { tents: [], liveByTentId: {}, grows: [], risks: [], issues: [] }
+export const initialLiveState: LiveState = { tents: [], liveByTentId: {}, grows: [], risks: [], faelligeRoutinen: {}, issues: [] }
 
 export const climateMetricKeys = [
   ['temperature', 'Luft', '°C'],
@@ -89,7 +97,7 @@ export function riskRank(value: string) {
  * daneben liegt, kostet — deutlich ausserhalb mehr als knapp daneben.
  */
 export function buildScore(metrics: MetricPayload[], tent: TentDto | null) {
-  if (!tent) return { value: 0, label: 'Einrichten', tone: 'neutral' as const }
+  if (!tent) return { value: null, label: 'Einrichten', tone: 'neutral' as const }
 
   // Zurueckgerechnete Ziele zaehlen nicht mit: Luft, Feuchte und VPD beschreiben
   // dieselbe Lage, und dreimal abzuziehen macht aus einem Klimaproblem drei. Auf
@@ -98,12 +106,16 @@ export function buildScore(metrics: MetricPayload[], tent: TentDto | null) {
   const messbar = metrics.filter((metric) =>
     metric.numericValue != null && !metric.targetDerived && (metric.targetMin != null || metric.targetMax != null))
   const brauchbar = metrics.filter((metric) => metric.value && metric.value !== '–').length
-  if (brauchbar === 0) return { value: 0, label: 'Einrichten', tone: 'neutral' as const }
+  if (brauchbar === 0) return { value: null, label: 'Einrichten', tone: 'neutral' as const }
 
   // Ohne einen einzigen Wert mit Zielbereich gibt es nichts zu benoten. Vorher
   // kam hier trotzdem eine Zahl heraus — allein aus dem Abzug fuer fehlende
   // Sensoren — und daneben stand „Beobachten", als waere etwas geprueft worden.
-  if (messbar.length === 0) return { value: 0, label: 'Nicht bewertet', tone: 'neutral' as const }
+  // `value: null`, nicht 0: die 0 landete gross im Ring und las sich wie eine
+  // Note — „0 /100" neben dem Wort „Nicht bewertet", zwei Aussagen, die sich
+  // widersprechen. Nichts gemessen ist keine schlechte Bewertung, sondern gar
+  // keine.
+  if (messbar.length === 0) return { value: null, label: 'Nicht bewertet', tone: 'neutral' as const }
 
   let abzug = 0
   for (const metric of messbar) {
