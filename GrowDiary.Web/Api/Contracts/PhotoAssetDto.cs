@@ -11,5 +11,6 @@ public sealed record PhotoAssetDto(
     PhotoTag Tag,
     ValueOrigin Source,
     bool IsReferenceShot,
+    string? SymptomId,
     DateTime TakenAtUtc
 );

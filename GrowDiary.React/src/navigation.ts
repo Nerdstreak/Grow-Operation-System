@@ -55,6 +55,10 @@ export const navGroups: NavGroup[] = [
       { to: '/diagnose', label: 'Diagnose', end: true, keywords: 'problem mangel abweichung risiko krankheit sop' },
       { to: '/journal', label: 'Journal & Fotos', end: true, keywords: 'tagebuch notizen bilder verlauf' },
       { to: '/sorten', label: 'Sorten & Pheno', end: true, keywords: 'strain genetik züchter keeper selektion' },
+      // Steht VOR dem Archiv, weil es zeitlich davor liegt: nach der Ernte
+      // laeuft das Aushaerten noch 30-60 Tage. Ins Archiv gehoert ein Lauf
+      // erst, wenn auch das durch ist.
+      { to: '/aushaerten', label: 'Aushärten', end: true, keywords: 'curing cure glas gläser jar burping lüften feuchte hygrometer boveda nach der ernte trocknen fertig' },
       { to: '/archiv', label: 'Ernte & Archiv', end: true, keywords: 'harvest ertrag abgeschlossen vergleich' },
     ],
   },

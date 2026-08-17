@@ -62,6 +62,30 @@ public sealed class AufnahmenotizTests
         Assert.Contains("vor 12 Tagen aufgenommen", notiz);
     }
 
+    /// <summary>
+    /// Der Pfad, an dem das Bild wirklich liegt.
+    /// </summary>
+    /// <remarks>
+    /// Dieser Test existiert, weil genau hier ein Fehler war: der Pfad wurde
+    /// doppelt zusammengesetzt (<c>uploads/uploads/4/x.jpg</c>), und das
+    /// Werkzeug lieferte nie ein Bild. Aufgefallen waere es kaum — Grow OS
+    /// beantwortet jeden Pfad ausserhalb von <c>/api</c> mit der Startseite und
+    /// Status 200, ein 404 kommt also gar nicht erst zurueck.
+    /// </remarks>
+    [Fact]
+    public void ThePathIsTakenAsGrowOsStoredItWithoutDoublingTheFolder()
+    {
+        // So legt PhotoStorageService ab: fuehrender Schraegstrich, Ordner drin.
+        Assert.Equal("uploads/4/abc.jpg", GrowTools.BildPfad("/uploads/4/abc.jpg"));
+        Assert.DoesNotContain("uploads/uploads", GrowTools.BildPfad("/uploads/4/abc.jpg"));
+    }
+
+    [Fact]
+    public void APathWithoutALeadingSlashSurvivesUnchanged()
+    {
+        Assert.Equal("uploads/9/x.png", GrowTools.BildPfad("uploads/9/x.png"));
+    }
+
     [Fact]
     public void APhotoTakenTodaySaysToday()
     {

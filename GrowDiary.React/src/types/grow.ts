@@ -181,6 +181,8 @@ export interface PhotoAssetDto {
   tag: PhotoTag
   source: ValueOrigin
   isReferenceShot: boolean
+  /** Welches Symptom auf dem Bild zu sehen ist — Schlüssel aus der Wissensbasis. */
+  symptomId?: string | null
   takenAtUtc: string
 }
 

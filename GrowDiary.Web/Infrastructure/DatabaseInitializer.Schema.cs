@@ -36,6 +36,22 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "Photos", "Tag", "TEXT NOT NULL DEFAULT 'Overview'");
         EnsureColumn(connection, "Photos", "Source", "TEXT NOT NULL DEFAULT 'Manual'");
         EnsureColumn(connection, "Photos", "IsReferenceShot", "INTEGER NOT NULL DEFAULT 0");
+        // Welches Symptom auf dem Bild zu sehen ist — der Schluessel aus der
+        // Wissensbasis (z. B. „brown-roots-slimy"). Damit wird aus einer
+        // Sammlung eigener Aufnahmen ein Nachschlagewerk: beim naechsten Mal
+        // sieht man, wie es beim letzten Mal aussah.
+        // Bewusst der EIGENE Bestand und keine fremden Beispielbilder — die
+        // waeren urheberrechtlich nicht zu haben, und ein Bild aus dem eigenen
+        // Zelt sagt ohnehin mehr als eines aus einem fremden.
+        EnsureColumn(connection, "Photos", "SymptomId", "TEXT NULL");
+        // Der Index MUSS hier stehen, nicht im Kern-Schema: dort laeuft er,
+        // bevor EnsureColumn die Spalte in eine BESTEHENDE Datenbank
+        // eingefuegt hat — „no such column: SymptomId", und die Installation
+        // startet nicht mehr. Bei einer frischen Datenbank faellt das nie auf,
+        // weil die Spalte dann schon im CREATE TABLE steht. Genau dafuer gibt
+        // es GrowIndexSql ein paar Zeilen weiter oben.
+        command.CommandText = "CREATE INDEX IF NOT EXISTS IX_Photos_SymptomId ON Photos(SymptomId) WHERE SymptomId IS NOT NULL;";
+        command.ExecuteNonQuery();
         EnsureColumn(connection, "Grows", "IrrigationType", "TEXT NOT NULL DEFAULT 'Manual'");
         EnsureColumn(connection, "Grows", "WaterSource", "TEXT NOT NULL DEFAULT 'Tap'");
         // Welches Wasser der EINZELNE Vorgang benutzt hat. Der Grow traegt eine

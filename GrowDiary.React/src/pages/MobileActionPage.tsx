@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
+import type { CuringJar } from '../features/curing/curing-typen'
+import { faelligText } from '../features/curing/curing-typen'
 import type { CalibrationEventDto, GrowSummary, GrowTaskDto, HardwareItemDto, MaintenanceEventDto, RiskEventDto, SopInstanceDto } from '../types'
 import { V1Alert, V1Page, V1Skeleton } from '../components/v1'
 import { classNames } from '../utils'
@@ -11,8 +13,8 @@ type FaelligeRoutine = { sopId: string; name: string; severity: string; tageSeit
 type PumpBefund = { schluessel: string; name: string; stufe: string; meldung: string; herkunft: string }
 type PumpZeltLage = { tentId: number; tentName: string; befunde: PumpBefund[] }
 type WartungsPunkt = { bereich: string; titel: string; stufe: string; meldung: string; herkunft: string }
-type ActionState = { grows: GrowSummary[]; risks: RiskEventDto[]; tasks: GrowTaskDto[]; maintenance: MaintenanceEventDto[]; calibration: CalibrationEventDto[]; sops: SopInstanceDto[]; hardware: HardwareItemDto[]; dueByGrow: Array<{ grow: GrowSummary; items: FaelligeRoutine[] }>; pumpen: PumpZeltLage[]; wartung: WartungsPunkt[]; issues: string[] }
-const initial: ActionState = { grows: [], risks: [], tasks: [], maintenance: [], calibration: [], sops: [], hardware: [], dueByGrow: [], pumpen: [], wartung: [], issues: [] }
+type ActionState = { grows: GrowSummary[]; risks: RiskEventDto[]; tasks: GrowTaskDto[]; maintenance: MaintenanceEventDto[]; calibration: CalibrationEventDto[]; sops: SopInstanceDto[]; hardware: HardwareItemDto[]; dueByGrow: Array<{ grow: GrowSummary; items: FaelligeRoutine[] }>; pumpen: PumpZeltLage[]; wartung: WartungsPunkt[]; glaeser: CuringJar[]; issues: string[] }
+const initial: ActionState = { grows: [], risks: [], tasks: [], maintenance: [], calibration: [], sops: [], hardware: [], dueByGrow: [], pumpen: [], wartung: [], glaeser: [], issues: [] }
 const riskRank: Record<string, number> = { Critical: 0, Warning: 1, Info: 2 }
 
 function MobileActionPage() {
@@ -44,6 +46,10 @@ function MobileActionPage() {
       // Verschleiss, Pruefung, Sicherung — die Termine, die aus den Angaben am
       // Geraet selbst folgen und die frueher niemand las.
       const wartung = await safe<WartungsPunkt[]>('Wartung faellig', '/api/maintenance-due', [])
+      // Die Glaeser im Schrank. Ohne Grow-Filter, und das ist der Punkt: nach
+      // der Ernte gilt ein Grow als beendet, das Aushaerten faengt aber genau
+      // dann erst an. Wer hier nach laufenden Grows filtert, sieht nie ein Glas.
+      const glaeser = await safe<CuringJar[]>('Aushaerten', '/api/curing/jars', [])
       const activeGrows = grows.filter((grow) => grow.status === 'Running' || grow.status === 'Planning')
       const taskLists = await Promise.all(activeGrows.map((grow) => safe<GrowTaskDto[]>(`Tasks ${grow.id}`, `/api/grows/${grow.id}/tasks`, [])))
       const sopLists = await Promise.all(activeGrows.map((grow) => safe<SopInstanceDto[]>(`SOP ${grow.id}`, `/api/sop-instances?growId=${grow.id}`, [])))
@@ -54,7 +60,7 @@ function MobileActionPage() {
         .map((grow, index) => ({ grow, items: dueLists[index] ?? [] }))
         .filter((entry) => entry.items.length > 0)
       if (controller.signal.aborted) return
-      setState({ grows, risks: risks.filter((risk) => risk.status === 'Open' || risk.status === 'Acknowledged'), maintenance: maintenance.filter((item) => item.status === 'Planned'), calibration: calibration.filter((item) => item.status === 'Planned'), tasks: taskLists.flat().filter((task) => task.status === 'Open'), sops: sopLists.flat().filter((sop) => sop.status === 'Active'), hardware, dueByGrow, pumpen, wartung, issues })
+      setState({ grows, risks: risks.filter((risk) => risk.status === 'Open' || risk.status === 'Acknowledged'), maintenance: maintenance.filter((item) => item.status === 'Planned'), calibration: calibration.filter((item) => item.status === 'Planned'), tasks: taskLists.flat().filter((task) => task.status === 'Open'), sops: sopLists.flat().filter((sop) => sop.status === 'Active'), hardware, dueByGrow, pumpen, wartung, glaeser, issues })
       setLoading(false)
     }
     void load()
@@ -216,6 +222,38 @@ function MobileActionPage() {
               ))}</ul>
             )}
           </section>
+
+          {/* Die Glaeser. Steht bei den Aufgaben, weil das Lueften eine ist —
+              und weil der zugehoerige Grow laengst „beendet" heisst und
+              deshalb in keiner anderen Liste dieser Seite mehr auftaucht. */}
+          {state.glaeser.length > 0 && (
+            <section className="ls-panel af-col" data-audit="af-curing">
+              <div className="ls-panel-head">
+                <span className="ls-label">Aushärten</span>
+                <span className="ls-panel-meta">
+                  {(() => {
+                    const dran = state.glaeser.filter((g) => g.duty.level === 'Due' || g.duty.level === 'Overdue').length
+                    return dran > 0 ? `${dran} dran` : `${state.glaeser.length} im Glas`
+                  })()}
+                </span>
+              </div>
+              <ul className="af-rows">
+                {state.glaeser
+                  .slice()
+                  .sort((a, b) => ({ Overdue: 0, Due: 1, Ok: 2, Finished: 3 })[a.duty.level] - ({ Overdue: 0, Due: 1, Ok: 2, Finished: 3 })[b.duty.level])
+                  .map((glas) => (
+                    <li key={glas.id} className="af-row">
+                      <span className={`af-badge is-${glas.duty.level === 'Overdue' ? 'critical' : glas.duty.level === 'Due' ? 'warn' : 'ok'}`}>
+                        {glas.duty.level === 'Overdue' ? 'ÜBERFÄLLIG' : glas.duty.level === 'Due' ? 'HEUTE' : 'OK'}
+                      </span>
+                      <span className="af-title">{glas.label} · {glas.growName}</span>
+                      <span className="af-meta">{faelligText(glas.duty)}</span>
+                      <Link className="ls-btn is-small" to="/aushaerten">Öffnen</Link>
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          )}
 
           <section className="ls-panel af-col" data-audit="af-wartung">
             <div className="ls-panel-head">

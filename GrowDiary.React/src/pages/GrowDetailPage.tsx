@@ -8,6 +8,7 @@ import { formatGrowStatus } from '../features/grow-detail/grow-detail-model'
 import { V1Alert, V1Badge, V1Button, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { buildPhaseTimeline, flipLabel } from '../features/grows/phase-timeline'
 import { NightRampCard } from '../features/grows/NightRampCard'
+import { CuringSection } from '../features/curing/CuringSection'
 import { GrowPlantsCard } from '../features/grow-detail/GrowPlantsCard'
 import type { GrowDeviationDto } from '../types'
 import { apiFetch } from '../api'
@@ -267,6 +268,12 @@ function GrowDetailPage() {
         {/* Die Nachtabsenkung steht bei den Fakten, nicht bei der Verwaltung:
             sie ist eine Anbau-Entscheidung, kein Aufräumen. */}
         <NightRampCard growId={grow.id} />
+
+        {/* Das Aushaerten steht VOR der Verwaltung: es ist der letzte Schritt
+            am Lauf, nicht dessen Abwicklung. Der Abschnitt bleibt weg, solange
+            nichts geerntet ist — ein Einglas-Formular an einem bluehenden Grow
+            waere nur Rauschen. */}
+        <CuringSection growId={grow.id} harvested={grow.status === 'Completed' || Boolean(grow.endDate)} />
 
         {/* Verwaltung unten — Beenden und Löschen gehören nicht neben die
             täglichen Handlungen in der Kopfzeile. Der Export ebenso wenig: er

@@ -5,6 +5,7 @@ import { apiFetch } from '../api'
 import type { KnowledgeOverviewDto, NutrientProgramDto, WearTemplateDto } from '../types'
 import { V1Page, V1Skeleton } from '../components/v1'
 import { ShoppingList } from '../features/knowledge/ShoppingList'
+import { SymptomPhotos } from '../features/knowledge/SymptomPhotos'
 import '../features/knowledge/knowledge.css'
 
 type TopicId = 'rdwc' | 'addback' | 'rootrot' | 'ph-ec' | 'athena' | 'canna' | 'sensors' | 'troubleshooting'
@@ -407,6 +408,15 @@ function RecordDetail({ category, record, index, onNavigate }: { category: Categ
         </div>
       )}
       {lede && <p className="ix-kb-lede">{lede}</p>}
+
+      {/* Die eigenen Aufnahmen zu diesem Symptom — direkt unter der
+          Beschreibung, weil ein Bild schneller zu erfassen ist als drei
+          Absaetze. Nur eigene: fremde Beispielbilder waeren nicht zu haben,
+          ohne fremde Rechte zu verletzen, und ein Bild aus dem eigenen Zelt
+          sagt bei gleichem Licht und gleicher Kamera ohnehin mehr. */}
+      {category.id === 'symptoms' && typeof record.id === 'string' && (
+        <SymptomPhotos symptomId={record.id} symptomName={title} />
+      )}
 
       {bestFor && <Section title="Geeignet für"><p>{bestFor}</p></Section>}
       {avoidFor && <Section title="Ungeeignet für"><p>{avoidFor}</p></Section>}

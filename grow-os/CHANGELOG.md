@@ -1,5 +1,56 @@
 # Changelog
 
+## 2.0.0-beta.43
+
+**Beta.** The last step of a run — the one that decides what months of work
+taste like — now happens inside the app instead of beside it.
+
+- Added — **curing.** Grow OS accompanied a plant to its dry weight and then
+  stopped. Worse: saving the harvest sets the grow to *completed*, so it left
+  the overview at the exact moment curing began — and curing runs another 30 to
+  60 days. There is now a jar: when it was filled, what is in it, whether a
+  humidity pack sits inside. You log what the hygrometer reads and how long you
+  burped — separately, because they are separate things: burping without
+  reading keeps the rhythm and teaches nothing, reading without burping knows
+  everything and does nothing.
+- Added — **the burping rhythm, with its source.** Week 1 daily for 5–10
+  minutes, week 2 every 2–3 days for 2–3, weeks 3–4 weekly for 1–2, and from day
+  30 the hygrometer decides rather than the calendar — inventing a date past
+  that point would be false precision. With a humidity pack the interval
+  stretches but does not disappear: a pack exchanges moisture, not air. Sources:
+  atmosiscience.com for the rhythm, budtrainer.com for the 58–62 % window.
+- Added — **a humidity verdict for the jar**, built like the water traffic light:
+  every threshold names its source, and every reading says what to *do*. Both
+  directions matter. Too damp is the known danger — above 65 % mould grows in a
+  closed jar. Too dry is underrated: below 55 % the terpenes go brittle and
+  leave, and unlike too damp that cannot be repaired. The upper bound is the
+  same 62 % the mould guard already used for the cure stage; a test keeps the two
+  from drifting apart.
+- Added — **jars show up under Aufgaben**, deliberately without filtering by
+  grow status. Every other list on that page asks for running grows, which is
+  exactly why the jars were never in one.
+- Added — **your own photos as reference for a symptom.** The knowledge base
+  describes 20 symptoms and 8 pathogens and never had a single picture. Foreign
+  example images are not available without infringing someone's rights — and
+  your own shot is the better comparison anyway: same light, same camera, same
+  room. Tag a photo in the journal with what it shows, and it appears under that
+  symptom in the knowledge base. By the third case of root rot you can see how
+  the first two looked.
+- Added — **two more MCP tools**: `aushaerten` (jars, humidity, next burp) and
+  `symptom_bilder` (your reference shots for a symptom). Twenty-two tools now.
+- Fixed — **`foto_ansehen` never returned an image.** The path was assembled
+  twice (`uploads/uploads/4/x.jpg`). It would not have surfaced as an error
+  either: Grow OS answers any path outside `/api` with the start page and status
+  200, so HTML came back dressed as a picture. The tool shipped in beta.42 and
+  did not work once.
+- Fixed — **an existing database would not have survived this update.** The new
+  index on the photos table was created in the core schema, which runs *before*
+  the column it indexes is added to an existing database — "no such column:
+  SymptomId", and the add-on would not start. It never showed in the test suite
+  because every test builds a fresh database, where the column is already in the
+  CREATE TABLE. It showed the moment the app was actually started. There is now
+  a test that downgrades a real database and runs the update over it.
+
 ## 2.0.0-beta.42
 
 **Beta.** Two things a lot of features had quietly cost: the menu had grown

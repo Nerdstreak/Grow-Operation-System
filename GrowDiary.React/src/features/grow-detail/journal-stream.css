@@ -22,6 +22,12 @@
   .js-tag.is-muted { color: var(--faint); }
 
   .js-photos { display: flex; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
+  /* Seit beta.43 haengt unter jedem Bild die Symptom-Zuordnung — das Bild
+     allein waere sonst kein Grid-Kind mehr und wuerde sich strecken. */
+  .js-photo { margin: 0; display: grid; gap: 4px; min-width: 0; flex: 0 1 170px; }
+  /* Das Bild bleibt klein, die Zuordnung darunter braucht Lesebreite —
+     ein Auswahlkasten mit „Braune, schleimige Wurzeln" passt nicht in 86 px. */
+  .js-photo .sp-assign select { width: 100%; }
   .js-photos img {
     width: 86px; aspect-ratio: 4 / 3; object-fit: cover;
     border-radius: 6px; border: 1px solid var(--hair);

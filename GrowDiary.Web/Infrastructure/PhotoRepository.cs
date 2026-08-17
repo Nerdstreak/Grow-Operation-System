@@ -47,8 +47,8 @@ public sealed class PhotoRepository : RepositoryBase
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO Photos (GrowId, MeasurementId, RelativePath, Caption, Tag, Source, IsReferenceShot, TakenAtUtc)
-            VALUES ($growId, $measurementId, $relativePath, $caption, $tag, $source, $isReferenceShot, $takenAtUtc);
+            INSERT INTO Photos (GrowId, MeasurementId, RelativePath, Caption, Tag, Source, IsReferenceShot, SymptomId, TakenAtUtc)
+            VALUES ($growId, $measurementId, $relativePath, $caption, $tag, $source, $isReferenceShot, $symptomId, $takenAtUtc);
         """;
         command.Parameters.AddWithValue("$growId", photo.GrowId);
         command.Parameters.AddWithValue("$measurementId", (object?)photo.MeasurementId ?? DBNull.Value);
@@ -57,6 +57,7 @@ public sealed class PhotoRepository : RepositoryBase
         command.Parameters.AddWithValue("$tag", photo.Tag.ToString());
         command.Parameters.AddWithValue("$source", photo.Source.ToString());
         command.Parameters.AddWithValue("$isReferenceShot", photo.IsReferenceShot ? 1 : 0);
+        command.Parameters.AddWithValue("$symptomId", (object?)photo.SymptomId ?? DBNull.Value);
         command.Parameters.AddWithValue("$takenAtUtc", ToStorageUtc(photo.TakenAtUtc));
         command.ExecuteNonQuery();
     }
@@ -77,6 +78,69 @@ public sealed class PhotoRepository : RepositoryBase
         return items;
     }
 
+    /// <summary>
+    /// Ein Bild einem Symptom zuordnen — oder die Zuordnung wieder lösen.
+    /// </summary>
+    public void SetSymptom(int photoId, string? symptomId)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE Photos SET SymptomId = $symptomId WHERE Id = $id;";
+        command.Parameters.AddWithValue("$symptomId", (object?)NormalizeOptional(symptomId) ?? DBNull.Value);
+        command.Parameters.AddWithValue("$id", photoId);
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>Die eigenen Aufnahmen zu einem Symptom, neueste zuerst.</summary>
+    public IReadOnlyList<PhotoAsset> GetBySymptom(string symptomId)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM Photos WHERE SymptomId = $symptomId ORDER BY TakenAtUtc DESC, Id DESC;";
+        command.Parameters.AddWithValue("$symptomId", symptomId);
+        using var reader = command.ExecuteReader();
+        var liste = new List<PhotoAsset>();
+        while (reader.Read())
+        {
+            liste.Add(MapPhoto(reader));
+        }
+
+        return liste;
+    }
+
+    /// <summary>Zu welchen Symptomen es überhaupt eigene Bilder gibt, mit Anzahl.</summary>
+    public IReadOnlyDictionary<string, int> CountBySymptom()
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT SymptomId, COUNT(*) AS Anzahl FROM Photos
+            WHERE SymptomId IS NOT NULL GROUP BY SymptomId;
+            """;
+        using var reader = command.ExecuteReader();
+        var map = new Dictionary<string, int>(StringComparer.Ordinal);
+        while (reader.Read())
+        {
+            var key = reader["SymptomId"]?.ToString();
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                map[key] = Convert.ToInt32(reader["Anzahl"], CultureInfo.InvariantCulture);
+            }
+        }
+
+        return map;
+    }
+
+    public PhotoAsset? GetById(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM Photos WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? MapPhoto(reader) : null;
+    }
+
     private static PhotoAsset MapPhoto(SqliteDataReader reader)
     {
         return new PhotoAsset
@@ -89,6 +153,7 @@ public sealed class PhotoRepository : RepositoryBase
             Tag = ParseEnum(reader["Tag"]?.ToString(), PhotoTag.Overview),
             Source = ParseEnum(reader["Source"]?.ToString(), ValueOrigin.Manual),
             IsReferenceShot = reader["IsReferenceShot"] is not DBNull && Convert.ToInt32(reader["IsReferenceShot"], CultureInfo.InvariantCulture) == 1,
+            SymptomId = HasColumn(reader, "SymptomId") && reader["SymptomId"] is not DBNull ? reader["SymptomId"].ToString() : null,
             TakenAtUtc = ParseStoredUtcDateTime(reader["TakenAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }

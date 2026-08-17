@@ -73,6 +73,7 @@ public sealed partial class DatabaseInitializer
                 Tag TEXT NOT NULL DEFAULT 'Overview',
                 Source TEXT NOT NULL DEFAULT 'Manual',
                 IsReferenceShot INTEGER NOT NULL DEFAULT 0,
+                SymptomId TEXT NULL,
                 TakenAtUtc TEXT NOT NULL,
                 FOREIGN KEY (GrowId) REFERENCES Grows (Id) ON DELETE CASCADE,
                 FOREIGN KEY (MeasurementId) REFERENCES Measurements (Id) ON DELETE CASCADE
@@ -364,6 +365,42 @@ public sealed partial class DatabaseInitializer
                 FOREIGN KEY (GrowId) REFERENCES Grows (Id) ON DELETE CASCADE
             );
 
+            -- Das Aushaerten im Glas. Bis beta.42 endete die Begleitung beim
+            -- Trockengewicht — ausgerechnet vor dem Schritt, der ueber die
+            -- Qualitaet von Monaten Arbeit entscheidet.
+            -- Ein Glas, nicht ein Grow: mehrere Sorten haerten getrennt aus,
+            -- und auch eine Sorte fuellt oft mehrere Glaeser.
+            CREATE TABLE IF NOT EXISTS CuringJars (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                GrowId INTEGER NOT NULL,
+                Label TEXT NOT NULL,
+                StrainId INTEGER NULL,
+                FilledAtUtc TEXT NOT NULL,
+                WeightG REAL NULL,
+                HasHumidityPack INTEGER NOT NULL DEFAULT 0,
+                FinishedAtUtc TEXT NULL,
+                Notes TEXT NULL,
+                CreatedAtUtc TEXT NOT NULL,
+                UpdatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (GrowId) REFERENCES Grows (Id) ON DELETE CASCADE,
+                FOREIGN KEY (StrainId) REFERENCES Strains (Id) ON DELETE SET NULL
+            );
+
+            -- Ablesung und Lueften sind zwei Dinge: wer lueftet ohne abzulesen,
+            -- hat den Rhythmus gehalten und nichts gelernt. Beide Felder sind
+            -- deshalb einzeln erlaubt.
+            CREATE TABLE IF NOT EXISTS CuringReadings (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                JarId INTEGER NOT NULL,
+                ReadAtUtc TEXT NOT NULL,
+                HumidityPercent REAL NULL,
+                BurpedMinutes INTEGER NULL,
+                Note TEXT NULL,
+                Source TEXT NOT NULL DEFAULT 'Manual',
+                CreatedAtUtc TEXT NOT NULL,
+                FOREIGN KEY (JarId) REFERENCES CuringJars (Id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS TentSensorReadings (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 TentId INTEGER NOT NULL,
@@ -606,6 +643,8 @@ public sealed partial class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS IX_TentSensorSnapshots_TentId_MetricKey_CapturedAtUtc ON TentSensorSnapshots(TentId, MetricKey, CapturedAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_JournalEntries_GrowId_OccurredAtUtc ON JournalEntries(GrowId, OccurredAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_GrowTasks_GrowId_Status_DueAtUtc ON GrowTasks(GrowId, Status, DueAtUtc);
+            CREATE INDEX IF NOT EXISTS IX_CuringJars_GrowId_FinishedAtUtc ON CuringJars(GrowId, FinishedAtUtc);
+            CREATE INDEX IF NOT EXISTS IX_CuringReadings_JarId_ReadAtUtc ON CuringReadings(JarId, ReadAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_AuditEntries_GrowId_CreatedAtUtc ON AuditEntries(GrowId, CreatedAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_SystemAuditEvents_CreatedAtUtc ON SystemAuditEvents(CreatedAtUtc DESC);
             CREATE INDEX IF NOT EXISTS IX_SystemAuditEvents_EventType_CreatedAtUtc ON SystemAuditEvents(EventType, CreatedAtUtc DESC);

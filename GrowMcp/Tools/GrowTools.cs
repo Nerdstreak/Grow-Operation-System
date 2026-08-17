@@ -312,6 +312,21 @@ public sealed class GrowTools(GrowOsReader reader)
     /// </remarks>
     private const long MaxBildBytes = 6L * 1024 * 1024;
 
+    [McpServerTool(Name = "aushaerten")]
+    [Description("Die Gläser im Aushärten mit Tag, Feuchte, Bewertung und dem nächsten Lüft-Termin. Ohne growId alle offenen Gläser über alle Grows — nach der Ernte gilt ein Grow als beendet, das Aushärten läuft aber noch 30 bis 60 Tage weiter.")]
+    public Task<string> AushaertenAsync(
+        [Description("Die Id eines Grows; weglassen für alle offenen Gläser")] int? growId = null,
+        CancellationToken cancellationToken = default)
+        => SicherAsync(() => reader.LesenAsync(
+            growId is { } id ? $"api/grows/{id}/curing/jars" : "api/curing/jars", cancellationToken));
+
+    [McpServerTool(Name = "symptom_bilder")]
+    [Description("Die eigenen Aufnahmen des Betreibers zu einem Symptom aus der Wissensbasis (z. B. brown-roots-slimy) — Id, Grow, Datum und Bildunterschrift. Das Bild selbst holt man danach mit foto_ansehen. Nützlich, um eine neue Aufnahme mit früheren Fällen aus derselben Anlage zu vergleichen.")]
+    public Task<string> SymptomBilderAsync(
+        [Description("Der Symptom-Schlüssel aus der Wissensbasis")] string symptomId,
+        CancellationToken cancellationToken = default)
+        => SicherAsync(() => reader.LesenAsync($"api/knowledge/symptoms/{Uri.EscapeDataString(symptomId)}/photos", cancellationToken));
+
     [McpServerTool(Name = "fotos")]
     [Description("Die Fotos eines Grows als Liste: Id, Aufnahmezeit, Motiv-Tag (Overview, Leaf, Root, Problem …) und Bildunterschrift. Liefert noch keine Bilder — mit foto_ansehen holt man das einzelne Bild.")]
     public Task<string> FotosAsync(
@@ -361,7 +376,7 @@ public sealed class GrowTools(GrowOsReader reader)
             }
 
             var (bytes, medienTyp) = await reader.DateiLesenAsync(
-                $"uploads/{pfad.TrimStart('/')}", MaxBildBytes, cancellationToken);
+                BildPfad(pfad), MaxBildBytes, cancellationToken);
 
             return
             [
@@ -376,6 +391,25 @@ public sealed class GrowTools(GrowOsReader reader)
     }
 
     /// <summary>Was Grow OS über die Aufnahme weiss — der Satz neben dem Bild.</summary>
+    /// <summary>
+    /// Der Abrufpfad zu einer Bilddatei.
+    /// </summary>
+    /// <remarks>
+    /// <para>Grow OS legt den Pfad bereits vollstaendig ab — <c>/uploads/4/xyz.jpg</c>
+    /// (siehe <c>PhotoStorageService</c>). Hier ist deshalb nur das fuehrende
+    /// „/" zu entfernen, damit er an die Basisadresse passt.</para>
+    ///
+    /// <para>Beim ersten Wurf stand hier <c>$"uploads/{pfad.TrimStart('/')}"</c>,
+    /// also <c>uploads/uploads/4/xyz.jpg</c>. Das Werkzeug hat damit nie ein
+    /// Bild geliefert — und es faellt nicht als Fehler auf: der SPA-Fallback
+    /// von Grow OS beantwortet jeden Pfad ausserhalb von <c>/api</c> mit
+    /// <c>index.html</c> und Status 200. Statt eines 404 kaeme also HTML
+    /// zurueck, das sich als Bild ausgibt. Deshalb eine eigene Funktion mit
+    /// eigenem Test.</para>
+    /// </remarks>
+    public static string BildPfad(string relativerPfad)
+        => relativerPfad.TrimStart('/');
+
     public static string Aufnahmenotiz(JsonElement foto, int growId)
     {
         var teile = new List<string> { $"Grow {growId}" };

@@ -5,6 +5,7 @@ import type { JournalEntryDto, MeasurementDto, PhotoAssetDto, PhotoTag } from '.
 import type { JournalFormState, PhotoFormState, TaskFormState } from './grow-detail-model'
 import { buildJournalStream, streamTimeLabel } from './journal-stream'
 import { V1Button, V1Field } from '../../components/v1'
+import { SymptomZuordnung } from '../knowledge/SymptomZuordnung'
 import './journal-stream.css'
 
 const photoTags: PhotoTag[] = ['Overview', 'Canopy', 'Leaf', 'Root', 'Training', 'Flower', 'Problem', 'Comparison', 'Other']
@@ -160,7 +161,13 @@ export function JournalStreamSection({ growId, entries, measurements, journalFor
                   {item.photos.length > 0 && (
                     <div className="js-photos">
                       {item.photos.map((photo) => (
-                        <img key={photo.id} src={photo.relativePath} alt={photo.caption ?? `Foto ${photo.id}`} loading="lazy" />
+                        <figure key={photo.id} className="js-photo">
+                          <img src={photo.relativePath} alt={photo.caption ?? `Foto ${photo.id}`} loading="lazy" />
+                          {/* Ein Klick, und das Bild steht kuenftig im Wissen
+                              beim passenden Symptom. Ohne diese Stelle waere
+                              das Feld tot — gespeichert, aber nie gefuellt. */}
+                          <SymptomZuordnung photoId={photo.id} current={photo.symptomId} />
+                        </figure>
                       ))}
                     </div>
                   )}

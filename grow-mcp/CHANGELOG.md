@@ -1,5 +1,24 @@
 # Änderungen — Grow MCP
 
+## 0.1.5
+
+Zwei Werkzeuge dazu, und ein Fehler behoben, der das Wichtigste aus 0.1.4
+unbrauchbar machte.
+
+- **`foto_ansehen` gab nie ein Bild zurueck.** Der Pfad wurde doppelt
+  zusammengesetzt (`uploads/uploads/4/x.jpg`). Es waere auch nicht als Fehler
+  aufgefallen: Grow OS beantwortet jeden Pfad ausserhalb von `/api` mit der
+  Startseite und Status 200 — es kam also HTML zurueck, das sich als Bild
+  ausgab. Ein Test prueft jetzt den zusammengebauten Pfad.
+- `aushaerten` — die Glaeser im Aushaerten mit Tag, Feuchte, Bewertung und dem
+  naechsten Lueft-Termin. Ohne Grow-Id alle offenen Glaeser: nach der Ernte gilt
+  ein Grow als beendet, das Aushaerten laeuft aber noch 30 bis 60 Tage.
+- `symptom_bilder` — die eigenen Aufnahmen des Betreibers zu einem Symptom aus
+  der Wissensbasis. Damit laesst sich eine neue Aufnahme mit frueheren Faellen
+  aus derselben Anlage vergleichen, statt mit fremden Bildern aus dem Netz.
+
+Zweiundzwanzig Werkzeuge. Gelesen wird weiterhin ausschliesslich.
+
 ## 0.1.4
 
 Bilder. Bisher konnte die eigene KI alles lesen, was Grow OS in Zahlen weiss,

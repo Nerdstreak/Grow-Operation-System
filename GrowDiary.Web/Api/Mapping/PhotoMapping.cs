@@ -14,6 +14,7 @@ public static class PhotoMapping
         Tag: photo.Tag,
         Source: photo.Source,
         IsReferenceShot: photo.IsReferenceShot,
+        SymptomId: photo.SymptomId,
         TakenAtUtc: photo.TakenAtUtc
     );
 }
