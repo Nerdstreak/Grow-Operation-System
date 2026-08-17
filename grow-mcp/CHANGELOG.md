@@ -1,15 +1,34 @@
 # Änderungen — Grow MCP
 
+## 0.1.6
+
+Drei Werkzeuge haben eine andere Frage beantwortet als die gestellte. Keines
+davon meldete einen Fehler — sie gaben eine plausible Antwort zurueck, und eine
+KI kann den Unterschied nicht sehen.
+
+- **`alarme` lieferte die offenen Risiken ALLER Grows.** Ursache in Grow OS: die
+  Filter waren eine einzige if-else-Kette mit `openOnly` ganz vorne, die den
+  Grow-Filter dahinter verschluckte. In der Weboberflaeche fiel es nie auf, weil
+  sie beide Filter nie zusammen schickt — der MCP-Server tut genau das.
+- **`technik` zeigte die Wartung und Kalibrierung fremder Zelte.** Beide
+  Endpunkte kennen nur einen Filter nach Geraet; hier wurden sie ganz ohne
+  Filter geholt. Jetzt werden die Termine je Geraet des Zeltes abgefragt.
+- **`grows_auflisten(auchAbgeschlossene: true)` liess die laufenden Grows
+  verschwinden.** Der Endpunkt schaltet zwischen zwei Listen um, statt sie
+  zusammenzulegen — „auch abgeschlossene" hiess in Wirklichkeit „nur
+  abgeschlossene".
+
+Gelesen wird weiterhin ausschliesslich.
+
 ## 0.1.5
 
 Zwei Werkzeuge dazu, und ein Fehler behoben, der das Wichtigste aus 0.1.4
 unbrauchbar machte.
 
 - **`foto_ansehen` gab nie ein Bild zurueck.** Der Pfad wurde doppelt
-  zusammengesetzt (`uploads/uploads/4/x.jpg`). Es waere auch nicht als Fehler
-  aufgefallen: Grow OS beantwortet jeden Pfad ausserhalb von `/api` mit der
-  Startseite und Status 200 — es kam also HTML zurueck, das sich als Bild
-  ausgab. Ein Test prueft jetzt den zusammengebauten Pfad.
+  zusammengesetzt (`uploads/uploads/4/x.jpg`), jede Anfrage lief in einen 404.
+  Ein Test prueft jetzt den zusammengebauten Pfad. Danach an der laufenden App
+  nachgemessen: der richtige Pfad liefert `image/png` mit echter PNG-Signatur.
 - `aushaerten` — die Glaeser im Aushaerten mit Tag, Feuchte, Bewertung und dem
   naechsten Lueft-Termin. Ohne Grow-Id alle offenen Glaeser: nach der Ernte gilt
   ein Grow als beendet, das Aushaerten laeuft aber noch 30 bis 60 Tage.

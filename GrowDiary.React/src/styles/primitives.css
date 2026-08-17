@@ -12,7 +12,13 @@
   body { margin: 0; overflow-x: clip; font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
   button, input, select, textarea { font: inherit; }
   input, select, textarea { min-width: 0; }
-  a { color: var(--accent); text-decoration: none; }
+  /* --accent-text, nicht --accent: die Randnotiz an --accent in tokens.css sagt
+     es selbst — „#0e9b55 als kleiner Text auf Weiß sind nur 3,6:1". Genau
+     dafuer gibt es --accent-text. Die Regel hier, also JEDER Link der App,
+     nahm trotzdem die Flaechenfarbe: gemessen 3,39 statt der noetigen 4,5 bei
+     jedem Link in einer Tabelle. Die Lehre war gezogen, die Farbe gebaut — nur
+     an der zentralsten Stelle nicht benutzt. */
+  a { color: var(--accent-text); text-decoration: none; }
   a:hover { color: var(--ink); }
 
   /* ---------- Seite & Kopf ---------- */
@@ -230,7 +236,11 @@
   .v1-alert { display: flex; gap: var(--s-2); align-items: baseline; padding: 11px var(--s-4); font-size: 13px; }
   .v1-alert strong { font-weight: 600; }
   .v1-alert.tone-warn { border-color: var(--warn); background: var(--warn-wash); color: var(--warn-text); }
-  .v1-alert.tone-critical { border-color: var(--danger); background: var(--danger-wash); color: var(--danger); }
+  /* --danger-text statt --danger: als Text auf der hellen Waschung kam
+     --danger auf 4,14 von noetigen 4,5. Eine Fehlermeldung ist der Satz, den
+     man am dringendsten lesen muss — gefunden vom Kontrast-Test, weil dort
+     kein Backend laeuft und die Meldung deshalb ueberall erscheint. */
+  .v1-alert.tone-critical { border-color: var(--danger); background: var(--danger-wash); color: var(--danger-text); }
   .v1-alert.tone-ok { border-color: var(--accent); background: var(--accent-wash); color: var(--accent-text); }
   .v1-empty {
     display: grid; place-items: center; gap: var(--s-2);

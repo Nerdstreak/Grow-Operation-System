@@ -90,7 +90,12 @@ public sealed class SymptomPhotosApiTests : IDisposable
             TakenAtUtc = DateTime.UtcNow,
         };
         _photos.AddPhoto(foto);
-        return _photos.GetPhotosForGrow(_growId).First(p => p.RelativePath == foto.RelativePath).Id;
+        // AddPhoto schreibt die vergebene Id zurueck ans Objekt. Vorher tat es
+        // das nicht, und der Upload-Endpunkt lieferte in seiner 201-Antwort
+        // „id: 0" — eine Nummer, unter der das Bild nirgends zu finden war.
+        Assert.NotEqual(0, foto.Id);
+        Assert.Equal(foto.Id, _photos.GetPhotosForGrow(_growId).First(p => p.RelativePath == foto.RelativePath).Id);
+        return foto.Id;
     }
 
     [Fact]

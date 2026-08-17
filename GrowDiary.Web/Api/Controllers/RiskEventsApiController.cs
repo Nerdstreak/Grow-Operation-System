@@ -51,17 +51,29 @@ public sealed class RiskEventsApiController : ApiControllerBase
 
         _deviationRiskSync?.SyncActiveGrowDeviations();
 
-        var items = openOnly
-            ? _repository.GetOpenRiskEvents()
-            : status.HasValue
-            ? _repository.GetRiskEventsByStatus(status.Value)
-            : tentId.HasValue
-                ? _repository.GetRiskEventsByTent(tentId.Value)
-                : growId.HasValue
-                    ? _repository.GetRiskEventsByGrow(growId.Value)
-                    : hardwareItemId.HasValue
-                        ? _repository.GetRiskEventsByHardwareItem(hardwareItemId.Value)
-                        : _repository.GetRiskEvents();
+        // Erst auswaehlen, WOZU die Ereignisse gehoeren — dann filtern, WIE sie
+        // stehen. Vorher war das eine einzige if-else-Kette, in der `openOnly`
+        // ganz vorne stand und damit jeden anderen Filter verschluckte:
+        // `?growId=4&openOnly=true` lieferte die offenen Risiken ALLER Grows.
+        // In der Weboberflaeche fiel das nie auf, weil sie nur `?growId=` allein
+        // schickt — der MCP-Server kombiniert beide, und die eigene KI bekam
+        // damit auf die Frage nach einem Grow die Lage des ganzen Hauses.
+        var items = tentId.HasValue
+            ? _repository.GetRiskEventsByTent(tentId.Value)
+            : growId.HasValue
+                ? _repository.GetRiskEventsByGrow(growId.Value)
+                : hardwareItemId.HasValue
+                    ? _repository.GetRiskEventsByHardwareItem(hardwareItemId.Value)
+                    : _repository.GetRiskEvents();
+
+        if (openOnly)
+        {
+            items = items.Where(item => item.Status is RiskEventStatus.Open or RiskEventStatus.Acknowledged).ToList();
+        }
+        else if (status.HasValue)
+        {
+            items = items.Where(item => item.Status == status.Value).ToList();
+        }
 
         return Ok(items.Select(item => item.ToDto()).ToList());
     }

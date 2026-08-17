@@ -37,6 +37,12 @@
     --warn-wash:   rgba(255, 194, 77, 0.09);
     --danger:      #ff5f5f;
     --danger-wash: rgba(255, 95, 95, 0.09);
+    /* Zwei eigene Toene, weil --danger allein nicht beides kann: als TEXT
+       braucht er Kontrast zum Untergrund, als FLAECHE braucht der Text darauf
+       Kontrast zu ihm. Im dunklen Thema ist --danger hell — er taugt als Text,
+       und darauf gehoert fast schwarze Schrift. */
+    --danger-text: #ff7b7b;
+    --danger-ink:  #140404;
     --info:        #5cd7ff;
     --info-text:   #5cd7ff;
     --info-wash:   rgba(92, 215, 255, 0.10);
@@ -111,6 +117,12 @@
     --warn-wash:   rgba(168, 104, 0, 0.09);
     --danger:      #c8352f;
     --danger-wash: rgba(200, 53, 47, 0.08);
+    /* Im hellen Thema ist --danger dunkelrot: als kleiner Text auf der hellen
+       Waschung kam er auf 4,14 statt 4,5 — deshalb ein dunklerer Ton fuer
+       Text. Und auf der FLAECHE gehoert dann weisse Schrift darauf, nicht
+       schwarze (gemessen: 3,82). */
+    --danger-text: #a82520;
+    --danger-ink:  #ffffff;
     --info:        #0d7fa8;
     --info-text:   #0a6183;
     --info-wash:   rgba(13, 127, 168, 0.09);

@@ -17,8 +17,16 @@ type GrowDetailDiagnosisSectionProps = {
   onRiskChanged: (notice: string) => void
 }
 
+/**
+ * Die Farbe zur Schwere.
+ *
+ * Vorher stand hier eine Stufe zu wenig: „Kritisch" bekam Gelb (die Farbe der
+ * Warnung), „Warnung" bekam Grau, „Info" bekam Grün. Jede Meldung sah damit
+ * eine Stufe harmloser aus, als sie ist — ausgerechnet an der Stelle, an der
+ * man die Dringlichkeit auf einen Blick erkennen soll.
+ */
 const severityBadge = (severity: string) =>
-  severity === 'Critical' ? 'badge-warn' : severity === 'Warning' ? 'badge-neutral' : 'badge-ok'
+  severity === 'Critical' ? 'badge-danger' : severity === 'Warning' ? 'badge-warn' : 'badge-neutral'
 
 // Diagnose in one clear shape: "what needs doing" (risks, with their actions) up top,
 // then a quiet, plain-language list of the underlying odd readings and tips. No more

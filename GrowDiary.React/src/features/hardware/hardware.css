@@ -13,14 +13,21 @@
   }
   .hw-filter:hover { border-color: var(--hair-2); color: var(--ink); }
   .hw-filter.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  /* --ink statt --muted: die Zahl ist 11 px gross und stand auf der zweiten
+     Panel-Ebene bei Kontrast 4,18 von noetigen 4,5. Sie traegt eine Angabe
+     (wie viele Geraete in diesem Filter stecken) und ist kein Beiwerk. */
   .hw-filter-count {
     font-family: var(--font-mono); font-size: 11px;
     padding: 1px 7px; border-radius: 999px;
-    background: var(--panel-2); color: var(--muted);
+    background: var(--panel-2); color: var(--ink);
   }
   /* Auf der grünen Fläche gilt die Accent-Schrift, nicht die Status-Farbe —
-     sonst steht hier 1:1-Kontrast. */
-  .hw-filter.active .hw-filter-count { background: color-mix(in oklab, var(--accent-ink) 14%, transparent); color: var(--accent-ink); }
+     sonst steht hier 1:1-Kontrast.
+     Die Waschung ist HELL, nicht dunkel: mit 14 % Schwarz wurde das Grün noch
+     dunkler, und der fast schwarze Text darauf kam auf 4,18 von noetigen 4,5.
+     Eine helle Waschung hebt den Grund an und arbeitet damit fuer die Schrift
+     statt gegen sie. */
+  .hw-filter.active .hw-filter-count { background: color-mix(in oklab, #fff 30%, transparent); color: var(--accent-ink); }
 
   /* ---------- Tabelle ---------- */
   /* Der Rahmen misst sich selbst. Ein Media-Query fragt das Fenster — und im

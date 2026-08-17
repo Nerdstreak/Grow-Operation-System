@@ -42,13 +42,25 @@ public sealed class PhotoRepository : RepositoryBase
         return items;
     }
 
+    /// <summary>
+    /// Ein Foto ablegen — und ihm dabei seine Id geben.
+    /// </summary>
+    /// <remarks>
+    /// Die Id wird zurückgeschrieben, weil der Upload-Endpunkt das gespeicherte
+    /// Objekt als Antwort ausliefert. Ohne das stand dort <c>"id": 0</c> in
+    /// einer <c>201 Created</c>: eine Antwort, die auf eine Ressource verweist
+    /// und dabei die falsche Nummer nennt. Wer sie weiterverwendet — etwa um
+    /// dem Bild gleich ein Symptom zuzuordnen — griff ins Leere.
+    /// </remarks>
     public void AddPhoto(PhotoAsset photo)
     {
+        ArgumentNullException.ThrowIfNull(photo);
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO Photos (GrowId, MeasurementId, RelativePath, Caption, Tag, Source, IsReferenceShot, SymptomId, TakenAtUtc)
             VALUES ($growId, $measurementId, $relativePath, $caption, $tag, $source, $isReferenceShot, $symptomId, $takenAtUtc);
+            SELECT last_insert_rowid();
         """;
         command.Parameters.AddWithValue("$growId", photo.GrowId);
         command.Parameters.AddWithValue("$measurementId", (object?)photo.MeasurementId ?? DBNull.Value);
@@ -59,7 +71,7 @@ public sealed class PhotoRepository : RepositoryBase
         command.Parameters.AddWithValue("$isReferenceShot", photo.IsReferenceShot ? 1 : 0);
         command.Parameters.AddWithValue("$symptomId", (object?)photo.SymptomId ?? DBNull.Value);
         command.Parameters.AddWithValue("$takenAtUtc", ToStorageUtc(photo.TakenAtUtc));
-        command.ExecuteNonQuery();
+        photo.Id = Convert.ToInt32((long)(command.ExecuteScalar() ?? 0L), CultureInfo.InvariantCulture);
     }
 
     public List<PhotoAsset> GetRecentPhotos(int limit = 18)

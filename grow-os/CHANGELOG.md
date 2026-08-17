@@ -1,5 +1,59 @@
 # Changelog
 
+## 2.0.0-beta.44
+
+**Beta.** A full pass over the running app — ten testers clicking and calling,
+every finding reproduced independently before it counted. 37 held up. The two
+worst were not in the new code.
+
+- Fixed — **the save button on the measurements page did nothing.** It sat in a
+  form, it said "Messung speichern", it was clickable, it showed no error — and
+  the measurement was gone. `V1Button` defaults to `type="button"`, which never
+  submits a form. Nothing but a click reveals this, which is why it survived
+  every build and every test. A test now walks every `onSubmit` form and checks
+  that some button actually submits it.
+- Fixed — **between 768 and 860 px there was no navigation at all.** The sidebar
+  appears from 861 px, the phone bar disappeared at 768 — measured: zero visible
+  links in that gap. An iPad in portrait is 768 px, as are most wall tablets;
+  opening the app there left you on the start page with no way out. Both rules
+  read correctly on their own; the bug lives in the distance between them. A
+  test now walks thirteen widths from 320 to 1920.
+- Fixed — **"Kritisch" was drawn in the warning colour.** Critical had yellow,
+  warning had grey, info had green: every message looked one step milder than it
+  is, exactly where urgency should be readable at a glance.
+- Fixed — **every link in the app used the wrong green.** 3,4:1 on white in any
+  table. The note beside the colour token says outright that this shade only
+  manages 3,6:1 as small text and that a darker text variant exists for it — the
+  central rule for every link just never used it. Along with it: error messages
+  (4,1:1 — the sentence you most need to read), the pump state at 2,2:1, the
+  drag handle in edit mode, the emergency button, the tent labels. The contrast
+  test itself was too blunt to catch any of it: threshold 3,0 instead of the
+  WCAG 4,5, no knowledge of `oklch()` colours, a stale page list. Sharpened —
+  and it immediately found the error-message colour, which a pass through the
+  running app cannot find, because errors only appear when the backend is gone.
+- Fixed — **the flip button was offered to autoflowers and always failed.**
+  Autoflowers do not flip; the server rejected it with a 400 every time. The
+  comment right beside the condition already knew it — the condition did not.
+- Fixed — **no way to the harvest page without a manual measurement.** The
+  button hung on the last hand-entered reading instead of the phase the server
+  calculates, so it vanished entirely for anyone letting sensors do the work.
+- Fixed — **the export button navigated away and showed raw JSON**, and its
+  path broke behind the Home Assistant ingress. It now downloads a file.
+- Fixed — **three MCP tools answered a different question than the one asked.**
+  `alarme` returned the open risks of every grow: the filters were one if-else
+  chain with `openOnly` at the front, swallowing the grow filter behind it.
+  `technik` fetched maintenance and calibration with no filter at all, so a
+  second tent's dates were reported as this one's. `grows_auflisten` with
+  "include finished" switched to the archive instead of adding to it, losing
+  precisely the running grows. None of these fail loudly — they return a
+  plausible answer to a question nobody asked, and an AI reading them cannot
+  tell.
+- Fixed — **the guided-start button on the emergency cards started nothing.**
+  There is no grow context on the knowledge page, so it could only ever open the
+  text. It now says so.
+- Fixed — **the photo upload replied with an id of 0.** A 201 Created naming the
+  wrong resource.
+
 ## 2.0.0-beta.43
 
 **Beta.** The last step of a run — the one that decides what months of work
@@ -47,10 +101,14 @@ taste like — now happens inside the app instead of beside it.
   the neighbouring tiles stay visible for comparison. Tiles without history stay
   silent rather than offering a click that shows nothing.
 - Fixed — **`foto_ansehen` never returned an image.** The path was assembled
-  twice (`uploads/uploads/4/x.jpg`). It would not have surfaced as an error
-  either: Grow OS answers any path outside `/api` with the start page and status
-  200, so HTML came back dressed as a picture. The tool shipped in beta.42 and
-  did not work once.
+  twice (`uploads/uploads/4/x.jpg`), so every request 404'd. The tool shipped in
+  beta.42 and did not work once. Verified against the running app afterwards:
+  the correct path now returns `image/png` with a real PNG signature.
+- Fixed — **the photo upload replied with the wrong id.** A `201 Created`
+  carrying `"id": 0` — a response that points at a resource and names the wrong
+  number. The web interface reloads the list and never noticed; anything using
+  the API directly, for instance to tag the fresh photo with a symptom, was
+  pointed at nothing. Found while testing the app end to end.
 - Fixed — **an existing database would not have survived this update.** The new
   index on the photos table was created in the core schema, which runs *before*
   the column it indexes is added to an existing database — "no such column:

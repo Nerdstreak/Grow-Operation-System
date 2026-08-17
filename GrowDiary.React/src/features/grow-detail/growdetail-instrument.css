@@ -90,8 +90,13 @@
    fuer die dunkle Ansicht gewaehlt und standen in der hellen praktisch
    unsichtbar auf der Karte (gemessener Kontrast 1,1). Die getoenten Flaechen
    bleiben, die traegt beide Ansichten. */
-.v1-page .badge.badge-ok { color: var(--accent-text); border-color: rgba(67, 212, 90, 0.36); background: rgba(67, 212, 90, 0.10); }
-.v1-page .badge.badge-warn { color: var(--warn-text); border-color: rgba(245, 200, 75, 0.44); background: rgba(245, 200, 75, 0.08); }
+.v1-page .badge.badge-ok { color: var(--accent-text); border-color: var(--accent-dim); background: var(--accent-wash); }
+.v1-page .badge.badge-warn { color: var(--warn-text); border-color: var(--warn); background: var(--warn-wash); }
+/* Kritisch hat jetzt eine eigene Farbe. Die Rand- und Flaechentoene kommen aus
+   den Themen-Marken statt aus fest verdrahteten Werten: die alten
+   rgba(245,200,75,…) stammten aus dem dunklen Thema und standen im hellen
+   unverändert da — „Kritisch" kam so auf Kontrast 3,0 von noetigen 4,5. */
+.v1-page .badge.badge-danger { color: var(--danger-text); border-color: var(--danger); background: var(--danger-wash); }
 /* Der Knopf hatte eine Mindesthoehe, aber nichts, was die Beschriftung darin
    zentriert: die Zeile klebte oben an der Kante und schnitt optisch in den
    Text darueber. Ein Knopf ohne Zentrierung sieht aus wie ein Fehler im

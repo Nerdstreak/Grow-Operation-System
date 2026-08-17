@@ -12,13 +12,25 @@ import { test, expect } from '@playwright/test'
 // Gestaltungsvorgaben — die Schwelle liegt bewusst tief bei 3,0. Alles
 // darunter ist kein Geschmacksfall mehr, sondern unleserlich.
 const ROUTEN = [
-  '/', '/messungen', '/diagnose', '/sops', '/journal', '/sorten',
-  '/aufgaben', '/dosierung', '/regeln', '/zelte', '/hydro',
-  '/sensoren', '/sollwerte', '/archiv', '/wissen', '/settings',
+  '/', '/messung', '/addback', '/aufgaben',
+  '/grows', '/diagnose', '/journal', '/sorten', '/aushaerten', '/archiv',
+  '/dosierung', '/sensoren', '/regeln', '/sollwerte',
+  '/zelte', '/hydro', '/wasser', '/home-assistant', '/handy',
+  '/wissen', '/einkaufsliste', '/berater', '/einstellungen',
 ]
 
-/** Unter dieser Schwelle ist Text nicht mehr lesbar, egal wie er gemeint war. */
-const SCHWELLE = 3.0
+/**
+ * Die Schwelle — seit 2026-08-17 der WCAG-AA-Wert statt der alten 3,0.
+ *
+ * Die 3,0 waren als Notbremse gedacht: „darunter ist es nicht mehr lesbar".
+ * Damit blieb aber ein ganzes Feld unbeachtet, in dem Text zwar erkennbar,
+ * aber mühsam ist — und genau dort lagen die Funde eines Durchgangs durch die
+ * laufende App: jeder Link in einer Tabelle bei 3,39, die Zelt-Beschriftungen
+ * bei 4,26, der Notfall-Knopf bei 3,82. Nach deren Korrektur misst die App auf
+ * allen Seiten in beiden Ansichten sauber, also ist der strengere Wert
+ * haltbar.
+ */
+const SCHWELLE = 4.5
 
 /**
  * Der tatsächlich gemalte Kontrast eines Textknotens.
@@ -30,20 +42,34 @@ const SCHWELLE = 3.0
  * lesbar sind.
  */
 const MESSUNG = `() => {
+  // Farben vom Browser umrechnen lassen, statt sie mit einem Regex zu zerlegen.
+  // Grund: die App benutzt inzwischen auch oklch() — aus
+  // "oklch(0.55 0.18 27.4 / 0.04)" liest ein Zahlen-Regex 0.55/0.18/27.4 und
+  // haelt das fuer RGB. Das Ergebnis ist frei erfunden, in beide Richtungen:
+  // eine erste Fassung dieser Pruefung meldete so einen Kontrast von 2,79 an
+  // einer Stelle, die in Wahrheit bei 5,9 lag. Ueber eine 1x1-Leinwand malt der
+  // Browser jede Farbschreibweise korrekt und mischt die Deckkraft gleich mit.
+  const c = document.createElement('canvas'); c.width = c.height = 1
+  const ctx = c.getContext('2d', { willReadFrequently: true })
+  const alsRgb = (farbe, unter) => {
+    ctx.clearRect(0, 0, 1, 1)
+    ctx.fillStyle = 'rgb(' + unter[0] + ',' + unter[1] + ',' + unter[2] + ')'
+    ctx.fillRect(0, 0, 1, 1)
+    ctx.fillStyle = farbe
+    ctx.fillRect(0, 0, 1, 1)
+    const d = ctx.getImageData(0, 0, 1, 1).data
+    return [d[0], d[1], d[2]]
+  }
   const zahl = (c) => (c.match(/[\\d.]+/g) || []).map(Number)
   const flaeche = (el) => {
     const schichten = []
     for (let e = el; e; e = e.parentElement) {
-      const [r, g, b, a = 1] = zahl(getComputedStyle(e).backgroundColor)
-      if (a > 0) schichten.push([r, g, b, a])
-      if (a === 1) break
+      const bg = getComputedStyle(e).backgroundColor
+      if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') schichten.unshift(bg)
     }
-    let [r, g, b] = schichten.pop() || [255, 255, 255]
-    while (schichten.length) {
-      const [nr, ng, nb, na] = schichten.pop()
-      r = nr * na + r * (1 - na); g = ng * na + g * (1 - na); b = nb * na + b * (1 - na)
-    }
-    return [r, g, b]
+    let unten = [255, 255, 255]
+    for (const s of schichten) unten = alsRgb(s, unten)
+    return unten
   }
   const lum = ([r, g, b]) => {
     const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }
@@ -57,13 +83,17 @@ const MESSUNG = `() => {
     if (el.children.length || !el.textContent.trim()) continue
     const s = getComputedStyle(el)
     if (s.visibility === 'hidden' || s.display === 'none' || Number(s.opacity) < 0.3) continue
-    const [tr, tg, tb, ta = 1] = zahl(s.color)
+    const [, , , ta = 1] = zahl(s.color)
     if (ta < 0.3) continue
     const grund = flaeche(el)
-    const vorne = [tr * ta + grund[0] * (1 - ta), tg * ta + grund[1] * (1 - ta), tb * ta + grund[2] * (1 - ta)]
+    const vorne = alsRgb(s.color, grund)
     const l1 = lum(vorne), l2 = lum(grund)
     const k = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
-    if (k < ${SCHWELLE}) funde.push((el.className || el.tagName) + ' — „' + el.textContent.trim().slice(0, 40) + '" — Kontrast ' + k.toFixed(2))
+    // Grosse Schrift darf nach WCAG bei 3,0 bleiben — sie ist auch mit
+    // weniger Kontrast noch gut zu lesen.
+    const px = parseFloat(s.fontSize)
+    const gross = px >= 24 || (px >= 18.66 && Number(s.fontWeight) >= 700)
+    if (k < (gross ? 3 : ${SCHWELLE})) funde.push((el.className || el.tagName) + ' — „' + el.textContent.trim().slice(0, 40) + '" — Kontrast ' + k.toFixed(2))
   }
   return [...new Set(funde)]
 }`
@@ -84,8 +114,17 @@ const BAUSTEINE = `
     <span class="card-title">Titel</span><span class="text-muted">Zusatz</span>
   </div><div style="padding:14px 18px">
     <span class="badge badge-ok">Info</span>
-    <span class="badge badge-warn">Kritisch</span>
+    <span class="badge badge-warn">Warnung</span>
+    <span class="badge badge-danger">Kritisch</span>
     <span class="badge badge-neutral">Neutral</span>
+    <span class="dz-pump-state">bereit</span>
+    <span class="dz-pump-state is-blocked">gesperrt</span>
+    <div class="tn-group"><div class="tn-group-label">Klima</div>
+      <div class="tn-row"><span>Lufttemperatur</span><strong class="is-faint">nicht gemappt</strong></div></div>
+    <span class="cu-alter">Abgelesen vor 2 h</span>
+    <div class="cu-ampel is-warn"><span class="cu-alter">Abgelesen gerade eben</span>
+      <strong class="cu-befund">63,5 % — über dem Fenster</strong><p>Länger lüften.</p>
+      <small>Quelle: budtrainer.com</small></div>
     <span class="kb-tag is-accent">Akzent</span>
     <span class="kb-tag is-warn">Warnung</span>
     <span class="kb-tag is-info">Hinweis</span>

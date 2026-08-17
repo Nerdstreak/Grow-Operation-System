@@ -72,7 +72,12 @@
     }
     }
 
-@media (min-width: 768px) {
+/* 861 px, nicht 768: die Seitenleiste erscheint erst ab 861 (shell.css). Bei
+   768 stand hier vorher die Handy-Navigation ab — zwischen 768 und 860 px gab
+   es damit ueberhaupt KEINE Navigation, gemessen null sichtbare Links. Genau
+   in diesem Fenster liegt ein iPad im Hochformat (768) und die meisten
+   Wandtablets. Die beiden Schwellen muessen aneinander anschliessen. */
+@media (min-width: 861px) {
     .v1-mobile-topbar,
     .v1-mobile-nav,
     .v1-mobile-more-panel {

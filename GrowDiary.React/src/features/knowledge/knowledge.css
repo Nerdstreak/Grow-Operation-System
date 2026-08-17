@@ -32,7 +32,7 @@
   .kb-tag.is-warn { color: var(--warn-text); }
   .kb-tag.is-info { color: var(--info-text); }
   .kb-tag.is-muted { color: var(--faint); }
-  .kb-tag.is-danger { color: var(--danger); }
+  .kb-tag.is-danger { color: var(--danger-text); }
 
   /* ---------- Zonen-Überschriften ---------- */
   .kb-zone {
@@ -45,8 +45,8 @@
 
   /* Notfall-Karten: roter Rahmen, roter Vollton-Knopf. */
   .kb-card.is-danger { border-color: var(--danger); background: var(--danger-wash); }
-  .ls-btn.is-dangerfill { border-color: var(--danger); background: var(--danger); color: #140404; font-weight: 600; }
-  .ls-btn.is-dangerfill:hover { color: #140404; opacity: .9; }
+  .ls-btn.is-dangerfill { border-color: var(--danger); background: var(--danger); color: var(--danger-ink); font-weight: 600; }
+  .ls-btn.is-dangerfill:hover { color: var(--danger-ink); opacity: .9; }
 
   /* Bibliothekszeilen sind Knöpfe — volle Breite, Zelloptik. */
   .kb-rowbtn {

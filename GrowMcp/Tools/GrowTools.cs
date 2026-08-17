@@ -34,8 +34,22 @@ public sealed class GrowTools(GrowOsReader reader)
     public Task<string> GrowsAuflistenAsync(
         [Description("true, um auch abgeschlossene Grows zu sehen")] bool auchAbgeschlossene = false,
         CancellationToken cancellationToken = default)
-        => SicherAsync(() => reader.LesenAsync(
-            $"api/grows?archived={(auchAbgeschlossene ? "true" : "false")}", cancellationToken));
+        => SicherAsync(async () =>
+        {
+            var laufende = await reader.LesenAsync("api/grows?archived=false", cancellationToken);
+            if (!auchAbgeschlossene)
+            {
+                return laufende;
+            }
+
+            // „auch abgeschlossene" hiess vorher in Wirklichkeit „NUR
+            // abgeschlossene": der Endpunkt schaltet zwischen den beiden Listen
+            // um, statt sie zusammenzulegen. Wer nach allen Grows fragte, verlor
+            // damit genau die, die gerade laufen — und bekam keinen Hinweis
+            // darauf, dass etwas fehlt.
+            var beendete = await reader.LesenAsync("api/grows?archived=true", cancellationToken);
+            return Verschmelzen(laufende, beendete);
+        });
 
     [McpServerTool(Name = "lagebericht")]
     [Description("Der vollständige Stand eines Grows als Text: Phase, aktuelle Werte mit Zielbereich, offene Risiken, Journal und Dosierungen. Der beste erste Griff bei jeder Frage zu einem konkreten Grow.")]
@@ -222,8 +236,16 @@ public sealed class GrowTools(GrowOsReader reader)
             }
 
             var geraete = await reader.LesenAsync($"api/hardware-items?tentId={zeltId}", cancellationToken);
-            var wartung = await reader.LesenAsync("api/maintenance-events", cancellationToken);
-            var kalibrierung = await reader.LesenAsync("api/calibration-events", cancellationToken);
+
+            // Die Termine je Geraet holen statt alle auf einmal. Vorher standen
+            // hier `api/maintenance-events` und `api/calibration-events` ohne
+            // jeden Filter — beide Endpunkte kennen nur `hardwareItemId`, also
+            // kamen die Termine ALLER Zelte zurueck und wurden als „Technik
+            // dieses Grows" ausgegeben. Wer zwei Zelte betreibt, bekam die
+            // Kalibrierung des einen als die des anderen gemeldet.
+            var ids = GeraeteIds(geraete);
+            var wartung = await ProGeraetAsync("api/maintenance-events", ids, cancellationToken);
+            var kalibrierung = await ProGeraetAsync("api/calibration-events", ids, cancellationToken);
 
             return Zusammen(("geraete", geraete), ("wartung", wartung), ("kalibrierung", kalibrierung));
         });
@@ -489,6 +511,68 @@ public sealed class GrowTools(GrowOsReader reader)
     /// herauskommt. Ein zusammengeklebtes Ergebnis, das sich nicht lesen lässt,
     /// wäre für ein Modell schlimmer als eine Fehlermeldung.</para>
     /// </remarks>
+    /// <summary>Zwei JSON-Listen zu einer zusammenlegen.</summary>
+    public static string Verschmelzen(string ersteListe, string zweiteListe)
+    {
+        try
+        {
+            using var a = JsonDocument.Parse(ersteListe);
+            using var b = JsonDocument.Parse(zweiteListe);
+            if (a.RootElement.ValueKind != JsonValueKind.Array || b.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                return ersteListe;
+            }
+
+            var text = new StringBuilder("[");
+            var erstes = true;
+            foreach (var element in a.RootElement.EnumerateArray().Concat(b.RootElement.EnumerateArray()))
+            {
+                if (!erstes) text.Append(',');
+                text.Append(element.GetRawText());
+                erstes = false;
+            }
+
+            return text.Append(']').ToString();
+        }
+        catch (JsonException)
+        {
+            return ersteListe;
+        }
+    }
+
+    /// <summary>Die Id jedes Geraets aus einer Geraeteliste.</summary>
+    public static IReadOnlyList<int> GeraeteIds(string geraeteJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(geraeteJson);
+            if (doc.RootElement.ValueKind != JsonValueKind.Array) return [];
+            return doc.RootElement.EnumerateArray()
+                .Where(e => e.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.Number)
+                .Select(e => e.GetProperty("id").GetInt32())
+                .ToList();
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>Einen Termin-Endpunkt je Geraet abfragen und die Antworten zusammenlegen.</summary>
+    private async Task<string> ProGeraetAsync(string pfad, IReadOnlyList<int> geraeteIds, CancellationToken cancellationToken)
+    {
+        if (geraeteIds.Count == 0) return "[]";
+
+        var alle = "[]";
+        foreach (var id in geraeteIds)
+        {
+            var teil = await reader.LesenAsync($"{pfad}?hardwareItemId={id}", cancellationToken);
+            alle = Verschmelzen(alle, teil);
+        }
+
+        return alle;
+    }
+
     public static string Zusammen(params (string Name, string Json)[] teile)
     {
         var text = new StringBuilder("{");

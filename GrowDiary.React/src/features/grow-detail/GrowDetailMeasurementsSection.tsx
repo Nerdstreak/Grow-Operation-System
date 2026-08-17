@@ -119,7 +119,10 @@ export function GrowDetailMeasurementsSection({
             <label>Notiz</label>
             <textarea value={measurementForm.notes} onChange={(event) => onMeasurementFormChange({ notes: event.target.value })} rows={2} placeholder="Zustand, Auffälligkeiten, Korrekturen..." />
           </div>
-          <V1Button variant="primary" disabled={saving === 'measurement'}>{saving === 'measurement' ? 'Speichert...' : 'Messung speichern'}</V1Button>
+          {/* type="submit" ist hier nicht optional: V1Button setzt sonst
+              type="button" (v1.tsx), und dann loest der Knopf das Formular nie
+              aus — er sah aus wie ein Speichern-Knopf und tat nichts. */}
+          <V1Button type="submit" variant="primary" disabled={saving === 'measurement'}>{saving === 'measurement' ? 'Speichert...' : 'Messung speichern'}</V1Button>
         </form>
       </div>
     </>

@@ -10,9 +10,14 @@
   .dz-pump.is-dosing { border-color: var(--accent); }
   .dz-pump-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
   .dz-pump-head .name { font: 600 13px/1 var(--font-mono); }
+  /* --faint statt --hint: --hint hat 30 % Deckkraft und ist fuer Andeutungen
+     gedacht (Platzhalter, Trennzeichen). Hier steht der ZUSTAND einer Pumpe —
+     „bereit", „dosiert", „gesperrt". Gemessen kam er auf Kontrast 2,2 von
+     noetigen 4,5, in beiden Themen. Wer wissen will, ob die Pumpe laeuft,
+     muss es lesen koennen. */
   .dz-pump-state {
     margin-left: auto; font: 500 9.5px/1 var(--font-mono); letter-spacing: .12em;
-    text-transform: uppercase; color: var(--hint);
+    text-transform: uppercase; color: var(--faint);
   }
   .dz-pump.is-dosing .dz-pump-state { color: var(--accent-text); }
   .dz-pump-state.is-blocked { color: var(--warn-text); }

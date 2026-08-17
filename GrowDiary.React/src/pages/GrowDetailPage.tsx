@@ -11,6 +11,7 @@ import { NightRampCard } from '../features/grows/NightRampCard'
 import { CuringSection } from '../features/curing/CuringSection'
 import { GrowPlantsCard } from '../features/grow-detail/GrowPlantsCard'
 import type { GrowDeviationDto } from '../types'
+import { resolveUrl } from '../base'
 import { apiFetch } from '../api'
 
 const noop = async () => {}
@@ -91,7 +92,12 @@ function GrowDetailPage() {
   const scope = `?growId=${grow.id}`
   const canArchiveGrow = grow.status === 'Planning' || grow.status === 'Running'
   const statusTone = grow.status === 'Running' ? 'ok' : grow.status === 'Planning' ? 'warn' : 'neutral'
-  const canFlip = grow.status === 'Running' && !grow.flipDate
+  // Autoflower kennen keinen Flip — sie gehen von selbst in die Bluete. Der
+  // Server lehnt den Aufruf korrekt mit 400 ab; angeboten wurde er trotzdem,
+  // und ein Knopf, der immer scheitert, ist schlimmer als keiner. Der
+  // Kommentar unten wusste es schon („auch bei Autoflowern, die keinen Flip
+  // kennen"), die Bedingung nicht.
+  const canFlip = grow.status === 'Running' && !grow.flipDate && grow.seedType !== 'Autoflower'
   // Der Übergang zur Veg hängt am Aussehen, nicht am Kalender — echte gezackte
   // Blätter statt der zwei runden Keimblätter. Also ein Knopf, solange noch
   // nichts eingetragen ist und noch nicht geflippt wurde.
@@ -102,7 +108,11 @@ function GrowDetailPage() {
   const canConfirmVeg = grow.currentStage === 'Seedling' && !grow.vegStartedAt && grow.status === 'Running'
   const canConfirmFinish = ['Transition', 'Flower'].includes(grow.currentStage)
     && !grow.finishStartedAt && grow.status === 'Running'
-  const canHarvest = ['Flower', 'Finish', 'Dry'].includes(latest?.stage ?? grow.entryPoint ?? '')
+  // An der gerechneten Phase, wie die drei Knoepfe darueber — nicht an der
+  // letzten Handmessung. Vorher verschwand der Ernte-Knopf vollstaendig,
+  // sobald niemand von Hand gemessen hatte: die Seite /grows/:id/harvest gab
+  // es, aber keinen Weg dorthin.
+  const canHarvest = ['Flower', 'Finish', 'Dry'].includes(grow.currentStage ?? latest?.stage ?? grow.entryPoint ?? '')
   const timeline = buildPhaseTimeline(grow)
   const lastMeasurements = [...bundle.measurements]
     .sort((a, b) => b.takenAt.localeCompare(a.takenAt))
@@ -283,7 +293,17 @@ function GrowDetailPage() {
         <V1Section title="Verwaltung">
           <div className="v1-action-row">
             <V1LinkButton to={`/grows/${grow.id}/setup`}>Bearbeiten</V1LinkButton>
-            <a className="v1-button" href={`/grows/${grow.id}/export`}>Export</a>
+            {/* download + resolveUrl: ohne download navigierte der Knopf die
+                App weg und zeigte rohes JSON — man musste zurueckgehen. Und
+                ohne resolveUrl bricht der Pfad hinter dem Home-Assistant-
+                Ingress, wo die App unter einem Unterpfad laeuft. */}
+            <a
+              className="v1-button"
+              href={resolveUrl(`api/exports/grows/${grow.id}`)}
+              download={`grow-${grow.id}-export.json`}
+            >
+              Export
+            </a>
             <V1Button disabled={Boolean(saving) || !canArchiveGrow} onClick={() => void archiveGrow()}>
               {saving === 'grow-archive' ? 'Beendet...' : canArchiveGrow ? 'Beenden' : 'Beendet'}
             </V1Button>

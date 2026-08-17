@@ -733,7 +733,11 @@ function KnowledgePage() {
                 <div className="kb-card-title">{entry.title}</div>
                 {entry.preview && <p>{entry.preview}</p>}
                 <button type="button" className="ls-btn is-small is-dangerfill" style={{ marginLeft: 0 }} onClick={() => sopsKategorie && zeigeEintrag(sopsKategorie, entry)}>
-                  Geführt starten
+                  {/* Nicht „Geführt starten": auf der Wissensseite gibt es
+                      keinen Grow-Bezug, der Knopf kann also gar nichts
+                      starten — er oeffnet den Ablauf zum Lesen. Gestartet
+                      wird ein Ablauf am Grow oder aus einem Risiko heraus. */}
+                  Ablauf öffnen
                 </button>
               </div>
             ))}
