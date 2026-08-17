@@ -32,12 +32,30 @@ public sealed class CuringRepository : RepositoryBase
         return Lies(command);
     }
 
-    /// <summary>Alle Gläser, die noch aushärten — über alle Grows hinweg.</summary>
-    public IReadOnlyList<CuringJar> GetOpenJars()
+    /// <summary>
+    /// Alle Gläser, die noch aushärten — über alle Grows hinweg.
+    /// </summary>
+    /// <param name="auchKuerzlichFertige">
+    /// Zusätzlich die Gläser, die in den letzten 30 Tagen abgeschlossen wurden.
+    /// Ohne sie fände man ein versehentlich auf „fertig" gesetztes Glas nirgends
+    /// wieder — „Fertig" wäre damit die einzige Handlung ohne Rückweg.
+    /// </param>
+    public IReadOnlyList<CuringJar> GetOpenJars(bool auchKuerzlichFertige = false)
     {
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM CuringJars WHERE FinishedAtUtc IS NULL ORDER BY FilledAtUtc;";
+        command.CommandText = auchKuerzlichFertige
+            ? """
+                SELECT * FROM CuringJars
+                WHERE FinishedAtUtc IS NULL OR FinishedAtUtc >= $grenze
+                ORDER BY FinishedAtUtc IS NOT NULL, FilledAtUtc;
+                """
+            : "SELECT * FROM CuringJars WHERE FinishedAtUtc IS NULL ORDER BY FilledAtUtc;";
+        if (auchKuerzlichFertige)
+        {
+            command.Parameters.AddWithValue("$grenze", ToStorageUtc(DateTime.UtcNow.AddDays(-30)));
+        }
+
         return Lies(command);
     }
 

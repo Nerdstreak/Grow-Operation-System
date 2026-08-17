@@ -139,21 +139,44 @@ public static class CuringSchedule
                 + $"bleibt das Glas einen ganzen Tag zwischen {TargetHumidityMin:0} und {TargetHumidityMax:0} %, ohne zu klettern, ist die tägliche Phase vorbei.");
         }
 
+        // Der Text nennt den GESTRECKTEN Abstand, nicht den Grundrhythmus.
+        // Vorher stand „täglich" da, während der Termin auf „alle 2 Tage"
+        // stand — zwei Angaben zur selben Sache, die sich widersprechen.
         if (tag <= 7)
         {
-            return (1 * faktor, 5, 10,
-                $"Woche 1: täglich 5–10 Minuten lüften und dabei umschichten — unten liegt es feuchter als oben.{zusatz}");
+            var abstand = 1 * faktor;
+            return (abstand, 5, 10,
+                $"Woche 1: {Rhythmus(abstand)} 5–10 Minuten lüften und dabei umschichten — unten liegt es feuchter als oben.{zusatz}");
         }
 
         if (tag <= 14)
         {
-            return (2 * faktor, 2, 3, $"Woche 2: alle 2–3 Tage 2–3 Minuten lüften.{zusatz}");
+            var abstand = 2 * faktor;
+            return (abstand, 2, 3, $"Woche 2: {Rhythmus(abstand)} 2–3 Minuten lüften.{zusatz}");
         }
 
-        return (7 * faktor, 1, 2, $"Woche 3–4: wöchentlich 1–2 Minuten lüften.{zusatz}");
+        var wochenAbstand = 7 * faktor;
+        return (wochenAbstand, 1, 2, $"Woche 3–4: {Rhythmus(wochenAbstand)} 1–2 Minuten lüften.{zusatz}");
     }
 
-    /// <summary>Tag 1 ist der Einglastag — so zählt man vor dem Glas, nicht ab null.</summary>
+    /// <summary>„täglich", „alle 2 Tage", „wöchentlich" — der Abstand in Worten.</summary>
+    private static string Rhythmus(int tage) => tage switch
+    {
+        <= 1 => "täglich",
+        7 => "wöchentlich",
+        14 => "alle zwei Wochen",
+        _ => $"alle {tage} Tage",
+    };
+
+    /// <summary>
+    /// Tag 1 ist der Einglastag — so zählt man vor dem Glas, nicht ab null.
+    /// </summary>
+    /// <remarks>
+    /// In <b>Ortszeit</b> gerechnet, nicht in UTC. Der Tageswechsel, den der
+    /// Nutzer meint, ist seiner: zwischen Mitternacht und 2 Uhr morgens lagen
+    /// die beiden auseinander, und das Glas war einen Tag jünger, als es vor
+    /// ihm stand.
+    /// </remarks>
     private static int Tage(DateTime von, DateTime bis)
-        => Math.Max(1, (int)Math.Floor((bis.Date - von.Date).TotalDays) + 1);
+        => Math.Max(1, (int)Math.Floor((bis.ToLocalTime().Date - von.ToLocalTime().Date).TotalDays) + 1);
 }

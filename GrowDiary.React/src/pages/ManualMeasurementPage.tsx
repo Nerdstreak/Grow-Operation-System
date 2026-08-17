@@ -329,6 +329,15 @@ function ManualMeasurementPage() {
       return
     }
 
+    // Lieber gar nicht speichern als eine Messung, der die Haelfte fehlt.
+    const unlesbar = unlesbareFelder(draft)
+    if (unlesbar.length > 0) {
+      setError(unlesbar.length === 1
+        ? `„${unlesbar[0]}" ist keine Zahl. Bitte korrigieren oder das Feld leeren — sonst geht der Wert verloren, ohne dass es jemand merkt.`
+        : `Diese Felder enthalten keine Zahl: ${unlesbar.join(', ')}. Bitte korrigieren oder leeren — sonst gehen die Werte verloren, ohne dass es jemand merkt.`)
+      return
+    }
+
     setSaving(true)
     setError(null)
     setMessage(null)
@@ -706,6 +715,55 @@ function calculateVpd(temperatureValue: string, humidityValue: string, leafOffse
   const actual = saturationKpa(temperature) * (humidity / 100)
   const leaf = saturationKpa(temperature - leafOffsetC)
   return Math.max(0, leaf - actual).toFixed(2)
+}
+
+/**
+ * Die Zahlenfelder des Formulars mit ihrer Beschriftung.
+ *
+ * Nur dafür da, ein unlesbares Feld beim Namen nennen zu können — „pH
+ * (Reservoir)" statt „reservoirPh". Kommt ein Feld dazu, gehört es hier hinein;
+ * fehlt es, wird sein Inhalt weiterhin stillschweigend verworfen.
+ */
+const ZAHLENFELDER: Array<[keyof MeasurementDraft, string]> = [
+  ['airTemperatureC', 'Lufttemperatur'],
+  ['humidityPercent', 'Luftfeuchte'],
+  ['heightCm', 'Höhe'],
+  ['waterAmountMl', 'Gießmenge'],
+  ['runoffAmountMl', 'Ablauf'],
+  ['irrigationPh', 'pH (Gießwasser)'],
+  ['irrigationEc', 'EC (Gießwasser)'],
+  ['drainPh', 'pH (Ablauf)'],
+  ['drainEc', 'EC (Ablauf)'],
+  ['reservoirPh', 'pH (Reservoir)'],
+  ['reservoirEc', 'EC (Reservoir)'],
+  ['reservoirWaterTempC', 'Wassertemperatur'],
+  ['reservoirLevelCm', 'Füllstand (cm)'],
+  ['reservoirLevelLiters', 'Füllstand (L)'],
+  ['dissolvedOxygenMgL', 'Sauerstoff'],
+  ['orpMv', 'ORP'],
+  ['topOffLiters', 'Nachgefüllt'],
+  ['addbackEc', 'EC nach Addback'],
+  ['ppfdMol', 'PPFD'],
+  ['co2Ppm', 'CO₂'],
+  ['airflowAtLeafMPerMin', 'Luftstrom am Blatt'],
+]
+
+/**
+ * Felder, in denen etwas steht, das keine Zahl ist.
+ *
+ * <b>Warum es diese Prüfung braucht.</b> `parseNullableNumber` macht aus „leer"
+ * und aus „unlesbar" dasselbe Ergebnis: `null`. Wer sich beim pH vertippt und
+ * „6,2x" stehen lässt, speichert eine Messung ohne pH — und die App meldet
+ * Erfolg. Der Wert ist weg, niemand hat es gesagt, und beim nächsten Blick auf
+ * die Kurve fehlt einfach ein Punkt.
+ */
+function unlesbareFelder(draft: MeasurementDraft): string[] {
+  return ZAHLENFELDER
+    .filter(([feld]) => {
+      const roh = String(draft[feld] ?? '').trim()
+      return roh !== '' && parseNullableNumber(roh) === null
+    })
+    .map(([, label]) => label)
 }
 
 function parseNullableNumber(value: string) {

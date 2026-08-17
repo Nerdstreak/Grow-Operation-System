@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.0.0-beta.45
+
+**Beta.** The rest of the findings from the same pass.
+
+- Fixed — **the measurement form silently dropped what it could not read.**
+  `parseNullableNumber` returns the same thing for "empty" and for "unreadable":
+  `null`. Mistype the pH as "6,2x" and the measurement saved *without* a pH — and
+  reported success. The value was gone, nobody said so, and the next look at the
+  curve is simply missing a point. 21 fields were affected. Saving now stops and
+  names the field the way the form does ("pH (Reservoir)", not "reservoirPh").
+- Fixed — **a jar could be neither edited nor deleted, and "Fertig" was the only
+  action in the whole app with no way back.** One misclick and the jar was out of
+  the list, its burping rhythm stopped, recoverable only through the database.
+  Curing runs for weeks; in that time you do misclick. There is now delete and
+  reopen, and the page shows recently finished jars so you can find one at all.
+- Fixed — four mistakes in yesterday's curing code: "0 minutes burped" reset the
+  next date without a jar ever being opened; with a humidity pack the text said
+  "daily" while the date said "every 2 days"; the day count compared UTC dates,
+  so between midnight and 2 a.m. the jar was a day younger than it stood there;
+  and an unknown strain id hit the foreign key and ended in a 500 — a server
+  error for input that was simply wrong.
+- Fixed — **`finishedAtUtc === null` is always false.** The server omits empty
+  fields entirely, so `undefined` arrives. The hint pointing to the curing page
+  never appeared, and the freshly built reopen button would have shown on every
+  open jar.
+
 ## 2.0.0-beta.44
 
 **Beta.** A full pass over the running app — ten testers clicking and calling,

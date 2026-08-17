@@ -85,7 +85,12 @@ public sealed class CuringReadingRequest
     [Range(0, 100)]
     public double? HumidityPercent { get; set; }
 
-    [Range(0, 600)]
+    /// <summary>
+    /// Wie lange gelüftet wurde. Mindestens eine Minute — „0 Minuten gelüftet"
+    /// hat den nächsten Termin zurückgesetzt, ohne dass ein Glas offen war.
+    /// Genau das soll die Trennung von Ablesen und Lüften verhindern.
+    /// </summary>
+    [Range(1, 600)]
     public int? BurpedMinutes { get; set; }
 
     [StringLength(500)]

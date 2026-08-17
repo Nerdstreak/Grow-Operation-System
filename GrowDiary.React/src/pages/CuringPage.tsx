@@ -29,7 +29,7 @@ function CuringPage() {
     const controller = new AbortController()
     async function load() {
       try {
-        const geladen = await apiFetch<CuringJar[]>('/api/curing/jars', { signal: controller.signal })
+        const geladen = await apiFetch<CuringJar[]>('/api/curing/jars?auchKuerzlichFertige=true', { signal: controller.signal })
         if (!controller.signal.aborted) setJars(geladen)
       } catch (caught) {
         if (!controller.signal.aborted) {
@@ -142,6 +142,38 @@ function JarCard({ jar, onDone, onError }: {
     }
   }
 
+  /**
+   * „Fertig" war die einzige Handlung ohne Rückweg — ein Fehlgriff und das Glas
+   * war aus der Liste, mitsamt seinem Lüft-Rhythmus. Aushärten dauert Wochen;
+   * in der Zeit klickt man sich auch mal vertan.
+   */
+  async function wiederOeffnen() {
+    setBusy(true)
+    try {
+      await apiFetch(`/api/curing/jars/${jar.id}/reopen`, { method: 'POST' })
+      onDone(`${jar.label} härtet wieder aus.`)
+    } catch (caught) {
+      onError(caught instanceof ApiRequestError ? caught.message : 'Wieder öffnen fehlgeschlagen.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function loeschen() {
+    // Ein Glas, das man versehentlich angelegt hat, muss auch wieder weg
+    // koennen — sonst steht es fuer immer in der Liste und meldet Termine.
+    if (!window.confirm(`„${jar.label}" wirklich löschen? Die Ablesungen dazu gehen mit verloren.`)) return
+    setBusy(true)
+    try {
+      await apiFetch(`/api/curing/jars/${jar.id}`, { method: 'DELETE' })
+      onDone(`${jar.label} gelöscht.`)
+    } catch (caught) {
+      onError(caught instanceof ApiRequestError ? caught.message : 'Löschen fehlgeschlagen.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const ampel = jar.latestHumidity ? feuchteTon(jar.latestHumidity.level) : null
   const dringend = jar.duty.level === 'Overdue' || jar.duty.level === 'Due'
 
@@ -208,8 +240,20 @@ function JarCard({ jar, onDone, onError }: {
         >
           Eintragen
         </button>
-        <button type="button" className="ls-btn is-small" disabled={busy} onClick={() => void abschliessen()}>
-          Fertig
+        {/* `== null` statt `=== null`: leere Felder fehlen im JSON ganz, es
+            kommt `undefined` an. Sonst haette jedes offene Glas den
+            Knopf „Wieder öffnen" getragen statt „Fertig". */}
+        {jar.finishedAtUtc == null ? (
+          <button type="button" className="ls-btn is-small" disabled={busy} onClick={() => void abschliessen()}>
+            Fertig
+          </button>
+        ) : (
+          <button type="button" className="ls-btn is-small" disabled={busy} onClick={() => void wiederOeffnen()}>
+            Wieder öffnen
+          </button>
+        )}
+        <button type="button" className="ls-btn is-small is-ghost" disabled={busy} onClick={() => void loeschen()}>
+          Löschen
         </button>
       </div>
     </article>

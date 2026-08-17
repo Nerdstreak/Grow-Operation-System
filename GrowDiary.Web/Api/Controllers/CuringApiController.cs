@@ -42,8 +42,8 @@ public sealed class CuringApiController : ApiControllerBase
     /// </remarks>
     [HttpGet("curing/jars")]
     [ProducesResponseType(typeof(IReadOnlyList<CuringJarDto>), StatusCodes.Status200OK)]
-    public ActionResult<IReadOnlyList<CuringJarDto>> OpenJars()
-        => Ok(_repository.GetOpenJars().Select(Abbilden).ToList());
+    public ActionResult<IReadOnlyList<CuringJarDto>> OpenJars([FromQuery] bool auchKuerzlichFertige = false)
+        => Ok(_repository.GetOpenJars(auchKuerzlichFertige).Select(Abbilden).ToList());
 
     [HttpGet("grows/{growId:int}/curing/jars")]
     [ProducesResponseType(typeof(IReadOnlyList<CuringJarDto>), StatusCodes.Status200OK)]
@@ -78,6 +78,15 @@ public sealed class CuringApiController : ApiControllerBase
         if (!TryLiesDatum(request.FilledAtLocal, out var eingeglast))
         {
             ModelState.AddModelError(nameof(request.FilledAtLocal), "Einglas-Datum konnte nicht gelesen werden.");
+            return ValidationError();
+        }
+
+        // Ohne diese Pruefung schlaegt der Fremdschluessel zu und die Anfrage
+        // endet in einem 500 — ein Serverfehler fuer eine Eingabe, die schlicht
+        // falsch war.
+        if (!SorteExistiert(request.StrainId))
+        {
+            ModelState.AddModelError(nameof(request.StrainId), $"Sorte mit Id {request.StrainId} existiert nicht.");
             return ValidationError();
         }
 
@@ -119,6 +128,12 @@ public sealed class CuringApiController : ApiControllerBase
             return ValidationError();
         }
 
+        if (!SorteExistiert(request.StrainId))
+        {
+            ModelState.AddModelError(nameof(request.StrainId), $"Sorte mit Id {request.StrainId} existiert nicht.");
+            return ValidationError();
+        }
+
         // FinishedAtUtc bleibt unangetastet: das Beenden hat einen eigenen
         // Endpunkt, damit ein Tippfehler im Namen kein Glas abschliesst.
         jar.Label = request.Label.Trim();
@@ -150,6 +165,29 @@ public sealed class CuringApiController : ApiControllerBase
         }
 
         jar.FinishedAtUtc = DateTime.UtcNow;
+        _repository.UpdateJar(jar);
+        return Ok(Abbilden(jar));
+    }
+
+    /// <summary>Ein Glas doch noch einmal öffnen.</summary>
+    /// <remarks>
+    /// „Fertig" war die einzige Handlung ohne Rückweg. Ein Fehlgriff bedeutete:
+    /// das Glas verschwindet aus der Liste, der Lüft-Rhythmus hört auf, und
+    /// zurück kam man nur über die Datenbank. Aushärten dauert Wochen — in
+    /// dieser Zeit klickt man sich auch mal vertan.
+    /// </remarks>
+    [HttpPost("curing/jars/{id:int}/reopen")]
+    [ProducesResponseType(typeof(CuringJarDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<CuringJarDto> ReopenJar(int id)
+    {
+        var jar = _repository.GetJar(id);
+        if (jar is null)
+        {
+            return NotFoundError("jar_not_found", $"Glas mit Id {id} existiert nicht.");
+        }
+
+        jar.FinishedAtUtc = null;
         _repository.UpdateJar(jar);
         return Ok(Abbilden(jar));
     }
@@ -254,6 +292,10 @@ public sealed class CuringApiController : ApiControllerBase
                 duty.BurpMinutesMin, duty.BurpMinutesMax, duty.NextDueUtc, duty.Text, duty.Source),
             feuchte);
     }
+
+    /// <summary>Gibt es diese Sorte? <c>null</c> ist erlaubt und heißt „keine".</summary>
+    private bool SorteExistiert(int? strainId)
+        => strainId is null || _setups.GetStrain(strainId.Value) is not null;
 
     /// <summary>„2026-08-17" als Ortszeit-Mittag, damit die Tageszählung stimmt.</summary>
     /// <remarks>

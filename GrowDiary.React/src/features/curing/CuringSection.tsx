@@ -70,7 +70,11 @@ export function CuringSection({ growId, harvested }: { growId: number; harvested
   // statt ein leeres Formular an einen bluehenden Grow zu haengen.
   if (!harvested && jars.length === 0) return null
 
-  const offen = jars.filter((jar) => jar.finishedAtUtc === null)
+  // `== null` faengt null UND undefined: der Server laesst leere Felder ganz
+  // weg (JsonIgnoreCondition.WhenWritingNull in Program.cs), es kommt also
+  // `undefined` an. Mit `=== null` war die Liste immer leer und der Hinweis
+  // darunter erschien nie.
+  const offen = jars.filter((jar) => jar.finishedAtUtc == null)
 
   return (
     <V1Section title="Aushärten">
