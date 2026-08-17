@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.0.0-beta.41
+
+**Beta.** A bug report with teeth: the multi-strain tent from beta.38 was only
+half built. The plants could carry their own strain — nothing that *counted*
+them knew about it.
+
+- Fixed — **a tent with three strains only counted one.** Six plants, two of
+  each strain: the strain library showed "1 run" for the grow's main strain and
+  "0 runs" for the other two, as if they had never been planted. Runs now count
+  through both paths — the grow's main strain *and* the strains of its plants —
+  and a grow with two Mimosa plants counts as one run for Mimosa, not two.
+- Fixed — **the pheno hunt mixed genetics.** All six plants were listed as
+  candidates of a single strain, and worse, they were *scored together*. Yield
+  and potency are graded relative to the field (best plant 1, weakest 0), so
+  across strain boundaries that grades the genetics, not the phenotype: a
+  strain that simply carries less would take the zero, however good its best
+  plant is. Anyone picking a keeper from that could throw away the very plant
+  they meant to keep. Hunts are now scored per strain — plants without a strain
+  form their own group, for the same reason.
+- Fixed — **the average yield was wrong even for the main strain.** It divided
+  the whole grow's dry weight by the whole grow's plant count, so in a mixed
+  tent the main strain was credited with everyone's harvest. Harvests are
+  recorded as a total with no link to the individual plant, so there is no
+  honest way to split them: mixed grows now show "— gemischt" instead of a
+  number that looks precise and isn't.
+- Fixed — **deleting a grow reported a failure after succeeding.** The audit
+  entry for the deletion was written *after* the row was gone, and its foreign
+  key had nothing left to point at — a 500 for a job that had worked, which
+  invites a second attempt. Found while cleaning up test data of my own.
+
 ## 2.0.0-beta.40
 
 **Beta.** Field feedback, third round — the phone one turned out to be a layout

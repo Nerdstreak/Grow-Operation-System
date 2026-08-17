@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CreateStrainRequest, GrowSummary, HarvestDto, StrainDominance, StrainDto } from '../types'
+import type { CreateStrainRequest, GrowSummary, HarvestDto, PlantInstanceDto, StrainDominance, StrainDto } from '../types'
 import type { PhenoHuntDto, PhenoPlantDto, PhenoWeightsDto } from '../types/pheno'
 import { PhenoSheetEditor } from '../features/pheno/PhenoSheetEditor'
 import type { SheetDraft } from '../features/pheno/pheno-sheet-model'
@@ -102,12 +102,41 @@ function draftToRequest(draft: StrainDraft): CreateStrainRequest {
   }
 }
 
+/**
+ * „2× Mimosa EVO · 2× RS11 · 2× Pineapple Express" — was wirklich im Zelt steht.
+ *
+ * Bei einer einzigen Sorte bleibt es bei der schlichten Anzahl: „6 Kandidaten"
+ * liest sich besser als „6× Pineapple Express", wenn es nichts zu unterscheiden
+ * gibt.
+ */
+function sortenVerteilung(plants: PhenoPlantDto[]): string {
+  const zaehler = new Map<string, number>()
+  for (const plant of plants) {
+    const name = plant.strainName ?? 'ohne Sorte'
+    zaehler.set(name, (zaehler.get(name) ?? 0) + 1)
+  }
+  if (zaehler.size <= 1) {
+    return `${plants.length} ${plants.length === 1 ? 'Kandidat' : 'Kandidaten'}`
+  }
+  return [...zaehler.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, anzahl]) => `${anzahl}× ${name}`)
+    .join(' · ')
+}
+
 function dominanceLabel(value: StrainDominance): string {
   return DOMINANCE.find((item) => item.value === value)?.label ?? value
 }
 
-/** Läufe und Ø-Ertrag je Sorte, aus den echten Grows und Ernten berechnet. */
-type StrainStats = { runs: number; avgPerPlant: number | null }
+/**
+ * Läufe und Ø-Ertrag je Sorte.
+ *
+ * `mixedOnly` heißt: diese Sorte lief nur in Zelten mit mehreren Sorten. Dann
+ * gibt es keinen ehrlichen Ertragswert — die Ernte wird als Gesamtgewicht
+ * erfasst, ohne Zuordnung zur einzelnen Pflanze, und die ganze Ernte der
+ * Hauptsorte gutzuschreiben wäre schlicht falsch.
+ */
+type StrainStats = { runs: number; avgPerPlant: number | null; mixedOnly: boolean }
 
 /** Pheno-Hunt-Zeile: entweder ein Keeper oder der laufende Hunt. */
 type HuntState = { grow: GrowSummary; hunt: PhenoHuntDto }
@@ -122,6 +151,8 @@ function StrainsPage() {
   const [grows, setGrows] = useState<GrowSummary[]>([])
   const [harvestByGrow, setHarvestByGrow] = useState<Map<number, HarvestDto>>(new Map())
   const [hunts, setHunts] = useState<HuntState[]>([])
+  // Alle Pflanzen aller Grows — traegt je Zeile growId UND strainId.
+  const [plants, setPlants] = useState<PlantInstanceDto[]>([])
   const [draft, setDraft] = useState<StrainDraft>(emptyDraft)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -141,13 +172,17 @@ function StrainsPage() {
     const controller = new AbortController()
     async function load() {
       try {
-        const [strainList, active, archived] = await Promise.all([
+        const [strainList, active, archived, plantList] = await Promise.all([
           apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal }),
           apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }).catch(() => []),
           apiFetch<GrowSummary[]>('/api/grows?archived=true', { signal: controller.signal }).catch(() => []),
+          // Ohne die Pflanzen zaehlt die Seite nur die Hauptsorte des Grows —
+          // ein Zelt mit drei Sorten meldete fuer zwei davon „0 Runs".
+          apiFetch<PlantInstanceDto[]>('/api/plants', { signal: controller.signal }).catch(() => [] as PlantInstanceDto[]),
         ])
         if (controller.signal.aborted) return
         setStrains(strainList)
+        setPlants(plantList)
         const allGrows = [...active, ...archived]
         setGrows(allGrows)
 
@@ -214,40 +249,75 @@ function StrainsPage() {
     })
   }, [strains, filterKind, filterText, sortBy])
 
+  /** Wie viele verschiedene Sorten in einem Grow stehen — 0 = keine Pflanzen erfasst. */
+  const sortenJeGrow = useMemo(() => {
+    const map = new Map<number, Set<number>>()
+    for (const plant of plants) {
+      if (plant.growId == null || plant.strainId == null) continue
+      const vorhanden = map.get(plant.growId) ?? new Set<number>()
+      vorhanden.add(plant.strainId)
+      map.set(plant.growId, vorhanden)
+    }
+    return map
+  }, [plants])
+
   const statsByStrain = useMemo(() => {
-    const map = new Map<string, StrainStats>()
+    const map = new Map<number, StrainStats>()
     for (const strain of strains) {
-      // Verknuepfte Grows zaehlen zuerst. Der Namensvergleich bleibt als
-      // Rueckfall fuer Laeufe, die vor der Verknuepfung angelegt wurden —
-      // sonst faenge die Statistik jedes Bestandsgrows bei null an.
-      const matched = grows.filter((grow) => grow.strainId != null
+      // Ein Lauf zaehlt fuer eine Sorte auf ZWEI Wegen: der Grow traegt sie als
+      // Hauptsorte, ODER eine seiner Pflanzen tut es. Der Namensvergleich
+      // bleibt als Rueckfall fuer Laeufe von vor der Verknuepfung — sonst
+      // faenge die Statistik jedes Bestandsgrows bei null an.
+      const ueberGrow = grows.filter((grow) => grow.strainId != null
         ? grow.strainId === strain.id
         : grow.strain != null && grow.strain.toLowerCase() === strain.name.toLowerCase())
-      const yields = matched
+      const ueberPflanzen = new Set(plants
+        .filter((plant) => plant.strainId === strain.id && plant.growId != null)
+        .map((plant) => plant.growId as number))
+      // Vereinigung, damit ein Grow mit zwei Mimosa-Pflanzen EINEN Lauf zaehlt.
+      const growIds = new Set<number>([...ueberGrow.map((grow) => grow.id), ...ueberPflanzen])
+      const matched = grows.filter((grow) => growIds.has(grow.id))
+
+      // Der Ertrag ist nur dort belegbar, wo eine Sorte allein im Zelt stand:
+      // die Ernte wird als Gesamtgewicht erfasst, ohne Bezug zur einzelnen
+      // Pflanze. Bei gemischten Zelten waere jede Zahl geraten.
+      const reinsortig = matched.filter((grow) => (sortenJeGrow.get(grow.id)?.size ?? 1) <= 1)
+      const yields = reinsortig
         .map((grow) => {
           const harvest = harvestByGrow.get(grow.id)
           return harvest?.dryWeightG != null && grow.plantCount ? harvest.dryWeightG / grow.plantCount : null
         })
         .filter((value): value is number => value != null)
-      map.set(strain.name.toLowerCase(), {
+
+      map.set(strain.id, {
         runs: matched.length,
         avgPerPlant: yields.length > 0 ? yields.reduce((sum, value) => sum + value, 0) / yields.length : null,
+        mixedOnly: matched.length > 0 && reinsortig.length === 0,
       })
     }
     return map
-  }, [strains, grows, harvestByGrow])
+  }, [strains, grows, plants, harvestByGrow, sortenJeGrow])
 
   const keeperByStrain = useMemo(() => {
-    // Schlüssel ist die Sorten-ID, wenn der Grow verknüpft ist — der Name nur
-    // als Rückfall für Läufe von vor der Verknüpfung. Sonst verliert eine
-    // umbenannte Sorte ihren Keeper.
-    const map = new Map<string, string>()
-    for (const { grow, hunt } of hunts) {
-      const strainName = grow.strainId != null ? `id:${grow.strainId}` : grow.strain?.toLowerCase()
-      if (!strainName || map.has(strainName)) continue
-      const keeper = hunt.plants.find((plant) => plant.evaluation?.isKeeper)
-      if (keeper) map.set(strainName, `${keeper.phenoLabel ?? keeper.label}${keeper.evaluation?.isKeeper ? ' · Keeper' : ''}`)
-      else map.set(strainName, `Hunt läuft · ${hunt.plants.length} Kandidaten`)
+    // Zugeordnet wird ueber die Sorte der PFLANZE, nicht ueber die Hauptsorte
+    // des Grows. Vorher schrieb ein Zelt mit sechs Pflanzen aus drei Sorten
+    // alle sechs Kandidaten der Hauptsorte gut — die beiden anderen Sorten
+    // sahen aus, als liefe fuer sie nichts.
+    const map = new Map<number, string>()
+    const kandidatenJeSorte = new Map<number, PhenoPlantDto[]>()
+    for (const { hunt } of hunts) {
+      for (const plant of hunt.plants) {
+        if (plant.strainId == null) continue
+        const liste = kandidatenJeSorte.get(plant.strainId) ?? []
+        liste.push(plant)
+        kandidatenJeSorte.set(plant.strainId, liste)
+      }
+    }
+    for (const [strainId, kandidaten] of kandidatenJeSorte) {
+      const keeper = kandidaten.find((plant) => plant.evaluation?.isKeeper)
+      map.set(strainId, keeper
+        ? `${keeper.phenoLabel ?? keeper.label} · Keeper`
+        : `Hunt läuft · ${kandidaten.length} ${kandidaten.length === 1 ? 'Kandidat' : 'Kandidaten'}`)
     }
     return map
   }, [hunts])
@@ -422,8 +492,11 @@ function StrainsPage() {
             <div className="co-th">Ø Ertrag</div>
             <div className="co-th">Pheno-Keeper</div>
             {sorted.map((strain) => {
-              const stats = statsByStrain.get(strain.name.toLowerCase())
-              const keeper = keeperByStrain.get(`id:${strain.id}`) ?? keeperByStrain.get(strain.name.toLowerCase())
+              // Schluessel ist die Id, nicht der Name: zwei Sorten gleichen
+              // Namens von verschiedenen Zuechtern haetten sich sonst
+              // gegenseitig ueberschrieben.
+              const stats = statsByStrain.get(strain.id)
+              const keeper = keeperByStrain.get(strain.id)
               return (
                 <StrainRow key={strain.id}>
                   <div className="co-td is-name">
@@ -435,7 +508,13 @@ function StrainsPage() {
                     {strain.thcPercent != null && <span className="st-thc"> · {strain.thcPercent.toLocaleString('de-DE')} % THC</span>}
                   </div>
                   <div className="co-td">{stats?.runs ?? 0}</div>
-                  <div className="co-td">{stats?.avgPerPlant != null ? `${formatNumber(stats.avgPerPlant, 0)} g/Pflanze` : '—'}</div>
+                  <div className={stats?.mixedOnly ? 'co-td is-muted' : 'co-td'}>
+                    {stats?.avgPerPlant != null
+                      ? `${formatNumber(stats.avgPerPlant, 0)} g/Pflanze`
+                      : stats?.mixedOnly
+                        ? <span title="Die Ernte wird als Gesamtgewicht erfasst — in einem Zelt mit mehreren Sorten lässt sie sich nicht ehrlich aufteilen.">— gemischt</span>
+                        : '—'}
+                  </div>
                   <div className={keeper?.includes('Keeper') ? 'co-td is-good' : 'co-td is-muted'}>{keeper ?? '—'}</div>
                 </StrainRow>
               )
@@ -447,8 +526,11 @@ function StrainsPage() {
       {hunts.map(({ grow, hunt }) => (
         <section key={grow.id} className="ls-panel" data-audit="pheno-hunt-panel">
           <div className="ls-panel-head">
-            <span className="ls-label">Pheno-Hunt · {grow.strain ?? grow.name}</span>
-            <span className="ls-panel-meta">{hunt.plants.length} Kandidaten · {weightSummary(weightDraft ?? hunt.weights)}</span>
+            {/* Nicht mehr die Hauptsorte des Grows: bei mehreren Sorten im
+                Zelt stand hier ein Name, unter dem auch fremde Pflanzen
+                gelistet waren. Jetzt steht da, was wirklich drinsteht. */}
+            <span className="ls-label">Pheno-Hunt · {grow.name}</span>
+            <span className="ls-panel-meta">{sortenVerteilung(hunt.plants)} · {weightSummary(weightDraft ?? hunt.weights)}</span>
             <button type="button" className="ls-btn is-small" onClick={() => setWeightsOpen((open) => (open === grow.id ? null : grow.id))}>
               {weightsOpen === grow.id ? 'Schließen' : 'Gewichtung'}
             </button>

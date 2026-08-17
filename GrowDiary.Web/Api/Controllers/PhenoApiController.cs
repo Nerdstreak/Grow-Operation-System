@@ -38,11 +38,25 @@ public sealed class PhenoApiController : ApiControllerBase
         var sheets = _pheno.GetForGrow(growId).ToDictionary(sheet => sheet.PlantInstanceId);
         var weights = _pheno.GetWeights();
 
-        // Score every plant together — yield and potency are only meaningful next to siblings.
-        var forScoring = plants
-            .Select(plant => sheets.TryGetValue(plant.Id, out var sheet) ? sheet : new PhenoEvaluation { PlantInstanceId = plant.Id })
-            .ToList();
-        var scores = PhenoScoreCalculator.Score(forScoring, weights).ToDictionary(score => score.PlantInstanceId);
+        // Bewertet wird JE SORTE, nicht je Grow.
+        //
+        // Ertrag und Wirkstoff werden relativ gerechnet: die beste Pflanze im
+        // Feld bekommt 1, die schwaechste 0. Stehen drei Sorten im selben Zelt,
+        // vergleicht das nicht mehr Phaenotypen, sondern Genetiken — eine Sorte
+        // mit von Haus aus weniger THC bekaeme die 0, ohne dass ihr bester
+        // Phaenotyp etwas dafuer kann. Genau das ist einem Tester passiert:
+        // sechs Pflanzen aus drei Sorten landeten in einem Topf.
+        //
+        // Pflanzen ohne Sorte bilden ihre eigene Gruppe — sie gegen benannte
+        // Sorten zu normieren waere dieselbe Vermischung.
+        var scores = plants
+            .GroupBy(plant => plant.StrainId)
+            .SelectMany(gruppe => PhenoScoreCalculator.Score(
+                gruppe
+                    .Select(plant => sheets.TryGetValue(plant.Id, out var sheet) ? sheet : new PhenoEvaluation { PlantInstanceId = plant.Id })
+                    .ToList(),
+                weights))
+            .ToDictionary(score => score.PlantInstanceId);
 
         var entries = plants.Select(plant =>
         {

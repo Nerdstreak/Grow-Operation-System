@@ -259,7 +259,15 @@ public sealed class GrowsApiController : ApiControllerBase
             return NotFoundError("grow_not_found", $"Grow mit Id {id} existiert nicht.");
         }
 
-        _repository.DeleteGrow(id);
+        // Reihenfolge mit Absicht: der Eintrag muss VOR dem Loeschen stehen.
+        // `AuditEntries.GrowId` haengt per Fremdschluessel an `Grows` (mit
+        // ON DELETE CASCADE), danach gibt es die Zeile nicht mehr — der
+        // Schreibversuch lief in einen 500, obwohl der Grow bereits weg war.
+        // Der Nutzer sah einen Fehler fuer etwas, das geklappt hat, und
+        // versuchte es womoeglich ein zweites Mal.
+        //
+        // Dass der Eintrag durch CASCADE gleich mitgeloescht wird, ist kein
+        // Verlust: das Journal eines geloeschten Grows gehoert dem Grow.
         _auditRepository.Add(new AuditEntry
         {
             GrowId = id,
@@ -268,6 +276,7 @@ public sealed class GrowsApiController : ApiControllerBase
             Action = "Grow geloescht",
             Summary = $"Grow '{existing.Name}' wurde geloescht."
         });
+        _repository.DeleteGrow(id);
 
         return NoContent();
     }
