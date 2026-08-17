@@ -149,12 +149,17 @@ function GrowDetailPage() {
           <Link className="gd-tab" to={`/sops${scope}`}>SOPs</Link>
           <Link className="gd-tab" to={`/journal${scope}`}>Journal & Fotos</Link>
           <Link className="gd-tab" to={`/regeln${scope}&tab=automatik`}>Automatik</Link>
-          <Link className="gd-tab" to={`/berater${scope}`}>KI-Berater</Link>
+          {/* Nicht „KI-Berater": in Grow OS steckt keine KI. Der Reiter fuehrt
+              zur Mappe, die man einem EIGENEN Agenten vorlegt — der Name muss
+              das sagen, sonst sucht man eine Funktion, die es nicht gibt. */}
+          <Link className="gd-tab" to={`/berater${scope}`}>Mappe für eigene KI</Link>
         </nav>
 
         {/* Phasen-Timeline — dieselbe Rechnung wie auf der Live-Seite. */}
         <section className="ls-panel" data-audit="grow-detail-timeline">
           <div className="ls-panel-body">
+            {/* Wischbar auf dem Telefon — siehe live-screen.css. */}
+            <div className="ls-timeline-wrap">
             <div className="ls-timeline">
               {timeline.phases.map((phase) => (
                 <div key={phase.label} className={`ls-phase is-${phase.state}${phase.days === 0 ? ' is-unknown' : ''}`} style={{ flexGrow: Math.max(1, phase.days) }}>
@@ -175,6 +180,7 @@ function GrowDetailPage() {
               {/* Die Frage, die der Strahl bisher offen liess: wann ist es fertig?
                   Zwischen Ernte und rauchbar liegen Wochen. */}
               {timeline.dates.ready !== '—' && <span title={timeline.readyNote}>Fertig ~{timeline.dates.ready}</span>}
+            </div>
             </div>
             {timeline.dates.ready !== '—' && <p className="gd-ready-note">{timeline.readyNote}</p>}
             {/* Ohne Plan bleibt der Strahl offen — dann steht hier, wo man ihn

@@ -17,6 +17,13 @@ public sealed class CreateAddbackLogRequest
     public double? LitersAdded { get; set; }
     public double? NewReservoirVolumeLiters { get; set; }
     public bool? UsedHydroSetupVolume { get; set; }
+
+    /// <summary>Womit aufgefuellt wurde; null = nicht angegeben.</summary>
+    public WaterSource? WaterUsed { get; set; }
+
+    /// <summary>EC des verwendeten Wassers in mS/cm, vor dem Duenger.</summary>
+    public double? WaterEcMsCm { get; set; }
+
     [StringLength(4000)]
     public string? Notes { get; set; }
 }
@@ -37,6 +44,8 @@ public sealed record AddbackLogDto(
     double? LitersAdded,
     double? NewReservoirVolumeLiters,
     bool UsedHydroSetupVolume,
+    WaterSource? WaterUsed,
+    double? WaterEcMsCm,
     string? Notes,
     DateTime CreatedAtUtc);
 
@@ -50,6 +59,13 @@ public sealed class CreateChangeoutRequest
     public double? EcAfter { get; set; }
     public double? PhBefore { get; set; }
     public double? PhAfter { get; set; }
+
+    /// <summary>Womit gewechselt wurde; null = nicht angegeben.</summary>
+    public WaterSource? WaterUsed { get; set; }
+
+    /// <summary>EC des verwendeten Wassers in mS/cm, vor dem Duenger.</summary>
+    public double? WaterEcMsCm { get; set; }
+
     [StringLength(4000)]
     public string? Notes { get; set; }
 }
@@ -66,5 +82,7 @@ public sealed record ChangeoutDto(
     double? EcAfter,
     double? PhBefore,
     double? PhAfter,
+    WaterSource? WaterUsed,
+    double? WaterEcMsCm,
     string? Notes,
     DateTime CreatedAtUtc);

@@ -245,6 +245,9 @@ export function LiveScreen({
             <Link className="ls-btn is-small" to={`/grows/${grow.id}`}>Grow öffnen</Link>
           </div>
           <div className="ls-panel-body">
+            {/* Wischbar auf dem Telefon: die Balkenlaengen SIND die Dauer, also
+                darf die Achse nicht umbrechen — sie scrollt lieber in sich. */}
+            <div className="ls-timeline-wrap">
             <div className="ls-timeline">
               {timeline.map((phase) => (
                 <div
@@ -265,6 +268,7 @@ export function LiveScreen({
               <span>Start {timelineDates.start}</span>
               <span className={daysToFlip != null && daysToFlip < 0 ? 'is-due' : undefined}>{flipLabel(flipIsPlanned, daysToFlip, timelineDates.flip)}</span>
               <span>{timelineDates.harvest === '\u2014' ? 'Ernte offen' : `Ernte ~${timelineDates.harvest}`}</span>
+            </div>
             </div>
           </div>
         </section>

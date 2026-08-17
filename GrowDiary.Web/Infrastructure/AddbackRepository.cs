@@ -34,12 +34,14 @@ public sealed class AddbackRepository : RepositoryBase
                 GrowId, HydroSetupId, Kind, PerformedAtUtc, ReservoirLiters,
                 EcBefore, EcTarget, EcStock, EcAfter, PhBefore, PhAfter,
                 LitersAdded, NewReservoirVolumeLiters, UsedHydroSetupVolume,
+                WaterUsed, WaterEcMsCm,
                 Notes, CreatedAtUtc
             )
             VALUES (
                 $growId, $hydroSetupId, $kind, $performedAtUtc, $reservoirLiters,
                 $ecBefore, $ecTarget, $ecStock, $ecAfter, $phBefore, $phAfter,
                 $litersAdded, $newReservoirVolumeLiters, $usedHydroSetupVolume,
+                $waterUsed, $waterEcMsCm,
                 $notes, $createdAtUtc
             );
             SELECT last_insert_rowid();
@@ -93,11 +95,13 @@ public sealed class AddbackRepository : RepositoryBase
             INSERT INTO ChangeoutEntries (
                 GrowId, HydroSetupId, Kind, PerformedAtUtc, VolumeChangedLiters,
                 PercentChanged, EcBefore, EcAfter, PhBefore, PhAfter,
+                WaterUsed, WaterEcMsCm,
                 Notes, CreatedAtUtc
             )
             VALUES (
                 $growId, $hydroSetupId, $kind, $performedAtUtc, $volumeChangedLiters,
                 $percentChanged, $ecBefore, $ecAfter, $phBefore, $phAfter,
+                $waterUsed, $waterEcMsCm,
                 $notes, $createdAtUtc
             );
             SELECT last_insert_rowid();
@@ -162,6 +166,10 @@ public sealed class AddbackRepository : RepositoryBase
             LitersAdded = NullableDouble(reader["LitersAdded"]),
             NewReservoirVolumeLiters = NullableDouble(reader["NewReservoirVolumeLiters"]),
             UsedHydroSetupVolume = reader["UsedHydroSetupVolume"] is not DBNull and not null && Convert.ToInt32(reader["UsedHydroSetupVolume"], CultureInfo.InvariantCulture) == 1,
+            WaterUsed = HasColumn(reader, "WaterUsed") && NullString(reader["WaterUsed"]) is { } wq
+                ? Enum.TryParse<WaterSource>(wq, out var quelle) ? quelle : null
+                : null,
+            WaterEcMsCm = HasColumn(reader, "WaterEcMsCm") ? NullableDouble(reader["WaterEcMsCm"]) : null,
             Notes = NullString(reader["Notes"]),
             CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
@@ -182,6 +190,10 @@ public sealed class AddbackRepository : RepositoryBase
             EcAfter = NullableDouble(reader["EcAfter"]),
             PhBefore = NullableDouble(reader["PhBefore"]),
             PhAfter = NullableDouble(reader["PhAfter"]),
+            WaterUsed = HasColumn(reader, "WaterUsed") && NullString(reader["WaterUsed"]) is { } cq
+                ? Enum.TryParse<WaterSource>(cq, out var cQuelle) ? cQuelle : null
+                : null,
+            WaterEcMsCm = HasColumn(reader, "WaterEcMsCm") ? NullableDouble(reader["WaterEcMsCm"]) : null,
             Notes = NullString(reader["Notes"]),
             CreatedAtUtc = ParseStoredUtcDateTime(reader["CreatedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
@@ -203,6 +215,8 @@ public sealed class AddbackRepository : RepositoryBase
         AddNullable(command, "$litersAdded", entry.LitersAdded);
         AddNullable(command, "$newReservoirVolumeLiters", entry.NewReservoirVolumeLiters);
         command.Parameters.AddWithValue("$usedHydroSetupVolume", entry.UsedHydroSetupVolume ? 1 : 0);
+        command.Parameters.AddWithValue("$waterUsed", (object?)entry.WaterUsed?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$waterEcMsCm", (object?)entry.WaterEcMsCm ?? DBNull.Value);
         command.Parameters.AddWithValue("$notes", (object?)entry.Notes ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(entry.CreatedAtUtc));
     }
@@ -219,6 +233,8 @@ public sealed class AddbackRepository : RepositoryBase
         AddNullable(command, "$ecAfter", entry.EcAfter);
         AddNullable(command, "$phBefore", entry.PhBefore);
         AddNullable(command, "$phAfter", entry.PhAfter);
+        command.Parameters.AddWithValue("$waterUsed", (object?)entry.WaterUsed?.ToString() ?? DBNull.Value);
+        command.Parameters.AddWithValue("$waterEcMsCm", (object?)entry.WaterEcMsCm ?? DBNull.Value);
         command.Parameters.AddWithValue("$notes", (object?)entry.Notes ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAtUtc", ToStorageUtc(entry.CreatedAtUtc));
     }

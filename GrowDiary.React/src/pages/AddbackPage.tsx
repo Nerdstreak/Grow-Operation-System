@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
+import type { WaterSource } from '../types/shared'
 import type {
   AddbackDefaultsDto,
   AddbackLogDto,
@@ -16,6 +17,9 @@ import { classNames, formatNumber } from '../utils'
 import { AddbackFlow, type FlowStep } from '../features/addback/AddbackFlow'
 
 
+/** Nur die zwei Zahlen, die der Wasser-Hinweis braucht. */
+type WasserprofilKurz = { conductivityUsCm: number | null; treatedConductivityUsCm: number | null }
+
 interface AddbackFormState {
   reservoirLiters: string
   ecIst: string
@@ -25,6 +29,8 @@ interface AddbackFormState {
   phTarget: string
   ecAfter: string
   phAfter: string
+  /** Womit aufgefuellt wurde — leer heisst „wie am Grow hinterlegt". */
+  waterUsed: string
   notes: string
 }
 
@@ -61,6 +67,8 @@ function AddbackPage() {
   const { growId } = useParams()
   const [defaults, setDefaults] = useState<AddbackDefaultsDto | null>(null)
   const [grow, setGrow] = useState<GrowDetail | null>(null)
+  // Fuer den Hinweis am Wasser-Feld: der EC des Ausgangswassers.
+  const [wasserprofil, setWasserprofil] = useState<WasserprofilKurz | null>(null)
   const [knowledge, setKnowledge] = useState<KnowledgeOverviewDto | null>(null)
   const [logs, setLogs] = useState<AddbackLogDto[]>([])
   const [programKey, setProgramKey] = useState<string>('custom')
@@ -69,6 +77,7 @@ function AddbackPage() {
     ecIst: '',
     ecZiel: '',
     ecStock: '3',
+    waterUsed: '',
     phBefore: '',
     phTarget: '5.8',
     ecAfter: '',
@@ -109,12 +118,15 @@ function AddbackPage() {
       setError(null)
       setSuccess(null)
       try {
-        const [nextDefaults, nextGrow, nextLogs, nextKnowledge, nextPlan] = await Promise.all([
+        const [nextDefaults, nextGrow, nextLogs, nextKnowledge, nextPlan, nextWasser] = await Promise.all([
           apiFetch<AddbackDefaultsDto>(`/api/grows/${growId}/addback`, { signal: controller.signal }),
           apiFetch<GrowDetail>(`/api/grows/${growId}`, { signal: controller.signal }),
           apiFetch<AddbackLogDto[]>(`/api/grows/${growId}/addback/logs`, { signal: controller.signal }).catch(() => []),
           apiFetch<KnowledgeOverviewDto>('/api/knowledge', { signal: controller.signal }).catch(() => null),
           apiFetch<MischplanDto>(`/api/grows/${growId}/mixing-plan`, { signal: controller.signal }).catch(() => null),
+          // Ohne Profil bleibt der Wasser-Hinweis allgemein — kein Grund, die
+          // Seite daran scheitern zu lassen.
+          apiFetch<WasserprofilKurz>('/api/water-profile', { signal: controller.signal }).catch(() => null),
         ])
 
         if (controller.signal.aborted) return
@@ -124,6 +136,7 @@ function AddbackPage() {
         setLogs(nextLogs)
         setKnowledge(nextKnowledge)
         setMischplan(nextPlan)
+        setWasserprofil(nextWasser)
 
         const matchedProgram = matchProgram(nextKnowledge?.programs ?? [], nextGrow.nutrients)
         const initialProgramKey = matchedProgram?.key ?? 'custom'
@@ -134,6 +147,7 @@ function AddbackPage() {
           ecIst: draftNumber(nextDefaults.ecIst),
           ecZiel: draftNumber(nextDefaults.ecZiel),
           ecStock: draftNumber(nextDefaults.ecStock),
+          waterUsed: '',
           phBefore: draftNumber(nextGrow.latestMeasurement?.reservoirPh),
           phTarget: derivePhTarget(matchedProgram) ?? '5.8',
           ecAfter: '',
@@ -165,6 +179,28 @@ function AddbackPage() {
     () => findProgramStage(selectedProgram, grow?.latestMeasurement?.stage ?? null),
     [selectedProgram, grow?.latestMeasurement?.stage],
   )
+
+  /**
+   * Was am Grow als Wasserquelle steht — und was Grow OS ueber dessen EC weiss.
+   *
+   * Der Hinweis nennt die Zahl aus dem Wasserprofil, damit niemand sie
+   * nachschlagen muss: bei Osmose zaehlt der Wert NACH der Anlage, sonst der
+   * aus dem Stadtbericht.
+   */
+  const wasserAmGrow = grow?.waterSource === 'RO' ? 'Osmose'
+    : grow?.waterSource === 'Mixed' ? 'Mischung'
+      : 'Leitungswasser'
+
+  const wasserHinweis = useMemo(() => {
+    if (!wasserprofil) return 'Nur für dieses Auffüllen — der Grow behält seine Quelle.'
+    const quelle = (form.waterUsed || grow?.waterSource) ?? 'Tap'
+    const mikro = quelle === 'RO'
+      ? wasserprofil.treatedConductivityUsCm
+      : wasserprofil.treatedConductivityUsCm ?? wasserprofil.conductivityUsCm
+    return mikro == null
+      ? 'Nur für dieses Auffüllen — der Grow behält seine Quelle.'
+      : `Startet bei ${formatNumber(mikro / 1000, 2)} mS/cm laut deinem Wasserprofil.`
+  }, [wasserprofil, form.waterUsed, grow?.waterSource])
 
   const lastLog = logs[0] ?? null
   const hasCalculatedResult = result !== null && !result.errorMessage
@@ -265,6 +301,7 @@ function AddbackPage() {
         litersAdded: calculation.litersToAdd,
         newReservoirVolumeLiters: calculation.newReservoirVolume,
         usedHydroSetupVolume: defaults?.suggestedReservoirLiters != null,
+        waterUsed: form.waterUsed === '' ? null : (form.waterUsed as WaterSource),
         notes: buildNotes(selectedProgram, selectedStage, components, form.notes),
       }
 
@@ -479,6 +516,18 @@ function AddbackPage() {
                     <NumberField label="Ziel-EC" unit="mS/cm" value={form.ecZiel} onChange={(value) => updateForm('ecZiel', value)} hint={defaults?.suggestedEcZiel == null ? 'Manuell festlegen' : `Sollwert: ${formatNumber(defaults.suggestedEcZiel, 2)}`} />
                     <NumberField label="Ziel-pH" unit="pH" value={form.phTarget} onChange={(value) => updateForm('phTarget', value)} hint={selectedProgram?.phGuidance ?? 'typisch 5,7–6,0'} />
                     <NumberField label="Addback-EC" unit="mS/cm" value={form.ecStock} onChange={(value) => updateForm('ecStock', value)} hint="EC der vorgemischten Addback-Lösung" />
+                    {/* Der Grow traegt eine Wasserquelle fuer den ganzen Lauf.
+                        Hier zaehlt der einzelne Vorgang: wer einmal mit
+                        Leitungswasser auffuellt, weil der Osmose-Tank leer
+                        war, erklaert damit spaeter seinen EC-Sprung. */}
+                    <V1Field label="Wasser" hint={wasserHinweis}>
+                      <select value={form.waterUsed} onChange={(event) => updateForm('waterUsed', event.target.value)}>
+                        <option value="">wie am Grow ({wasserAmGrow})</option>
+                        <option value="RO">Osmose / VE-Wasser</option>
+                        <option value="Tap">Leitungswasser</option>
+                        <option value="Mixed">Mischung</option>
+                      </select>
+                    </V1Field>
                   </div>
                 </V1Section>
               )}

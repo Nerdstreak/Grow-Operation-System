@@ -7,6 +7,25 @@
     padding: 20px 22px 40px;
   }
 
+  /* Die Grid-Falle, an der das Telefon-Layout haengt: ein Grid-Item hat
+     `min-width: auto`, seine Untergrenze ist also die min-content-Breite
+     seines Inhalts. Diese Seite ist ein Grid mit EINER impliziten Spalte —
+     ein einziges Kind, das intern nicht schmaler kann, zieht damit die
+     Spalte auf, und mit ihr JEDE Zeile der Seite.
+     Der Verursacher ist die Grow-Karte mit der Phasen-Zeitachse: ihre
+     Abschnitte tragen `min-width: fit-content` (keine Beschriftung soll
+     abgeschnitten werden) und teilen sich die Breite nach Tagesanteil — eine
+     kurze Phase braucht also ein Vielfaches ihrer Beschriftung an Gesamtbreite.
+     Gemessen: 366 px min-content bei 351 px Platz, mit einer realistischen
+     Sechs-Phasen-Achse bis 711 px. Dann standen alle vier Klima-Kacheln in
+     EINER Zeile und VPD lag ausserhalb des Schirms — genau der Befund des
+     Testers. Dass es nicht jeden traf, lag allein an `.ls-panel`s
+     `overflow: hidden` weiter unten: das deckelt die Mindestgroesse auf 0 und
+     schneidet still ab, statt aufzuziehen.
+     `min-width: 0` erlaubt den Kindern zu schrumpfen; wer intern nicht
+     kleiner kann, scrollt in sich selbst statt die Seite zu sprengen. */
+  .ls > * { min-width: 0; }
+
   /* ---------- Kopfzeile ---------- */
   .ls-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 
@@ -340,14 +359,26 @@
     .ls { padding: 12px 12px 32px; }
     .ls-head-actions { margin-left: 0; width: 100%; }
     .ls-head-actions .ls-btn { flex: 1 1 140px; }
+    /* Die Zeitachse traegt `min-width: fit-content` je Abschnitt, damit keine
+       Beschriftung abgeschnitten wird — auf dem Telefon summiert sich das auf
+       fast die doppelte Bildschirmbreite. Sie laesst sich nicht umbrechen,
+       ohne ihre Aussage zu verlieren (die Balkenlaengen SIND die Dauer), also
+       wischt man sie: sichtbar angeschnitten statt unsichtbar abgeschnitten. */
+    .ls-timeline-wrap { overflow-x: auto; scrollbar-width: thin; }
+    .ls-timeline, .ls-timeline-dates { min-width: max-content; }
     .ls-task-when { flex-basis: 52px; }
   }
 }
 
 /* Kamera-Panel */
 @layer features {
-  .ls-cam-stage { position: relative; background: var(--sunk); min-height: 260px; display: grid; place-items: center; }
-  .ls-cam-stage img { width: 100%; display: block; }
+  .ls-cam-stage { position: relative; background: var(--sunk); min-height: 260px; display: grid; place-items: center; min-width: 0; }
+  /* Vorsorge, kein belegter Fehler: ein Bild als Grid-Item haette sonst seine
+     natuerliche Breite als Untergrenze. In dieser App deckelt `reset.css`
+     Bilder bereits mit `max-width: 100%`, eine Messung mit 640-px-Bild zeigte
+     keine Verbreiterung — die Regel steht hier, damit es auch dann so bleibt,
+     wenn jemand den Reset anfasst. */
+  .ls-cam-stage img { width: 100%; max-width: 100%; min-width: 0; height: auto; display: block; }
   .ls-cam-empty { padding: 24px; font-size: 13px; color: var(--faint); text-align: center; }
   .ls-cam-stale {
     position: absolute; top: 8px; right: 8px;

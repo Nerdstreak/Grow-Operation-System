@@ -15,16 +15,49 @@ public sealed class NotificationService
     private readonly HomeAssistantService _homeAssistant;
     private readonly ILogger<NotificationService> _logger;
 
+    private readonly SupervisorInfoService? _supervisor;
+
     public NotificationService(
         NotificationSettingsRepository settingsRepo,
         GrowRepository growRepository,
         HomeAssistantService homeAssistant,
-        ILogger<NotificationService> logger)
+        ILogger<NotificationService> logger,
+        SupervisorInfoService? supervisor = null)
     {
         _settingsRepo = settingsRepo;
         _growRepository = growRepository;
         _homeAssistant = homeAssistant;
         _logger = logger;
+        _supervisor = supervisor;
+    }
+
+    /// <summary>Die Seite, auf der man die Sache erledigt, je Meldungsart.</summary>
+    /// <remarks>
+    /// Eine Warnung, die nur meldet, ist eine halbe Warnung — bisher landete
+    /// jeder Tipp auf der Startseite von Home Assistant, und der Weg zur
+    /// eigentlichen Stelle blieb Handarbeit.
+    /// </remarks>
+    private static string SeiteFuer(NotificationCategory category) => category switch
+    {
+        NotificationCategory.Calibration => "sensoren",
+        NotificationCategory.Maintenance => "sensoren",
+        NotificationCategory.SensorOffline => "sensoren",
+        // Grenzwert, Risiko und Systemmeldung fuehren dorthin, wo das offene
+        // Zeug steht — Aufgaben zeigt Risiken, Termine und Pumpen zusammen.
+        _ => "aufgaben",
+    };
+
+    /// <summary>
+    /// Der HA-interne Pfad zur Grow-OS-Seite, oder null wenn Grow OS nicht als
+    /// Add-on laeuft (dann gibt es kein Panel, auf das man zeigen koennte).
+    /// </summary>
+    private async Task<string?> ZielPfadAsync(NotificationCategory category, CancellationToken ct)
+    {
+        if (_supervisor is null) return null;
+        var slug = await _supervisor.GetAddonSlugAsync(ct);
+        // Der Panel-Pfad ist „/<slug>", NICHT „/hassio/ingress/<slug>" — das
+        // Ingress-Token wechselt pro Anfrage und taugt nicht fuer einen Link.
+        return string.IsNullOrWhiteSpace(slug) ? null : $"/{slug}/{SeiteFuer(category)}";
     }
 
     public NotificationSettings GetSettings() => _settingsRepo.GetNotificationSettings();
@@ -42,7 +75,8 @@ public sealed class NotificationService
         }
 
         var haSettings = _growRepository.GetEffectiveHomeAssistantSettings();
-        var sent = await _homeAssistant.SendNotificationAsync(haSettings, settings.NotifyService!, title, message, cancellationToken);
+        var ziel = await ZielPfadAsync(category, cancellationToken);
+        var sent = await _homeAssistant.SendNotificationAsync(haSettings, settings.NotifyService!, title, message, cancellationToken, ziel);
         if (sent)
         {
             _logger.LogInformation("Benachrichtigung gesendet ({Category}): {Title}", category, title);
@@ -64,6 +98,9 @@ public sealed class NotificationService
         }
 
         var haSettings = _growRepository.GetEffectiveHomeAssistantSettings();
-        return await _homeAssistant.SendNotificationAsync(haSettings, settings.NotifyService!, title, message, cancellationToken);
+        // Der Tagesbericht ist ein Rundumblick — er fuehrt auf die Live-Seite.
+        var slug = _supervisor is null ? null : await _supervisor.GetAddonSlugAsync(cancellationToken);
+        var ziel = string.IsNullOrWhiteSpace(slug) ? null : $"/{slug}";
+        return await _homeAssistant.SendNotificationAsync(haSettings, settings.NotifyService!, title, message, cancellationToken, ziel);
     }
 }

@@ -21,6 +21,8 @@ public static class GrowOperationLogMapping
         entry.LitersAdded,
         entry.NewReservoirVolumeLiters,
         entry.UsedHydroSetupVolume,
+        entry.WaterUsed,
+        entry.WaterEcMsCm,
         entry.Notes,
         entry.CreatedAtUtc);
 
@@ -36,6 +38,8 @@ public static class GrowOperationLogMapping
         entry.EcAfter,
         entry.PhBefore,
         entry.PhAfter,
+        entry.WaterUsed,
+        entry.WaterEcMsCm,
         entry.Notes,
         entry.CreatedAtUtc);
 }

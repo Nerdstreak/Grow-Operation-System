@@ -38,6 +38,13 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "Photos", "IsReferenceShot", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "Grows", "IrrigationType", "TEXT NOT NULL DEFAULT 'Manual'");
         EnsureColumn(connection, "Grows", "WaterSource", "TEXT NOT NULL DEFAULT 'Tap'");
+        // Welches Wasser der EINZELNE Vorgang benutzt hat. Der Grow traegt eine
+        // Quelle fuer den ganzen Lauf; wer einmal mit Leitungswasser nachfuellt,
+        // weil der Osmose-Tank leer war, kann den EC-Sprung sonst nie erklaeren.
+        EnsureColumn(connection, "AddbackLogs", "WaterUsed", "TEXT NULL");
+        EnsureColumn(connection, "AddbackLogs", "WaterEcMsCm", "REAL NULL");
+        EnsureColumn(connection, "ChangeoutEntries", "WaterUsed", "TEXT NULL");
+        EnsureColumn(connection, "ChangeoutEntries", "WaterEcMsCm", "REAL NULL");
         EnsureColumn(connection, "Grows", "FeedProgramId", "TEXT NULL");
         EnsureColumn(connection, "Grows", "UseFeedChartTargets", "INTEGER NOT NULL DEFAULT 0");
         EnsureColumn(connection, "Grows", "NightRampEnabled", "INTEGER NOT NULL DEFAULT 0");

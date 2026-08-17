@@ -39,7 +39,13 @@
     font: 400 12px/1 var(--font-mono);
   }
   /* Schmale Fenster: das Grid bleibt, scrollt aber im eigenen Kasten. */
-  .co-table-wrap { overflow-x: auto; }
+  /* Die Panel-Klasse bringt `overflow: hidden` mit — bei gleicher Spezifitaet
+     gewann sie, und eine 560 px breite Tabelle wurde auf dem Telefon (349 px)
+     schlicht ABGESCHNITTEN statt wischbar zu sein: die rechten Spalten der
+     Sorten- und Regeln-Tabelle waren nie erreichbar. Die zusammengesetzte
+     Auswahl gewinnt und macht daraus wieder einen Scrollbereich. */
+  .co-table-wrap,
+  .ls-panel.co-table-wrap { overflow-x: auto; }
   .co-table-wrap .co-table { min-width: 560px; }
 
   /* ---------- Kennzahlen-Leiste ---------- */

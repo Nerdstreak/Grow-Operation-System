@@ -395,12 +395,18 @@ public sealed class HomeAssistantService
     /// Calls a Home Assistant notify service (e.g. <c>notify.mobile_app_pixel</c>) to push a
     /// message to the user's device. Returns false when HA is unreachable or the call fails.
     /// </summary>
+    /// <param name="clickPath">
+    /// Wohin der Tipp auf die Meldung fuehren soll, als HA-interner Pfad
+    /// (z. B. <c>/local_grow_os/aufgaben</c>). Leer = kein Ziel, dann oeffnet
+    /// die App wie bisher ihre Startseite.
+    /// </param>
     public async Task<bool> SendNotificationAsync(
         HomeAssistantSettings settings,
         string notifyService,
         string title,
         string message,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? clickPath = null)
     {
         if (!settings.IsConfigured || string.IsNullOrWhiteSpace(notifyService))
         {
@@ -411,7 +417,15 @@ public sealed class HomeAssistantService
         try
         {
             var client = CreateClient(settings);
-            var payload = JsonSerializer.Serialize(new { title, message });
+            // Ohne Ziel-Pfad ist das Payload byte-gleich wie frueher. Mit Pfad
+            // bekommt die Companion-App ein Ziel: `clickAction` liest Android,
+            // `url` liest iOS — die jeweils fremde Taste wird ignoriert, also
+            // koennen beide gesetzt werden. Vorher landete jeder Tipp auf der
+            // HA-Startseite, und der Nutzer musste sich selbst zur Warnung
+            // durchklicken.
+            var payload = string.IsNullOrWhiteSpace(clickPath)
+                ? JsonSerializer.Serialize(new { title, message })
+                : JsonSerializer.Serialize(new { title, message, data = new { clickAction = clickPath, url = clickPath } });
             using var content = new StringContent(payload, Encoding.UTF8, "application/json");
             using var response = await client.PostAsync($"api/services/{domain}/{service}", content, cancellationToken);
             if (!response.IsSuccessStatusCode)

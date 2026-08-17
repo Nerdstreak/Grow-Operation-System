@@ -166,6 +166,34 @@ public sealed class HomeAssistantServiceBehaviorTests
     }
 
     [Fact]
+    public async Task SendNotification_WithoutClickPath_SendsNoDataBlock()
+    {
+        // Ohne Ziel bleibt das Payload genau wie frueher — sonst braechte ein
+        // leeres data-Objekt Companion-Apps unnoetig zum Nachdenken.
+        var handler = new RecordingHttpHandler((_, _) => RecordingHttpHandler.Json("[]"));
+
+        await Service(handler).SendNotificationAsync(Settings, "notify.mobile_app_pixel", "t", "m");
+
+        Assert.DoesNotContain("\"data\"", Assert.Single(handler.Requests).Body);
+    }
+
+    [Fact]
+    public async Task SendNotification_WithClickPath_TellsBothPhonesWhereToGo()
+    {
+        // Der Tipp auf die Meldung landete bisher auf der HA-Startseite. Mit
+        // Ziel kommt der Nutzer dort an, wo die Sache zu erledigen ist:
+        // `clickAction` liest Android, `url` liest iOS.
+        var handler = new RecordingHttpHandler((_, _) => RecordingHttpHandler.Json("[]"));
+
+        await Service(handler).SendNotificationAsync(
+            Settings, "notify.mobile_app_pixel", "t", "m", default, "/local_grow_os/aufgaben");
+
+        var body = Assert.Single(handler.Requests).Body;
+        Assert.Contains("\"clickAction\":\"/local_grow_os/aufgaben\"", body);
+        Assert.Contains("\"url\":\"/local_grow_os/aufgaben\"", body);
+    }
+
+    [Fact]
     public async Task SendNotification_ServiceWithoutDomain_DefaultsToNotify()
     {
         var handler = new RecordingHttpHandler((_, _) => RecordingHttpHandler.Json("[]"));

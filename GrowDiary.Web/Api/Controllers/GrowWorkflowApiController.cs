@@ -23,13 +23,53 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         HarvestRepository harvestRepository,
         JournalRepository journalRepository,
         AuditRepository auditRepository,
-        TargetValueService targetValueService)
+        TargetValueService targetValueService,
+        WaterProfileStore? waterProfile = null)
     {
         _repository = repository;
         _harvestRepository = harvestRepository;
         _journalRepository = journalRepository;
         _auditRepository = auditRepository;
         _targetValueService = targetValueService;
+        _waterProfile = waterProfile;
+    }
+
+    private readonly WaterProfileStore? _waterProfile;
+
+    /// <summary>
+    /// Womit der Nutzer angesetzt hat — angegeben, sonst aus dem Grow und dem
+    /// Wasserprofil erschlossen.
+    /// </summary>
+    /// <remarks>
+    /// <para>Erschlossen heisst NICHT behauptet: der Vorschlag stammt aus der
+    /// Wasserquelle des Grows und dem gespeicherten Profil. Wer einmal anders
+    /// auffuellt, ueberschreibt ihn im Formular — genau darum ging es dem
+    /// Tester, dessen Osmose-Tank auch mal leer ist.</para>
+    ///
+    /// <para>Die Einheit wechselt hier bewusst: das Profil haelt µS/cm (so
+    /// steht es im Stadtbericht), der Vorgang mS/cm (so misst das Handgeraet
+    /// am Becken). 1 mS/cm = 1000 µS/cm.</para>
+    /// </remarks>
+    private (WaterSource? Quelle, double? EcMsCm) WasserFuer(GrowRun grow, WaterSource? angegeben, double? ecAngegeben)
+    {
+        var quelle = angegeben ?? grow.WaterSource;
+        if (ecAngegeben.HasValue)
+        {
+            return (quelle, ecAngegeben);
+        }
+
+        var profil = _waterProfile?.Get();
+        if (profil is null)
+        {
+            return (quelle, null);
+        }
+
+        // Bei Osmose zaehlt der Wert NACH der Anlage, sonst der aus dem Bericht.
+        var mikroSiemens = quelle == WaterSource.RO
+            ? profil.TreatedConductivityUsCm
+            : profil.TreatedConductivityUsCm ?? profil.ConductivityUsCm;
+
+        return (quelle, mikroSiemens is { } us ? Math.Round(us / 1000, 3) : null);
     }
 
     [HttpGet("{id:int}/addback")]
@@ -168,6 +208,8 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         var usedHydroVolume = request.UsedHydroSetupVolume
             ?? (!request.ReservoirLiters.HasValue && grow.SystemId.HasValue && CalculateHydroSetupTotalVolumeLiters(_repository.GetHydroSetup(grow.SystemId.Value)).HasValue);
 
+        var wasser = WasserFuer(grow, request.WaterUsed, request.WaterEcMsCm);
+
         var created = _repository.CreateAddbackLog(new AddbackLogEntry
         {
             GrowId = id,
@@ -184,6 +226,8 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
             LitersAdded = request.LitersAdded,
             NewReservoirVolumeLiters = request.NewReservoirVolumeLiters,
             UsedHydroSetupVolume = usedHydroVolume,
+            WaterUsed = wasser.Quelle,
+            WaterEcMsCm = wasser.EcMsCm,
             Notes = request.Notes
         });
 
@@ -238,6 +282,8 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
             return ValidationError();
         }
 
+        var wasser = WasserFuer(grow, request.WaterUsed, request.WaterEcMsCm);
+
         var created = _repository.CreateChangeout(new ChangeoutEntry
         {
             GrowId = id,
@@ -250,6 +296,8 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
             EcAfter = request.EcAfter,
             PhBefore = request.PhBefore,
             PhAfter = request.PhAfter,
+            WaterUsed = wasser.Quelle,
+            WaterEcMsCm = wasser.EcMsCm,
             Notes = request.Notes
         });
 

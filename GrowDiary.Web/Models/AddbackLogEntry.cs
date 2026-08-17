@@ -17,6 +17,18 @@ public sealed class AddbackLogEntry
     public double? LitersAdded { get; set; }
     public double? NewReservoirVolumeLiters { get; set; }
     public bool UsedHydroSetupVolume { get; set; }
+
+    /// <summary>Womit aufgefuellt wurde — null heisst „nicht festgehalten".</summary>
+    /// <remarks>
+    /// Der Grow traegt eine Wasserquelle, aber die gilt fuer den ganzen Lauf.
+    /// Wer einmal mit Leitungswasser nachfuellt, weil der Osmose-Tank leer war,
+    /// soll genau das hier stehen haben — sonst erklaert spaeter niemand mehr
+    /// den EC-Sprung.
+    /// </remarks>
+    public WaterSource? WaterUsed { get; set; }
+
+    /// <summary>EC des verwendeten Wassers in mS/cm, vor dem Duenger.</summary>
+    public double? WaterEcMsCm { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }

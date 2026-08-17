@@ -1,5 +1,41 @@
 # Changelog
 
+## 2.0.0-beta.40
+
+**Beta.** Field feedback, third round — the phone one turned out to be a layout
+bug that had been hiding behind an unrelated safety net.
+
+- Fixed — **the phone cut off the right edge.** A tester had to turn the device
+  sideways to see the VPD tile. The live page is a grid with a single column,
+  and a grid item's minimum width is the width of its widest content — so the
+  phase timeline (whose segments carry `min-width: fit-content` and share the
+  width by day count, measured up to 711 px) pulled the whole page wider than
+  the screen. Every tile row followed, and the rightmost tile of each row lost
+  its edge. Now the children may shrink, and the timeline scrolls sideways in
+  its own box instead: the bar lengths *are* the durations, so wrapping them
+  would destroy what they say.
+- Fixed — **wide tables were unreachable on the phone.** The strain and rules
+  tables set a 560 px minimum inside a scroll box — but the panel class brought
+  `overflow: hidden` and won on equal specificity, so the right-hand columns
+  were simply clipped away instead of swipeable.
+- New — **push notifications land where the work is.** Tapping a Grow OS
+  notification opened the Home Assistant home screen, leaving you to navigate to
+  the actual warning yourself. Messages now carry a target: calibration and
+  maintenance open **Sensoren & Wartung**, everything else opens **Aufgaben**,
+  the daily digest opens the live view. Without a target the payload is
+  byte-identical to before.
+- New — **the water you actually used, per operation.** A grow carries one water
+  source for the whole run; a top-up done with tap water because the RO tank was
+  empty had nowhere to be recorded. Addback and water change now hold the source
+  and its EC, pre-filled from your water profile (RO uses the value *after*
+  treatment) and overridable per operation.
+- Changed — **two labels that pointed the wrong way.** "Leitungswasser" is now
+  **Wasser** — that page has held your treated water since beta.37, and a tester
+  went looking for it under Anlage → Wasser. And the grow tab labelled
+  "KI-Berater" is now **Mappe für eigene KI**: there is no AI inside Grow OS,
+  the page hands you a dossier for your own agent, and the old name promised a
+  feature that does not exist.
+
 ## 2.0.0-beta.39
 
 **Beta.** The follow-ups from the audit — and one of them turned out to hide a

@@ -433,6 +433,10 @@ export interface CreateAddbackLogRequest {
   litersAdded: number | null
   newReservoirVolumeLiters: number | null
   usedHydroSetupVolume: boolean | null
+  /* Womit aufgefuellt wurde. Nicht mitgeschickt = Backend erschliesst es aus
+     dem Grow und dem Wasserprofil. */
+  waterUsed?: WaterSource | null
+  waterEcMsCm?: number | null
   notes: string | null
 }
 
