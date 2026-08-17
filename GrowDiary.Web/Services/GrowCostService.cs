@@ -115,6 +115,11 @@ public sealed class GrowCostService
         if (!TimeSpan.TryParse(plan.LightsOnTime, out var an)) return null;
         if (!TimeSpan.TryParse(plan.LightsOffTime, out var aus)) return null;
 
+        // Gleiche An- und Aus-Zeit ist kein Dauerlicht, sondern ein Tippfehler —
+        // dieselbe Lesart wie in der LightClock. Null heisst: die 18/12-Konvention
+        // uebernimmt, statt die „ehrliche Untergrenze" mit 24 h aufzublasen.
+        if (an == aus) return null;
+
         var stunden = (aus - an).TotalHours;
         return stunden > 0 ? stunden : stunden + 24;
     }

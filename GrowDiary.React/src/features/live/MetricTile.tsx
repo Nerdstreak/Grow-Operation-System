@@ -18,6 +18,10 @@ export type MetricTileProps = {
   display?: string
   /** Zeitpunkt des Werts, falls er nicht mehr frisch ist. */
   stale?: string
+  /** Klick öffnet die Historie — nur gesetzt, wenn es eine gibt. */
+  onOpen?: () => void
+  /** Ob die Historie dieser Kachel gerade offen ist. */
+  open?: boolean
   /** Herkunft des Werts, wenn er NICHT live ist — „Hand · vor 2 Std“. Neutral, keine Warnung. */
   sourceNote?: string
   /** Die letzten 24 Stunden. Vorhanden = Kurve statt Zielband. */
@@ -40,7 +44,7 @@ export type MetricTileProps = {
  * Kachelzahl nicht zur Spaltenzahl passt.
  */
 export function MetricTile({
-  label, value, unit, targetMin = null, targetMax = null, critical, decimals, footer, display, stale, trend, targetNote, sourceNote,
+  label, value, unit, targetMin = null, targetMax = null, critical, decimals, footer, display, stale, trend, targetNote, sourceNote, onOpen, open,
 }: MetricTileProps) {
   const status: MetricStatus = display != null && targetMin == null && targetMax == null
     ? 'unknown'
@@ -52,8 +56,21 @@ export function MetricTile({
     ? '—'
     : (decimals == null ? String(value) : value.toFixed(decimals)).replace('.', ','))
 
+  // Klickbar nur, wenn es etwas zu oeffnen gibt: ein button, der nichts tut,
+  // ist schlimmer als keiner. Semantisch bleibt es eine Kachel — role/tabIndex
+  // statt <button>, weil in der Kachel keine verschachtelten Buttons erlaubt
+  // waeren und der Anpassen-Modus eigene Knoepfe hineinlegt.
   return (
-    <div className={classNames('gos-metric', `is-${status}`)} data-audit={`metric-${label.toLowerCase()}`}>
+    <div
+      className={classNames('gos-metric', `is-${status}`, onOpen && 'is-clickable', open && 'is-open')}
+      data-audit={`metric-${label.toLowerCase()}`}
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      aria-expanded={onOpen ? open === true : undefined}
+      aria-label={onOpen ? `${label}: Verlauf ${open ? 'schließen' : 'anzeigen'}` : undefined}
+      onClick={onOpen}
+      onKeyDown={onOpen ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen() } } : undefined}
+    >
       <div className="gos-metric-head">
         <span className="gos-metric-label">{label}</span>
         {status !== 'unknown' && <span className="gos-metric-status">{statusLabel(status)}</span>}
@@ -91,21 +108,6 @@ export function MetricTile({
       {stale
         ? <div className="gos-metric-stale">{stale}</div>
         : sourceNote && <div className="gos-metric-source">{sourceNote}</div>}
-    </div>
-  )
-}
-
-/** Die Reihe, in der die Kacheln liegen — umbrechend, mit Hairline-Raster. */
-export function MetricRow({ title, children }: { title?: string; children: React.ReactNode }) {
-  return (
-    <div className="gos-metric-block">
-      {title && (
-        <div className="gos-metric-title">
-          <span>{title}</span>
-          <span className="rule" />
-        </div>
-      )}
-      <div className="gos-metric-row">{children}</div>
     </div>
   )
 }

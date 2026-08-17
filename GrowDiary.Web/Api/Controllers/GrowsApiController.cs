@@ -204,6 +204,37 @@ public sealed class GrowsApiController : ApiControllerBase
 
         grow.Id = id;
         grow.CreatedAtUtc = existing.CreatedAtUtc;
+
+        // Das Bearbeiten-Formular kennt nur die Stammdaten. Alles, was aus
+        // Workflow-Knoepfen und eigenen Endpunkten stammt — bestaetigte
+        // Meilensteine, das Enddatum, die Nachtabsenkung — wuerde der
+        // Zeilen-Ersatz sonst stillschweigend auf null zuruecksetzen:
+        // ein harmloses "Notiz geaendert, speichern" nimmt dem Grow die
+        // Keimung, dem Archiv die Laufzeit und der Rampe ihren Schalter.
+        grow.GerminatedAt = existing.GerminatedAt;
+        grow.RootedAt = existing.RootedAt;
+        grow.VegStartedAt = existing.VegStartedAt;
+        grow.FinishStartedAt = existing.FinishStartedAt;
+        grow.EndDate = existing.EndDate;
+        grow.NightRampEnabled = existing.NightRampEnabled;
+        grow.NightRampFloorC = existing.NightRampFloorC;
+
+        // Den Flip kann das Formular nur ausdruecken, wenn der Einstieg
+        // "Bluete" ist (NeedsFlipDate). In allen anderen Faellen ist das
+        // null im Formular kein "loeschen", sondern "nicht gefragt".
+        var formKenntFlip = request.EntryPoint == GrowEntryPoint.Flower && request.SeedType != SeedType.Autoflower;
+        if (!formKenntFlip)
+        {
+            grow.FlipDate = existing.FlipDate;
+        }
+
+        // Gleiches Prinzip fuer das Feedchart-Opt-in: fehlt das Feld im
+        // Request, bleibt der gespeicherte Schalter stehen.
+        if (request.UseFeedChartTargets is null)
+        {
+            grow.UseFeedChartTargets = existing.UseFeedChartTargets;
+        }
+
         _repository.UpdateGrow(grow);
         _auditRepository.Add(new AuditEntry
         {

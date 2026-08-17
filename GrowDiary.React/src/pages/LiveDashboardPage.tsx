@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { apiFetch } from '../api'
+import { apiFetch, formatApiError } from '../api'
 import type { GrowSummary, RiskEventDto, TentDto, TentLivePayload } from '../types'
 import { LiveScreen, type DashboardPanel, type LiveTask } from '../features/live/LiveScreen'
 import { useTentDashboard } from '../features/live/useTentDashboard'
@@ -14,7 +14,6 @@ import {
   chooseInitialTent,
   climateMetricKeys,
   findMetric,
-  formatApiError,
   hydroMetricKeys,
   initialLiveState,
   mapMetrics,

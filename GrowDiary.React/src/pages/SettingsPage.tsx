@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { apiFetch, ApiRequestError } from '../api'
+import { apiFetch, formatApiError } from '../api'
 import type { GrowSummary, SettingsOverviewDto } from '../types'
 import FileInput from '../components/FileInput'
 import { useTheme } from '../useTheme'
@@ -344,8 +344,5 @@ function getFileNameFromDisposition(value: string | null) {
   return plain?.[1] ?? null
 }
 
-function formatApiError(caught: unknown, fallback: string) {
-  return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback
-}
 
 export default SettingsPage

@@ -19,7 +19,7 @@ public sealed class GrowDashboardComposerTargetTests
 {
     private static GrowDashboardComposer CreateComposer()
         => new(
-            null!, null!, null!, TestKnowledgeBase.TargetValues(),
+            TestKnowledgeBase.TargetValues(),
             NullLogger<GrowDashboardComposer>.Instance);
 
 

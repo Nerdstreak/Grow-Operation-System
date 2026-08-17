@@ -232,6 +232,9 @@ export interface GrowDetail {
   finishStartedAt: string | null
   currentStage: string
   nutrients: string | null
+  /* Beide optional: das Backend laesst null-Felder im JSON ganz weg. */
+  feedProgramId?: string | null
+  useFeedChartTargets?: boolean
   notes: string | null
   measurementCount: number
   latestPhotoPath: string | null
@@ -268,6 +271,10 @@ export interface GrowUpsertPayload {
   hasChiller: boolean
   waterSource: WaterSource
   nutrients: string | null
+  /* Programm-Id ins Wissen; ohne sie gibt es keinen Mischplan. */
+  feedProgramId?: string | null
+  /* Nicht mitgeschickt heisst im Backend: gespeicherten Schalter behalten. */
+  useFeedChartTargets?: boolean
   startDate: string
   entryPoint: GrowEntryPoint
   daysAlreadyInPhase: number | null

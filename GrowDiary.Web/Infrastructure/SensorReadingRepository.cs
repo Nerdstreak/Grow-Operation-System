@@ -79,8 +79,12 @@ public sealed class SensorReadingRepository
     public IReadOnlyList<TentSensorReading> GetReadingsForDay(
         int tentId, string metricKey, DateOnly date)
     {
-        var from = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var to   = date.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+        // Der Aufrufer meint einen LOKALEN Kalendertag, die Spalte ist UTC.
+        // Wer das Datum direkt als UTC-Grenze nimmt, buendelt in DE die Werte
+        // von 02:00 bis 02:00 — Mitternacht bis zwei Uhr rutschte in den
+        // Vortags-Eintrag (dieselbe Familie wie der alte UTC-als-Ortszeit-Fall).
+        var from = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
+        var to = from.AddDays(1).AddTicks(-1);
         return GetReadings(tentId, metricKey, from, to);
     }
 

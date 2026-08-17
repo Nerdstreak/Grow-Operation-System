@@ -133,13 +133,6 @@
       gap: 12px;
       min-width: 0;
     }
-    .grow-wizard-mobile-surface .v1-wizard-steps {
-      gap: 6px;
-      padding-bottom: 4px;
-    }
-    .grow-wizard-mobile-surface .v1-wizard-step {
-      min-height: 48px;
-    }
 }
 
 @media (max-width: 760px) {

@@ -6,33 +6,6 @@
    löscht seinen Abschnitt gleich mit. */
 @layer features {
 
-  /* ---------- Panel-Karten (Journal, Messungen) ---------- */
-  .panel-card { background: var(--panel); border: 1px solid var(--hair); border-radius: var(--r-lg); overflow: hidden; }
-  .panel-card-header {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    padding: 13px 15px; border-bottom: 1px solid var(--hair); background: var(--panel-2);
-  }
-  .panel-card-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-  .panel-card-count { font-size: 13px; color: var(--faint); background: var(--panel-2); padding: 2px 8px; border-radius: 999px; }
-  .side-panel { display: flex; flex-direction: column; gap: 14px; }
-  .tents-grid .panel-card,
-  .wissen-detail .panel-card { min-height: 100%; }
-
-  /* ---------- Aufgabenliste ---------- */
-  .task-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--hair); min-width: 0; }
-  .task-item:last-child { border-bottom: none; }
-  .task-item:hover { background: var(--panel-2); }
-  .task-title { font-size: 14px; font-weight: 500; }
-  .task-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
-  .task-check {
-    width: 24px; height: 24px; flex-shrink: 0; padding: 0;
-    border: 1px solid var(--hair-2); border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    background: transparent; color: inherit; cursor: pointer;
-  }
-  .task-check:hover { border-color: var(--accent); }
-  .task-check.done { background: var(--accent); border-color: var(--accent); }
-
   /* ---------- Zeitachse ---------- */
   .timeline-item { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--hair); }
   .timeline-item:last-child { border-bottom: none; }
@@ -63,10 +36,6 @@
     position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
     font-family: var(--font-mono); font-size: 12px; color: var(--faint); pointer-events: none;
   }
-
-  /* ---------- Kennzahlen im Kopf ---------- */
-  .grow-kpi { min-width: 0; padding: 14px 16px; background: var(--panel); }
-  .grow-kpi-label { margin-top: 3px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
   /* ---------- SOP-Setup: die Fragen vor einer verzweigten Prozedur ---------- */
   .sop-setup { padding: 4px 16px 16px; display: grid; gap: 10px; background: var(--panel-2); }

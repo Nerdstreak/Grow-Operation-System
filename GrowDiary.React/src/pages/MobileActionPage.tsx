@@ -83,6 +83,25 @@ function MobileActionPage() {
     }
   }
 
+  /**
+   * Eine Aufgabe löschen statt abhaken — für Termine, die aus Versehen
+   * entstanden sind. Der DELETE-Endpunkt war fertig gebaut (samt Audit-Log),
+   * nur bot ihn die Oberfläche nirgends an.
+   */
+  async function taskLoeschen(taskId: number, titel: string) {
+    setErledigt(`task-${taskId}`)
+    try {
+      await apiFetch(`/api/tasks/${taskId}`, { method: 'DELETE' })
+      setNotice(`„${titel}“ gelöscht.`)
+      window.dispatchEvent(new Event(TASKS_CHANGED_EVENT))
+      setRefresh((current) => current + 1)
+    } catch (caught) {
+      setNotice(caught instanceof Error ? caught.message : 'Aufgabe konnte nicht gelöscht werden.')
+    } finally {
+      setErledigt(null)
+    }
+  }
+
   const termine = buildTermine(state)
   const wartung = buildWartung(state)
   const critCount = risks.filter((risk) => risk.severity === 'Critical').length
@@ -192,6 +211,7 @@ function MobileActionPage() {
                   item={item}
                   busy={erledigt === `task-${item.taskId ?? 0}`}
                   onDone={item.taskId != null ? () => void taskErledigen(item.taskId!, item.title) : undefined}
+                  onDelete={item.taskId != null ? () => void taskLoeschen(item.taskId!, item.title) : undefined}
                 />
               ))}</ul>
             )}
@@ -217,7 +237,7 @@ function MobileActionPage() {
 /** `note` traegt die Herkunft: woher ein Termin kommt, gehoert an den Termin. */
 type AfItem = { id: string; when: string; due: boolean; title: string; to: string; action: string; taskId?: number; note?: string }
 
-function AfRow({ item, busy, onDone }: { item: AfItem; busy?: boolean; onDone?: () => void }) {
+function AfRow({ item, busy, onDone, onDelete }: { item: AfItem; busy?: boolean; onDone?: () => void; onDelete?: () => void }) {
   return (
     <li className="af-row">
       <span className={classNames('af-when', item.due && 'is-due')}>{item.when}</span>
@@ -226,11 +246,19 @@ function AfRow({ item, busy, onDone }: { item: AfItem; busy?: boolean; onDone?: 
         {item.note && <em className="af-pump-source">{item.note}</em>}
       </span>
       {/* Eine Hauptaktion je Zeile: eine Aufgabe hakt man ab, einen laufenden
-          SOP setzt man fort. */}
+          SOP setzt man fort. Löschen ist die leise Zweitaktion für Termine,
+          die nie hätten sein sollen — erledigt lügt da, weg ist ehrlich. */}
       {onDone ? (
-        <button type="button" className="ls-btn is-small is-primary" disabled={busy} onClick={onDone}>
-          {busy ? '…' : 'Erledigt'}
-        </button>
+        <>
+          <button type="button" className="ls-btn is-small is-primary" disabled={busy} onClick={onDone}>
+            {busy ? '…' : 'Erledigt'}
+          </button>
+          {onDelete && (
+            <button type="button" className="ls-btn is-small" disabled={busy} onClick={onDelete} aria-label={`„${item.title}" löschen`}>
+              ✕
+            </button>
+          )}
+        </>
       ) : (
         <Link className="ls-btn is-small" to={item.to}>{item.action}</Link>
       )}

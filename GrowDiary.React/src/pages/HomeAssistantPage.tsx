@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { apiFetch, ApiRequestError } from '../api'
+import { apiFetch, formatApiError } from '../api'
 import type { HomeAssistantEntity, HomeAssistantSettingsDto, SensorMetricType, SettingsOverviewDto, TentDto, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
 import { V1Alert, V1Button, V1Empty, V1Field, V1Page, V1Skeleton, V1Switch, V1Tabs } from '../components/v1'
 import { toNullableString } from '../components/v1-utils'
@@ -392,9 +392,6 @@ function toUpdateTentRequest(tent: TentDto, draft: TentMappingDraft): UpdateTent
   return { name: tent.name, status: tent.status, kind: tent.kind, tentType: tent.tentType, notes: tent.notes, displayOrder: tent.displayOrder, accentColor: tent.accentColor, widthCm: tent.widthCm, depthCm: tent.depthCm, tentHeightCm: tent.tentHeightCm, lightType: tent.lightType, lightWatt: tent.lightWatt, lightController: tent.lightController, lightControllerEntityId: tent.lightControllerEntityId, exhaustFanCount: tent.exhaustFanCount, exhaustM3h: tent.exhaustM3h, circulationFanCount: tent.circulationFanCount, hvacController: tent.hvacController, hvacControllerEntityId: tent.hvacControllerEntityId, co2Available: tent.co2Available, hasCo2Enrichment: tent.hasCo2Enrichment, cameraEntityId: null, cameras: draft.cameras.map((camera) => camera.trim()).filter((camera) => camera.length > 0), sensors }
 }
 
-function formatApiError(caught: unknown, fallback: string) {
-  return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback
-}
 
 function cameraLabel(entity: string, index: number): string {
   const short = entity.replace(/^(camera|image)\./i, '').replace(/[_-]+/g, ' ').trim()

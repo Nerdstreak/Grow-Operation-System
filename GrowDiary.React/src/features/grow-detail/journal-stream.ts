@@ -30,6 +30,8 @@ const TYPE_TAGS: Record<string, { tag: string; tone: StreamItem['tone'] }> = {
   GerminationConfirmed: { tag: 'Meilenstein', tone: 'accent' },
   CloneRooted: { tag: 'Meilenstein', tone: 'accent' },
   FlipToFlower: { tag: 'Meilenstein', tone: 'accent' },
+  VegStarted: { tag: 'Meilenstein', tone: 'accent' },
+  FinishStarted: { tag: 'Meilenstein', tone: 'accent' },
   Observation: { tag: 'Notiz', tone: 'muted' },
   Note: { tag: 'Notiz', tone: 'muted' },
 }

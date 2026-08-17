@@ -156,24 +156,3 @@ export function V1Switch({ label, checked, onChange, hint }: { label: string; ch
   )
 }
 
-export function V1Wizard({ steps, currentStep, onStep }: { steps: string[]; currentStep: number; onStep?: (step: number) => void }) {
-  return (
-    <div className="v1-wizard-steps">
-      {steps.map((step, index) => {
-        const number = index + 1
-        return (
-          <button
-            key={step}
-            type="button"
-            className={classNames('v1-wizard-step', currentStep === number && 'active', currentStep > number && 'done')}
-            onClick={() => onStep?.(number)}
-            disabled={!onStep}
-          >
-            <span>{number}</span>
-            <strong>{step}</strong>
-          </button>
-        )
-      })}
-    </div>
-  )
-}

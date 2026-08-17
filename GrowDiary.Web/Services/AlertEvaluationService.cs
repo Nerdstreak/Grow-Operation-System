@@ -134,9 +134,16 @@ public sealed class AlertEvaluationService
                 }
                 else if (decision.SendRecovery)
                 {
-                    await _notifications.SendAsync(
+                    // Dieselbe Regel wie beim Alarm eine Etage hoeher: kam die
+                    // Nachricht nicht raus (Ruhezeit, HA weg), bleibt der alte
+                    // Zustand stehen und der naechste Takt versucht es wieder.
+                    // Sonst saehe der Nutzer den Alarm — aber nie die Entwarnung.
+                    var sent = await _notifications.SendAsync(
                         NotificationCategory.Threshold, BuildTitle(tent), BuildRecoveryMessage(rule, value), cancellationToken);
-                    _rules.UpdateState(rule.Id, decision.NewState, rule.LastNotifiedUtc);
+                    if (sent)
+                    {
+                        _rules.UpdateState(rule.Id, decision.NewState, rule.LastNotifiedUtc);
+                    }
                 }
                 else if (!string.Equals(rule.LastState, decision.NewState, StringComparison.Ordinal))
                 {

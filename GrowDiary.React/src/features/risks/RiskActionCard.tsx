@@ -85,7 +85,10 @@ export function RiskActionCard({ risk, context, onChanged }: Props) {
         <V1Button variant="primary" disabled={busy !== null} onClick={() => void resolve()} audit="risk-resolve">
           {busy === 'resolve' ? 'Speichert…' : 'Erledigt'}
         </V1Button>
-        {risk.growId !== null && recommendations === null && (
+        {/* Lose Pruefung mit Absicht: das Backend laesst null-Felder im JSON
+            weg, ein Risiko ohne Grow kommt also als undefined an — und
+            `!== null` haette den SOP-Knopf trotzdem gezeigt. */}
+        {risk.growId != null && recommendations === null && (
           <V1Button variant="ghost" disabled={busy !== null} onClick={() => void loadRecommendations()} audit="risk-sop-recommend">
             {busy === 'recommend' ? 'Lädt…' : 'SOP vorschlagen'}
           </V1Button>

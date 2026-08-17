@@ -283,3 +283,14 @@
 
 .nr-source { margin: var(--s-2) 0 0; }
 .nr-state { align-self: center; }
+
+/* Pflanzen & Sorten am Grow: der Mischgrow wird sichtbar. */
+.gp-liste { list-style: none; margin: var(--s-2) 0 0; padding: 0; display: grid; gap: 4px; }
+.gp-liste li { display: flex; align-items: center; gap: var(--s-3); padding: 4px 0; border-top: 1px solid var(--border); }
+.gp-liste li:first-child { border-top: none; }
+.gp-label { flex: 1 1 140px; }
+.gp-rolle { color: var(--muted); font-style: normal; font-size: 0.8rem; }
+.gp-liste select, .gp-neu select { min-width: 170px; }
+.gp-neu { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); align-items: center; }
+.gp-hinweis { color: var(--muted); font-size: 0.8rem; margin: var(--s-3) 0 0; }
+.gp-fehler { color: var(--danger); font-size: 0.85rem; margin: 0 0 var(--s-2); }

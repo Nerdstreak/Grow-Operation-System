@@ -30,8 +30,6 @@ public sealed partial class DatabaseInitializer
         command.ExecuteNonQuery();
         EnsureColumn(connection, "Grows", "MediumDetail", "TEXT NULL");
         EnsureColumn(connection, "Grows", "ReservoirSize", "TEXT NULL");
-        EnsureColumn(connection, "GrowTemplates", "MediumDetail", "TEXT NULL");
-        EnsureColumn(connection, "GrowTemplates", "ReservoirSize", "TEXT NULL");
         EnsureColumn(connection, "Measurements", "Source", "TEXT NOT NULL DEFAULT 'Manual'");
         EnsureColumn(connection, "Measurements", "PpfdMol", "REAL NULL");
         EnsureColumn(connection, "Measurements", "Co2Ppm", "REAL NULL");

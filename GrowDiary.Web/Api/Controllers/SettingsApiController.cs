@@ -141,8 +141,14 @@ public sealed class SettingsApiController : ApiControllerBase
         }
         else
         {
-            // No camera list in the request → keep the existing cameras.
+            // No camera list in the request → keep the existing cameras — auch das
+            // Einzelkamera-Altfeld, aus dem Zelte von vor der Mehrkamera-Liste
+            // ihr Bild noch beziehen.
             tentToSave.CameraEntityIds = existing.CameraEntityIds;
+            if (string.IsNullOrWhiteSpace(request.CameraEntityId))
+            {
+                tentToSave.CameraEntityId = existing.CameraEntityId;
+            }
         }
 
         // Leaf-temperature offset: only replaced when the request actually carries one, so
@@ -150,6 +156,11 @@ public sealed class SettingsApiController : ApiControllerBase
         tentToSave.LeafTempOffsetC = request.LeafTempOffsetC is { } offset
             ? Math.Clamp(offset, 0, 10)
             : existing.LeafTempOffsetC;
+
+        // Das Zielgeraet der Nachtabsenkung setzt allein der Night-Ramp-Endpunkt.
+        // Kein Zelt-Formular traegt es — ohne diese Zeile nahm jedes Speichern
+        // (auch ein blosses Sensor-Mapping) der Rampe still ihr Ziel.
+        tentToSave.WaterTargetEntityId = existing.WaterTargetEntityId;
 
         _repository.UpdateTent(tentToSave);
         if (request.Sensors is not null)

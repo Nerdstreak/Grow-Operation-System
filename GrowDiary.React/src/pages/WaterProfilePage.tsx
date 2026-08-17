@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
+import { textZuZahl, zahlZuText } from '../features/water/wasser-zahlen'
 import { V1Alert, V1Button, V1Card, V1Field, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import './water.css'
 
@@ -292,15 +293,14 @@ function WaterProfilePage() {
   )
 }
 
+// Die Zahl-Helfer leben in wasser-zahlen.ts — samt der Tausenderpunkt-Falle,
+// die hier frueher aus 1234 µS/cm beim Speichern 1,234 machte.
 function toDraft(value: number | null | undefined) {
-  return value === null || value === undefined ? '' : value.toLocaleString('de-DE', { maximumFractionDigits: 3 })
+  return zahlZuText(value)
 }
 
 function toNumber(value: string): number | null {
-  const normalised = value.trim().replace(',', '.')
-  if (normalised === '') return null
-  const parsed = Number(normalised)
-  return Number.isFinite(parsed) ? parsed : null
+  return textZuZahl(value)
 }
 
 function formatError(caught: unknown) {

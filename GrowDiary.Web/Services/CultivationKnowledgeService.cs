@@ -23,12 +23,6 @@ public sealed class CultivationKnowledgeService
     public NutrientProgram? MatchProgram(string? nutrientText)
         => _programs.FirstOrDefault(x => x.Matches(nutrientText));
 
-    public IReadOnlyList<string> GetProgramNames()
-        => _programs.Select(x => x.Name).ToList();
-
-    public IReadOnlyList<string> GetHydroProgramNames()
-        => _programs.Select(p => p.Name).ToList();
-
     private static NutrientProgram MapProgram(NutrientProgramDefinition def) => new()
     {
         Key = def.Id,

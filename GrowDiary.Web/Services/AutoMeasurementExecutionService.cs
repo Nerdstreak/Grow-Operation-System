@@ -124,7 +124,11 @@ public sealed class AutoMeasurementExecutionService
             var measurement = new Measurement
             {
                 GrowId = config.GrowId,
-                TakenAt = scheduledForUtc,
+                // TakenAt ist eine Ortszeit-Spalte (AssumeLocal beim Lesen).
+                // Der UTC-Wandwert unkonvertiert haette jede Auto-Messung um
+                // den Zeitzonen-Versatz rueckdatiert — Tageszaehler und
+                // SOP-Faelligkeit haetten sie dem falschen Tag zugerechnet.
+                TakenAt = scheduledForUtc.ToLocalTime(),
                 Stage = _repository.GetLatestMeasurement(config.GrowId)?.Stage ?? GrowStage.Veg,
                 Source = ValueOrigin.HomeAssistant,
                 Notes = $"AutoMeasurement {config.TriggerKind}"

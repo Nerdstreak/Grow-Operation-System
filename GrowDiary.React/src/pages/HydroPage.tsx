@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { apiFetch, ApiRequestError } from '../api'
+import { apiFetch, ApiRequestError, formatApiError } from '../api'
 import type { GrowSummary, HydroSetupDto, HydroSetupLayoutType, ReservoirPosition } from '../types'
 import { SystemPlan } from '../features/hydro/SystemPlan'
 import { rowsFromLayoutType } from '../features/hydro/system-plan-model'
@@ -285,7 +285,6 @@ function getGrowsForSetup(grows: GrowSummary[], setup: HydroSetupDto) {
   return activeGrows.filter((grow) => grow.tentId === setup.tentId)
 }
 function formatReservoirPosition(value: ReservoirPosition) { return value === 'None' ? 'keiner' : value === 'Left' ? 'links' : value === 'Right' ? 'rechts' : value === 'Top' ? 'oben' : value === 'Bottom' ? 'unten' : 'extern' }
-function formatApiError(caught: unknown, fallback: string) { return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback }
 function isNotFound(caught: unknown) { return caught instanceof ApiRequestError && caught.status === 404 }
 
 export default HydroPage

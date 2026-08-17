@@ -79,7 +79,7 @@ public sealed class WertHerkunftTests
             ActiveGrows = [new GrowRun { Id = 1, Name = "Lauf", HydroStyle = HydroStyle.DWC, StartDate = DateTime.Today.AddDays(-10) }],
         };
 
-        var mitZielen = new GrowDashboardComposer(null!, null!, null!, TestKnowledgeBase.TargetValues(), null!);
+        var mitZielen = new GrowDashboardComposer(TestKnowledgeBase.TargetValues(), null!);
         var karten = mitZielen.BuildTentMetrics(zelt, states, new List<Measurement>());
 
         var doKarte = Assert.Single(karten, karte => karte.Key == "dissolved-oxygen");

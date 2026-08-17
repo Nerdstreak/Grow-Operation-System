@@ -16,7 +16,6 @@ public sealed class GrowFormViewModel
     public int? SystemId { get; set; }
     public int? SetupId { get; set; }
     public List<SelectListItem> TentOptions { get; set; } = new();
-    public List<GrowTemplate> Templates { get; set; } = new();
 
     // Schritt 1 – Genetik
     public string? Strain { get; set; }
@@ -121,24 +120,6 @@ public sealed class GrowFormViewModel
             Nutrients = grow.Nutrients,
             Notes = grow.Notes,
             StartDate = grow.StartDate.ToString("yyyy-MM-dd")
-        };
-    }
-
-    public static GrowFormViewModel FromTemplate(GrowTemplate template)
-    {
-        return new GrowFormViewModel
-        {
-            TemplateId = template.Id,
-            Name = template.Name,
-            HydroStyle = template.HydroStyle == HydroStyle.None ? HydroStyle.RDWC : template.HydroStyle,
-            Environment = template.Environment,
-            Light = template.Light,
-            ContainerSize = template.ContainerSize,
-            ReservoirSize = template.ReservoirSize,
-            Nutrients = template.Nutrients,
-            Notes = template.Notes,
-            Status = GrowStatus.Planning,
-            WaterSource = WaterSource.RO
         };
     }
 

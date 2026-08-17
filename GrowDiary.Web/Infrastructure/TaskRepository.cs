@@ -37,15 +37,6 @@ public sealed class TaskRepository
         return ReadTasks(command);
     }
 
-    public List<GrowTask> GetDueSoon(int limit = 12)
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT gt.*, g.Name AS GrowName FROM GrowTasks gt LEFT JOIN Grows g ON g.Id = gt.GrowId WHERE gt.Status = 'Open' ORDER BY COALESCE(gt.DueAtUtc, gt.CreatedAtUtc) ASC, gt.Id DESC LIMIT $limit;";
-        command.Parameters.AddWithValue("$limit", limit);
-        return ReadTasks(command);
-    }
-
     public int Create(GrowTask task)
     {
         task.CreatedAtUtc = DateTime.UtcNow;

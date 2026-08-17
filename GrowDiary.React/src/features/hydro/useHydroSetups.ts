@@ -2,14 +2,8 @@
    Datenzugriff aus HydroPage herausgezogen (war Teil der 448-Zeilen-Seite). */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { apiFetch, ApiRequestError } from '../../api'
+import { apiFetch, ApiRequestError, formatApiError } from '../../api'
 import type { GrowSummary, HydroSetupDto, TentDto } from '../../types'
-
-export function formatApiError(caught: unknown, fallback: string): string {
-  if (caught instanceof ApiRequestError) return caught.message
-  if (caught instanceof Error) return caught.message
-  return fallback
-}
 
 export function isNotFound(caught: unknown): boolean {
   return caught instanceof ApiRequestError && caught.status === 404

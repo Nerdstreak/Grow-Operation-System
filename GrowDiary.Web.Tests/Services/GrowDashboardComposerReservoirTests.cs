@@ -19,10 +19,10 @@ public sealed class GrowDashboardComposerReservoirTests
     // A tent WITH an active grow now always reads it, even without a measurement —
     // that is the point of resolving the phase from the grow. Those tests get a real
     // service.
-    private static readonly GrowDashboardComposer Composer = new(null!, null!, null!, null!, null!);
+    private static readonly GrowDashboardComposer Composer = new(null!, null!);
 
     private static GrowDashboardComposer ComposerWithTargets()
-        => new(null!, null!, null!, TestKnowledgeBase.TargetValues(), null!);
+        => new(TestKnowledgeBase.TargetValues(), null!);
 
     private static Tent TentWithoutActiveHydro() => new() { Id = 1, Name = "Zelt-RDWC", ActiveGrows = new() };
 

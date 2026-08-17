@@ -50,3 +50,16 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   return parseResponse<T>(response)
 }
+
+/**
+ * Fehler → Satz fürs UI. Ein Helfer statt (Stand des Audits) neun wörtlich
+ * gleicher Kopien quer durch die Seiten — die wären bei der nächsten Änderung
+ * an ApiRequestError still auseinandergedriftet.
+ */
+export function formatApiError(caught: unknown, fallback: string): string {
+  return caught instanceof ApiRequestError
+    ? caught.message
+    : caught instanceof Error
+      ? caught.message
+      : fallback
+}

@@ -48,7 +48,6 @@ public sealed partial class DatabaseInitializer
         Directory.CreateDirectory(_paths.UploadRootPath);
         DropLegacyTentSchemaIfNeeded();
         EnsureSchema();
-        SeedDefaults();
         AutoAssignExistingGrowsToTents();
     }
 

@@ -1,210 +1,22 @@
-/* ───
+/* ---- ABBAU (Phase 4): erledigt am 2026-08-17 ----
+   Hier lagen 219 Zeilen der abgeloesten Oberflaechen: die zweite App-Shell
+   (shell-*), die alte Bottom-Navigation, das Rebuild-2-Live-Dashboard
+   (live-hero-*, ops-*), die alten HA- und Addback-Karten. Nichts davon
+   rendert eine heutige Seite — Abgleich aller Selektoren gegen alle ts/tsx.
+   Uebrig sind die drei Regeln, die wirklich benutzt werden. */
 
-FRONTEND-1 LIVE HOME ───────────────────────────────────── */
-.live-dashboard-home { max-width: 1480px; margin: 0 auto; }
-.live-hero-panel { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; padding: 24px; background: linear-gradient(135deg, var(--surface), color-mix(in oklch, var(--surface), var(--green) 6%)); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 1px 0 oklch(100% 0 0 / 0.03) inset; }
-.live-hero-panel h1 { margin: 0; font-size: clamp(34px, 5vw, 56px); line-height: 0.95; letter-spacing: -0.04em; }
-.live-hero-panel p { max-width: 720px; margin: 10px 0 0; color: var(--muted); font-size: 15px; line-height: 1.55; }
-.live-hero-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; min-width: 240px; }
-.live-camera-panel { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.7fr); gap: 16px; align-items: stretch; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.live-camera-frame { position: relative; min-height: clamp(240px, 42vw, 560px); background: #050706; border-radius: calc(var(--radius) - 6px); overflow: hidden; }
-.live-camera-frame img { width: 100%; height: 100%; min-height: inherit; object-fit: cover; display: block; }
-.live-camera-meta { display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 10px 8px; }
-.live-camera-meta h2 { margin: 0; font-size: clamp(24px, 3vw, 40px); line-height: 1; letter-spacing: -0.03em; }
-.live-camera-meta p { margin: 0; color: var(--muted); line-height: 1.45; }
-.live-status-strip { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--muted); }
-.live-status-strip.is-quiet { background: linear-gradient(135deg, var(--green-bg), var(--surface) 54%); }
-.live-grid-separated { grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); }
-.live-card-separated { gap: 0; }
-.live-metric-section { display: grid; gap: 0; border-top: 1px solid var(--border); }
-.live-metric-section:first-of-type { border-top: 0; }
-.live-metric-section-header { padding: 15px 18px 12px; background: color-mix(in oklch, var(--surface), black 4%); border-bottom: 1px solid var(--border); }
-.live-metric-section-header h3 { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -0.01em; }
-.live-metric-section-header p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
-.live-metric-grid-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.live-metric-grid-compact .live-metric { min-height: 116px; padding: 15px 16px; }
-.live-metric-grid-compact .live-metric-value { font-size: clamp(28px, 4vw, 44px); }
-.live-grow-grid.compact { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-
-@media (max-width: 720px) {
-  .live-dashboard-home { gap: 16px; }
-  .live-hero-panel { align-items: flex-start; flex-direction: column; padding: 18px; }
-  .live-hero-actions { width: 100%; align-items: stretch; flex-direction: column; }
-  .live-hero-actions .btn { width: 100%; }
-  .live-camera-panel { grid-template-columns: minmax(0, 1fr); padding: 12px; }
-  .live-camera-frame { min-height: 220px; }
-  .live-camera-meta { padding: 6px 2px 2px; }
-  .live-status-strip { align-items: flex-start; flex-direction: column; }
-  .live-grid-separated { grid-template-columns: minmax(0, 1fr); }
-  .live-metric-grid-compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .live-metric-section-header { padding: 13px 14px 10px; }
-  .live-metric-grid-compact .live-metric { min-height: 108px; padding: 13px 14px; }
-  .live-metric-grid-compact .live-metric-value { font-size: clamp(26px, 10vw, 38px); }
-}
-
-@media (max-width: 430px) {
-  .live-metric-grid-compact { grid-template-columns: minmax(0, 1fr); }
-  .live-camera-frame { min-height: 190px; }
-}
-
-/* ─── FRONTEND REBUILD 1: HOME ASSISTANT + CLEAN LIVE ─────────── */
-.live-hero-panel { padding: 18px 20px; }
-.live-hero-panel h1 { font-size: clamp(36px, 5vw, 64px); }
-.live-camera-status { color: var(--muted); font-size: 13px; }
-.live-status-strip.is-quiet { width: fit-content; min-height: 38px; padding: 8px 10px; }
-.live-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-.live-metric-section-header { padding: 12px 16px; }
-.live-metric-section-header h3 { font-size: 16px; }
-.live-metric-section-header p { display: none; }
-
-.ha-camera-field {
-  max-width: 720px;
-}
-
-.ha-entity-row input.mono,
-.ha-camera-field input.mono {
-  font-family: var(--mono);
-}
-
-@media (max-width: 720px) {
-  .ha-top-stats,
-  .ha-tent-head .btn {
-    width: 100%;
-  }
-
-  .ha-tent-head .btn {
-    justify-content: center;
-  }
-
-}
-
-/* ───────────────────────────────────────────────────────────────
-   FRONTEND-REBUILD-2: app-like shell, compact workflows
-   ─────────────────────────────────────────────────────────────── */
-.shell-brand .logo-mark { margin: 0; flex: 0 0 28px; }
-.shell-nav .nav-section { padding-top: 12px; }
-.shell-content { min-width: 0; }
-.control-header h1 { font-size: clamp(34px, 5vw, 58px); line-height: 0.95; letter-spacing: -0.05em; }
-.control-kicker { display: block; color: var(--faint); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px; }
-.ops-card-header h2 { font-size: 22px; line-height: 1.1; }
-.ops-card-header span { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
-.live-tent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 14px; }
-.tent-ops-card.is-critical { border-color: color-mix(in oklch, var(--red), transparent 30%); }
-.tent-ops-card.is-warning { border-color: color-mix(in oklch, var(--amber), transparent 35%); }
-.ops-metric-group { padding: 14px 16px 16px; border-top: 1px solid color-mix(in oklch, var(--border), transparent 35%); }
-.ops-metric-group:first-of-type { border-top: 0; }
-.ops-metric-group h3 { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 10px; }
-.ops-metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.ops-metric span { color: var(--muted); font-size: 12px; font-weight: 700; }
-.ops-metric strong { display: block; margin-top: 5px; font-family: var(--mono); font-size: clamp(22px, 4vw, 34px); line-height: 1; letter-spacing: -0.05em; }
-.ops-metric small { color: var(--faint); font-size: 11px; font-family: var(--mono); }
-.ops-metric.is-critical strong { color: var(--red); }
-.ops-metric.is-warning strong { color: var(--amber); }
-.ops-metric.is-ok strong { color: var(--green); }
-.camera-frame { position: relative; min-height: clamp(220px, 28vw, 430px); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: #000; }
-.camera-frame img { width: 100%; height: 100%; object-fit: cover; }
-.camera-badge { position: absolute; top: 12px; left: 12px; padding: 5px 10px; border-radius: 999px; background: oklch(0% 0 0 / .58); color: white; font-size: 12px; font-weight: 800; }
-.camera-side { display: grid; align-content: center; gap: 10px; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
-.camera-side h2 { font-size: 28px; }
-.camera-side span { color: var(--muted); font-family: var(--mono); font-size: 12px; }
-.risk-strip.is-critical,
-.inline-error { border-color: color-mix(in oklch, var(--red), transparent 40%); background: var(--red-bg); }
-.inline-ok { border-color: color-mix(in oklch, var(--green), transparent 40%); background: var(--green-bg); }
-.risk-strip .btn { margin-left: auto; }
-.start-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
-.start-card { min-height: 120px; display: grid; align-content: end; gap: 8px; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
-.start-card strong { font-size: 22px; }
-.start-card span { color: var(--green); font-weight: 800; }
-.compact-section { margin-top: 18px; }
-.section-headline { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-.section-headline h2 { font-size: 20px; }
-.compact-list { display: grid; gap: 8px; }
-.compact-row { display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 10px; align-items: center; min-height: 52px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-.compact-row span { color: var(--muted); font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.compact-row.is-critical { border-color: color-mix(in oklch, var(--red), transparent 40%); }
-.compact-row.is-warning { border-color: color-mix(in oklch, var(--amber), transparent 45%); }
-.empty-hint.tight { padding: 16px; border-radius: 14px; }
-.mini-grow-list { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; color: var(--muted); font-size: 13px; }
-.mini-grow-list a { padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--text); }
-
-/* HA rebuild */
-.ha-rebuild-page .control-header { margin-bottom: 14px; }
-.ha-count { display: grid; justify-items: end; color: var(--muted); }
-.ha-count strong { font-family: var(--mono); font-size: 28px; color: var(--text); line-height: 1; }
-.ha-connect-panel { margin-bottom: 14px; }
-.ha-connect-panel form { display: grid; grid-template-columns: minmax(180px, 1.1fr) minmax(220px, 1.3fr) auto auto; gap: 10px; align-items: end; padding: 14px; }
-.compact-field span { font-size: 12px; color: var(--muted); font-weight: 700; }
-.inline-input-button { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
-.compact-check { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; }
-.ha-mapping-stack { display: grid; gap: 14px; }
-.ha-map-card .entity-group { padding: 14px 16px; border-top: 1px solid var(--border); }
-.entity-group h3 { color: var(--faint); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 8px; }
-.entity-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.entity-row {
-  display: grid;
-  grid-template-columns: auto minmax(120px, .45fr) minmax(160px, 1fr);
-  gap: 10px;
-  align-items: center;
-  min-height: 46px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: color-mix(in oklch, var(--surface2), black 8%);
-}
-.entity-row.is-active { border-color: color-mix(in oklch, var(--green), transparent 48%); }
-.entity-row span { font-weight: 700; font-size: 13px; }
-.entity-row input:not([type="checkbox"]) { min-width: 0; height: 36px; font-family: var(--mono); font-size: 13px; }
-.camera-entity-row { grid-template-columns: minmax(120px, .3fr) minmax(200px, 1fr); margin: 14px 16px; }
-
-/* Addback hub */
-.addback-grow-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
-.addback-grow-card { display: grid; gap: 14px; padding: 16px; }
-.addback-grow-card header h2 { font-size: 22px; }
-.addback-grow-card header span { color: var(--muted); }
-.addback-live-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.addback-mini-metric { padding: 10px; border: 1px solid var(--border); border-radius: 10px; }
-.addback-mini-metric span { color: var(--muted); font-size: 12px; }
-.addback-mini-metric strong { display: block; font-family: var(--mono); font-size: 18px; }
-
-/* Action rebuild */
-.action-status-header.is-critical { border-color: color-mix(in oklch, var(--red), transparent 34%); }
-.action-count-grid { display: grid; grid-template-columns: repeat(3, auto); gap: 12px; }
-.action-count-grid div { min-width: 86px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-.action-count-grid strong { display: block; font-family: var(--mono); font-size: 24px; line-height: 1; }
-.action-count-grid span { color: var(--muted); font-size: 12px; }
-.quick-action-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
-.quick-action { min-height: 70px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); font-weight: 800; }
-.quick-action.primary { background: var(--green); color: oklch(10% 0.02 155); border: none; }
-
-/* Reduce old hero text density on systems pages without rewriting form logic */
-@media (min-width: 721px) {
-  .mobile-bottom-nav { display: none; }
-}
-
-/* FRONTEND-MODEL-1: separate Zelte/Hydro and logic fixes */
-.tents-clean-page,
+/* HydroPage traegt die Klasse am V1Page-Wurzelelement. */
 .hydro-page {
   max-width: 1180px;
 }
 
-.entity-form-card .card-header,
-.hydro-builder-card .card-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: rgba(4, 16, 8, 0.94);
-  backdrop-filter: blur(12px);
-}
-
 @media (max-width: 720px) {
-  .tents-clean-page,
   .hydro-page {
     padding-bottom: 6.25rem;
   }
-
 }
 
-/* FRONTEND-FIX-2: visual audit and robust core UI */
+/* Nur fuer Screenreader — genutzt u. a. in der Hardware-Tabelle. */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -216,4 +28,3 @@ FRONTEND-1 LIVE HOME ───────────────────�
   border: 0;
   clip: rect(0, 0, 0, 0);
 }
-

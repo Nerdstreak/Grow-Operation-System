@@ -456,3 +456,16 @@
 
 /* Der Zusatztext im Auswahl-Dialog, der sagt, was die Kachel mitnimmt. */
 .ls-pick-text em { color: var(--muted); font-style: normal; }
+
+/* Kachel-Klick: Historie unter der Zeile. */
+.gos-metric.is-clickable { cursor: pointer; }
+.gos-metric.is-clickable:hover { border-color: var(--accent); }
+.gos-metric.is-open { border-color: var(--accent); }
+
+.ls-metric-detail {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface2);
+  padding: var(--s-3);
+  margin-top: var(--s-2);
+}

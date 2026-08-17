@@ -13,12 +13,10 @@ namespace GrowDiary.Web.Api.Controllers;
 public sealed class AutoMeasurementsApiController : ApiControllerBase
 {
     private readonly GrowRepository _repository;
-    private readonly AutoMeasurementStatusService _statusService;
 
-    public AutoMeasurementsApiController(GrowRepository repository, AutoMeasurementStatusService statusService)
+    public AutoMeasurementsApiController(GrowRepository repository)
     {
         _repository = repository;
-        _statusService = statusService;
     }
 
     [HttpGet("configs")]
@@ -128,30 +126,6 @@ public sealed class AutoMeasurementsApiController : ApiControllerBase
 
         _repository.ReplaceAutoMeasurementFieldMappings(id, request.Mappings.Select(mapping => mapping.ToModel()).ToList());
         return Ok(_repository.GetAutoMeasurementFieldMappings(id).Select(mapping => mapping.ToDto()).ToList());
-    }
-
-    [HttpGet("configs/{id:int}/runs")]
-    [ProducesResponseType(typeof(IReadOnlyList<AutoMeasurementRunDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
-    public ActionResult<IReadOnlyList<AutoMeasurementRunDto>> GetRuns(int id)
-    {
-        if (_repository.GetAutoMeasurementConfig(id) is null)
-        {
-            return NotFoundError("auto_measurement_config_not_found", $"AutoMeasurement-Konfiguration mit Id {id} existiert nicht.");
-        }
-
-        return Ok(_repository.GetAutoMeasurementRunsByConfig(id).Select(run => run.ToDto()).ToList());
-    }
-
-    [HttpGet("grows/{growId:int}/status")]
-    [ProducesResponseType(typeof(AutoMeasurementGrowStatusDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
-    public ActionResult<AutoMeasurementGrowStatusDto> GetGrowStatus(int growId)
-    {
-        var status = _statusService.GetGrowStatus(growId);
-        return status is null
-            ? NotFoundError("grow_not_found", $"Grow mit Id {growId} existiert nicht.")
-            : Ok(status);
     }
 
     private void ValidateConfig(

@@ -47,8 +47,13 @@ public static class GrowStageResolver
         //    in die Blüte; der Richtwert steht im Grow, sonst 28 Tage.
         if (grow.SeedType == SeedType.Autoflower)
         {
-            var keim = grow.GerminatedAt?.Date ?? grow.StartDate.Date;
-            var tage = (heute - keim).Days + (grow.AutoflowerDaysSinceGermination ?? 0);
+            // Mitgebrachte Keimtage (Mid-Grow-Einstieg) verschieben die
+            // gerechnete Keimung nach vorn. Schwelle UND Blüte-Anker müssen
+            // dieselbe Basis nutzen — zählten die Tage nur für die Schwelle,
+            // läge der Anker in der Zukunft und die Pflanze hinge wochenlang
+            // im Übergang, obwohl sie längst blüht.
+            var keim = AutoflowerKeimBasis(grow);
+            var tage = (heute - keim).Days;
             if (tage >= 28) return FlowerStageFor(grow, keim.AddDays(28), heute);
             return SeedlingOrVeg(grow, heute, tage);
         }
@@ -104,6 +109,22 @@ public static class GrowStageResolver
             ? SeedlingOrVeg(grow, heute, seitStart)
             : GrowStage.Veg;
     }
+
+    /// <summary>Keimung einer Autoflower, um mitgebrachte Tage vorverlegt.</summary>
+    private static DateTime AutoflowerKeimBasis(GrowRun grow)
+        => (grow.GerminatedAt?.Date ?? grow.StartDate.Date).AddDays(-(grow.AutoflowerDaysSinceGermination ?? 0));
+
+    /// <summary>
+    /// Blütebeginn einer Autoflower (Keimbasis + 28 Tage) — null für alles andere.
+    /// </summary>
+    /// <remarks>
+    /// Öffentlich, damit der Mischplan dieselbe Rechnung nutzt wie die
+    /// Phasenbestimmung: eine Autoflower hat kein FlipDate, und wer stattdessen
+    /// die Gesamtwoche seit Start als „Blütewoche" nimmt, greift im Feedchart
+    /// zwei bis vier Spalten zu weit rechts.
+    /// </remarks>
+    public static DateTime? AutoflowerBluetenStart(GrowRun grow)
+        => grow.SeedType == SeedType.Autoflower ? AutoflowerKeimBasis(grow).AddDays(28) : null;
 
     /// <summary>
     /// Sämling oder schon Veg — die einzige Stelle, an der das entschieden wird.

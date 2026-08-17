@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { apiFetch, ApiRequestError } from '../api'
+import { apiFetch, ApiRequestError, formatApiError } from '../api'
 import { resolveUrl } from '../base'
 import type { GrowStage, GrowSummary, HydroStyle, MeasurementDto, MeasurementUpsertPayload, MetricPayload, PhotoTag, TentDto, TentLivePayload, ValueOrigin } from '../types'
 import FileInput from '../components/FileInput'
@@ -720,8 +720,5 @@ function trimToNull(value: string) {
   return trimmed ? trimmed : null
 }
 
-function formatApiError(caught: unknown, fallback: string) {
-  return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback
-}
 
 export default ManualMeasurementPage

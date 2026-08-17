@@ -228,21 +228,6 @@
   }
   .v1-empty strong { color: var(--ink); font-size: 15px; font-weight: 600; }
 
-  /* ---------- Wizard (nur noch Grow-Setup) ---------- */
-  .v1-wizard-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--s-2); }
-  .v1-wizard-step {
-    min-height: var(--h-md); display: flex; align-items: center; gap: var(--s-2);
-    padding: 0 11px; border: 1px solid var(--hair); border-radius: var(--r-sm);
-    background: transparent; color: var(--muted);
-    font: 500 11px/1 var(--font-mono); text-align: left; cursor: pointer;
-  }
-  .v1-wizard-step span {
-    width: 18px; height: 18px; border-radius: var(--r-pill);
-    display: grid; place-items: center; border: 1px solid var(--hair-2); font-size: 9px;
-  }
-  .v1-wizard-step.active, .v1-wizard-step.done { color: var(--ink); border-color: var(--accent); background: var(--accent-wash); }
-  .v1-wizard-body { margin-top: var(--s-3); }
-
   /* ---------- Zwei-Spalten-Muster ----------
      Regel für das ganze Projekt: NIE  minmax(0,1fr) + fixe Spalte.
      Immer auto-fit mit Mindestbreite, damit die Nebenspalte

@@ -1,4 +1,8 @@
-/* src/features/hydro/hydro.css */
+/* src/features/hydro/hydro.css
+   Historie: hier lag noch das komplette Styling des abgeschafften
+   5-Schritte-Wizards (hydro-stepper, systems-*, layout-sites) — Anlegen und
+   Bearbeiten laufen laengst ueber die eine Editor-Seite. Geblieben ist, was
+   HydroEditorPage und HydroPage wirklich rendern. */
 @layer features {
   .hydro-editor__form { display: grid; gap: var(--s-3); min-width: 0; }
   .hydro-editor__preview { display: grid; gap: var(--s-3); align-content: start; position: sticky; top: calc(var(--topbar) + var(--s-3)); }
@@ -23,70 +27,6 @@
   @media (max-width: 860px) {
     .hydro-editor__preview { position: static; }
   }
-
-  /* ---------- aus Phase 2 zurueckgeholt ---------- */
-
-  @media (max-width: 680px) {
-    .systems-header,
-  .system-card-header,
-  .systems-group-title { align-items: flex-start; flex-direction: column; }
-    .systems-form,
-  .hydro-builder-step,
-  .hydro-choice-grid,
-  .hydro-review-grid,
-  .hydro-review-card,
-  .systems-summary-card,
-  .systems-tent-grid,
-  .systems-setup-grid { grid-template-columns: minmax(0, 1fr); }
-    .hydro-stepper { grid-template-columns: minmax(0, 1fr); }
-    .system-facts { grid-template-columns: minmax(0, 1fr); }
-    .layout-sites.layout-grid2x4,
-  .layout-sites.layout-custom { grid-template-columns: repeat(3, 38px); }
-  }
-  .systems-tent-grid,
-.systems-setup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
-  .systems-group-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  .systems-group-title h2 { font-size: 18px; letter-spacing: 0; }
-  .systems-group-title span { color: var(--muted); font-size: 13px; }
-  .system-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-  .system-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .system-facts div { min-height: 64px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); display: grid; align-content: center; gap: 2px; min-width: 0; }
-  .system-facts span { color: var(--faint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
-  .system-facts strong { font-family: var(--mono); font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
-  .systems-form-wide,
-.systems-summary-card,
-.systems-toggle-grid,
-.systems-form-error,
-.systems-form-actions { grid-column: 1 / -1; }
-  .hydro-stepper { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
-  .hydro-builder-step { display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); gap: 12px; align-items: end; }
-  .hydro-step-copy,
-.hydro-choice-grid,
-.hydro-review-grid,
-.hydro-step-summary { grid-column: 1 / -1; }
-  .hydro-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .hydro-review-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr); gap: 12px; align-items: stretch; }
-  .hydro-review-card { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .hydro-review-card > div { min-height: 64px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); display: grid; align-content: center; gap: 2px; min-width: 0; }
-  .hydro-review-card span { color: var(--faint); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
-  .hydro-review-card strong { font-family: var(--mono); font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
-  .systems-toggle-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
-  .systems-toggle-grid label { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); color: var(--muted); font-size: 14px; }
-  .systems-summary-card { display: grid; grid-template-columns: minmax(170px, 0.45fr) minmax(220px, 1fr); gap: 12px; align-items: stretch; }
-  .systems-summary-card > div:first-child { display: grid; align-content: center; gap: 6px; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); }
-  .systems-summary-card span { color: var(--faint); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
-  .systems-summary-card strong { font-family: var(--mono); font-size: 28px; line-height: 1; }
-  .layout-sites { display: grid; grid-template-columns: repeat(2, 38px); gap: 8px; z-index: 1; }
-  .layout-sites.layout-singlebucket { grid-template-columns: 42px; }
-  .layout-sites.layout-row { grid-template-columns: repeat(auto-fit, minmax(34px, 38px)); grid-auto-flow: column; }
-  .layout-sites.layout-grid2x3 { grid-template-columns: repeat(3, 38px); }
-  .layout-sites.layout-grid2x4 { grid-template-columns: repeat(4, 38px); }
-  .layout-sites.layout-custom { grid-template-columns: repeat(3, 38px); }
-  .layout-sites span,
-.layout-tank,
-.layout-bucket,
-.layout-custom-preview { display: grid; place-items: center; min-width: 34px; min-height: 34px; border-radius: 7px; font-family: var(--mono); font-size: 12px; font-weight: 700; }
-  .layout-sites span { background: var(--green-bg); border: 1px solid oklch(74% 0.19 145 / 0.35); color: var(--green); }
 
   /* ---------- Hydro-Uebersicht ----------
      Kein Breakpoint entscheidet mehr ueber die Spalten. Die alte Fassung stand in

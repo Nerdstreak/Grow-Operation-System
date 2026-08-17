@@ -138,4 +138,23 @@ public sealed class MischplanTests
         Assert.Equal(basis.WaterTempDayC, mitChart.WaterTempDayC);
         Assert.Equal(basis.PpfdMax, mitChart.PpfdMax);
     }
+
+    [Fact]
+    public void AnAutoflowerCountsFlowerWeeksFromFlowerStartNotFromSeed()
+    {
+        var chart = GeliefertesChart();
+
+        // 35 Tage seit Keimung, Bluete begann rechnerisch an Tag 28 — die
+        // Pflanze steht in Bluetewoche 2. Der alte Rechner nahm mangels
+        // FlipDate die GESAMTwoche 6 und griff im Chart zwei bis vier Spalten
+        // zu weit rechts: falsche Milliliter, falsches EC-Ziel.
+        var auto = new GrowRun
+        {
+            SeedType = SeedType.Autoflower,
+            StartDate = DateTime.Today.AddDays(-35),
+            GerminatedAt = DateTime.Today.AddDays(-35),
+        };
+
+        Assert.Equal("flower-w2", MischplanService.SpalteFuer(chart, auto)!.Id);
+    }
 }

@@ -46,7 +46,12 @@ public sealed class HomeAssistantSnapshotWorker : BackgroundService
             await CaptureReadingsAsync(stoppingToken);
 
             var today = DateOnly.FromDateTime(now);
-            if (now.Hour == 2 && now.Minute < 5 && _lastAggregationDateLocal != today)
+            // Ab 02:00, nicht NUR 02:00–02:05: der Takt ist 5 Minuten PLUS
+            // Capture-Laufzeit. Ein zaehes HA um 01:59 haette das enge Fenster
+            // uebersprungen — und weil die Rohdaten nach 7 Tagen aufgeraeumt
+            // werden, waere der Vortag irgendwann unwiederbringlich ohne
+            // Tagesstatistik geblieben.
+            if (now.Hour >= 2 && _lastAggregationDateLocal != today)
             {
                 await AggregateYesterdayAsync(stoppingToken);
                 await CleanupOldReadingsAsync();

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { apiFetch, ApiRequestError } from '../api'
+import { apiFetch, formatApiError } from '../api'
 import type { GrowSummary } from '../types'
 import FileInput from '../components/FileInput'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch } from '../components/v1'
@@ -232,9 +232,5 @@ function ImportPlanView({ plan }: { plan: ImportPlan }) {
   )
 }
 
-function formatApiError(caught: unknown, fallback: string) {
-  if (caught instanceof ApiRequestError) return caught.message
-  return caught instanceof Error ? caught.message : fallback
-}
 
 export default ReleasePage

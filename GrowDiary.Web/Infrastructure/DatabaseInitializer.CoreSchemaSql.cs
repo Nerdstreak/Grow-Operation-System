@@ -347,25 +347,6 @@ public sealed partial class DatabaseInitializer
                 FOREIGN KEY (RelatedGrowId) REFERENCES Grows (Id) ON DELETE SET NULL
             );
 
-            CREATE TABLE IF NOT EXISTS GrowTemplates (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                Name TEXT NOT NULL,
-                Description TEXT NULL,
-                MediumType TEXT NOT NULL,
-                FeedingStyle TEXT NOT NULL,
-                HydroStyle TEXT NOT NULL,
-                MediumDetail TEXT NULL,
-                Environment TEXT NOT NULL,
-                SuggestedTentKind TEXT NULL,
-                Light TEXT NULL,
-                ContainerSize TEXT NULL,
-                ReservoirSize TEXT NULL,
-                IrrigationStyle TEXT NULL,
-                Nutrients TEXT NULL,
-                Notes TEXT NULL,
-                AccentColor TEXT NOT NULL DEFAULT '#79c97f'
-            );
-
             CREATE TABLE IF NOT EXISTS HarvestEntries (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 GrowId INTEGER NOT NULL,

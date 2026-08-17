@@ -1,6 +1,7 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import type { MetricPayload } from '../../types'
 import type { HistoryPoint } from '../../components/SensorChart'
+import { SensorChart } from '../../components/SensorChart'
 import { MetricTile } from './MetricTile'
 import { HistoryChart } from './HistoryChart'
 import { decimalsForMetric } from './metric-tile-model'
@@ -51,6 +52,10 @@ export function DashboardBands({
   // ein schneller Zug — oder ein Testlauf, der beide Ereignisse hintereinander
   // schickt — saehe im State noch null und wuerde die erste Bewegung verwerfen.
   const griff = useRef<{ sectionId: string; index: number } | null>(null)
+  // Welche Kachel gerade ihre Historie zeigt — Tester-Wunsch: „auf eine
+  // Kachel klicken und mehr Daten einsehen". Toggle, nichts Modales.
+  const [offeneMetrik, setOffeneMetrik] = useState<string | null>(null)
+
   const [dragged, setDragged] = useState<{ sectionId: string; index: number } | null>(null)
   const [over, setOver] = useState<string | null>(null)
 
@@ -144,6 +149,10 @@ export function DashboardBands({
                     targetNote={metric.targetNote}
                     sourceNote={metricProvenance(metric).sourceNote}
                     stale={metricProvenance(metric).stale}
+                    onOpen={!editing && tile.kind === 'Metric' && tile.metricKey && (trends.get(tile.metricKey)?.length ?? 0) > 1
+                      ? () => setOffeneMetrik(offeneMetrik === tile.metricKey ? null : tile.metricKey)
+                      : undefined}
+                    open={offeneMetrik === tile.metricKey}
                   />
                   )}
                   {editing && (
@@ -186,6 +195,22 @@ export function DashboardBands({
               </div>
             )}
           </div>
+
+          {/* Die aufgeklappte Historie einer Kachel — unter ihrer Zeile, nicht
+              modal: man will die Nachbarn zum Vergleich weiter sehen. */}
+          {offeneMetrik && section.tiles.some((tile) => tile.metricKey === offeneMetrik) && (() => {
+            const metric = metricsByKey.get(offeneMetrik)
+            const punkte = trends.get(offeneMetrik) ?? []
+            if (!metric || punkte.length < 2) return null
+            return (
+              <div className="ls-metric-detail" data-audit="metric-detail">
+                <SensorChart
+                  series={{ metricKey: offeneMetrik, label: metric.label, unit: metric.unit, points: punkte }}
+                  target={{ min: metric.targetMin, max: metric.targetMax }}
+                />
+              </div>
+            )
+          })()}
         </div>
       ))}
     </>

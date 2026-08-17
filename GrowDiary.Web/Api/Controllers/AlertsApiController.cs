@@ -28,16 +28,6 @@ public sealed class AlertsApiController : ControllerBase
         _alertEval = alertEval;
     }
 
-    /// <summary>Lists the Home Assistant notify services the user can push alerts to.</summary>
-    [HttpGet("notify-services")]
-    [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<string>>> NotifyServices(CancellationToken cancellationToken)
-    {
-        var settings = _repository.GetEffectiveHomeAssistantSettings();
-        var services = await _homeAssistant.GetNotifyServicesAsync(settings, cancellationToken);
-        return Ok(services);
-    }
-
     /// <summary>Returns the alert rules configured for a tent.</summary>
     [HttpGet("tents/{tentId:int}")]
     [ProducesResponseType(typeof(TentAlertRulesDto), StatusCodes.Status200OK)]
@@ -108,28 +98,6 @@ public sealed class AlertsApiController : ControllerBase
             .ToList();
 
         return Ok(new TentAlertRulesDto(tentId, saved));
-    }
-
-    /// <summary>Sends a test push so the user can confirm the notify service works.</summary>
-    [HttpPost("test")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Test([FromBody] AlertTestRequest request, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(request.NotifyService))
-        {
-            return BadRequest(new { ok = false, message = "Kein Notify-Dienst angegeben." });
-        }
-
-        var settings = _repository.GetEffectiveHomeAssistantSettings();
-        var sent = await _homeAssistant.SendNotificationAsync(
-            settings,
-            request.NotifyService,
-            "🌱 Grow OS",
-            "Test-Benachrichtigung — die Grenzwert-Alarme sind richtig eingerichtet.",
-            cancellationToken);
-
-        return Ok(new { ok = sent });
     }
 
     private bool TentExists(int tentId)

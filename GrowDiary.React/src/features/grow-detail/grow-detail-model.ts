@@ -1,7 +1,6 @@
 import { ApiRequestError } from '../../api'
 import type {
   AutoMeasurementField,
-  AutoMeasurementFieldMappingUpsertRequest,
   AutoMeasurementStatus,
   AutoMeasurementTriggerKind,
   GrowDetail,
@@ -96,13 +95,6 @@ export const emptyAutoConfigForm = () => ({
 })
 
 export type AutoConfigFormState = ReturnType<typeof emptyAutoConfigForm>
-
-export const emptyMappingDraft = (): AutoMeasurementFieldMappingUpsertRequest => ({
-  measurementField: 'AirTemperatureC',
-  metricKey: defaultMetricKeyByField.AirTemperatureC,
-  aggregation: 'Latest',
-  isRequired: true,
-})
 
 export function toNullableNumber(value: string): number | null {
   const trimmed = value.trim()

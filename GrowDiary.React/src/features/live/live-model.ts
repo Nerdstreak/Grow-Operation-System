@@ -1,4 +1,3 @@
-import { ApiRequestError } from '../../api'
 import type { GrowSummary, MetricPayload, TentDto, TentLivePayload } from '../../types'
 
 export type LiveState = {
@@ -78,17 +77,6 @@ export function riskRank(value: string) {
   return value === 'Critical' ? 0 : value === 'Warning' ? 1 : 2
 }
 
-export function buildSensorStatus(live: TentLivePayload | undefined, issues: string[]) {
-  if (issues.length > 0) return { label: 'Offline', text: 'Ein Teil der Live-Daten ist nicht erreichbar.', tone: 'warn' as const }
-  if (!live) return { label: 'Nicht bewertet', text: 'Für dieses Zelt liegen noch keine Live-Werte vor.', tone: 'neutral' as const }
-  const values = live.metrics.filter((metric) => metric.value && metric.value !== '–')
-  if (values.length === 0) return { label: 'Nicht bewertet', text: 'Sensorwerte fehlen oder sind noch nicht gemappt.', tone: 'neutral' as const }
-  const warnings = live.metrics.filter((metric) => metric.tone === 'warning' || metric.tone === 'danger').length
-  return warnings > 0
-    ? { label: 'Warnung', text: 'Mindestens ein Sensorwert braucht Aufmerksamkeit.', tone: 'warn' as const }
-    : { label: 'Aktiv', text: `${values.length} Live-Werte werden ausgewertet.`, tone: 'ok' as const }
-}
-
 /**
  * Der Grow-Score aus den tatsächlichen Abweichungen.
  *
@@ -159,6 +147,3 @@ export function formatGrowHydroMedium(grow: GrowSummary) {
   return grow.hydroSetupName ?? (grow.hydroStyle === 'None' ? 'kein Hydro-Setup' : grow.hydroStyle)
 }
 
-export function formatApiError(caught: unknown, fallback: string) {
-  return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback
-}

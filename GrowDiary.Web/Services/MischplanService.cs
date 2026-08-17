@@ -232,9 +232,14 @@ public sealed class MischplanService
     {
         var heute = DateTime.Today;
 
-        if (chartStage == "Flower" && grow.FlipDate is { } flip)
+        // Blütewochen zählen ab Blütebeginn — beim Photoperioden-Grow ist das
+        // der Flip, bei der Autoflower der gerechnete Start aus dem
+        // GrowStageResolver. Ohne diesen Anker bekam eine Autoflower in
+        // Blütewoche 2 die Spalte ihrer GESAMTwoche — falsche ml und ein
+        // falsches EC-Ziel.
+        if (chartStage == "Flower" && (grow.FlipDate?.Date ?? GrowStageResolver.AutoflowerBluetenStart(grow)) is { } bluetenStart)
         {
-            return Math.Max(1, ((heute - flip.Date).Days / 7) + 1);
+            return Math.Max(1, ((heute - bluetenStart).Days / 7) + 1);
         }
 
         var start = grow.VegStartedAt?.Date ?? grow.StartDate.Date;

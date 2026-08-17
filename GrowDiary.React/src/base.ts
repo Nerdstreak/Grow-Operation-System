@@ -18,9 +18,6 @@ export const APP_BASE_PATH = new URL(BASE_HREF).pathname
 /** React Router basename (no trailing slash; "/" at the site root). */
 export const ROUTER_BASENAME = APP_BASE_PATH.replace(/\/$/, '') || '/'
 
-/** True when served behind the Home Assistant ingress (i.e. not at the site root). */
-export const IS_INGRESS = APP_BASE_PATH !== '/'
-
 /** Resolves an app-absolute path (e.g. "/api/foo") against the runtime base. */
 export function resolveUrl(path: string): string {
   return new URL(path.replace(/^\/+/, ''), BASE_HREF).toString()

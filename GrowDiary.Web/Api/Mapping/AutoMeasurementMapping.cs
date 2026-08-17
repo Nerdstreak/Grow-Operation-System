@@ -61,16 +61,4 @@ public static class AutoMeasurementMapping
         IsRequired = request.IsRequired
     };
 
-    public static AutoMeasurementRunDto ToDto(this AutoMeasurementRun run) => new(
-        Id: run.Id,
-        ConfigId: run.ConfigId,
-        GrowId: run.GrowId,
-        TriggerKind: run.TriggerKind,
-        ScheduledForUtc: run.ScheduledForUtc,
-        MeasurementId: run.MeasurementId,
-        Status: run.Status,
-        ErrorMessage: run.ErrorMessage,
-        CreatedAtUtc: run.CreatedAtUtc,
-        UpdatedAtUtc: run.UpdatedAtUtc
-    );
 }

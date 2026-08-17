@@ -64,7 +64,12 @@ public sealed class DosingContextBuilder
         DateTime nowUtc,
         IReadOnlyDictionary<string, HomeAssistantState>? liveStates = null)
     {
-        var heute = _dosing.GetDosesSince(pump.Id, nowUtc.Date);
+        // „Tagesgrenze" verspricht dem Nutzer einen Kalendertag. nowUtc.Date
+        // waere UTC-Mitternacht — in DE 02:00 Ortszeit, und die Pumpe haette
+        // von 23:00 bis 01:59 die volle Tagesmenge fahren koennen und ab
+        // 02:00 gleich noch einmal. Gezaehlt wird ab LOKALER Mitternacht.
+        var tagesbeginnUtc = nowUtc.ToLocalTime().Date.ToUniversalTime();
+        var heute = _dosing.GetDosesSince(pump.Id, tagesbeginnUtc);
 
         var tent = _repository.GetTent(pump.TentId);
         if (tent is null || pump.MetricKey is not { } key)

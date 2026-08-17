@@ -8,9 +8,6 @@ namespace GrowDiary.Web.Services;
 
 public sealed class GrowDashboardComposer
 {
-    private readonly ChartService _chartService;
-    private readonly DeviationAnalyzerService _deviationAnalyzer;
-    private readonly WeekCounterService _weekCounter;
     private readonly TargetValueService _targetValues;
     private readonly AlertRuleRepository? _alertRules;
     private readonly HydroSetupRepository? _hydroSetups;
@@ -23,9 +20,6 @@ public sealed class GrowDashboardComposer
     private readonly ILogger<GrowDashboardComposer> _logger;
 
     public GrowDashboardComposer(
-        ChartService chartService,
-        DeviationAnalyzerService deviationAnalyzer,
-        WeekCounterService weekCounter,
         TargetValueService targetValues,
         ILogger<GrowDashboardComposer> logger,
         AlertRuleRepository? alertRules = null,
@@ -38,9 +32,6 @@ public sealed class GrowDashboardComposer
         KnowledgeBaseLoader? knowledge = null)
     {
         _knowledge = knowledge;
-        _chartService = chartService;
-        _deviationAnalyzer = deviationAnalyzer;
-        _weekCounter = weekCounter;
         _targetValues = targetValues;
         _alertRules = alertRules;
         _hydroSetups = hydroSetups;
@@ -513,199 +504,6 @@ public sealed class GrowDashboardComposer
         }
     }
 
-    public ChartSeries BuildTentClimateChart(
-        IReadOnlyList<Measurement> measurements,
-        IReadOnlyList<TentSensorReading> recentReadings,
-        IReadOnlyList<TentSensorDailyStat> dailyStats,
-        DateTime chartFrom)
-    {
-        var useRecent = chartFrom >= DateTime.Today.AddDays(-7);
-
-        if (useRecent)
-        {
-            var tempPoints     = recentReadings.Where(x => x.MetricKey == "temperature").Select(x => (x.CapturedAtUtc.ToLocalTime(), (double?)x.Value)).ToList();
-            var humidityPoints = recentReadings.Where(x => x.MetricKey == "humidity").Select(x => (x.CapturedAtUtc.ToLocalTime(), (double?)x.Value)).ToList();
-            var vpdPoints      = recentReadings.Where(x => x.MetricKey == "vpd").Select(x => (x.CapturedAtUtc.ToLocalTime(), (double?)x.Value)).ToList();
-
-            if (tempPoints.Count == 0)
-                tempPoints = measurements.Where(x => x.AirTemperatureC.HasValue).Select(x => (x.TakenAt, x.AirTemperatureC)).ToList();
-            if (humidityPoints.Count == 0)
-                humidityPoints = measurements.Where(x => x.HumidityPercent.HasValue).Select(x => (x.TakenAt, x.HumidityPercent)).ToList();
-
-            return _chartService.BuildSeries(
-                "Klima-Verlauf",
-                "Klima",
-                ("Temperatur", "#8b5cf6", tempPoints),
-                ("Luftfeuchte", "#22c55e", humidityPoints),
-                ("VPD", "#f59e0b", vpdPoints));
-        }
-        else
-        {
-            // Tages-Perzentil-Bänder aus DailyStats
-            var tempStats = dailyStats.Where(x => x.MetricKey == "temperature").ToList();
-            var p5Points     = tempStats.Select(x => (x.Date.ToDateTime(TimeOnly.MinValue), (double?)x.P5)).ToList();
-            var medianPoints = tempStats.Select(x => (x.Date.ToDateTime(TimeOnly.MinValue), (double?)x.Median)).ToList();
-            var p95Points    = tempStats.Select(x => (x.Date.ToDateTime(TimeOnly.MinValue), (double?)x.P95)).ToList();
-
-            if (medianPoints.Count == 0)
-            {
-                // Fallback auf manuelle Messungen
-                medianPoints = measurements.Where(x => x.AirTemperatureC.HasValue).Select(x => (x.TakenAt, x.AirTemperatureC)).ToList();
-            }
-
-            return _chartService.BuildSeries(
-                "Klima-Verlauf (Tage)",
-                "Klima",
-                ("Temp P5",     "#8b5cf6", p5Points),
-                ("Temp Median", "#8b5cf6", medianPoints),
-                ("Temp P95",    "#8b5cf6", p95Points));
-        }
-    }
-
-    public ChartSeries BuildTentWaterChart(
-        IReadOnlyList<Measurement> measurements,
-        IReadOnlyList<TentSensorReading> recentReadings,
-        IReadOnlyList<TentSensorDailyStat> dailyStats,
-        DateTime chartFrom)
-    {
-        var useRecent = chartFrom >= DateTime.Today.AddDays(-7);
-
-        if (useRecent)
-        {
-            var phPoints        = recentReadings.Where(x => x.MetricKey == "reservoir-ph").Select(x => (x.CapturedAtUtc.ToLocalTime(), (double?)x.Value)).ToList();
-            var ecPoints        = recentReadings.Where(x => x.MetricKey == "reservoir-ec").Select(x => (x.CapturedAtUtc.ToLocalTime(), (double?)x.Value)).ToList();
-            var levelPoints     = recentReadings.Where(x => x.MetricKey == "reservoir-level").Select(x => (x.CapturedAtUtc.ToLocalTime(), (double?)x.Value)).ToList();
-            var waterTempPoints = recentReadings.Where(x => x.MetricKey == "reservoir-temp").Select(x => (x.CapturedAtUtc.ToLocalTime(), (double?)x.Value)).ToList();
-
-            if (phPoints.Count == 0)
-                phPoints = measurements.Where(x => x.ReservoirPh.HasValue).Select(x => (x.TakenAt, x.ReservoirPh)).ToList();
-            if (ecPoints.Count == 0)
-                ecPoints = measurements.Where(x => x.ReservoirEc.HasValue).Select(x => (x.TakenAt, x.ReservoirEc)).ToList();
-            if (levelPoints.Count == 0)
-                levelPoints = measurements
-                    .Where(x => x.ReservoirLevelLiters.HasValue || x.ReservoirLevelCm.HasValue)
-                    .Select(x => (x.TakenAt, x.ReservoirLevelLiters ?? x.ReservoirLevelCm))
-                    .ToList();
-            if (waterTempPoints.Count == 0)
-                waterTempPoints = measurements.Where(x => x.ReservoirWaterTempC.HasValue).Select(x => (x.TakenAt, x.ReservoirWaterTempC)).ToList();
-
-            return _chartService.BuildSeries(
-                "Wasser / Reservoir",
-                "Reservoir",
-                ("pH", "#38bdf8", phPoints),
-                ("EC", "#22c55e", ecPoints),
-                ("Level", "#f97316", levelPoints),
-                ("Wassertemp.", "#ef4444", waterTempPoints));
-        }
-        else
-        {
-            // Tages-Perzentil-Bänder für pH
-            var phStats = dailyStats.Where(x => x.MetricKey == "reservoir-ph").ToList();
-            var p5Points     = phStats.Select(x => (x.Date.ToDateTime(TimeOnly.MinValue), (double?)x.P5)).ToList();
-            var medianPoints = phStats.Select(x => (x.Date.ToDateTime(TimeOnly.MinValue), (double?)x.Median)).ToList();
-            var p95Points    = phStats.Select(x => (x.Date.ToDateTime(TimeOnly.MinValue), (double?)x.P95)).ToList();
-
-            if (medianPoints.Count == 0)
-            {
-                medianPoints = measurements.Where(x => x.ReservoirPh.HasValue).Select(x => (x.TakenAt, x.ReservoirPh)).ToList();
-            }
-
-            return _chartService.BuildSeries(
-                "Reservoir (Tage)",
-                "Reservoir",
-                ("pH P5",     "#38bdf8", p5Points),
-                ("pH Median", "#38bdf8", medianPoints),
-                ("pH P95",    "#38bdf8", p95Points));
-        }
-    }
-
-    public ChartSeries BuildActivityChart(IReadOnlyList<Measurement> measurements)
-    {
-        var waterPoints = measurements.Where(x => x.WaterAmountMl.HasValue).Select(x => (x.TakenAt, x.WaterAmountMl)).ToList();
-        var runoffPoints = measurements.Where(x => x.RunoffAmountMl.HasValue).Select(x => (x.TakenAt, x.RunoffAmountMl)).ToList();
-        var heightPoints = measurements.Where(x => x.HeightCm.HasValue).Select(x => (x.TakenAt, x.HeightCm)).ToList();
-
-        return _chartService.BuildSeries(
-            "Aktivität & Entwicklung",
-            "Aktivität",
-            ("Wasser", "#60a5fa", waterPoints),
-            ("Runoff", "#f59e0b", runoffPoints),
-            ("Höhe", "#34d399", heightPoints));
-    }
-
-
-
-    public ChartSeries BuildGrowMainChart(GrowRun grow, IReadOnlyList<Measurement> measurements)
-    {
-        if (grow.Profile.IsHydro)
-        {
-            return _chartService.BuildSeries(
-                grow.HydroStyle == HydroStyle.RDWC ? "RDWC Reservoir" : "Hydro Reservoir",
-                "Hydro",
-                ("pH", "#38bdf8", measurements.Where(x => x.ReservoirPh.HasValue).Select(x => (x.TakenAt, x.ReservoirPh))),
-                ("EC", "#22c55e", measurements.Where(x => x.ReservoirEc.HasValue).Select(x => (x.TakenAt, x.ReservoirEc))),
-                ("Wassertemp.", "#ef4444", measurements.Where(x => x.ReservoirWaterTempC.HasValue).Select(x => (x.TakenAt, x.ReservoirWaterTempC))));
-        }
-
-        if (grow.Profile.IsAutopot)
-        {
-            return _chartService.BuildSeries(
-                "Autopot Reservoir",
-                "Reservoir",
-                ("Reservoir pH", "#38bdf8", measurements.Where(x => x.ReservoirPh.HasValue).Select(x => (x.TakenAt, x.ReservoirPh))),
-                ("Reservoir EC", "#22c55e", measurements.Where(x => x.ReservoirEc.HasValue).Select(x => (x.TakenAt, x.ReservoirEc))),
-                ("Wasserstand", "#f59e0b", measurements.Where(x => x.ReservoirLevelLiters.HasValue).Select(x => (x.TakenAt, x.ReservoirLevelLiters))));
-        }
-
-        return _chartService.BuildSeries(
-            grow.Profile.IsCoco ? "Coco Klima & Wuchs" : "Klima & Wuchs",
-            "Pflanze",
-            ("Temperatur", "#8b5cf6", measurements.Where(x => x.AirTemperatureC.HasValue).Select(x => (x.TakenAt, x.AirTemperatureC))),
-            ("Luftfeuchte", "#22c55e", measurements.Where(x => x.HumidityPercent.HasValue).Select(x => (x.TakenAt, x.HumidityPercent))),
-            ("Höhe", "#f59e0b", measurements.Where(x => x.HeightCm.HasValue).Select(x => (x.TakenAt, x.HeightCm))));
-    }
-
-    public ChartSeries BuildGrowSecondaryChart(GrowRun grow, IReadOnlyList<Measurement> measurements)
-    {
-        if (grow.Profile.IsHydro)
-        {
-            return _chartService.BuildSeries(
-                "Wasserstand & Addback",
-                "Hydro",
-                ("Wasserstand (L)", "#f59e0b", measurements.Where(x => x.ReservoirLevelLiters.HasValue).Select(x => (x.TakenAt, x.ReservoirLevelLiters))),
-                ("Top-Off (L)", "#14b8a6", measurements.Where(x => x.TopOffLiters.HasValue).Select(x => (x.TakenAt, x.TopOffLiters))),
-                ("Addback EC", "#fb7185", measurements.Where(x => x.AddbackEc.HasValue).Select(x => (x.TakenAt, x.AddbackEc))));
-        }
-
-        if (grow.Profile.IsAutopot)
-        {
-            return _chartService.BuildSeries(
-                "Autopot Feed",
-                "Reservoir",
-                ("Top-Off", "#14b8a6", measurements.Where(x => x.TopOffLiters.HasValue).Select(x => (x.TakenAt, x.TopOffLiters))),
-                ("Wassertemp.", "#ef4444", measurements.Where(x => x.ReservoirWaterTempC.HasValue).Select(x => (x.TakenAt, x.ReservoirWaterTempC))),
-                ("Höhe", "#f59e0b", measurements.Where(x => x.HeightCm.HasValue).Select(x => (x.TakenAt, x.HeightCm))));
-        }
-
-        return _chartService.BuildSeries(
-            grow.Profile.IsSoilOrganic ? "Bewässerung & pH" : "Input vs. Drain",
-            "Medium",
-            ("Gießmenge", "#14b8a6", measurements.Where(x => x.WaterAmountMl.HasValue).Select(x => (x.TakenAt, x.WaterAmountMl))),
-            ("Input pH", "#38bdf8", measurements.Where(x => x.IrrigationPh.HasValue).Select(x => (x.TakenAt, x.IrrigationPh))),
-            ("Drain pH", "#fb7185", measurements.Where(x => x.DrainPh.HasValue).Select(x => (x.TakenAt, x.DrainPh))),
-            ("Drain EC", "#22c55e", measurements.Where(x => x.DrainEc.HasValue).Select(x => (x.TakenAt, x.DrainEc))));
-    }
-
-    public ChartSeries BuildGrowWateringChart(IReadOnlyList<Measurement> measurements)
-    {
-        return _chartService.BuildSeries(
-            "Events & Aufwand",
-            "Pflege",
-            ("Runoff", "#a78bfa", measurements.Where(x => x.RunoffAmountMl.HasValue).Select(x => (x.TakenAt, x.RunoffAmountMl))),
-            ("Wasser", "#14b8a6", measurements.Where(x => x.WaterAmountMl.HasValue).Select(x => (x.TakenAt, x.WaterAmountMl))),
-            ("Höhe", "#f59e0b", measurements.Where(x => x.HeightCm.HasValue).Select(x => (x.TakenAt, x.HeightCm))));
-    }
-
     private static Measurement? BuildLatestComposite(IReadOnlyList<Measurement> measurements)
     {
         var ordered = measurements
@@ -839,29 +637,6 @@ public sealed class GrowDashboardComposer
             Tone = "accent",
             Hint = "Kein Sensor konfiguriert"
         };
-    }
-
-    public IReadOnlyList<GrowDeviation> BuildDeviationsForGrow(GrowRun grow, IReadOnlyList<Measurement> measurements)
-    {
-        try
-        {
-            var recent = measurements
-                .Where(m => m.GrowId == grow.Id)
-                .OrderByDescending(m => m.TakenAt)
-                .Take(3)
-                .ToList();
-
-            var weekInfo = _weekCounter.Calculate(grow);
-            var hydroDeviations = _deviationAnalyzer.Analyze(grow, recent);
-            var germinationDeviations = _deviationAnalyzer.CheckGerminationAndRooting(grow, weekInfo);
-
-            return hydroDeviations.Concat(germinationDeviations).ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Fehler bei Deviations-Berechnung für Grow {GrowId} ({GrowName})", grow.Id, grow.Name);
-            return Array.Empty<GrowDeviation>();
-        }
     }
 
     private static string FormatMetricValue(string key, double value)

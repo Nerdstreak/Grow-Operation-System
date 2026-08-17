@@ -102,9 +102,12 @@ public sealed class SensorHistoryApiController : ApiControllerBase
             tentId, metricKey, DateOnly.FromDateTime(fromUtc), DateOnly.FromDateTime(toUtc));
 
         // Median carries the day (robust against sensor spikes); min/max become the band.
+        // Der Stichtag ist ein LOKALER Kalendertag — als Zeitpunkt gehoert ihm
+        // die lokale Mitternacht, nicht die von UTC; sonst wandert der Punkt im
+        // Chart um den Zeitzonen-Versatz neben seine Tagesbeschriftung.
         var points = stats
             .Select(stat => new HistoryPointDto(
-                stat.Date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc), stat.Median, stat.Min, stat.Max))
+                stat.Date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime(), stat.Median, stat.Min, stat.Max))
             .ToList();
 
         var (label, unit) = AlertEvaluationService.MetricDisplay(metricKey);

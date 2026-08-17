@@ -33,7 +33,7 @@ public sealed class LegacyMvcEndpointContainmentTests : IDisposable
     [Fact]
     public void SettingsBackupDatabase_DoesNotReturnRawSqliteDatabase()
     {
-        var controller = new SettingsController(new GrowRepository(_paths));
+        var controller = new SettingsController();
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
 
         var result = controller.BackupDatabase();

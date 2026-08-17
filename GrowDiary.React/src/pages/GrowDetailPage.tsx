@@ -8,6 +8,7 @@ import { formatGrowStatus } from '../features/grow-detail/grow-detail-model'
 import { V1Alert, V1Badge, V1Button, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { buildPhaseTimeline, flipLabel } from '../features/grows/phase-timeline'
 import { NightRampCard } from '../features/grows/NightRampCard'
+import { GrowPlantsCard } from '../features/grow-detail/GrowPlantsCard'
 import type { GrowDeviationDto } from '../types'
 import { apiFetch } from '../api'
 
@@ -252,6 +253,11 @@ function GrowDetailPage() {
             )}
           </section>
         </div>
+
+        {/* Pflanzen einzeln, jede mit ihrer Sorte — der Mischgrow aus dem
+            Tester-Feedback. Vor der Nachtabsenkung: erst wer drin steht,
+            dann wie gefahren wird. */}
+        <GrowPlantsCard growId={grow.id} growPlantCount={grow.plantCount} />
 
         {/* Die Nachtabsenkung steht bei den Fakten, nicht bei der Verwaltung:
             sie ist eine Anbau-Entscheidung, kein Aufräumen. */}

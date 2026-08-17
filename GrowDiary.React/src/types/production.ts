@@ -44,8 +44,10 @@ export interface UpdateSetupRequest {
   quarantineResult?: QuarantineResult | null
 }
 
+export type SeedKind = 'Feminized' | 'Automatic' | 'Regular'
+
 export interface StrainDto {
-  seedKind: 'Feminized' | 'Automatic' | 'Regular' | null
+  seedKind: SeedKind | null
   thcPercent: number | null
   cbdPercent: number | null
   sativaPercent: number | null
@@ -78,6 +80,17 @@ export interface CreateStrainRequest {
   nutrientDemandFactor?: number | null
   stretchFactor?: number | null
   vpdPreferenceShift?: number | null
+  /* Zuechter-Felder aus beta.37 — die Leseseite (StrainDto) kannte sie schon,
+     die Schreibseite lief untypisiert daran vorbei. */
+  seedKind?: SeedKind | null
+  thcPercent?: number | null
+  cbdPercent?: number | null
+  sativaPercent?: number | null
+  taste?: string | null
+  effect?: string | null
+  aroma?: string | null
+  yieldIndoorGm2?: number | null
+  heightIndoorCm?: number | null
 }
 
 export type UpdateStrainRequest = CreateStrainRequest

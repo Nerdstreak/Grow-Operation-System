@@ -145,4 +145,22 @@ public sealed class GrowStageResolverTests
 
         Assert.Equal(GrowStage.Veg, GrowStageResolver.Resolve(grow, Heute));
     }
+
+    [Fact]
+    public void AutoflowerEnteringMidGrow_CountsTheBroughtDaysForTheAnchorToo()
+    {
+        // Einstieg mit 30 mitgebrachten Keimtagen, vor 10 Tagen angelegt: die
+        // Pflanze ist real an Tag 40, also 12 Tage in der Bluete. Vorher
+        // zaehlten die Extra-Tage nur fuer die 28-Tage-Schwelle, der Anker lag
+        // in der ZUKUNFT — und die Pflanze hing wochenlang im Uebergang.
+        var grow = Grow(g =>
+        {
+            g.SeedType = SeedType.Autoflower;
+            g.StartDate = Heute.AddDays(-10);
+            g.GerminatedAt = null;
+            g.AutoflowerDaysSinceGermination = 30;
+        });
+
+        Assert.Equal(GrowStage.Flower, GrowStageResolver.Resolve(grow, Heute));
+    }
 }

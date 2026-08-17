@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
-import type { GrowSummary, HarvestDto, StrainDominance, StrainDto } from '../types'
+import type { CreateStrainRequest, GrowSummary, HarvestDto, StrainDominance, StrainDto } from '../types'
 import type { PhenoHuntDto, PhenoPlantDto, PhenoWeightsDto } from '../types/pheno'
 import { PhenoSheetEditor } from '../features/pheno/PhenoSheetEditor'
 import type { SheetDraft } from '../features/pheno/pheno-sheet-model'
@@ -79,7 +79,7 @@ function int(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-function draftToRequest(draft: StrainDraft) {
+function draftToRequest(draft: StrainDraft): CreateStrainRequest {
   return {
     name: draft.name.trim(),
     breeder: draft.breeder.trim() || null,
@@ -126,7 +126,10 @@ function StrainsPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [openPlantId, setOpenPlantId] = useState<number | null>(null)
-  const [weightsOpen, setWeightsOpen] = useState(false)
+  // Die Gewichtung gilt app-weit, aber der Editor gehoert in das Panel, dessen
+  // Knopf gedrueckt wurde — vorher erschien er stur im ersten Hunt, und in
+  // jedem weiteren wirkte der Knopf schlicht tot.
+  const [weightsOpen, setWeightsOpen] = useState<number | null>(null)
   const [weightDraft, setWeightDraft] = useState<PhenoWeightsDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -197,11 +200,14 @@ function StrainsPage() {
       })
     // Beim Sortieren nach einer Zahl gehoert „keine Angabe" ans Ende, nicht
     // zwischen die Werte — sonst wirkt eine ungepflegte Sorte wie die beste.
+    // Absteigend heisst das -Unendlich, aufsteigend +Unendlich; die alte
+    // Negations-Konstruktion drehte die Bluetezeit komplett um.
     const zahl = (wert: number | null) => wert ?? Number.NEGATIVE_INFINITY
+    const zahlAufsteigend = (wert: number | null) => wert ?? Number.POSITIVE_INFINITY
     return gefiltert.sort((a, b) => {
       switch (sortBy) {
         case 'thc': return zahl(b.thcPercent) - zahl(a.thcPercent) || a.name.localeCompare(b.name, 'de')
-        case 'flower': return zahl(a.flowerWeeksMin != null ? -a.flowerWeeksMin : null) - zahl(b.flowerWeeksMin != null ? -b.flowerWeeksMin : null) || a.name.localeCompare(b.name, 'de')
+        case 'flower': return zahlAufsteigend(a.flowerWeeksMin) - zahlAufsteigend(b.flowerWeeksMin) || a.name.localeCompare(b.name, 'de')
         case 'yield': return zahl(b.yieldIndoorGm2) - zahl(a.yieldIndoorGm2) || a.name.localeCompare(b.name, 'de')
         default: return a.name.localeCompare(b.name, 'de')
       }
@@ -288,7 +294,7 @@ function StrainsPage() {
     try {
       await apiFetch('/api/pheno/weights', { method: 'PUT', body: JSON.stringify(weightDraft) })
       setNotice('Gewichtung gespeichert — die Noten sind neu berechnet.')
-      setWeightsOpen(false)
+      setWeightsOpen(null)
       setReloadKey((key) => key + 1)
     } catch (caught) {
       setError(caught instanceof ApiRequestError ? caught.message : 'Gewichtung konnte nicht gespeichert werden.')
@@ -438,16 +444,16 @@ function StrainsPage() {
         </section>
       )}
 
-      {hunts.map(({ grow, hunt }, index) => (
+      {hunts.map(({ grow, hunt }) => (
         <section key={grow.id} className="ls-panel" data-audit="pheno-hunt-panel">
           <div className="ls-panel-head">
             <span className="ls-label">Pheno-Hunt · {grow.strain ?? grow.name}</span>
             <span className="ls-panel-meta">{hunt.plants.length} Kandidaten · {weightSummary(weightDraft ?? hunt.weights)}</span>
-            <button type="button" className="ls-btn is-small" onClick={() => setWeightsOpen((open) => !open)}>
-              {weightsOpen ? 'Schließen' : 'Gewichtung'}
+            <button type="button" className="ls-btn is-small" onClick={() => setWeightsOpen((open) => (open === grow.id ? null : grow.id))}>
+              {weightsOpen === grow.id ? 'Schließen' : 'Gewichtung'}
             </button>
           </div>
-          {weightsOpen && weightDraft && index === 0 && (
+          {weightsOpen === grow.id && weightDraft && (
             <div className="ph-weights" data-audit="pheno-weights">
               <p className="gc-facts">Was zählt für dich? Die Noten werden nach dem Speichern neu berechnet.</p>
               <div className="ph-weight-grid">

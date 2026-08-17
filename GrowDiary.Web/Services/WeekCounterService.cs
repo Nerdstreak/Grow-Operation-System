@@ -73,8 +73,11 @@ public sealed class WeekCounterService
             growStart = growStart.Value.AddDays(-grow.DaysAlreadyInPhase.Value);
         }
 
-        // Photoperiod mit Flip
-        if (grow.FlipDate.HasValue)
+        // Photoperiod mit Flip. Ein VORAB eingetragener Flip-Termin zählt noch
+        // nicht: bis dahin ist der Grow vegetativ — sonst meldete der Zähler
+        // „Blüte Woche 0", während Kacheln und Ziele richtig Veg sagen
+        // (GrowStageResolver prüft dieselbe Grenze).
+        if (grow.FlipDate.HasValue && today >= grow.FlipDate.Value.Date)
         {
             var vegDays = (grow.FlipDate.Value.Date - growStart.Value).Days;
             var vegWeek = vegDays / 7 + 1;

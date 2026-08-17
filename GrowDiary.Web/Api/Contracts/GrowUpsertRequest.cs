@@ -44,7 +44,8 @@ public sealed class GrowUpsertRequest
     /// <summary>Duengerprogramm des Laufs (Id aus dem Wissen); null = keins.</summary>
     public string? FeedProgramId { get; set; }
 
-    public bool UseFeedChartTargets { get; set; }
+    /// <summary>Feedchart-Ziele als Opt-in; null heisst „Feld nicht mitgeschickt, Bestand behalten".</summary>
+    public bool? UseFeedChartTargets { get; set; }
     public string? Nutrients { get; set; }
 
     [Required]

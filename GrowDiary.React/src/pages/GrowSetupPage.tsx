@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { nurDatum } from '../features/grows/nur-datum'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { apiFetch, ApiRequestError } from '../api'
+import { apiFetch, formatApiError } from '../api'
 import type { GrowDetail, GrowEntryPoint, GrowStatus, GrowSummary, GrowUpsertPayload, HydroSetupDto, KnowledgeOverviewDto, NutrientProgramDto, SeedType, StartMaterial, StrainDto, TentDto } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { formatLiters, toNullableInt } from '../components/v1-utils'
@@ -37,6 +37,10 @@ function GrowSetupPage() {
   const [otherGrows, setOtherGrows] = useState<GrowSummary[]>([])
   const [form, setForm] = useState<GrowUpsertPayload>(() => emptyForm())
   const [customProgram, setCustomProgram] = useState('')
+  // Die gespeicherte Programm-Id des Grows. Ohne sie hing das Programm am
+  // Namensvergleich — und ein fehlgeschlagener Wissens-Abruf haette es beim
+  // Speichern still auf null gesetzt.
+  const [feedProgramId, setFeedProgramId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -61,6 +65,13 @@ function GrowSetupPage() {
         setPrograms(knowledge.programs ?? [])
         setOtherGrows(growsData)
         setStrains(strainData)
+        if (grow) {
+          setFeedProgramId(grow.feedProgramId ?? null)
+          // Ein Programm, das keiner Karte entspricht, ist ein eigenes — es
+          // gehoert beim Bearbeiten sichtbar ins Freitextfeld, nicht ins Leere.
+          const kartenTreffer = (knowledge.programs ?? []).some((program) => program.name === grow.nutrients || program.key === grow.nutrients)
+          if (grow.nutrients && !kartenTreffer) setCustomProgram(grow.nutrients)
+        }
         if (grow) setForm({ ...emptyForm(), name: grow.name, tentId: grow.tentId, systemId: grow.systemId, setupId: grow.setupId, strain: grow.strain, breeder: grow.breeder, seedType: grow.seedType, startMaterial: grow.startMaterial, hydroStyle: grow.hydroStyle, plantCount: grow.plantCount, reservoirSize: grow.reservoirSize, containerSize: grow.containerSize, light: grow.light, hasChiller: grow.hasChiller, waterSource: grow.waterSource, nutrients: grow.nutrients, startDate: nurDatum(grow.startDate) ?? emptyForm().startDate, entryPoint: grow.entryPoint, daysAlreadyInPhase: grow.daysAlreadyInPhase, autoflowerDaysSinceGermination: grow.autoflowerDaysSinceGermination, flipDate: nurDatum(grow.flipDate), notes: grow.notes, status: grow.status, environment: grow.environment, germinationMethod: grow.germinationMethod, propagationMedium: grow.propagationMedium, cloneSource: grow.cloneSource, cloneIsRooted: grow.cloneIsRooted, phenoNumber: grow.phenoNumber, breederFlowerWeeksMin: grow.breederFlowerWeeksMin, breederFlowerWeeksMax: grow.breederFlowerWeeksMax, plannedVegDays: grow.plannedVegDays, strainId: grow.strainId, setpointProfileId: grow.setpointProfileId ?? null })
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatApiError(caught, 'Grow-Wizard konnte nicht geladen werden.'))
@@ -76,7 +87,9 @@ function GrowSetupPage() {
   const exactHydro = useMemo(() => hydroSetups.filter((setup) => form.tentId ? setup.tentId === form.tentId : true), [form.tentId, hydroSetups])
   const availableHydro = exactHydro.length > 0 ? exactHydro : hydroSetups
   const selectedHydro = hydroSetups.find((setup) => setup.id === form.systemId) ?? null
-  const selectedProgram = programs.find((program) => program.name === form.nutrients || program.key === form.nutrients) ?? null
+  const selectedProgram = programs.find((program) => program.key === feedProgramId)
+    ?? programs.find((program) => program.name === form.nutrients || program.key === form.nutrients)
+    ?? null
 
   function patch(value: Partial<GrowUpsertPayload>) { setForm((current) => ({ ...current, ...value })) }
   function selectTent(id: number) { setForm((current) => ({ ...current, tentId: id, systemId: hydroSetups.some((setup) => setup.id === current.systemId && setup.tentId === id) ? current.systemId : null, setupId: null })) }
@@ -95,7 +108,9 @@ function GrowSetupPage() {
     try {
       // Die Programmkarte waehlte bisher nur einen NAMEN — jetzt traegt sie auch
       // die Id ins Wissen, und erst die macht den Mischplan moeglich.
-      const payload = { ...form, nutrients: form.nutrients || customProgram || null, setupId: form.setupId ?? null, feedProgramId: selectedProgram?.key ?? null }
+      // Faellt der Wissens-Abruf aus, haelt die gespeicherte Id das Programm —
+      // null wird nur daraus, wenn der Nutzer wirklich keins gewaehlt hat.
+      const payload = { ...form, nutrients: form.nutrients || customProgram || null, setupId: form.setupId ?? null, feedProgramId: selectedProgram?.key ?? feedProgramId }
       const saved = await apiFetch<GrowDetail>(isEditing && growId ? `/api/grows/${growId}` : '/api/grows', { method: isEditing ? 'PUT' : 'POST', body: JSON.stringify(payload) })
       navigate(`/grows/${saved.id}`)
     } catch (caught) {
@@ -138,7 +153,7 @@ function GrowSetupPage() {
           <TentStep tents={tents} selectedId={form.tentId} onSelect={selectTent} />
           <HydroStep setups={availableHydro} exactCount={exactHydro.length} selectedId={form.systemId ?? null} onSelect={selectHydro} tent={selectedTent} />
           <TimeStep form={form} patch={patch} />
-          <ProgramStep programs={programs} selected={form.nutrients ?? ''} custom={customProgram} setCustom={setCustomProgram} patch={patch} />
+          <ProgramStep programs={programs} selected={form.nutrients ?? ''} custom={customProgram} setCustom={setCustomProgram} selectProgram={setFeedProgramId} patch={patch} />
         </div>
 
         <aside className="grow-wizard-context">
@@ -306,16 +321,15 @@ function vegHinweis(form: GrowUpsertPayload): string {
   return `Flip am ${datum}, wenn ab Start gerechnet wird \u2014 mit Bewurzelungsdatum entsprechend spaeter.`
 }
 
-function ProgramStep({ programs, selected, custom, setCustom, patch }: { programs: NutrientProgramDto[]; selected: string; custom: string; setCustom: (value: string) => void; patch: (value: Partial<GrowUpsertPayload>) => void }) {
-  return <V1Section title="Programm"><div className="program-grid">{programs.map((program) => <button key={program.key} type="button" className={classNames('program-card', (selected === program.name || selected === program.key) && 'active')} onClick={() => { setCustom(''); patch({ nutrients: program.name }) }}><span className="grow-card-topline"><strong>{program.name}</strong><V1Badge tone="accent">{program.manufacturer}</V1Badge></span><span className="program-summary">{program.summary}</span></button>)}</div><div className="grow-custom-program"><V1Field label="Eigenes Programm"><input value={custom} onChange={(event) => { setCustom(event.target.value); patch({ nutrients: event.target.value || null }) }} placeholder="Eigene Mischung" /></V1Field></div></V1Section>
+function ProgramStep({ programs, selected, custom, setCustom, selectProgram, patch }: { programs: NutrientProgramDto[]; selected: string; custom: string; setCustom: (value: string) => void; selectProgram: (key: string | null) => void; patch: (value: Partial<GrowUpsertPayload>) => void }) {
+  return <V1Section title="Programm"><div className="program-grid">{programs.map((program) => <button key={program.key} type="button" className={classNames('program-card', (selected === program.name || selected === program.key) && 'active')} onClick={() => { setCustom(''); selectProgram(program.key); patch({ nutrients: program.name }) }}><span className="grow-card-topline"><strong>{program.name}</strong><V1Badge tone="accent">{program.manufacturer}</V1Badge></span><span className="program-summary">{program.summary}</span></button>)}</div><div className="grow-custom-program"><V1Field label="Eigenes Programm"><input value={custom} onChange={(event) => { setCustom(event.target.value); selectProgram(null); patch({ nutrients: event.target.value || null }) }} placeholder="Eigene Mischung" /></V1Field></div></V1Section>
 }
 
 function Summary({ form, tent, hydro, program, custom }: { form: GrowUpsertPayload; tent: TentDto | null; hydro: HydroSetupDto | null; program: NutrientProgramDto | null; custom: string }) {
-  return <V1Card className="grow-summary-card"><span className="v1-card-kicker">Grow-Basis</span><h2>{form.name || 'Neuer Grow'}</h2><div className="grow-summary-list"><span><b>Zelt</b>{tent?.name ?? 'offen'}</span><span><b>Hydro</b>{hydro?.name ?? 'offen'}</span><span><b>Programm</b>{program?.name ?? custom ?? form.nutrients ?? 'offen'}</span></div></V1Card>
+  return <V1Card className="grow-summary-card"><span className="v1-card-kicker">Grow-Basis</span><h2>{form.name || 'Neuer Grow'}</h2><div className="grow-summary-list"><span><b>Zelt</b>{tent?.name ?? 'offen'}</span><span><b>Hydro</b>{hydro?.name ?? 'offen'}</span><span><b>Programm</b>{program?.name || custom || form.nutrients || 'offen'}</span></div></V1Card>
 }
 
 function formatTentSize(tent: TentDto) { return !tent.widthCm && !tent.depthCm && !tent.tentHeightCm ? 'Größe offen' : `${tent.widthCm ?? '–'}×${tent.depthCm ?? '–'}×${tent.tentHeightCm ?? '–'} cm` }
 function validateStep(step: number, form: GrowUpsertPayload, hydro: HydroSetupDto | null) { if (step === 1 && !form.name.trim()) return 'Bitte Grow-Namen eingeben.'; if (step === 2 && !form.tentId) return 'Bitte Zelt wählen.'; if (step === 3 && !hydro) return 'Bitte Hydro-Setup wählen.'; return null }
-function formatApiError(caught: unknown, fallback: string) { return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback }
 
 export default GrowSetupPage

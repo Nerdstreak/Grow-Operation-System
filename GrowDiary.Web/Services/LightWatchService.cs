@@ -28,18 +28,6 @@ public sealed class LightWatchService
     }
 
     /// <summary>
-    /// Passt der Zyklus nicht zur Phase, kommt hier der Klartext-Hinweis.
-    /// </summary>
-    public string? MismatchFor(Tent tent, DateTime nowUtc)
-    {
-        if (_cycles.CycleFor(tent.Id, nowUtc) is not { } cycle) return null;
-        if (tent.ActiveGrows.FirstOrDefault() is not { } grow) return null;
-
-        var stage = GrowStageResolver.Resolve(grow, DateTime.Today);
-        return LightCycleLearner.Mismatch(cycle, stage, grow.SeedType);
-    }
-
-    /// <summary>
     /// Eine frische Einschaltflanke pruefen — und bei Einbruch sofort pushen.
     /// </summary>
     /// <remarks>

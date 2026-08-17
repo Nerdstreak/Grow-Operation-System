@@ -4,25 +4,6 @@ namespace GrowDiary.Web.Infrastructure;
 
 public static class AuditExtensions
 {
-    public static void LogGrowCreated(this AuditRepository repo, int growId, string name, int? templateId = null)
-        => repo.Add(new AuditEntry
-        {
-            GrowId = growId,
-            EntityType = "Grow",
-            Action = "Grow angelegt",
-            Summary = $"Setup \"{name}\" erstellt{(templateId.HasValue ? $" auf Basis Template #{templateId}" : string.Empty)}."
-        });
-
-    public static void LogGrowUpdated(this AuditRepository repo, int growId, string name, GrowStatus status, string profileLabel)
-        => repo.Add(new AuditEntry
-        {
-            GrowId = growId,
-            EntityType = "Grow",
-            EntityId = growId,
-            Action = "Setup geändert",
-            Summary = $"Setup von \"{name}\" aktualisiert. Status: {status}, Medium: {profileLabel}."
-        });
-
     public static void LogMeasurementCreated(this AuditRepository repo, int growId, int measurementId, GrowStage stage, DateTime takenAt, ValueOrigin source)
         => repo.Add(new AuditEntry
         {

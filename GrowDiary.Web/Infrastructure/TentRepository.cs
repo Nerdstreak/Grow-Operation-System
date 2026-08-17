@@ -319,6 +319,23 @@ public sealed class TentRepository : RepositoryBase
         using var connection = OpenConnection();
         using var transaction = connection.BeginTransaction();
 
+        // Die Sensor-Zeilen bekommen gleich neue Ids. HardwareItems heilt der
+        // TentSensorHardwareSyncService nach dem Speichern; RiskEvents heilt
+        // niemand — ein stehen gebliebener Verweis liesse spaeter jedes
+        // Bestaetigen/Loesen des Ereignisses an der Existenzpruefung platzen.
+        using (var unlinkCommand = connection.CreateCommand())
+        {
+            unlinkCommand.Transaction = transaction;
+            unlinkCommand.CommandText = """
+                UPDATE RiskEvents
+                   SET TentSensorId = NULL,
+                       UpdatedAtUtc = datetime('now')
+                 WHERE TentSensorId IN (SELECT Id FROM TentSensors WHERE TentId = $tentId);
+                """;
+            unlinkCommand.Parameters.AddWithValue("$tentId", tentId);
+            unlinkCommand.ExecuteNonQuery();
+        }
+
         using (var deleteCommand = connection.CreateCommand())
         {
             deleteCommand.Transaction = transaction;

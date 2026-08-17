@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { apiFetch, ApiRequestError } from '../api'
+import { apiFetch, ApiRequestError, formatApiError } from '../api'
 import type { CreateTentRequest, GrowSummary, HydroSetupDto, TentDependencyError, TentDependencySummaryDto, TentDto, TentLivePayload, TentType, UpdateTentRequest, UpdateTentSensorRequest } from '../types'
 import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Switch } from '../components/v1'
 import { toNullableInt, toNullableString } from '../components/v1-utils'
@@ -581,7 +581,6 @@ function liveValue(live: TentLivePayload | null, key: LiveMetricKey) {
   const metric = live?.metrics.find((item) => item.key === key)
   return metric ? `${metric.value}${metric.unit && metric.value !== '–' ? ` ${metric.unit}` : ''}` : '–'
 }
-function formatApiError(caught: unknown, fallback: string) { return caught instanceof ApiRequestError ? caught.message : caught instanceof Error ? caught.message : fallback }
 function isNotFound(caught: unknown) { return caught instanceof ApiRequestError && caught.status === 404 }
 
 export default TentsPage

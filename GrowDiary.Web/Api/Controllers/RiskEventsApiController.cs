@@ -209,31 +209,35 @@ public sealed class RiskEventsApiController : ApiControllerBase
             return ValidationError();
         }
 
+        // Der Fang gehoert NUR um den Start selbst: UpdateRiskEvent weiter unten
+        // wirft dieselbe Exception-Art bei Validierungsfehlern, und die wuerde
+        // hier sonst faelschlich als „SOP bereits aktiv" verkauft.
+        SopInstance instance;
         try
         {
             var notes = BuildRiskEventSopNotes(riskEvent, request.Notes);
-            var instance = _repository.StartSopInstance(
+            instance = _repository.StartSopInstance(
                 riskEvent.GrowId.Value,
                 sop!,
                 SopStartSource.Recommendation,
                 $"risk-event:{riskEvent.Id}:{sop!.Id}",
                 null,
                 notes);
-
-            CreateReminderTasksForSteps(instance);
-
-            if (!riskEvent.SopInstanceId.HasValue)
-            {
-                riskEvent.SopInstanceId = instance.Id;
-                _repository.UpdateRiskEvent(riskEvent);
-            }
-
-            return CreatedAtAction("Detail", "SopInstances", new { id = instance.Id }, _repository.GetSopInstance(instance.Id)!.ToDto());
         }
         catch (InvalidOperationException)
         {
             return ConflictError("active_sop_exists", "Fuer diesen Grow ist diese SOP bereits aktiv.");
         }
+
+        CreateReminderTasksForSteps(instance);
+
+        if (!riskEvent.SopInstanceId.HasValue)
+        {
+            riskEvent.SopInstanceId = instance.Id;
+            _repository.UpdateRiskEvent(riskEvent);
+        }
+
+        return CreatedAtAction("Detail", "SopInstances", new { id = instance.Id }, _repository.GetSopInstance(instance.Id)!.ToDto());
     }
 
     private void Validate(

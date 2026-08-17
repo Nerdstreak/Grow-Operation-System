@@ -1,13 +1,6 @@
 /* Messwert-Kachel mit Zielband — Maße aus dem Entwurf. */
 @layer features {
 
-  .gos-metric-block { display: grid; gap: 7px; }
-  .gos-metric-title { display: flex; align-items: center; gap: 8px; }
-  .gos-metric-title > span:first-child {
-    font: 500 10px/1 var(--font-mono); letter-spacing: .18em; color: var(--faint);
-  }
-  .gos-metric-title .rule { flex: 1; height: 1px; background: var(--hair); }
-
   /* Umbrechend statt Raster: 8, 10, 12 Werte sind einfach mehr Zeilen, und die
      Reihenfolge bleibt dabei fest — man sucht einen Wert dort, wo er letztes Mal
      stand, nicht dort, wo eine Sortierung ihn gerade hinschiebt. */

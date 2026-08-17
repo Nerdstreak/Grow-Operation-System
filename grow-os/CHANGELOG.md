@@ -1,5 +1,68 @@
 # Changelog
 
+## 2.0.0-beta.38
+
+**Beta.** A full audit of the codebase — every finding fixed in the same
+release. An agent swarm read the app five ways (dead code, backend logic, API
+contracts, and twice through a tester's eyes); each serious finding was then
+independently re-verified before anything was changed.
+
+- Fixed — **editing a grow silently erased its history.** The edit form
+  rebuilds the whole row, and it never knew about confirmed milestones
+  (germination, veg, finish), the end date, the night-ramp switch or the feed
+  chart opt-in. Changing a note and saving reset the week counter, took the
+  archive its runtime and turned the ramp off — without a word. All of it is
+  now preserved unless the form actually carries the field, and a round-trip
+  test pins each one. The mix-plan program also travels by its stored id now,
+  so a failed knowledge fetch can no longer null it on save.
+- Fixed — **saving a tent disarmed the night ramp.** Every tent save (even
+  just remapping a sensor) cleared the ramp's target device, and the switch on
+  the grow kept saying "on" while nothing was written to Home Assistant. Tents
+  from before the multi-camera list also lost their camera on edit. Both fields
+  survive now.
+- Fixed — **hard water broke the water profile round trip.** 1234 µS/cm was
+  displayed as "1.234" (German thousands separator) and read back as 1,234 —
+  a thousandth of the value, silently. Large values now render without
+  grouping, and the parser understands both German and meter-display notation.
+- Fixed — **autoflowers got the wrong feed chart column.** Without a flip date
+  the mix plan used the week since seed as the *flower* week — two to four
+  columns too far right, wrong millilitres, wrong EC target. Flower weeks now
+  count from the calculated flower start, the same anchor the stage resolver
+  uses. An autoflower entered mid-grow also no longer hangs in "transition"
+  for weeks: the brought-along days move the anchor too.
+- Fixed — **auto-measurements were timestamped two hours in the past** (UTC
+  written into a local-time column — the same family as the old UTC bug, one
+  more member found). Daily statistics also bundled 02:00–02:00 instead of a
+  real calendar day, the daily dosing limit reset at 02:00 (so a pump could
+  legally double its "per day" cap within one local day), and the nightly
+  aggregation could skip its five-minute window and lose a day for good. All
+  four clocks now agree on what "a day" means.
+- Fixed — **the week counter announced "Blüte Woche 0"** when a flip date was
+  entered ahead of time; it now stays vegetative until the date arrives, like
+  the rest of the app. A light schedule with identical on/off times no longer
+  counts as 24 h of light in the cost estimate. A recovery push that could not
+  be delivered (quiet hours, HA down) is retried instead of silently dropped —
+  the same rule the alarm path already had.
+- Fixed — **small tester traps.** "Blütezeit kürzeste zuerst" sorted exactly
+  backwards and put unfilled strains first. With two pheno hunts open, the
+  weights button only ever worked in the first panel. Journal milestones from
+  "Veg bestätigt" and "Finish begonnen" rendered as grey notes. The SOP button
+  on risk cards showed even when the risk had no grow. Editing a grow with a
+  custom nutrient program showed an empty program line. Resolving a sensor risk
+  event after re-saving the tent mapping could crash on a stale sensor id.
+- New — **tasks can be deleted.** The endpoint existed, complete with audit
+  log — no surface ever offered it. Each open task now has a quiet ✕ next to
+  "Erledigt", for the appointments that should never have existed.
+- Changed — **roughly a thousand lines of dead code are gone.** A never-used
+  server chart pipeline, a template repository seeded on every start for a
+  feature that never shipped, duplicate alert endpoints, two still-armed legacy
+  MVC write routes (now properly 410), five orphaned service methods, a dead
+  status service, and the CSS of three retired designs (the "Instrument
+  Cluster" live dashboard, the five-step hydro wizard, the second app shell,
+  the removed AI advisor). Nine identical copies of the same error formatter
+  became one. Detail routes that answer Create's Location header stayed —
+  deleting those would have traded dead code for a live crash.
+
 ## 2.0.0-beta.37
 
 **Beta.** Second round of field feedback: one display bug that looked like data
