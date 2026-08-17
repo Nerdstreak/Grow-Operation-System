@@ -78,6 +78,53 @@ public sealed partial class HardwareRepository
     }
 
 
+    /// <summary>
+    /// „Ich habe kalibriert" — schliesst den Termin ab UND legt den naechsten an.
+    /// </summary>
+    /// <remarks>
+    /// <para>Der zweite Teil ist der wichtige. <c>ApplyCalibrationDefaults</c>
+    /// rechnet beim Abschliessen zwar ein <c>NextDueAtUtc</c> aus, aber die
+    /// Erinnerung liest nur Eintraege mit <c>DueAtUtc</c> und Status
+    /// <c>Planned</c>. Ohne den Folgetermin waere nach der ersten Kalibrierung
+    /// für immer Ruhe gewesen — eine Sonde, die niemand mehr anmahnt, driftet
+    /// still, und genau dafuer gibt es die Erinnerung.</para>
+    ///
+    /// <para>Das fiel bis jetzt niemandem auf, weil die Oberflaeche gar keinen
+    /// Weg zum Abschliessen hatte.</para>
+    /// </remarks>
+    public CalibrationEvent CompleteCalibrationEvent(CalibrationEvent item)
+    {
+        UpdateCalibrationEvent(item);
+
+        var abgeschlossen = GetCalibrationEvent(item.Id)!;
+        if (abgeschlossen.Status is not (CalibrationEventStatus.Completed or CalibrationEventStatus.Failed)
+            || abgeschlossen.NextDueAtUtc is not { } faelligAm)
+        {
+            return abgeschlossen;
+        }
+
+        // Nicht doppelt planen: wer zweimal auf „kalibriert" tippt, bekommt
+        // keine zwei Erinnerungen fuer denselben Termin.
+        var offen = GetOpenCalibrationEventsByHardwareItem(abgeschlossen.HardwareItemId);
+        if (offen.Any(e => e.CalibrationType == abgeschlossen.CalibrationType))
+        {
+            return abgeschlossen;
+        }
+
+        CreateCalibrationEvent(new CalibrationEvent
+        {
+            HardwareItemId = abgeschlossen.HardwareItemId,
+            CalibrationType = abgeschlossen.CalibrationType,
+            Status = CalibrationEventStatus.Planned,
+            Title = abgeschlossen.Title,
+            ReferenceSolution = abgeschlossen.ReferenceSolution,
+            DueAtUtc = faelligAm,
+        });
+
+        return abgeschlossen;
+    }
+
+
     public CalibrationEvent? GetCalibrationEvent(int id)
     {
         using var connection = OpenConnection();

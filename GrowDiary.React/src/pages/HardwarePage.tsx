@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { apiFetch, ApiRequestError } from '../api'
+import { apiFetch, ApiRequestError, formatApiError } from '../api'
 import type { CalibrationEventDto, CreateHardwareItemRequest, HardwareDeviceKind, HardwareItemCriticality, HardwareItemDto, HardwareItemStatus, HomeAssistantEntity, HydroSetupDto, MaintenanceEventDto, TentDto, UpdateHardwareItemRequest, WearTemplateDto } from '../types'
-import { V1Alert, V1Badge, V1Button, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { classNames, formatSeverityLabel } from '../utils'
 import type { HardwareFilter, HardwareRow } from '../features/hardware/hardware-table-model'
 import { buildHardwareRows, countBy, dueLabel, filterHardwareRows, statusLabel, statusTone } from '../features/hardware/hardware-table-model'
@@ -16,6 +16,28 @@ const FILTERS: Array<{ value: HardwareFilter; label: string }> = [
   { value: 'geraete', label: 'Technik' },
   { value: 'pflege', label: 'Pflege geplant' },
 ]
+
+/** Der Beleg für „hab ich gemacht" — bei Wartung bleiben die Messfelder leer. */
+type CareDraft = {
+  eventId: number
+  kind: 'Wartung' | 'Kalibrierung'
+  geraet: string
+  titel: string
+  datum: string
+  referenz: string
+  vorher: string
+  nachher: string
+  notiz: string
+  problem: boolean
+}
+
+/** Leeres Feld heisst „nicht gemessen", nicht „null gemessen". */
+function zahlOderNull(wert: string): number | null {
+  const roh = wert.trim().replace(',', '.')
+  if (roh === '') return null
+  const zahl = Number(roh)
+  return Number.isFinite(zahl) ? zahl : null
+}
 
 type HardwareDraft = {
   name: string
@@ -70,8 +92,67 @@ function HardwarePage() {
   const [saving, setSaving] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Der offene „hab ich gemacht"-Beleg: null = keiner.
+  const [careDraft, setCareDraft] = useState<CareDraft | null>(null)
 
   useEffect(() => { void load() }, [])
+
+  function openCare(row: HardwareRow) {
+    if (!row.nextCare) return
+    setMessage(null)
+    setError(null)
+    setCareDraft({
+      eventId: row.nextCare.eventId,
+      kind: row.nextCare.kind,
+      geraet: row.item.name,
+      titel: row.nextCare.title,
+      datum: new Date().toISOString().slice(0, 10),
+      referenz: '',
+      vorher: '',
+      nachher: '',
+      notiz: '',
+      problem: false,
+    })
+  }
+
+  /**
+   * Den Termin abschliessen — und damit den naechsten planen.
+   *
+   * Der Folgetermin entsteht im Backend (`/complete`), nicht hier: nur dort
+   * ist bekannt, welches Intervall am Geraet haengt, und nur dort laesst sich
+   * verhindern, dass zwei Erinnerungen fuer denselben Termin entstehen.
+   */
+  async function saveCare() {
+    if (!careDraft) return
+    setSaving('care')
+    setError(null)
+    try {
+      const pfad = careDraft.kind === 'Kalibrierung' ? 'calibration-events' : 'maintenance-events'
+      const koerper = careDraft.kind === 'Kalibrierung'
+        ? {
+            performedAtUtc: new Date(careDraft.datum).toISOString(),
+            referenceSolution: careDraft.referenz.trim() || null,
+            beforeValue: zahlOderNull(careDraft.vorher),
+            afterValue: zahlOderNull(careDraft.nachher),
+            notes: careDraft.notiz.trim() || null,
+            failed: careDraft.problem,
+          }
+        : {
+            performedAtUtc: new Date(careDraft.datum).toISOString(),
+            notes: careDraft.notiz.trim() || null,
+            actionNeeded: careDraft.problem,
+          }
+
+      await apiFetch(`/api/${pfad}/${careDraft.eventId}/complete`, { method: 'POST', body: JSON.stringify(koerper) })
+      setCareDraft(null)
+      setMessage(`${careDraft.kind} für „${careDraft.geraet}“ eingetragen — der nächste Termin steht.`)
+      await load()
+    } catch (caught) {
+      setError(formatApiError(caught, 'Konnte nicht eingetragen werden.'))
+    } finally {
+      setSaving(null)
+    }
+  }
 
   /**
    * Eine Vorlage wählen füllt Lebensdauer und Prüfintervall.
@@ -297,6 +378,56 @@ function HardwarePage() {
       {error && <V1Alert title="Fehler" message={error} tone="warn" />}
       {message && <V1Alert message={message} tone="ok" />}
 
+      {careDraft && (
+        <V1Section title={`${careDraft.kind} eintragen · ${careDraft.geraet}`}>
+          <V1Card>
+            <div className="hw-care-form" data-audit="care-form">
+              <p className="gc-facts">
+                {careDraft.titel}
+                {careDraft.kind === 'Kalibrierung'
+                  ? ' — die Werte sind freiwillig. Wer sie einträgt, sieht später am Vorher-Wert, wann die Sonde müde wird.'
+                  : ' — Datum genügt; der nächste Termin wird daraus gerechnet.'}
+              </p>
+              <div className="hw-care-grid">
+                <V1Field label="Wann">
+                  <input type="date" value={careDraft.datum} onChange={(event) => setCareDraft((current) => current && ({ ...current, datum: event.target.value }))} />
+                </V1Field>
+                {careDraft.kind === 'Kalibrierung' && (
+                  <>
+                    <V1Field label="Referenzlösung" hint="z. B. pH 7,0 oder 1413 µS/cm">
+                      <input value={careDraft.referenz} onChange={(event) => setCareDraft((current) => current && ({ ...current, referenz: event.target.value }))} placeholder="pH 7,0" />
+                    </V1Field>
+                    <V1Field label="Vorher gemessen" hint="Was die Sonde ANZEIGTE, bevor du kalibriert hast">
+                      <input inputMode="decimal" value={careDraft.vorher} onChange={(event) => setCareDraft((current) => current && ({ ...current, vorher: event.target.value }))} placeholder="6,8" />
+                    </V1Field>
+                    <V1Field label="Nachher">
+                      <input inputMode="decimal" value={careDraft.nachher} onChange={(event) => setCareDraft((current) => current && ({ ...current, nachher: event.target.value }))} placeholder="7,0" />
+                    </V1Field>
+                  </>
+                )}
+                <V1Field label="Notiz">
+                  <input value={careDraft.notiz} onChange={(event) => setCareDraft((current) => current && ({ ...current, notiz: event.target.value }))} placeholder="optional" />
+                </V1Field>
+              </div>
+              <label className="hw-care-check">
+                <input type="checkbox" checked={careDraft.problem} onChange={(event) => setCareDraft((current) => current && ({ ...current, problem: event.target.checked }))} />
+                <span>
+                  {careDraft.kind === 'Kalibrierung'
+                    ? 'Sonde nimmt den Referenzwert nicht mehr an — Austausch prüfen'
+                    : 'Dabei etwas gefunden — Ersatz oder Reparatur nötig'}
+                </span>
+              </label>
+              <div className="co-actions">
+                <V1Button variant="primary" disabled={saving === 'care'} audit="care-save" onClick={() => void saveCare()}>
+                  {saving === 'care' ? 'Speichert…' : 'Eintragen'}
+                </V1Button>
+                <V1Button onClick={() => setCareDraft(null)}>Abbrechen</V1Button>
+              </div>
+            </div>
+          </V1Card>
+        </V1Section>
+      )}
+
       <div className="co-strip" data-audit="hardware-kpis">
         <div className="co-cell"><div className="co-cell-label">Geräte</div><div className="co-cell-value is-lg">{hardware.length}</div></div>
         <div className="co-cell"><div className="co-cell-label">Live über HA</div><div className="co-cell-value is-lg">{hardware.filter((item) => item.haEntityId).length}</div></div>
@@ -355,6 +486,7 @@ function HardwarePage() {
                         onStatus={updateHardwareStatus}
                         onEdit={startEdit}
                         onDelete={deleteHardware}
+                        onCare={openCare}
                       />
                     ))}
                   </tbody>
@@ -425,7 +557,7 @@ function HardwarePage() {
 }
 
 /** Eine Gerätezeile. Bei schmalem Rahmen legt hardware.css sie zu einer Karte um. */
-function HardwareRowView({ row, liveState, saving, onStatus, onEdit, onDelete }: { row: HardwareRow; liveState: string | null; saving: boolean; onStatus: (item: HardwareItemDto, status: HardwareItemStatus) => void; onEdit: (item: HardwareItemDto) => void; onDelete: (item: HardwareItemDto) => void }) {
+function HardwareRowView({ row, liveState, saving, onStatus, onEdit, onDelete, onCare }: { row: HardwareRow; liveState: string | null; saving: boolean; onStatus: (item: HardwareItemDto, status: HardwareItemStatus) => void; onEdit: (item: HardwareItemDto) => void; onDelete: (item: HardwareItemDto) => void; onCare: (row: HardwareRow) => void }) {
   const { item } = row
   return (
     <tr className={classNames(row.overdue && 'overdue')}>
@@ -452,6 +584,14 @@ function HardwareRowView({ row, liveState, saving, onStatus, onEdit, onDelete }:
       </td>
       <td data-label="Aktionen">
         <div className="hw-actions">
+          {/* Der Termin stand hier immer nur da. Wer kalibriert hat, brauchte
+              eine Stelle, an der er das sagen kann — sonst mahnt die App ewig
+              etwas an, das längst erledigt ist. */}
+          {row.nextCare && (
+            <V1Button variant="primary" audit="care-complete" onClick={() => onCare(row)}>
+              {row.nextCare.kind === 'Kalibrierung' ? 'Kalibriert' : 'Gemacht'}
+            </V1Button>
+          )}
           <V1Button onClick={() => onEdit(item)}>Bearbeiten</V1Button>
           <V1Button disabled={saving} onClick={() => void onStatus(item, item.status === 'Offline' ? 'Active' : 'Offline')}>{item.status === 'Offline' ? 'Aktivieren' : 'Offline'}</V1Button>
           <V1Button variant="danger" disabled={saving} audit="hardware-delete-button" onClick={() => void onDelete(item)}>{saving ? 'Löscht...' : 'Löschen'}</V1Button>

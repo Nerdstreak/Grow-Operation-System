@@ -69,4 +69,10 @@
     .hw-table td[data-label="Aktionen"]::before { content: none; }
     .hw-actions { justify-content: flex-start; }
   }
+
+  /* ---------- „Hab ich gemacht" ---------- */
+  .hw-care-form { display: grid; gap: var(--s-3); }
+  .hw-care-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--s-3); }
+  .hw-care-check { display: flex; align-items: center; gap: 10px; min-height: 44px; color: var(--muted); font-size: 13px; }
+  .hw-care-check input { width: 18px; height: 18px; }
 }

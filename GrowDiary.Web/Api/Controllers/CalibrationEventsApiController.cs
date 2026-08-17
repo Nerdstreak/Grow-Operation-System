@@ -92,6 +92,46 @@ public sealed class CalibrationEventsApiController : ApiControllerBase
         return Ok(_repository.GetCalibrationEvent(id)!.ToDto());
     }
 
+    /// <summary>„Habe kalibriert" — der Termin ist erledigt, der naechste steht.</summary>
+    /// <remarks>
+    /// Eigener Endpunkt statt eines PUT mit Status=Completed: das ist die
+    /// Handlung, die der Nutzer wirklich ausfuehrt, und nur hier wird der
+    /// Folgetermin geplant. Ein generisches Update darf das nicht heimlich tun.
+    /// </remarks>
+    [HttpPost("{id:int}/complete")]
+    [ProducesResponseType(typeof(CalibrationEventDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<CalibrationEventDto> Complete(int id, [FromBody] CompleteCalibrationEventRequest request)
+    {
+        var item = _repository.GetCalibrationEvent(id);
+        if (item is null)
+        {
+            return NotFoundError("calibration_event_not_found", $"CalibrationEvent mit Id {id} existiert nicht.");
+        }
+
+        if (request.TemperatureC is < -10m or > 60m)
+        {
+            ModelState.AddModelError(nameof(request.TemperatureC), "TemperatureC muss zwischen -10 und 60 liegen.");
+            return ValidationError();
+        }
+
+        item.Status = request.Failed ? CalibrationEventStatus.Failed : CalibrationEventStatus.Completed;
+        item.Result = request.Failed ? CalibrationResult.Failed : CalibrationResult.Passed;
+        item.PerformedAtUtc = request.PerformedAtUtc?.ToUniversalTime() ?? DateTime.UtcNow;
+        // Ein neuer Folgetermin wird gerechnet, nicht uebernommen: das alte
+        // NextDueAtUtc gehoerte zur vorherigen Runde.
+        item.NextDueAtUtc = null;
+        if (!string.IsNullOrWhiteSpace(request.ReferenceSolution)) item.ReferenceSolution = request.ReferenceSolution.Trim();
+        if (request.ReferenceValue.HasValue) item.ReferenceValue = request.ReferenceValue;
+        if (request.BeforeValue.HasValue) item.BeforeValue = request.BeforeValue;
+        if (request.AfterValue.HasValue) item.AfterValue = request.AfterValue;
+        if (request.TemperatureC.HasValue) item.TemperatureC = request.TemperatureC;
+        if (!string.IsNullOrWhiteSpace(request.Notes)) item.Notes = request.Notes.Trim();
+
+        return Ok(_repository.CompleteCalibrationEvent(item).ToDto());
+    }
+
     private void Validate(
         int hardwareItemId,
         CalibrationEventType calibrationType,

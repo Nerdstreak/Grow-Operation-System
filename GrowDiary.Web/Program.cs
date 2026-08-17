@@ -335,6 +335,24 @@ app.MapControllers();
 // at the site root ("/") and behind the Home Assistant ingress (the request PathBase).
 app.MapFallback(async context =>
 {
+    // „Fuer alle non-API-Routen" stand hier immer im Kommentar — geprueft hat
+    // es niemand. Ein unbekannter /api/-Pfad bekam die Startseite mit Status
+    // 200: ein Tippfehler im Client sah damit nach Erfolg aus, und wer JSON
+    // erwartete, bekam HTML und eine kryptische Parse-Meldung statt eines
+    // klaren 404. (Gefunden beim Aufraeumen: drei DELETEs meldeten 200, und
+    // geloescht war trotzdem nichts.)
+    if (context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        context.Response.ContentType = "application/problem+json; charset=utf-8";
+        await context.Response.WriteAsJsonAsync(ApiErrorFactory.Create(
+            "endpoint_not_found",
+            $"Es gibt keinen Endpunkt {context.Request.Method} {context.Request.Path}.",
+            StatusCodes.Status404NotFound,
+            traceId: context.TraceIdentifier));
+        return;
+    }
+
     context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
     context.Response.ContentType = "text/html; charset=utf-8";
 

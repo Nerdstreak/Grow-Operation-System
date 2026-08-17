@@ -86,24 +86,20 @@ GROW-2 · Grow Wizard final
 }
 
 .grow-card-meta,
-.program-summary,
-.program-stage {
+.program-summary {
   color: var(--muted);
   font-size: .9rem;
   line-height: 1.45;
 }
 
-.grow-card-facts,
-.program-targets {
+.grow-card-facts {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: auto;
 }
 
-.grow-card-facts b,
-.program-targets b,
-.program-stage {
+.grow-card-facts b {
   border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
   border-radius: 999px;
   padding: 6px 9px;
@@ -115,13 +111,6 @@ GROW-2 · Grow Wizard final
 .grow-custom-program {
   margin-top: 14px;
   max-width: 620px;
-}
-
-.grow-review-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
 }
 
 .grow-summary-card {
@@ -152,11 +141,6 @@ GROW-2 · Grow Wizard final
 
 .grow-summary-list b {
   color: color-mix(in oklch, var(--text) 88%, var(--muted));
-}
-
-.grow-summary-stats .v1-stat {
-  min-height: 92px;
-  padding: 12px;
 }
 
 @media (max-width: 980px) {
@@ -197,19 +181,12 @@ GROW-2 · Grow Wizard final
   }
 
   .grow-card-facts,
-  .program-targets {
+  .grow-card-facts {
     gap: 6px;
   }
 
-  .grow-card-facts b,
-  .program-targets b,
-  .program-stage {
+  .grow-card-facts b {
     font-size: .74rem;
-  }
-
-  .grow-review-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
   }
 
   .sticky-actions {
@@ -218,7 +195,4 @@ GROW-2 · Grow Wizard final
 }
 
 @media (max-width: 430px) {
-  .grow-review-grid {
-    grid-template-columns: 1fr;
-  }
 }

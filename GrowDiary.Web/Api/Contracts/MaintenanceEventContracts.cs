@@ -58,3 +58,13 @@ public sealed class UpdateMaintenanceEventRequest
     public int? SopInstanceId { get; set; }
     public string? Notes { get; set; }
 }
+
+/// <summary>„Ist gemacht" — Datum und optional eine Notiz.</summary>
+public sealed class CompleteMaintenanceEventRequest
+{
+    public DateTime? PerformedAtUtc { get; set; }
+    public string? Notes { get; set; }
+
+    /// <summary>Beim Nachsehen etwas gefunden — Teil verschlissen, Ersatz faellig.</summary>
+    public bool ActionNeeded { get; set; }
+}

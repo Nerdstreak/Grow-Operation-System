@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.0.0-beta.39
+
+**Beta.** The follow-ups from the audit — and one of them turned out to hide a
+real bug.
+
+- New — **you can finally say "I calibrated it".** The app has always shown
+  "pH probe due in 3 days"; there was no way anywhere to record that you did
+  it. Now every due row on **Sensoren & Wartung** has a button: date,
+  optionally the reference solution and the before/after readings, a note, and
+  a checkbox for "the probe won't take the reference any more". Maintenance
+  works the same way with just a date.
+- Fixed — **the calibration cycle would have stopped after the first entry.**
+  Completing a calibration calculated a next-due date, but the reminder only
+  ever reads *planned* entries with a due date — and nobody created one. The
+  first "done" would have silenced the reminder for good, and a pH probe that
+  nobody nags about drifts quietly. Completing now schedules the next
+  appointment (from that device's interval), including after a failed
+  calibration — that is exactly when you want to be reminded. Four tests pin
+  the cycle down.
+- Fixed — **unknown API paths answered "200 OK" with the start page.** The SPA
+  fallback caught every unmatched route, `/api/…` included. A typo in a client
+  path looked like success, a request to an endpoint that doesn't exist
+  reported 200 and did nothing, and anything expecting JSON got HTML and a
+  parse error that pointed nowhere near the cause. Found the honest way: while
+  cleaning up test data, three DELETEs reported 200 and deleted nothing. API
+  paths now return a proper 404 with the usual error body.
+- Changed — **the rest of the dead CSS is gone.** The retired OPS-1 operations
+  views and the Sweetspot score colours (90-operations.css: 195 → 140 lines),
+  plus four orphaned wizard rules. The three files left on the audit's list
+  are now clean — with one correction: the "dead" classes flagged in
+  `10-grow-wizard-legacy.css` only ever appeared in the comment describing an
+  earlier cleanup. Nothing to remove there.
+
 ## 2.0.0-beta.38
 
 **Beta.** A full audit of the codebase — every finding fixed in the same

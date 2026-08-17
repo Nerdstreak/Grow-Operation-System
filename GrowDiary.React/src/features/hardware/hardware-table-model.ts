@@ -19,7 +19,8 @@ export type HardwareRow = {
   item: HardwareItemDto
   tentName: string | null
   /** Die nächste fällige Pflege — Wartung oder Kalibrierung, je nachdem was früher kommt. */
-  nextCare: { kind: 'Wartung' | 'Kalibrierung'; title: string; dueAtUtc: string | null } | null
+  /** `eventId` traegt den offenen Termin — ohne ihn liesse er sich nicht abhaken. */
+  nextCare: { eventId: number; kind: 'Wartung' | 'Kalibrierung'; title: string; dueAtUtc: string | null } | null
   /** Tage bis zur Fälligkeit; negativ heißt überfällig. Ohne Termin null. */
   dueInDays: number | null
   overdue: boolean
@@ -59,6 +60,7 @@ export function buildHardwareRows(
   const care = new Map<number, HardwareRow['nextCare']>()
   const consider = (
     hardwareItemId: number,
+    eventId: number,
     kind: 'Wartung' | 'Kalibrierung',
     title: string,
     dueAtUtc: string | null,
@@ -71,14 +73,14 @@ export function buildHardwareRows(
       if (!dueAtUtc) return
       if (current.dueAtUtc && current.dueAtUtc <= dueAtUtc) return
     }
-    care.set(hardwareItemId, { kind, title, dueAtUtc })
+    care.set(hardwareItemId, { eventId, kind, title, dueAtUtc })
   }
 
   for (const event of maintenance) {
-    if (event.status === 'Planned') consider(event.hardwareItemId, 'Wartung', event.title, event.dueAtUtc)
+    if (event.status === 'Planned') consider(event.hardwareItemId, event.id, 'Wartung', event.title, event.dueAtUtc)
   }
   for (const event of calibration) {
-    if (event.status === 'Planned') consider(event.hardwareItemId, 'Kalibrierung', event.title, event.dueAtUtc)
+    if (event.status === 'Planned') consider(event.hardwareItemId, event.id, 'Kalibrierung', event.title, event.dueAtUtc)
   }
 
   return hardware

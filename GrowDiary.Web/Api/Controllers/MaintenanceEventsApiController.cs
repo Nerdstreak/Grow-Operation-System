@@ -92,6 +92,29 @@ public sealed class MaintenanceEventsApiController : ApiControllerBase
         return Ok(_repository.GetMaintenanceEvent(id)!.ToDto());
     }
 
+    /// <summary>„Ist gemacht" — Wartung abschliessen, naechster Termin steht.</summary>
+    [HttpPost("{id:int}/complete")]
+    [ProducesResponseType(typeof(MaintenanceEventDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<MaintenanceEventDto> Complete(int id, [FromBody] CompleteMaintenanceEventRequest request)
+    {
+        var item = _repository.GetMaintenanceEvent(id);
+        if (item is null)
+        {
+            return NotFoundError("maintenance_event_not_found", $"MaintenanceEvent mit Id {id} existiert nicht.");
+        }
+
+        // Die Wartung HAT stattgefunden — auch wenn sie etwas zutage gefoerdert
+        // hat. Deshalb immer Completed; der Befund steht im Ergebnis.
+        item.Status = MaintenanceEventStatus.Completed;
+        item.Result = request.ActionNeeded ? MaintenanceResult.ActionNeeded : MaintenanceResult.Passed;
+        item.PerformedAtUtc = request.PerformedAtUtc?.ToUniversalTime() ?? DateTime.UtcNow;
+        item.NextDueAtUtc = null; // wird neu gerechnet, der alte Wert gehoerte zur letzten Runde
+        if (!string.IsNullOrWhiteSpace(request.Notes)) item.Notes = request.Notes.Trim();
+
+        return Ok(_repository.CompleteMaintenanceEvent(item).ToDto());
+    }
+
     private void Validate(
         int hardwareItemId,
         MaintenanceEventType eventType,

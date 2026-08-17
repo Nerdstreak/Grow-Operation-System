@@ -73,6 +73,42 @@ public sealed partial class HardwareRepository
     }
 
 
+    /// <summary>„Ist gemacht" — schliesst die Wartung ab und plant die naechste.</summary>
+    /// <remarks>Gleiche Begruendung wie bei der Kalibrierung: die Erinnerung
+    /// liest nur geplante Eintraege mit Faelligkeitsdatum, also muss der
+    /// Folgetermin beim Abschliessen entstehen — sonst ist nach dem ersten
+    /// Filterwechsel für immer Ruhe.</remarks>
+    public MaintenanceEvent CompleteMaintenanceEvent(MaintenanceEvent item)
+    {
+        UpdateMaintenanceEvent(item);
+
+        var abgeschlossen = GetMaintenanceEvent(item.Id)!;
+        if (abgeschlossen.Status != MaintenanceEventStatus.Completed
+            || abgeschlossen.NextDueAtUtc is not { } faelligAm)
+        {
+            return abgeschlossen;
+        }
+
+        var offen = GetOpenMaintenanceEventsByHardwareItem(abgeschlossen.HardwareItemId);
+        if (offen.Any(e => e.EventType == abgeschlossen.EventType))
+        {
+            return abgeschlossen;
+        }
+
+        CreateMaintenanceEvent(new MaintenanceEvent
+        {
+            HardwareItemId = abgeschlossen.HardwareItemId,
+            EventType = abgeschlossen.EventType,
+            Status = MaintenanceEventStatus.Planned,
+            Title = abgeschlossen.Title,
+            Description = abgeschlossen.Description,
+            DueAtUtc = faelligAm,
+        });
+
+        return abgeschlossen;
+    }
+
+
     public MaintenanceEvent? GetMaintenanceEvent(int id)
     {
         using var connection = OpenConnection();

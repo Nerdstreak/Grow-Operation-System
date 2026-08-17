@@ -157,6 +157,9 @@ public sealed class GrowRepository
     public void UpdateMaintenanceEvent(MaintenanceEvent item)
         => _hardwareRepository.UpdateMaintenanceEvent(item);
 
+    public MaintenanceEvent CompleteMaintenanceEvent(MaintenanceEvent item)
+        => _hardwareRepository.CompleteMaintenanceEvent(item);
+
     public MaintenanceEvent? GetMaintenanceEvent(int id)
         => _hardwareRepository.GetMaintenanceEvent(id);
 
@@ -177,6 +180,9 @@ public sealed class GrowRepository
 
     public void UpdateCalibrationEvent(CalibrationEvent item)
         => _hardwareRepository.UpdateCalibrationEvent(item);
+
+    public CalibrationEvent CompleteCalibrationEvent(CalibrationEvent item)
+        => _hardwareRepository.CompleteCalibrationEvent(item);
 
     public CalibrationEvent? GetCalibrationEvent(int id)
         => _hardwareRepository.GetCalibrationEvent(id);
