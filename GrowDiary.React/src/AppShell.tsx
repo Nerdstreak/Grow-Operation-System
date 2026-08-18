@@ -2,8 +2,8 @@
    Aus App.tsx herausgezogen: Shell + Navigation + Kontextleiste.
    App.tsx enthaelt danach nur noch <Routes>. */
 
-import { useState, type ReactNode } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { useEffect, useState, type ReactNode } from 'react'
+import { NavLink, useLocation, useNavigationType } from 'react-router-dom'
 import { AppSearch } from './components/AppSearch'
 import { isNavLeafActive, mobilePrimaryNav, navGroups, searchablePages } from './navigation'
 import { useTheme } from './useTheme'
@@ -29,6 +29,24 @@ export function AppShell({ children, counts }: Props) {
   const location = useLocation()
   const { theme, toggle } = useTheme()
   const [moreOpen, setMoreOpen] = useState(false)
+
+  // Beim Seitenwechsel nach oben.
+  //
+  // Ohne das oeffnet die neue Seite dort, wo die alte aufgehoert hat: wer eine
+  // lange Seite bis ans Ende gelesen hat und dann das Menue benutzt, landet
+  // mitten im neuen Inhalt, dessen Ueberschrift weit ueber dem Sichtbaren
+  // liegt. Gemessen: von /wissen (Stand 2531) auf die Startseite -> Stand
+  // 2004, die Ueberschrift 1769 px oberhalb. Das ist die halbe Antwort auf
+  // „ich muss suchen, wo welches Feature ist".
+  //
+  // NUR bei PUSH und REPLACE. Beim Zurueckgehen (POP) soll der Browser seinen
+  // gemerkten Stand behalten — sonst verliert man beim Zurueck genau die
+  // Stelle, an der man war.
+  const wechselArt = useNavigationType()
+  useEffect(() => {
+    if (wechselArt === 'POP') return
+    window.scrollTo({ top: 0, left: 0 })
+  }, [location.pathname, wechselArt])
 
   return (
     <div className="v1-app-shell rc2-shell" data-audit="mobile-shell">

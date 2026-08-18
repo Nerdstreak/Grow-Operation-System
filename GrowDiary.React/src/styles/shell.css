@@ -77,7 +77,10 @@
     .v1-desktop-nav { display: none; }
     /* Kopfzeile plus Navigationsreihe, beide oben angeschlagen. Unten
        braucht nichts mehr freigehalten zu werden. */
-    .v1-route-frame { padding-top: 108px; padding-bottom: var(--s-5); }
+    /* Reserve unten, damit die letzte Zeile nicht an der Kante klebt und
+       nicht unter dem Home-Indikator verschwindet. `--safe-bottom` ist
+       env(safe-area-inset-bottom) und auf Geraeten ohne Aussparung 0. */
+    .v1-route-frame { padding-top: 108px; padding-bottom: calc(var(--s-5) + var(--safe-bottom) + 24px); }
     .v1-page { padding: var(--s-3) var(--s-3) var(--s-5); }
     .v1-mobile-topbar {
       display: flex; position: fixed; inset: 0 0 auto; z-index: 30;
@@ -95,7 +98,12 @@
     .v1-mobile-more-panel {
       display: block; position: fixed; inset: 107px 0 auto; z-index: 29;
       max-height: calc(100dvh - 107px); overflow: auto;
-      padding: var(--s-3); background: var(--bg); border-bottom: 1px solid var(--hair);
+      /* Dieselbe Reserve wie beim Seitenrahmen. Ohne sie stand die letzte
+         Kachel nur 13 px ueber der Bildschirmkante — auf einem Geraet mit
+         Home-Indikator (34 px) liegt sie darunter. Das Panel sieht die
+         Polsterung des Rahmens nie, es haengt fest im Fenster. */
+      padding: var(--s-3) var(--s-3) calc(var(--s-3) + var(--safe-bottom) + 24px);
+      background: var(--bg); border-bottom: 1px solid var(--hair);
     }
     .v1-mobile-more-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: var(--s-2); }
     .v1-more-tile {

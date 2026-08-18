@@ -1,5 +1,51 @@
 # Changelog
 
+## 2.0.0-beta.49
+
+**Beta.** The phone could not reach the bottom of a page.
+
+- Fixed — **the last content was unreachable.** `html, body { height: 100% }`
+  made the `body` exactly one screen tall, so it became the scroll container
+  itself. Those 100 % refer to the *layout* viewport, which is as tall as if the
+  browser toolbar were already collapsed — what you actually see is less. The
+  container therefore had zero reserve at the bottom: whatever the toolbar
+  covered stayed covered, and scrolling further was impossible because the
+  container was already at its own end. With the *document* scrolling, the
+  browser collapses its toolbar as you scroll and the visible area grows.
+
+  Measured at 375 × 812, distance from the last readable character to the bottom
+  edge when scrolled all the way down: `/messung` **−293 px → +84 px**,
+  `/settings` **−368 px → +80 px** (negative means it sat below the visible
+  area — genuinely out of reach, two scroll containers nested). Six further
+  pages went from a `body` scroller with 58–101 px to a document scroller with
+  82–125 px.
+
+  The same lesson is already written down in `10-grow-wizard-legacy.css:9`,
+  where this line was removed once before. The twin rule in `reset.css` stayed.
+
+- Fixed — **a page change kept the scroll position.** Reading a long page to the
+  end and then tapping a menu entry opened the new page far down, its heading
+  above the visible area. Measured: from `/wissen` at 2531 to the start page at
+  2004, heading 1769 px out of sight. Now every push navigation starts at the
+  top; going *back* still restores where you were.
+
+- Fixed — the "more" menu had no reserve for the home indicator (13 px, while
+  the indicator is 34), the tile dialog's rows ran 131 px past their own dialog
+  on a phone, and the context card in the measurement form never actually stuck
+  because its wrapper was exactly as tall as the card — sticky range zero.
+
+Verified in a rebuilt Home-Assistant iframe: a single scroll container, the end
+reachable, no second scrollbar. No regression across twelve widths from 320 to
+1600 px, no contrast failure across 31 pages in both themes.
+
+**Known and not fixed:** the save bar in the hardware form still does not stick.
+The obvious explanation — a clipping ancestor — was **disproved** by measurement
+(`clip` and `visible` put the bar in exactly the same place). The cause is
+elsewhere and needs its own look; a rule that claims to fix it without doing so
+would be worse than the defect.
+
+Backend 1206, vitest 200, e2e 256, lint clean.
+
 ## 2.0.0-beta.48
 
 **Beta.** The rest of the phone audit: waves two through four, all nineteen

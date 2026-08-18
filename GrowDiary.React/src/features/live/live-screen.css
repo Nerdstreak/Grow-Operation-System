@@ -196,20 +196,24 @@
     border: 1px solid var(--hair-2); border-radius: 8px;
     background: var(--sunk); color: var(--ink); font: 400 12px/1 var(--font-mono);
   }
-  .ls-dialog-body { overflow-y: auto; display: grid; gap: 5px; align-content: start; }
+  /* `min-width: 0` an Kasten UND Kindern: ohne das konnten die Auswahlzeilen
+     nicht unter ihre Inhaltsbreite und ragten 131 px ueber die Dialogkante —
+     die Kennzeichnung rechts war nur ueber seitliches Wischen erreichbar. */
+  .ls-dialog-body { overflow-y: auto; display: grid; gap: 5px; align-content: start; min-width: 0; }
   .ls-dialog-cap {
-    position: sticky; top: 0; z-index: 1;
+    position: sticky; top: 0; z-index: 1; min-width: 0;
     padding: 8px 0 4px; background: var(--panel-2);
     font: 500 9.5px/1 var(--font-mono); letter-spacing: .16em; color: var(--faint); text-transform: uppercase;
   }
   .ls-dialog-empty { margin: 0; padding: 6px 2px; color: var(--faint); font-size: 12px; }
   .ls-pick {
-    display: flex; align-items: center; gap: 9px; width: 100%;
+    display: flex; align-items: center; gap: 9px; width: 100%; min-width: 0;
     min-height: 38px; padding: 8px 11px; text-align: left;
     border: 1px solid var(--hair); border-radius: 8px;
     background: var(--sunk); color: var(--muted);
     font: 400 12px/1.3 var(--font-mono); cursor: pointer;
   }
+  .ls-pick > * { min-width: 0; }
   .ls-pick:hover { border-color: var(--accent); color: var(--ink); }
   .ls-pick .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--hint); flex: 0 0 auto; }
   .ls-pick:hover .dot { background: var(--accent); }

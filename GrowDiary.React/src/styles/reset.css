@@ -27,9 +27,27 @@
   padding: 0;
 }
 
+/* `min-height`, NICHT `height`.
+ *
+ * Mit `height: 100%` ist der body exakt einen Bildschirm hoch, sein Inhalt
+ * laeuft darueber hinaus, und er wird selbst zum Scroll-Container. Am Telefon
+ * ist das der Fehler: die 100 % beziehen sich auf das LAYOUT-Fenster, das so
+ * hoch ist, als waere die Browserleiste eingeklappt. Sichtbar ist weniger.
+ * Der Container hat damit unten null Reserve — was hinter der Leiste liegt,
+ * bleibt dort, und weiterscrollen geht nicht, weil er schon an seinem eigenen
+ * Ende steht. Gemessen: auf sechs von acht Seiten 0 px Luft unter dem letzten
+ * Inhalt, auf zweien lag er sogar 353 bzw. 424 px unterhalb des Sichtbaren,
+ * weil zwei Scroller ineinandersteckten.
+ *
+ * Scrollt dagegen das DOKUMENT, klappt der Browser seine Leiste beim Scrollen
+ * selbst ein und das Sichtfenster waechst. Genau dieselbe Lehre steht schon in
+ * 10-grow-wizard-legacy.css:9 — dort wurde die Zeile entfernt, hier stand die
+ * Zwillingsregel weiter. (Kein Schichten-Konflikt: `height` und `min-height`
+ * sind verschiedene Eigenschaften und gelten nebeneinander.)
+ */
 html,
 body {
-  height: 100%;
+  min-height: 100%;
   font-family: var(--font-sans);
   background: var(--bg);
   color: var(--ink);

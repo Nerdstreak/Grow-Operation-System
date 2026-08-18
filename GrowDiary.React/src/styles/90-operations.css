@@ -17,6 +17,13 @@
 .ops1b-form-grid .is-wide {
   grid-column: 1 / -1;
 }
+/* OFFEN: diese Leiste klebt nicht, obwohl `position: sticky; bottom: 72px`
+   dransteht — nachgemessen ueber fuenf Scrollstaende, sie wandert einfach mit.
+   Eine naheliegende Erklaerung war der Vorfahr mit `overflow: hidden`; die ist
+   WIDERLEGT: mit `clip` und mit `visible` steht die Leiste an derselben Stelle
+   (gemessen bei Scrollstand 2500, top 1526 in beiden Faellen). Die Ursache
+   liegt woanders und braucht eine eigene Untersuchung. Bis dahin bleibt der
+   Zustand, wie er war — eine Regel, die nichts bewirkt, waere schlimmer. */
 .ops1b-sticky-actions {
   display: flex;
   justify-content: flex-end;

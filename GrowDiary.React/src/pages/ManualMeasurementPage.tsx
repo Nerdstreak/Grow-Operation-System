@@ -385,57 +385,55 @@ function ManualMeasurementPage() {
       ) : (
         <form className="ms-layout" data-audit="measurement-form" onSubmit={(event) => void submit(event)}>
           <div className="ms-form">
-          <div data-audit="measurement-section-context">
-            <V1Card className="rc2-sticky-card rc2-measurement-context">
-              <span className="v1-card-kicker">Kontext</span>
-              <h2>{selectedGrow?.name ?? 'Grow wählen'}</h2>
-              <p>{selectedGrow?.strain ?? 'Sorte offen'} · {selectedGrow?.tentName ?? 'ohne Zelt'}</p>
-              {selectedGrow && <p className="rc2-measurement-note">Hydro: {formatGrowHydroMedium(selectedGrow)}</p>}
-              <V1Field label="Grow">
-                <select value={selectedGrowId ?? ''} onChange={(event) => selectGrow(Number(event.target.value))}>
-                  {grows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
-                </select>
-              </V1Field>
-              {grows.length === 1 && <small className="rc2-measurement-note">Eindeutig vorausgewählt, Wechsel bleibt möglich.</small>}
-              <V1Field label="Zeitpunkt">
-                <input type="datetime-local" value={draft.takenAtLocal} onChange={(event) => patch({ takenAtLocal: event.target.value })} />
-              </V1Field>
-              <V1Field label="Phase">
-                <select value={draft.stage} onChange={(event) => patch({ stage: event.target.value as GrowStage })}>
-                  {stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
-                </select>
-              </V1Field>
-              <V1Badge tone={filledCount > 0 ? 'ok' : 'neutral'}>{filledCount} Werte</V1Badge>
-              {(canConfirmGermination || canConfirmRooting || canFlipToFlower) && (
-                <div className="rc2-measurement-live" style={{ marginTop: 12, display: 'grid', gap: 8 }}>
-                  <span className="v1-card-kicker">Phase bestätigen</span>
-                  {canConfirmGermination && (
-                    <V1Button variant="secondary" onClick={() => void confirmGrowAction('germination')} disabled={growActionSaving !== null}>
-                      {growActionSaving === 'germination' ? 'Bestätigt…' : 'Keimung bestätigen'}
-                    </V1Button>
-                  )}
-                  {canConfirmRooting && (
-                    <V1Button variant="secondary" onClick={() => void confirmGrowAction('rooting')} disabled={growActionSaving !== null}>
-                      {growActionSaving === 'rooting' ? 'Bestätigt…' : 'Bewurzelung bestätigen'}
-                    </V1Button>
-                  )}
-                  {canFlipToFlower && (
-                    <V1Button variant="secondary" onClick={() => void confirmGrowAction('flip')} disabled={growActionSaving !== null}>
-                      {growActionSaving === 'flip' ? 'Trägt ein…' : 'Flip zu 12/12'}
-                    </V1Button>
-                  )}
-                </div>
-              )}
-              {tentId != null && (
-                <div className="rc2-measurement-live" style={{ marginTop: 12, display: 'grid', gap: 8 }}>
-                  {prefilled && <p className="rc2-measurement-note">Aus Home Assistant vorbefüllt — anpassbar.</p>}
-                  <V1Button variant="secondary" onClick={() => void refreshFromLive()} disabled={livePulling}>
-                    {livePulling ? 'Lädt…' : 'Aus Home Assistant übernehmen'}
+          <V1Card className="rc2-sticky-card rc2-measurement-context" data-audit="measurement-section-context">
+            <span className="v1-card-kicker">Kontext</span>
+            <h2>{selectedGrow?.name ?? 'Grow wählen'}</h2>
+            <p>{selectedGrow?.strain ?? 'Sorte offen'} · {selectedGrow?.tentName ?? 'ohne Zelt'}</p>
+            {selectedGrow && <p className="rc2-measurement-note">Hydro: {formatGrowHydroMedium(selectedGrow)}</p>}
+            <V1Field label="Grow">
+              <select value={selectedGrowId ?? ''} onChange={(event) => selectGrow(Number(event.target.value))}>
+                {grows.map((grow) => <option key={grow.id} value={grow.id}>{grow.name}</option>)}
+              </select>
+            </V1Field>
+            {grows.length === 1 && <small className="rc2-measurement-note">Eindeutig vorausgewählt, Wechsel bleibt möglich.</small>}
+            <V1Field label="Zeitpunkt">
+              <input type="datetime-local" value={draft.takenAtLocal} onChange={(event) => patch({ takenAtLocal: event.target.value })} />
+            </V1Field>
+            <V1Field label="Phase">
+              <select value={draft.stage} onChange={(event) => patch({ stage: event.target.value as GrowStage })}>
+                {stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
+              </select>
+            </V1Field>
+            <V1Badge tone={filledCount > 0 ? 'ok' : 'neutral'}>{filledCount} Werte</V1Badge>
+            {(canConfirmGermination || canConfirmRooting || canFlipToFlower) && (
+              <div className="rc2-measurement-live" style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+                <span className="v1-card-kicker">Phase bestätigen</span>
+                {canConfirmGermination && (
+                  <V1Button variant="secondary" onClick={() => void confirmGrowAction('germination')} disabled={growActionSaving !== null}>
+                    {growActionSaving === 'germination' ? 'Bestätigt…' : 'Keimung bestätigen'}
                   </V1Button>
-                </div>
-              )}
-            </V1Card>
-          </div>
+                )}
+                {canConfirmRooting && (
+                  <V1Button variant="secondary" onClick={() => void confirmGrowAction('rooting')} disabled={growActionSaving !== null}>
+                    {growActionSaving === 'rooting' ? 'Bestätigt…' : 'Bewurzelung bestätigen'}
+                  </V1Button>
+                )}
+                {canFlipToFlower && (
+                  <V1Button variant="secondary" onClick={() => void confirmGrowAction('flip')} disabled={growActionSaving !== null}>
+                    {growActionSaving === 'flip' ? 'Trägt ein…' : 'Flip zu 12/12'}
+                  </V1Button>
+                )}
+              </div>
+            )}
+            {tentId != null && (
+              <div className="rc2-measurement-live" style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+                {prefilled && <p className="rc2-measurement-note">Aus Home Assistant vorbefüllt — anpassbar.</p>}
+                <V1Button variant="secondary" onClick={() => void refreshFromLive()} disabled={livePulling}>
+                  {livePulling ? 'Lädt…' : 'Aus Home Assistant übernehmen'}
+                </V1Button>
+              </div>
+            )}
+          </V1Card>
             <div data-audit="measurement-section-climate">
               <V1Section title="Klima">
                 <FieldGrid fields={climateFields} draft={draft} patch={patch} status={fieldStatus}>
