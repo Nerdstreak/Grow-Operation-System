@@ -18,26 +18,68 @@ namespace GrowMcp.Services;
 /// </remarks>
 public static class Einrichtungsseite
 {
+    /// <summary>Ein Text, der sicher in JavaScript steht.</summary>
+    private static string Json(string wert) => System.Text.Json.JsonSerializer.Serialize(wert);
+
+    /// <summary>
+    /// Die Befehlszeile für einen Klienten.
+    /// </summary>
+    /// <remarks>
+    /// Steht hier und im Skript der Seite in derselben Form: wer die Adresse
+    /// unten eintippt, bekommt genau den Befehl, den der Server auch selbst
+    /// gebaut hätte.
+    /// </remarks>
+    public static string Befehl(string adresse, string token)
+        => $"claude mcp add --transport http grow-os http://{adresse}:{Tueren.NetzPort}{Tueren.McpPfad} "
+         + $"--header \"Authorization: Bearer {token}\"";
+
     public static async Task<IResult> RendernAsync(
         HttpRequest anfrage, TokenSpeicher speicher, GrowOsDiscovery suche, CancellationToken cancellationToken)
     {
         var verbindung = await suche.FindenAsync(cancellationToken);
+
+        // Der Name aus der Anfrage taugt nur, wenn er ins Heimnetz zeigt. Diese
+        // Seite laeuft ueber Ingress und ist damit unter JEDER Adresse offen,
+        // unter der Home Assistant offen ist — auch unter einer Domain aus dem
+        // Internet. Die MCP-Tuer haengt aber an Port 5079, und der ist
+        // absichtlich nur im eigenen Netz erreichbar.
         var host = anfrage.Host.Host;
-        var befehl = $"claude mcp add --transport http grow-os http://{host}:{Tueren.NetzPort}{Tueren.McpPfad} "
-                   + $"--header \"Authorization: Bearer {speicher.Token}\"";
+        var hostTaugt = Heimnetzadresse.IstLokal(host);
+        var adresse = hostTaugt ? host : "DEINE-HA-ADRESSE";
+        var befehl = Befehl(adresse, speicher.Token);
 
         var zustand = verbindung.Erreichbar ? "gut" : "schlecht";
 
         // Solange Grow OS nicht antwortet, ist der Verbindungsbefehl eine Falle:
         // er funktioniert, aber jedes Werkzeug laeuft danach ins Leere. Also erst
         // sagen, was fehlt.
+        var adressKarte = hostTaugt
+            ? $"""
+              <p>Diesen Befehl auf dem Rechner ausführen, auf dem Claude Code läuft:</p>
+              """
+            : $"""
+              <p><strong>Eine Adresse fehlt noch.</strong> Du hast Home Assistant gerade
+                 unter <code>{WebUtility.HtmlEncode(host)}</code> offen — das ist der Weg
+                 von aussen. Die Tür für Claude liegt auf Port {Tueren.NetzPort} und ist
+                 nur im Heimnetz offen; über diese Adresse kommt dort niemand an.</p>
+              <p>Trag die Adresse ein, unter der dein Home-Assistant-Server im eigenen
+                 Netz erreichbar ist — meist eine IP wie <code>192.168.1.50</code>. Du
+                 findest sie in Home Assistant unter
+                 <em>Einstellungen → System → Netzwerk</em>.</p>
+              <p>
+                <label for="lan">Adresse im Heimnetz:</label>
+                <input id="lan" type="text" inputmode="url" placeholder="192.168.1.50"
+                       oninput="adresseSetzen(this.value)" autocomplete="off">
+              </p>
+              """;
+
         var befehlsKarte = verbindung.Erreichbar
             ? $"""
               <section>
                 <h2>So verbindest du dich</h2>
-                <p>Diesen Befehl auf dem Rechner ausführen, auf dem Claude Code läuft:</p>
+                {adressKarte}
                 <pre id="befehl">{WebUtility.HtmlEncode(befehl)}</pre>
-                <button type="button" onclick="kopieren()">Befehl kopieren</button>
+                <button type="button" onclick="kopieren()" id="kopierknopf">Befehl kopieren</button>
               </section>
               """
             : """
@@ -101,6 +143,15 @@ public static class Einrichtungsseite
                   border: 1px solid var(--rand); border-radius: 8px;
                 }
                 button:hover { border-color: var(--text); }
+                button:disabled { opacity: .5; cursor: not-allowed; }
+                label { display: block; font-size: 14px; margin-bottom: 6px; }
+                input[type="text"] {
+                  font: inherit; font-size: 15px; padding: 9px 12px; width: 100%; max-width: 320px;
+                  background: var(--bg); color: var(--text);
+                  border: 1px solid var(--rand); border-radius: 8px;
+                }
+                input[type="text"]:focus { outline: 2px solid var(--gut); outline-offset: 1px; }
+                code { background: var(--bg); border: 1px solid var(--rand); border-radius: 4px; padding: 1px 5px; font-size: 13px; }
                 ul { margin: 0; padding-left: 20px; color: var(--dim); }
                 li { margin-bottom: 6px; }
               </style>
@@ -128,6 +179,21 @@ public static class Einrichtungsseite
               </section>
             </main>
             <script>
+              // Dieselbe Form wie auf dem Server (Einrichtungsseite.Befehl).
+              // Laufen die beiden auseinander, bekommt der Betreiber einen
+              // Befehl, den es so nie gab.
+              const VORLAGE = {{Json(befehl)}};
+              const PLATZHALTER = {{Json(adresse)}};
+              const brauchtAdresse = {{(hostTaugt ? "false" : "true")}};
+
+              function adresseSetzen(wert) {
+                const feld = document.getElementById('befehl');
+                const knopf = document.getElementById('kopierknopf');
+                const sauber = (wert || '').trim().replace(/^https?:\/\//i, '').replace(/[/:].*$/, '');
+                feld.textContent = VORLAGE.replace(PLATZHALTER, sauber || PLATZHALTER);
+                if (knopf) knopf.disabled = sauber === '';
+              }
+
               function kopieren() {
                 const befehl = document.getElementById('befehl');
                 if (!befehl) return;
@@ -135,6 +201,12 @@ public static class Einrichtungsseite
                 const knopf = document.querySelector('button');
                 knopf.textContent = 'Kopiert';
                 setTimeout(() => knopf.textContent = 'Befehl kopieren', 1500);
+              }
+              // Ohne Adresse gibt es nichts zu kopieren — der Befehl waere
+              // eine Kopiervorlage mit einem Platzhalter darin.
+              if (brauchtAdresse) {
+                const knopf = document.getElementById('kopierknopf');
+                if (knopf) knopf.disabled = true;
               }
             </script>
             </body>

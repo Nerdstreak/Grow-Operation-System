@@ -30,6 +30,13 @@ Der Befehl sieht so aus:
 claude mcp add --transport http grow-os http://homeassistant.local:5079/mcp --header "Authorization: Bearer <dein-schlüssel>"
 ```
 
+**Wenn du Home Assistant über eine Domain von aussen benutzt**, fragt die Seite
+nach einer Adresse, statt eine vorzuschlagen. Das ist Absicht: Port 5079 ist nur
+im eigenen Netz offen, über die Adresse von aussen kommt dort niemand an. Trag
+die Adresse ein, unter der dein Server im Heimnetz erreichbar ist — meist eine
+IP wie `192.168.1.50`, zu finden in Home Assistant unter *Einstellungen → System
+→ Netzwerk*. Der Befehl auf der Seite schreibt sich beim Tippen mit.
+
 ## Was Claude damit kann
 
 | Werkzeug | Wofür |

@@ -1,5 +1,31 @@
 # Änderungen — Grow MCP
 
+## 0.1.8
+
+**Die Einrichtungsseite nannte eine Adresse, unter der der Server nie erreichbar
+war.** Wer Home Assistant von aussen ueber eine Domain benutzt, bekam
+`http://meine-domain.de:5079/mcp` vorgeschlagen — und Claude Code blieb im
+Verbindungsaufbau haengen, ohne Fehlermeldung. Direkt unter dem Befehl stand
+schon damals der Satz „Erreichbar ist das nur in deinem eigenen Netz": die Seite
+hat sich selbst widersprochen.
+
+Ursache ist eine Vermischung von zwei Tueren. Die Seite laeuft ueber Ingress und
+ist deshalb unter *jeder* Adresse offen, unter der Home Assistant offen ist —
+auch einer aus dem Internet. Sie hat diese Adresse einfach uebernommen. Die
+MCP-Tuer haengt aber an Port 5079, und der ist mit Absicht nur im eigenen Netz
+offen; das ist die halbe Absicherung.
+
+Jetzt prueft die Seite, ob die Adresse ueberhaupt ins Heimnetz zeigt (private
+IPv4-Bereiche, Loopback, `.local`, `.fritz.box` und Verwandte). Tut sie es
+nicht, sagt die Seite das — und fragt nach der Adresse im Heimnetz, statt eine
+zu erfinden. Der Befehl darunter schreibt sich beim Tippen mit, und kopieren
+laesst er sich erst, wenn eine Adresse drinsteht.
+
+Automatisch herausfinden kann das Add-on die Adresse nicht: der Supervisor gibt
+die Netzwerkangaben nur an Add-ons mit der Rolle `manager` heraus, und die
+duerften jedes andere Add-on stoppen und deinstallieren. Diese Rolle ist hier
+bewusst nicht gesetzt.
+
 ## 0.1.7
 
 Zwei Auskuenfte, die in die Irre fuehrten — beide ohne Fehlermeldung.
