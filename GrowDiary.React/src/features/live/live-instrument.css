@@ -8,7 +8,7 @@
    benutzt. Wer das alte Design sucht: Git kennt es noch.
    ─────────────────────────────────────────────────────────────── */
 @layer features {
-  .v1-live-hero-grid { display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(320px, 0.78fr); gap: 18px; align-items: start; }
+  .v1-live-hero-grid { display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(min(100%, 320px), 0.78fr); gap: 18px; align-items: start; }
   .v1-camera-card, .v1-camera-empty { min-height: 360px; border-radius: var(--v1-radius); overflow: hidden; border: 1px solid var(--v1-line); background: #020603; position: relative; }
   .v1-camera-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 160ms ease; }
   .v1-camera-card img.ready { opacity: 1; }

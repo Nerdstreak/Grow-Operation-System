@@ -5,7 +5,7 @@
 
 .addback-assistant-layout {
   display: grid;
-  grid-template-columns: minmax(250px, 0.34fr) minmax(0, 1fr);
+  grid-template-columns: minmax(min(100%, 250px), 0.34fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
   margin-top: 14px;
@@ -191,6 +191,17 @@
   background: linear-gradient(135deg, var(--accent-wash), var(--panel-2));
 }
 
+/* Die Ueberschrift brach als „Kompone / nten" um: sie steht in einer Flex-Zeile
+   neben einem erklaerenden Text, und `overflow-wrap: anywhere` gilt hier
+   flaechendeckend. Die Ueberschrift ist kurz genug, um NICHT zu brechen — der
+   Text daneben darf es. */
+/* Die Ueberschrift brach als „Kompone / nten" um: `overflow-wrap: anywhere`
+   gilt hier flaechendeckend, und die Ueberschrift steht in einer Kopfzeile
+   neben einem erklaerenden Satz. Sie ist kurz genug, um nicht zu brechen — der
+   Satz daneben darf es. (Ein erster Anlauf zielte auf `.addback-assistant h3`;
+   diese Klasse traegt das Element nicht.) */
+.addback-components header h3 { overflow-wrap: normal; word-break: normal; hyphens: manual; }
+
 .addback-result-card > strong {
   color: var(--text);
   font-family: var(--mono);
@@ -237,7 +248,7 @@
 
 .addback-component-row {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) minmax(96px, 0.3fr);
+  grid-template-columns: 40px minmax(0, 1fr) minmax(min(100%, 96px), 0.3fr);
   gap: 8px;
   align-items: center;
   padding: 8px;

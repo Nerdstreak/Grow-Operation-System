@@ -3,7 +3,7 @@
    veraendern. Aufraeumen und Schichten sind der naechste Schritt. */
 .rc2-measurement-layout {
   display: grid;
-  grid-template-columns: minmax(240px, .32fr) minmax(0, 1fr);
+  grid-template-columns: minmax(min(100%, 240px), .32fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -17,7 +17,7 @@
 }
 .rc2-measurement-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
   gap: 12px;
 }
 .rc2-measurement-extra {

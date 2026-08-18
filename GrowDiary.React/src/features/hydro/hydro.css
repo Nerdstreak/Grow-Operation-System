@@ -16,7 +16,7 @@
   }
   .hydro-detail__head > strong { font-size: 16px; font-weight: 600; white-space: nowrap; }
   .hydro-detail__head .actions { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
-  .hydro-detail__body { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0; }
+  .hydro-detail__body { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 0; }
   .hydro-detail__plan { padding: var(--s-4); min-width: 0; }
   .hydro-detail__facts { display: grid; align-content: start; padding: var(--s-3); }
   /* Trennlinien auf den Kindern — nicht als Container-Hintergrund mit gap:1px,
@@ -42,6 +42,17 @@
 
   .v1-hydro-list { display: grid; gap: 10px; }
   .v1-hydro-list-item { min-height: 64px; }
+  /* Der Auswahlzustand wird als `active` gesetzt — den gab es aber nur
+     zusammen mit `.v1-choice`, und die Klasse fehlt am Element. Ohne diese
+     Regeln war die Kachel ein roher Browser-Knopf: mittig, grau, eckig, und
+     man sah nicht, welches Setup gewaehlt ist. */
+  .v1-hydro-list-item {
+    text-align: left; padding: var(--s-3);
+    border: 1.5px solid var(--hair-2); border-radius: var(--r);
+    background: transparent; color: var(--ink); cursor: pointer;
+  }
+  .v1-hydro-list-item:hover { border-color: var(--hair); background: var(--panel-2); }
+  .v1-hydro-list-item.active { border-color: var(--accent); background: var(--accent-wash); }
   /* Name und Kurzzeile sind zwei Zeilen — zusammengelaufen las es sich wie
      „Alien RDWCRDWC · …". */
   .v1-hydro-list-item strong { display: block; }
@@ -51,7 +62,7 @@
 
   @media (max-width: 640px) {
     /* Auf dem Telefon ist die Liste ein Streifen, kein halber Bildschirm. */
-    .v1-hydro-list { grid-auto-flow: column; grid-auto-columns: minmax(220px, 84%); overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+    .v1-hydro-list { grid-auto-flow: column; grid-auto-columns: minmax(min(100%, 220px), 84%); overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
     .v1-hydro-list::-webkit-scrollbar { display: none; }
   }
 

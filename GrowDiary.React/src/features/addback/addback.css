@@ -3,7 +3,7 @@
    veraendern. Aufraeumen und Schichten sind der naechste Schritt. */
 .rc-action-guide-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -17,7 +17,7 @@
   gap: 10px;
 }
 .rc-action-row {
-  grid-template-columns: minmax(0, 1fr) auto minmax(160px, .8fr);
+  grid-template-columns: minmax(0, 1fr) auto minmax(min(100%, 160px), .8fr);
   align-items: center;
 }
 .rc-action-row > div {
@@ -36,7 +36,7 @@
   line-height: 1.35;
 }
 .addback-hub-page .v1-info-grid.compact {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
 }
 .addback-hub-page .v1-info {
   display: grid;

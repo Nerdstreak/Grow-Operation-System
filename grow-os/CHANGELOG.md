@@ -1,5 +1,73 @@
 # Changelog
 
+## 2.0.0-beta.48
+
+**Beta.** The rest of the phone audit: waves two through four, all nineteen
+individual findings, and one data defect that turned up along the way.
+
+### Measured
+
+Across twelve viewport widths from 320 to 1600 px, pages with an overflow went
+from 19 to **0**. Contrast failures across 31 pages in both themes: **0**.
+
+### What changed
+
+- Fixed — **short labels were taken apart letter by letter.** "PART" stood as
+  P/A/R/T, "Feminisiert" as a tower of six lines, a date across three. The
+  protection list against this already existed; it was missing exactly the
+  classes that show measured values.
+- Fixed — **swiping a table moved the whole box.** Heading, help text, search
+  field and buttons travelled with it; on the rules page the "apply targets"
+  button was then gone entirely. Four pages now wrap the table alone.
+- Fixed — **nothing showed that something could be swiped.** Tables, the
+  timeline and the camera strip now carry an edge shadow that disappears once
+  you reach the end. The tab bar wraps on a phone instead — a shadow would not
+  help there, its scrollbar is deliberately hidden.
+- Fixed — **buttons pushed themselves to the right and tore holes.** A layout
+  instruction (`margin-left: auto`) sat on a *size* class, so with several
+  buttons in a row the browser spread the free space across all of them: three
+  buttons stood 243 px apart across a whole card.
+- Fixed — **the text was squeezed because the button group would not yield.**
+  In settings a sentence was pressed into 92 px and needed six lines.
+- Fixed — **tap targets below the app's own limit**, and **five classes that had
+  no styling at all** — a raw browser button, unstyled input fields, badges in
+  body-text size.
+- Fixed — **separators that separated nothing.** Where tiles wrapped, a line hung
+  in mid-air beside the first tile of the second row while no line divided the
+  rows.
+- Fixed — **the timeline cut off its own labels.** Deliberately *not* with
+  `min-width: fit-content`: that would make a ten-day phase wider than a
+  twenty-eight-day one, and the bar lengths carry the duration. Smaller type on
+  a phone instead, and a cut that at least looks like a cut.
+- Fixed — **62 fixed minimum widths** in grids, in stylesheets and inline —
+  `minmax(300px, 1fr)` becomes `minmax(min(100%, 300px), 1fr)`. This removes the
+  whole class of defect rather than the reported instances; the last two
+  hold-outs were an inline value in a component and a rule that did not exist at
+  all above 860 px.
+- Fixed — a card inside a card, a non-breaking space between number and unit,
+  "Breeder"/"Seed Type" in German, a raw routine id, a navigation bar that was
+  see-through in the dark theme.
+
+### Deleting a grow left its warnings behind
+
+`RiskEvents` has no foreign key to `Grows`, and `PRAGMA foreign_keys` is off by
+default — so the warnings stayed, belonging to a grow that no longer exists:
+open on the task page forever, never touched again by any sync, because that
+only runs over active grows. Deleting a grow now takes them along. Existing
+installations get their orphans **closed, not deleted** — they disappear from
+the task page without destroying anyone's history.
+
+### Six reviewers, 28 objections, 17 of them mine
+
+Every change was checked by reviewers whose job was to refute it. They were
+right 17 times. The worst: a rule aimed at "whatever comes first" in a row,
+which turned a 5 px status dot into a 330 px bar. The swipe hint was invisible
+because the table's own surface covered it. And three times I named a CSS class
+that does not exist anywhere in the project — the rule looked right and did
+nothing. All corrected and re-measured.
+
+Backend 1206, MCP 56, vitest 200, e2e 256, lint clean.
+
 ## 2.0.0-beta.47
 
 **Beta.** The phone. A tester said it plainly: "I sometimes have to hunt for

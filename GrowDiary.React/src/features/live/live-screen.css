@@ -234,6 +234,32 @@
   }
   .ls-btn.is-primary:hover { color: var(--accent-ink); opacity: .9; }
   .ls-btn.is-small { min-height: 26px; padding: 0 10px; font-size: 11px; margin-left: auto; }
+  /**
+   * Der auto-Rand gehoert an EINEN Knopf, nicht an jeden.
+   *
+   * `margin-left: auto` an einer Groessenklasse ist eine Layout-Anweisung am
+   * falschen Ort. Bei einem Knopf schiebt sie ihn nach rechts — das ist
+   * gemeint. Stehen mehrere in einer Reihe, verteilt der Browser den freien
+   * Platz auf ALLE diese Raender: drei Knoepfe standen dadurch mit je 243 px
+   * Abstand ueber die ganze Kartenbreite verstreut, statt als Gruppe beisammen.
+   *
+   * Deshalb behaelt nur der erste seinen Rand — die Gruppe steht weiter rechts,
+   * bleibt aber eine Gruppe. Pauschal streichen ginge nicht: gegengeprueft
+   * wirft das am Schreibtisch drei richtig sitzende Knoepfe nach links.
+   */
+  .ls-btn.is-small ~ .ls-btn.is-small,
+  .ls-btn.is-small ~ * .ls-btn.is-small { margin-left: 0; }
+
+  /* Bricht die Reihe um, wirkt der Rand weiter und drueckt den Knopf in der
+     neuen Zeile in die rechte Ecke — links davon bleiben 236 px Leere. Am
+     Telefon bricht fast jede Kopfzeile um, also gilt dort kein auto-Rand. */
+  @media (max-width: 720px) {
+    /* Nur wenn MEHRERE kleine Knoepfe im Kopf stehen. Ein erster Anlauf schaltete
+       den Rand pauschal ab — dann hing ein einzelner Knopf mitten in der Zeile,
+       statt rechts zu sitzen. */
+    .ls-panel-head .ls-btn.is-small ~ .ls-btn.is-small,
+    .v1-section-head .ls-btn.is-small ~ .ls-btn.is-small { margin-left: 0; }
+  }
 
   /* Zelt-Auswahl in der Kopfzeile — sieht aus wie ein Knopf, ist aber ein Feld. */
   .ls-tent-select {
@@ -326,6 +352,12 @@
 
   /* ---------- Phasen-Timeline ---------- */
   .ls-timeline { display: flex; gap: 2px; }
+  /* Grundregel — die gab es bisher nur im Telefon-Block. Bei 861 px, wo die
+     Seitenleiste erscheint und Platz wegnimmt, war der Wischkasten deshalb
+     ungeregelt: als Rasterkind mit `min-width: auto` wurde er 632 px breit in
+     einem 579 px breiten Panel, und weil das Panel beschneidet, war das Ende
+     einfach weg. */
+  .ls-timeline-wrap { min-width: 0; overflow-x: auto; scrollbar-width: thin; }
   /* Auf einer Grow-Karte ist weniger Platz — kleinere Schrift, damit die
      Beschriftungen IM Balken stehen koennen statt darunter. */
   .ls-timeline.is-compact .ls-phase {
@@ -342,8 +374,22 @@
     font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  /* Auf der Detailseite stand „TROCKN" statt „Trocknen 10 T" — mitten im Wort
+     abgeschnitten, die Dauer gar nicht mehr zu sehen.
+     BEWUSST NICHT `min-width: fit-content` wie in der kompakten Variante: das
+     wuerde eine Zehn-Tage-Phase breiter machen als eine Achtundzwanzig-Tage-
+     Phase, und der Kommentar oben sagt ausdruecklich, die Balkenlaengen SIND die
+     Dauer. Diese Aussage ist mehr wert als ein paar Buchstaben. Stattdessen am
+     Telefon dieselbe kleinere Schrift wie in der kompakten Variante — damit
+     passt die Beschriftung, und die Anteile bleiben ehrlich. */
+  @media (max-width: 720px) {
+    .ls-phase { font-size: 9px; letter-spacing: .04em; padding: 0 5px; }
+  }
   .ls-phase { position: relative; overflow: hidden; }
-  .ls-phase > span { position: relative; z-index: 1; }
+  /* Der innere span hatte keine eigene Kuerzung — deshalb stand da „TROCKI"
+     ohne Auslassungszeichen, also sah es aus wie ein Wort und nicht wie ein
+     Schnitt. Jetzt „Trockn…", und man sieht, dass etwas fehlt. */
+  .ls-phase > span { position: relative; z-index: 1; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Fuellstand der laufenden Phase: liegt unter der Beschriftung. */
   .ls-phase-fill {
     position: absolute; inset: 0 auto 0 0;
@@ -372,7 +418,11 @@
        fast die doppelte Bildschirmbreite. Sie laesst sich nicht umbrechen,
        ohne ihre Aussage zu verlieren (die Balkenlaengen SIND die Dauer), also
        wischt man sie: sichtbar angeschnitten statt unsichtbar abgeschnitten. */
-    .ls-timeline-wrap { overflow-x: auto; scrollbar-width: thin; }
+    /* `min-width: 0` ist noetig, weil der Wischkasten ein Rasterkind ist und
+       damit `min-width: auto` traegt — er konnte also gar nicht unter seinen
+       Inhalt. Gemessen bei 861 px: 632 px breit in einem 579 px breiten
+       Panel, und weil das Panel beschneidet, war das Ende einfach weg. */
+    .ls-timeline-wrap { overflow-x: auto; scrollbar-width: thin; min-width: 0; }
     .ls-timeline, .ls-timeline-dates { min-width: max-content; }
     .ls-task-when { flex-basis: 52px; }
   }
@@ -437,6 +487,11 @@
     display: flex; align-items: center; gap: 12px;
     min-height: 46px; padding: 10px 14px;
     border-bottom: 1px solid var(--hair);
+    /* Die Zeile muss umbrechen duerfen. Ohne das schob die Faelligkeitsangabe
+       — die nicht umbricht — den „Oeffnen"-Knopf bei 320 px um 67 px aus dem
+       Bild. Gemessen beim eigenen Nachpruefen, nachdem af-badge und af-meta
+       ueberhaupt erst eine Gestaltung bekommen hatten. */
+    flex-wrap: wrap;
   }
   .af-row:last-child { border-bottom: 0; }
   .af-when {
@@ -445,7 +500,25 @@
     color: var(--faint);
   }
   .af-when.is-due { color: var(--warn-text); }
-  .af-title { min-width: 0; flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+  /* `flex: 1` allein liess den Titel bis auf 18 px zusammenschieben, sobald die
+     Zeile umbrechen darf. Mit einer Untergrenze bekommt er lieber eine eigene
+     Zeile, als je Wort abgeschnitten zu werden. */
+  .af-title { min-width: 0; flex: 1 1 180px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+  /* Zu `af-badge` und `af-meta` gab es in KEINER Stildatei eine Regel — die
+     Zustandsworte standen deshalb in der Schriftgroesse des Fliesstextes und in
+     wechselnder Breite, sodass die Titel daneben eine Treppe bildeten. Feste
+     72 px: das ist die Breite des laengsten der drei Worte. */
+  .af-badge {
+    /* 76, nicht 72: „ÜBERFÄLLIG" passte nicht hinein und brach um. */
+    flex: 0 0 76px; text-align: center;
+    font: 500 9.5px/1.6 var(--font-mono); letter-spacing: .08em;
+    border: 1px solid var(--hair-2); border-radius: var(--r-pill);
+    padding: 1px 4px; color: var(--muted);
+  }
+  .af-badge.is-critical { color: var(--danger); border-color: var(--danger); }
+  .af-badge.is-warn { color: var(--warn-text); border-color: var(--warn); }
+  .af-badge.is-ok { color: var(--accent-text); border-color: var(--accent); }
+  .af-meta { flex: 0 1 auto; min-width: 0; font: 400 11px/1.3 var(--font-mono); color: var(--faint); }
   .af-row .ls-btn { margin-left: auto; }
 }
 

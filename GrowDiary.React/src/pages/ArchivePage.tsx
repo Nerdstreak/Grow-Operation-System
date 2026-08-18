@@ -99,7 +99,8 @@ function ArchivePage() {
         <V1Empty title="Noch keine archivierten Grows" text="Abgeschlossene Grows erscheinen hier — samt Ertrag." />
       ) : (
         <>
-          <section className="ls-panel co-table-wrap" data-audit="grows-archive">
+          <section className="ls-panel" data-audit="grows-archive">
+            <div className="co-table-wrap">
             <div className="co-table" style={{ gridTemplateColumns: '1.2fr .9fr .7fr .7fr .7fr .9fr 1fr' }}>
               <div className="co-th">Grow</div>
               <div className="co-th">Geerntet</div>
@@ -130,6 +131,7 @@ function ArchivePage() {
                   </RowCells>
                 )
               })}
+            </div>
             </div>
           </section>
 

@@ -3,11 +3,11 @@
    veraendern. Aufraeumen und Schichten sind der naechste Schritt. */
 .rc2-admin-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 14px;
 }
 .rc2-admin-grid.two {
-  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(min(100%, 260px), 0.9fr);
 }
 .rc2-admin-card {
   display: grid;

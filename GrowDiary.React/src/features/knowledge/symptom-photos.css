@@ -9,7 +9,7 @@
 
   .sp-grid {
     display: grid; gap: 10px;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
   }
 
   .sp-item { margin: 0; display: grid; gap: 5px; min-width: 0; }

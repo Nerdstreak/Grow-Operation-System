@@ -1,7 +1,7 @@
 /* Sollwert-Profile — Tabelle wie im abgenommenen Entwurf. */
 @layer features {
 
-  .sp-list { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .sp-list { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
 
   .sp-card {
     border: 1px solid var(--hair); border-radius: var(--r);
@@ -25,7 +25,7 @@
   /* ---------- Die Tabelle ---------- */
   .sp-table {
     display: grid; border: 1px solid var(--hair); border-radius: var(--r); overflow: hidden;
-    grid-template-columns: 1fr repeat(7, minmax(112px, 1fr)); min-width: 900px;
+    grid-template-columns: 1fr repeat(7, minmax(min(100%, 112px), 1fr)); min-width: 900px;
   }
   .sp-th, .sp-td {
     padding: 8px 9px; font: 400 11px/1.4 var(--font-mono); border-top: 1px solid var(--hair);

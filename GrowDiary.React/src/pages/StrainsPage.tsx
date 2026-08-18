@@ -398,7 +398,7 @@ function StrainsPage() {
 
       {formOpen && (
         <V1Card>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12 }}>
             <V1Field label="Name"><input value={draft.name} onChange={(event) => setDraft((d) => ({ ...d, name: event.target.value }))} placeholder="z. B. Purple Lemonade" /></V1Field>
             <V1Field label="Züchter"><input value={draft.breeder} onChange={(event) => setDraft((d) => ({ ...d, breeder: event.target.value }))} placeholder="z. B. FastBuds" /></V1Field>
             <V1Field label="Dominanz">
@@ -416,7 +416,7 @@ function StrainsPage() {
           <p className="gc-facts" style={{ margin: '14px 0 8px' }}>
             Angaben laut Züchter — von der Samenpackung oder der Shopseite. Danach lässt sich die Bibliothek filtern.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12 }}>
             <V1Field label="Samen-Typ">
               <select value={draft.seedKind} onChange={(event) => setDraft((d) => ({ ...d, seedKind: event.target.value as StrainDraft['seedKind'] }))}>
                 {SEED_KINDS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
@@ -435,7 +435,7 @@ function StrainsPage() {
           <p className="gc-facts" style={{ margin: '14px 0 8px' }}>
             Feinheiten — leer lassen, wenn du sie nicht kennst. Sie beschreiben, wie stark diese Sorte von einer Durchschnittspflanze abweicht.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12 }}>
             <V1Field label="Nährstoffbedarf" hint="1,0 = normal. 1,2 = frisst 20 % mehr, 0,8 = empfindlich.">
               <input inputMode="decimal" value={draft.nutrientDemandFactor} onChange={(event) => setDraft((d) => ({ ...d, nutrientDemandFactor: event.target.value }))} placeholder="1.0" />
             </V1Field>
@@ -463,7 +463,7 @@ function StrainsPage() {
       ) : sorted.length === 0 ? (
         <V1Empty title="Noch keine Sorte" text="Leg deine erste Sorte an — danach kannst du Grows und Pflanzen darauf verweisen." action={<V1Button variant="primary" onClick={startNew}>Sorte anlegen</V1Button>} />
       ) : (
-        <section className="ls-panel co-table-wrap" data-audit="strains-table">
+        <section className="ls-panel" data-audit="strains-table">
           <div className="st-filter" data-audit="strains-filter">
             <input
               value={filterText}
@@ -484,6 +484,7 @@ function StrainsPage() {
               <option value="yield">Ertrag absteigend</option>
             </select>
           </div>
+          <div className="co-table-wrap">
           <div className="co-table" style={{ gridTemplateColumns: '1.3fr .9fr .7fr .7fr .9fr 1fr' }}>
             <div className="co-th">Sorte</div>
             <div className="co-th">Züchter</div>
@@ -519,6 +520,7 @@ function StrainsPage() {
                 </StrainRow>
               )
             })}
+          </div>
           </div>
         </section>
       )}

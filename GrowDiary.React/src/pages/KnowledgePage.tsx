@@ -771,12 +771,16 @@ function KnowledgePage() {
 
         {/* Zone 2 · Abläufe: vergleichbar in einer Tabelle statt elf Karten. */}
         {routineSops.length > 0 && sopsKategorie && (
-          <section className="ls-panel co-table-wrap" data-audit="knowledge-sops-table">
+          <section className="ls-panel" data-audit="knowledge-sops-table">
             <div className="ls-panel-head">
               <span className="ls-label">Abläufe · SOPs</span>
               <span className="ls-panel-meta">geführt, Schritt für Schritt · laufende stehen unter Aufgaben</span>
             </div>
-            <div className="co-table" style={{ gridTemplateColumns: '1.6fr .7fr .6fr .6fr .5fr' }}>
+            <div className="co-table-wrap">
+            {/* Die letzte Spalte traegt einen Knopf; mit .5fr ragte er 6 px
+                ueber die Tabellenflaeche hinaus, und die Zeilentrenner hoerten
+                sichtbar vor dem rechten Rand auf. */}
+            <div className="co-table" style={{ gridTemplateColumns: '1.6fr .7fr .6fr .6fr .7fr' }}>
               <div className="co-th">Ablauf</div>
               <div className="co-th">Art</div>
               <div className="co-th">Dauer</div>
@@ -796,6 +800,7 @@ function KnowledgePage() {
                   </SopZeile>
                 )
               })}
+            </div>
             </div>
           </section>
         )}

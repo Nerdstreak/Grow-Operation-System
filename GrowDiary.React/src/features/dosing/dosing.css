@@ -10,7 +10,7 @@
 
   .dz-pump {
     border: 1px solid var(--hair); border-radius: var(--r-lg); background: var(--panel);
-    padding: 14px; display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: start;
+    padding: 14px; display: grid; grid-template-columns: minmax(min(100%, 120px), auto) minmax(0, 1fr); gap: 14px; align-items: start;
   }
   .dz-pump.is-dosing { border-color: var(--accent); }
   .dz-pump-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
@@ -28,8 +28,15 @@
   .dz-pump-state.is-blocked { color: var(--warn-text); }
 
   .dz-facts { display: grid; gap: 5px; font: 400 11.5px/1.5 var(--font-mono); color: var(--muted); min-width: 0; }
-  .dz-facts .row { display: flex; gap: 8px; }
-  .dz-facts .row > span:first-child { color: var(--faint); min-width: 84px; flex: 0 0 auto; }
+  /* Die Zeile muss umbrechen duerfen und die Beschriftung nachgeben.
+   *
+   * Seit die Werte nicht mehr INNERHALB eines Wortes brechen (conventions.css),
+   * koennen sie nicht mehr beliebig schmal werden — dann schob die Zeile bei
+   * 320 px 47 px aus dem Bild. Beides zusammen ist die Loesung: kein Bruch im
+   * Wort, aber Umbruch zwischen Beschriftung und Wert. */
+  .dz-facts .row { display: flex; gap: 8px; flex-wrap: wrap; min-width: 0; }
+  .dz-facts .row > span:first-child { color: var(--faint); min-width: min(100%, 84px); flex: 0 1 auto; }
+  .dz-facts .row > span + span { min-width: 0; }
   .dz-facts b { color: var(--ink); font-weight: 500; }
   .dz-facts .is-learned { color: var(--info-text); }
   .dz-facts .is-blocked { color: var(--warn-text); }

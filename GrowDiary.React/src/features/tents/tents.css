@@ -90,7 +90,7 @@
 
 .tent-metric-groups {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
   gap: 12px;
   min-width: 0;
   max-width: 100%;
@@ -132,7 +132,7 @@
 }
 @media (max-width: 900px) {
     .tent-metric-groups {
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
     }
 }
 
@@ -143,7 +143,7 @@
 }
 
 .tent-detail-room-grid {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
 }
 .tent-detail-room-grid .v1-info {
   display: grid;
@@ -171,7 +171,7 @@
 }
 .tent-detail-fact-list .v1-info {
   min-height: 0;
-  grid-template-columns: minmax(104px, .34fr) minmax(0, 1fr);
+  grid-template-columns: minmax(min(100%, 104px), .34fr) minmax(0, 1fr);
   align-items: baseline;
   gap: 12px;
   padding: 10px 12px;
@@ -181,7 +181,7 @@
 }
 @media (min-width: 1200px) {
     .tent-detail-room-grid {
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
     }
     .tent-detail-v2 .tent-detail-room-grid {
       grid-template-columns: minmax(0, 1fr) !important;
@@ -190,7 +190,7 @@
       min-height: 0;
       width: 100%;
       box-sizing: border-box;
-      grid-template-columns: minmax(88px, .28fr) minmax(0, 1fr);
+      grid-template-columns: minmax(min(100%, 88px), .28fr) minmax(0, 1fr);
       align-items: baseline;
       column-gap: 14px;
       padding: 12px 14px;
@@ -213,7 +213,7 @@
     }
     .tents-page .v1-tent-card {
       display: grid;
-      grid-template-columns: minmax(220px, .52fr) minmax(0, 1.48fr);
+      grid-template-columns: minmax(min(100%, 220px), .52fr) minmax(0, 1.48fr);
       align-items: start;
       column-gap: 18px;
       max-width: none;
@@ -223,7 +223,7 @@
     }
     .tents-page .tent-metric-groups {
       grid-column: 2;
-      grid-template-columns: repeat(3, minmax(190px, 1fr));
+      grid-template-columns: repeat(3, minmax(min(100%, 190px), 1fr));
     }
     .tents-page .v1-tent-card > p,
     .tents-page .v1-tent-card > .rc-tent-actions,
@@ -234,7 +234,7 @@
       justify-content: flex-end;
     }
     .tents-page .tent-metric-row {
-      grid-template-columns: minmax(90px, .36fr) minmax(0, 1fr);
+      grid-template-columns: minmax(min(100%, 90px), .36fr) minmax(0, 1fr);
     }
     .tents-page .tent-metric-row dd {
       overflow: visible;
@@ -244,11 +244,11 @@
 }
 
 .tent-metric-groups {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
 }
 .tent-metric-row {
   display: grid;
-  grid-template-columns: minmax(72px, .42fr) minmax(0, 1fr);
+  grid-template-columns: minmax(min(100%, 72px), .42fr) minmax(0, 1fr);
   gap: 8px;
   align-items: start;
 }
@@ -274,7 +274,7 @@
       grid-column: 1;
     }
     .tents-page .tent-metric-groups {
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
     }
 }
 
@@ -321,7 +321,7 @@
 
   /* Vier Gruppen, getrennt durch Haarlinien wie im Entwurf. */
   .tn-groups {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
     gap: 1px; background: var(--hair);
   }
   .tn-group { background: var(--panel); padding: 12px 14px; }

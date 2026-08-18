@@ -132,6 +132,48 @@ public sealed class RiskEventRepositoryTests : IDisposable
         Assert.Equal("Erste Fassung.", repo.GetRiskEvent(erst.Id)!.Description);
     }
 
+    /// <summary>
+    /// Wer einen Grow loescht, wird auch seine Warnungen los.
+    /// </summary>
+    /// <remarks>
+    /// RiskEvents hat keinen Fremdschluessel auf Grows, und
+    /// <c>PRAGMA foreign_keys</c> ist per Vorgabe aus — die Warnungen blieben
+    /// also stehen und gehoerten danach zu einem Grow, den es nicht mehr gibt:
+    /// fuer immer offen auf der Aufgabenseite, weil der Abgleich nur ueber die
+    /// aktiven Grows laeuft. Gefunden am 18.08.2026.
+    /// </remarks>
+    [Fact]
+    public void GrowLoeschen_NimmtSeineWarnungenMit()
+    {
+        var repo = new GrowRepository(_paths);
+        var tent = repo.GetTents().Single();
+        var growId = CreateGrow(repo, tent.Id);
+        var andererGrow = CreateGrow(repo, tent.Id);
+
+        repo.CreateRiskEvent(new RiskEvent
+        {
+            EventType = RiskEventType.Other, Severity = RiskEventSeverity.Warning,
+            Status = RiskEventStatus.Open, Source = RiskEventSource.Deviation,
+            Title = "EC: Abweichung pruefen", Description = "egal",
+            TentId = tent.Id, GrowId = growId,
+            StartedAtUtc = Utc(2026, 8, 1), DedupeKey = "deviation:grow:x:ec",
+        });
+        repo.CreateRiskEvent(new RiskEvent
+        {
+            EventType = RiskEventType.Other, Severity = RiskEventSeverity.Warning,
+            Status = RiskEventStatus.Open, Source = RiskEventSource.Deviation,
+            Title = "pH: Abweichung pruefen", Description = "egal",
+            TentId = tent.Id, GrowId = andererGrow,
+            StartedAtUtc = Utc(2026, 8, 1), DedupeKey = "deviation:grow:y:ph",
+        });
+
+        repo.DeleteGrow(growId);
+
+        var uebrig = repo.GetOpenRiskEvents();
+        Assert.Single(uebrig);
+        Assert.Equal(andererGrow, uebrig[0].GrowId);
+    }
+
     [Fact]
     public void RiskEvent_LeererTitelWirdAbgelehnt()
     {

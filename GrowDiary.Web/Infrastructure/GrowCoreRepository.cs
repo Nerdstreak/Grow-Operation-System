@@ -231,6 +231,19 @@ public sealed class GrowCoreRepository : RepositoryBase
             }
         }
 
+        // Die Warnungen gehen mit.
+        //
+        // RiskEvents hat keinen Fremdschluessel auf Grows, und `PRAGMA
+        // foreign_keys` ist per Vorgabe aus — beim Loeschen blieben die
+        // Warnungen also stehen. Sie gehoerten dann zu einem Grow, den es nicht
+        // mehr gibt: fuer immer offen auf der Aufgabenseite, von keinem Abgleich
+        // je wieder angefasst, weil der nur ueber die aktiven Grows laeuft.
+        // Gefunden am 18.08.2026 in der Testdatenbank — zwei solche Leichen.
+        using var risks = connection.CreateCommand();
+        risks.CommandText = "DELETE FROM RiskEvents WHERE GrowId = $id;";
+        risks.Parameters.AddWithValue("$id", id);
+        risks.ExecuteNonQuery();
+
         using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM Grows WHERE Id = $id;";
         command.Parameters.AddWithValue("$id", id);

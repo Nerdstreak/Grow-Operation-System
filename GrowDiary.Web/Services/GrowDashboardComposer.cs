@@ -462,9 +462,11 @@ public sealed class GrowDashboardComposer
             {
                 humidity.TargetMin = min;
                 humidity.TargetMax = max;
+                // Geschuetztes Leerzeichen zwischen Zahl und Einheit: sonst stand
+                // die Zahl am Zeilenende und ihr „°C" allein in der naechsten.
                 humidity.TargetNote = deckel is { } cap && max >= cap
-                    ? $"bei {l.ToString("0.#", AppCulture.German)} °C · Schimmelschutz: höchstens {cap.ToString("0", AppCulture.German)} %"
-                    : $"bei {l.ToString("0.#", AppCulture.German)} °C";
+                    ? $"bei {l.ToString("0.#", AppCulture.German)}\u00A0°C · Schimmelschutz: höchstens {cap.ToString("0", AppCulture.German)}\u00A0%"
+                    : $"bei {l.ToString("0.#", AppCulture.German)}\u00A0°C";
                 humidity.TargetDerived = true;
             }
             else if (ClimateBandCalculator.HumidityBand(l, targets.VpdMin, targets.VpdMax, leafOffsetC).Min is not null)
@@ -483,7 +485,7 @@ public sealed class GrowDashboardComposer
             {
                 temperature.TargetMin = min;
                 temperature.TargetMax = max;
-                temperature.TargetNote = $"bei {f.ToString("0.#", AppCulture.German)} % RLF";
+                temperature.TargetNote = $"bei {f.ToString("0.#", AppCulture.German)}\u00A0% RLF";
                 temperature.TargetDerived = true;
             }
             else

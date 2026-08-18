@@ -72,7 +72,7 @@ export function TentHistorySection({ tentId }: { tentId: number }) {
           <p>Grow OS speichert alle 5 Minuten die Werte deiner zugeordneten Sensoren und verdichtet sie nachts zu Tageswerten. Ab dem ersten vollen Tag erscheinen hier Kurven.</p>
         </V1Card>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 12 }}>
           {withData.map((series) => (
             <V1Card key={series.metricKey}>
               <SensorChart series={series} target={targets.get(series.metricKey)} />

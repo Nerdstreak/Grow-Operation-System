@@ -152,16 +152,31 @@
      OHNE Kind (z. B. 4 Kinder in 3 Spalten) als eingefaerbte Flaeche und
      sieht wie ein leeres, unerklaertes Panel aus. */
   .v1-kpi-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
     background: var(--panel);
     border: 1px solid var(--hair); border-radius: var(--r); overflow: hidden;
   }
+  /* Trennlinie links UND oben, jede Kachel um einen Pixel nach aussen gezogen.
+   *
+   * Vorher trug nur die erste Kachel keine Linie. Das stimmt genau so lange, wie
+   * alle in EINER Zeile stehen. Am Telefon brechen sie um — dann haengt links
+   * neben der ersten Kachel der zweiten Zeile ein Strich in der Luft, und
+   * zwischen den Zeilen fehlt jede Trennung: die Leiste liest sich als zwei hohe
+   * Spalten statt als vier Kacheln. Die Messkachel loest das seit jeher so
+   * (metric-tile.css:15-19); den vier anderen Bausteinen fehlte der Kniff. Der
+   * umgebende Kasten schneidet die ueberstehenden Enden ohnehin ab. */
   .v1-stat {
     display: flex; flex-direction: column; gap: 6px;
     padding: 11px var(--s-3);
-    border-left: 1px solid var(--hair);
   }
-  .v1-stat:first-child { border-left: 0; }
+  /* Linie und negativer Rand NUR innerhalb der beschneidenden Leiste. Ein
+     erster Anlauf hing beides an `.v1-stat` selbst — dann trug auch eine
+     einzeln stehende Kachel einen Strich obendrueber, der nichts trennte
+     (Zeltwerte auf /zelte/1, Panelkopf auf /hydro). */
+  .v1-kpi-grid > .v1-stat, .v1-metric-grid > .v1-stat {
+    border-left: 1px solid var(--hair); border-top: 1px solid var(--hair);
+    margin: -1px 0 0 -1px;
+  }
   /* Wie bei .v1-field > span: hier stehen Messgroessen, und Grossschreibung
      verfaelscht sie (pH -> PH, µS/cm -> MS/CM). Abschnittsbaender wie
      .v1-eyebrow und .v1-card-kicker bleiben dagegen gross — dort steht nie
@@ -184,6 +199,13 @@
     overflow-x: auto; scrollbar-width: none;
   }
   .v1-tabs::-webkit-scrollbar { display: none; }
+  /* Am Telefon umbrechen statt wischen. Ein Verlauf am Rand waere hier die
+     schlechtere Loesung: die Bildlaufleiste ist ausdruecklich ausgeblendet, es
+     gaebe also gar keinen zweiten Hinweis — und die gruene Markierung des
+     aktiven Reiters wurde von der runden Kartenecke angeschnitten. */
+  @media (max-width: 860px) {
+    .v1-tabs { flex-wrap: wrap; overflow-x: visible; }
+  }
   .v1-tab {
     min-height: var(--h-sm); padding: 0 var(--s-3);
     border: 0; border-radius: var(--r-sm); background: transparent; color: var(--muted);
@@ -195,7 +217,7 @@
   .v1-tab span { display: none; }   /* Meta wandert in den Label-Text: "Inventar · 11" */
 
   /* ---------- Formular ---------- */
-  .v1-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--s-3); }
+  .v1-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: var(--s-3); }
   /* `align-content: start` haelt die Beschriftung an ihrem Feld. Ohne sie
      verteilt sich zusaetzliche Hoehe, die ein hoeherer Nachbar derselben
      Rasterzeile erzwingt, auf beide Zeilen — auf der Wasserseite klafften
@@ -244,7 +266,7 @@
   .v1-form-actions { display: flex; gap: var(--s-2); flex-wrap: wrap; align-items: center; }
 
   /* ---------- Auswahl-Karten ---------- */
-  .v1-choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--s-3); }
+  .v1-choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: var(--s-3); }
   .v1-choice {
     text-align: left; padding: var(--s-3);
     border: 1.5px solid var(--hair-2); border-radius: var(--r);
@@ -265,8 +287,12 @@
   .v1-list-row span, .v1-list-row em { color: var(--muted); font-style: normal; }
   .v1-list-row.critical { border-left: 2px solid var(--danger); }
   .v1-list-row.warning { border-left: 2px solid var(--warn); }
-  .v1-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); background: var(--panel); border: 1px solid var(--hair); border-radius: var(--r); overflow: hidden; }
-  .v1-info, .v1-fact { padding: 9px 11px; display: grid; gap: 4px; min-width: 0; border-left: 1px solid var(--hair); border-top: 1px solid var(--hair); }
+  .v1-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); background: var(--panel); border: 1px solid var(--hair); border-radius: var(--r); overflow: hidden; }
+  /* Wie bei .v1-stat: der negative Rand laesst die Kanten fluchten und die
+     Querlinie beim Umbruch von selbst erscheinen. */
+  .v1-info, .v1-fact { padding: 9px 11px; display: grid; gap: 4px; min-width: 0; }
+  /* wie bei .v1-stat: nur im beschneidenden Raster */
+  .v1-info-grid > .v1-info, .v1-info-grid > .v1-fact { border-left: 1px solid var(--hair); border-top: 1px solid var(--hair); margin: -1px 0 0 -1px; }
   /* Ebenfalls Messgroessen — siehe .v1-stat > span. */
   .v1-info span, .v1-fact span {
     font: 500 10px/1 var(--font-mono);
@@ -300,8 +326,8 @@
      Regel für das ganze Projekt: NIE  minmax(0,1fr) + fixe Spalte.
      Immer auto-fit mit Mindestbreite, damit die Nebenspalte
      umbricht statt die Hauptspalte zu zerdrücken. */
-  .v1-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--s-3); align-items: start; }
-  .v1-split-narrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--s-3); align-items: start; }
+  .v1-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: var(--s-3); align-items: start; }
+  .v1-split-narrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: var(--s-3); align-items: start; }
 
   /* ---------- aus Phase 2 zurueckgeholt ---------- */
   .v1-card-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -379,7 +405,7 @@
   .data-row:hover { background: var(--panel-2); }
 
   .topbar-left, .topbar-right { display: flex; align-items: center; gap: 10px; }
-  .tents-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+  .tents-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
 
   @media (max-width: 680px) {
     .topbar-left, .topbar-right { flex-wrap: wrap; }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../../api'
-import { V1Card, V1Section } from '../../components/v1'
+import { V1Section } from '../../components/v1'
 
 type Posten = { material: string; wofuer: string[] }
 type Gruppe = { titel: string; posten: Posten[] }
@@ -35,8 +35,11 @@ export function ShoppingList({ initialOffen = false }: { initialOffen?: boolean 
 
   return (
     <V1Section title="Einkaufsliste">
-      <V1Card>
-        <div data-audit="shopping-list">
+      {/* KEINE Karte und kein zweiter Koerper: V1Section bringt Rahmen und
+          Innenabstand schon mit. Mit Karte kosteten zwei geschachtelte Rahmen
+          am Telefon 24,5 % der Bildschirmbreite; ein eigener
+          `.v1-section-body` darin waere derselbe Fehler eine Stufe kleiner. */}
+      <div data-audit="shopping-list">
           <button type="button" className="ls-btn is-small" onClick={() => setOffen((wert) => !wert)}>
             {offen ? 'Zuklappen' : `${anzahl} Posten anzeigen`}
           </button>
@@ -62,7 +65,6 @@ export function ShoppingList({ initialOffen = false }: { initialOffen?: boolean 
             </div>
           ))}
         </div>
-      </V1Card>
     </V1Section>
   )
 }

@@ -108,7 +108,7 @@ export function LightScheduleSection({ tentId }: { tentId: number }) {
                 <div><span className="v1-card-kicker">{schedule.source === 'HomeAssistant' ? 'aus Home Assistant' : 'manuell'}</span><h2>{schedule.name || 'Lichtzyklus'}</h2></div>
                 {cycle && <V1Badge tone="accent">{cycle}</V1Badge>}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 12 }}>
                 <V1Field label="Name"><input value={schedule.name} onChange={(event) => patchSchedule(schedule.id, { name: event.target.value })} /></V1Field>
                 <V1Field label="Licht AN"><input type="time" value={schedule.lightsOnTime} onChange={(event) => patchSchedule(schedule.id, { lightsOnTime: event.target.value })} /></V1Field>
                 <V1Field label="Licht AUS"><input type="time" value={schedule.lightsOffTime} onChange={(event) => patchSchedule(schedule.id, { lightsOffTime: event.target.value })} /></V1Field>
@@ -124,7 +124,7 @@ export function LightScheduleSection({ tentId }: { tentId: number }) {
           <span className="v1-card-kicker">Neu</span>
           <h2>Lichtzyklus hinzufügen</h2>
           <p className="rc2-measurement-note">Trag ein, wann das Licht angeht und ausgeht. Die Lichtzyklus-Automatiken lösen daran aus.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 12 }}>
             <V1Field label="Name"><input value={addDraft.name} onChange={(event) => setAddDraft((current) => ({ ...current, name: event.target.value }))} /></V1Field>
             <V1Field label="Licht AN"><input type="time" value={addDraft.lightsOnTime} onChange={(event) => setAddDraft((current) => ({ ...current, lightsOnTime: event.target.value }))} /></V1Field>
             <V1Field label="Licht AUS"><input type="time" value={addDraft.lightsOffTime} onChange={(event) => setAddDraft((current) => ({ ...current, lightsOffTime: event.target.value }))} /></V1Field>

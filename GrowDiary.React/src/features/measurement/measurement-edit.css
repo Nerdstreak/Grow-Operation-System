@@ -9,7 +9,7 @@
   .meas-edit__check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; }
   .meas-edit__check input { width: 18px; height: 18px; }
 
-  .meas-edit__photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+  .meas-edit__photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 110px), 1fr)); gap: 8px; }
   .meas-edit__photos img {
     width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
     border: 1px solid var(--hair); border-radius: var(--r);

@@ -44,9 +44,38 @@
      schlicht ABGESCHNITTEN statt wischbar zu sein: die rechten Spalten der
      Sorten- und Regeln-Tabelle waren nie erreichbar. Die zusammengesetzte
      Auswahl gewinnt und macht daraus wieder einen Scrollbereich. */
-  .co-table-wrap,
-  .ls-panel.co-table-wrap { overflow-x: auto; }
-  .co-table-wrap .co-table { min-width: 560px; }
+  /**
+   * Ein Wischbereich, der auch sagt, dass er einer ist.
+   *
+   * Dass die Tabellen seitwaerts wischen, ist Absicht und gut begruendet (siehe
+   * oben) — angekuendigt wurde es nur nirgends: `scrollbar-width: thin` zeigt
+   * auf einem Beruehrungsbildschirm nichts an, solange man nicht schiebt. Der
+   * Rand schnitt einfach ab, oft sauber an einer Kante, sodass es aussah wie
+   * fertig.
+   *
+   * Die vier Ebenen sind der uebliche Kniff: die beiden `local`-Verlaeufe
+   * fahren MIT dem Inhalt und decken den Schatten ab, sobald man am jeweiligen
+   * Ende steht. Der Hinweis liegt also nie dauerhaft da und macht den letzten
+   * Abschnitt nicht blass, wenn es gar nicht mehr weitergeht.
+   *
+   * `.ls-panel.co-table-wrap` ist bewusst weg: beide Klassen an einem Element
+   * hiessen, dass Ueberschrift, Suchfeld und Knoepfe mitwischen. Die vier
+   * betroffenen Seiten legen die Klasse jetzt um die Tabelle allein.
+   */
+  .co-table-wrap {
+    overflow-x: auto;
+    background:
+      linear-gradient(to right, var(--panel-2) 40%, transparent) left center / 26px 100% no-repeat local,
+      linear-gradient(to left, var(--panel-2) 40%, transparent) right center / 26px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, color-mix(in oklab, var(--ink) 16%, transparent), transparent) left center / 13px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, color-mix(in oklab, var(--ink) 16%, transparent), transparent) right center / 13px 100% no-repeat scroll;
+    background-color: var(--panel-2);
+  }
+  /* Die Flaeche gehoert an den Wischkasten, nicht an die Tabelle. Ein erster
+     Anlauf liess sie an der Tabelle — die ist genau so breit wie der ganze
+     Wischweg und deckend, also lag der komplette Hinweis DAHINTER. Gemessen:
+     Randspalte und Innenspalte farblich identisch, Kontrast 1,00. */
+  .co-table-wrap .co-table { min-width: 560px; background: transparent; }
 
   /* ---------- Kennzahlen-Leiste ---------- */
   .co-strip {
@@ -54,8 +83,10 @@
     border: 1px solid var(--hair); border-radius: 10px;
     background: var(--panel); overflow: hidden;
   }
-  .co-cell { flex: 1 1 170px; padding: 11px 14px; border-left: 1px solid var(--hair); min-width: 0; }
-  .co-cell:first-child { margin-left: -1px; }
+  /* Linie links UND oben plus negativer Rand — sonst haengt beim Umbruch ein
+     Strich neben der ersten Kachel der zweiten Zeile in der Luft, und zwischen
+     den Zeilen fehlt die Trennung. */
+  .co-cell { flex: 1 1 170px; padding: 11px 14px; border-left: 1px solid var(--hair); border-top: 1px solid var(--hair); margin: -1px 0 0 -1px; min-width: 0; }
   .co-cell-label {
     font: 500 10px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase;
     color: var(--faint);
@@ -82,10 +113,38 @@
   }
 
   /* ---------- Panel-Zeilen ---------- */
+  /* Die Zeile darf umbrechen, und dem Text gehoert eine Untergrenze.
+   *
+   * Vorher war sie eine Flex-Zeile ohne Umbruch, und die Knopfgruppe darin war
+   * ausdruecklich vom Schrumpfen ausgenommen (`.co-row-end`, flex-shrink: 0).
+   * Damit war der Text der Einzige, der nachgeben konnte: in den Einstellungen
+   * wurde der Erklaersatz auf 92 px gepresst und brauchte sechs Zeilen, waehrend
+   * die Knoepfe daneben zwei Drittel bekamen. Das ist kein reines
+   * Telefon-Problem — am Schreibtisch stehen die Einstellungen in drei schmalen
+   * Spalten, dort war dieselbe Zeile 181 px hoch und der Text zehn Zeilen duenn.
+   *
+   * Breitenunabhaengig geloest: die Knopfreihe klappt genau dann um, wenn dem
+   * Text sonst zu wenig bliebe. Eine reine Telefon-Regel haette den
+   * Schreibtisch so gelassen, wie er war. */
   .co-row {
     padding: 11px 14px; border-bottom: 1px solid var(--hair);
-    display: flex; gap: 10px; align-items: center; min-width: 0;
+    display: flex; gap: 10px; align-items: center; min-width: 0; flex-wrap: wrap;
   }
+  /* Die Untergrenze gehoert dem TEXT, nicht „was auch immer zuerst kommt".
+   *
+   * Ein erster Anlauf zielte auf `:first-child` — und traf damit den 5 px
+   * breiten Statuspunkt (aus dem ein 330 px langer Balken wurde), die
+   * Kennzahlen-Marke der Home-Assistant-Seite und eine reine Knopfgruppe.
+   * Spezifitaet 0,2,0 schlaegt `.co-dot { width: 5px }` mit 0,1,0.
+   *
+   * Ausserdem `min-width` statt fester `flex-basis`: 180 px als Basis ist eine
+   * Zusage auch dort, wo der Text sie nicht braucht — am Schreibtisch brachen
+   * dadurch kurze Zeilen um, obwohl 250 px daneben frei waren. */
+  .co-row > .co-row-text,
+  .co-row > .co-row-title,
+  .co-row > .co-row-main,
+  .co-row > label,
+  .co-row > div:not([class]) { flex: 1 1 auto; min-width: min(100%, 180px); }
   .co-row:last-child { border-bottom: 0; }
   .co-row-title { font-size: 13px; font-weight: 600; }
   .co-row-sub { font: 400 11px/1.4 var(--font-mono); color: var(--muted); }
@@ -124,7 +183,7 @@
   .co-dot.is-on { background: var(--accent); }
 
   /* ---------- Kartengitter + Geisterkarte ---------- */
-  /* `minmax(320px, …)` ist eine Zusage, die der Browser auch auf einem 375er
+  /* `minmax(min(100%, 320px), …)` ist eine Zusage, die der Browser auch auf einem 375er
      Schirm haelt — abzueglich der Seitenraender passt sie dort nicht mehr, und
      statt der Spalte laeuft die Seite ueber. `min(100%, 320px)` gibt die
      Untergrenze genau dann auf, wenn sie nicht mehr hineinpasst. */
@@ -157,7 +216,7 @@
 
   /* ---------- Pheno-Gewichtung ---------- */
   .ph-weights { padding: 12px 14px; border-bottom: 1px solid var(--hair); display: grid; gap: 10px; }
-  .ph-weight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .ph-weight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px; }
   .ph-weights input[type='range'] { width: 100%; accent-color: var(--accent); }
 
   /* ---------- Kandidaten-Streifen (Pheno-Hunt, Vergleich) ---------- */
@@ -239,9 +298,20 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-2);
-  padding: var(--s-3) var(--s-3) 0;
+  /* Unten war 0: die Felder klebten ohne einen Pixel Luft auf dem grauen
+     Tabellenkopf. */
+  padding: var(--s-3);
 }
 
+/* Hier standen nur Breiten — Farbe, Rahmen und Hoehe fehlten, die drei Felder
+   erschienen deshalb im Browser-Standard mitten in einer gestalteten Seite. */
+/* KEINE eigene Mindesthoehe: widgets.css hebt bei Fingerbedienung alles
+   Bedienbare auf 44 px, eine Regel hier wuerde das wieder unterlaufen. */
+.st-filter input, .st-filter select {
+  padding: 0 10px;
+  border: 1px solid var(--hair); border-radius: var(--r-sm);
+  background: var(--sunk); color: var(--ink); font: inherit; font-size: 13px;
+}
 .st-filter input { flex: 2 1 220px; }
 .st-filter select { flex: 1 1 150px; }
 .st-thc { color: var(--muted); font-size: 0.8rem; }

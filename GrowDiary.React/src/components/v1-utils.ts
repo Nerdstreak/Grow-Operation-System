@@ -1,7 +1,9 @@
 import { formatNumber } from '../utils'
 
+/** Zahl und Einheit gehoeren zusammen — deshalb `\u00A0`, ein geschuetztes Leerzeichen.
+ *  Mit einem gewoehnlichen stand das „L" am Telefon allein in der naechsten Zeile. */
 export function formatLiters(value: number | null | undefined) {
-  return value == null ? '–' : `${formatNumber(value, 1)} L`
+  return value == null ? '–' : `${formatNumber(value, 1)}\u00A0L`
 }
 
 export function toNullableString(value: string | null | undefined): string | null {

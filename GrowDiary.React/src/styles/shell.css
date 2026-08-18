@@ -97,7 +97,7 @@
       max-height: calc(100dvh - 107px); overflow: auto;
       padding: var(--s-3); background: var(--bg); border-bottom: 1px solid var(--hair);
     }
-    .v1-mobile-more-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--s-2); }
+    .v1-mobile-more-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: var(--s-2); }
     .v1-more-tile {
       min-height: var(--h-lg); display: grid; place-items: center;
       border: 1px solid var(--hair); border-radius: var(--r-sm);
@@ -115,7 +115,13 @@
          schoen, in der hellen dunkler Text auf dunklem Grund (gemessener
          Kontrast 1,15). Dieselbe Falle wie zweimal zuvor, diesmal in der
          Navigation, die am Handy jeder als Erstes sieht. */
-      border-bottom: 1px solid var(--hair-2); background: var(--panel);
+      /* `--bg`, nicht `--panel`: letzteres ist im dunklen Thema nur zu 72 %
+         deckend, und der Seiteninhalt scrollte sichtbar durch die feste Leiste.
+         Ein `backdrop-filter` allein reicht dagegen nicht — er verwischt, was
+         dahinterliegt, deckt es aber nicht ab (nachgemessen: der Inhalt blieb
+         erkennbar). Eine feste Leiste braucht einen Vollton. */
+      border-bottom: 1px solid var(--hair-2); background: var(--bg);
+      backdrop-filter: blur(10px);
     }
     .v1-mobile-nav-item {
       min-height: 40px; display: grid; place-items: center; border-radius: var(--r-sm);

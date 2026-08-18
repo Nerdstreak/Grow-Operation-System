@@ -67,7 +67,12 @@
   overflow: hidden;
   pointer-events: none;
 }
+/* 12 px, nicht die geerbten 16: der Hinweis, dass noch KEINE Datei gewaehlt ist,
+   war groesser gesetzt als die Knopfbeschriftung daneben (12), der Hilfetext
+   (11,5) und die Feldbeschriftung (10). Die leere Meldung war damit auffaelliger
+   als der Knopf, den man druecken soll. */
 .rc-file-input-name {
+  font-size: 12px;
   min-width: 0;
   flex: 1 1 160px;
   color: var(--v1-muted);
@@ -143,9 +148,26 @@
   .co-chip,
   .ls-cam-tab,
   .gd-tab,
+  /* --- ergaenzt 18.08.2026: im Handy-Audit gemessen, 14 bis 26 px hoch.
+     Die Namen stammen aus der laufenden App, nicht aus dem Gedaechtnis — ein
+     erster Anlauf nannte drei Klassen, die es gar nicht gibt, und die Regel
+     zielte damit ins Leere. --- */
+  .cu-facts a,
+  .hw-empty,
+  .co-td-link,
   select,
   input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
   textarea {
     min-height: var(--h-lg);
+  }
+
+  /* Ein Verweis im Fliesstext soll kein Knopf werden — aber treffbar sein.
+     Polster nach oben und unten mit ausgleichendem Gegenrand, damit die Zeile
+     dadurch nicht auseinandergeht. */
+  .v1-section-body p a:not(.v1-button):not(.v1-link-button),
+  .v1-card p a:not(.v1-button):not(.v1-link-button) {
+    padding-block: 8px;
+    margin-block: -8px;
+    display: inline-block;
   }
 }

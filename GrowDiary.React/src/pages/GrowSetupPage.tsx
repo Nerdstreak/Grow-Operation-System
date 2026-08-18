@@ -246,7 +246,7 @@ function RunStep({ form, patch, strains }: { form: GrowUpsertPayload; patch: (va
           </V1Field>
         )}
 
-        <V1Field label="Breeder">
+        <V1Field label="Züchter">
           <input value={form.breeder ?? ''} onChange={(event) => patch({ breeder: event.target.value })} />
         </V1Field>
 
@@ -254,7 +254,7 @@ function RunStep({ form, patch, strains }: { form: GrowUpsertPayload; patch: (va
           <input type="number" min="1" value={form.plantCount ?? ''} onChange={(event) => patch({ plantCount: toNullableInt(event.target.value) })} />
         </V1Field>
 
-        <V1Field label="Seed Type">
+        <V1Field label="Samen-Typ">
           <select value={form.seedType} onChange={(event) => patch({ seedType: event.target.value as SeedType })}>
             {seedTypes.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>

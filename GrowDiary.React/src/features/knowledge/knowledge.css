@@ -97,7 +97,7 @@
   .ix-kb-step p { margin: 4px 0 0 26px; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
 
   .ix-kb-facts { margin: 0; display: grid; gap: 6px; }
-  .ix-kb-fact { display: grid; grid-template-columns: minmax(120px, 200px) minmax(0, 1fr); gap: 10px; font-size: 12.5px; }
+  .ix-kb-fact { display: grid; grid-template-columns: minmax(min(100%, 120px), 200px) minmax(0, 1fr); gap: 10px; font-size: 12.5px; }
   .ix-kb-fact dt { color: var(--faint); font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; }
   .ix-kb-fact dd { margin: 0; overflow-wrap: anywhere; }
 

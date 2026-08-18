@@ -300,6 +300,46 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "GrowSystems", "LevelSensorFullRaw", "REAL NULL");
         EnsureColumn(connection, "GrowSystems", "LevelSensorFullLiters", "REAL NULL");
         EnsureColumn(connection, "GrowSystems", "LevelCalibratedAtUtc", "TEXT NULL");
+
+        SchliesseVerwaisteWarnungen(connection);
+    }
+
+    /// <summary>
+    /// Warnungen, deren Grow es nicht mehr gibt, auf erledigt setzen.
+    /// </summary>
+    /// <remarks>
+    /// <para><c>RiskEvents</c> hat keinen Fremdschlüssel auf <c>Grows</c>, und
+    /// <c>PRAGMA foreign_keys</c> ist per Vorgabe aus. Wer vor dieser Fassung
+    /// einen Grow gelöscht hat, behielt dessen Warnungen: für immer offen auf
+    /// der Aufgabenseite, von keinem Abgleich je wieder angefasst — der läuft
+    /// nur über die aktiven Grows. Gefunden am 18.08.2026 in der
+    /// Testdatenbank.</para>
+    ///
+    /// <para>Diese Nachpflege löscht bewusst <b>nichts</b>: sie schließt nur,
+    /// was ohnehin niemandem mehr zuzuordnen ist. Die Einträge verschwinden
+    /// damit von der Aufgabenseite — das war das eigentliche Problem — und
+    /// bleiben im Verlauf nachlesbar.</para>
+    ///
+    /// <para>Beim <b>Löschen eines Grows</b> gilt das Gegenteil, und das ist
+    /// Absicht: dort geht sein Verlauf mit, so wie bei den Prüfspuren auch. Wer
+    /// einen Grow entfernt, will ihn samt allem entfernen. Neue verwaiste
+    /// Einträge kann es dadurch nicht mehr geben; diese Methode räumt nur auf,
+    /// was vor 2.0.0-beta.48 entstanden ist.</para>
+    /// </remarks>
+    private static void SchliesseVerwaisteWarnungen(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "UPDATE RiskEvents " +
+            "SET Status = 'Resolved', " +
+            "    ResolvedAtUtc = COALESCE(ResolvedAtUtc, $jetzt), " +
+            "    UpdatedAtUtc = $jetzt, " +
+            "    Notes = TRIM(COALESCE(Notes || char(10), '') || 'Der zugehoerige Grow wurde geloescht.') " +
+            "WHERE GrowId > 0 " +
+            "  AND Status IN ('Open', 'Acknowledged') " +
+            "  AND GrowId NOT IN (SELECT Id FROM Grows);";
+        command.Parameters.AddWithValue("$jetzt", DateTime.UtcNow.ToString("O"));
+        command.ExecuteNonQuery();
     }
 
 

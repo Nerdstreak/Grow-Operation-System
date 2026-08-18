@@ -67,7 +67,10 @@ function HydroDetailPage() {
       </section>
 
       <V1Section title="Details">
-        <V1Card>
+        {/* Keine Karte und kein zweiter Koerper um das Raster: `.v1-info-grid`
+            bringt Rahmen und Ecken selbst mit, V1Section den Innenabstand. Mit
+            der Karte waren es drei Rahmen ineinander, und die Werte fingen erst
+            47 px vom Bildschirmrand an. */}
           <div className="v1-info-grid compact">
             <Info label="Topf" value={formatLiters(setup.potSizeLiters)} />
             <Info label="Tank" value={formatLiters(setup.reservoirLiters)} />
@@ -77,7 +80,6 @@ function HydroDetailPage() {
             <Info label="UV-C" value={setup.hasUvSterilizer ? 'ja' : 'nein'} />
           </div>
           {setup.notes && <p>{setup.notes}</p>}
-        </V1Card>
       </V1Section>
 
       <V1Section title="Volumen-Kalibrierung">

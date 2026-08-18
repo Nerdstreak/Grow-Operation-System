@@ -3,7 +3,7 @@
    veraendern. Aufraeumen und Schichten sind der naechste Schritt. */
 .grow-select-grid,
 .program-grid {
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
 }
 .grow-summary-list span,
 .grow-program-mini span {
@@ -21,7 +21,7 @@
 }
 .grow-deviation-card {
   display: grid;
-  grid-template-columns: 116px minmax(120px, .7fr) minmax(180px, .8fr) minmax(0, 1.7fr);
+  grid-template-columns: 116px minmax(min(100%, 120px), .7fr) minmax(min(100%, 180px), .8fr) minmax(0, 1.7fr);
   gap: 12px;
   align-items: start;
   padding: 16px;

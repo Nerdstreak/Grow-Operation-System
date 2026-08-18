@@ -77,7 +77,7 @@ export function GrowDetailSopSection({
                         )}
                       </div>
                       <V1Badge tone="neutral">{schrittZustand(step.status)}</V1Badge>
-                      <span className="tl-sub">{step.subSopId ? `Unterablauf: ${step.subSopId}` : ''}</span>
+                      <span className="tl-sub">{step.subSopId ? 'Unterablauf' : ''}</span>
                       <input
                         value={sopStepNotesById[step.id] ?? ''}
                         onChange={(event) => onNoteChange(step.id, event.target.value)}

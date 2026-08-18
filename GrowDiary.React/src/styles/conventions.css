@@ -55,7 +55,7 @@
 /* Focused creation flows */
 .rc2-focused-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(min(100%, 260px), .75fr);
   gap: 16px;
 }
 
@@ -164,7 +164,40 @@
 
 }
 
-/* Mobile audit stabilization: short UI labels must not split inside words. */
+/**
+ * Wischbereiche, die zeigen, dass sie welche sind.
+ *
+ * Dieselbe Machart wie bei den Tabellen (collection.css): die beiden
+ * `local`-Verlaeufe fahren mit dem Inhalt und decken den Schatten ab, sobald
+ * man am jeweiligen Ende angekommen ist. Ohne diesen Hinweis schneidet der Rand
+ * einfach ab — oft sauber an einer Kante, sodass es aussieht wie fertig.
+ */
+.ls-timeline-wrap,
+.ls-cam-strip {
+  /* Die abdeckenden Ebenen MUESSEN deckend sein. Mit `--panel` (im dunklen Thema
+     72 % Deckkraft) blieben am Ende des Wischwegs rund 28 % des Schattens
+     stehen — der Hinweis glomm weiter, obwohl es nicht mehr weitergeht.
+     `--bg` ist in beiden Themen ein Vollton. */
+  background:
+    linear-gradient(to right, var(--bg) 40%, transparent) left center / 26px 100% no-repeat local,
+    linear-gradient(to left, var(--bg) 40%, transparent) right center / 26px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, color-mix(in oklab, var(--ink) 16%, transparent), transparent) left center / 13px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, color-mix(in oklab, var(--ink) 16%, transparent), transparent) right center / 13px 100% no-repeat scroll;
+}
+
+/* Kurze Etiketten duerfen nicht INNERHALB eines Wortes brechen.
+ *
+ * Die App erlaubt Trennungen an jeder beliebigen Stelle (`overflow-wrap:
+ * anywhere`, conventions.css:31 und collection.css:21). Fuer Fliesstext ist das
+ * richtig. In einer engen Zelle darf der Browser deshalb aber bis auf einen
+ * Buchstaben zusammenschieben: „PART" stand als P/A/R/T untereinander,
+ * „Feminisiert" als Buchstabenturm, ein Datum auf drei Zeilen.
+ *
+ * Diese Liste ist die Gegenregel. Sie gab es schon — ihr fehlten genau die
+ * Klassen, die im Handy-Audit vom 18.08.2026 aufgefallen sind. Sie wurden unten
+ * ergaenzt, NICHT pauschal auf alle Zellen gelegt: das machte die Sortentabelle
+ * breiter und schoebe noch mehr nach rechts hinaus.
+ */
 .v1-badge,
 .v1-card-kicker,
 .v1-eyebrow,
@@ -179,7 +212,23 @@
 .v1-stat span,
 .v1-stat small,
 .v1-mobile-nav-item,
-.v1-more-tile {
+.v1-more-tile,
+/* --- ergaenzt 18.08.2026 --- */
+.v1-list-row em,
+.co-td.is-name,
+.co-unit,
+.st-thc,
+.dz-badge,
+.cu-alter,
+.tl-sub .badge,
+.sop-schritt .v1-badge,
+/* --- nachgetragen nach der Gegenprobe: hier stand „Fe/mi/ni/si/er/t" ueber
+   sechs Zeilen, waehrend der Zusatz daneben (.st-thc) schon geschuetzt war --- */
+.co-td.is-muted,
+/* In der Pumpenkarte tragen die Werte gar keine Klasse — deshalb ueber den
+   Behaelter. Bei 320 px stand dort „Phosphorsaeure 59 %" auf 17 Zeilen. */
+.dz-pump b,
+.dz-pump span {
   overflow-wrap: normal;
   word-break: normal;
   hyphens: manual;

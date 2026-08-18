@@ -230,7 +230,7 @@ function AlertsPage() {
         />
       )}
 
-      <section className="ls-panel co-table-wrap" data-audit="alert-rules-table">
+      <section className="ls-panel" data-audit="alert-rules-table">
         <div className="ls-panel-head">
           <span className="ls-label">Grenzwerte · {selectedTent.name}</span>
           <span className="ls-panel-meta">leere Felder = keine Grenze; Karenz in Minuten</span>
@@ -241,6 +241,7 @@ function AlertsPage() {
             {saving ? 'Speichert…' : 'Speichern'}
           </button>
         </div>
+        <div className="co-table-wrap">
         <div className="co-table" style={{ gridTemplateColumns: '1fr .8fr .8fr .8fr .6fr .5fr' }}>
           <div className="co-th">Metrik</div>
           <div className="co-th">Ziel dieser Phase</div>
@@ -265,6 +266,7 @@ function AlertsPage() {
               </AlertRow>
             )
           })}
+        </div>
         </div>
       </section>
 

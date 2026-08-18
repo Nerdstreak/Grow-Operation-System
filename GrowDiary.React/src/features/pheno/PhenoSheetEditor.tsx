@@ -43,7 +43,7 @@ function Group({ title, when, children }: { title: string; when: string; childre
         <span className="v1-card-kicker">{title}</span>
         <span className="rc2-measurement-note">{when}</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 12 }}>{children}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 210px), 1fr))', gap: 12 }}>{children}</div>
     </div>
   )
 }

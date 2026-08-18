@@ -1,6 +1,6 @@
 /* Wasserwechsel erfassen (Addback-Hub). */
 @layer features {
   .changeouts-form-card { margin-bottom: 14px; }
-  .changeouts-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: end; }
+  .changeouts-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px; align-items: end; }
   .changeouts-form .v1-field.is-wide { grid-column: 1 / -1; }
 }
