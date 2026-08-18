@@ -1,5 +1,5 @@
 name: Grow MCP
-version: "0.1.7"
+version: "0.1.8"
 slug: grow_mcp
 description: Grow OS als Werkzeugkasten fuer Claude und andere MCP-Klienten im eigenen Netz
 url: https://github.com/Nerdstreak/Grow-Operation-System
