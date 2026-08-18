@@ -66,6 +66,11 @@
 .rc2-measurement-context {
   align-content: start;
 }
+/* Diese Karte ist selbst ein Raster mit `row-gap` und haelt ihre Kinder schon
+   auseinander. Der allgemeine Kartenabstand aus primitives.css addiert sich
+   sonst darauf: gemessen 22 px zwischen den Feldern gegen 12 px zwischen allem
+   anderen in derselben Karte. */
+.rc2-measurement-context > * { margin-top: 0; }
 .rc2-measurement-note {
   color: var(--v1-soft);
   line-height: 1.35;

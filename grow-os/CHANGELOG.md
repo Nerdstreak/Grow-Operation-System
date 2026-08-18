@@ -1,5 +1,81 @@
 # Changelog
 
+## 2.0.0-beta.47
+
+**Beta.** The phone. A tester said it plainly: "I sometimes have to hunt for
+where a feature is hiding", and "there are still small display errors from too
+much text". A visual audit of 30 pages at 375, 360 and 320 px produced 155
+findings, which collapsed into 19 shared causes. This release takes the first
+wave and the three findings that were not cosmetic at all.
+
+### Three things that were not polish
+
+- Fixed — **a running routine could not be ticked off on a phone.** The step row
+  was 960 px wide on a 375 px screen and sat in no scrollable area, so it was
+  simply cut. All twelve buttons (Start · Done · Skip across four steps) sat at
+  x = 717…897 and were unreachable — by tapping or by swiping. The column widths
+  were written into the component. They are now a stylesheet, and below 1100 px
+  everything stacks. Measured after: widest box 375 px, unreachable buttons 0.
+- Fixed — **the search had no stylesheet at all.** `app-search-hit`, `.k`, `.t`
+  and `.s` were in the markup; no rule for any of them existed anywhere in the
+  project. What applied instead was the default of a bare `<button>`:
+  `text-align: center`, `padding: 0`, three spans butted together. On screen
+  that read "SOPWurzelfäule-Behandlung" and "RegelBiofilm ist der Ausgangspunkt
+  jedes RDWC-ProblemsWorkshop Lehrmaterial". The desktop had the same defect; it
+  only showed less because a hit happened to fit on one line.
+- Fixed — **three colours were written for the dark theme only.** In the light
+  theme the addback assistant's three most important input fields stood as black
+  boxes with black text (measured contrast 1.12 against a required 4.5), the
+  camera label was unreadable, and an error message nearly vanished into white.
+
+### The cheap lever
+
+- Fixed — **`.v1-action-row` was never a row.** `flex-wrap` and `gap` were set,
+  `display: flex` was not, so the box was an ordinary line of text: buttons met
+  at 0 px, two borders reading as one thick line. One line of CSS, fourteen
+  button rows.
+- Fixed — **fixed minimum widths pushed pages off the screen.** `minmax(320px,
+  1fr)` and `min-width: 170px` are promises the browser keeps even when the room
+  is gone. On the grow detail page the strain picker stuck out 272 px. Five
+  places now give the promise up when it no longer fits.
+- Fixed — **cards had no space between their parts.** On the welcome page the
+  button clung to the last word of the text, on nine cards.
+- Fixed — **uppercasing labels turned micro into mega.** The style rule set every
+  field label in capitals, so µS/cm became MS/CM and µmol became MMOL — a factor
+  of 1000 — while pH became PH, °dH became °DH and mg/L became MG/L. On the water
+  page eight of twelve labels were affected, and that is exactly where somebody
+  types in their drinking-water report. The labels were already written correctly
+  in the source; the styling was falsifying them.
+
+### Developer words in a German interface
+
+- Fixed — **the task list showed enum names.** The title was built from
+  `deviation.Metric`, so a user read "Ec: Abweichung prüfen"; other readings
+  would have produced "Ph", "Vpd", "Co2", "WaterTemp" or "DissolvedOxygen".
+- Fixed — **the SOP page showed `Recurring`, `MultiDay`, `Active`, `Pending`,
+  `Action`, `Measurement`, `Confirmation`, `Task #23` and the raw routine id.**
+
+### Guard
+
+- Added — a source-level test that fails on any **new** hardcoded colour in CSS.
+  This trap has now sprung four times, and the existing contrast test kept
+  missing it for a structural reason: the e2e run has no backend in CI, so a
+  detail page like `/grows/1/addback` is only a loading state there — a contrast
+  test on it is green without ever having seen the fields. The new test needs no
+  server. The 24 existing hardcoded colours are recorded as a dated inventory,
+  measured in the browser across 31 pages in both themes; that list may shrink,
+  never grow.
+
+Measured before and after on the running app: contrast failures on
+`/grows/1/addback` 28 → 0, on `/zelte/1` 2 → 0; overflow on `/grows/1` 8 → 0;
+gap between buttons 0 px → 8 px; touching pairs in cards 9 → 0 on `/start` and
+7 → 0 on `/release`; falsified units 10 → 0 on `/wasser` and 9 → 0 on
+`/messung`. Across twelve viewport widths from 320 to 1600 px the pages with
+findings went from 19 to 3, and the three that remain were there before and are
+unchanged by this release.
+
+Backend 1200, vitest 200, e2e 256, lint clean.
+
 ## 2.0.0-beta.46
 
 **Beta.** The last of the 37 findings. All of them are now closed.

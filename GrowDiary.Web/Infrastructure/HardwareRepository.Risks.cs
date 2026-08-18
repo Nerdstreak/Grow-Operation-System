@@ -28,6 +28,28 @@ public sealed partial class HardwareRepository
                 {
                     existing.RawValue = item.RawValue;
                 }
+
+                // Titel und Beschreibung mitschreiben.
+                //
+                // Beide sind rein abgeleitet — sie entstehen bei jedem Durchlauf
+                // neu aus derselben Abweichung. Wurden sie hier nicht mitgezogen,
+                // blieb an einem bestehenden Eintrag fuer immer der Text stehen,
+                // der beim ERSTEN Erkennen galt. Aufgefallen ist das, als der
+                // Aufgaben-Titel von „Ec:" auf „EC:" umgestellt wurde: auf einem
+                // laufenden Grow mit einer offenen EC-Abweichung stand weiter der
+                // alte Titel, und zwar so lange, bis die Abweichung einmal ganz
+                // verschwindet und wiederkommt. Eine Umbenennung waere also erst
+                // beim uebernaechsten Grow sichtbar geworden.
+                if (!string.IsNullOrWhiteSpace(item.Title))
+                {
+                    existing.Title = item.Title;
+                }
+
+                if (!string.IsNullOrWhiteSpace(item.Description))
+                {
+                    existing.Description = item.Description;
+                }
+
                 UpdateRiskEvent(existing);
                 return GetRiskEvent(existing.Id)!;
             }

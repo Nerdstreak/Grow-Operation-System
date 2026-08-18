@@ -286,11 +286,22 @@
 
 /* Pflanzen & Sorten am Grow: der Mischgrow wird sichtbar. */
 .gp-liste { list-style: none; margin: var(--s-2) 0 0; padding: 0; display: grid; gap: 4px; }
-.gp-liste li { display: flex; align-items: center; gap: var(--s-3); padding: 4px 0; border-top: 1px solid var(--border); }
+/* `min-width: 0` ist hier der entscheidende Teil: als Kind eines Rasters hat das
+   Listenelement sonst `min-width: auto` und kann gar nicht unter seinen Inhalt —
+   genau die Falle, vor der live-screen.css:10-22 warnt. Ohne diese Zeile bleibt
+   der Ueberlauf, auch wenn das Auswahlfeld darunter schrumpft (nachgemessen).
+   Zusammen mit `flex-wrap` rutscht die Sortenauswahl in die naechste Zeile,
+   statt 272 px aus dem Bildschirm zu ragen. */
+.gp-liste li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); padding: 4px 0; border-top: 1px solid var(--border); min-width: 0; }
 .gp-liste li:first-child { border-top: none; }
-.gp-label { flex: 1 1 140px; }
+.gp-label { flex: 1 1 140px; min-width: 0; }
 .gp-rolle { color: var(--muted); font-style: normal; font-size: 0.8rem; }
-.gp-liste select, .gp-neu select { min-width: 170px; }
-.gp-neu { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); align-items: center; }
+/* Eine feste Untergrenze ist eine Zusage, die der Browser auch dann haelt, wenn
+   der Platz nicht reicht. `min(100%, 170px)` gibt sie auf schmalen Schirmen auf. */
+.gp-liste select, .gp-neu select { min-width: min(100%, 170px); max-width: 100%; }
+/* Seit die Zeile umbricht, sah „neue Pflanze anlegen" aus wie ein weiterer
+   Listeneintrag. Eine Trennlinie sagt, dass hier die Liste aufhoert. */
+.gp-neu { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center;
+  margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--border); }
 .gp-hinweis { color: var(--muted); font-size: 0.8rem; margin: var(--s-3) 0 0; }
 .gp-fehler { color: var(--danger); font-size: 0.85rem; margin: 0 0 var(--s-2); }

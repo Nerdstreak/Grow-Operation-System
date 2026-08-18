@@ -1,7 +1,12 @@
 /* Dosierpumpen — Maße aus dem abgenommenen Entwurf. */
 @layer features {
 
-  .dz-pumps { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
+  /* min(100%, …): auf einem 375er Schirm gibt die Untergrenze nach, statt die
+     Seite ueber den Rand zu schieben. */
+  /* 300 statt 330: die Karte hat innen eine feste 120-px-Spalte, unter rund
+     300 px Kartenbreite quetscht sie ihre Wertespalte statt umzubrechen. Unter
+     390 px Schirmbreite gibt sie die Untergrenze ganz auf und wird einspaltig. */
+  .dz-pumps { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
 
   .dz-pump {
     border: 1px solid var(--hair); border-radius: var(--r-lg); background: var(--panel);

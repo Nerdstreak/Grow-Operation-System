@@ -20,7 +20,9 @@
   /* ---------- Messfelder ---------- */
   .meas-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
   .meas-field { display: grid; gap: 6px; }
-  .meas-field label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  /* Auch hier Messgroessen — sonst steht in der alten Maske PH, waehrend die
+     neue Maske daneben pH schreibt. */
+  .meas-field label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; }
   .meas-field-inner { position: relative; }
   .meas-input {
     width: 100%; min-height: 44px; padding: 12px 14px;

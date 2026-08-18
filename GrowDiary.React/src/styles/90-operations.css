@@ -124,7 +124,9 @@
 }
 .rc-risk-action-error {
   margin: 0;
-  color: #ffb2b2;
+  /* Vorher ein festes Rosa aus dem dunklen Thema — im hellen verschwand die
+     Fehlermeldung fast im Weiss. Das Token kennt beide Themen. */
+  color: var(--danger-text);
   font-size: 12px;
   font-weight: 700;
 }

@@ -127,7 +127,7 @@ public sealed class DeviationRiskEventSyncService
             Severity = deviation.Severity == DeviationSeverity.Critical ? RiskEventSeverity.Critical : RiskEventSeverity.Warning,
             Status = RiskEventStatus.Open,
             Source = RiskEventSource.Deviation,
-            Title = $"{deviation.Metric}: {ToSeverityLabel(deviation.Severity)}",
+            Title = $"{ToMetricLabel(deviation.Metric)}: {ToSeverityLabel(deviation.Severity)}",
             Description = description,
             TentId = grow.TentId,
             GrowId = grow.Id,
@@ -165,4 +165,32 @@ public sealed class DeviationRiskEventSyncService
 
     private static string ToSeverityLabel(DeviationSeverity severity)
         => severity == DeviationSeverity.Critical ? "kritische Abweichung" : "Abweichung prüfen";
+
+    /// <summary>
+    /// Der Name einer Messgröße, wie ein Mensch ihn liest.
+    /// </summary>
+    /// <remarks>
+    /// <para>Vorher stand der Enum-Name im Titel. Auf der Aufgabenseite — der
+    /// Seite, die man mit dem Telefon im Zelt aufhat — las der Nutzer deshalb
+    /// „Ec: Abweichung prüfen". Je nach Messwert wären dort auch „Ph", „Vpd",
+    /// „Co2", „WaterTemp" oder „DissolvedOxygen" erschienen.</para>
+    ///
+    /// <para>Groß- und Kleinschreibung ist hier fachlich, nicht kosmetisch: pH
+    /// ist nicht PH, und EC schreibt sich groß. Ein unbekannter Wert wird
+    /// durchgereicht statt verschluckt — ein englisches Wort ist besser als
+    /// ein leerer Titel.</para>
+    /// </remarks>
+    public static string ToMetricLabel(DeviationMetric metric) => metric switch
+    {
+        DeviationMetric.Ph => "pH",
+        DeviationMetric.Ec => "EC",
+        DeviationMetric.Orp => "ORP",
+        DeviationMetric.WaterTemp => "Wassertemperatur",
+        DeviationMetric.Vpd => "VPD",
+        DeviationMetric.Ppfd => "PPFD",
+        DeviationMetric.Co2 => "CO₂",
+        DeviationMetric.DissolvedOxygen => "Gelöster Sauerstoff",
+        DeviationMetric.GerminationStatus => "Keimung",
+        _ => metric.ToString(),
+    };
 }

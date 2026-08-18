@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../../api'
+import { ablaufArt } from './sop-woerter'
 import { choiceLabel, optionLabel, subjectPlural } from './sop-choice-labels'
 import { V1Button } from '../../components/v1'
 
@@ -20,7 +21,7 @@ type SopPlanQuestions = { sopId: string; choices: SopChoice[]; repeatSubjects: s
 function meta(entry: SopCatalogEntry): string {
   const parts: string[] = []
   const stepCount = Array.isArray(entry.steps) ? entry.steps.length : 0
-  if (entry.type) parts.push(entry.type)
+  if (entry.type) parts.push(ablaufArt(entry.type))
   if (stepCount > 0) parts.push(`${stepCount} Schritte`)
   if (entry.estimatedDurationMinutes) parts.push(`~${entry.estimatedDurationMinutes} Min`)
   if (entry.intervalDays) parts.push(`alle ${entry.intervalDays} Tage`)

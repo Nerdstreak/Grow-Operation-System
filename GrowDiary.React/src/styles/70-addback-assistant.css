@@ -154,7 +154,11 @@
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 13px;
-  background: oklch(7% 0.012 155);
+  /* Diese Fläche folgt dem Thema. Vorher stand hier `oklch(7% 0.012 155)`, eine
+     ausgerechnete dunkle Farbe: im hellen Thema standen die drei wichtigsten
+     Eingabefelder des Assistenten als schwarze Kästen mit schwarzer Schrift da,
+     gemessener Kontrast 1,12 statt der geforderten 4,5. */
+  background: var(--sunk);
 }
 
 .addback-number-field input,
@@ -179,9 +183,12 @@
   min-height: 138px;
   margin-bottom: 14px;
   padding: 18px;
-  border: 1px solid rgba(69, 211, 85, 0.28);
+  border: 1px solid var(--accent-dim, var(--hair-2));
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(69, 211, 85, 0.13), rgba(8, 30, 17, 0.92));
+  /* Der zweite Farbstopp war fest dunkelgruen: im hellen Thema stand die
+     Schrift schwarz auf dunkelgruen — genau der Fehler, den die Felder eine
+     Regel darunter losgeworden sind. Beide Stopps folgen jetzt dem Thema. */
+  background: linear-gradient(135deg, var(--accent-wash), var(--panel-2));
 }
 
 .addback-result-card > strong {

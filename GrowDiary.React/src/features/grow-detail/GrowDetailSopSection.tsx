@@ -1,6 +1,8 @@
 import type { SopInstanceDto, SopStepInstanceDto, SopStepInstanceStatus } from '../../types'
 import { formatDateTime } from '../../utils'
 import type { GrowDetailSection } from './grow-detail-model'
+import { ablaufArt, instanzZustand, schrittArt, schrittZustand } from './sop-woerter'
+import './sop-instanz.css'
 import { V1Badge, V1Button } from '../../components/v1'
 
 type GrowDetailSopSectionProps = {
@@ -31,7 +33,7 @@ export function GrowDetailSopSection({
       <div className="section-label" style={{ display: isVisible ? undefined : 'none' }}>SOPs</div>
       <div className="card" style={{ marginBottom: 14, display: isVisible ? undefined : 'none' }}>
         <div className="card-header">
-          <span className="card-title">SOP-Instanzen</span>
+          <span className="card-title">Laufende Routinen</span>
           <span className="text-muted" style={{ fontSize: 13 }}>{sopInstances.length}</span>
         </div>
         {sopInstanceError ? (
@@ -42,29 +44,28 @@ export function GrowDetailSopSection({
           <div style={{ display: 'grid' }}>
             {sopInstances.map((instance) => (
               <div key={instance.id} style={{ display: 'grid', gap: 10, padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) 120px 120px 1fr', gap: 10, alignItems: 'center' }}>
+                <div className="sop-instanz-kopf">
                   <div>
                     <div className="tl-title">{instance.sopName}</div>
-                    <div className="tl-sub">{instance.sopId}</div>
                   </div>
-                  <V1Badge tone="neutral">{instance.sopType}</V1Badge>
-                  <span className={`badge ${instance.status === 'Completed' ? 'badge-ok' : 'badge-neutral'}`}>{instance.status}</span>
+                  <V1Badge tone="neutral">{ablaufArt(instance.sopType)}</V1Badge>
+                  <span className={`badge ${instance.status === 'Completed' ? 'badge-ok' : 'badge-neutral'}`}>{instanzZustand(instance.status)}</span>
                   <div className="tl-sub">
-                    {instance.stepCount} Steps &ndash; Start {formatDateTime(instance.startedAtUtc)}
-                    {instance.isRecurring && <span className="badge badge-neutral" style={{ marginLeft: 8 }}>Recurring</span>}
+                    {instance.stepCount} Schritte &ndash; Start {formatDateTime(instance.startedAtUtc)}
+                    {instance.isRecurring && <span className="badge badge-neutral" style={{ marginLeft: 8 }}>Wiederkehrend</span>}
                     {instance.dueAtUtc && <span style={{ marginLeft: 8 }}>Fällig: {formatDateTime(instance.dueAtUtc)}</span>}
                     {instance.nextStepDueAtUtc && instance.status === 'Active' && (
-                      <span style={{ marginLeft: 8 }}>Nächster Step: {formatDateTime(instance.nextStepDueAtUtc)}</span>
+                      <span style={{ marginLeft: 8 }}>Nächster Schritt: {formatDateTime(instance.nextStepDueAtUtc)}</span>
                     )}
                   </div>
                 </div>
-                <div style={{ display: 'grid', gap: 8 }}>
+                <div className="sop-schritte">
                   {(sopStepsByInstanceId[instance.id] ?? []).map((step) => (
-                    <div key={step.id} style={{ display: 'grid', gridTemplateColumns: '48px minmax(180px, 1fr) 120px 120px minmax(180px, 1fr) 240px', gap: 8, alignItems: 'start' }}>
+                    <div key={step.id} className="sop-schritt">
                       <span className="tl-sub">#{step.order}</span>
                       <div>
                         <div className="tl-title">{step.title}</div>
-                        <div className="tl-sub">{step.stepType}</div>
+                        <div className="tl-sub">{schrittArt(step.stepType)}</div>
                         {step.dueAtUtc && (
                           <div className="tl-sub">Fällig: {formatDateTime(step.dueAtUtc)}</div>
                         )}
@@ -72,11 +73,11 @@ export function GrowDetailSopSection({
                           <div className="tl-sub">Verfügbar ab: {formatDateTime(step.availableAtUtc)}</div>
                         )}
                         {step.reminderTaskId && (
-                          <div className="tl-sub" style={{ opacity: 0.6 }}>Task #{step.reminderTaskId}</div>
+                          <div className="tl-sub" style={{ opacity: 0.6 }}>Aufgabe #{step.reminderTaskId}</div>
                         )}
                       </div>
-                      <V1Badge tone="neutral">{step.status}</V1Badge>
-                      <span className="tl-sub">{step.subSopId ? `SubSOP: ${step.subSopId}` : ''}</span>
+                      <V1Badge tone="neutral">{schrittZustand(step.status)}</V1Badge>
+                      <span className="tl-sub">{step.subSopId ? `Unterablauf: ${step.subSopId}` : ''}</span>
                       <input
                         value={sopStepNotesById[step.id] ?? ''}
                         onChange={(event) => onNoteChange(step.id, event.target.value)}
@@ -84,7 +85,7 @@ export function GrowDetailSopSection({
                         disabled={instance.status !== 'Active'}
                       />
                       {instance.status === 'Active' ? (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <div className="sop-schritt-knoepfe">
                           {step.availableAtUtc && new Date(step.availableAtUtc) > new Date() && (
                             <span className="tl-sub" style={{ alignSelf: 'center', width: '100%' }}>
                               Verfügbar ab {formatDateTime(step.availableAtUtc)}

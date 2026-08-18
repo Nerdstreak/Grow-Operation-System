@@ -73,6 +73,21 @@
   flex-wrap: wrap;
 }
 
+/**
+ * Eine Knopfreihe muss auch eine Reihe SEIN.
+ *
+ * `flex-wrap` und `gap` oben wirken nur an einem Flex-Kasten. `.grow-card-facts`
+ * und `.v1-chip-row` bekommen ihr `display: flex` woanders her, `.v1-action-row`
+ * nirgends — gemessen stand sie auf `display: block`, `gap: normal`, und die
+ * Knöpfe stiessen mit 0 px aneinander: zwei Rahmen als eine dicke Linie, und mit
+ * dem Finger trifft man den falschen. Betroffen waren 14 Reihen quer durch die App.
+ */
+.v1-action-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
 /* Manual measurement workflow */
 /* RC2 bottom-nav and form action fix */
 .v1-form-actions,

@@ -1,0 +1,85 @@
+/**
+ * Laufende Routinen: Kopfzeile und Schritte.
+ *
+ * Vorher standen die Spaltenbreiten fest im Quelltext:
+ * `48px minmax(180px, 1fr) 120px 120px minmax(180px, 1fr) 240px`. Das sind
+ * mindestens 928 px — gemessen 960 auf einem 375 px breiten Schirm, und das
+ * Ganze lag in KEINEM Wischbereich. Alle zwoelf Knoepfe (Starten, Erledigt,
+ * Ueberspringen an vier Schritten) sassen bei x = 717 bis 897 und waren nicht
+ * erreichbar: eine gestartete Routine liess sich am Telefon nicht abhaken.
+ */
+
+/**
+ * Die Tabellenform ab 1101 px.
+ *
+ * Die Spalten stehen am ELTERNTEIL, nicht an jeder Zeile. Ein erster Anlauf gab
+ * jeder `.sop-schritt` ihr eigenes Raster — dann rechnet jede Zeile ihre
+ * Spalten allein aus ihrem eigenen Inhalt, und die Tabelle fluchtet nicht mehr:
+ * ein Schritt mit langem Titel schob seine Zustandsspalte woanders hin als der
+ * Schritt darunter. Ein gemeinsames Raster mit `display: contents` an den
+ * Zeilen haelt alle Spalten auf einer Linie.
+ */
+.sop-instanz-kopf {
+  display: grid;
+  grid-template-columns: minmax(min(100%, 180px), 1fr) auto auto minmax(min(100%, 180px), 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.sop-schritte {
+  display: grid;
+  grid-template-columns:
+    48px
+    minmax(min(100%, 180px), 1fr)
+    clamp(96px, 9vw, 130px)
+    clamp(96px, 9vw, 130px)
+    minmax(min(100%, 180px), 1fr)
+    minmax(min(100%, 230px), auto);
+  gap: 8px;
+  align-items: start;
+}
+
+.sop-schritt { display: contents; }
+
+/* Das Notizfeld darf nicht seinerseits eine Untergrenze mitbringen. */
+.sop-schritte input { min-width: 0; width: 100%; }
+
+.sop-schritt-knoepfe { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/*
+ * Der Bruchpunkt liegt bei 1100 px, nicht bei 760.
+ *
+ * Nachgemessen: die Tabellenform braucht rund 930 px reine Inhaltsbreite. Ab
+ * 861 px steht links die Seitenleiste, die davon noch einmal gut 220 px nimmt —
+ * bei 1024 px Fensterbreite blieb die Zeile deshalb 195 px zu breit. Ein
+ * Bruchpunkt bei 760 haette nur das Telefon gerettet und das Tablet weiter
+ * abschneiden lassen.
+ */
+@media (max-width: 1100px) {
+  .sop-instanz-kopf { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+
+  /* Gestapelt trägt jeder Schritt sein eigenes kleines Raster: Nummer neben
+     dem Titel, alles Weitere darunter über die volle Breite. */
+  .sop-schritte { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .sop-schritt {
+    display: grid; grid-template-columns: 34px minmax(0, 1fr);
+    gap: 6px; align-items: baseline;
+    /* Der Abstand ZWISCHEN zwei Schritten muss groesser sein als der INNERHALB
+       eines Schritts — sonst liest sich die Liste als ein einziger langer
+       Block, und man weiss nicht, welche Knoepfe zu welchem Schritt gehoeren. */
+    padding-bottom: 14px; margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sop-schritt:last-child { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
+  .sop-schritt > :nth-child(n + 3) { grid-column: 1 / -1; }
+
+  /* Eine Zustands-Plakette ist eine Pille, kein Eingabefeld: sie bleibt so
+     breit wie ihr Wort, statt sich ueber den ganzen Schirm zu ziehen. */
+  .sop-schritt .v1-badge, .sop-schritt .badge,
+  .sop-instanz-kopf .v1-badge, .sop-instanz-kopf .badge { justify-self: start; }
+
+  .sop-schritt-knoepfe { margin-top: 2px; }
+  /* 44 px, nicht 40 — dieselbe Untergrenze, die widgets.css fuer alles
+     Bedienbare bei Fingerbedienung setzt. Platz ist reichlich da. */
+  .sop-schritt-knoepfe > button { flex: 1 1 auto; min-height: 44px; }
+}

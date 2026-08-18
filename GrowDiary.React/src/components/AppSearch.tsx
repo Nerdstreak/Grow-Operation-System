@@ -12,7 +12,7 @@ export type SearchablePage = { label: string; route: string; keywords?: string }
  * One box for everything. Pages are matched locally so it answers instantly; grows, tents,
  * strains, SOPs and knowledge come from the server.
  */
-export function AppSearch({ pages }: { pages: SearchablePage[] }) {
+export function AppSearch({ pages, onNavigate }: { pages: SearchablePage[]; onNavigate?: () => void }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -82,10 +82,21 @@ export function AppSearch({ pages }: { pages: SearchablePage[] }) {
     navigate(hit.route)
     setQuery('')
     setOpen(false)
+    // Am Telefon liegt die Suche IM „Mehr"-Menue. Ohne diesen Rueckruf blieb es
+    // nach dem Treffer offen und verdeckte genau die Seite, auf die man gerade
+    // gesprungen ist.
+    onNavigate?.()
   }
 
   // Guards against a stale index when the result list shrinks under the cursor.
   const activeIndex = Math.min(active, Math.max(hits.length - 1, 0))
+
+  // Pfeiltasten schoben die Liste nicht mit: ab Treffer 8 stand die Auswahl
+  // ausserhalb des sichtbaren Bereichs, man tippte ins Blinde.
+  useEffect(() => {
+    const kasten = boxRef.current?.querySelector('.app-search-results')
+    kasten?.querySelectorAll('.app-search-hit')[activeIndex]?.scrollIntoView({ block: 'nearest' })
+  })
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'ArrowDown') {
@@ -109,7 +120,7 @@ export function AppSearch({ pages }: { pages: SearchablePage[] }) {
         type="search"
         className="app-search-input"
         value={query}
-        placeholder="Suchen …  (Strg+K)"
+        placeholder={zeigtTastenkuerzel() ? 'Suchen … (Strg+K)' : 'Suchen …'}
         aria-label="In Grow OS suchen"
         onChange={(event) => { setQuery(event.target.value); setActive(0); setOpen(true) }}
         onFocus={() => setOpen(true)}
@@ -141,4 +152,16 @@ export function AppSearch({ pages }: { pages: SearchablePage[] }) {
       )}
     </div>
   )
+}
+
+/**
+ * Hat dieses Geraet ueberhaupt eine Strg-Taste?
+ *
+ * Im Platzhalter stand „Suchen …  (Strg+K)" — auch auf dem Telefon, wo es
+ * weder Strg noch K gibt und der Hinweis nur Platz frisst. `pointer: coarse`
+ * beschreibt genau das: ein Zeiger, der ein Finger ist.
+ */
+function zeigtTastenkuerzel(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return true
+  return !window.matchMedia('(pointer: coarse)').matches
 }

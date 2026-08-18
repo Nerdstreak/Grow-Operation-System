@@ -107,7 +107,7 @@ export function AppShell({ children, counts }: Props) {
 
       {moreOpen && (
         <div className="v1-mobile-more-panel" data-audit="mobile-more-menu">
-          <AppSearch pages={searchablePages} />
+          <AppSearch pages={searchablePages} onNavigate={() => setMoreOpen(false)} />
           {navGroups.map((group) => (
             <section key={group.id}>
               <div className="v1-nav-group-head">{group.label}</div>

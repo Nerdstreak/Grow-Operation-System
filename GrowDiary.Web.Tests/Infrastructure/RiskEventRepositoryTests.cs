@@ -52,6 +52,101 @@ public sealed class RiskEventRepositoryTests : IDisposable
         }
     }
 
+    /// <summary>
+    /// Ein Titel, der sich geaendert hat, muss auch an einem bestehenden
+    /// Eintrag ankommen.
+    /// </summary>
+    /// <remarks>
+    /// Titel und Beschreibung sind rein abgeleitet — sie entstehen bei jedem
+    /// Durchlauf neu aus derselben Abweichung. Beim Dedupe-Treffer wurden sie
+    /// nicht mitgeschrieben, also blieb an einem offenen Eintrag fuer immer der
+    /// Text vom ersten Erkennen stehen. Aufgefallen beim Umbenennen des
+    /// Aufgaben-Titels von „Ec:" auf „EC:": auf einem laufenden Grow mit einer
+    /// offenen EC-Abweichung stand weiter der alte Titel — die Umbenennung
+    /// waere erst beim uebernaechsten Grow sichtbar geworden.
+    /// </remarks>
+    [Fact]
+    public void RiskEvent_DedupeTreffer_SchreibtTitelUndBeschreibungMit()
+    {
+        var repo = new GrowRepository(_paths);
+        var tent = repo.GetTents().Single();
+        var growId = CreateGrow(repo, tent.Id);
+
+        RiskEvent Bauen(string titel, string beschreibung) => new()
+        {
+            EventType = RiskEventType.Other,
+            Severity = RiskEventSeverity.Warning,
+            Status = RiskEventStatus.Open,
+            Source = RiskEventSource.Deviation,
+            Title = titel,
+            Description = beschreibung,
+            TentId = tent.Id,
+            GrowId = growId,
+            StartedAtUtc = Utc(2026, 8, 1),
+            LastSeenAtUtc = Utc(2026, 8, 1),
+            DedupeKey = "deviation:grow:1:ec",
+            RawValue = "actual=1.8;target=1.0-1.4;unit=",
+        };
+
+        var erst = repo.CreateRiskEvent(Bauen("Ec: Abweichung pruefen", "EC 1,8 liegt ausserhalb."));
+        var nochmal = repo.CreateRiskEvent(Bauen("EC: Abweichung pruefen", "EC 1,9 liegt ausserhalb."));
+
+        // Derselbe Eintrag, kein zweiter — das war schon vorher so und bleibt.
+        Assert.Equal(erst.Id, nochmal.Id);
+
+        var geladen = repo.GetRiskEvent(erst.Id)!;
+        Assert.Equal("EC: Abweichung pruefen", geladen.Title);
+        Assert.Equal("EC 1,9 liegt ausserhalb.", geladen.Description);
+    }
+
+    /// <summary>
+    /// Eine leere Beschreibung ueberschreibt die vorhandene nicht.
+    /// </summary>
+    /// <remarks>
+    /// Fuer den Titel kann dieser Fall gar nicht eintreten — <c>ValidateRiskEvent</c>
+    /// lehnt einen leeren Titel ab, bevor der Dedupe-Weg ueberhaupt erreicht wird.
+    /// (Ein erster Anlauf dieses Tests behauptete etwas anderes und ist daran
+    /// gefallen; die Schutzabfrage am Titel bleibt trotzdem stehen, damit die
+    /// Regel nicht davon abhaengt, was eine andere Methode gerade prueft.)
+    /// </remarks>
+    [Fact]
+    public void RiskEvent_DedupeTreffer_LaesstLeereBeschreibungInRuhe()
+    {
+        var repo = new GrowRepository(_paths);
+        var tent = repo.GetTents().Single();
+        var growId = CreateGrow(repo, tent.Id);
+
+        RiskEvent Bauen(string beschreibung) => new()
+        {
+            EventType = RiskEventType.Other, Severity = RiskEventSeverity.Warning,
+            Status = RiskEventStatus.Open, Source = RiskEventSource.Deviation,
+            Title = "EC: Abweichung pruefen", Description = beschreibung,
+            TentId = tent.Id, GrowId = growId,
+            StartedAtUtc = Utc(2026, 8, 1), LastSeenAtUtc = Utc(2026, 8, 1),
+            DedupeKey = "deviation:grow:1:ec2",
+        };
+
+        var erst = repo.CreateRiskEvent(Bauen("Erste Fassung."));
+        repo.CreateRiskEvent(Bauen("   "));
+
+        Assert.Equal("Erste Fassung.", repo.GetRiskEvent(erst.Id)!.Description);
+    }
+
+    [Fact]
+    public void RiskEvent_LeererTitelWirdAbgelehnt()
+    {
+        var repo = new GrowRepository(_paths);
+        var tent = repo.GetTents().Single();
+
+        Assert.Throws<InvalidOperationException>(() => repo.CreateRiskEvent(new RiskEvent
+        {
+            EventType = RiskEventType.Other, Severity = RiskEventSeverity.Warning,
+            Status = RiskEventStatus.Open, Source = RiskEventSource.Deviation,
+            Title = "  ", Description = "egal",
+            TentId = tent.Id, StartedAtUtc = Utc(2026, 8, 1),
+        }));
+    }
+
     [Fact]
     public void RiskEvent_CreateGetUpdateAndListFilters()
     {

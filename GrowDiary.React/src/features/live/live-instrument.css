@@ -12,13 +12,24 @@
   .v1-camera-card, .v1-camera-empty { min-height: 360px; border-radius: var(--v1-radius); overflow: hidden; border: 1px solid var(--v1-line); background: #020603; position: relative; }
   .v1-camera-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 160ms ease; }
   .v1-camera-card img.ready { opacity: 1; }
-  .v1-camera-label { position: absolute; left: 14px; right: 14px; bottom: 14px; display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 14px; background: rgba(0,0,0,0.64); backdrop-filter: blur(10px); }
+  /* Der Balken liegt auf einem Foto und bleibt deshalb in BEIDEN Themen dunkel.
+     Dann darf die Schrift darauf dem Thema aber gerade nicht folgen: im hellen
+     stand sie schwarz auf Schwarz, gemessener Kontrast 1,12. Feste helle Farbe
+     ist hier kein Verstoss gegen die Token, sondern die Bedingung dafuer, dass
+     der dunkle Balken ueberhaupt dunkel bleiben darf. */
+  .v1-camera-label { position: absolute; left: 14px; right: 14px; bottom: 14px; display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 14px; background: rgba(0,0,0,0.64); backdrop-filter: blur(10px); color: #f2f6f3; }
+  .v1-camera-label strong, .v1-camera-label span, .v1-camera-label b { color: inherit; }
   .v1-camera-empty { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px; }
   .v1-camera-empty.is-compact { min-height: 154px; align-items: center; }
   .v1-camera-empty.is-compact h2 { font-size: 28px; }
   .v1-camera-empty.is-compact p { margin: 4px 0 0; color: var(--v1-muted); }
   .v1-live-now-card { display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
-  .v1-live-now-card .v1-action-row .v1-button { flex: 1 1 120px; }
+  /* Diese Regel schlief, solange .v1-action-row kein Flex-Kasten war. Seit sie
+     greift, sind die beiden Knoepfe gleich breit — dann muessen sie auch gleich
+     hoch sein, sonst steht der sekundaere (32 px) mittig im primaeren (44 px)
+     und beginnt 6 px tiefer als sein Nachbar. Bei 80 px Breite war das ein
+     Detail, bei 399 px ist es das groesste Element der Karte. */
+  .v1-live-now-card .v1-action-row .v1-button { flex: 1 1 120px; min-height: var(--h-lg); }
 
   .v1-live-metrics-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
 

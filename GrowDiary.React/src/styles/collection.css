@@ -124,8 +124,12 @@
   .co-dot.is-on { background: var(--accent); }
 
   /* ---------- Kartengitter + Geisterkarte ---------- */
-  .co-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; align-items: start; }
-  .co-grid.is-300 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  /* `minmax(320px, …)` ist eine Zusage, die der Browser auch auf einem 375er
+     Schirm haelt — abzueglich der Seitenraender passt sie dort nicht mehr, und
+     statt der Spalte laeuft die Seite ueber. `min(100%, 320px)` gibt die
+     Untergrenze genau dann auf, wenn sie nicht mehr hineinpasst. */
+  .co-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 14px; align-items: start; }
+  .co-grid.is-300 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
   .co-ghost {
     min-height: 150px; display: grid; place-items: center; align-content: center; gap: 4px;
     border: 1px dashed var(--hair-2); border-radius: 12px;
@@ -179,7 +183,14 @@
 
 /* ---------- Diagnose von der Pflanze her ---------- */
 
+/* `.ls-btn.is-small` bringt `margin-left: auto` mit (live-screen.css:236) — eine
+   Layout-Anweisung an einer Groessenklasse. In einer Reihe mehrerer solcher
+   Knoepfe verteilt der Browser den freien Platz auf alle diese Raender: Blatt,
+   Wurzel und Loesung standen dadurch mit je 243 px Abstand ueber die ganze
+   Kartenbreite verstreut. `.co-actions` (weiter oben) traegt die Gegenregel
+   schon; `.og-bereiche` hatte sie nie bekommen. */
 .og-bereiche { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: var(--s-3) 0 0; }
+.og-bereiche .ls-btn, .og-bereiche .ls-btn.is-small { margin-left: 0; }
 
 .og-frage {
   margin: var(--s-3) 0 var(--s-2);
