@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { apiFetch, formatApiError } from '../api'
 import type { GrowSummary } from '../types'
 import FileInput from '../components/FileInput'
-import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Switch } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Stat, V1Switch } from '../components/v1'
 
 type ImportPlan = {
   exportValid?: boolean
@@ -121,15 +121,15 @@ function ReleasePage() {
       {message && <V1Alert message={message} tone="ok" />}
 
       <section className="v1-kpi-grid">
-        <V1Card><span className="v1-card-kicker">Grows</span><h2>{grows.length}</h2><p>für Export verfügbar</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Import</span><h2>{plan ? (plan.blockers?.length ? 'blockiert' : 'bereit') : 'Plan'}</h2><p>Preflight vor Schreibzugriff</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Safety</span><h2>Backup</h2><p>Import erstellt backendseitig ein Safety-Backup</p></V1Card>
-        <V1Card><span className="v1-card-kicker">Snapshots</span><h2>Grow</h2><p>Zelt- und Hydro-Snapshots bleiben vergleichbar</p></V1Card>
+        <V1Stat label="Grows" value={grows.length} hint="für Export verfügbar" />
+        <V1Stat label="Import" value={plan ? (plan.blockers?.length ? 'blockiert' : 'bereit') : 'Plan'} hint="Prüfung vor dem Schreiben" />
+        <V1Stat label="Sicherung" value="Backup" hint="Der Import legt vorher selbst eine Sicherung an" />
+        <V1Stat label="Momentaufnahmen" value="Grow" hint="Zelt- und Hydro-Stand bleiben vergleichbar" />
       </section>
 
       <V1Section title="Grow exportieren">
         {busy === 'load' ? <V1Empty title="Lade Grows..." /> : grows.length === 0 ? <V1Empty title="Keine Grows vorhanden" text="Starte zuerst einen Grow, damit ein Export erzeugt werden kann." /> : (
-          <div className="v1-card-grid">
+          <div className="v1-card-grid v1-card-grid-compact">
             <V1Card>
               <span className="v1-card-kicker">Quelle</span>
               <h2>{selectedGrow?.name ?? 'Grow wählen'}</h2>
@@ -153,7 +153,7 @@ function ReleasePage() {
       </V1Section>
 
       <V1Section title="Grow importieren">
-        <div className="v1-card-grid">
+        <div className="v1-card-grid v1-card-grid-compact">
           <V1Card>
             <span className="v1-card-kicker">1. Datei wählen</span>
             <h2>Export JSON</h2>

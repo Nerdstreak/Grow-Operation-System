@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../../api'
 import { SensorChart, type TentHistory } from '../../components/SensorChart'
-import { V1Section, V1Card, V1Button, V1Alert } from '../../components/v1'
+import { V1Section, V1Card, V1Alert } from '../../components/v1'
 
 // The metrics worth charting, in the order a grower reads them.
 const METRICS = ['reservoir-ph', 'reservoir-ec', 'reservoir-temp', 'temperature', 'humidity', 'vpd'] as const
@@ -53,11 +53,18 @@ export function TentHistorySection({ tentId }: { tentId: number }) {
     <V1Section
       title="Verlauf"
       action={(
-        <div className="v1-action-row">
+        <div className="v1-tabs" role="tablist" aria-label="Zeitraum">
           {RANGES.map((range) => (
-            <V1Button key={range.days} variant={range.days === days ? 'primary' : 'secondary'} onClick={() => setDays(range.days)}>
+            <button
+              key={range.days}
+              type="button"
+              role="tab"
+              aria-selected={range.days === days}
+              className={range.days === days ? 'v1-tab is-active' : 'v1-tab'}
+              onClick={() => setDays(range.days)}
+            >
               {range.label}
-            </V1Button>
+            </button>
           ))}
         </div>
       )}

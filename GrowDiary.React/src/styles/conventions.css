@@ -41,6 +41,13 @@
   line-height: 1.18;
 }
 
+/* 68ch fuer den Fliesstext in Karten und Abschnitten — dieselbe Lesebreite
+   wie ueberall sonst. Auf /release standen nach dem Umbau auf zwei Spalten
+   drei Absaetze mit 98 Zeichen in einer Zeile. */
+.v1-card > p,
+.v1-section > p,
+.v1-alert > span { max-width: 68ch; }
+
 .v1-card p,
 .v1-section p,
 .program-summary,
@@ -183,6 +190,71 @@
     linear-gradient(to left, var(--bg) 40%, transparent) right center / 26px 100% no-repeat local,
     radial-gradient(farthest-side at 0 50%, color-mix(in oklab, var(--ink) 16%, transparent), transparent) left center / 13px 100% no-repeat scroll,
     radial-gradient(farthest-side at 100% 50%, color-mix(in oklab, var(--ink) 16%, transparent), transparent) right center / 13px 100% no-repeat scroll;
+}
+
+/**
+ * Rueckmeldung unter der Maus.
+ *
+ * Zeilen, Kacheln und Zelte zeigten den Zeigefinger, aenderten sich beim
+ * Ueberfahren aber nicht im Geringsten — auf einer 1394 px breiten Zeile ist
+ * das die einzige Orientierung, die es gaebe.
+ *
+ * In `@media (hover: hover)`, damit der Zustand am Telefon nach einer
+ * Beruehrung nicht haengenbleibt. Und an der FLAECHE, nicht am Rahmen: die
+ * Messkacheln teilen sich ihre Trennlinien mit dem Nachbarn, ein gefaerbter
+ * Rahmen sieht dort aus, als gehoere er zur falschen Kachel.
+ */
+/* Der „Starten"-Knopf im Ablauf-Katalog stand 1040 px vom Ablaufnamen
+   entfernt am rechten Fensterrand. `space-between` bleibt (auf schmalen
+   Karten ist es richtig), die Zeile bekommt rechts nur eine mitwachsende
+   Reserve — genau wie `.co-row` in collection.css. */
+@media (min-width: 1100px) {
+  .sopkat-zeile { padding-right: max(16px, calc(100% - 900px)); }
+}
+
+/**
+ * Zwei Rahmen 17 px auseinander trennen nichts, sie kosten nur Platz.
+ *
+ * Immer dieselbe Verwechslung: ein Bauteil bringt seine eigene Karte mit und
+ * wird in einen Abschnitt gelegt, der schon eine ist. Statt das an sieben
+ * Stellen einzeln zu richten, faellt hier die INNERE Zeichnung weg, sobald
+ * eine schlichte Karte als einziges Kind in einem Abschnittskoerper steckt.
+ * Karten mit eigenem Ton (Warnung, Gefahr) bleiben unangetastet — deren
+ * Rahmen ist die Aussage.
+ */
+.v1-section-body > .v1-card.tone-neutral:only-child,
+.v1-section-body > .v1-card:not([class*="tone-"]):only-child {
+  border: 0; border-radius: 0; background: transparent; padding: 0;
+}
+
+/* Der Reiterstreifen in der Zeltzeile bringt seinen Rahmen aus den
+   Primitiven mit und sass damit in einem gleich aussehenden Kasten. */
+.ha-tent-row > .v1-tabs {
+  border: 0; border-radius: 0; background: transparent; padding-inline: 0;
+}
+
+/* Nebeneinanderstehende Karten enden auf einer Linie: die Karte wird zur
+   Spalte, der Knopf am Ende schiebt sich nach unten. `align-self` ist
+   Pflicht — ohne das dehnt die Spalte den inline-flex-Knopf auf die volle
+   Breite (gemessen 118–187 px vorher, 279 px nachher). */
+.v1-card-grid > .v1-card,
+.v1-card-grid-compact > .v1-card {
+  display: flex; flex-direction: column;
+}
+.v1-card-grid > .v1-card > .v1-button:last-child,
+.v1-card-grid-compact > .v1-card > .v1-button:last-child {
+  margin-top: auto; align-self: flex-start;
+}
+
+@media (hover: hover) {
+  .co-row:hover,
+  .v1-list-row:hover,
+  .af-row:hover,
+  .cu-inline-row:hover,
+  .gos-metric.is-clickable:hover { background: var(--panel-2); }
+
+  .co-chip:hover:not(.active),
+  .gd-tab:hover:not(.is-active) { border-color: var(--accent); color: var(--ink); }
 }
 
 /* Kurze Etiketten duerfen nicht INNERHALB eines Wortes brechen.

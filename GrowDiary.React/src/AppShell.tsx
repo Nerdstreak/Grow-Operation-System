@@ -2,7 +2,7 @@
    Aus App.tsx herausgezogen: Shell + Navigation + Kontextleiste.
    App.tsx enthaelt danach nur noch <Routes>. */
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigationType } from 'react-router-dom'
 import { AppSearch } from './components/AppSearch'
 import { isNavLeafActive, mobilePrimaryNav, navGroups, searchablePages } from './navigation'
@@ -48,9 +48,31 @@ export function AppShell({ children, counts }: Props) {
     window.scrollTo({ top: 0, left: 0 })
   }, [location.pathname, wechselArt])
 
+  /**
+   * Der aktive Menuepunkt muss sichtbar sein.
+   *
+   * Die Seitenleiste ist 1126 px hoch. Auf einem Notebook mit 1366x768 sind
+   * damit die letzten neun Punkte unter der Fensterkante — steht man auf einem
+   * davon, sieht man nirgends, wo man ist. Die Leiste kann scrollen
+   * (`overflow-y: auto`), sie tut es nur von allein nicht.
+   *
+   * `block: 'nearest'` scrollt nur, wenn noetig, und ruckt den Punkt nicht in
+   * die Mitte: liegt er ohnehin im Blick, passiert gar nichts.
+   */
+  const navRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const aktiv = navRef.current?.querySelector('.v1-nav-item.active')
+    aktiv?.scrollIntoView({ block: 'nearest' })
+  }, [location.pathname])
+
   return (
     <div className="v1-app-shell rc2-shell" data-audit="mobile-shell">
-      <aside className="v1-desktop-nav" aria-label="Navigation">
+      {/* Der Sprung ueber die Navigation. Wer mit der Tastatur arbeitet, musste
+          auf JEDER Seite erst durch Suchfeld und 26 Menuepunkte tabben, bevor
+          der Inhalt drankam. Der Link ist unsichtbar, bis er den Fokus hat. */}
+      <a href="#inhalt" className="gos-skip-link">Zum Inhalt springen</a>
+
+      <aside className="v1-desktop-nav" aria-label="Navigation" ref={navRef}>
         <div className="v1-brand">
           <div className="v1-brand-mark">G</div>
           <div>
@@ -147,7 +169,7 @@ export function AppShell({ children, counts }: Props) {
         </div>
       )}
 
-      <main className="v1-route-frame">
+      <main className="v1-route-frame" id="inhalt" tabIndex={-1}>
 
         {/* Testdaten: muss über allem stehen und darf nicht wegzuklicken sein.
             Erfundene Messwerte, die jemand für echte hält, wären nicht bloß

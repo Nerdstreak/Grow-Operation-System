@@ -44,14 +44,26 @@
   .hw-table td { padding: 11px 12px; border-bottom: 1px solid var(--hair); vertical-align: top; }
   .hw-table tbody tr:last-child td { border-bottom: 0; }
   .hw-table tbody tr.overdue { background: var(--warn-wash); }
-  .hw-table strong { display: block; font-weight: 600; }
+  /* Die App erlaubt Trennungen an jeder Stelle (conventions.css) — richtig
+     fuer Fliesstext, falsch fuer einen Geraetenamen: ein einzelnes „r" stand
+     allein in der Zeile. */
+  .hw-table strong { display: block; font-weight: 600; overflow-wrap: normal; word-break: normal; hyphens: manual; }
   .hw-sub { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
   .hw-empty { color: var(--faint); }
   .hw-overdue { color: var(--warn-text); }
   .hw-entity { font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  @container (min-width: 761px) {
+    /* Die Aktionsspalte nimmt nur, was sie braucht — daneben standen zwei
+       fast leere Spalten, waehrend „Loeschen" in eine zweite Knopfreihe
+       fiel. Nur hier drin: der Attribut-Selektor waere sonst staerker als
+       `.hw-table td { display: block }` und wuerde den Kartenumbau am
+       Telefon aufbrechen. */
+    .hw-table td[data-label="Aktionen"] { width: 1%; white-space: nowrap; }
+    .hw-actions { flex-wrap: nowrap; }
+  }
   .hw-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 
-  .hw-note { margin: var(--s-3) 0 0; color: var(--muted); font-size: 13px; }
+  .hw-note { margin: var(--s-3) 0 0; color: var(--muted); font-size: 13px; max-width: 68ch; }
 
   /* Zu schmal für sechs Spalten: jede Zeile wird eine Karte, die Spaltenköpfe
      wandern über data-label an die Werte. */

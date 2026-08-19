@@ -17,7 +17,9 @@
  * Regeln) scrollte sie weg und darunter blieb der nackte Hintergrund stehen.
  */
 @layer features {
-  .grow-wizard-page { display: grid; gap: 18px; max-width: 1280px; margin: 0 auto; }
+  /* Ein eigener Deckel von 1280 liess die linke Kante beim Blaettern springen.
+     Eine Seitenbreite fuer die ganze App. */
+  .grow-wizard-page { display: grid; gap: 18px; max-width: var(--page-max); margin: 0 auto; }
 
   .text-muted { color: var(--muted); }
   .empty-hint { padding: 60px 20px; text-align: center; color: var(--faint); font-size: 13px; }

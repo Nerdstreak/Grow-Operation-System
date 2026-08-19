@@ -73,7 +73,7 @@ export function GrowDetailSopSection({
                           <div className="tl-sub">Verfügbar ab: {formatDateTime(step.availableAtUtc)}</div>
                         )}
                         {step.reminderTaskId && (
-                          <div className="tl-sub" style={{ opacity: 0.6 }}>Aufgabe #{step.reminderTaskId}</div>
+                          <div className="tl-sub">Aufgabe #{step.reminderTaskId}</div>
                         )}
                       </div>
                       <V1Badge tone="neutral">{schrittZustand(step.status)}</V1Badge>
@@ -91,15 +91,15 @@ export function GrowDetailSopSection({
                               Verfügbar ab {formatDateTime(step.availableAtUtc)}
                             </span>
                           )}
-                          <button type="button" className="btn btn-secondary" disabled={saving === `sop-step-${step.id}-InProgress`} onClick={() => onUpdateStep(step, 'InProgress')}>
+                          <V1Button type="button" disabled={saving === `sop-step-${step.id}-InProgress`} onClick={() => onUpdateStep(step, 'InProgress')}>
                             Starten
-                          </button>
+                          </V1Button>
                           <V1Button type="button"  disabled={saving === `sop-step-${step.id}-Done`} onClick={() => onUpdateStep(step, 'Done')}>
                             Erledigt
                           </V1Button>
-                          <button type="button" className="btn btn-secondary" disabled={saving === `sop-step-${step.id}-Skipped`} onClick={() => onUpdateStep(step, 'Skipped')}>
+                          <V1Button type="button" disabled={saving === `sop-step-${step.id}-Skipped`} onClick={() => onUpdateStep(step, 'Skipped')}>
                             Überspringen
-                          </button>
+                          </V1Button>
                         </div>
                       ) : (
                         <span className="tl-sub">Keine Aktionen</span>

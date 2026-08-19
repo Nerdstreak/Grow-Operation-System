@@ -81,7 +81,7 @@ export function JournalStreamSection({ growId, entries, measurements, journalFor
       <div className="ls-panel-head">
         <span className="ls-label">Journal &amp; Fotos</span>
         <span className="ls-panel-meta">{stream.length} Einträge</span>
-        <div className="co-row-end">
+        <div className="co-row co-row-end">
           <button type="button" className={`ls-btn is-small${photosOnly ? ' is-primary' : ''}`} onClick={() => setPhotosOnly((current) => !current)}>
             Nur Fotos
           </button>

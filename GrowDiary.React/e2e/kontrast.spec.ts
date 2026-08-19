@@ -17,6 +17,11 @@ const ROUTEN = [
   '/dosierung', '/sensoren', '/regeln', '/sollwerte',
   '/zelte', '/hydro', '/wasser', '/home-assistant', '/handy',
   '/wissen', '/einkaufsliste', '/berater', '/einstellungen',
+  // Detailseiten: hier stehen die laufende Phase, die Messkacheln und die
+  // Ablauf-Schritte — Bausteine, die es auf keiner Uebersichtsseite gibt. Ohne
+  // sie blieb ein ganzer Teil der App fuer diese Pruefung unsichtbar, und drei
+  // Funde des Desktop-Audits konnte sie deshalb nicht finden.
+  '/grows/1', '/zelte/1', '/hydro/1', '/messungen', '/sops', '/release', '/start',
 ]
 
 /**
@@ -67,6 +72,29 @@ const MESSUNG = `() => {
       const bg = getComputedStyle(e).backgroundColor
       if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') schichten.unshift(bg)
     }
+    // Ueberlappende Geschwister, die NICHT Vorfahren sind: der Fuellbalken der
+    // laufenden Phase liegt als eigenes Element ueber der Beschriftung, gehoert
+    // aber keinem gemeinsamen Ast an — ueber die Elternkette allein war er
+    // unsichtbar, und genau dort lagen 3,93:1 im hellen Thema.
+    //
+    // Nur Elemente, die im Dokument SPAETER kommen (die also darueber malen),
+    // und nur solche, die den Textkasten wirklich ueberdecken. Sonst gibt es
+    // Fehlalarme bei jedem beliebigen Nachbarn.
+    const r = el.getBoundingClientRect()
+    if (r.width > 0 && r.height > 0) {
+      for (const o of document.querySelectorAll('body *')) {
+        if (o === el || o.contains(el) || el.contains(o)) continue
+        if (!(el.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING)) continue
+        const os = getComputedStyle(o)
+        const bg = os.backgroundColor
+        if (!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') continue
+        if (os.visibility === 'hidden' || os.display === 'none') continue
+        const q = o.getBoundingClientRect()
+        if (q.left <= r.left && q.right >= r.right && q.top <= r.top && q.bottom >= r.bottom) {
+          schichten.push(bg)
+        }
+      }
+    }
     let unten = [255, 255, 255]
     for (const s of schichten) unten = alsRgb(s, unten)
     return unten
@@ -76,11 +104,23 @@ const MESSUNG = `() => {
     return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
   }
   const funde = []
-  // Navigation und Kopfzeile MUESSEN mit hinein: sie standen ausserhalb von
-  // <main> und waren dadurch fuer diese Pruefung nie sichtbar — genau dort ist
-  // der Fehler dann ein drittes Mal aufgetreten.
-  for (const el of document.querySelectorAll('main *, nav *, header *')) {
-    if (el.children.length || !el.textContent.trim()) continue
+  // ALLES im Koerper, nicht nur main/nav/header. Die frueheren drei Selektoren
+  // waren schon eine Reparatur (die Navigation lag ausserhalb von <main>), aber
+  // immer noch eine Aufzaehlung — und was nicht aufgezaehlt ist, wird nicht
+  // gemessen. Skripte und Stildateien fallen unten ueber die Sichtbarkeit weg.
+  for (const el of document.querySelectorAll('body *')) {
+    // Der EIGENE Text des Elements, nicht der seiner Kinder.
+    //
+    // Vorher wurde jedes Element mit Kindern uebersprungen. Genau so ist der
+    // Zaehler im aktiven Menuepunkt durchgerutscht: der Menuepunkt traegt
+    // seinen Namen SELBST und daneben ein Kind mit der Zahl — also hat ihn die
+    // Pruefung wegen des Kindes gar nicht erst angesehen.
+    const eigen = [...el.childNodes]
+      .filter((k) => k.nodeType === 3)
+      .map((k) => k.textContent)
+      .join('')
+      .trim()
+    if (!eigen) continue
     const s = getComputedStyle(el)
     if (s.visibility === 'hidden' || s.display === 'none' || Number(s.opacity) < 0.3) continue
     const [, , , ta = 1] = zahl(s.color)
@@ -93,7 +133,7 @@ const MESSUNG = `() => {
     // weniger Kontrast noch gut zu lesen.
     const px = parseFloat(s.fontSize)
     const gross = px >= 24 || (px >= 18.66 && Number(s.fontWeight) >= 700)
-    if (k < (gross ? 3 : ${SCHWELLE})) funde.push((el.className || el.tagName) + ' — „' + el.textContent.trim().slice(0, 40) + '" — Kontrast ' + k.toFixed(2))
+    if (k < (gross ? 3 : ${SCHWELLE})) funde.push((el.className || el.tagName) + ' — „' + eigen.slice(0, 40) + '" — Kontrast ' + k.toFixed(2))
   }
   return [...new Set(funde)]
 }`

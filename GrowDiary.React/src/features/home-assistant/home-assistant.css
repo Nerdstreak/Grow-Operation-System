@@ -4,9 +4,21 @@
   /* Mapping links, Koppeln rechts — bricht um statt zu quetschen. */
   .ha-layout { display: flex; flex-wrap: wrap; gap: 14px; align-items: start; }
   .ha-layout > * { flex: 1 1 380px; min-width: 0; }
+  /* Ab 901 px ein Raster mit zwei Dritteln fuer die Zuordnungsliste. Als
+     Flex-Zeile mit gleichem Anteil bekam der Ein-Satz-Kasten daneben
+     dieselben 493 px Breite wie die 668 px hohe Liste. Unter 901 px bleibt
+     es beim Umbruch — am Telefon war nie etwas falsch. */
+  @media (min-width: 901px) {
+    .ha-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+  }
 
   .ha-tent-row { padding: 10px 14px; border-bottom: 1px solid var(--hair); }
 
+  /* Feste Statusspalte: 96 px reichen fuer „nicht gemappt" (83 px) und den
+     Entfernen-Knopf (85 px). Vorher hing die Breite am Text, und die neun
+     Eingabefelder endeten auf drei verschiedenen Kanten. */
+  .ha-layout .co-row > .co-row-value,
+  .ha-layout .co-row > .ls-btn { flex: 0 0 96px; text-align: right; }
   .ha-metric { flex: 0 0 110px; font-size: 13px; }
   .ha-metric small { color: var(--faint); font-size: 11px; }
   .ha-entity-input {

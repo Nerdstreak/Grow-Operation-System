@@ -109,6 +109,16 @@ function MobileActionPage() {
   }
 
   const termine = buildTermine(state)
+  /**
+   * Acht Termine auf einen Blick, der Rest einen Klick weit.
+   *
+   * Ohne Deckel wurde die Karte so hoch, dass daneben eine halbe Bildschirm-
+   * hoehe Leere stand (gemessen 463 bis 524 px). Mit Deckel und ohne Hinweis
+   * waren neunzehn Termine unsichtbar. Also beides: deckeln UND sagen.
+   */
+  const [alleTermine, setAlleTermine] = useState(false)
+  const termineSichtbar = alleTermine ? termine : termine.slice(0, 8)
+  const termineVersteckt = termine.length - termineSichtbar.length
   const wartung = buildWartung(state)
   const critCount = risks.filter((risk) => risk.severity === 'Critical').length
   const warnCount = risks.filter((risk) => risk.severity === 'Warning').length
@@ -163,7 +173,11 @@ function MobileActionPage() {
               <div className="ls-panel-head">
                 <span className="ls-label">Fällige Routinen</span>
               </div>
-              <div className="ls-panel-body">
+              {/* KEIN `ls-panel-body` darum: dessen 14 px Innenabstand kaemen
+                  zu den 14 px hinzu, die `.co-row` schon selbst mitbringt —
+                  Text und Trennlinien standen 14 px weiter innen als bei den
+                  drei Nachbarkarten. */}
+              <div className="af-due-list">
                 {state.dueByGrow.map(({ grow, items }) => (
                   <div key={grow.id} className="af-due-grow">
                     <div className="co-row-title">{grow.name}</div>
@@ -206,12 +220,17 @@ function MobileActionPage() {
           <section className="ls-panel af-col" data-audit="af-termine">
             <div className="ls-panel-head">
               <span className="ls-label">Termine</span>
-              <span className="ls-panel-meta">{termine.length} offen</span>
+              {/* Der Zaehler sagt, was er ZEIGT. Vorher stand hier „27 offen"
+                  ueber genau acht Zeilen, und die uebrigen neunzehn waren
+                  weder zu sehen noch zu erreichen. */}
+              <span className="ls-panel-meta">
+                {termineVersteckt > 0 ? `${termineSichtbar.length} von ${termine.length} offen` : `${termine.length} offen`}
+              </span>
             </div>
             {termine.length === 0 ? (
               <div className="ls-panel-body"><p>Keine offenen Termine.</p></div>
             ) : (
-              <ul className="af-rows">{termine.map((item) => (
+              <ul className="af-rows">{termineSichtbar.map((item) => (
                 <AfRow
                   key={item.id}
                   item={item}
@@ -220,6 +239,11 @@ function MobileActionPage() {
                   onDelete={item.taskId != null ? () => void taskLoeschen(item.taskId!, item.title) : undefined}
                 />
               ))}</ul>
+            )}
+            {termineVersteckt > 0 && (
+              <button type="button" className="ls-btn is-small" style={{ margin: 12 }} onClick={() => setAlleTermine(true)}>
+                weitere {termineVersteckt} anzeigen
+              </button>
             )}
           </section>
 
@@ -286,8 +310,12 @@ function AfRow({ item, busy, onDone, onDelete }: { item: AfItem; busy?: boolean;
       {/* Eine Hauptaktion je Zeile: eine Aufgabe hakt man ab, einen laufenden
           SOP setzt man fort. Löschen ist die leise Zweitaktion für Termine,
           die nie hätten sein sollen — erledigt lügt da, weg ist ehrlich. */}
+      {/* Die beiden Knoepfe in EINEM Behaelter. Vorher brachen sie einzeln um:
+          bei 1440 px stand das Loesch-Kreuz 269 px links und 56 px unter
+          seinem „Erledigt" — naeher an der naechsten Aufgabe als an der
+          eigenen. Jetzt brechen sie nur gemeinsam. */}
       {onDone ? (
-        <>
+        <span className="af-tasten">
           <button type="button" className="ls-btn is-small is-primary" disabled={busy} onClick={onDone}>
             {busy ? '…' : 'Erledigt'}
           </button>
@@ -296,7 +324,7 @@ function AfRow({ item, busy, onDone, onDelete }: { item: AfItem; busy?: boolean;
               ✕
             </button>
           )}
-        </>
+        </span>
       ) : (
         <Link className="ls-btn is-small" to={item.to}>{item.action}</Link>
       )}
@@ -330,7 +358,7 @@ function buildTermine(state: ActionState): AfItem[] {
         action: 'Weiter',
       }
     }),
-  ].sort((a, b) => Number(b.due) - Number(a.due) || a.title.localeCompare(b.title)).slice(0, 8)
+  ].sort((a, b) => Number(b.due) - Number(a.due) || a.title.localeCompare(b.title))
 }
 
 /** Wartung, Kalibrierung und Hardware, die Aufmerksamkeit braucht. */

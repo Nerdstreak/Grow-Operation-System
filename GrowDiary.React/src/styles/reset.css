@@ -51,7 +51,10 @@ body {
   font-family: var(--font-sans);
   background: var(--bg);
   color: var(--ink);
-  font-size: 16px;
+  /* KEIN `font-size` hier. 16 px ist die Voreinstellung jedes Browsers —
+     wer nichts umgestellt hat, sieht keinen Unterschied. Wer die Schrift
+     aber groesser gestellt hat, bekam sie nicht: die feste Angabe schlug
+     seine Einstellung, und 968 von 992 Textstellen blieben exakt gleich. */
   line-height: 1.58;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

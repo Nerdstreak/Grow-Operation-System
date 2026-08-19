@@ -21,7 +21,10 @@
 }
 .grow-deviation-card {
   display: grid;
-  grid-template-columns: 116px minmax(min(100%, 120px), .7fr) minmax(min(100%, 180px), .8fr) minmax(0, 1.7fr);
+  /* Drei Spuren fuer drei Kinder (Marke, Messgroesse, Meldung). Die vierte
+     Spur hat nie ein Kind bekommen — sie nahm nur Platz weg, sodass die
+     Meldung umbrach, waehrend rechts daneben 432 px leer blieben. */
+  grid-template-columns: 116px minmax(min(100%, 180px), .9fr) minmax(0, 2fr);
   gap: 12px;
   align-items: start;
   padding: 16px;
@@ -221,7 +224,7 @@
 
   .gc-body { padding: 12px 16px; display: grid; gap: 10px; }
 
-  .gc-facts { font: 400 11.5px/1.6 var(--font-mono); color: var(--muted); }
+  .gc-facts { font: 400 11.5px/1.6 var(--font-mono); color: var(--muted); max-width: 68ch; }
 
   /* Termine unter dem Strahl — die Phasen selbst stehen im Balken. */
   .gc-phasetext { font: 400 11px/1.5 var(--font-mono); color: var(--muted); }
@@ -242,6 +245,7 @@
 
 /* Woher „Fertig ~12.09." kommt. Die Dauern fuer Trocknen und Aushaerten sind
    Richtwerte aus der Literatur, keine Termine — das gehoert sichtbar dazu. */
+.gd-ready-note { max-width: 68ch; }
 .gd-ready-note {
   margin: 6px 0 0;
   color: var(--muted);
@@ -257,7 +261,16 @@
   margin: var(--s-3) 0 0;
 }
 
+/* `align-content: start` fehlte — dieselbe Zeile, die `.v1-field`
+   (primitives.css:225) aus genau demselben Grund schon traegt. Ohne sie
+   sassen im Kasten der Nachtabsenkung zwei Temperaturen 10 px tiefer als
+   die anderen zwei. */
+/* Ohne diese Grenze stuenden die zwei Felder bei 1920 px in zwei von sechs
+   Spuren und das Formular liefe weiter auseinander. */
+[data-audit="night-ramp"] .v1-form-grid { max-width: 720px; }
+
 .nr-week {
+  align-content: start;
   border: 1px solid var(--border);
   border-radius: var(--r);
   padding: 8px 12px;
@@ -281,6 +294,7 @@
   font-size: 0.78rem;
 }
 
+.nr-source { max-width: 68ch; }
 .nr-source { margin: var(--s-2) 0 0; }
 .nr-state { align-self: center; }
 
@@ -294,11 +308,26 @@
    statt 272 px aus dem Bildschirm zu ragen. */
 .gp-liste li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); padding: 4px 0; border-top: 1px solid var(--border); min-width: 0; }
 .gp-liste li:first-child { border-top: none; }
-.gp-label { flex: 1 1 140px; min-width: 0; }
+/* `1 1 140px` liess die Beschriftung mitwachsen — zwischen Pflanzenname und
+   Auswahlfeld klaffte dadurch eine Handbreit. Der Name bleibt links, das
+   Feld rueckt direkt daneben. */
+.gp-label { flex: 0 1 auto; min-width: 140px; min-width: 0; }
 .gp-rolle { color: var(--muted); font-style: normal; font-size: 0.8rem; }
 /* Eine feste Untergrenze ist eine Zusage, die der Browser auch dann haelt, wenn
    der Platz nicht reicht. `min(100%, 170px)` gibt sie auf schmalen Schirmen auf. */
-.gp-liste select, .gp-neu select { min-width: min(100%, 170px); max-width: 100%; }
+/* Die Felder sahen aus wie vom Browser geliefert — als einzige der App. Die
+   Angaben sind dieselben wie in `.v1-field select` (primitives.css); hier
+   uebernommen, weil die Felder nicht in einem `V1Field` stecken. */
+.gp-liste select, .gp-neu select {
+  min-width: min(100%, 170px); max-width: 100%;
+  min-height: var(--h-md); padding: 0 10px;
+  border: 1px solid var(--hair); border-radius: var(--r-sm);
+  background: var(--sunk); color: var(--ink);
+  font: 400 13px/1 var(--font-sans);
+}
+.gp-liste select:focus-visible, .gp-neu select:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
+}
 /* Seit die Zeile umbricht, sah „neue Pflanze anlegen" aus wie ein weiterer
    Listeneintrag. Eine Trennlinie sagt, dass hier die Liste aufhoert. */
 .gp-neu { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center;

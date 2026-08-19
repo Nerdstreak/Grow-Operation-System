@@ -9,6 +9,14 @@
    ─────────────────────────────────────────────────────────────── */
 @layer features {
   .v1-live-hero-grid { display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(min(100%, 320px), 0.78fr); gap: 18px; align-items: start; }
+  /* Ab 1200 px drei Spuren. Vorher waren es zwei bei drei Kindern: das
+     dritte fiel in eine eigene Zeile und liess neben der Kamera ein Loch
+     von 348 x 330 px stehen. NACH der Grundregel, nicht davor — eine
+     Medienabfrage erhoeht die Spezifitaet nicht und muesste sonst
+     verlieren. */
+  @media (min-width: 1200px) {
+    .v1-live-hero-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
   .v1-camera-card, .v1-camera-empty { min-height: 360px; border-radius: var(--v1-radius); overflow: hidden; border: 1px solid var(--v1-line); background: #020603; position: relative; }
   .v1-camera-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 160ms ease; }
   .v1-camera-card img.ready { opacity: 1; }
@@ -23,7 +31,11 @@
   .v1-camera-empty.is-compact { min-height: 154px; align-items: center; }
   .v1-camera-empty.is-compact h2 { font-size: 28px; }
   .v1-camera-empty.is-compact p { margin: 4px 0 0; color: var(--v1-muted); }
-  .v1-live-now-card { display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
+  /* `flex-start` statt `space-between`: die Karte verteilte jeden freien
+     Pixel als Luft zwischen ihren Bloecken und hielt so bis zu 150 px
+     Leerraum in sich fest. Soll etwas unten kleben, bekommt es
+     `margin-top: auto` — nicht der ganze Kasten eine Verteilregel. */
+  .v1-live-now-card { display: flex; flex-direction: column; justify-content: flex-start; gap: 12px; min-height: 0; }
   /* Diese Regel schlief, solange .v1-action-row kein Flex-Kasten war. Seit sie
      greift, sind die beiden Knoepfe gleich breit — dann muessen sie auch gleich
      hoch sein, sonst steht der sekundaere (32 px) mittig im primaeren (44 px)

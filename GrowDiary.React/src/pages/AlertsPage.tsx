@@ -242,7 +242,7 @@ function AlertsPage() {
           </button>
         </div>
         <div className="co-table-wrap">
-        <div className="co-table" style={{ gridTemplateColumns: '1fr .8fr .8fr .8fr .6fr .5fr' }}>
+        <div className="co-table" style={{ gridTemplateColumns: '1.6fr .9fr .5fr .5fr .45fr .4fr' }}>
           <div className="co-th">Metrik</div>
           <div className="co-th">Ziel dieser Phase</div>
           <div className="co-th">Warnen unter</div>

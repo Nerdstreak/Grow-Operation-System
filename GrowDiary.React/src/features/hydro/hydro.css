@@ -19,6 +19,13 @@
   .hydro-detail__body { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 0; }
   .hydro-detail__plan { padding: var(--s-4); min-width: 0; }
   .hydro-detail__facts { display: grid; align-content: start; padding: var(--s-3); }
+  @media (min-width: 1000px) {
+    /* Acht Werte in einer Spalte liessen neben der Systemzeichnung eine
+       tote Flaeche von 258 px stehen. Zweispaltig faellt sie auf 45 px, und
+       die Seite wird bei 1280 px um 213 px kuerzer. Am Telefon passen zwei
+       Spalten mit 315 px nicht — daher die Untergrenze. */
+    .hydro-detail__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
   /* Trennlinien auf den Kindern — nicht als Container-Hintergrund mit gap:1px,
      sonst faerbt sich eine leere Rasterzelle als Panel ein. */
   .hydro-detail__facts > div { padding: 9px 11px; border-top: 1px solid var(--hair); }

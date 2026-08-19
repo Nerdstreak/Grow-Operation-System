@@ -240,8 +240,8 @@ function HydroDetail({ setup, linkedGrows, deleteBlocked, saving, savingKey, onE
           {setup.aeration && (
             <V1Alert
               tone={setup.aeration.stufe === 'gut' ? 'ok' : setup.aeration.stufe === 'zu_wenig' ? 'warn' : 'neutral'}
-              title={`Belüftung: ${setup.aeration.stufe === 'gut' ? 'im grünen Bereich' : setup.aeration.stufe === 'knapp' ? 'knapp' : setup.aeration.stufe === 'sehr_hoch' ? 'sehr hoch' : 'zu wenig'} (berechnet, Faustregel)`}
-              message={setup.aeration.satz}
+              title={`Belüftung: ${setup.aeration.stufe === 'gut' ? 'im grünen Bereich' : setup.aeration.stufe === 'knapp' ? 'knapp' : setup.aeration.stufe === 'sehr_hoch' ? 'sehr hoch' : 'zu wenig'}`}
+              message={`${setup.aeration.satz} (berechnet, Faustregel)`}
             />
           )}
         </div>

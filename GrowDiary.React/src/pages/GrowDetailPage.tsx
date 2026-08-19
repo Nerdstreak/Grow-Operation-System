@@ -6,7 +6,7 @@ import { useGrowDetailBundle } from '../features/grow-detail/useGrowDetailBundle
 import { useGrowDetailMutations } from '../features/grow-detail/useGrowDetailMutations'
 import { formatGrowStatus } from '../features/grow-detail/grow-detail-model'
 import { V1Alert, V1Badge, V1Button, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
-import { buildPhaseTimeline, flipLabel } from '../features/grows/phase-timeline'
+import { balkenText, buildPhaseTimeline, flipLabel } from '../features/grows/phase-timeline'
 import { NightRampCard } from '../features/grows/NightRampCard'
 import { CuringSection } from '../features/curing/CuringSection'
 import { GrowPlantsCard } from '../features/grow-detail/GrowPlantsCard'
@@ -172,11 +172,11 @@ function GrowDetailPage() {
             <div className="ls-timeline-wrap">
             <div className="ls-timeline">
               {timeline.phases.map((phase) => (
-                <div key={phase.label} className={`ls-phase is-${phase.state}${phase.days === 0 ? ' is-unknown' : ''}`} style={{ flexGrow: Math.max(1, phase.days) }}>
+                <div key={phase.label} className={`ls-phase is-${phase.state}${phase.days === 0 ? ' is-unknown' : ''}`} style={phase.days === 0 ? undefined : { flexGrow: phase.days }} title={phase.label}>
                   {phase.progress != null && (
                     <i className="ls-phase-fill" style={{ width: `${Math.round(phase.progress * 100)}%` }} aria-hidden="true" />
                   )}
-                  <span>{phase.label}</span>
+                  <span>{balkenText(phase.short, phase.days)}</span>
                 </div>
               ))}
               {timeline.phases.length === 0 && <div className="ls-phase is-planned"><span>Kein Startdatum</span></div>}

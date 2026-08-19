@@ -55,6 +55,20 @@ public sealed class SolutionStabilityAnalyzer
     private const int WindowDays = 4;
     private const int MinimumPoints = 2;
 
+    /// <summary>
+    /// Obergrenze für den Abstand zweier Messungen, aus denen eine
+    /// Geschwindigkeit gerechnet wird.
+    /// </summary>
+    /// <remarks>
+    /// Das Fenster ist vier Tage breit, die beiden jüngsten Messungen darin
+    /// können aber weit auseinanderliegen — oder einen kaputten Zeitstempel
+    /// tragen. Ohne diese Grenze stand in der Diagnose „pH bewegte sich um
+    /// 0,05 in 634417 h", also 72 Jahre, und daraus wurde eine Änderung je
+    /// Tag gerechnet. Eine Zahl, die niemand nachprüfen kann, ist schlechter
+    /// als „zu wenig Daten".
+    /// </remarks>
+    private const double MaxHoursBetweenPoints = WindowDays * 24.0 + 12.0;
+
     /// <summary>SOP-N1 §2.1: normal is 0,1–0,4 a day, a drift is 0,5 or more in 12–24 h.</summary>
     private const double PhDriftPerDay = 0.5;
 
@@ -149,9 +163,9 @@ public sealed class SolutionStabilityAnalyzer
         }
 
         var hours = (points[0].TakenAt - points[1].TakenAt).TotalHours;
-        if (hours <= 0)
+        if (hours <= 0 || hours > MaxHoursBetweenPoints)
         {
-            return new StabilitySignal("ph-rate", "pH-Geschwindigkeit", StabilitySignalVerdict.Unknown, "Messzeitpunkte unbrauchbar.");
+            return new StabilitySignal("ph-rate", "pH-Geschwindigkeit", StabilitySignalVerdict.Unknown, "Zu wenig verwertbare pH-Messungen: die beiden jüngsten liegen zu weit auseinander.");
         }
 
         var delta = points[0].ReservoirPh!.Value - points[1].ReservoirPh!.Value;

@@ -3,6 +3,7 @@ import { formatSeverityLabel } from '../../utils'
 import { RiskActionCard } from '../risks/RiskActionCard'
 import { formatDeviationTarget, formatDeviationValue, type GrowDetailSection } from './grow-detail-model'
 import { V1Badge, V1Button } from '../../components/v1'
+import { metrikName } from './metrik-namen'
 
 type GrowDetailDiagnosisSectionProps = {
   activeSection: GrowDetailSection
@@ -81,7 +82,7 @@ export function GrowDetailDiagnosisSection({
                 <div key={deviation.stableKey} className={`grow-deviation-card ${deviation.severity.toLowerCase()}`} data-audit="grow-deviation-row">
                   <span className={`badge ${severityBadge(deviation.severity)}`}>{formatSeverityLabel(deviation.severity)}</span>
                   <div className="grow-deviation-main">
-                    <div className="tl-title">{deviation.metric}</div>
+                    <div className="tl-title">{metrikName(deviation.metric)}</div>
                     <div className="tl-sub">
                       Ist {formatDeviationValue(deviation.actualValue, deviation.unit)}
                       {formatDeviationTarget(deviation) ? ` · Ziel ${formatDeviationTarget(deviation)}` : ''}
@@ -98,7 +99,7 @@ export function GrowDetailDiagnosisSection({
                 <div key={recommendation.stableKey} className="grow-deviation-card" data-audit="grow-recommendation-row" style={{ alignItems: 'center' }}>
                   <V1Badge tone="neutral">Empfehlung</V1Badge>
                   <div className="grow-deviation-main">
-                    <div className="tl-title">{recommendation.treatmentName ?? recommendation.sopTitle ?? recommendation.metric}</div>
+                    <div className="tl-title">{recommendation.treatmentName ?? recommendation.sopTitle ?? metrikName(recommendation.metric)}</div>
                     <div className="tl-sub">{recommendation.reason}</div>
                   </div>
                   <div className="grow-deviation-copy">

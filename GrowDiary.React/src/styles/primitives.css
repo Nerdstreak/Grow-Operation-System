@@ -186,9 +186,17 @@
     font: 500 10px/1 var(--font-mono);
     letter-spacing: 0.12em; color: var(--faint);
   }
-  .v1-stat strong { font: 500 20px/1 var(--font-mono); letter-spacing: 0; }
+  /* Kuerzen statt ueberschreiben: „Purple Lemonade" lief ueber die Trennlinie
+     und legte sich auf die Pflanzenzahl daneben — die 4 war nicht mehr zu
+     lesen. conventions.css:320 setzt hier `white-space: nowrap !important`,
+     der Text kann also nicht umbrechen; dann muss er wenigstens enden. */
+  .v1-stat strong {
+    font: 500 20px/1 var(--font-mono); letter-spacing: 0;
+    min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  }
   .v1-stat em { font-style: normal; margin-left: 3px; font-size: 12px; color: var(--muted); }
-  .v1-stat small { font-size: 11px; color: var(--faint); }
+  /* 12,5 statt 11: hier stehen ganze Saetze, keine Etiketten (13 Stellen). */
+  .v1-stat small { font-size: 12.5px; color: var(--faint); }
   .v1-stat.tone-ok strong { color: var(--accent-text); }
   .v1-stat.tone-warn strong { color: var(--warn-text); }
   .v1-stat.tone-critical strong { color: var(--danger); }
@@ -251,13 +259,23 @@
     outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
   }
   .v1-field textarea { padding: 9px 10px; line-height: 1.5; resize: vertical; }
-  .v1-field small { font-size: 11.5px; color: var(--faint); }
+  /* 68ch, dieselbe Lesebreite wie .v1-hero p weiter oben: hier stand der
+     laengste Satz der App mit 177 Zeichen in einer Zeile. */
+  .v1-field small { font-size: 11.5px; color: var(--faint); max-width: 68ch; }
+  /* Mit `padding: 0` klebte ein zweizeiliger Schaltertext oben und unten am
+     Rahmen, und das Kaestchen stand mittig — also neben der zweiten Zeile
+     statt neben der Beschriftung. Luft nach oben und unten, `align-items:
+     center` bleibt (sonst verrutschen die einzeiligen Schalter der App), und
+     das Kaestchen bekommt seinen Platz an der ersten Zeile. */
   .v1-switch {
     min-height: var(--h-md); display: flex; align-items: center; gap: var(--s-2);
-    padding: 0 11px; border: 1px solid var(--hair); border-radius: var(--r-sm);
+    padding: 9px 11px; border: 1px solid var(--hair); border-radius: var(--r-sm);
     background: var(--sunk); font-size: 12.5px; cursor: pointer;
   }
   .v1-switch input { width: 16px; height: 16px; accent-color: var(--accent); flex: 0 0 auto; }
+  /* Nur wenn der Text mehrzeilig ist, wandert das Kaestchen nach oben. */
+  .v1-switch:has(> span > small) input,
+  .v1-switch:has(> span > em) input { align-self: start; margin-top: 2px; }
   /* Titel und Erklaerung untereinander. Beide sind inline, standen also ohne
      Trennung aneinander — „LoesungswechselReservoir oder Naehrloesung …". */
   .v1-switch > span { display: grid; gap: 2px; min-width: 0; }
@@ -284,6 +302,11 @@
     border-top: 1px solid var(--hair); color: inherit; text-decoration: none;
   }
   .v1-list-row:first-child { border-top: 0; }
+  /* Wie bei `.co-row`: der Wert rechts darf nicht mit dem Fenster
+     davonlaufen. Betrifft die Zelt-Sensorliste und die Profilzeilen. */
+  @media (min-width: 1100px) {
+    .v1-list-row { padding-right: max(var(--s-3), calc(100% - 900px)); }
+  }
   .v1-list-row span, .v1-list-row em { color: var(--muted); font-style: normal; }
   .v1-list-row.critical { border-left: 2px solid var(--danger); }
   .v1-list-row.warning { border-left: 2px solid var(--warn); }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { apiFetch } from '../../api'
 import {
   KNOWN_METRICS,
@@ -128,9 +128,54 @@ function AddTileDialog({
     [entities, suche],
   )
 
+  /**
+   * Tastaturbedienung des Fensters.
+   *
+   * Vorher: beim Oeffnen blieb der Schreibzeiger draussen, wer weitertabbte
+   * landete nach 17 Schritten HINTER dem Fenster auf der abgedunkelten Seite,
+   * und Escape schloss nichts. Ein Fenster, das die Tastatur nicht festhaelt,
+   * ist mit der Tastatur nicht bedienbar.
+   */
+  const fensterRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const fenster = fensterRef.current
+    if (!fenster) return
+
+    const bedienbar = () => [...fenster.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    )].filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null)
+
+    bedienbar()[0]?.focus()
+
+    function aufTaste(event: KeyboardEvent) {
+      if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
+      if (event.key !== 'Tab') return
+      const alle = bedienbar()
+      if (alle.length === 0) return
+      const erster = alle[0]
+      const letzter = alle[alle.length - 1]
+      // Am Ende wieder an den Anfang und umgekehrt — sonst verlaesst der Fokus
+      // das Fenster und man bedient blind die Seite dahinter.
+      if (!event.shiftKey && document.activeElement === letzter) { event.preventDefault(); erster.focus() }
+      else if (event.shiftKey && document.activeElement === erster) { event.preventDefault(); letzter.focus() }
+    }
+
+    document.addEventListener('keydown', aufTaste)
+    return () => document.removeEventListener('keydown', aufTaste)
+  }, [onClose])
+
   return (
-    <div className="ls-dialog-backdrop" role="dialog" aria-modal="true" aria-label="Kachel hinzufügen">
-      <div className="ls-dialog" data-audit="dashboard-add-tile">
+    <div
+      className="ls-dialog-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Kachel hinzufügen"
+      // Nur der Rand schliesst, nicht ein Klick INNEN, der bis hierher
+      // durchblubbert. Ohne die Gleichheitsprüfung schliesst jeder Klick im
+      // Fenster das Fenster.
+      onClick={(event) => { if (event.target === event.currentTarget) onClose() }}
+    >
+      <div className="ls-dialog" data-audit="dashboard-add-tile" ref={fensterRef}>
         <div className="ls-dialog-head">
           <strong>Kachel hinzufügen</strong>
           <button type="button" className="ls-btn is-small" onClick={onClose}>Abbrechen</button>

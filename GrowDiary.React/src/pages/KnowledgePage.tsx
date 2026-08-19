@@ -780,7 +780,7 @@ function KnowledgePage() {
             {/* Die letzte Spalte traegt einen Knopf; mit .5fr ragte er 6 px
                 ueber die Tabellenflaeche hinaus, und die Zeilentrenner hoerten
                 sichtbar vor dem rechten Rand auf. */}
-            <div className="co-table" style={{ gridTemplateColumns: '1.6fr .7fr .6fr .6fr .7fr' }}>
+            <div className="co-table" style={{ gridTemplateColumns: '2fr .8fr .4fr .45fr .7fr' }}>
               <div className="co-th">Ablauf</div>
               <div className="co-th">Art</div>
               <div className="co-th">Dauer</div>

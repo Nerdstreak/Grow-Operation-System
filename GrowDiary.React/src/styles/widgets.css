@@ -55,6 +55,10 @@
   flex-wrap: wrap;
 }
 .rc-file-input-native {
+  /* Sein Inhalt laeuft sonst aus dem 1-px-Kasten heraus. Sichtbar ist davon
+     nichts, aber jede Ueberlauf-Messung meldet es — und beim naechsten Audit
+     sucht jemand eine halbe Stunde danach. */
+  overflow: hidden;
   position: absolute;
   width: 1px !important;
   min-width: 1px !important;

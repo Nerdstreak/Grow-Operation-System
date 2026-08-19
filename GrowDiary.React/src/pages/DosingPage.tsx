@@ -350,7 +350,7 @@ function DosingPage() {
                           <V1Button onClick={() => void kalibrierlauf(pump, { seconds: 30 })} disabled={dosing}>
                             {dosing ? `Läuft… noch ${restSekunden ?? 0} s` : '30 s Kalibrierlauf'}
                           </V1Button>
-                          <span style={{ font: '400 11px/1.4 var(--font-mono)', color: 'var(--faint)' }}>
+                          <span className="dz-cal-note" style={{ font: '400 12px/1.4 var(--font-mono)', color: 'var(--faint)' }}>
                             Schlauchende in den Messbecher — beim ersten Mal über die Zeit
                           </span>
                         </>
@@ -431,8 +431,8 @@ function DosingPage() {
 
       {log.length > 0 && (
         <V1Section title="Protokoll">
-          <div className="co-table-wrap">
-            <div className="co-table" style={{ gridTemplateColumns: '1fr 1fr .6fr .6fr .6fr 1.4fr' }}>
+          <div className="co-table-wrap dz-log-wrap">
+            <div className="co-table" style={{ gridTemplateColumns: '.8fr 1.15fr .45fr .45fr .45fr 1.8fr' }}>
               <div className="co-th">Wann</div>
               <div className="co-th">Pumpe</div>
               <div className="co-th">Menge</div>

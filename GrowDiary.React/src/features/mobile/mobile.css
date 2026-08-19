@@ -16,7 +16,8 @@
     font: 400 11.5px/1.5 var(--font-mono); color: #5f5e5a; padding: 0 16px;
   }
 
-  .mo-side { display: grid; gap: 12px; min-width: 0; }
+  .mo-side { max-width: 68ch; }
+.mo-side { display: grid; gap: 12px; min-width: 0; }
 
   .mo-steps {
     margin: 0; padding-left: 18px; display: grid; gap: 6px;

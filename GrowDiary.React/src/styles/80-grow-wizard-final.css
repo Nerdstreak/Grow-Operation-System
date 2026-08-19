@@ -9,7 +9,11 @@ GROW-2 · Grow Wizard final
 
 .grow-wizard-shell {
   display: grid;
-  grid-template-columns: minmax(min(100%, 260px), 0.78fr) minmax(0, 1.6fr);
+  /* Das Formular gehoert in die BREITE Spur. Vorher quetschte es sich in
+     322 px und wurde dadurch 2689 px lang, waehrend die Zusammenfassung daneben
+     660 px bekam und schon nach 435 px zu Ende war. Nachgemessen: Formular
+     668 statt 322 px, Seite von 2924 auf 1984 px. */
+  grid-template-columns: minmax(0, 1.7fr) minmax(min(100%, 300px), 0.8fr);
   gap: 18px;
   align-items: start;
 }

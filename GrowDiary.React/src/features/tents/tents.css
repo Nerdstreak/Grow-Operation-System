@@ -320,11 +320,27 @@
   .tn-head .co-actions { margin-left: auto; }
 
   /* Vier Gruppen, getrennt durch Haarlinien wie im Entwurf. */
+  /* Dieselbe Dichte wie die Reservoirkacheln daneben: mit den festen zwei
+     Spalten aus den Primitiven stand ein gleich breites Panel mit vier
+     Kacheln direkt neben einem mit zweien. Am Telefon ohne Wirkung —
+     conventions.css setzt bis 760 px `1fr !important`. */
+  .tent-detail-v2 .v1-metric-grid.compact {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  }
+
   .tn-groups {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
-    gap: 1px; background: var(--hair);
+    /* Linien an den Kindern, nicht als Luecke im Untergrund: bei einer
+       unvollstaendigen letzten Reihe blieb sonst der graue Untergrund als
+       Loch stehen. Funktioniert rueckstandsfrei nur, weil der umgebende
+       `.ls-panel` beschneidet und die ueberstehenden Linien wegnimmt. */
+    gap: 0; background: var(--panel);
   }
-  .tn-group { background: var(--panel); padding: 12px 14px; }
+  .tn-group {
+    background: var(--panel); padding: 12px 14px;
+    border-left: 1px solid var(--hair); border-top: 1px solid var(--hair);
+    margin: -1px 0 0 -1px;
+  }
   /* --muted statt --faint: bei 10 px auf dem eingefaerbten Panel kam --faint
      auf Kontrast 4,26 — knapp unter den noetigen 4,5. Kleine Schrift braucht
      mehr Kontrast, nicht weniger. */
@@ -341,7 +357,10 @@
      Zustand, keine Randnotiz. */
   .tn-row strong.is-faint { color: var(--muted); font-weight: 400; }
 
-  .tn-cam { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: var(--sunk); }
+  /* Deckel, damit das Bild auf breiten Schirmen die Karte nicht ueberdehnt —
+     die groesste sinnvolle Stufe lag gemessen bei etwa 1150 px Fensterbreite
+     mit 162 px Bildhoehe, darueber wuchs nur noch die Karte. */
+  .tn-cam { display: block; width: 100%; aspect-ratio: 16 / 10; max-height: 300px; object-fit: cover; background: var(--sunk); }
 
   .ls-btn.is-danger { border-color: var(--danger); color: var(--danger); }
   .ls-btn.is-danger:hover { border-color: var(--danger); color: var(--danger); opacity: .85; }

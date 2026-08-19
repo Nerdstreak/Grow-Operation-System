@@ -53,7 +53,8 @@
   /* ---------- Stabilität: die Diagnosetabelle der SOP über alle Zeilen ---------- */
   .stability-head { padding: 14px 16px; border-bottom: 1px solid var(--hair); }
   .stability-head strong { display: block; font-size: 15px; margin-bottom: 4px; }
-  .stability-head p { margin: 0; font-size: 13px; color: var(--muted); }
+  .stability-head p { max-width: 68ch; }
+.stability-head p { margin: 0; font-size: 13px; color: var(--muted); }
   .stability-head.instability strong { color: var(--warn-text); }
   .stability-head.normal strong { color: var(--accent-text); }
   .stability-signals { list-style: none; margin: 0; padding: 0; }
@@ -67,7 +68,8 @@
   .stability-signals li.unknown .mark { color: var(--muted); }
   .stability-signals .obs { color: var(--muted); }
   .stability-visual { padding: 12px 16px; font-size: 13px; }
-  .stability-visual ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); display: grid; gap: 4px; }
+  .stability-visual ul { max-width: 68ch; }
+.stability-visual ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); display: grid; gap: 4px; }
 
   @media (max-width: 640px) {
     .stability-signals li { grid-template-columns: 22px 1fr; }
@@ -78,3 +80,20 @@
     .meas-field label { overflow-wrap: anywhere; hyphens: auto; }
   }
 }
+
+/**
+ * Die Messliste am Schreibtisch: eine Tabellenzeile.
+ *
+ * `display: contents` löst den Zeilen-Container auf, sodass die acht Zellen
+ * direkte Kinder des Rasters bleiben — sonst fielen sie aus den Spalten und
+ * stünden alle acht in der ersten. Die Zeile selbst zeichnet deshalb nichts;
+ * Hintergrund und Zeiger sitzen an den Zellen.
+ */
+.gd-mess-zeile { display: contents; }
+.gd-mess-zeile > .co-td { cursor: pointer; }
+@media (hover: hover) {
+  .gd-mess-zeile:hover > .co-td { background: var(--panel-2); }
+}
+/* Die Auswahl muss an den ZELLEN hängen: eine Zeile mit `display: contents`
+   zeichnet selbst nichts, ein Hintergrund an ihr wäre unsichtbar. */
+.gd-mess-zeile.is-gewaehlt > .co-td { background: var(--surface2); }

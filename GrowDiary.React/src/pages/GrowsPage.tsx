@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary } from '../types'
-import { buildPhaseTimeline, currentPhaseLabel, flipLabel } from '../features/grows/phase-timeline'
+import { balkenText, buildPhaseTimeline, currentPhaseLabel, flipLabel } from '../features/grows/phase-timeline'
 import { V1Alert, V1Page, V1Skeleton } from '../components/v1'
 import '../features/grows/grows.css'
 
@@ -83,13 +83,13 @@ function GrowCard({ grow }: { grow: GrowSummary }) {
                 <div
                   key={phase.label}
                   className={`ls-phase is-${phase.state}${phase.days === 0 ? ' is-unknown' : ''}`}
-                  style={{ flexGrow: Math.max(1, phase.days) }}
+                  style={phase.days === 0 ? undefined : { flexGrow: phase.days }}
                   title={phase.label}
                 >
                   {phase.progress != null && (
                     <i className="ls-phase-fill" style={{ width: `${Math.round(phase.progress * 100)}%` }} aria-hidden="true" />
                   )}
-                  <span>{phase.short}</span>
+                  <span>{balkenText(phase.short, phase.days)}</span>
                 </div>
               ))}
             </div>

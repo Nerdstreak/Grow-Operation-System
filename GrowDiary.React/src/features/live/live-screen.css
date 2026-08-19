@@ -1,9 +1,14 @@
 /* Live-Bildschirm — Maße aus dem Entwurf des Designers. */
 @layer features {
 
+  /* `margin-inline: auto` und dieselbe Obergrenze wie alle anderen Seiten.
+     Vorher klebte die Startseite als EINZIGE links an der Menueleiste — bei
+     1920 px lagen 244 px Leere komplett rechts, bei 2560 px 884 px. Beim
+     Wechsel auf jede andere Seite rutschte der Inhalt dadurch seitwaerts. */
   .ls {
     display: grid; gap: 14px;
-    width: min(1440px, 100%);
+    width: min(var(--page-max), 100%);
+    margin-inline: auto;
     padding: 20px 22px 40px;
   }
 
@@ -232,12 +237,30 @@
     font: 500 12px/1 var(--font-mono); letter-spacing: .04em; text-transform: uppercase;
     cursor: pointer; white-space: nowrap;
   }
+  /* Gesperrt muss gesperrt AUSSEHEN. Fuer `.ls-btn` gab es diese Regel
+     nirgends — anders als bei `.v1-button` (primitives.css:132). Und der
+     Zeiger muss hier nochmal gesetzt werden: `.ls-btn { cursor: pointer }`
+     liegt in einer spaeteren Schicht als `button:disabled` im Reset und
+     schlaegt es. */
+  .ls-btn:disabled,
+  .ls-btn[aria-disabled="true"] {
+    opacity: .45; cursor: not-allowed;
+  }
+  .ls-btn:disabled:hover,
+  .ls-btn[aria-disabled="true"]:hover {
+    background: var(--panel); border-color: var(--hair-2); color: inherit;
+  }
   .ls-btn:hover { border-color: var(--accent); color: var(--accent-text); }
   .ls-btn.is-primary {
     border-color: var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 600;
   }
   .ls-btn.is-primary:hover { color: var(--accent-ink); opacity: .9; }
   .ls-btn.is-small { min-height: 26px; padding: 0 10px; font-size: 11px; margin-left: auto; }
+  /* Die Hauptaktion behaelt ihre Hoehe auch in der kleinen Fassung: sonst
+     ist „Erledigt" in der Karte 44 px hoch und in der Liste daneben 26.
+     Drei Klassen, weil `.ls-btn.is-small` mit zwei sonst gewinnt — es steht
+     spaeter in der Datei. */
+  .ls-btn.is-small.is-primary { min-height: 32px; }
   /**
    * Der auto-Rand gehoert an EINEN Knopf, nicht an jeden.
    *
@@ -318,7 +341,7 @@
   .ls-panel-meta { font: 400 11px/1.4 var(--font-mono); color: var(--muted); min-width: 0; }
   .ls-panel-body { padding: 14px; display: grid; gap: 8px; }
   .ls-panel-body strong { font-size: 15px; font-weight: 600; }
-  .ls-panel-body p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+  .ls-panel-body p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); max-width: 68ch; }
   .ls-panel-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
 
   /* Das kritische Risiko trägt seinen Rahmen selbst — es ist die eine Sache,
@@ -361,7 +384,11 @@
      ungeregelt: als Rasterkind mit `min-width: auto` wurde er 632 px breit in
      einem 579 px breiten Panel, und weil das Panel beschneidet, war das Ende
      einfach weg. */
-  .ls-timeline-wrap { min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+  /* `overflow-x: auto` macht die Senkrechte still zu `auto` mit — daraus
+     wurde ein Tastatur-Halt auf einem Kasten ohne jedes Bedienelement. Mit
+     der ausdruecklichen Senkrechten bleibt das Wischen quer am Telefon und
+     der tote Halt verschwindet. */
+  .ls-timeline-wrap { min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
   /* Auf einer Grow-Karte ist weniger Platz — kleinere Schrift, damit die
      Beschriftungen IM Balken stehen koennen statt darunter. */
   .ls-timeline.is-compact .ls-phase {
@@ -399,15 +426,22 @@
     position: absolute; inset: 0 auto 0 0;
     background: color-mix(in oklch, var(--accent) 30%, transparent);
   }
-  .ls-phase.is-current .ls-phase-fill { background: color-mix(in oklch, var(--accent-ink) 18%, transparent); }
+  /* 18 % Fuellung ueber dem Akzent ergaben im HELLEN Thema 3,93:1 (im dunklen
+     8,38 — deshalb faellt so etwas beim Bauen so leicht durch). 10 % reichen,
+     um den Fortschritt zu zeigen, und lassen die Schrift lesbar. */
+  .ls-phase.is-current .ls-phase-fill { background: color-mix(in oklch, var(--accent-ink) 10%, transparent); }
   .ls-phase.is-done { border: 1px solid var(--hair-2); color: var(--muted); }
   .ls-phase.is-current { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
   .ls-phase.is-planned { border: 1px solid var(--hair); color: var(--faint); }
   /* Abschnitte ohne bekannte Dauer bekommen nur einen schmalen Streifen und
      eine gestrichelte Kante — sie behaupten keine Länge. */
   .ls-phase.is-unknown { border-style: dashed; flex-grow: 0; flex-basis: auto; padding: 0 10px; }
+  /* Linksbuendig als LEGENDE, nicht als Beschriftung unter den Balken.
+     Mit `space-between` behauptete jede Angabe eine Stelle auf der Achse —
+     und traf sie nicht: „Ernte" stand 231 px neben dem Ende der Bluete,
+     mitten unter dem Aushaerten. */
   .ls-timeline-dates {
-    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    display: flex; justify-content: start; gap: 18px; flex-wrap: wrap;
     margin-top: 8px; font: 400 11px/1 var(--font-mono); color: var(--muted);
   }
   .ls-timeline-dates .is-due { color: var(--warn-text); }
@@ -473,13 +507,32 @@
   .ls-trends li:last-child { border-bottom: 0; }
   .ls-trends strong { font-size: 13px; font-weight: 600; }
   .ls-trends li.is-warn strong { color: var(--warn-text); }
+  .ls-trends span { max-width: 68ch; }
   .ls-trends span { font-size: 12px; color: var(--muted); }
 }
 
 /* Aufgaben: drei Spalten — Risiken, Termine, Wartung. */
 @layer features {
-  .af-cols { display: flex; flex-wrap: wrap; gap: 14px; align-items: start; }
-  .af-col { flex: 1 1 340px; min-width: 0; }
+  /* Gleich breite Spuren statt Flex-Umbruch: als Flex-Zeile wurden die Karten
+     auf einem GROESSEREN Monitor schmaler (1280 px -> 493, 1366 px -> 353),
+     weil eine vierte Karte in die Zeile passte und alle teilen mussten.
+     `min(400px, 100%)` ist Pflicht: ohne das laufen bei 375 px 56 Elemente
+     aus dem Fenster. */
+  .af-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr)); gap: 14px; align-items: start; }
+  .af-col { min-width: 0; }
+  @media (min-width: 861px) {
+    /* Textspalten statt Raster. Ein Raster richtet seine Zeile an der
+       HOECHSTEN Karte aus — neben der langen Terminliste stand deshalb ein
+       bis zu 686 px hohes Loch, und man musste trotzdem scrollen. Spalten
+       fuellen sich der Reihe nach: endet eine Karte, beginnt darunter die
+       naechste. `break-inside: avoid` haelt jede Karte zusammen.
+       Erst ab 861 px — darunter steht ohnehin eine Karte je Zeile. */
+    .af-cols { display: block; columns: 400px; column-gap: 14px; }
+    .af-col {
+      break-inside: avoid; -webkit-column-break-inside: avoid;
+      display: inline-block; width: 100%; margin-bottom: 14px;
+    }
+  }
   .af-count {
     font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
   }
@@ -487,6 +540,9 @@
   .af-count.is-warn { color: var(--warn-text); }
   .af-risks { display: grid; gap: 10px; padding: 12px; }
   .af-rows { list-style: none; margin: 0; padding: 0; }
+  /* Nur der Grow-Name braucht den Innenabstand — die Zeilen darunter
+     bringen ihren eigenen mit. */
+  .af-due-list .co-row-title { padding: 10px 14px 0; }
   .af-row {
     display: flex; align-items: center; gap: 12px;
     min-height: 46px; padding: 10px 14px;
@@ -498,6 +554,8 @@
     flex-wrap: wrap;
   }
   .af-row:last-child { border-bottom: 0; }
+  /* Knopfgruppe als ein Stueck — siehe die Anmerkung in MobileActionPage. */
+  .af-tasten { display: flex; gap: 6px; align-items: center; flex-shrink: 0; margin-left: auto; }
   .af-when {
     flex: 0 0 56px;
     font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;

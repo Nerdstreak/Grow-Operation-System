@@ -10,6 +10,13 @@
     background: var(--sunk); color: var(--ink);
     padding: 0 12px; font: 400 13px/1 var(--font-sans);
   }
+  @media (min-width: 900px) {
+    /* `min-width: min(260px, 100%)` griff nie: die 100 Prozent beziehen sich
+       auf `.v1-hero-action`, und der Behaelter ist selbst nur so breit wie
+       sein Inhalt — die kleinere Zahl gewann immer, das Feld blieb bei
+       177 px und der Hinweistext brach mitten im Wort ab. */
+    .kb-search { width: 340px; }
+  }
   .kb-search::placeholder { color: var(--faint); }
 
   /* ---------- Karten ---------- */
@@ -49,7 +56,23 @@
   .ls-btn.is-dangerfill:hover { color: var(--danger-ink); opacity: .9; }
 
   /* Bibliothekszeilen sind Knöpfe — volle Breite, Zelloptik. */
-  .kb-rowbtn {
+  /* Die Zeilenknoepfe stecken in `.ls-panel`, und das beschneidet
+   (live-screen.css:307). Vom Ring blieb ein Strich uebrig. */
+/* Die sechs Kaesten der Bibliothek bleiben bei drei Spalten: mit `auto-fit`
+   klappten sie ab 1700 px auf vier auf, also eine volle Reihe und eine mit
+   zwei Kaesten. Nur ueber diesen eigenen Selektor — `.co-grid` tragen auch
+   /grows, /zelte, /settings und /aushaerten. */
+@media (min-width: 1100px) {
+  [data-audit="knowledge-library"] .co-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.kb-rowbtn:focus-visible { outline-offset: -2px; }
+/* Feste Mindestbreite fuer die Kennzeichnung, damit die Titel daneben auf
+   einer Linie beginnen — vorher fingen sie an fuenf Stellen an. Dieselbe
+   Loesung wie in der Seitenleiste (shell.css). Nur an den Listenzeilen,
+   damit die Karten unberuehrt bleiben. */
+.kb-rowbtn > .kb-tag { display: inline-block; min-width: 6.5em; }
+.kb-rowbtn {
     width: 100%; border: 0; background: transparent; color: inherit;
     text-align: left; cursor: pointer; font: inherit;
   }
@@ -57,11 +80,17 @@
   .kb-rowbtn.kb-more { color: var(--accent-text); font-weight: 500; font-size: 12.5px; }
   .kb-row-preview {
     margin-left: auto; font: 400 11px/1.4 var(--font-mono); color: var(--faint);
-    max-width: 42ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    /* Mitwachsend statt fest: 28ch sind 185 px, also weniger als heute — am
+       Telefon kann nichts ueberlaufen; am Schreibtisch loesen die 45 Prozent
+       zu 449 px bei 1280 und 528 px bei 1920 px auf. */
+    max-width: clamp(28ch, 45%, 80ch); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
   /* ---------- Detailansicht ---------- */
-  .kb-detail { padding: 14px 16px 18px; max-width: 76ch; }
+  /* 560px statt 76ch: `ch` rechnet gegen die Schriftgroesse des KASTENS
+     (16 px), der Text laeuft aber mit 12,5 px — die Grenze lag dadurch rund
+     ein Drittel zu weit. */
+  .kb-detail { padding: 14px 16px 18px; max-width: 560px; }
   .kb-detail .kk {
     font: 500 10px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase;
     color: var(--faint);
@@ -138,7 +167,15 @@
   margin-bottom: 4px;
 }
 
-.sl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+/* Je Gruppe mehrspaltig. `display: grid` ohne Spaltenangabe legt GENAU eine
+   Spur an — die Liste lief dadurch als schmale Kolonne ueber 2281 px, obwohl
+   der laengste Postenname nur 349 px braucht. Bei 1920 px passen drei
+   Spalten, am Telefon bleibt es bei einer (`min(100%, 340px)`). */
+.sl-list {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 2px; column-gap: 28px;
+}
 
 .sl-list li {
   display: flex;
@@ -150,5 +187,8 @@
 }
 
 .sl-list li:first-child { border-top: none; }
-.sl-item { flex: 1 1 240px; }
+/* `0 1 auto` statt `1 1 240px`: die Zeile ist so breit wie ihr Inhalt, statt
+   ueber die volle Fensterbreite gestreckt zu werden. Gemessen fiel die Luecke
+   zwischen einem Posten und seinem Grund von 1211 px auf den Spaltenabstand. */
+.sl-item { flex: 0 1 auto; }
 .sl-for { color: var(--muted); font-size: 0.78rem; }

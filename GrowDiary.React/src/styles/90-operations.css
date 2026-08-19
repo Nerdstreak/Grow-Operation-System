@@ -86,6 +86,7 @@
   color: var(--v1-muted);
 }
 .rc-risk-action-desc {
+  max-width: 68ch;
   margin: 0;
   color: var(--v1-soft);
   font-size: 13px;
@@ -97,7 +98,14 @@
   gap: 8px;
 }
 .rc-risk-action-buttons .v1-button {
-  flex: 1 1 120px;
+  /* Jeder Knopf so breit wie sein Wort. Mit `1 1 120px` bekamen „Erledigt"
+     (8 Zeichen) und „Ablauf starten" (15) dieselbe Breite. */
+  flex: 0 0 auto;
+}
+@media (max-width: 760px) {
+  /* Am Telefon dagegen ein Knopf je Zeile ueber die volle Breite — dort war
+     die alte Regel richtig und bleibt es. */
+  .rc-risk-action-buttons .v1-button { flex: 1 1 120px; }
 }
 .rc-risk-sop-list {
   display: grid;

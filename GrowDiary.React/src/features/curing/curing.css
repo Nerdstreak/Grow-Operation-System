@@ -5,6 +5,14 @@
     border: 1px solid var(--hair); border-radius: 12px; background: var(--panel);
     padding: 14px; display: grid; gap: 10px; min-width: 0;
   }
+  /* Gleich hohe Glaeser: `align-self: stretch` zieht die Karten auf dieselbe
+     Hoehe, `margin-top: auto` am Formular schiebt die Eingabezeile bei beiden
+     ans untere Ende — vorher endeten zwei Glaeser 40 px versetzt und ihre
+     Felder standen im Zickzack. Muss NACH der Regel darueber stehen, sonst
+     gewinnt deren `display: grid`. Am Telefon ohne Wirkung: dort steht
+     ohnehin nur ein Glas je Zeile. */
+  .cu-jar { align-self: stretch; align-content: start; }
+  .cu-jar .cu-form { margin-top: auto; }
   /* Ein Glas, das dran ist, muss man beim Überfliegen finden. */
   .cu-jar.is-due { border-color: var(--warn); }
 
@@ -24,18 +32,21 @@
   .cu-ampel.is-warn { border-left-color: var(--warn); }
   .cu-ampel.is-critical { border-left-color: var(--danger); }
   .cu-befund { font-size: 13.5px; line-height: 1.45; }
-  .cu-ampel p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--ink); }
+  .cu-ampel p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--ink); max-width: 68ch; }
   .cu-ampel small { font-size: 11px; color: var(--faint); }
   .cu-alter { font: 400 11px/1 var(--font-mono); color: var(--faint); white-space: nowrap; }
   .cu-ampel .cu-alter { letter-spacing: .03em; }
 
-  .cu-rhythmus { margin: 0; font-size: 12px; line-height: 1.55; color: var(--muted); }
+  .cu-rhythmus { margin: 0; font-size: 12px; line-height: 1.55; color: var(--muted); max-width: 68ch; }
   .cu-hint { margin: 6px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
 
   /* Die Eingabe steht am Glas, nicht hinter einem Knopf: wer vor dem Schrank
      steht, hat eine Hand am Glas und eine am Telefon. */
   .cu-form { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
-  .cu-form label { display: grid; gap: 3px; flex: 1 1 90px; min-width: 0; }
+  /* Zwei Ziffern brauchen keine 195 px. `1 1 90px` liess das Feld mit der
+     Karte mitwachsen; die Obergrenze haelt es bei der Groesse, die zum
+     Inhalt passt. */
+  .cu-form label { display: grid; gap: 3px; flex: 0 1 130px; min-width: 0; }
   .cu-form label span { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
   .cu-form input {
     min-height: 40px; padding: 0 10px; min-width: 0;
@@ -53,9 +64,16 @@
   .cu-inline-row:last-of-type { border-bottom: 0; }
   .cu-inline-row strong { font-size: 13.5px; }
   .cu-inline-row .cu-alter { margin-left: auto; }
+  /* 989 px zwischen Glas und Alter — die groesste Luecke auf /grows/1. */
+  @media (min-width: 1100px) {
+    .cu-inline-row { padding-right: max(0px, calc(100% - 900px)); }
+  }
 
   /* Neues Glas anlegen. */
   .cu-new { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+  /* Der Knopf steht neben 40 px hohen Feldern — 26 px sahen daneben aus wie
+     ein Versehen. */
+  .cu-new .ls-btn { min-height: 38px; }
   .cu-new label { display: grid; gap: 3px; flex: 1 1 120px; min-width: 0; }
   .cu-new label span { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
   .cu-new input, .cu-new select {

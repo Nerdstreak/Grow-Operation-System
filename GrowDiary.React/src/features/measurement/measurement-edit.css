@@ -46,6 +46,15 @@
   .ms-layout { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: start; }
   .ms-form { flex: 999 1 480px; min-width: 0; display: grid; gap: var(--s-3); }
   .ms-side { flex: 1 1 340px; min-width: 0; display: grid; gap: var(--s-3); align-content: start; }
+  /* Ab 861 px klebt die ganze rechte Spalte — Pruefkarte UND Speichern-Reihe
+     bleiben im Bild, waehrend man durch das Formular scrollt. Erst ab hier,
+     weil darunter beide Spalten untereinander stehen und eine klebende
+     Spalte dort nur den Inhalt verdecken wuerde. `overflow: auto` als
+     Notausgang fuer den Fall, dass die Spalte selbst hoeher wird als das
+     Fenster. */
+  @media (min-width: 861px) {
+    .ms-side { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+  }
   .ms-actions { justify-content: flex-start; }
 
   /* Der Feldrand traegt den Status der Live-Pruefung — gruen im Ziel, gelb

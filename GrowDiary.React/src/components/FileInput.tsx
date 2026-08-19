@@ -22,6 +22,10 @@ function FileInput({ accept, disabled = false, fileNames = [], label = 'Datei au
         id={id}
         className="rc-file-input-native"
         type="file"
+        /* Kein Tabulator-Halt auf einem 1x1 px grossen, durchsichtigen Feld:
+           bedient wird es ueber den Knopf daneben, und das umgebende
+           <label> oeffnet den Dialog beim Klick auf die Beschriftung. */
+        tabIndex={-1}
         accept={accept}
         disabled={disabled}
         multiple={multiple}

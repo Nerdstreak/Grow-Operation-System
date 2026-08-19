@@ -406,7 +406,7 @@ function ManualMeasurementPage() {
             </V1Field>
             <V1Badge tone={filledCount > 0 ? 'ok' : 'neutral'}>{filledCount} Werte</V1Badge>
             {(canConfirmGermination || canConfirmRooting || canFlipToFlower) && (
-              <div className="rc2-measurement-live" style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+              <div className="rc2-measurement-live" style={{ display: 'grid', gap: 8 }}>
                 <span className="v1-card-kicker">Phase bestätigen</span>
                 {canConfirmGermination && (
                   <V1Button variant="secondary" onClick={() => void confirmGrowAction('germination')} disabled={growActionSaving !== null}>
@@ -426,7 +426,7 @@ function ManualMeasurementPage() {
               </div>
             )}
             {tentId != null && (
-              <div className="rc2-measurement-live" style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+              <div className="rc2-measurement-live" style={{ display: 'grid', gap: 8 }}>
                 {prefilled && <p className="rc2-measurement-note">Aus Home Assistant vorbefüllt — anpassbar.</p>}
                 <V1Button variant="secondary" onClick={() => void refreshFromLive()} disabled={livePulling}>
                   {livePulling ? 'Lädt…' : 'Aus Home Assistant übernehmen'}

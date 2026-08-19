@@ -127,7 +127,7 @@ export function SopCatalog({
             const setup = pending?.sopId === entry.id ? pending : null
             return (
               <div key={entry.id} style={{ borderTop: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '12px 16px', flexWrap: 'wrap' }}>
+                <div className="sopkat-zeile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '12px 16px', flexWrap: 'wrap' }}>
                   <div style={{ minWidth: 0 }}>
                     <div className="tl-title">{entry.name || entry.id}</div>
                     <div className="tl-sub">{meta(entry) || '—'}</div>

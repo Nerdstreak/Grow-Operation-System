@@ -229,6 +229,29 @@ function SettingsPage() {
                 <button type="button" className={`ls-btn is-small${begleitung === 'expert' ? ' is-primary' : ''}`} onClick={() => void saveBegleitung('expert')}>Experte</button>
               </div>
             </div>
+            {/* Strompreis und Schonfrist stehen hier, nicht bei „Daten":
+                dort war die Spalte 705 px hoch, waehrend die beiden anderen
+                bei 267 und 264 px endeten und zur Haelfte leer aussahen. */}
+            <div className="co-row">
+              <div style={{ minWidth: 0 }}>
+                <div className="co-row-title">Strompreis</div>
+                <div className="co-row-sub">ct/kWh — für die berechneten Kosten je Grow im Archiv</div>
+              </div>
+              <div className="co-row-end st-strompreis">
+                <input inputMode="decimal" value={strompreis} onChange={(event) => setStrompreis(event.target.value)} placeholder="z. B. 32,5" aria-label="Strompreis in Cent je kWh" style={{ width: 90 }} />
+                <button type="button" className="ls-btn is-small" disabled={strompreisSaving} onClick={() => void saveStrompreis()}>{strompreisSaving ? 'Speichert…' : 'Speichern'}</button>
+              </div>
+            </div>
+            <div className="co-row">
+              <div style={{ minWidth: 0 }}>
+                <div className="co-row-title">Pumpen-Schonfrist</div>
+                <div className="co-row-sub">Minuten Stillstand, bevor gewarnt wird. Wer die Umwälzung im Intervall fährt, stellt sie höher. Faustregel: 15.</div>
+              </div>
+              <div className="co-row-end st-strompreis">
+                <input inputMode="numeric" value={pumpSchonfrist} onChange={(event) => setPumpSchonfrist(event.target.value)} placeholder="15" aria-label="Pumpen-Schonfrist in Minuten" style={{ width: 90 }} />
+                <button type="button" className="ls-btn is-small" disabled={pumpSaving} onClick={() => void savePumpSchonfrist()}>{pumpSaving ? 'Speichert…' : 'Speichern'}</button>
+              </div>
+            </div>
           </section>
 
           <section className="ls-panel" data-audit="settings-data">
@@ -253,26 +276,6 @@ function SettingsPage() {
                 <div className="co-row-sub">Diagnose-Export für Fehlerberichte</div>
               </div>
               <div className="co-row-end"><button type="button" className="ls-btn is-small" onClick={exportSystemIndex}>Erzeugen</button></div>
-            </div>
-            <div className="co-row">
-              <div style={{ minWidth: 0 }}>
-                <div className="co-row-title">Strompreis</div>
-                <div className="co-row-sub">ct/kWh — für die berechneten Kosten je Grow im Archiv</div>
-              </div>
-              <div className="co-row-end st-strompreis">
-                <input inputMode="decimal" value={strompreis} onChange={(event) => setStrompreis(event.target.value)} placeholder="z. B. 32,5" aria-label="Strompreis in Cent je kWh" style={{ width: 90 }} />
-                <button type="button" className="ls-btn is-small" disabled={strompreisSaving} onClick={() => void saveStrompreis()}>{strompreisSaving ? 'Speichert…' : 'Speichern'}</button>
-              </div>
-            </div>
-            <div className="co-row">
-              <div style={{ minWidth: 0 }}>
-                <div className="co-row-title">Pumpen-Schonfrist</div>
-                <div className="co-row-sub">Minuten Stillstand, bevor gewarnt wird. Wer die Umwälzung im Intervall fährt, stellt sie höher. Faustregel: 15.</div>
-              </div>
-              <div className="co-row-end st-strompreis">
-                <input inputMode="numeric" value={pumpSchonfrist} onChange={(event) => setPumpSchonfrist(event.target.value)} placeholder="15" aria-label="Pumpen-Schonfrist in Minuten" style={{ width: 90 }} />
-                <button type="button" className="ls-btn is-small" disabled={pumpSaving} onClick={() => void savePumpSchonfrist()}>{pumpSaving ? 'Speichert…' : 'Speichern'}</button>
-              </div>
             </div>
             <div className="co-row st-import">
               <div style={{ minWidth: 0, flex: 1 }}>

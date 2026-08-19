@@ -397,7 +397,7 @@ function StrainsPage() {
       {notice && <V1Alert message={notice} tone="ok" />}
 
       {formOpen && (
-        <V1Card>
+        <V1Card className="st-form">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12 }}>
             <V1Field label="Name"><input value={draft.name} onChange={(event) => setDraft((d) => ({ ...d, name: event.target.value }))} placeholder="z. B. Purple Lemonade" /></V1Field>
             <V1Field label="Züchter"><input value={draft.breeder} onChange={(event) => setDraft((d) => ({ ...d, breeder: event.target.value }))} placeholder="z. B. FastBuds" /></V1Field>
@@ -485,7 +485,7 @@ function StrainsPage() {
             </select>
           </div>
           <div className="co-table-wrap">
-          <div className="co-table" style={{ gridTemplateColumns: '1.3fr .9fr .7fr .7fr .9fr 1fr' }}>
+          <div className="co-table" style={{ gridTemplateColumns: '1.6fr 1.1fr .5fr .5fr .8fr .9fr' }}>
             <div className="co-th">Sorte</div>
             <div className="co-th">Züchter</div>
             <div className="co-th">Typ</div>
@@ -505,8 +505,13 @@ function StrainsPage() {
                   </div>
                   <div className="co-td is-muted">{strain.breeder ?? '—'}</div>
                   <div className="co-td is-muted">
-                    {strain.seedKind ? (SEED_KINDS.find((k) => k.value === strain.seedKind)?.label ?? strain.seedKind) : dominanceLabel(strain.dominance)}
-                    {strain.thcPercent != null && <span className="st-thc"> · {strain.thcPercent.toLocaleString('de-DE')} % THC</span>}
+                    {/* Ein gemeinsames span: als zwei Flex-Kinder durfte das
+                        schmalere bis auf ein Wort je Zeile schrumpfen —
+                        „Fe/mi/ni/si/er/t" ueber sechs Zeilen. */}
+                    <span>
+                      {strain.seedKind ? (SEED_KINDS.find((k) => k.value === strain.seedKind)?.label ?? strain.seedKind) : dominanceLabel(strain.dominance)}
+                      {strain.thcPercent != null && <span className="st-thc"> · {strain.thcPercent.toLocaleString('de-DE')} % THC</span>}
+                    </span>
                   </div>
                   <div className="co-td">{stats?.runs ?? 0}</div>
                   <div className={stats?.mixedOnly ? 'co-td is-muted' : 'co-td'}>

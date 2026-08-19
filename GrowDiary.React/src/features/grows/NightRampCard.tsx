@@ -110,9 +110,11 @@ export function NightRampCard({ growId }: { growId: number }) {
           {plan.luecke && plan.wochen.length > 0 && <V1Alert tone="neutral" message={plan.luecke} />}
 
           <div className="v1-form-grid">
+            {/* Kein `wide`: das erste Feld lief ueber die ganze Seite, das
+                zweite blieb winzig daneben. Nebeneinander sind beide gleich
+                breit. */}
             <V1Field
               label="Zielgerät in Home Assistant"
-              wide
               hint="Der Thermostat oder das Zahlenfeld, das den Sollwert annimmt — z. B. climate.chiller oder number.wasser_ziel. Leer lassen heißt: nur planen, nichts schalten."
             >
               <input value={entity} onChange={(event) => setEntity(event.target.value)} placeholder="climate.chiller" />

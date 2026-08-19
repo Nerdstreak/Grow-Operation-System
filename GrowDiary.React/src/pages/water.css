@@ -3,7 +3,11 @@
 
 .wp-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  /* Obergrenze an der SPUR, nicht an der Karte: `1fr` liess zwei Kennzahlen
+     bei 1920 px 670 px auseinanderdriften. Deckelt man dagegen die Karte,
+     bleibt die Spur breit und die Luecke wandert nur nach innen. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 320px));
+  justify-content: start;
   gap: var(--s-3);
 }
 
@@ -98,6 +102,9 @@
   align-self: center;
 }
 
+/* An die LISTE, nicht an das einzelne Kind — sonst rueckt jeder Punkt
+   anders ein. */
+.wp-effects { max-width: 68ch; }
 .wp-effects {
   margin: 0;
   padding-left: 1.1rem;

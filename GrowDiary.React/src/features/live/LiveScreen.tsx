@@ -12,7 +12,7 @@ import { DashboardEditorBar } from './DashboardEditor'
 import type { DashboardLayout, EntityValue } from './dashboard-layout'
 import { buildScore, metricProvenance } from './live-model'
 import { classNames } from '../../utils'
-import { flipLabel, type Phase } from '../grows/phase-timeline'
+import { balkenText, flipLabel, type Phase } from '../grows/phase-timeline'
 
 /**
  * Der Live-Bildschirm, gebaut nach dem Entwurf des Designers.
@@ -276,14 +276,17 @@ export function LiveScreen({
                 <div
                   key={phase.label}
                   className={classNames('ls-phase', `is-${phase.state}`, phase.days === 0 && 'is-unknown')}
-                  style={{ flexGrow: Math.max(1, phase.days) }}
+                  /* Ohne bekannte Dauer KEIN flexGrow — ein Inline-Stil
+                     schlaegt jede Regel, und `.ls-phase.is-unknown
+                     { flex-grow: 0 }` blieb dadurch wirkungslos. */
+                  style={phase.days === 0 ? undefined : { flexGrow: phase.days }}
                 >
                   {/* Der Fuellstand zeigt, wo im Plan man heute steht — die
                       Balkenbreite allein sagt nur, wie lang die Phase ist. */}
                   {phase.progress != null && (
                     <i className="ls-phase-fill" style={{ width: `${Math.round(phase.progress * 100)}%` }} aria-hidden="true" />
                   )}
-                  <span>{phase.label}</span>
+                  <span>{balkenText(phase.short, phase.days)}</span>
                 </div>
               ))}
             </div>

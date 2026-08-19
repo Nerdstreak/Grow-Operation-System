@@ -11,6 +11,19 @@
   }
 
   /* ---------- Seitenleiste ---------- */
+  /* Sprungmarke ueber die Navigation hinweg. Sichtbar erst im Fokus — sonst
+     stuende auf jeder Seite oben links ein Link, den mit der Maus nie jemand
+     braucht. `clip-path` statt `display: none`, weil ausgeblendete Elemente
+     keinen Fokus bekommen koennen. */
+  .gos-skip-link {
+    position: fixed; top: 8px; left: 8px; z-index: 200;
+    padding: 10px 14px; border-radius: var(--r-sm);
+    border: 1px solid var(--accent); background: var(--panel); color: var(--ink);
+    font-size: 13px; text-decoration: none;
+    clip-path: inset(50%); opacity: 0;
+  }
+  .gos-skip-link:focus-visible { clip-path: none; opacity: 1; }
+
   .v1-desktop-nav {
     position: sticky; top: 0; height: 100vh; overflow-y: auto;
     display: flex; flex-direction: column; gap: var(--s-1);
@@ -37,7 +50,9 @@
   .v1-nav-group-head {
     display: flex; align-items: center; gap: 6px;
     margin: var(--s-3) 0 var(--s-1); padding: 0 6px;
-    border: 0; background: transparent; cursor: pointer;
+    /* Kein `cursor: pointer`: die Ueberschrift ist ein <div> ohne onClick
+       (AppShell.tsx), die Hand versprach ein Zuklappen, das es nicht gibt. */
+    border: 0; background: transparent;
     font: 500 10px/1 var(--font-mono); letter-spacing: 0.18em;
     text-transform: uppercase; color: var(--faint);
   }
@@ -54,7 +69,10 @@
   /* Auf der Accent-Fuellung des aktiven Eintrags gilt die Auf-Accent-Farbe —
      sonst steht Gelb auf Gruen (1,0:1). Gilt fuer JEDE Status-Farbe auf Accent. */
   .v1-nav-item.active .badge,
-  .v1-nav-item.active .badge.warn { color: var(--accent-ink); opacity: 0.8; }
+  /* Ohne Daempfung: der Zaehler im aktiven Menuepunkt kam auf 4,09:1, noetig
+     sind 4,5:1. Die Marke ist ueber ihre Farbe schon zurueckgenommen — die
+     Durchsichtigkeit obendrauf war es, die unter die Schwelle drueckte. */
+  .v1-nav-item.active .badge.warn { color: var(--accent-ink); }
   .v1-nav-foot {
     margin-top: auto; padding-top: var(--s-3); border-top: 1px solid var(--hair);
     display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);

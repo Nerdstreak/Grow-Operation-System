@@ -20,12 +20,21 @@
   .sp-facts { font: 400 11px/1.55 var(--font-mono); color: var(--muted); }
   .sp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-  .sp-hint { margin: 10px 0 0; font: 400 11.5px/1.55 var(--font-mono); color: var(--faint); }
+  .sp-hint { margin: 10px 0 0; font: 400 11.5px/1.55 var(--font-mono); color: var(--faint); max-width: 68ch; }
 
   /* ---------- Die Tabelle ---------- */
   .sp-table {
     display: grid; border: 1px solid var(--hair); border-radius: var(--r); overflow: hidden;
-    grid-template-columns: 1fr repeat(7, minmax(min(100%, 112px), 1fr)); min-width: 900px;
+    /* Die sieben Wertespalten fassen hoechstens neun Zeichen — sie muessen
+       nicht mitwachsen. Vorher war die Tabelle bei 1920 px 1362 px breit,
+       fast nur Luft. Die Namensspalte darf den Rest nehmen.
+       `min-width: 900px` bleibt: sie haelt den Wischbereich am Telefon. */
+    grid-template-columns: minmax(min(100%, 160px), 1fr) repeat(7, minmax(min(100%, 112px), 140px));
+    /* Obergrenze ueber der Mindestbreite: bei 1920 px stehen die Spalten
+       danach so eng wie bei 1280 px, die freie Flaeche liegt rechts statt
+       zwischen den Zahlen. Muss ueber 900 px bleiben, sonst geraet die
+       Tabelle am Telefon in den Zwiespalt zwischen beiden Grenzen. */
+    min-width: 900px; max-width: 1080px;
   }
   .sp-th, .sp-td {
     padding: 8px 9px; font: 400 11px/1.4 var(--font-mono); border-top: 1px solid var(--hair);
@@ -46,13 +55,20 @@
   /* Der eigene Wert hebt sich ab — die Vorgabe steht blass als Platzhalter. */
   .sp-input::placeholder { color: var(--hint); }
   .sp-input.is-changed { border-color: var(--info); color: var(--info-text); }
-  .sp-input:focus-visible { border-color: var(--accent); outline: none; }
+  /* `outline: none` hob die App-Regel in 84 Eingabefeldern auf. Der Ring nach
+     innen, damit ihn der Feldrand nicht schneidet — und der blaue
+     „von dir geaendert“-Rahmen bleibt daneben sichtbar, statt vom gruenen
+     Fokusrahmen ueberschrieben zu werden. */
+  .sp-input:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
   /* Beim Ansehen eines mitgelieferten Profils: gleiche Breite wie ein Feld,
      damit die Tabelle nicht springt, aber sichtbar kein Eingabefeld. */
   .sp-static {
     width: 100%; min-width: 0; padding: 5px 6px;
-    display: block; text-align: center;
+  /* Linksbuendig wie die Ueberschrift darueber (`.sp-th` setzt keine
+     Ausrichtung, ist also links). Mittig stand der Wert unter der falschen
+     Spalte — und der Bearbeiten-Modus sah anders aus als die Anzeige. */
+    display: block; text-align: left;
     color: var(--muted); font: 400 11px/1.2 var(--font-mono);
   }
 }
