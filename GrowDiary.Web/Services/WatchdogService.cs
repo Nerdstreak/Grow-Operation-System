@@ -54,6 +54,7 @@ public sealed class WatchdogService
     private readonly SensorReadingRepository _readings;
     private readonly SystemHeartbeat _heartbeat;
     private readonly NotificationService _notifications;
+    private readonly AnlagenRisikoService _risiken;
     private readonly ILogger<WatchdogService> _logger;
 
     public WatchdogService(
@@ -61,12 +62,14 @@ public sealed class WatchdogService
         SensorReadingRepository readings,
         SystemHeartbeat heartbeat,
         NotificationService notifications,
+        AnlagenRisikoService risiken,
         ILogger<WatchdogService> logger)
     {
         _repository = repository;
         _readings = readings;
         _heartbeat = heartbeat;
         _notifications = notifications;
+        _risiken = risiken;
         _logger = logger;
     }
 
@@ -189,9 +192,21 @@ public sealed class WatchdogService
                 _heartbeat.NotifiedCode = verdict.ChangeKey;
                 _logger.LogWarning("Watchdog: {Code} — {Detail}", verdict.Code, verdict.Detail);
             }
+
+            // Auch in die App. Vorher blieb von einem Ausfall der Verbindung nur
+            // eine Push-Nachricht — und der Notfall-Ablauf, der genau an diesem
+            // Ereignistyp haengt, konnte nie vorgeschlagen werden.
+            _risiken.Melden(
+                RiskEventType.HomeAssistantUnavailable,
+                RiskEventSeverity.Critical,
+                null,
+                verdict.Headline,
+                verdict.Detail,
+                verdict.Code);
         }
         else if (!verdict.IsProblem && previous is not null)
         {
+            _risiken.Entwarnen(RiskEventType.HomeAssistantUnavailable, null);
             await _notifications.SendAsync(
                 NotificationCategory.System, "🌱 Grow OS · Entwarnung", "Die Überwachung läuft wieder — Sensordaten kommen an.", cancellationToken);
             _heartbeat.NotifiedCode = null;

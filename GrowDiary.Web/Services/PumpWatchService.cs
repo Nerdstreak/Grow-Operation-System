@@ -132,7 +132,13 @@ public sealed class PumpWatchService
             ? " Ohne Belüftung wird das Reservoir binnen Stunden sauerstoffarm; Wurzelfäule kann einen Lauf in rund zwei Tagen erledigen. Solange keine Pumpe läuft: Deckel öffnen und von Hand umwälzen."
             : " Ohne Umwälzung stehen Nährstoffe und Temperatur in den Eimern auseinander. Wenn das Absicht ist (Intervall-Betrieb), stell die Schonfrist höher.";
 
-    private static bool IstAus(string state)
+    /// <summary>Meldet dieser Zustand „aus"?</summary>
+    /// <remarks>
+    /// Oeffentlich, weil der Anlagen-Waechter (Kuehler, USV) dieselbe Frage
+    /// stellt. Zwei Fassungen davon waeren zwei Wahrheiten ueber denselben
+    /// Zustandstext.
+    /// </remarks>
+    public static bool IstAus(string state)
         => state.Equals("off", StringComparison.OrdinalIgnoreCase)
         || state.Equals("unavailable", StringComparison.OrdinalIgnoreCase)
         || state.Equals("closed", StringComparison.OrdinalIgnoreCase)

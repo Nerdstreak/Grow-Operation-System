@@ -21,17 +21,20 @@ public sealed class PumpWatchNotifier
     private readonly AppSettingsRepository _settings;
     private readonly NotificationService _notifications;
     private readonly SystemHeartbeat _heartbeat;
+    private readonly AnlagenRisikoService _risiken;
     private readonly ILogger<PumpWatchNotifier> _logger;
 
     public PumpWatchNotifier(
         AppSettingsRepository settings,
         NotificationService notifications,
         SystemHeartbeat heartbeat,
+        AnlagenRisikoService risiken,
         ILogger<PumpWatchNotifier> logger)
     {
         _settings = settings;
         _notifications = notifications;
         _heartbeat = heartbeat;
+        _risiken = risiken;
         _logger = logger;
     }
 
@@ -84,6 +87,20 @@ public sealed class PumpWatchNotifier
                 _heartbeat.SetPumpMeldung(tent.Id, lage);
                 _logger.LogWarning("Pumpen-Wächter, Zelt {TentId}: {Text}", tent.Id, text);
             }
+
+            // Auch in die App, nicht nur aufs Telefon.
+            //
+            // Vorher blieb von einer stehenden Pumpe nur eine Push-Nachricht.
+            // Wer sie in der Ruhezeit verpasste, fand hinterher nichts — und der
+            // Notfall-Ablauf, der genau an diesem Ereignistyp haengt, konnte nie
+            // vorgeschlagen werden.
+            _risiken.Melden(
+                RiskEventType.PumpOffline,
+                kritisch ? RiskEventSeverity.Critical : RiskEventSeverity.Warning,
+                tent.Id,
+                kritisch ? $"Pumpe steht ({tent.Name})" : $"Pumpe prüfen ({tent.Name})",
+                text,
+                lage);
         }
         else
         {
@@ -93,9 +110,71 @@ public sealed class PumpWatchNotifier
                 "Die Pumpen laufen wieder.",
                 cancellationToken);
             _heartbeat.SetPumpMeldung(tent.Id, null);
+            _risiken.Entwarnen(RiskEventType.PumpOffline, tent.Id);
             _logger.LogInformation("Pumpen-Wächter, Zelt {TentId}: wieder normal.", tent.Id);
         }
 
+        // Kuehler und USV im selben Takt. Sie haengen an derselben Ursache wie
+        // die Pumpen — faellt der Strom, faellt alles — und es waere ein zweiter
+        // Waechter mit demselben Zeitplan und derselben Quelle.
+        await AnlageMeldenAsync(tent, zustaende, nowUtc, cancellationToken);
+
         return befunde;
+    }
+
+    /// <summary>
+    /// Kühler und USV: melden, wenn etwas steht, und entwarnen, wenn nicht.
+    /// </summary>
+    /// <remarks>
+    /// Beide Größen waren seit jeher mappbar und wurden von keinem Dienst
+    /// gelesen. Im RDWC ist der Kühler die Kette, die eine Ernte kostet: Kühler
+    /// aus, Wassertemperatur steigt, Sauerstoff fällt, Wurzelfäule.
+    /// </remarks>
+    private async Task AnlageMeldenAsync(
+        Tent tent,
+        IReadOnlyDictionary<string, HomeAssistantState> zustaende,
+        DateTime nowUtc,
+        CancellationToken cancellationToken)
+    {
+        var befunde = AnlagenWatchService.Beurteilen(zustaende, nowUtc, SchonfristMinuten);
+
+        foreach (var (schluessel, typ) in new[]
+                 {
+                     ("chiller", RiskEventType.ChillerOffline),
+                     ("ups-status", RiskEventType.UpsOnBattery),
+                     ("ups-battery", RiskEventType.UpsOnBattery),
+                 })
+        {
+            var befund = befunde.FirstOrDefault(b => b.Schluessel == schluessel);
+
+            // Nichts gemappt heisst nichts zu sagen — und ausdruecklich AUCH
+            // keine Entwarnung: sonst raeumte ein Zelt ohne Kuehler die Meldung
+            // eines anderen mit weg.
+            if (befund is null) continue;
+
+            if (befund.Stufe == "ok")
+            {
+                _risiken.Entwarnen(typ, tent.Id);
+                continue;
+            }
+
+            _risiken.Melden(
+                typ,
+                befund.Stufe == "kritisch" ? RiskEventSeverity.Critical : RiskEventSeverity.Warning,
+                tent.Id,
+                $"{befund.Name}: {(befund.Stufe == "kritisch" ? "Störung" : "prüfen")} ({tent.Name})",
+                $"{befund.Meldung} {befund.Herkunft}",
+                befund.Schluessel + ":" + befund.Stufe);
+
+            var gemeldet = _heartbeat.PumpMeldung(tent.Id);
+            var lage = $"anlage:{befund.Schluessel}:{befund.Stufe}";
+            if (gemeldet == lage) continue;
+
+            await _notifications.SendAsync(
+                NotificationCategory.System,
+                $"🌱 Grow OS · {befund.Name} ({tent.Name})",
+                befund.Meldung,
+                cancellationToken);
+        }
     }
 }
