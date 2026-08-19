@@ -81,11 +81,24 @@
 .measurement-empty-actions .v1-button {
   min-width: 136px;
 }
-/* NICHT klebend. Die geteilte Klasse `.rc2-sticky-card` macht die Karte
-   klebend; auf dieser Seite deckte sie beim Scrollen 22 Eingabefelder zu —
-   ein Klick aufs Temperaturfeld traf die Karte. `position: static` hier ist
-   der kleinste Eingriff: die Klasse ganz wegzulassen naehme der Karte auch
-   ihr Raster. */
+/* NICHT klebend — und zwar mit ZWEI Klassen im Selektor.
+ *
+ * Die geteilte Klasse `.rc2-sticky-card` (widgets.css) macht die Karte klebend.
+ * Auf dieser Seite schob sie sich beim Scrollen ueber die Eingabefelder: Kontext
+ * und Messwerte lagen uebereinander, ein Klick aufs Temperaturfeld traf die
+ * Karte.
+ *
+ * DIE FALLE, die hier schon einmal zugeschnappt ist: mit nur einer Klasse
+ * (`.rc2-measurement-context`) verliert die Regel. Beide haben Spezifitaet
+ * 0,1,0 — und `widgets.css` wird in App.tsx SPAETER geladen als diese Datei
+ * (Zeile 41 gegen 35). Die Regel stand hier wochenlang und tat nichts.
+ *
+ * Aufgefallen ist es nicht, weil die Gegenprobe damals die REGEL geprueft hat
+ * und nicht die DATEI: eine per addStyleTag eingespielte Regel haengt am Ende
+ * des Dokuments und gewinnt immer. Sie belegt, dass der Gedanke stimmt, nicht
+ * dass er ankommt. Zwei Klassen gewinnen unabhaengig von der Ladereihenfolge.
+ */
+.rc2-sticky-card.rc2-measurement-context,
 .rc2-measurement-context {
   position: static;
   align-content: start;
