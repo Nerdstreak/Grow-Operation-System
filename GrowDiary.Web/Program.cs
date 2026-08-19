@@ -6,6 +6,11 @@ using GrowDiary.Web.Services;
 using GrowDiary.Web.Services.Knowledge;
 using Microsoft.AspNetCore.DataProtection;
 
+// ERSTE Anweisung: Threads, die davor entstehen, erben die alte Kultur.
+// Ohne das formatiert jedes $"{wert:0.0}" mit der Kultur der Umgebung — im
+// Container ohne LANG also „6.5" mitten in einem deutschen Satz. Siehe Deutsch.
+Deutsch.Setzen();
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.ClearProviders();
@@ -390,6 +395,20 @@ static string InjectBaseHref(string html, string baseHref)
 
     var insertAt = headIndex + "<head>".Length;
     return string.Concat(html.AsSpan(0, insertAt), tag, html.AsSpan(insertAt));
+}
+
+// Hat die Kultur gegriffen? Im Invariant-Modus (kein ICU im Basis-Image oder
+// DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1) liefert new CultureInfo("de-DE")
+// stillschweigend die invariante Kultur — dann stuende im ganzen Haus wieder
+// „6.5" statt „6,5", ohne dass irgendwo etwas schiefginge. Deshalb einmal
+// nachsehen und laut werden.
+if (!Deutsch.IstWirksam)
+{
+    app.Services.GetRequiredService<ILogger<Program>>().LogError(
+        "Die deutsche Kultur ist NICHT wirksam: 6,5 wird als \"{Probe}\" geschrieben. "
+        + "Vermutlich laeuft .NET im Invariant-Modus (fehlendes ICU im Basis-Image oder "
+        + "DOTNET_SYSTEM_GLOBALIZATION_INVARIANT). Alle Zahlen in Nutzertexten bekommen "
+        + "dadurch einen englischen Dezimalpunkt.", 6.5.ToString("0.0"));
 }
 
 app.Run();
