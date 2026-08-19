@@ -1,5 +1,72 @@
 # Changelog
 
+## 2.0.0-beta.50
+
+**Beta.** Numbers were written the English way, and the measurement log was
+carrying a second, worse form.
+
+### Numbers in German sentences
+
+- Fixed — **the decimal point.** Nowhere did the app set a culture, so every
+  formatted number followed the culture of its environment: `6,5` on the
+  developer's German machine, `6.5` inside the container, which has no `LANG`.
+  The container is what you run. **80 user-facing texts** in the backend were
+  affected — "SOP-Schwelle 6.5 mg/l", "Anmischen auf 5.8-6.2", every deviation
+  message.
+
+  The culture is now set once at startup rather than at 80 call sites. Every
+  place that *reads* a number from text or *stores* one as text already pinned
+  the invariant culture explicitly, and JSON is culture-independent by
+  specification — so only what a human reads changed.
+
+  A quiet trap sits behind this: in invariant mode (a base image without ICU, or
+  `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`) `new CultureInfo("de-DE")` raises
+  no error — it returns the invariant culture, which calls itself "de-DE" and
+  still writes a point. The setting would do nothing and nobody would know.
+  Startup now checks its own effect against an actual number and says so
+  loudly if it failed.
+
+### The measurement log
+
+- Fixed — **"Messungen" offered a second, crippled measurement form.** Nine
+  fields where `/messung` has 31, without the live check, the photo or the
+  addback. Since the page entered the menu, both sat next to each other:
+  "Messen" and "Messungen". Whoever picked the wrong one got a form with no
+  checking. The log is now a log; entering happens on `/messung`.
+
+- Fixed — **impossible values passed unremarked.** 9000 °C of air and EC 99999
+  sat in the log looking like any other row, because they carried the same
+  verdict as "no target band for this phase" — which is drawn deliberately
+  quietly. They now have their own verdict, their own mark, their own colour
+  and their own counter in the summary. On the phone the name comes with it
+  ("Wassertemperatur unmöglich"), because the value itself is not in that row.
+
+- Fixed — **the cell said 5,95 while the spoken sentence said
+  5,953333333333333.** Decimal places now live in one place and are read by the
+  cell, the timeline and the spoken sentence alike.
+
+- Fixed — the heading "Verlauf" stood twice, one directly above the other.
+
+### Demo data
+
+- Fixed — **the archive was empty.** The demo seeder fakes the Home Assistant
+  side only; grows come from the database and nobody creates one. `/archiv`
+  showed "Noch keine archivierten Grows", which meant the whole harvest and
+  cost calculation (total, €/g) was invisible on any fresh machine. A finished
+  grow with a harvest is now seeded when none exists.
+
+### Checks
+
+- New — **no two menu entries offer the same action.** The duplicate form got
+  in because the menu link was checked and the target page never opened.
+- New — **no page in the menu stands empty in the demo data.** With a test that
+  empties the archive response and proves the check actually fires; a first
+  attempt searched for class names and was green for no reason.
+- New — impossible values are reported even where there is deliberately no
+  target band (CO₂).
+- New — the tests run in the same culture as the app, through the *same call*
+  rather than a second setting with the same value.
+
 ## 2.0.0-beta.49
 
 **Beta.** The phone could not reach the bottom of a page.
