@@ -58,7 +58,15 @@ _audit_packages/
 *.user
 # Claude Code local tooling (config/skills/agents) — local-only, not part of the project
 .agents/
-.claude/
+.claude/*
+# Die Arbeitsweise gehoert ins Repository, genau wie CLAUDE.md: Hooks, der
+# Pruefer-Agent und der Release-Ablauf sind Projektregeln, keine Einstellungen
+# eines Rechners. Draussen bleibt nur, was persoenlich ist.
+!.claude/settings.json
+!.claude/launch.json
+!.claude/hooks/
+!.claude/agents/
+!.claude/commands/
 
 # Local go-to-market drafts — not part of the public product repo
 LAUNCH-KIT.md

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "grow-os",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "GrowDiary.Web", "-c", "Release", "--no-launch-profile"],
+      "port": 5076
+    },
+    {
+      "name": "grow-os-demo",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/start-dev-demo.ps1"],
+      "port": 5076
+    }
+  ]
+}

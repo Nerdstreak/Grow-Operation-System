@@ -60,6 +60,43 @@ ohne zu prüfen, und drei Ausnahmen griffen nie.
   gleicher Spezifität gewinnt die später geladene Datei (Reihenfolge in
   `src/App.tsx`). Zwei Klassen im Selektor gewinnen unabhängig davon.
 
+### Prüfungen, die in diesem Projekt nichts prüfen
+
+Belegte Fälle. Wer eine davon benutzt und „grün" meldet, hat nichts gemessen:
+
+- **`tsc --noEmit` prüft NULL Dateien.** `tsconfig.json` hat `"files": []` und
+  nur `references`. Richtig ist **`tsc -b`** (oder `npm run typecheck`). Am
+  19.08.2026 mehrfach als „Typen ok" gemeldet, ohne eine Datei anzusehen.
+- **Ein übersprungener Test ist kein bestandener.** Die E2E-Mappe fährt im Tor
+  ohne Backend; von 34 Fällen aus vier Dateien sind dort 31 übersprungen. Genau
+  die Prüfung, die das leere Archiv gefunden hätte, lief nie mit.
+- **Eine Zählung ohne Mengenwächter** läuft bei leerer Grundmenge null Mal
+  durch und ist grün. Jede braucht `Assert.True(menge.Count >= n)`.
+- **Eine Textsuche darf die Datei nicht mitlesen, die sie prüft.**
+  `routes-reachable` sucht Links im ganzen Quelltext einschließlich `App.tsx`,
+  wo die Routen stehen — die Route belegt sich selbst.
+
+### Die Hooks nehmen mir zwei Prüfungen ab
+
+Eingerichtet in `.claude/settings.json`, die Skripte in `.claude/hooks/`:
+
+| Wann | Was | Blockt? |
+|---|---|---|
+| nach jeder `.cs`/`.ts`/`.tsx`-Änderung | `dotnet build` bzw. `tsc -b` | ja |
+| vor `git commit` | das volle Tor (Backend, Typen, Lint, Vitest) | ja |
+
+Beide sind nachgewiesen: Fehler eingebaut, Hook wurde rot. **Sie ersetzen die
+fünf Prüfungen nicht** — sie fangen Tippfehler und rotes CI, nicht ein
+doppeltes Formular oder eine Seite, die niemand liest.
+
+### Vor „fertig": den Prüfer laufen lassen
+
+`.claude/agents/pruefer.md` — ein Agent in eigenem Kontext, der die Änderung
+gegen die fünf Regeln ansieht. Er hat sie nicht gebaut und keinen Grund, sie zu
+mögen. Aufrufen **bevor** „fertig" gesagt wird.
+
+Für ein Release: `/release` — die Reihenfolge steht dort, nicht im Kopf.
+
 ## ZÄHLUNGEN STATT LISTEN
 
 Eine handgeschriebene Liste kann nur an dem scheitern, was schon draufsteht.
