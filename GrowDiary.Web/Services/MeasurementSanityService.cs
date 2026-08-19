@@ -28,6 +28,43 @@ public sealed class MeasurementSanityService
         return cards;
     }
 
+    /// <summary>
+    /// Was fuer eine Messgroesse physikalisch ueberhaupt vorkommen kann.
+    /// </summary>
+    /// <remarks>
+    /// <b>Eine Tabelle, zwei Leser.</b> Die Sperre beim Speichern verhindert,
+    /// dass so ein Wert hereinkommt; der Beurteiler des Messprotokolls nimmt
+    /// ihn aus seiner Bilanz. Vorher standen die Zahlen nur im Sperr-Code —
+    /// und der Beurteiler zaehlte EC 99999 und Wassertemperatur 5000 Grad als
+    /// ganz normale Abweichungen mit.
+    ///
+    /// <b>Die Grenzen sind bewusst weit.</b> Sie fangen einen Tippfehler oder
+    /// eine falsche Einheit ab und entscheiden nicht ueber Anbau. Was
+    /// agronomisch sinnvoll ist, sagen die Sollwerte.
+    /// </remarks>
+    public static readonly IReadOnlyDictionary<string, (double Min, double Max)> PhysikalischeGrenzen =
+        new Dictionary<string, (double, double)>
+        {
+            ["ph"] = (0, 14),
+            ["ec"] = (0, 10),
+            ["water-temp"] = (-5, 60),
+            ["air-temp"] = (-20, 60),
+            ["humidity"] = (0, 100),
+            ["do"] = (0, 20),
+            ["orp"] = (-1000, 1000),
+            ["co2"] = (0, 30000),
+            ["ppfd"] = (0, 3000),
+            ["vpd"] = (0, 20),
+        };
+
+    /// <summary>Ist dieser Wert fuer diese Groesse ueberhaupt moeglich?</summary>
+    /// <remarks>
+    /// Unbekannte Groessen gelten als plausibel: lieber einen Wert zaehlen,
+    /// den niemand pruefen konnte, als ihn stillschweigend zu verschlucken.
+    /// </remarks>
+    public static bool IstPhysikalischMoeglich(string groesse, double wert)
+        => !PhysikalischeGrenzen.TryGetValue(groesse, out var g) || (wert >= g.Min && wert <= g.Max);
+
     public void ApplyBlockingValidation(ModelStateDictionary modelState, GrowRun grow, Measurement measurement)
     {
         ValidatePh(modelState, nameof(MeasurementFormViewModel.IrrigationPh), measurement.IrrigationPh, "Gießwasser-pH");

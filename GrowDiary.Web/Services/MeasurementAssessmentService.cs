@@ -300,8 +300,30 @@ public sealed class MeasurementAssessmentService
             "Kein Sollwert im Profil — SOP-Schwelle 6,5 mg/l (SOP-RDWC-CAN-N1 §2.2)."));
     }
 
+    /// <summary>
+    /// Ein Wert gegen sein Ziel — es sei denn, er ist physikalisch unmöglich.
+    /// </summary>
+    /// <remarks>
+    /// <b>Warum die Plausibilität zuerst kommt.</b> Ein erster Bau dieses
+    /// Dienstes zählte EC 99999 und Wassertemperatur 5000 °C als ganz normale
+    /// Abweichungen in die Bilanz — beides Testeinträge, die vor der Sperre
+    /// hereingekommen waren. Damit stand über dem Protokoll eine Zahl, die zwei
+    /// Ausreißer mitzählte und dadurch schlechter aussah, als der Grow lief.
+    ///
+    /// „Unmöglich“ ist kein Urteil über den Anbau, sondern über die Messung.
+    /// Deshalb <see cref="AssessmentVerdict.NoTarget"/> mit ausgeschriebenem
+    /// Grund und nicht „daneben“: der Wert wird nicht bewertet, er wird
+    /// angezweifelt.
+    /// </remarks>
     private static MetricAssessment Urteil(string metric, string label, double wert, string einheit, double min, double max, string notiz)
     {
+        if (!MeasurementSanityService.IstPhysikalischMoeglich(metric, wert))
+        {
+            var grenzen = MeasurementSanityService.PhysikalischeGrenzen[metric];
+            return new MetricAssessment(metric, label, wert, einheit, null, null, AssessmentVerdict.NoTarget,
+                $"Physikalisch nicht möglich ({grenzen.Min:0}–{grenzen.Max:0}{(einheit.Length > 0 ? " " + einheit : string.Empty)}) — fliesst nicht in die Bilanz ein.");
+        }
+
         var urteil = wert < min ? AssessmentVerdict.Below
             : wert > max ? AssessmentVerdict.Above
             : AssessmentVerdict.InTarget;

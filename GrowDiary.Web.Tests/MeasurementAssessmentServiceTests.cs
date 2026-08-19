@@ -171,6 +171,23 @@ public sealed class MeasurementAssessmentServiceTests : IDisposable
         Assert.Equal(GrowStage.Flower, bericht.Measurements[0].ComputedStage);
     }
 
+    [Fact]
+    public void Physikalisch_unmoegliche_Werte_zaehlen_nicht_als_Abweichung()
+    {
+        // Gefunden zwei Stunden nach dem Bau dieses Dienstes: er zaehlte
+        // EC 99999 und Wassertemperatur 5000 °C als ganz normale Abweichungen
+        // in seine Bilanz. Beides Testeintraege, die vor der Sperre
+        // hereingekommen waren. Damit stand ueber dem Protokoll eine Zahl, die
+        // schlechter aussah, als der Grow lief.
+        var bericht = _svc.Assess(Grow(), new[] { Messung(ec: 99999, wasser: 5000) });
+        var werte = bericht.Measurements[0].Metrics;
+
+        Assert.All(werte, w => Assert.Equal(AssessmentVerdict.NoTarget, w.Verdict));
+        Assert.All(werte, w => Assert.Contains("Physikalisch nicht möglich", w.Note));
+        Assert.Equal(0, bericht.CheckedValueCount);
+        Assert.Equal(0, bericht.OffTargetCount);
+    }
+
     private static string FindProjectRoot()
     {
         var dir = AppContext.BaseDirectory;
