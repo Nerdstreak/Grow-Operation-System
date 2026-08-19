@@ -131,8 +131,8 @@ export function GrowDetailMeasurementsSection({
                   {zelle('ph', measurement.reservoirPh, 2)}
                   {zelle('ec', measurement.reservoirEc, 2)}
                   {zelle('water-temp', measurement.reservoirWaterTempC, 1)}
-                  <div className="co-td">{formatNumber(measurement.airTemperatureC, 1)}</div>
-                  <div className="co-td">{formatNumber(measurement.humidityPercent, 0)}</div>
+                  {zelle('air-temp', measurement.airTemperatureC, 1)}
+                  {zelle('humidity', measurement.humidityPercent, 0)}
                   <div className="co-td">
                     <Link className="ls-btn is-small" to={`/grows/measurements/${measurement.id}/edit`} onClick={(event) => event.stopPropagation()}>Bearbeiten</Link>
                   </div>

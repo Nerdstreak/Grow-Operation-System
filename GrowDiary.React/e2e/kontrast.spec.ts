@@ -24,6 +24,12 @@ const ROUTEN = [
   '/grows/1', '/zelte/1', '/hydro/1', '/messungen', '/sops', '/release', '/start',
 ]
 
+// Die Liste muss etwas hergeben. Ohne diese Zeile laeuft die Schleife
+// darunter bei einer leeren Liste null Mal durch — und der Testlauf meldet
+// gruen, obwohl er nichts geprueft hat. Genau diese Falle hat in diesem
+// Projekt schon zugeschlagen.
+if (ROUTEN.length < 20) throw new Error(`Diese Pruefung sieht nur ${ROUTEN.length} Seiten — sie wuerde nichts messen.`)
+
 /**
  * Die Schwelle — seit 2026-08-17 der WCAG-AA-Wert statt der alten 3,0.
  *

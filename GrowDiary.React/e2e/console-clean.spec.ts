@@ -24,6 +24,12 @@ const ROUTEN = [
   '/regeln?tab=automatik', '/regeln?tab=push', '/regeln?tab=ki',
 ]
 
+// Die Liste muss etwas hergeben. Ohne diese Zeile laeuft die Schleife
+// darunter bei einer leeren Liste null Mal durch — und der Testlauf meldet
+// gruen, obwohl er nichts geprueft hat. Genau diese Falle hat in diesem
+// Projekt schon zugeschlagen.
+if (ROUTEN.length < 10) throw new Error(`Diese Pruefung sieht nur ${ROUTEN.length} Seiten — sie wuerde nichts messen.`)
+
 /** Was am Testaufbau liegt, nicht an der App. */
 function istAufbauRauschen(text: string): boolean {
   return /\/api\/live\/tents\/\d+\/camera/.test(text)

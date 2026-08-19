@@ -20,8 +20,13 @@ function photoperiod(on: string, off: string): string | null {
   const onAt = toMinutes(on)
   const offAt = toMinutes(off)
   if (onAt == null || offAt == null) return null
-  let onMinutes = (offAt - onAt + 1440) % 1440
-  if (onMinutes === 0) onMinutes = 1440
+  const onMinutes = (offAt - onAt + 1440) % 1440
+  // Gleiche An- und Aus-Zeit heisst NICHT 24 Stunden Licht, sondern: der
+  // Plan ist unbekannt. Vorher stand hier `onMinutes = 1440`, und die Kachel
+  // behauptete daraufhin volle Dauerbeleuchtung — bei einem Zelt, an dem
+  // schlicht nichts eingetragen war. Das Backend macht es an derselben
+  // Stelle richtig (GrowCostService.Lichtstunden gibt dort nichts zurueck).
+  if (onMinutes === 0) return null
   return `${formatHours(onMinutes)}/${formatHours(1440 - onMinutes)}`
 }
 

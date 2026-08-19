@@ -92,6 +92,29 @@ public sealed class GrowDashboardComposer
             return minuten >= 0 ? minuten : null;
         }
 
+        // Der Name, unter dem eine Kachel-Groesse in der physikalischen Tabelle
+        // steht.
+        //
+        // Die beiden Seiten heissen verschieden — hier Kachel-Schluessel, dort
+        // die Namen aus MeasurementSanityService.PhysikalischeGrenzen. Unbekannte
+        // Groessen gelten dort ABSICHTLICH als plausibel; ohne diese Uebersetzung
+        // liefe die Pruefung bei fuenf von zehn Groessen ins Leere und meldete
+        // trotzdem nichts.
+        static string? PhysikSchluessel(string kachelSchluessel) => kachelSchluessel switch
+        {
+            "temperature" => "air-temp",
+            "humidity" => "humidity",
+            "reservoir-ph" => "ph",
+            "reservoir-ec" => "ec",
+            "reservoir-temp" => "water-temp",
+            "dissolved-oxygen" => "do",
+            "orp" => "orp",
+            "co2" => "co2",
+            "ppfd" => "ppfd",
+            "vpd" => "vpd",
+            _ => null,
+        };
+
         // Sorte Ehrlichkeit, um die es hier geht. Also je Messgroesse einzeln
         // nachsehen, aus welcher Messung der Wert wirklich stammt.
         var geordnet = measurements
@@ -107,11 +130,34 @@ public sealed class GrowDashboardComposer
         // sucht fuer jede Groesse die letzte Messung, die einen Wert dafuer
         // hat, und das koennen verschiedene Messungen mit verschiedenen
         // Quellen sein.
-        (double? Wert, DateTime? Zeit, ValueOrigin? Herkunft) LetzteMessung(Func<Measurement, double?> selector)
+        (double? Wert, DateTime? Zeit, ValueOrigin? Herkunft) LetzteMessung(Func<Measurement, double?> selector, string kachelSchluessel)
         {
             foreach (var messung in geordnet)
             {
-                if (selector(messung) is { } wert) return (wert, messung.TakenAt, messung.Source);
+                if (selector(messung) is not { } wert) continue;
+
+                // Physikalisch Unmoegliches ueberspringen und weitersuchen.
+                //
+                // Der Bestand enthaelt Testzeilen mit 9000 Grad Luft, 5000 Grad
+                // Wasser und -500 ppm CO2. Ohne diese Zeile stand -500 ppm als
+                // aktueller Messwert auf einer Kachel der Startseite — wochenlang.
+                //
+                // Der Wert verschwindet dabei NICHT aus der Anzeige: im
+                // Messprotokoll steht er weiter, mit ausgeschriebenem Grund. Er
+                // darf nur nicht als der aktuelle Stand des Zelts gelten.
+                //
+                // FALLE: die Kachel-Schluessel heissen anders als die Tabelle
+                // (`temperature` gegen `air-temp`, `reservoir-ph` gegen `ph`).
+                // Unbekannte Groessen gelten absichtlich als plausibel — ohne die
+                // Uebersetzung in PhysikSchluessel taete diese Pruefung bei fuenf
+                // von zehn Groessen nichts und waere trotzdem gruen.
+                if (PhysikSchluessel(kachelSchluessel) is { } physik
+                    && !MeasurementSanityService.IstPhysikalischMoeglich(physik, wert))
+                {
+                    continue;
+                }
+
+                return (wert, messung.TakenAt, messung.Source);
             }
 
             return (null, null, null);
@@ -174,7 +220,7 @@ public sealed class GrowDashboardComposer
                 };
             }
 
-            var (value, gemessenAm, herkunft) = LetzteMessung(m => fallback(m));
+            var (value, gemessenAm, herkunft) = LetzteMessung(m => fallback(m), key);
             return new MetricCard
             {
                 Key = key,
@@ -261,7 +307,7 @@ public sealed class GrowDashboardComposer
             // Pumpe ist.
             var wasserTemp = states.TryGetValue("reservoir-temp", out var tempState)
                 ? tempState.NumericValue
-                : LetzteMessung(m => m.ReservoirWaterTempC).Wert;
+                : LetzteMessung(m => m.ReservoirWaterTempC, "reservoir-temp").Wert;
             if (doKarte.NumericValue is null && wasserTemp is { } temp)
             {
                 doKarte.Hint = $"max. ~{AerationCheck.SaettigungMgL(temp).ToString("0.0", AppCulture.German)} mg/L "

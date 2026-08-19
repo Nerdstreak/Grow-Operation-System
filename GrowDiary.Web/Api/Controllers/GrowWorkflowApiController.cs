@@ -93,7 +93,17 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
             .Select(measurement => measurement.ReservoirEc)
             .FirstOrDefault();
         var stage = latestByTime?.Stage ?? GrowStage.Veg;
-        var targets = _targetValueService.GetTargets(grow.HydroStyle, stage);
+        // Die Profil-Kette Grow -> System -> Anbaustil, nicht die Abkuerzung.
+        //
+        // `GetTargets(HydroStyle, stage)` landet immer beim Standardprofil und
+        // uebergeht damit das eigene Profil des Nutzers. Genau dieser Fehler
+        // stand in der Diagnose und hat dort EC 0,6-0,8 gemeldet, waehrend die
+        // Live-Kachel fuer denselben Grow 0,9-1,1 sagte.
+        var profil = SetpointProfileResolver.Resolve(
+            grow.SetpointProfileId,
+            grow.SystemId is { } systemId ? _repository.GetSystem(systemId)?.SetpointProfileId : null,
+            grow.HydroStyle);
+        var targets = _targetValueService.GetTargets(profil.ProfileId, stage);
         double? suggestedEcTarget = targets is null
             ? null
             : Math.Round((targets.EcMin + targets.EcMax) / 2, 2);

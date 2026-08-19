@@ -15,6 +15,12 @@ const ROUTES = [
   '/hydro', '/hydro/1', '/hydro/new', '/sensoren', '/home-assistant', '/wissen', '/start', '/settings',
 ]
 
+// Die Liste muss etwas hergeben. Ohne diese Zeile laeuft die Schleife
+// darunter bei einer leeren Liste null Mal durch — und der Testlauf meldet
+// gruen, obwohl er nichts geprueft hat. Genau diese Falle hat in diesem
+// Projekt schon zugeschlagen.
+if (ROUTES.length < 5) throw new Error(`Diese Pruefung sieht nur ${ROUTES.length} Seiten — sie wuerde nichts messen.`)
+
 test('sammle gerenderte Klassen', async ({ page }) => {
   // Standardmaessig aus: der Lauf schreibt eine Datei, und ein Testlauf, der bei
   // jedem Durchgang den Arbeitsbaum aendert, ist keiner. Mit COLLECT_CLASSES=1

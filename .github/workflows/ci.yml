@@ -36,11 +36,12 @@ jobs:
       - name: Build backend
         run: dotnet build GrowDiary.slnx --configuration Release --no-restore
 
+      # Die MAPPE, nicht die einzelnen Projekte. Vorher standen hier zwei
+      # Zeilen mit je einem Pfad — ein drittes Testprojekt haette niemand
+      # bemerkt. Dieselbe Fehlerklasse wie das Menue, dem eine Seite fehlte.
       - name: Test backend
-        run: dotnet test GrowDiary.Web.Tests/GrowDiary.Web.Tests.csproj --configuration Release --no-build --verbosity minimal
+        run: dotnet test GrowDiary.slnx --configuration Release --no-build --verbosity minimal
 
-      - name: Test add-ons
-        run: dotnet test GrowMcp.Tests/GrowMcp.Tests.csproj --configuration Release --no-build --verbosity minimal
 
       - name: Install frontend
         working-directory: GrowDiary.React

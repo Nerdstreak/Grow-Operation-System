@@ -168,6 +168,7 @@ public sealed class MeasurementAssessmentService
             PruefeWasserTemp(messung, werte);
             PruefeVpd(messung, mitNutzer, leafTempOffsetC, werte);
             PruefeSauerstoff(messung, werte);
+            PruefeOhneZielband(messung, werte);
 
             foreach (var wert in werte)
             {
@@ -315,6 +316,42 @@ public sealed class MeasurementAssessmentService
     /// Grund und nicht „daneben“: der Wert wird nicht bewertet, er wird
     /// angezweifelt.
     /// </remarks>
+    /// <summary>
+    /// Größen, für die es kein Zielband gibt — aber eine physikalische Grenze.
+    /// </summary>
+    /// <remarks>
+    /// <b>Warum sie überhaupt auftauchen.</b> Lufttemperatur, Feuchte, CO₂ und
+    /// PPFD standen im Protokoll ganz ohne Aussage da — als wäre nichts geprüft
+    /// worden. Genau so ist die −500 ppm wochenlang durchgekommen.
+    ///
+    /// <b>Warum sie kein Zielband bekommen.</b> Luft und Feuchte haben keins:
+    /// die Live-Kacheln rechnen es aus dem VPD-Ziel und dem jeweils anderen
+    /// aktuellen Wert zurück, und das ergibt rückwirkend keinen Sinn — das
+    /// Urteil trägt das VPD. CO₂ hat ohne Anreicherung absichtlich kein Ziel,
+    /// und PPFD hängt daran, ob das Licht an war; der Lichtplan hat keine
+    /// Historie.
+    ///
+    /// Ein Wert, der die physikalische Grenze verlässt, wird trotzdem gemeldet.
+    /// Die Bilanz-Zahlen ändern sich dadurch nicht: NoTarget zählt nicht mit.
+    /// </remarks>
+    private static void PruefeOhneZielband(Measurement m, List<MetricAssessment> raus)
+    {
+        Ansehen("air-temp", "Lufttemperatur", m.AirTemperatureC, "°C", "Kein eigenes Zielband — das Urteil trägt das VPD.");
+        Ansehen("humidity", "Luftfeuchte", m.HumidityPercent, "%", "Kein eigenes Zielband — das Urteil trägt das VPD.");
+        Ansehen("co2", "CO₂", m.Co2Ppm, "ppm", "Ohne CO₂-Anreicherung gibt es kein Ziel; Umgebungsluft liegt bei rund 420 ppm.");
+        Ansehen("ppfd", "PPFD", m.PpfdMol, "µmol/m²/s", "Ob das Licht an war, ist rückwirkend nicht belegbar — der Lichtplan wird nicht historisiert.");
+
+        void Ansehen(string metrik, string label, double? wert, string einheit, string grund)
+        {
+            if (wert is not { } v) return;
+            var moeglich = MeasurementSanityService.IstPhysikalischMoeglich(metrik, v);
+            var notiz = moeglich
+                ? grund
+                : $"Physikalisch nicht möglich ({MeasurementSanityService.PhysikalischeGrenzen[metrik].Min:0}–{MeasurementSanityService.PhysikalischeGrenzen[metrik].Max:0} {einheit}) — fliesst nicht in die Bilanz ein.";
+            raus.Add(new MetricAssessment(metrik, label, v, einheit, null, null, AssessmentVerdict.NoTarget, notiz));
+        }
+    }
+
     private static MetricAssessment Urteil(string metric, string label, double wert, string einheit, double min, double max, string notiz)
     {
         if (!MeasurementSanityService.IstPhysikalischMoeglich(metric, wert))

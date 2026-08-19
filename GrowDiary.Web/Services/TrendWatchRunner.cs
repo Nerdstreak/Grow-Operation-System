@@ -45,7 +45,23 @@ public sealed class TrendWatchRunner
 
         var measurements = _repository.GetMeasurementsForGrow(growId);
         var stage = measurements.OrderByDescending(measurement => measurement.TakenAt).FirstOrDefault()?.Stage ?? GrowStage.Veg;
-        return TrendWatchService.Evaluate(measurements, _targets.GetTargets(grow.HydroStyle, stage), now);
+        // Die Profil-Kette Grow -> System -> Anbaustil, nicht die Abkuerzung.
+        //
+        // `GetTargets(HydroStyle, stage)` landet immer beim Standardprofil und
+        // uebergeht damit das eigene Profil des Nutzers. Genau dieser Fehler
+        // stand in der Diagnose und hat dort EC 0,6-0,8 gemeldet, waehrend die
+        // Live-Kachel fuer denselben Grow 0,9-1,1 sagte.
+        return TrendWatchService.Evaluate(measurements, ZieleFuer(grow, stage), now);
+    }
+
+    /// <summary>Die Sollwerte über die volle Profil-Kette.</summary>
+    private HydroTargetValues? ZieleFuer(GrowRun grow, GrowStage stage)
+    {
+        var profil = SetpointProfileResolver.Resolve(
+            grow.SetpointProfileId,
+            grow.SystemId is { } systemId ? _repository.GetSystem(systemId)?.SetpointProfileId : null,
+            grow.HydroStyle);
+        return _targets.GetTargets(profil.ProfileId, stage);
     }
 
     public async Task RunAsync(DateTime now, CancellationToken cancellationToken = default)

@@ -23,6 +23,27 @@ public sealed class AutoMeasurementValueGuard
             return Reject(field, value, "Wert ist nicht numerisch plausibel.");
         }
 
+        // ZWEI SCHICHTEN, nicht zwei Wahrheiten.
+        //
+        // Die aeussere Schranke ist die physikalische Tabelle in
+        // MeasurementSanityService — sie gilt fuer JEDEN Weg in die Datenbank,
+        // von Hand wie automatisch. Vorher fuehrte dieser Waechter eine eigene,
+        // dritte Tabelle, und bei 7 von 11 Feldern wichen die Zahlen ab. Beim
+        // ORP widersprachen sie sich sogar in beide Richtungen: 1100 mV kam
+        // automatisch durch, war von Hand aber gesperrt.
+        //
+        // Die engeren Baender unten BLEIBEN und sind die zweite Schicht: was
+        // unbeaufsichtigt geschrieben wird, darf strenger geprueft werden als
+        // das, was jemand tippt und dabei ansieht. Sie gleichzusetzen waere eine
+        // Lockerung — bei sechs der sieben Felder ist das Auto-Band das engere,
+        // und ein defekter Sensor duerfte dann pH 13 und 55 Grad schreiben.
+        if (PhysikSchluessel(field) is { } schluessel
+            && !MeasurementSanityService.IstPhysikalischMoeglich(schluessel, value))
+        {
+            var g = MeasurementSanityService.PhysikalischeGrenzen[schluessel];
+            return Reject(field, value, $"Ausserhalb dessen, was physikalisch vorkommen kann ({g.Min:0}–{g.Max:0}).");
+        }
+
         return field switch
         {
             AutoMeasurementField.AirTemperatureC => CheckRange(field, value, 0, 50, 10, 40),
@@ -39,6 +60,34 @@ public sealed class AutoMeasurementValueGuard
             _ => Valid()
         };
     }
+
+    /// <summary>
+    /// Der Name, unter dem diese Groesse in der physikalischen Tabelle steht.
+    /// </summary>
+    /// <remarks>
+    /// Die beiden Seiten heissen verschieden — hier Feldnamen des Modells, dort
+    /// Kachel-Schluessel. Ohne diese Uebersetzung liefe die aeussere Schranke
+    /// ins Leere und meldete trotzdem nichts: unbekannte Groessen gelten in
+    /// <see cref="MeasurementSanityService.IstPhysikalischMoeglich"/> absichtlich
+    /// als plausibel.
+    ///
+    /// Felder ohne Eintrag (die beiden Fuellstaende) sind nach oben offen —
+    /// Tankgroessen reichen von 20 bis ueber 1000 Liter. Fuer sie greift allein
+    /// das engere Band unten.
+    /// </remarks>
+    private static string? PhysikSchluessel(AutoMeasurementField field) => field switch
+    {
+        AutoMeasurementField.AirTemperatureC => "air-temp",
+        AutoMeasurementField.HumidityPercent => "humidity",
+        AutoMeasurementField.ReservoirPh => "ph",
+        AutoMeasurementField.ReservoirEc => "ec",
+        AutoMeasurementField.ReservoirWaterTempC => "water-temp",
+        AutoMeasurementField.DissolvedOxygenMgL => "do",
+        AutoMeasurementField.OrpMv => "orp",
+        AutoMeasurementField.PpfdMol => "ppfd",
+        AutoMeasurementField.Co2Ppm => "co2",
+        _ => null,
+    };
 
     private static AutoMeasurementValueGuardResult CheckRange(
         AutoMeasurementField field,

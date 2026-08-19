@@ -19,6 +19,17 @@ import { navGroups } from '../src/navigation'
  * Gemessen am gerenderten DOM statt am Quelltext: die Kopfzeile ist das, was
  * ankommt, und nur der Browser weiß, was am Ende dort steht.
  */
+/**
+ * Die Liste muss etwas hergeben.
+ *
+ * Ohne diese Zeile laeuft die Schleife darunter bei einer leeren Liste
+ * null Mal durch — und der Testlauf meldet gruen, obwohl er nichts geprueft
+ * hat. Genau diese Falle hat in diesem Projekt schon zugeschlagen: ein Test
+ * suchte einen Routennamen im Quelltext, fand einen beliebigen Link und war
+ * zufrieden, waehrend die Seite in keinem Menue stand.
+ */
+if (navGroups.length < 4) throw new Error(`Der Wegweiser-Test sieht nur ${navGroups.length} Menuegruppen — er wuerde nichts pruefen.`)
+
 const ziele = navGroups.flatMap((gruppe) =>
   gruppe.items.map((eintrag) => ({ gruppe: gruppe.label, ...eintrag })))
 

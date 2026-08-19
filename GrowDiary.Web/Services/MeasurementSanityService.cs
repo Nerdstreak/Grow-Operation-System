@@ -55,7 +55,16 @@ public sealed class MeasurementSanityService
             ["co2"] = (0, 30000),
             ["ppfd"] = (0, 3000),
             ["vpd"] = (0, 20),
+            ["airflow"] = (0, 300),
         };
+
+    /// <summary>Meldet einen Wert, der die physikalische Grenze verlässt.</summary>
+    private static void PhysikGrenze(ModelStateDictionary modelState, string feld, string groesse, double? wert, string bezeichnung)
+    {
+        if (wert is not { } v || IstPhysikalischMoeglich(groesse, v)) return;
+        var g = PhysikalischeGrenzen[groesse];
+        modelState.AddModelError(feld, $"{bezeichnung} liegt ausserhalb dessen, was physikalisch vorkommen kann ({g.Min:0}–{g.Max:0}). Bitte Messgerät oder Einheit prüfen.");
+    }
 
     /// <summary>Ist dieser Wert fuer diese Groesse ueberhaupt moeglich?</summary>
     /// <remarks>
@@ -83,15 +92,19 @@ public sealed class MeasurementSanityService
         ValidateNonNegative(modelState, nameof(MeasurementFormViewModel.TopOffLiters), measurement.TopOffLiters, "Top-Off Liter");
         ValidateNonNegative(modelState, nameof(MeasurementFormViewModel.AddbackEc), measurement.AddbackEc, "Addback-EC");
 
-        if (measurement.DissolvedOxygenMgL is < 0 or > 20)
-        {
-            modelState.AddModelError(nameof(MeasurementFormViewModel.DissolvedOxygenMgL), "Der Sauerstoffwert wirkt physikalisch unplausibel. Bitte Messgerät oder Einheit prüfen.");
-        }
-
-        if (measurement.OrpMv is < -1000 or > 1000)
-        {
-            modelState.AddModelError(nameof(MeasurementFormViewModel.OrpMv), "Der ORP-Wert wirkt unplausibel. Bitte Sensor oder Einheit prüfen.");
-        }
+        // Ab hier liest die Sperre die TABELLE, statt die Zahlen ein zweites Mal
+        // hinzuschreiben.
+        //
+        // Genau das war der Fehler: die Tabelle oben entstand als „eine Tabelle,
+        // zwei Leser" — und die Sperre zwanzig Zeilen darunter tippte die Zahlen
+        // trotzdem ab. Sie hatte damit genau einen fremden Leser
+        // (MeasurementAssessmentService) und war für ihren eigenen Nachbarn tot.
+        PhysikGrenze(modelState, nameof(MeasurementFormViewModel.DissolvedOxygenMgL), "do", measurement.DissolvedOxygenMgL, "Der Sauerstoffwert");
+        PhysikGrenze(modelState, nameof(MeasurementFormViewModel.OrpMv), "orp", measurement.OrpMv, "Der ORP-Wert");
+        PhysikGrenze(modelState, nameof(MeasurementFormViewModel.AirTemperatureC), "air-temp", measurement.AirTemperatureC, "Die Lufttemperatur");
+        PhysikGrenze(modelState, nameof(MeasurementFormViewModel.ReservoirWaterTempC), "water-temp", measurement.ReservoirWaterTempC, "Die Wassertemperatur");
+        PhysikGrenze(modelState, nameof(MeasurementFormViewModel.Co2Ppm), "co2", measurement.Co2Ppm, "Der CO₂-Wert");
+        PhysikGrenze(modelState, nameof(MeasurementFormViewModel.PpfdMol), "ppfd", measurement.PpfdMol, "Der PPFD-Wert");
 
         // Die fuenf Felder, die bis beta.50 auf KEINER Liste standen.
         //
@@ -105,14 +118,7 @@ public sealed class MeasurementSanityService
         // Die Grenzen sind bewusst weit: sie sollen einen Tippfehler oder
         // eine falsche Einheit abfangen, nicht ueber Anbau entscheiden. Was
         // agronomisch sinnvoll ist, sagen die Sollwerte, nicht diese Sperre.
-        ValidateRange(modelState, nameof(MeasurementFormViewModel.AirTemperatureC), measurement.AirTemperatureC, -20, 60, "Lufttemperatur");
-        ValidateRange(modelState, nameof(MeasurementFormViewModel.ReservoirWaterTempC), measurement.ReservoirWaterTempC, -5, 60, "Wassertemperatur");
-        // Umgebungsluft liegt bei rund 420 ppm, angereichert wird auf 800 bis
-        // 1500. 30000 ppm waeren fuer Menschen toedlich — daher als Obergrenze.
-        ValidateRange(modelState, nameof(MeasurementFormViewModel.Co2Ppm), measurement.Co2Ppm, 0, 30000, "CO2");
-        // Volle Mittagssonne sind rund 2000 umol/m2/s.
-        ValidateRange(modelState, nameof(MeasurementFormViewModel.PpfdMol), measurement.PpfdMol, 0, 3000, "PPFD");
-        ValidateRange(modelState, nameof(MeasurementFormViewModel.AirflowAtLeafMPerMin), measurement.AirflowAtLeafMPerMin, 0, 300, "Luftstrom");
+        PhysikGrenze(modelState, nameof(MeasurementFormViewModel.AirflowAtLeafMPerMin), "airflow", measurement.AirflowAtLeafMPerMin, "Der Luftstrom");
 
         if (measurement.RunoffAmountMl is { } runoff && measurement.WaterAmountMl is { } water && runoff > water)
         {
