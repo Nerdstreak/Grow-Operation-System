@@ -70,11 +70,20 @@ public sealed class SolutionStabilityAnalyzer
     private const double MaxHoursBetweenPoints = WindowDays * 24.0 + 12.0;
 
     /// <summary>SOP-N1 §2.1: normal is 0,1–0,4 a day, a drift is 0,5 or more in 12–24 h.</summary>
-    private const double PhDriftPerDay = 0.5;
+    /// <remarks>
+    /// Dieselbe SOP-Schwelle wie in der Diagnose, geprueft ueber ein anderes
+    /// Fenster (108 statt 24 Stunden). Das Fenster ist die Entscheidung dieses
+    /// Dienstes, die Schwelle nicht.
+    /// </remarks>
+    private const double PhDriftPerDay = DeviationAnalyzerService.PhDriftCritical;
 
     /// <summary>SOP-N1 §2.1: healthy stays above 7,5; below 6,5 is microbial activity.</summary>
     private const double DoNormal = 7.5;
-    private const double DoInstability = 6.5;
+    /// <remarks>
+    /// Verweist auf die Diagnose statt die Zahl abzutippen — dieselbe
+    /// SOP-Schwelle, nur ueber ein anderes Fenster geprueft.
+    /// </remarks>
+    private const double DoInstability = DeviationAnalyzerService.DoActionThreshold;
 
     /// <summary>SOP-N1 §2.1: the value should stay above 300 mV and decay slowly.</summary>
     private const double OrpFloor = 300;

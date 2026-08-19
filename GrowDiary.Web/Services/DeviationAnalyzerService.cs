@@ -20,14 +20,27 @@ public sealed class DeviationAnalyzerService
     // SOP-RDWC-CAN-N1, Abschnitt 2.2: unter 6,5 mg/L gilt als erhoehte mikrobiologische
     // Aktivitaet und ist ein Handlungsauslöser. SOP-RDWC-CAN-S1, 2.2: unter 6 mg/L gilt
     // Wurzelfaeule als bestaetigt. Vorher stand hier pauschal 6 bzw. 4.
-    private const double DoActionThreshold = 6.5;
-    private const double DoInfestationThreshold = 6.0;
+    /// <remarks>
+    /// Oeffentlich, weil dieselbe Zahl an vier Stellen stand: hier, im
+    /// Stabilitaets-Analysator, in der Empfehlungs-Maschine und als Satztext im
+    /// Protokoll-Beurteiler. Vier Orte fuer eine SOP-Schwelle sind vier
+    /// Gelegenheiten, drei davon zu vergessen.
+    /// </remarks>
+    public const double DoActionThreshold = 6.5;
+
+    /// <inheritdoc cref="DoActionThreshold"/>
+    public const double DoInfestationThreshold = 6.0;
 
     // SOP-RDWC-CAN-N1, Abschnitt 2.1: 0,1–0,4 pH-Punkte pro Tag sind eine normale
     // Schwankung, ab 0,5 innerhalb von 12–24 h ist es ein kritischer Drift mit
     // Sofortmassnahmen. Der reine Absolutwert verraet das nicht — er kann die ganze Zeit
     // im Band bleiben.
-    private const double PhDriftCritical = 0.5;
+    /// <remarks>
+    /// Oeffentlich: der Stabilitaets-Analysator prueft dieselbe SOP-Regel ueber
+    /// ein anderes Fenster (108 statt 24 Stunden) und hatte die Zahl abgetippt.
+    /// Das Fenster darf sich unterscheiden, die Schwelle nicht.
+    /// </remarks>
+    public const double PhDriftCritical = 0.5;
     private const double PhDriftLight = 0.2;
     private const int PhDriftWindowHours = 24;
     private const double Co2EnrichmentFrom = 800;

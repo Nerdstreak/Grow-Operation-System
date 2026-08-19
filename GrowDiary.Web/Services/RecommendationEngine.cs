@@ -199,7 +199,8 @@ public sealed class RecommendationEngine
 
         if (current.DissolvedOxygenMgL is { } dissolvedOxygen)
         {
-            if (dissolvedOxygen < 6.5)
+            // Dieselbe SOP-Schwelle wie Diagnose und Protokoll — nicht abgetippt.
+            if (dissolvedOxygen < DeviationAnalyzerService.DoActionThreshold)
             {
                 cards.Add(Critical(
                     "Gelöster Sauerstoff zu niedrig",

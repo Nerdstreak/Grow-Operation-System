@@ -298,7 +298,7 @@ public sealed class MeasurementAssessmentService
         if (m.DissolvedOxygenMgL is not { } wert) return;
         raus.Add(new MetricAssessment("do", "Gelöster Sauerstoff", wert, "mg/l", null, null,
             AssessmentVerdict.NoTarget,
-            "Kein Sollwert im Profil — SOP-Schwelle 6,5 mg/l (SOP-RDWC-CAN-N1 §2.2)."));
+            $"Kein Sollwert im Profil — SOP-Schwelle {DeviationAnalyzerService.DoActionThreshold:0.0} mg/l (SOP-RDWC-CAN-N1 §2.2)."));
     }
 
     /// <summary>
