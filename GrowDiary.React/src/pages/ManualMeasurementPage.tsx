@@ -10,6 +10,7 @@ import { LiveCheckPanel } from '../features/measurement/LiveCheckPanel'
 import { checkDraft, type CheckSeverity } from '../features/measurement/live-check-model'
 import '../features/measurement/measurement-edit.css'
 import { toLocalInputValue } from '../utils'
+import { FOTO_TAGS, PHASEN, fotoTagName, phaseName } from '../deutsche-woerter'
 
 type NumericKey = Exclude<keyof MeasurementDraft, 'takenAtLocal' | 'stage' | 'source' | 'notes' | 'solutionChange'>
 
@@ -55,8 +56,9 @@ type PhotoDraft = {
   tag: PhotoTag
 }
 
-const stages: GrowStage[] = ['Seedling', 'Clone', 'Veg', 'Transition', 'Flower', 'Finish', 'Dry', 'Cure']
-const photoTags: PhotoTag[] = ['Overview', 'Canopy', 'Leaf', 'Root', 'Training', 'Flower', 'Problem', 'Comparison', 'Other']
+// Die Listen und ihre deutschen Namen stehen in deutsche-woerter.ts —
+// vorher standen sie viermal im Quelltext, jedes Mal auf Englisch.
+
 
 const climateFields: FieldDefinition[] = [
   { key: 'airTemperatureC', label: 'Temperatur', unit: '°C' },
@@ -401,7 +403,7 @@ function ManualMeasurementPage() {
             </V1Field>
             <V1Field label="Phase">
               <select value={draft.stage} onChange={(event) => patch({ stage: event.target.value as GrowStage })}>
-                {stages.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
+                {PHASEN.map((stage) => <option key={stage} value={stage}>{phaseName(stage)}</option>)}
               </select>
             </V1Field>
             <V1Badge tone={filledCount > 0 ? 'ok' : 'neutral'}>{filledCount} Werte</V1Badge>
@@ -511,7 +513,7 @@ function ManualMeasurementPage() {
                 )}
                 <V1Field label="Foto-Tag">
                   <select value={photoDraft.tag} onChange={(event) => setPhotoDraft((current) => ({ ...current, tag: event.target.value as PhotoTag }))}>
-                    {photoTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
+                    {FOTO_TAGS.map((tag) => <option key={tag} value={tag}>{fotoTagName(tag)}</option>)}
                   </select>
                 </V1Field>
                 <V1Field label="Beschriftung">

@@ -6,6 +6,7 @@ import type { GrowDetail, GrowStage, MeasurementDto, MeasurementUpsertPayload, P
 import { formatDateTime, toLocalInputValue } from '../utils'
 import { V1Alert, V1Badge, V1Button, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import '../features/measurement/measurement-edit.css'
+import { FOTO_TAGS, PHASEN, fotoTagName, herkunftName, phaseName } from '../deutsche-woerter'
 
 interface MeasurementEditState {
   takenAtLocal: string
@@ -48,8 +49,8 @@ interface PhotoFormState {
   files: File[]
 }
 
-const photoTags: PhotoTag[] = ['Overview', 'Canopy', 'Leaf', 'Root', 'Training', 'Flower', 'Problem', 'Comparison', 'Other']
-const stageOptions: GrowStage[] = ['Seedling', 'Clone', 'Veg', 'Transition', 'Flower', 'Finish', 'Dry', 'Cure']
+
+// Siehe deutsche-woerter.ts.
 const sourceOptions: ValueOrigin[] = ['Manual', 'HomeAssistant', 'Imported', 'Derived']
 
 const fieldSections: Array<{ title: string, fields: Array<{ key: MeasurementNumericFieldKey, label: string, unit: string | null }> }> = [
@@ -218,12 +219,12 @@ function MeasurementEditPage() {
                 </V1Field>
                 <V1Field label="Phase">
                   <select value={draft.stage} onChange={(event) => setDraft((current) => current ? { ...current, stage: event.target.value as GrowStage } : current)}>
-                    {stageOptions.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
+                    {PHASEN.map((stage) => <option key={stage} value={stage}>{phaseName(stage)}</option>)}
                   </select>
                 </V1Field>
                 <V1Field label="Quelle">
                   <select value={draft.source} onChange={(event) => setDraft((current) => current ? { ...current, source: event.target.value as ValueOrigin } : current)}>
-                    {sourceOptions.map((source) => <option key={source} value={source}>{source}</option>)}
+                    {sourceOptions.map((source) => <option key={source} value={source}>{herkunftName(source)}</option>)}
                   </select>
                 </V1Field>
                 <V1Field label="Notiz" wide>
@@ -281,7 +282,7 @@ function MeasurementEditPage() {
                 </V1Field>
                 <V1Field label="Art">
                   <select value={photoForm.photoTag} onChange={(event) => setPhotoForm((current) => ({ ...current, photoTag: event.target.value as PhotoTag }))}>
-                    {photoTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
+                    {FOTO_TAGS.map((tag) => <option key={tag} value={tag}>{fotoTagName(tag)}</option>)}
                   </select>
                 </V1Field>
                 <V1Field label="Bildunterschrift">

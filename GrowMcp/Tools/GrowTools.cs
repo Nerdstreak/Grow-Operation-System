@@ -433,6 +433,14 @@ public sealed class GrowTools(GrowOsReader reader)
         {
             return [new TextContentBlock { Text = ex.Message }];
         }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or KeyNotFoundException or FormatException)
+        {
+            // Dieselbe Sperre wie in SicherAsync — dieses Werkzeug gibt ein Bild
+            // zurück und kann sie deshalb nicht mitbenutzen. Ohne sie flog dem
+            // Klienten eine rohe .NET-Ausnahme entgegen, sobald Grow OS auf
+            // `api/grows/{id}/photos` etwas anderes als eine Liste antwortet.
+            return [new TextContentBlock { Text = "Grow OS hat anders geantwortet als erwartet. Vermutlich passen die Fassungen von Grow OS und Grow MCP nicht zusammen — bitte beide aktualisieren." }];
+        }
     }
 
     /// <summary>Was Grow OS über die Aufnahme weiss — der Satz neben dem Bild.</summary>
@@ -625,6 +633,20 @@ public sealed class GrowTools(GrowOsReader reader)
         catch (GrowOsException ex)
         {
             return ex.Message;
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or KeyNotFoundException or FormatException)
+        {
+            // Antwortet Grow OS anders als erwartet, flog dem Klienten bisher
+            // eine rohe .NET-Ausnahme entgegen — Stapelverfolgung und alles.
+            //
+            // Aufgefallen beim Bau der Werkzeug-Zaehlung: `foto_ansehen` rief
+            // EnumerateArray() auf einer Antwort auf, die kein Feld war, und
+            // warf InvalidOperationException. Das passiert, sobald sich ein
+            // Endpunkt aendert oder eine aeltere Grow-OS-Fassung antwortet.
+            //
+            // Ein Satz, den man lesen kann, ist hier mehr wert als ein
+            // Fehlerbericht, mit dem der Nutzer nichts anfangen kann.
+            return "Grow OS hat anders geantwortet als erwartet. Vermutlich passen die Fassungen von Grow OS und Grow MCP nicht zusammen — bitte beide aktualisieren.";
         }
     }
 

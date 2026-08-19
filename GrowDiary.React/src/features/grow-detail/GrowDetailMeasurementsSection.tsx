@@ -8,6 +8,7 @@ import { useAbBreite } from '../../breite'
 import { bilanzKurz, bilanzSatz, herkunftWort, urteilFuer, urteilKlasse, urteilSatz, urteilZeichen, wertUrteil } from './mess-urteil'
 import type { MeasurementAssessmentReportDto } from '../../types'
 import './grow-detail-legacy.css'
+import { PHASEN, phaseName } from '../../deutsche-woerter'
 
 type GrowDetailMeasurementsSectionProps = {
   activeSection: GrowDetailSection
@@ -186,7 +187,10 @@ export function GrowDetailMeasurementsSection({
             <div className="meas-field">
               <label>Phase</label>
               <select className="meas-input" style={{ fontSize: 'var(--fs-gross)' }} value={measurementForm.stage} onChange={(event) => onMeasurementFormChange({ stage: event.target.value })}>
-                <option>Seedling</option><option>Clone</option><option>Veg</option><option>Transition</option><option>Flower</option><option>Finish</option><option>Dry</option><option>Cure</option>
+                {/* Vorher acht fest getippte Zeilen auf Englisch — die haette
+                    keine Uebersetzungstabelle je erwischt, weil sie gar keine
+                    Liste waren. */}
+                {PHASEN.map((stage) => <option key={stage} value={stage}>{phaseName(stage)}</option>)}
               </select>
             </div>
             <div className="meas-field">
