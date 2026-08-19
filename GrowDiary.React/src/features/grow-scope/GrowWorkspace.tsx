@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { GrowDetailDiagnosisSection } from '../grow-detail/GrowDetailDiagnosisSection'
 import { JournalStreamSection } from '../grow-detail/JournalStreamSection'
 import { GrowDetailMeasurementsSection } from '../grow-detail/GrowDetailMeasurementsSection'
+import { useMessBeurteilung } from '../grow-detail/useMessBeurteilung'
 import { GrowDetailSopSection } from '../grow-detail/GrowDetailSopSection'
 import { SopCatalog } from '../grow-detail/SopCatalog'
 import { SolutionStabilityPanel } from '../grow-detail/SolutionStabilityPanel'
@@ -30,6 +31,11 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
     loadBundle,
     loadPhotos,
   } = useGrowDetailBundle({ growId, setError })
+
+  // Die Beurteilung des Protokolls. Eigener Abruf neben dem Buendel, weil
+  // sie die Profil-Kette und die Wissensbasis kostet und nur EIN Abschnitt
+  // sie braucht.
+  const beurteilung = useMessBeurteilung(section === 'measurements' ? growId : null, bundle.measurements.length)
   const {
     deviationError,
     deviations,
@@ -138,6 +144,7 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
           onSelectMeasurement={(measurementId) => void handleMeasurementSelection(measurementId)}
           onMeasurementFormChange={(patch) => setMeasurementForm((current) => ({ ...current, ...patch }))}
           onSubmit={handleMeasurementSubmit}
+          beurteilung={beurteilung}
         />
       )}
 

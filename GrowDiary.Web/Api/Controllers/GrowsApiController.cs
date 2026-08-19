@@ -75,7 +75,7 @@ public sealed class GrowsApiController : ApiControllerBase
         }
 
         var measurements = _repository.GetMeasurementsForGrow(growId);
-        return Ok(_deviationAnalyzer.Analyze(grow, measurements, LeafOffsetFor(grow)).ToList());
+        return Ok(_deviationAnalyzer.Analyze(grow, measurements, LeafOffsetFor(grow), SystemProfilFuer(grow)).ToList());
     }
 
     [HttpGet("{growId:int}/treatment-recommendations")]
@@ -90,7 +90,7 @@ public sealed class GrowsApiController : ApiControllerBase
         }
 
         var measurements = _repository.GetMeasurementsForGrow(growId);
-        var deviations = _deviationAnalyzer.Analyze(grow, measurements, LeafOffsetFor(grow));
+        var deviations = _deviationAnalyzer.Analyze(grow, measurements, LeafOffsetFor(grow), SystemProfilFuer(grow));
         return Ok(_treatmentRecommender.Recommend(grow, deviations));
     }
 
@@ -465,6 +465,19 @@ public sealed class GrowsApiController : ApiControllerBase
     /// The tent's leaf offset, so VPD is judged as leaf VPD. Falls back to the documented
     /// RDWC value when the grow has no tent assigned.
     /// </summary>
+    /// <summary>
+    /// Das Sollwert-Profil des Hydro-Systems, an dem der Grow haengt.
+    /// </summary>
+    /// <remarks>
+    /// Die mittlere Stufe der Kette Grow -&gt; System -&gt; Anbaustil. Ohne sie
+    /// fiel die Diagnose immer auf den Anbaustil zurueck und zeigte damit das
+    /// Standardprofil, waehrend die Live-Kachel daneben das eigene Profil des
+    /// Nutzers auswertete — gemessen EC 0,6-0,8 gegen 0,9-1,1 fuer denselben
+    /// Grow.
+    /// </remarks>
+    private string? SystemProfilFuer(GrowRun grow)
+        => grow.SystemId is { } systemId ? _repository.GetSystem(systemId)?.SetpointProfileId : null;
+
     private double LeafOffsetFor(GrowRun grow) =>
         grow.TentId is { } tentId && _repository.GetTent(tentId) is { } tent
             ? tent.LeafTempOffsetC

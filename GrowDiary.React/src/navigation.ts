@@ -53,6 +53,19 @@ export const navGroups: NavGroup[] = [
     items: [
       { to: '/grows', label: 'Grows', end: false, keywords: 'lauf run pflanzen anbau' },
       { to: '/diagnose', label: 'Diagnose', end: true, keywords: 'problem mangel abweichung risiko krankheit sop' },
+      // Das Messprotokoll. Stand bis beta.50 in KEINER Gruppe — und weil die
+      // Suche ihre Eintraege aus diesen Gruppen baut, war die Seite damit auch
+      // nicht suchbar: „Messungen“, „Sensorwerte“, „gemessen“, „automatisch“
+      // lieferten alle nichts. Erreichbar war sie nur ueber einen Reiter tief
+      // in einem Grow. Dasselbe Muster wie bei der Einkaufsliste in beta.42.
+      //
+      // Sie heisst „Messungen“ und nicht „Messprotokoll“, weil App.tsx die
+      // Seite so betitelt und der Wegweiser-Test die Ueberschrift mit dem
+      // Menuewort vergleicht.
+      //
+      // Steht hinter der Diagnose, nicht hinter dem Journal: beide beantworten
+      // dieselbe Frage — laeuft der Grow im gruenen Bereich?
+      { to: '/messungen', label: 'Messungen', end: true, keywords: 'protokoll verlauf historie messwerte tabelle vergleich sensorwerte handmessung automatik ph ec' },
       { to: '/journal', label: 'Journal & Fotos', end: true, keywords: 'tagebuch notizen bilder verlauf' },
       { to: '/sorten', label: 'Sorten & Pheno', end: true, keywords: 'strain genetik züchter keeper selektion' },
       // Steht VOR dem Archiv, weil es zeitlich davor liegt: nach der Ernte

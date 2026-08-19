@@ -466,3 +466,48 @@ export interface GrowActionResultDto {
   grow: GrowDetail
   message: string
 }
+
+/**
+ * Wie ein Messwert zu seinem Ziel steht.
+ *
+ * Kommt aus `MeasurementAssessmentService` im Backend — bewusst nicht im
+ * Browser gerechnet: die Profil-Kette, die Wissensbasis und der Phasen-Rechner
+ * liegen dort. Ein Nachbau wäre die zweite Wahrheit, und genau die ist zwischen
+ * Diagnose und Live-Kachel schon einmal entstanden.
+ */
+export type AssessmentVerdict = 'InTarget' | 'Below' | 'Above' | 'NoTarget'
+
+export interface MetricAssessmentDto {
+  metric: string
+  label: string
+  value: number
+  unit: string
+  targetMin: number | null
+  targetMax: number | null
+  verdict: AssessmentVerdict
+  /** Klartext; bei `NoTarget` steht hier der Grund, warum nicht geprüft wurde. */
+  note: string
+}
+
+export interface MeasurementAssessmentDto {
+  measurementId: number
+  takenAt: string
+  storedStage: GrowStage
+  computedStage: GrowStage | null
+  source: ValueOrigin
+  /** Aus der Bilanz genommen — mit Grund, aber nicht versteckt. */
+  excluded: boolean
+  excludedReason: string | null
+  metrics: MetricAssessmentDto[]
+}
+
+export interface MeasurementAssessmentReportDto {
+  measurementCount: number
+  excludedCount: number
+  checkedValueCount: number
+  inTargetCount: number
+  offTargetCount: number
+  profileId: string
+  profileLabel: string
+  measurements: MeasurementAssessmentDto[]
+}

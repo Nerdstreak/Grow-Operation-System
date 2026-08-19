@@ -97,3 +97,53 @@
 /* Die Auswahl muss an den ZELLEN hängen: eine Zeile mit `display: contents`
    zeichnet selbst nichts, ein Hintergrund an ihr wäre unsichtbar. */
 .gd-mess-zeile.is-gewaehlt > .co-td { background: var(--surface2); }
+
+/**
+ * Die Bilanz über dem Protokoll.
+ *
+ * Steht UNTER dem Kartenkopf, nicht darin: der Kopf ist eine Flex-Zeile ohne
+ * Umbruch und gilt für beide Zweige. Ein drittes Element darin verdoppelt am
+ * Telefon seine Höhe (gemessen 51 auf 105 px bei 320 bis 412 px) — und zwar
+ * dort, wo es gar keine Tabelle gibt.
+ */
+.gd-mess-bilanz {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--hair);
+  font-size: var(--fs-klein);
+  color: var(--muted);
+  max-width: 68ch;
+}
+.gd-mess-bilanz em {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  color: var(--faint);
+}
+
+/* Herkunft und abweichende Phase: eine leise Zeile IN der vorhandenen Zelle,
+   keine neunte Spalte. Die Tabelle hat acht feste Spuren. */
+.gd-mess-herkunft {
+  display: block;
+  margin-top: 2px;
+  font: 400 var(--fs-etikett)/1.3 var(--font-mono);
+  font-style: normal;
+  color: var(--faint);
+}
+
+/* Rot mit ausreichendem Kontrast: `--danger` kam im hellen Thema auf 4,94 und
+   war damit der schwächste Wert der Seite. `--danger-text` bringt 6,71, bleibt
+   in derselben Farbfamilie und ist keine neue Konvention. */
+.co-td.is-bad { color: var(--danger-text); }
+
+/**
+ * Die gewählte Zeile war in BEIDEN Themen unsichtbar.
+ *
+ * `--surface2` ist als `var(--panel-2)` definiert — genau der Tabellengrund
+ * selbst. Gemessener Kontrast 1,00. `--sunk` reicht mit 1,11 auch nicht. Eine
+ * Marke am linken Rand dagegen steht: 11,72 dunkel, 3,39 hell, also über den
+ * 3:1, die eine Fläche ohne Text braucht.
+ */
+.gd-mess-zeile.is-gewaehlt > .co-td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}

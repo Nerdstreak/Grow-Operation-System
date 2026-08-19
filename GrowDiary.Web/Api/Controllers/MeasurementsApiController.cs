@@ -16,17 +16,20 @@ public sealed class MeasurementsApiController : ApiControllerBase
     private readonly AuditRepository _auditRepository;
     private readonly MeasurementSanityService _measurementSanityService;
     private readonly PhotoStorageService _photoStorageService;
+    private readonly MeasurementAssessmentService _assessmentService;
 
     public MeasurementsApiController(
         GrowRepository repository,
         AuditRepository auditRepository,
         MeasurementSanityService measurementSanityService,
-        PhotoStorageService photoStorageService)
+        PhotoStorageService photoStorageService,
+        MeasurementAssessmentService assessmentService)
     {
         _repository = repository;
         _auditRepository = auditRepository;
         _measurementSanityService = measurementSanityService;
         _photoStorageService = photoStorageService;
+        _assessmentService = assessmentService;
     }
 
     [HttpGet("grows/{growId:int}/measurements")]
@@ -41,6 +44,34 @@ public sealed class MeasurementsApiController : ApiControllerBase
         }
 
         return Ok(_repository.GetMeasurementsForGrow(growId).Select(measurement => measurement.ToDto()).ToList());
+    }
+
+    /// <summary>
+    /// Die Messungen eines Grows, jede gegen die Sollwerte IHRER Phase beurteilt.
+    /// </summary>
+    /// <remarks>
+    /// Eigener Endpunkt neben der Liste: die Beurteilung kostet die
+    /// Profil-Aufloesung und die Wissensbasis, und die meisten Aufrufer
+    /// brauchen nur die Zahlen.
+    /// </remarks>
+    [HttpGet("grows/{growId:int}/measurements/assessment")]
+    [ProducesResponseType(typeof(MeasurementAssessmentReport), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<MeasurementAssessmentReport> Assessment(int growId)
+    {
+        var grow = _repository.GetGrow(growId);
+        if (grow is null)
+        {
+            return NotFoundError("grow_not_found", $"Grow mit Id {growId} existiert nicht.");
+        }
+
+        var messungen = _repository.GetMeasurementsForGrow(growId);
+        var systemProfil = grow.SystemId is { } systemId ? _repository.GetSystem(systemId)?.SetpointProfileId : null;
+        var blattversatz = grow.TentId is { } tentId && _repository.GetTent(tentId) is { } zelt
+            ? zelt.LeafTempOffsetC
+            : Tent.DefaultLeafTempOffsetC;
+
+        return Ok(_assessmentService.Assess(grow, messungen, systemProfil, blattversatz));
     }
 
     [HttpGet("measurements/{measurementId:int}")]

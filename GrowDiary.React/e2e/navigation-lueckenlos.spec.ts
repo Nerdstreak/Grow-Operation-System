@@ -30,7 +30,7 @@ for (const breite of BREITEN) {
       // Alles zählt, was den Nutzer woandershin bringt: Links in der
       // Seitenleiste, in der Handy-Leiste, und der „Mehr"-Knopf, hinter dem
       // der Rest des Menüs liegt.
-      const ziele = [...document.querySelectorAll('nav a, aside a, [data-audit="mobile-more"]')]
+      const ziele = [...document.querySelectorAll('nav a, aside a, [data-audit="mobile-more-button"]')]
       return ziele.filter(sichtbar).length
     })
 

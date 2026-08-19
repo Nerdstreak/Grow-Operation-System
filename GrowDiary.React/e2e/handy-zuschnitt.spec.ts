@@ -27,6 +27,11 @@ const HOEHE = 800
 const SEITEN = [
   { pfad: '/', name: 'live' },
   { pfad: '/messung', name: 'messen' },
+  // Das Messprotokoll fehlte in dieser Liste, obwohl es genau die Bauform
+  // traegt, um die es hier geht: Tabelle am Schreibtisch, Zeitachse am
+  // Telefon. Die Seite war bis beta.50 auch in keinem Menue — beides ist
+  // derselbe blinde Fleck.
+  { pfad: '/messungen', name: 'messungen' },
   { pfad: '/addback', name: 'addback' },
   { pfad: '/aufgaben', name: 'aufgaben' },
   { pfad: '/grows', name: 'grows' },

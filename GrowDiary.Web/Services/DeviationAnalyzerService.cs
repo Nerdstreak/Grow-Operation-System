@@ -51,15 +51,30 @@ public sealed class DeviationAnalyzerService
     public IReadOnlyList<GrowDeviation> Analyze(
         GrowRun grow,
         IReadOnlyList<Measurement> recentMeasurements,
-        double leafTempOffsetC = Tent.DefaultLeafTempOffsetC)
+        double leafTempOffsetC = Tent.DefaultLeafTempOffsetC,
+        // Das Sollwert-Profil des Hydro-Systems: die mittlere Stufe der
+        // Kette Grow -> System -> Anbaustil. Der Aufrufer reicht sie durch,
+        // weil dieser Dienst als Singleton keinen Zugriff auf die
+        // Hydro-Ablage hat.
+        string? systemProfileId = null)
     {
         if (grow.IrrigationType != IrrigationType.ActiveHydro || !grow.Profile.IsHydro)
         {
             return Array.Empty<GrowDeviation>();
         }
 
+        // Messungen aus der Zukunft fliegen raus, bevor sortiert wird.
+        //
+        // Der Bestand enthaelt eine Testzeile mit dem Datum 2099-01-01. Weil
+        // die Diagnose die juengste Messung nach Zeitstempel nimmt, urteilte
+        // sie aus genau dieser Zeile — sechs Wochen lang, ohne dass es
+        // jemandem auffiel. Eine Stunde Luft nach vorn, damit eine leicht
+        // vorgehende Uhr keine echte Messung verschluckt.
+        var spaetestens = DateTime.Now.AddHours(1);
+
         var sorted = recentMeasurements
             .Where(measurement => measurement.GrowId == 0 || measurement.GrowId == grow.Id)
+            .Where(measurement => measurement.TakenAt <= spaetestens)
             .OrderByDescending(measurement => measurement.TakenAt)
             .ThenByDescending(measurement => measurement.Id)
             .Take(MaxConsecutiveLookback)
@@ -74,7 +89,17 @@ public sealed class DeviationAnalyzerService
         // Der eingetragene Wert des Nutzers gewinnt — dieselbe Regel wie auf den
         // Live-Kacheln. Vorher las die Diagnose nur das Wissen und widersprach
         // damit den Alarmen, die schon immer die Werte des Nutzers nahmen.
-        var wissen = _targetValues.GetTargets(grow.HydroStyle, latest.Stage);
+        // Die Profil-Kette Grow -> System -> Anbaustil, dieselbe wie auf den
+        // Live-Kacheln (GrowDashboardComposer). Vorher fragte die Diagnose
+        // nur mit dem Anbaustil und landete damit immer beim Standardprofil:
+        // wer eigene Sollwerte eingetragen hatte, bekam sie auf der Kachel zu
+        // sehen und in der Diagnose nicht. Gemessen stand fuer denselben Grow
+        // EC 0,6-0,8 gegen 0,9-1,1.
+        var profil = SetpointProfileResolver.Resolve(
+            grow.SetpointProfileId,
+            systemProfileId,
+            grow.HydroStyle);
+        var wissen = _targetValues.GetTargets(profil.ProfileId, latest.Stage);
         var regeln = grow.TentId is { } tentId ? _alertRules?.GetForTent(tentId) : null;
         var targets = wissen is null ? null : UserTargets.Overlay(wissen, regeln);
         var deviations = new List<GrowDeviation>();

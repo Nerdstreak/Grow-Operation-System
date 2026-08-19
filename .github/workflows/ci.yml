@@ -50,6 +50,14 @@ jobs:
         working-directory: GrowDiary.React
         run: npm run lint
 
+      # Die Vitest-Sammlung lief bis beta.50 in KEINEM Durchlauf mit: das
+      # Skript gab es, der Schritt fehlte. Aufgefallen ist es, als ein neuer
+      # Test die Menue-Luecke haette halten sollen und niemand ihn ausgefuehrt
+      # haette.
+      - name: Test frontend
+        working-directory: GrowDiary.React
+        run: npm test
+
       - name: Build frontend
         working-directory: GrowDiary.React
         run: npm run build

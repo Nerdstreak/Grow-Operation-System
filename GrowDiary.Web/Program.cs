@@ -63,6 +63,7 @@ builder.Services.AddSingleton<MeasurementSanityService>();
 builder.Services.AddSingleton<RecommendationEngine>();
 builder.Services.AddSingleton<GrowAlertService>();
 builder.Services.AddSingleton<DeviationAnalyzerService>();
+builder.Services.AddSingleton<MeasurementAssessmentService>();
 builder.Services.AddSingleton<TreatmentRecommender>();
 builder.Services.AddSingleton<DeviationRiskEventSyncService>();
 builder.Services.AddSingleton<RiskEventSopRecommender>();

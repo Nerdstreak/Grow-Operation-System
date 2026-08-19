@@ -5,6 +5,8 @@ import { formatDateTime, formatNumber } from '../../utils'
 import type { GrowDetailSection, MeasurementFormState } from './grow-detail-model'
 import { V1Button } from '../../components/v1'
 import { useAbBreite } from '../../breite'
+import { bilanzKurz, bilanzSatz, herkunftWort, urteilFuer, urteilKlasse, urteilSatz, urteilZeichen, wertUrteil } from './mess-urteil'
+import type { MeasurementAssessmentReportDto } from '../../types'
 import './grow-detail-legacy.css'
 
 type GrowDetailMeasurementsSectionProps = {
@@ -27,7 +29,8 @@ export function GrowDetailMeasurementsSection({
   onSelectMeasurement,
   onMeasurementFormChange,
   onSubmit,
-}: GrowDetailMeasurementsSectionProps) {
+  beurteilung,
+}: GrowDetailMeasurementsSectionProps & { beurteilung?: MeasurementAssessmentReportDto | null }) {
   /**
    * Die Liste war auf 15 gedeckelt, der Zaehler daneben zeigte trotzdem die
    * volle Zahl: „19 gesamt" ueber genau 15 Zeilen, ohne Hinweis darauf, dass
@@ -56,12 +59,21 @@ export function GrowDetailMeasurementsSection({
 
   return (
     <>
-      <div className="section-label" style={{ display: isVisible ? undefined : 'none' }}>Messungen</div>
+      {/* Die Ueberschrift der SEITE heisst seit dem Menue-Eintrag schon
+          „Messungen“. Hier nochmal dasselbe Wort waere doppelt — der
+          Abschnitt sagt jetzt, was er zeigt. */}
+      <div className="section-label" style={{ display: isVisible ? undefined : 'none' }}>Verlauf</div>
       <div className="card" style={{ marginBottom: 14, display: isVisible ? undefined : 'none' }}>
         <div className="card-header">
           <span className="card-title">Verlauf</span>
           <span className="text-muted" style={{ fontSize: 'var(--fs-text)' }}>{versteckt > 0 ? `${sichtbare.length} von ${measurements.length}` : `${measurements.length} gesamt`}</span>
         </div>
+        {beurteilung && beurteilung.checkedValueCount > 0 && (
+          <p className="gd-mess-bilanz">
+            {bilanzSatz(beurteilung)}
+            <em>geprüft gegen {beurteilung.profileLabel}, Phase je Messung — Stand heute</em>
+          </p>
+        )}
         {measurements.length === 0 ? (
           <div className="empty-hint">Noch keine Messungen vorhanden.</div>
         ) : alsTabelle ? (
@@ -75,7 +87,24 @@ export function GrowDetailMeasurementsSection({
               <div className="co-th">Luft</div>
               <div className="co-th">rF</div>
               <div className="co-th" />
-              {sichtbare.map((measurement) => (
+              {sichtbare.map((measurement) => {
+                const zeile = urteilFuer(beurteilung ?? null, measurement.id)
+                // Eine Zelle mit Urteil: Farbe UND Zeichen, dazu der
+                // ausgeschriebene Satz fuer Vorlesegeraete. Ohne Urteil
+                // bleibt sie schlicht — nicht gemessen darf nie aussehen
+                // wie in Ordnung.
+                const zelle = (metrik: string, wert: number | null, stellen: number) => {
+                  const u = wertUrteil(zeile, metrik)
+                  if (!u || wert == null) return <div className="co-td">{formatNumber(wert, stellen)}</div>
+                  return (
+                    <div className={urteilKlasse(u.verdict)} title={urteilSatz(u)}>
+                      {formatNumber(wert, stellen)}
+                      {urteilZeichen(u.verdict) && <span aria-hidden="true"> {urteilZeichen(u.verdict)}</span>}
+                      <span className="sr-only">{urteilSatz(u)}</span>
+                    </div>
+                  )
+                }
+                return (
                 <div
                   key={measurement.id}
                   /* `display: contents`: die Zellen muessen direkte Kinder
@@ -83,22 +112,39 @@ export function GrowDetailMeasurementsSection({
                   className={selectedMeasurementId === measurement.id ? 'gd-mess-zeile is-gewaehlt' : 'gd-mess-zeile'}
                   onClick={() => onSelectMeasurement(measurement.id)}
                 >
-                  <div className="co-td is-name">{formatDateTime(measurement.takenAt)}</div>
-                  <div className="co-td is-muted">{measurement.stage}</div>
-                  <div className="co-td">{formatNumber(measurement.reservoirPh, 2)}</div>
-                  <div className="co-td">{formatNumber(measurement.reservoirEc, 2)}</div>
-                  <div className="co-td">{formatNumber(measurement.reservoirWaterTempC, 1)}</div>
+                  {/* Die Herkunft steht IN der Namenszelle, nicht in einer
+                      neunten Spalte: die Tabelle hat acht feste Spuren, und
+                      unter 1000 px gibt es sie gar nicht. */}
+                  <div className="co-td is-name">
+                    {formatDateTime(measurement.takenAt)}
+                    <em className="gd-mess-herkunft">{herkunftWort(measurement.source)}</em>
+                  </div>
+                  <div className="co-td is-muted">
+                    {measurement.stage}
+                    {/* Weicht die gerechnete Phase ab, stehen beide da. Die
+                        gespeicherte still zu ueberschreiben waere schlimmer:
+                        im Bestand laeuft sie stellenweise rueckwaerts. */}
+                    {zeile?.computedStage && zeile.computedStage !== measurement.stage && (
+                      <em className="gd-mess-herkunft" title={`Der Lauf war an dem Tag in Phase ${zeile.computedStage}`}>≠ {zeile.computedStage}</em>
+                    )}
+                  </div>
+                  {zelle('ph', measurement.reservoirPh, 2)}
+                  {zelle('ec', measurement.reservoirEc, 2)}
+                  {zelle('water-temp', measurement.reservoirWaterTempC, 1)}
                   <div className="co-td">{formatNumber(measurement.airTemperatureC, 1)}</div>
                   <div className="co-td">{formatNumber(measurement.humidityPercent, 0)}</div>
                   <div className="co-td">
                     <Link className="ls-btn is-small" to={`/grows/measurements/${measurement.id}/edit`} onClick={(event) => event.stopPropagation()}>Bearbeiten</Link>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         ) : (
-          sichtbare.map((measurement) => (
+          sichtbare.map((measurement) => {
+            const kurz = bilanzKurz(urteilFuer(beurteilung ?? null, measurement.id))
+            return (
             <div
               key={measurement.id}
               className="timeline-item"
@@ -111,14 +157,15 @@ export function GrowDetailMeasurementsSection({
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="tl-title">{measurement.stage} · pH {formatNumber(measurement.reservoirPh, 2)} · EC {formatNumber(measurement.reservoirEc, 2)}</div>
-                <div className="tl-sub">{formatNumber(measurement.airTemperatureC, 1)}°C · {formatNumber(measurement.humidityPercent, 0)}% rF</div>
+                <div className="tl-sub">{formatNumber(measurement.airTemperatureC, 1)}°C · {formatNumber(measurement.humidityPercent, 0)}% rF · {herkunftWort(measurement.source)}{kurz ? ' · ' + kurz : ''}</div>
               </div>
               <div style={{ display: 'grid', gap: 6, justifyItems: 'end' }}>
                 <div className="tl-time">{formatDateTime(measurement.takenAt)}</div>
                 <Link className="btn" to={`/grows/measurements/${measurement.id}/edit`} onClick={(event) => event.stopPropagation()}>Bearbeiten</Link>
               </div>
             </div>
-          ))
+            )
+          })
         )}
         {versteckt > 0 && (
           <button type="button" className="ls-btn is-small" style={{ margin: 12 }} onClick={() => setAlleZeigen(true)}>
