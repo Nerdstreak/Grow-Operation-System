@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { darfUeberspringen } from './pflicht'
 
 /**
  * Die Prüfung neben dem Messformular muss beim *Tippen* reagieren, nicht erst
@@ -13,14 +14,18 @@ test('prüft die Werte während der Eingabe', async ({ page }) => {
   await page.goto('/messung', { waitUntil: 'networkidle' })
 
   if (await page.locator('[data-audit="measurement-empty-state"]').count() > 0) {
-    test.skip(true, 'Kein Grow im Testdatenbestand — die Seite zeigt den Leer-Zustand')
+    darfUeberspringen(true,
+      'Kein Grow im Bestand — /messung zeigt den Leer-Zustand. Im Tor soll der Demobestand '
+      + 'einen laufenden Grow anlegen; fehlt er, wird die Live-Prüfung nie geprüft.')
   }
 
   const panel = page.locator('[data-audit="live-check"], .chk-idle')
   await expect(panel.first()).toBeVisible()
 
   const ph = page.getByLabel('pH', { exact: true }).first()
-  if (await ph.count() === 0) test.skip(true, 'Kein pH-Feld — vermutlich kein Hydro-Grow im Testdatenbestand')
+  darfUeberspringen(await ph.count() === 0,
+    'Kein pH-Feld — der Grow im Bestand ist kein Hydro-Grow. Der Demobestand muss einen '
+    + 'RDWC-Grow anlegen, sonst gibt es die pH-Zeile nicht, um die es hier geht.')
   await expect(ph).toBeVisible()
 
   await ph.fill('9,5')

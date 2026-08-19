@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { darfUeberspringen } from './pflicht'
 
 /**
  * Die Hydro-Übersicht bei den drei Breiten, die zählen.
@@ -22,7 +23,9 @@ for (const { width, name, nebeneinander } of WIDTHS) {
 
     const list = page.locator('.v1-hydro-list-section')
     const detail = page.locator('.v1-hydro-detail-section')
-    if (await list.count() === 0) test.skip(true, 'Kein Hydro-Setup vorhanden')
+    darfUeberspringen(await list.count() === 0,
+      'Kein Hydro-Aufbau im Bestand — dann gibt es die zwei Bereiche nicht, deren Lage hier '
+      + 'geprüft wird. Der Demobestand muss einen anlegen.')
 
     const listBox = (await list.boundingBox())!
     const detailBox = (await detail.boundingBox())!

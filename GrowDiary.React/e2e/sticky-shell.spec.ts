@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { darfUeberspringen } from './pflicht'
 
 /**
  * Die Seitenleiste muss auf JEDER Seite stehen bleiben, auch auf langen.
@@ -22,7 +23,9 @@ for (const route of LANGE_SEITEN) {
     await page.goto(route, { waitUntil: 'networkidle' })
 
     const scrollbar = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)
-    test.skip(scrollbar < 200, 'Seite ist im Testbestand zu kurz zum Scrollen')
+    darfUeberspringen(scrollbar < 200,
+      `${route} ist nur ${scrollbar} px länger als das Fenster — zum Scrollen zu kurz. Mit `
+      + 'gefülltem Bestand ist sie das nicht; ohne Daten prüft dieser Test nichts.')
 
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
     await page.waitForFunction(() => window.scrollY > 0)

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
+import { darfUeberspringen } from './pflicht'
 
 /**
  * Keine Seite im Menü steht im Demobestand leer da.
@@ -105,7 +106,7 @@ test.describe('Demobestand', () => {
   })
 
   test('die Prüfung greift überhaupt — mit geleerter Antwort', async ({ page }) => {
-    test.skip(!backendDa, 'Kein Backend — siehe Kopf der Datei.')
+    darfUeberspringen(!backendDa, 'Kein Backend unter der Basis-Adresse — siehe Kopf der Datei.')
 
     // <b>Der Beweis, dass die Prüfung beisst.</b> Ohne ihn wäre nicht zu
     // unterscheiden, ob jede Seite Inhalt hat oder ob die Erkennung ins Leere
@@ -133,7 +134,7 @@ test.describe('Demobestand', () => {
 
   for (const weg of menueWege()) {
     test(`${weg} zeigt Inhalt`, async ({ page }) => {
-      test.skip(!backendDa,
+      darfUeberspringen(!backendDa,
         'Kein Backend unter der Basis-Adresse — ohne API ist jede Seite leer, und der Test '
         + 'würde nur sein eigenes Fehlen messen. Gegen die laufende App: '
         + 'GROW_OS_URL=http://localhost:5076 npx playwright test demobestand')
