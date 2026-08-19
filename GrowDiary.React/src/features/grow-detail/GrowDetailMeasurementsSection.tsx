@@ -1,35 +1,33 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { MeasurementDto } from '../../types'
 import { formatDateTime, formatNumber } from '../../utils'
-import type { GrowDetailSection, MeasurementFormState } from './grow-detail-model'
-import { V1Button } from '../../components/v1'
+import type { GrowDetailSection } from './grow-detail-model'
+import { V1LinkButton } from '../../components/v1'
 import { useAbBreite } from '../../breite'
-import { bilanzKurz, bilanzSatz, herkunftWort, urteilFuer, urteilKlasse, urteilSatz, urteilZeichen, wertUrteil } from './mess-urteil'
+import { bilanzKurz, bilanzSatz, herkunftWort, stellenFuer, urteilFuer, urteilKlasse, urteilSatz, urteilZeichen, wertUrteil } from './mess-urteil'
 import type { MeasurementAssessmentReportDto } from '../../types'
 import './grow-detail-legacy.css'
-import { PHASEN, phaseName } from '../../deutsche-woerter'
 
+/**
+ * Diese Seite ist das PROTOKOLL — sie zeigt Messungen, sie nimmt keine auf.
+ *
+ * Die vier Formular-Eigenschaften sind mit dem zweiten Messformular
+ * weggefallen. Wer eintragen will, geht auf /messung: dort stehen 31 Felder
+ * statt 9, dazu die Live-Prüfung, das Foto und der Addback.
+ */
 type GrowDetailMeasurementsSectionProps = {
   activeSection: GrowDetailSection
   measurements: MeasurementDto[]
   selectedMeasurementId: number | null
-  measurementForm: MeasurementFormState
-  saving: string | null
   onSelectMeasurement: (measurementId: number | null) => void
-  onMeasurementFormChange: (patch: Partial<MeasurementFormState>) => void
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
 }
 
 export function GrowDetailMeasurementsSection({
   activeSection,
   measurements,
   selectedMeasurementId,
-  measurementForm,
-  saving,
   onSelectMeasurement,
-  onMeasurementFormChange,
-  onSubmit,
   beurteilung,
 }: GrowDetailMeasurementsSectionProps & { beurteilung?: MeasurementAssessmentReportDto | null }) {
   /**
@@ -60,10 +58,10 @@ export function GrowDetailMeasurementsSection({
 
   return (
     <>
-      {/* Die Ueberschrift der SEITE heisst seit dem Menue-Eintrag schon
-          „Messungen“. Hier nochmal dasselbe Wort waere doppelt — der
-          Abschnitt sagt jetzt, was er zeigt. */}
-      <div className="section-label" style={{ display: isVisible ? undefined : 'none' }}>Verlauf</div>
+      {/* Hier stand „Verlauf“ als Abschnitts-Beschriftung — und direkt
+          darunter nochmal „Verlauf“ als Karten-Titel. Zweimal dasselbe Wort
+          untereinander, aus einer Umbenennung entstanden. Der Abschnitt hat
+          genau EINE Karte, die trägt ihren Titel selbst. */}
       <div className="card" style={{ marginBottom: 14, display: isVisible ? undefined : 'none' }}>
         <div className="card-header">
           <span className="card-title">Verlauf</span>
@@ -94,7 +92,12 @@ export function GrowDetailMeasurementsSection({
                 // ausgeschriebene Satz fuer Vorlesegeraete. Ohne Urteil
                 // bleibt sie schlicht — nicht gemessen darf nie aussehen
                 // wie in Ordnung.
-                const zelle = (metrik: string, wert: number | null, stellen: number) => {
+                /* Die Stellenzahl steht NICHT hier: sie kommt aus
+                   `stellenFuer`, aus derselben Tabelle, die auch der
+                   Vorlese-Satz benutzt. Vorher stand sie an beiden Stellen
+                   getrennt — der Satz gar nicht, er nahm die rohe Zahl. */
+                const zelle = (metrik: string, wert: number | null) => {
+                  const stellen = stellenFuer(metrik)
                   const u = wertUrteil(zeile, metrik)
                   if (!u || wert == null) return <div className="co-td">{formatNumber(wert, stellen)}</div>
                   return (
@@ -129,11 +132,11 @@ export function GrowDetailMeasurementsSection({
                       <em className="gd-mess-herkunft" title={`Der Lauf war an dem Tag in Phase ${zeile.computedStage}`}>≠ {zeile.computedStage}</em>
                     )}
                   </div>
-                  {zelle('ph', measurement.reservoirPh, 2)}
-                  {zelle('ec', measurement.reservoirEc, 2)}
-                  {zelle('water-temp', measurement.reservoirWaterTempC, 1)}
-                  {zelle('air-temp', measurement.airTemperatureC, 1)}
-                  {zelle('humidity', measurement.humidityPercent, 0)}
+                  {zelle('ph', measurement.reservoirPh)}
+                  {zelle('ec', measurement.reservoirEc)}
+                  {zelle('water-temp', measurement.reservoirWaterTempC)}
+                  {zelle('air-temp', measurement.airTemperatureC)}
+                  {zelle('humidity', measurement.humidityPercent)}
                   <div className="co-td">
                     <Link className="ls-btn is-small" to={`/grows/measurements/${measurement.id}/edit`} onClick={(event) => event.stopPropagation()}>Bearbeiten</Link>
                   </div>
@@ -157,8 +160,8 @@ export function GrowDetailMeasurementsSection({
                 <div className="tl-line" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="tl-title">{measurement.stage} · pH {formatNumber(measurement.reservoirPh, 2)} · EC {formatNumber(measurement.reservoirEc, 2)}</div>
-                <div className="tl-sub">{formatNumber(measurement.airTemperatureC, 1)}°C · {formatNumber(measurement.humidityPercent, 0)}% rF · {herkunftWort(measurement.source)}{kurz ? ' · ' + kurz : ''}</div>
+                <div className="tl-title">{measurement.stage} · pH {formatNumber(measurement.reservoirPh, stellenFuer('ph'))} · EC {formatNumber(measurement.reservoirEc, stellenFuer('ec'))}</div>
+                <div className="tl-sub">{formatNumber(measurement.airTemperatureC, stellenFuer('air-temp'))}°C · {formatNumber(measurement.humidityPercent, stellenFuer('humidity'))}% rF · {herkunftWort(measurement.source)}{kurz ? ' · ' + kurz : ''}</div>
               </div>
               <div style={{ display: 'grid', gap: 6, justifyItems: 'end' }}>
                 <div className="tl-time">{formatDateTime(measurement.takenAt)}</div>
@@ -175,69 +178,17 @@ export function GrowDetailMeasurementsSection({
         )}
       </div>
 
-      <div className="section-label" style={{ display: isVisible ? undefined : 'none' }}>Neue Messung</div>
-      <div className="card" style={{ marginBottom: 14, display: isVisible ? undefined : 'none' }}>
-        <div className="card-header"><span className="card-title">Messung eintragen</span></div>
-        <form onSubmit={onSubmit} style={{ padding: '16px 20px' }}>
-          <div className="meas-fields" style={{ marginBottom: 16 }}>
-            <div className="meas-field">
-              <label>Zeitpunkt</label>
-              <input className="meas-input" style={{ fontSize: 'var(--fs-text)', fontFamily: 'var(--font-sans)', padding: '0 10px' }} type="datetime-local" value={measurementForm.takenAtLocal} onChange={(event) => onMeasurementFormChange({ takenAtLocal: event.target.value })} />
-            </div>
-            <div className="meas-field">
-              <label>Phase</label>
-              <select className="meas-input" style={{ fontSize: 'var(--fs-gross)' }} value={measurementForm.stage} onChange={(event) => onMeasurementFormChange({ stage: event.target.value })}>
-                {/* Vorher acht fest getippte Zeilen auf Englisch — die haette
-                    keine Uebersetzungstabelle je erwischt, weil sie gar keine
-                    Liste waren. */}
-                {PHASEN.map((stage) => <option key={stage} value={stage}>{phaseName(stage)}</option>)}
-              </select>
-            </div>
-            <div className="meas-field">
-              <label>pH</label>
-              <div className="meas-field-inner">
-                <input className="meas-input" value={measurementForm.reservoirPh} onChange={(event) => onMeasurementFormChange({ reservoirPh: event.target.value })} placeholder="5.8" />
-                <span className="meas-unit">pH</span>
-              </div>
-            </div>
-            <div className="meas-field">
-              <label>EC</label>
-              <div className="meas-field-inner">
-                <input className="meas-input" value={measurementForm.reservoirEc} onChange={(event) => onMeasurementFormChange({ reservoirEc: event.target.value })} placeholder="1.6" />
-                <span className="meas-unit">mS/cm</span>
-              </div>
-            </div>
-            <div className="meas-field">
-              <label>Wassertemp</label>
-              <div className="meas-field-inner">
-                <input className="meas-input" value={measurementForm.reservoirWaterTempC} onChange={(event) => onMeasurementFormChange({ reservoirWaterTempC: event.target.value })} placeholder="19.0" />
-                <span className="meas-unit">°C</span>
-              </div>
-            </div>
-            <div className="meas-field">
-              <label>Lufttemp</label>
-              <div className="meas-field-inner">
-                <input className="meas-input" value={measurementForm.airTemperatureC} onChange={(event) => onMeasurementFormChange({ airTemperatureC: event.target.value })} placeholder="24.0" />
-                <span className="meas-unit">°C</span>
-              </div>
-            </div>
-            <div className="meas-field">
-              <label>Luftfeuchte</label>
-              <div className="meas-field-inner">
-                <input className="meas-input" value={measurementForm.humidityPercent} onChange={(event) => onMeasurementFormChange({ humidityPercent: event.target.value })} placeholder="60" />
-                <span className="meas-unit">%</span>
-              </div>
-            </div>
-          </div>
-          <div className="meas-field" style={{ marginBottom: 14, gridColumn: '1 / -1' }}>
-            <label>Notiz</label>
-            <textarea value={measurementForm.notes} onChange={(event) => onMeasurementFormChange({ notes: event.target.value })} rows={2} placeholder="Zustand, Auffälligkeiten, Korrekturen..." />
-          </div>
-          {/* type="submit" ist hier nicht optional: V1Button setzt sonst
-              type="button" (v1.tsx), und dann loest der Knopf das Formular nie
-              aus — er sah aus wie ein Speichern-Knopf und tat nichts. */}
-          <V1Button type="submit" variant="primary" disabled={saving === 'measurement'}>{saving === 'measurement' ? 'Speichert...' : 'Messung speichern'}</V1Button>
-        </form>
+      {/* HIER STAND EIN ZWEITES MESSFORMULAR — mit 9 Feldern, waehrend
+          /messung 31 hat, dazu Live-Pruefung, Foto und Addback.
+
+          Es war eine schlechtere Kopie derselben Handlung, und seit
+          /messungen im Menue steht, standen beide Wege direkt nebeneinander:
+          „Messen" und „Messungen". Wer den falschen erwischte, bekam ein
+          Formular ohne Pruefung.
+
+          Diese Seite ist das PROTOKOLL. Eintragen gehoert auf /messung. */}
+      <div className="v1-action-row" style={{ margin: '0 0 14px', display: isVisible ? undefined : 'none' }}>
+        <V1LinkButton to="/messung" variant="primary">Neue Messung eintragen</V1LinkButton>
       </div>
     </>
   )

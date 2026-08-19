@@ -475,7 +475,7 @@ export interface GrowActionResultDto {
  * liegen dort. Ein Nachbau wäre die zweite Wahrheit, und genau die ist zwischen
  * Diagnose und Live-Kachel schon einmal entstanden.
  */
-export type AssessmentVerdict = 'InTarget' | 'Below' | 'Above' | 'NoTarget'
+export type AssessmentVerdict = 'InTarget' | 'Below' | 'Above' | 'NoTarget' | 'Impossible'
 
 export interface MetricAssessmentDto {
   metric: string
@@ -507,6 +507,8 @@ export interface MeasurementAssessmentReportDto {
   checkedValueCount: number
   inTargetCount: number
   offTargetCount: number
+  /** Werte, die es physikalisch nicht geben kann — 9000 °C, EC 99999. */
+  impossibleCount: number
   profileId: string
   profileLabel: string
   measurements: MeasurementAssessmentDto[]

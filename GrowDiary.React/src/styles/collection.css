@@ -26,6 +26,15 @@
   .co-td.is-muted { font-size: var(--fs-text); color: var(--muted); }
   .co-td.is-good { color: var(--accent-text); }
   .co-td.is-bad { color: var(--danger); }
+  /* „Unmöglich" ist eine eigene Kategorie, nicht die schlimmste Stufe von
+     „daneben": ein Wert über dem Ziel ist ein Befund am Grow, 9000 °C einer am
+     Messgerät. Die Farbe allein trägt die Auskunft nicht — in der Zelle steht
+     zusätzlich ein ⚠ und der volle Satz für Vorlesegeräte. */
+  /* --warn-text, nicht --warn: der erste ist der Flaechen-Ton (im hellen Thema
+     #a86800, gemessen 4,26 gegen die Karte — unter der Schwelle), der zweite
+     ist der dafuer gedachte Textton. Die Hell-Falle ist genau so schon
+     dreimal zugeschnappt. */
+  .co-td.is-unmoeglich { color: var(--warn-text); font-weight: 600; }
   .co-td input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent); flex: 0 0 auto; }
   /* Die Checkbox tippt man über das umschließende Label — am Telefon wächst
      dessen Trefferfläche auf die 44px-Untergrenze. */

@@ -83,6 +83,32 @@ function format(value: number): string {
 }
 
 /**
+ * Was für eine Messgröße physikalisch überhaupt vorkommen kann.
+ *
+ * <b>Warum das hier nochmal steht.</b> Die Wahrheit liegt im Backend
+ * (`MeasurementSanityService.PhysikalischeGrenzen`) und sperrt beim Speichern.
+ * Beim TIPPEN half das nicht: 9000 °C meldete die Prüfung als „+8971 über
+ * 29 °C" — also wie eine etwas zu warme Kammer. Erst beim Speichern kam eine
+ * Fehlermeldung vom Server.
+ *
+ * Ein unmöglicher Wert ist keine Abweichung, sondern ein Tippfehler oder eine
+ * falsche Einheit. Er gehört anders benannt, und zwar sofort.
+ *
+ * Die Zahlen sind bewusst dieselben wie im Backend; der Test
+ * `live-check-model.test.ts` hält sie dagegen, damit sie nicht auseinanderlaufen.
+ */
+const PHYSIK: Record<string, [number, number]> = {
+  airTemperatureC: [-20, 60],
+  humidityPercent: [0, 100],
+  reservoirPh: [0, 14],
+  reservoirEc: [0, 10],
+  reservoirWaterTempC: [-5, 60],
+  dissolvedOxygenMgL: [0, 20],
+  orpMv: [-1000, 1000],
+  co2Ppm: [0, 30000],
+}
+
+/**
  * @param draft die eingetippten Werte als Zeichenketten, wie sie im Formular stehen
  * @param metrics die Live-Metriken mit ihren Zielbereichen
  */
@@ -96,14 +122,30 @@ export function checkDraft(draft: Record<string, string>, metrics: MetricPayload
     const value = parse(raw)
     if (value == null) continue
 
+    const label = LABELS[field] ?? field
+    const unit = UNITS[field] ? ` ${UNITS[field]}` : ''
+    const shown = `${label} ${format(value)}${unit}`
+
+    // Physikalisch Unmögliches ZUERST — und unabhängig davon, ob es für diese
+    // Größe ein Ziel gibt. CO₂ hat ohne Anreicherung absichtlich keins; ohne
+    // diese Reihenfolge wären −500 ppm stillgeblieben.
+    const grenze = PHYSIK[field]
+    if (grenze && (value < grenze[0] || value > grenze[1])) {
+      findings.push({
+        field,
+        label,
+        severity: 'crit',
+        delta: null,
+        text: `${shown} — das kann es nicht geben`,
+        hint: `Möglich sind ${format(grenze[0])} bis ${format(grenze[1])}${unit}. Bitte Messgerät oder Einheit prüfen.`,
+      })
+      continue
+    }
+
     const metric = byKey.get(metricKey)
     const min = metric?.targetMin ?? null
     const max = metric?.targetMax ?? null
     if (min == null && max == null) continue
-
-    const label = LABELS[field] ?? field
-    const unit = UNITS[field] ? ` ${UNITS[field]}` : ''
-    const shown = `${label} ${format(value)}${unit}`
 
     if ((min == null || value >= min) && (max == null || value <= max)) {
       findings.push({ field, label, severity: 'ok', delta: null, text: shown })

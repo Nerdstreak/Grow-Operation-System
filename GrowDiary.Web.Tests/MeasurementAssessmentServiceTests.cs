@@ -182,10 +182,34 @@ public sealed class MeasurementAssessmentServiceTests : IDisposable
         var bericht = _svc.Assess(Grow(), new[] { Messung(ec: 99999, wasser: 5000) });
         var werte = bericht.Measurements[0].Metrics;
 
-        Assert.All(werte, w => Assert.Equal(AssessmentVerdict.NoTarget, w.Verdict));
+        // Ein EIGENES Urteil, nicht NoTarget. Das war der zweite Fehler an
+        // derselben Stelle: „kein Zielband für diese Phase" und „den Wert kann
+        // es nicht geben" liefen unter demselben Urteil, und die Anzeige malt
+        // NoTarget bewusst unauffällig. Ergebnis war ein Protokoll, in dem
+        // EC 99.999 aussah wie jede andere Zeile — der Nutzer hat es gefunden,
+        // nicht dieser Test.
+        Assert.All(werte, w => Assert.Equal(AssessmentVerdict.Impossible, w.Verdict));
         Assert.All(werte, w => Assert.Contains("Physikalisch nicht möglich", w.Note));
         Assert.Equal(0, bericht.CheckedValueCount);
         Assert.Equal(0, bericht.OffTargetCount);
+
+        // Und sie werden gezaehlt: sonst koennte die Anzeige nicht darauf
+        // hinweisen, ohne selbst nachzurechnen — zweite Wahrheit je Zahl.
+        Assert.Equal(werte.Count, bericht.ImpossibleCount);
+        Assert.True(bericht.ImpossibleCount > 0);
+    }
+
+    [Fact]
+    public void Ein_moeglicher_Wert_ohne_Zielband_bleibt_unauffaellig()
+    {
+        // Gegenprobe zum Test darueber. Wuerde alles ohne Zielband als
+        // „unmoeglich" gelten, waere die Warnung wertlos: CO₂ und PPFD haben
+        // absichtlich keins.
+        var bericht = _svc.Assess(Grow(), new[] { Messung(ec: 1.5, wasser: 20) });
+        var werte = bericht.Measurements[0].Metrics;
+
+        Assert.DoesNotContain(werte, w => w.Verdict == AssessmentVerdict.Impossible);
+        Assert.Equal(0, bericht.ImpossibleCount);
     }
 
     private static string FindProjectRoot()

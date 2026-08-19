@@ -176,6 +176,20 @@ if (DemoData.IsEnabled)
             demoLogger.LogInformation("Testdaten: kalibrierte pH-Sonde fuer Zelt {TentId} angelegt.", tent.Id);
         }
 
+        // Ein abgeschlossener Grow mit Ernte. Ohne ihn steht auf /archiv nur
+        // „Noch keine archivierten Grows", und die Kostenrechnung je Grow
+        // (Summe, EUR/g) laesst sich auf dem Entwicklungsrechner nirgends
+        // ansehen — obwohl sie gebaut ist. Nur, wenn wirklich keiner da ist.
+        var growsRepo = demoScope.ServiceProvider.GetRequiredService<GrowRepository>();
+        if (growsRepo.GetArchivedGrows().Count == 0)
+        {
+            var (demoGrow, demoErnte) = DemoData.SeedArchivierterGrow(tents.FirstOrDefault()?.Id, DateTime.Today);
+            demoGrow.Id = growsRepo.CreateGrow(demoGrow);
+            demoErnte.GrowId = demoGrow.Id;
+            demoScope.ServiceProvider.GetRequiredService<HarvestRepository>().Create(demoErnte);
+            demoLogger.LogInformation("Testdaten: abgeschlossener Grow {Name} mit Ernte angelegt.", demoGrow.Name);
+        }
+
         // Dazu ein paar zurueckliegende Dosen mit Wirkung. Ohne die hat keine
         // Pumpe je etwas gelernt, und der Vorschlag aus Stufe 2 sagt auf dem
         // Entwicklungsrechner immer nur „noch keine Erfahrung".

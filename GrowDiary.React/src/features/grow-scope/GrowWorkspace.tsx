@@ -59,17 +59,17 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
     () => bundle.measurements.find((measurement) => measurement.id === selectedMeasurementId) ?? null,
     [bundle.measurements, selectedMeasurementId],
   )
+  // Das Messformular ist hier weg: die Protokollseite nimmt keine Messungen
+  // mehr auf, sie zeigt sie. Eintragen geht auf /messung — dort steht das volle
+  // Formular mit Live-Pruefung, Foto und Addback.
   const {
     journalForm,
-    measurementForm,
     photoForm,
     taskForm,
     handleJournalSubmit,
-    handleMeasurementSubmit,
     handlePhotoSubmit,
     handleTaskSubmit,
     setJournalForm,
-    setMeasurementForm,
     setPhotoForm,
     setTaskForm,
     startRecommendedSop,
@@ -139,11 +139,7 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
           activeSection="measurements"
           measurements={bundle.measurements}
           selectedMeasurementId={selectedMeasurementId}
-          measurementForm={measurementForm}
-          saving={saving}
           onSelectMeasurement={(measurementId) => void handleMeasurementSelection(measurementId)}
-          onMeasurementFormChange={(patch) => setMeasurementForm((current) => ({ ...current, ...patch }))}
-          onSubmit={handleMeasurementSubmit}
           beurteilung={beurteilung}
         />
       )}

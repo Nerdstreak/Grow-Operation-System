@@ -17,6 +17,22 @@ public enum AssessmentVerdict
 
     /// <summary>Es gibt kein Ziel, gegen das man prüfen könnte — mit Begründung.</summary>
     NoTarget,
+
+    /// <summary>
+    /// Den Wert kann es physikalisch nicht geben — 9000 °C Luft, EC 99999.
+    /// </summary>
+    /// <remarks>
+    /// <para>Bis hierher lief das unter <see cref="NoTarget"/> mit, weil beides
+    /// „zählt nicht in die Bilanz" bedeutet. In der Anzeige ist es aber das
+    /// Gegenteil: „kein Ziel" heißt <i>unauffällig, hier gibt es nichts zu
+    /// sehen</i>, „unmöglich" heißt <i>das Messgerät oder die Einheit stimmt
+    /// nicht</i>. Beide gleich zu zeichnen hieß, dass im Protokoll eine Zeile
+    /// mit EC 99.999 aussah wie jede andere.</para>
+    /// <para>Gefunden hat es der Nutzer, nicht ein Test: „unlogische werte wird
+    /// keine meldung teilweise gegeben". Die Live-Prüfung im Formular hatte die
+    /// Grenzen da schon — das Protokoll nicht.</para>
+    /// </remarks>
+    Impossible,
 }
 
 /// <summary>Das Urteil zu einer Messgröße einer Messung.</summary>
@@ -62,6 +78,8 @@ public sealed record MeasurementAssessmentReport(
     int CheckedValueCount,
     int InTargetCount,
     int OffTargetCount,
+    /// <summary>Werte, die es physikalisch nicht geben kann.</summary>
+    int ImpossibleCount,
     string ProfileId,
     string ProfileLabel,
     IReadOnlyList<MeasurementAssessment> Measurements
@@ -141,6 +159,7 @@ public sealed class MeasurementAssessmentService
         var geprueft = 0;
         var imZiel = 0;
         var daneben = 0;
+        var unmoeglich = 0;
         var ausgeschlossen = 0;
 
         foreach (var messung in measurements.OrderByDescending(m => m.TakenAt).ThenByDescending(m => m.Id))
@@ -172,6 +191,7 @@ public sealed class MeasurementAssessmentService
 
             foreach (var wert in werte)
             {
+                if (wert.Verdict == AssessmentVerdict.Impossible) { unmoeglich++; continue; }
                 if (wert.Verdict == AssessmentVerdict.NoTarget) continue;
                 geprueft++;
                 if (wert.Verdict == AssessmentVerdict.InTarget) imZiel++;
@@ -184,7 +204,7 @@ public sealed class MeasurementAssessmentService
         }
 
         return new MeasurementAssessmentReport(
-            measurements.Count, ausgeschlossen, geprueft, imZiel, daneben,
+            measurements.Count, ausgeschlossen, geprueft, imZiel, daneben, unmoeglich,
             profil.ProfileId, ProfilName(profil.ProfileId), zeilen);
     }
 
@@ -348,7 +368,8 @@ public sealed class MeasurementAssessmentService
             var notiz = moeglich
                 ? grund
                 : $"Physikalisch nicht möglich ({MeasurementSanityService.PhysikalischeGrenzen[metrik].Min:0}–{MeasurementSanityService.PhysikalischeGrenzen[metrik].Max:0} {einheit}) — fliesst nicht in die Bilanz ein.";
-            raus.Add(new MetricAssessment(metrik, label, v, einheit, null, null, AssessmentVerdict.NoTarget, notiz));
+            raus.Add(new MetricAssessment(metrik, label, v, einheit, null, null,
+                moeglich ? AssessmentVerdict.NoTarget : AssessmentVerdict.Impossible, notiz));
         }
     }
 
@@ -357,7 +378,7 @@ public sealed class MeasurementAssessmentService
         if (!MeasurementSanityService.IstPhysikalischMoeglich(metric, wert))
         {
             var grenzen = MeasurementSanityService.PhysikalischeGrenzen[metric];
-            return new MetricAssessment(metric, label, wert, einheit, null, null, AssessmentVerdict.NoTarget,
+            return new MetricAssessment(metric, label, wert, einheit, null, null, AssessmentVerdict.Impossible,
                 $"Physikalisch nicht möglich ({grenzen.Min:0}–{grenzen.Max:0}{(einheit.Length > 0 ? " " + einheit : string.Empty)}) — fliesst nicht in die Bilanz ein.");
         }
 

@@ -284,6 +284,73 @@ public static class DemoData
     }
 
     /// <summary>
+    /// Ein abgeschlossener Grow mit Ernte — sonst ist das Archiv leer.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Warum das fehlte.</b> <c>DemoData</c> hat bisher nur die
+    /// Home-Assistant-Seite gefälscht: Sensoren, Verlauf, Dosierungen, Kamera.
+    /// Grows kommen aus der Datenbank, und die ist auf einem frischen Rechner
+    /// leer. Ergebnis: <c>/archiv</c> zeigte „Noch keine archivierten Grows",
+    /// und damit war die ganze Ernte- und Kostenrechnung (Summe, €/g) auf dem
+    /// Entwicklungsrechner nicht zu sehen — obwohl sie gebaut ist.</para>
+    ///
+    /// <para><b>Die Zahlen.</b> 4 Pflanzen, 82 Tage, 412 g nass zu 96 g
+    /// trocken. Das Verhältnis 23 % ist der übliche Bereich für ordentlich
+    /// getrocknetes Material (grob ein Fünftel bis ein Viertel); 24 g je
+    /// Pflanze ist ein unauffälliger RDWC-Ertrag. Bewusst keine Bestleistung:
+    /// eine Demo mit Traumwerten prüft die Anzeige nicht, sie schmeichelt ihr.
+    /// Alles hier ist erfunden und trägt es im Namen.</para>
+    /// </remarks>
+    public static (GrowRun Grow, HarvestEntry Harvest) SeedArchivierterGrow(int? tentId, DateTime heute)
+    {
+        // Geerntet vor gut zwei Wochen, damit der Eintrag nicht taufrisch neben
+        // dem laufenden Grow steht.
+        var geerntet = heute.AddDays(-16);
+        var gestartet = geerntet.AddDays(-82);
+
+        var grow = new GrowRun
+        {
+            TentId = tentId,
+            Name = "Northern Lights (Testdaten)",
+            Strain = "Northern Lights",
+            Breeder = "Sensi Seeds",
+            Status = GrowStatus.Completed,
+            MediumType = MediumType.Hydro,
+            HydroStyle = HydroStyle.RDWC,
+            IrrigationType = IrrigationType.ActiveHydro,
+            Environment = GrowEnvironment.Indoor,
+            SeedType = SeedType.Feminized,
+            StartMaterial = StartMaterial.Seed,
+            EntryPoint = GrowEntryPoint.Germination,
+            PlantCount = 4,
+            StartDate = gestartet,
+            GerminatedAt = gestartet,
+            VegStartedAt = gestartet.AddDays(9),
+            FlipDate = gestartet.AddDays(37),
+            FinishStartedAt = geerntet.AddDays(-9),
+            EndDate = geerntet,
+            Light = "LED 480 W",
+            ReservoirSize = "100 L",
+            Notes = "Testdaten: abgeschlossener Lauf, damit Archiv und Kostenrechnung etwas zu zeigen haben.",
+        };
+
+        var ernte = new HarvestEntry
+        {
+            HarvestedAt = geerntet,
+            WetWeightG = 412,
+            DryWeightG = 96,
+            DryDays = 11,
+            Rating = 4,
+            YieldNotes = "Testdaten: 4 Pflanzen, rund 24 g je Pflanze.",
+            FlavorNotes = "Erdig, leicht süß.",
+            EffectNotes = "Ruhig, körperbetont.",
+            NugStructure = "Dicht.",
+        };
+
+        return (grow, ernte);
+    }
+
+    /// <summary>
     /// Eine kalibrierte pH-Sonde — sonst bleibt die Automatik im Testbetrieb gesperrt.
     /// </summary>
     /// <remarks>
