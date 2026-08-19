@@ -56,6 +56,27 @@ public sealed class MeasurementSanityService
             modelState.AddModelError(nameof(MeasurementFormViewModel.OrpMv), "Der ORP-Wert wirkt unplausibel. Bitte Sensor oder Einheit prüfen.");
         }
 
+        // Die fuenf Felder, die bis beta.50 auf KEINER Liste standen.
+        //
+        // Durchgerutscht sind: CO2 = -500 ppm, Wassertemperatur 5000 Grad,
+        // Lufttemperatur 9000 Grad. Alle drei standen wochenlang in der
+        // Datenbank und auf dem Bildschirm; die -500 ppm sogar auf einer
+        // Kachel der Startseite. Kein Audit hat sie gefunden, weil sie sich
+        // tadellos rendern liessen — die Pruefungen sahen auf Ueberlauf,
+        // Kontrast und Layout, nicht auf Physik.
+        //
+        // Die Grenzen sind bewusst weit: sie sollen einen Tippfehler oder
+        // eine falsche Einheit abfangen, nicht ueber Anbau entscheiden. Was
+        // agronomisch sinnvoll ist, sagen die Sollwerte, nicht diese Sperre.
+        ValidateRange(modelState, nameof(MeasurementFormViewModel.AirTemperatureC), measurement.AirTemperatureC, -20, 60, "Lufttemperatur");
+        ValidateRange(modelState, nameof(MeasurementFormViewModel.ReservoirWaterTempC), measurement.ReservoirWaterTempC, -5, 60, "Wassertemperatur");
+        // Umgebungsluft liegt bei rund 420 ppm, angereichert wird auf 800 bis
+        // 1500. 30000 ppm waeren fuer Menschen toedlich — daher als Obergrenze.
+        ValidateRange(modelState, nameof(MeasurementFormViewModel.Co2Ppm), measurement.Co2Ppm, 0, 30000, "CO2");
+        // Volle Mittagssonne sind rund 2000 umol/m2/s.
+        ValidateRange(modelState, nameof(MeasurementFormViewModel.PpfdMol), measurement.PpfdMol, 0, 3000, "PPFD");
+        ValidateRange(modelState, nameof(MeasurementFormViewModel.AirflowAtLeafMPerMin), measurement.AirflowAtLeafMPerMin, 0, 300, "Luftstrom");
+
         if (measurement.RunoffAmountMl is { } runoff && measurement.WaterAmountMl is { } water && runoff > water)
         {
             modelState.AddModelError(nameof(MeasurementFormViewModel.RunoffAmountMl), "Runoff kann normalerweise nicht höher als die eingetragene Gießmenge sein. Bitte Eingabe prüfen.");
