@@ -85,14 +85,14 @@ GROW-2 · Grow Wizard final
 }
 
 .grow-card-topline strong {
-  font-size: 1.04rem;
+  font-size: var(--fs-titel);
   line-height: 1.2;
 }
 
 .grow-card-meta,
 .program-summary {
   color: var(--muted);
-  font-size: .9rem;
+  font-size: var(--fs-gross);
   line-height: 1.45;
 }
 
@@ -109,7 +109,7 @@ GROW-2 · Grow Wizard final
   padding: 6px 9px;
   background: color-mix(in oklch, var(--surface3) 42%, transparent);
   color: color-mix(in oklch, var(--text) 88%, var(--accent));
-  font-size: .78rem;
+  font-size: var(--fs-klein);
 }
 
 .grow-custom-program {
@@ -140,7 +140,7 @@ GROW-2 · Grow Wizard final
   border-bottom: 1px solid color-mix(in oklch, var(--border) 55%, transparent);
   padding-bottom: 8px;
   color: var(--muted);
-  font-size: .9rem;
+  font-size: var(--fs-gross);
 }
 
 .grow-summary-list b {
@@ -190,7 +190,7 @@ GROW-2 · Grow Wizard final
   }
 
   .grow-card-facts b {
-    font-size: .74rem;
+    font-size: var(--fs-klein);
   }
 
   .sticky-actions {

@@ -60,7 +60,7 @@ export function GrowDetailMeasurementsSection({
       <div className="card" style={{ marginBottom: 14, display: isVisible ? undefined : 'none' }}>
         <div className="card-header">
           <span className="card-title">Verlauf</span>
-          <span className="text-muted" style={{ fontSize: 13 }}>{versteckt > 0 ? `${sichtbare.length} von ${measurements.length}` : `${measurements.length} gesamt`}</span>
+          <span className="text-muted" style={{ fontSize: 'var(--fs-text)' }}>{versteckt > 0 ? `${sichtbare.length} von ${measurements.length}` : `${measurements.length} gesamt`}</span>
         </div>
         {measurements.length === 0 ? (
           <div className="empty-hint">Noch keine Messungen vorhanden.</div>
@@ -134,11 +134,11 @@ export function GrowDetailMeasurementsSection({
           <div className="meas-fields" style={{ marginBottom: 16 }}>
             <div className="meas-field">
               <label>Zeitpunkt</label>
-              <input className="meas-input" style={{ fontSize: 13, fontFamily: 'var(--font-sans)', padding: '0 10px' }} type="datetime-local" value={measurementForm.takenAtLocal} onChange={(event) => onMeasurementFormChange({ takenAtLocal: event.target.value })} />
+              <input className="meas-input" style={{ fontSize: 'var(--fs-text)', fontFamily: 'var(--font-sans)', padding: '0 10px' }} type="datetime-local" value={measurementForm.takenAtLocal} onChange={(event) => onMeasurementFormChange({ takenAtLocal: event.target.value })} />
             </div>
             <div className="meas-field">
               <label>Phase</label>
-              <select className="meas-input" style={{ fontSize: 15 }} value={measurementForm.stage} onChange={(event) => onMeasurementFormChange({ stage: event.target.value })}>
+              <select className="meas-input" style={{ fontSize: 'var(--fs-gross)' }} value={measurementForm.stage} onChange={(event) => onMeasurementFormChange({ stage: event.target.value })}>
                 <option>Seedling</option><option>Clone</option><option>Veg</option><option>Transition</option><option>Flower</option><option>Finish</option><option>Dry</option><option>Cure</option>
               </select>
             </div>

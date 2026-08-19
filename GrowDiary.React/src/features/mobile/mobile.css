@@ -13,7 +13,7 @@
   .mo-qr-svg { display: block; width: 100%; height: auto; max-width: 240px; }
   .mo-qr-empty {
     width: 220px; height: 220px; display: grid; place-items: center; text-align: center;
-    font: 400 11.5px/1.5 var(--font-mono); color: #5f5e5a; padding: 0 16px;
+    font: 400 var(--fs-klein)/1.5 var(--font-mono); color: #5f5e5a; padding: 0 16px;
   }
 
   .mo-side { max-width: 68ch; }
@@ -21,7 +21,7 @@
 
   .mo-steps {
     margin: 0; padding-left: 18px; display: grid; gap: 6px;
-    font: 400 12px/1.55 var(--font-mono); color: var(--muted);
+    font: 400 var(--fs-klein)/1.55 var(--font-mono); color: var(--muted);
   }
   .mo-steps b { color: var(--ink); font-weight: 500; }
 
@@ -29,12 +29,12 @@
   .mo-url code {
     flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere;
     padding: 7px 9px; border: 1px solid var(--hair-2); border-radius: 8px;
-    background: var(--sunk); color: var(--ink); font: 400 11.5px/1.45 var(--font-mono);
+    background: var(--sunk); color: var(--ink); font: 400 var(--fs-klein)/1.45 var(--font-mono);
   }
 
   .mo-note {
     margin: 0 0 10px; max-width: 68ch;
-    font: 400 12px/1.6 var(--font-mono); color: var(--muted);
+    font: 400 var(--fs-klein)/1.6 var(--font-mono); color: var(--muted);
   }
   .mo-note:last-child { margin-bottom: 0; }
   .mo-note code { color: var(--ink); overflow-wrap: anywhere; }

@@ -49,37 +49,37 @@
      `.ls-ring-inner span` gegen `.ls-ring-max` — der Nachfahrenselektor ist
      spezifischer und hat gewonnen, also wurde „/100" in 17px fett gesetzt und
      war mit 46px breiter als der Innenkreis. */
-  .ls-ring-inner > span { font: 600 18px/1 var(--font-mono); }
+  .ls-ring-inner > span { font: 600 var(--fs-titel)/1 var(--font-mono); }
   /* Die Zahl traegt dieselbe Ampelfarbe wie der Ring — sonst widerspricht
      eine weisse 40 dem roten Kreis daneben. */
   .ls-ring.is-critical .ls-ring-inner > span:not(.ls-ring-max) { color: var(--danger); }
   .ls-ring.is-warn .ls-ring-inner > span:not(.ls-ring-max) { color: var(--warn-text); }
   .ls-ring.is-ok .ls-ring-inner > span:not(.ls-ring-max) { color: var(--accent-text); }
   .ls-ring-inner > span.ls-ring-max {
-    font: 500 8.5px/1 var(--font-mono); letter-spacing: .08em; color: var(--faint);
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .08em; color: var(--faint);
   }
 
   .ls-eyebrow {
-    font: 500 10px/1 var(--font-mono); letter-spacing: .2em; color: var(--faint);
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .2em; color: var(--faint);
     text-transform: uppercase;
   }
   .ls-head-title h1 {
-    margin: 6px 0 0; font: 600 24px/1.1 var(--font-mono); letter-spacing: -.01em;
+    margin: 6px 0 0; font: 600 var(--fs-zahl)/1.1 var(--font-mono); letter-spacing: -.01em;
   }
   .ls-score-label.is-critical { color: var(--danger); }
   .ls-score-label.is-warn { color: var(--warn-text); }
-  .ls-head-parts { margin-top: 6px; font: 400 11px/1.4 var(--font-mono); color: var(--muted); }
+  .ls-head-parts { margin-top: 6px; font: 400 var(--fs-etikett)/1.4 var(--font-mono); color: var(--muted); }
   .ls-head-parts .is-bad { color: var(--danger); }
 
   .ls-pill {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 5px 10px; border: 1px solid var(--hair-2); border-radius: 999px;
-    font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
     color: var(--accent-text); white-space: nowrap;
   }
   .ls-pill i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
 
-  .ls-head-meta { font: 400 11.5px/1.4 var(--font-mono); color: var(--muted); }
+  .ls-head-meta { font: 400 var(--fs-klein)/1.4 var(--font-mono); color: var(--muted); }
   .ls-head-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 
   /* ---------- Systemwarnung (Watchdog) ----------
@@ -93,7 +93,7 @@
     color: var(--ink); text-decoration: none;
   }
   .ls-syswarn .ls-label { color: var(--warn-text); }
-  .ls-syswarn-text { font: 400 12.5px/1.5 var(--font-sans); }
+  .ls-syswarn-text { font: 400 var(--fs-text)/1.5 var(--font-sans); }
   .ls-syswarn-text strong { font-weight: 600; }
 
   /* ---------- Anpassen-Modus ----------
@@ -111,7 +111,7 @@
     margin: 0; padding: 8px 13px;
     border-left: 2px solid var(--warn); background: var(--warn-wash);
     border-radius: 0 8px 8px 0;
-    font: 400 12px/1.5 var(--font-sans); color: var(--ink);
+    font: 400 var(--fs-klein)/1.5 var(--font-sans); color: var(--ink);
   }
   .ls-btn.is-ghost { border-style: dashed; color: var(--muted); }
 
@@ -121,7 +121,7 @@
      sieht aus wie ein Fehler, und umbenennen kann man nur, was man liest. */
   .ls-band-rename {
     background: transparent; border: 1px dashed var(--hair-2); border-radius: 6px;
-    color: var(--ink); font: 500 10px/1 var(--font-mono); letter-spacing: .18em;
+    color: var(--ink); font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .18em;
     padding: 6px 8px; text-transform: uppercase;
     flex: 0 1 320px; min-width: 150px;
   }
@@ -157,14 +157,14 @@
     /* --faint statt --hint: der Griff ist das Element, das man im
        Anpassen-Modus SUCHT — bei 2,2:1 fand man ihn nur, wenn man wusste, wo
        er sitzt. --hint (30 % Deckkraft) ist fuer Andeutungen gedacht. */
-    color: var(--faint); font: 500 12px/1 var(--font-mono); letter-spacing: -1px;
+    color: var(--faint); font: 500 var(--fs-klein)/1 var(--font-mono); letter-spacing: -1px;
   }
   .ls-tile-tools .dots:active { cursor: grabbing; color: var(--ink); }
   .ls-tile-tools .x {
     display: grid; place-items: center; width: 18px; height: 18px; padding: 0;
     border: 1px solid var(--hair-2); border-radius: 50%;
     background: var(--bg); color: var(--muted);
-    font: 500 11px/1 var(--font-mono); cursor: pointer;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); cursor: pointer;
   }
   .ls-tile-tools .x:hover { border-color: var(--danger); color: var(--danger); }
 
@@ -173,7 +173,7 @@
     border: 1px dashed var(--hair-2); border-radius: 10px;
     display: grid; place-items: center; text-align: center;
     /* Dasselbe fuer „hierher ziehen": eine Anweisung, die man lesen soll. */
-    color: var(--faint); font: 400 10.5px/1.5 var(--font-mono);
+    color: var(--faint); font: 400 var(--fs-etikett)/1.5 var(--font-mono);
   }
   .ls-dropzone.is-over { border-color: var(--accent); color: var(--accent-text); }
 
@@ -190,16 +190,16 @@
     background: var(--panel-2);
   }
   .ls-dialog-head { display: flex; align-items: center; gap: 12px; }
-  .ls-dialog-head strong { font: 600 14px/1.3 var(--font-mono); flex: 1; }
+  .ls-dialog-head strong { font: 600 var(--fs-text)/1.3 var(--font-mono); flex: 1; }
   .ls-dialog-row { display: flex; gap: 10px; flex-wrap: wrap; }
   .ls-dialog-field { display: grid; gap: 5px; min-width: 140px; }
   .ls-dialog-field.is-grow { flex: 1; }
-  .ls-dialog-field > span { font: 500 9.5px/1 var(--font-mono); letter-spacing: .16em; color: var(--faint); text-transform: uppercase; }
+  .ls-dialog-field > span { font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .16em; color: var(--faint); text-transform: uppercase; }
   .ls-dialog-field select,
   .ls-dialog-field input {
     min-height: 34px; padding: 0 10px;
     border: 1px solid var(--hair-2); border-radius: 8px;
-    background: var(--sunk); color: var(--ink); font: 400 12px/1 var(--font-mono);
+    background: var(--sunk); color: var(--ink); font: 400 var(--fs-klein)/1 var(--font-mono);
   }
   /* `min-width: 0` an Kasten UND Kindern: ohne das konnten die Auswahlzeilen
      nicht unter ihre Inhaltsbreite und ragten 131 px ueber die Dialogkante —
@@ -208,15 +208,15 @@
   .ls-dialog-cap {
     position: sticky; top: 0; z-index: 1; min-width: 0;
     padding: 8px 0 4px; background: var(--panel-2);
-    font: 500 9.5px/1 var(--font-mono); letter-spacing: .16em; color: var(--faint); text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .16em; color: var(--faint); text-transform: uppercase;
   }
-  .ls-dialog-empty { margin: 0; padding: 6px 2px; color: var(--faint); font-size: 12px; }
+  .ls-dialog-empty { margin: 0; padding: 6px 2px; color: var(--faint); font-size: var(--fs-klein); }
   .ls-pick {
     display: flex; align-items: center; gap: 9px; width: 100%; min-width: 0;
     min-height: 38px; padding: 8px 11px; text-align: left;
     border: 1px solid var(--hair); border-radius: 8px;
     background: var(--sunk); color: var(--muted);
-    font: 400 12px/1.3 var(--font-mono); cursor: pointer;
+    font: 400 var(--fs-klein)/1.3 var(--font-mono); cursor: pointer;
   }
   .ls-pick > * { min-width: 0; }
   .ls-pick:hover { border-color: var(--accent); color: var(--ink); }
@@ -225,7 +225,7 @@
   .ls-pick-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ls-pick-tag {
     flex: 0 0 auto; padding: 2px 7px; border: 1px solid var(--info); border-radius: 999px;
-    color: var(--info); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--info); font-size: var(--fs-etikett); letter-spacing: .12em; text-transform: uppercase;
   }
 
   /* ---------- Knöpfe ---------- */
@@ -234,7 +234,7 @@
     min-height: 32px; padding: 0 12px;
     border: 1px solid var(--hair-2); border-radius: 8px;
     background: transparent; color: var(--ink);
-    font: 500 12px/1 var(--font-mono); letter-spacing: .04em; text-transform: uppercase;
+    font: 500 var(--fs-klein)/1 var(--font-mono); letter-spacing: .04em; text-transform: uppercase;
     cursor: pointer; white-space: nowrap;
   }
   /* Gesperrt muss gesperrt AUSSEHEN. Fuer `.ls-btn` gab es diese Regel
@@ -255,7 +255,7 @@
     border-color: var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 600;
   }
   .ls-btn.is-primary:hover { color: var(--accent-ink); opacity: .9; }
-  .ls-btn.is-small { min-height: 26px; padding: 0 10px; font-size: 11px; margin-left: auto; }
+  .ls-btn.is-small { min-height: 26px; padding: 0 10px; font-size: var(--fs-etikett); margin-left: auto; }
   /* Die Hauptaktion behaelt ihre Hoehe auch in der kleinen Fassung: sonst
      ist „Erledigt" in der Karte 44 px hoch und in der Liste daneben 26.
      Drei Klassen, weil `.ls-btn.is-small` mit zwei sonst gewinnt — es steht
@@ -293,7 +293,7 @@
     min-height: 32px; padding: 0 8px;
     border: 1px solid var(--hair-2); border-radius: 8px;
     background: var(--sunk); color: var(--ink);
-    font: 500 12px/1 var(--font-mono); cursor: pointer;
+    font: 500 var(--fs-klein)/1 var(--font-mono); cursor: pointer;
   }
   /* Touch: die Untergrenze aus widgets.css greift hier ebenfalls. */
 
@@ -310,18 +310,18 @@
     counter-increment: schritt; content: counter(schritt);
     flex: 0 0 28px; height: 28px; display: grid; place-items: center;
     border-radius: 50%; background: var(--accent-wash); color: var(--accent-text);
-    font: 600 12px/1 var(--font-mono);
+    font: 600 var(--fs-klein)/1 var(--font-mono);
   }
   .ls-firstrun li > div { flex: 1 1 260px; min-width: 0; display: grid; gap: 3px; }
-  .ls-firstrun strong { font-size: 14px; font-weight: 600; }
-  .ls-firstrun span { font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+  .ls-firstrun strong { font-size: var(--fs-text); font-weight: 600; }
+  .ls-firstrun span { font-size: var(--fs-text); line-height: 1.5; color: var(--muted); }
   .ls-firstrun .ls-btn { margin-left: auto; }
 
   /* ---------- Messwertreihen ---------- */
   .ls-metrics { display: grid; gap: 7px; }
   .ls-band-label { display: flex; align-items: center; gap: 8px; }
   .ls-band-label span {
-    font: 500 10px/1 var(--font-mono); letter-spacing: .18em; text-transform: uppercase; color: var(--faint);
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .18em; text-transform: uppercase; color: var(--faint);
   }
   .ls-band-label i { flex: 1; height: 1px; background: var(--hair); }
   .ls-metrics .gos-metric-row + .ls-band-label { margin-top: 5px; }
@@ -336,12 +336,12 @@
     padding: 11px 14px; border-bottom: 1px solid var(--hair);
   }
   .ls-label {
-    font: 500 10px/1 var(--font-mono); letter-spacing: .18em; text-transform: uppercase; color: var(--faint);
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .18em; text-transform: uppercase; color: var(--faint);
   }
-  .ls-panel-meta { font: 400 11px/1.4 var(--font-mono); color: var(--muted); min-width: 0; }
+  .ls-panel-meta { font: 400 var(--fs-etikett)/1.4 var(--font-mono); color: var(--muted); min-width: 0; }
   .ls-panel-body { padding: 14px; display: grid; gap: 8px; }
-  .ls-panel-body strong { font-size: 15px; font-weight: 600; }
-  .ls-panel-body p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); max-width: 68ch; }
+  .ls-panel-body strong { font-size: var(--fs-gross); font-weight: 600; }
+  .ls-panel-body p { margin: 0; font-size: var(--fs-text); line-height: 1.5; color: var(--muted); max-width: 68ch; }
   .ls-panel-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
 
   /* Das kritische Risiko trägt seinen Rahmen selbst — es ist die eine Sache,
@@ -372,10 +372,10 @@
   .ls-tasks li:last-child { border-bottom: 0; }
   .ls-task-when {
     flex: 0 0 64px;
-    font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
   }
   .ls-task-when.is-due { color: var(--warn-text); }
-  .ls-task-title { min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+  .ls-task-title { min-width: 0; font-size: var(--fs-text); overflow: hidden; text-overflow: ellipsis; }
 
   /* ---------- Phasen-Timeline ---------- */
   .ls-timeline { display: flex; gap: 2px; }
@@ -393,7 +393,7 @@
      Beschriftungen IM Balken stehen koennen statt darunter. */
   .ls-timeline.is-compact .ls-phase {
     min-height: 22px; padding: 0 6px;
-    font-size: 9px; letter-spacing: .06em;
+    font-size: var(--fs-etikett); letter-spacing: .06em;
     /* Kein Abschnitt schrumpft unter seine Beschriftung — sonst stand da
        „KEIM 12" statt „KEIM 12 T". Die Anteile verteilen sich auf den Rest. */
     min-width: fit-content;
@@ -402,7 +402,7 @@
     flex: 1 1 0; min-width: 0;
     display: grid; place-items: center;
     min-height: 26px; padding: 0 8px; border-radius: var(--r-sm);
-    font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   /* Auf der Detailseite stand „TROCKN" statt „Trocknen 10 T" — mitten im Wort
@@ -414,7 +414,7 @@
      Telefon dieselbe kleinere Schrift wie in der kompakten Variante — damit
      passt die Beschriftung, und die Anteile bleiben ehrlich. */
   @media (max-width: 720px) {
-    .ls-phase { font-size: 9px; letter-spacing: .04em; padding: 0 5px; }
+    .ls-phase { font-size: var(--fs-etikett); letter-spacing: .04em; padding: 0 5px; }
   }
   .ls-phase { position: relative; overflow: hidden; }
   /* Der innere span hatte keine eigene Kuerzung — deshalb stand da „TROCKI"
@@ -442,7 +442,7 @@
      mitten unter dem Aushaerten. */
   .ls-timeline-dates {
     display: flex; justify-content: start; gap: 18px; flex-wrap: wrap;
-    margin-top: 8px; font: 400 11px/1 var(--font-mono); color: var(--muted);
+    margin-top: 8px; font: 400 var(--fs-etikett)/1 var(--font-mono); color: var(--muted);
   }
   .ls-timeline-dates .is-due { color: var(--warn-text); }
 
@@ -476,12 +476,12 @@
      keine Verbreiterung — die Regel steht hier, damit es auch dann so bleibt,
      wenn jemand den Reset anfasst. */
   .ls-cam-stage img { width: 100%; max-width: 100%; min-width: 0; height: auto; display: block; }
-  .ls-cam-empty { padding: 24px; font-size: 13px; color: var(--faint); text-align: center; }
+  .ls-cam-empty { padding: 24px; font-size: var(--fs-text); color: var(--faint); text-align: center; }
   .ls-cam-stale {
     position: absolute; top: 8px; right: 8px;
     padding: 3px 8px; border-radius: 999px;
     background: var(--warn-wash); color: var(--warn-text);
-    font: 500 10px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
   }
   .ls-cam-strip { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--hair); overflow-x: auto; }
   .ls-cam-tab {
@@ -489,11 +489,11 @@
     min-height: 32px; padding: 0 12px;
     border: 1px solid var(--hair); border-radius: 999px;
     background: transparent; color: var(--muted);
-    font: 500 11px/1 var(--font-mono); letter-spacing: .06em; cursor: pointer;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .06em; cursor: pointer;
   }
   .ls-cam-tab .n {
     display: grid; place-items: center; width: 18px; height: 18px;
-    border: 1px solid var(--hair-2); border-radius: 50%; font-size: 10px;
+    border: 1px solid var(--hair-2); border-radius: 50%; font-size: var(--fs-etikett);
   }
   .ls-cam-tab.active { border-color: var(--accent); color: var(--accent-text); }
   .ls-cam-tab.active .n { border-color: var(--accent); }
@@ -505,10 +505,10 @@
   .ls-trends { list-style: none; margin: 0; padding: 0; display: grid; }
   .ls-trends li { display: grid; gap: 2px; padding: 10px 14px; border-bottom: 1px solid var(--hair); }
   .ls-trends li:last-child { border-bottom: 0; }
-  .ls-trends strong { font-size: 13px; font-weight: 600; }
+  .ls-trends strong { font-size: var(--fs-text); font-weight: 600; }
   .ls-trends li.is-warn strong { color: var(--warn-text); }
   .ls-trends span { max-width: 68ch; }
-  .ls-trends span { font-size: 12px; color: var(--muted); }
+  .ls-trends span { font-size: var(--fs-klein); color: var(--muted); }
 }
 
 /* Aufgaben: drei Spalten — Risiken, Termine, Wartung. */
@@ -534,7 +534,7 @@
     }
   }
   .af-count {
-    font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
   }
   .af-count.is-crit { color: var(--danger); }
   .af-count.is-warn { color: var(--warn-text); }
@@ -558,14 +558,14 @@
   .af-tasten { display: flex; gap: 6px; align-items: center; flex-shrink: 0; margin-left: auto; }
   .af-when {
     flex: 0 0 56px;
-    font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
     color: var(--faint);
   }
   .af-when.is-due { color: var(--warn-text); }
   /* `flex: 1` allein liess den Titel bis auf 18 px zusammenschieben, sobald die
      Zeile umbrechen darf. Mit einer Untergrenze bekommt er lieber eine eigene
      Zeile, als je Wort abgeschnitten zu werden. */
-  .af-title { min-width: 0; flex: 1 1 180px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+  .af-title { min-width: 0; flex: 1 1 180px; font-size: var(--fs-text); overflow: hidden; text-overflow: ellipsis; }
   /* Zu `af-badge` und `af-meta` gab es in KEINER Stildatei eine Regel — die
      Zustandsworte standen deshalb in der Schriftgroesse des Fliesstextes und in
      wechselnder Breite, sodass die Titel daneben eine Treppe bildeten. Feste
@@ -573,14 +573,14 @@
   .af-badge {
     /* 76, nicht 72: „ÜBERFÄLLIG" passte nicht hinein und brach um. */
     flex: 0 0 76px; text-align: center;
-    font: 500 9.5px/1.6 var(--font-mono); letter-spacing: .08em;
+    font: 500 var(--fs-etikett)/1.6 var(--font-mono); letter-spacing: .08em;
     border: 1px solid var(--hair-2); border-radius: var(--r-pill);
     padding: 1px 4px; color: var(--muted);
   }
   .af-badge.is-critical { color: var(--danger); border-color: var(--danger); }
   .af-badge.is-warn { color: var(--warn-text); border-color: var(--warn); }
   .af-badge.is-ok { color: var(--accent-text); border-color: var(--accent); }
-  .af-meta { flex: 0 1 auto; min-width: 0; font: 400 11px/1.3 var(--font-mono); color: var(--faint); }
+  .af-meta { flex: 0 1 auto; min-width: 0; font: 400 var(--fs-etikett)/1.3 var(--font-mono); color: var(--faint); }
   .af-row .ls-btn { margin-left: auto; }
 }
 
@@ -596,7 +596,7 @@
 
 .ls-chart-head {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-klein);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   margin-bottom: 4px;
@@ -605,7 +605,7 @@
 .hc svg { display: block; cursor: crosshair; }
 .hc-grid { stroke: var(--border); stroke-width: 1; }
 .hc-cursor { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
-.hc-axis { fill: var(--muted); font-size: 11px; }
+.hc-axis { fill: var(--muted); font-size: var(--fs-etikett); }
 
 .hc-readout {
   display: flex;
@@ -613,7 +613,7 @@
   gap: 4px 14px;
   align-items: center;
   margin-top: 6px;
-  font-size: 0.8rem;
+  font-size: var(--fs-text);
 }
 
 .hc-readout-time {
@@ -627,7 +627,7 @@
 
 .hc-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 
-.hc-empty { color: var(--muted); font-size: 0.85rem; padding: 18px 0; text-align: center; }
+.hc-empty { color: var(--muted); font-size: var(--fs-text); padding: 18px 0; text-align: center; }
 
 /* Der Zusatztext im Auswahl-Dialog, der sagt, was die Kachel mitnimmt. */
 .ls-pick-text em { color: var(--muted); font-style: normal; }

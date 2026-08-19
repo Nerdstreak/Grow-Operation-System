@@ -17,9 +17,9 @@
   .cu-jar.is-due { border-color: var(--warn); }
 
   .cu-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .cu-head strong { font-size: 15px; }
+  .cu-head strong { font-size: var(--fs-gross); }
 
-  .cu-facts { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .cu-facts { font-size: var(--fs-text); color: var(--muted); line-height: 1.5; }
   .cu-facts a { color: var(--accent-text); }
 
   .cu-ampel {
@@ -31,14 +31,14 @@
   .cu-ampel.is-ok { border-left-color: var(--accent); }
   .cu-ampel.is-warn { border-left-color: var(--warn); }
   .cu-ampel.is-critical { border-left-color: var(--danger); }
-  .cu-befund { font-size: 13.5px; line-height: 1.45; }
-  .cu-ampel p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--ink); max-width: 68ch; }
-  .cu-ampel small { font-size: 11px; color: var(--faint); }
-  .cu-alter { font: 400 11px/1 var(--font-mono); color: var(--faint); white-space: nowrap; }
+  .cu-befund { font-size: var(--fs-text); line-height: 1.45; }
+  .cu-ampel p { margin: 0; font-size: var(--fs-text); line-height: 1.55; color: var(--ink); max-width: 68ch; }
+  .cu-ampel small { font-size: var(--fs-etikett); color: var(--faint); }
+  .cu-alter { font: 400 var(--fs-etikett)/1 var(--font-mono); color: var(--faint); white-space: nowrap; }
   .cu-ampel .cu-alter { letter-spacing: .03em; }
 
-  .cu-rhythmus { margin: 0; font-size: 12px; line-height: 1.55; color: var(--muted); max-width: 68ch; }
-  .cu-hint { margin: 6px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+  .cu-rhythmus { margin: 0; font-size: var(--fs-klein); line-height: 1.55; color: var(--muted); max-width: 68ch; }
+  .cu-hint { margin: 6px 0 0; font-size: var(--fs-text); line-height: 1.55; color: var(--muted); }
 
   /* Die Eingabe steht am Glas, nicht hinter einem Knopf: wer vor dem Schrank
      steht, hat eine Hand am Glas und eine am Telefon. */
@@ -47,11 +47,11 @@
      Karte mitwachsen; die Obergrenze haelt es bei der Groesse, die zum
      Inhalt passt. */
   .cu-form label { display: grid; gap: 3px; flex: 0 1 130px; min-width: 0; }
-  .cu-form label span { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
+  .cu-form label span { font-size: var(--fs-etikett); color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
   .cu-form input {
     min-height: 40px; padding: 0 10px; min-width: 0;
     border: 1px solid var(--hair); border-radius: 8px;
-    background: var(--sunk); color: var(--ink); font: 400 14px/1 var(--font-mono);
+    background: var(--sunk); color: var(--ink); font: 400 var(--fs-text)/1 var(--font-mono);
   }
   .cu-form .ls-btn { min-height: 40px; }
 
@@ -62,7 +62,7 @@
     padding: 8px 0; border-bottom: 1px solid var(--hair);
   }
   .cu-inline-row:last-of-type { border-bottom: 0; }
-  .cu-inline-row strong { font-size: 13.5px; }
+  .cu-inline-row strong { font-size: var(--fs-text); }
   .cu-inline-row .cu-alter { margin-left: auto; }
   /* 989 px zwischen Glas und Alter — die groesste Luecke auf /grows/1. */
   @media (min-width: 1100px) {
@@ -75,12 +75,12 @@
      ein Versehen. */
   .cu-new .ls-btn { min-height: 38px; }
   .cu-new label { display: grid; gap: 3px; flex: 1 1 120px; min-width: 0; }
-  .cu-new label span { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
+  .cu-new label span { font-size: var(--fs-etikett); color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
   .cu-new input, .cu-new select {
     min-height: 40px; padding: 0 10px; min-width: 0;
     border: 1px solid var(--hair); border-radius: 8px;
-    background: var(--sunk); color: var(--ink); font: 400 14px/1 var(--font-sans);
+    background: var(--sunk); color: var(--ink); font: 400 var(--fs-text)/1 var(--font-sans);
   }
   .cu-new .cu-check { flex: 0 1 auto; display: flex; align-items: center; gap: 8px; min-height: 40px; }
-  .cu-new .cu-check span { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--ink); }
+  .cu-new .cu-check span { text-transform: none; letter-spacing: 0; font-size: var(--fs-text); color: var(--ink); }
 }

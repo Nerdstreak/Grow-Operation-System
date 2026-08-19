@@ -9,7 +9,7 @@
     min-height: 44px; padding: 0 14px;
     border: 1px solid var(--hair); border-radius: 999px;
     background: var(--panel); color: var(--muted);
-    font-size: 13px; cursor: pointer;
+    font-size: var(--fs-text); cursor: pointer;
   }
   .hw-filter:hover { border-color: var(--hair-2); color: var(--ink); }
   .hw-filter.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
@@ -17,7 +17,7 @@
      Panel-Ebene bei Kontrast 4,18 von noetigen 4,5. Sie traegt eine Angabe
      (wie viele Geraete in diesem Filter stecken) und ist kein Beiwerk. */
   .hw-filter-count {
-    font-family: var(--font-mono); font-size: 11px;
+    font-family: var(--font-mono); font-size: var(--fs-etikett);
     padding: 1px 7px; border-radius: 999px;
     background: var(--panel-2); color: var(--ink);
   }
@@ -34,10 +34,10 @@
      Home-Assistant-Ingress-Iframe ist das Fenster breit, der Platz daneben aber
      nicht. Genau daran ist die alte Umschaltung gescheitert. */
   .hw-table-wrap { container-type: inline-size; overflow-x: auto; }
-  .hw-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .hw-table { width: 100%; border-collapse: collapse; font-size: var(--fs-text); }
   .hw-table th {
     text-align: left; padding: 8px 12px;
-    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    font-size: var(--fs-etikett); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
     color: var(--faint); border-bottom: 1px solid var(--hair);
     white-space: nowrap;
   }
@@ -48,10 +48,10 @@
      fuer Fliesstext, falsch fuer einen Geraetenamen: ein einzelnes „r" stand
      allein in der Zeile. */
   .hw-table strong { display: block; font-weight: 600; overflow-wrap: normal; word-break: normal; hyphens: manual; }
-  .hw-sub { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+  .hw-sub { display: block; margin-top: 2px; color: var(--muted); font-size: var(--fs-klein); }
   .hw-empty { color: var(--faint); }
   .hw-overdue { color: var(--warn-text); }
-  .hw-entity { font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  .hw-entity { font-family: var(--font-mono); font-size: var(--fs-klein); color: var(--muted); overflow-wrap: anywhere; }
   @container (min-width: 761px) {
     /* Die Aktionsspalte nimmt nur, was sie braucht — daneben standen zwei
        fast leere Spalten, waehrend „Loeschen" in eine zweite Knopfreihe
@@ -63,7 +63,7 @@
   }
   .hw-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 
-  .hw-note { margin: var(--s-3) 0 0; color: var(--muted); font-size: 13px; max-width: 68ch; }
+  .hw-note { margin: var(--s-3) 0 0; color: var(--muted); font-size: var(--fs-text); max-width: 68ch; }
 
   /* Zu schmal für sechs Spalten: jede Zeile wird eine Karte, die Spaltenköpfe
      wandern über data-label an die Werte. */
@@ -78,13 +78,13 @@
     .hw-table td::before {
       content: attr(data-label);
       flex: 0 0 42%;
-      font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      font-size: var(--fs-etikett); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
       color: var(--faint);
     }
     /* Der Gerätename ist die Überschrift der Karte und braucht kein Etikett. */
     .hw-table td[data-label="Gerät"] { display: block; padding-top: 10px; }
     .hw-table td[data-label="Gerät"]::before { content: none; }
-    .hw-table td[data-label="Gerät"] strong { font-size: 15px; }
+    .hw-table td[data-label="Gerät"] strong { font-size: var(--fs-gross); }
     .hw-table td[data-label="Aktionen"]::before { content: none; }
     .hw-actions { justify-content: flex-start; }
   }
@@ -92,6 +92,6 @@
   /* ---------- „Hab ich gemacht" ---------- */
   .hw-care-form { display: grid; gap: var(--s-3); }
   .hw-care-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: var(--s-3); }
-  .hw-care-check { display: flex; align-items: center; gap: 10px; min-height: 44px; color: var(--muted); font-size: 13px; }
+  .hw-care-check { display: flex; align-items: center; gap: 10px; min-height: 44px; color: var(--muted); font-size: var(--fs-text); }
   .hw-care-check input { width: 18px; height: 18px; }
 }

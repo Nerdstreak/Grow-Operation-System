@@ -14,7 +14,7 @@
     display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
     padding: var(--s-3) var(--s-4); border-bottom: 1px solid var(--hair);
   }
-  .hydro-detail__head > strong { font-size: 16px; font-weight: 600; white-space: nowrap; }
+  .hydro-detail__head > strong { font-size: var(--fs-gross); font-weight: 600; white-space: nowrap; }
   .hydro-detail__head .actions { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
   .hydro-detail__body { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 0; }
   .hydro-detail__plan { padding: var(--s-4); min-width: 0; }
@@ -74,7 +74,7 @@
   }
 
   /* ---------- Hydro-Detail ---------- */
-  .hydro-detail__head > .v1-card-kicker { font-size: 12px; }
+  .hydro-detail__head > .v1-card-kicker { font-size: var(--fs-klein); }
   .hydro-detail__head > .v1-stat { min-width: 124px; }
   .hydro-detail__tech { padding: 0 var(--s-4) var(--s-3); }
   .hydro-detail .dependency-panel { margin: 0 var(--s-4) var(--s-4); }

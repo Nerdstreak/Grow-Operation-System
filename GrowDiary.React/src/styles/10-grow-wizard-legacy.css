@@ -22,5 +22,5 @@
   .grow-wizard-page { display: grid; gap: 18px; max-width: var(--page-max); margin: 0 auto; }
 
   .text-muted { color: var(--muted); }
-  .empty-hint { padding: 60px 20px; text-align: center; color: var(--faint); font-size: 13px; }
+  .empty-hint { padding: 60px 20px; text-align: center; color: var(--faint); font-size: var(--fs-text); }
 }

@@ -67,20 +67,20 @@
 }
 .rc-risk-action-head strong {
   display: block;
-  font-size: 15px;
+  font-size: var(--fs-gross);
   font-weight: 900;
 }
 .rc-risk-action-head span {
   display: block;
   margin-top: 3px;
   color: var(--v1-muted);
-  font-size: 12px;
+  font-size: var(--fs-klein);
 }
 .rc-risk-action-head em {
   flex: 0 0 auto;
   font-style: normal;
   font-weight: 900;
-  font-size: 11px;
+  font-size: var(--fs-etikett);
   text-transform: uppercase;
   letter-spacing: .12em;
   color: var(--v1-muted);
@@ -89,7 +89,7 @@
   max-width: 68ch;
   margin: 0;
   color: var(--v1-soft);
-  font-size: 13px;
+  font-size: var(--fs-text);
   line-height: 1.35;
 }
 .rc-risk-action-buttons {
@@ -125,14 +125,14 @@
 }
 .rc-risk-sop-row strong {
   display: block;
-  font-size: 13px;
+  font-size: var(--fs-text);
   font-weight: 900;
 }
 .rc-risk-sop-row span {
   display: block;
   margin-top: 2px;
   color: var(--v1-muted);
-  font-size: 12px;
+  font-size: var(--fs-klein);
 }
 .rc-risk-sop-row .v1-button {
   flex: 0 0 auto;
@@ -142,7 +142,7 @@
   /* Vorher ein festes Rosa aus dem dunklen Thema — im hellen verschwand die
      Fehlermeldung fast im Weiss. Das Token kennt beide Themen. */
   color: var(--danger-text);
-  font-size: 12px;
+  font-size: var(--fs-klein);
   font-weight: 700;
 }
 

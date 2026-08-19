@@ -10,17 +10,17 @@
   .sp-card.is-mine { border-color: var(--info); }
   .sp-card.is-open { box-shadow: 0 0 0 1px var(--accent) inset; }
   .sp-card-top { display: flex; align-items: center; gap: 8px; }
-  .sp-name { font: 600 12.5px/1 var(--font-mono); }
+  .sp-name { font: 600 var(--fs-text)/1 var(--font-mono); }
   .sp-tag {
-    margin-left: auto; font: 500 9px/1 var(--font-mono); letter-spacing: .12em;
+    margin-left: auto; font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .12em;
     text-transform: uppercase; border-radius: 999px; padding: 3px 8px; white-space: nowrap;
   }
   .sp-tag.is-shipped { border: 1px solid var(--hair-2); color: var(--faint); }
   .sp-tag.is-mine { border: 1px solid var(--info); color: var(--info-text); }
-  .sp-facts { font: 400 11px/1.55 var(--font-mono); color: var(--muted); }
+  .sp-facts { font: 400 var(--fs-etikett)/1.55 var(--font-mono); color: var(--muted); }
   .sp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-  .sp-hint { margin: 10px 0 0; font: 400 11.5px/1.55 var(--font-mono); color: var(--faint); max-width: 68ch; }
+  .sp-hint { margin: 10px 0 0; font: 400 var(--fs-klein)/1.55 var(--font-mono); color: var(--faint); max-width: 68ch; }
 
   /* ---------- Die Tabelle ---------- */
   .sp-table {
@@ -37,10 +37,10 @@
     min-width: 900px; max-width: 1080px;
   }
   .sp-th, .sp-td {
-    padding: 8px 9px; font: 400 11px/1.4 var(--font-mono); border-top: 1px solid var(--hair);
+    padding: 8px 9px; font: 400 var(--fs-etikett)/1.4 var(--font-mono); border-top: 1px solid var(--hair);
   }
   .sp-th {
-    font: 500 9px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase;
     color: var(--faint); border-top: none; background: var(--sunk);
   }
   .sp-td.is-name { color: var(--ink); font-weight: 500; }
@@ -50,7 +50,7 @@
     width: 100%; min-width: 0; padding: 5px 6px;
     border: 1px solid var(--hair-2); border-radius: 6px;
     background: var(--sunk); color: var(--ink);
-    font: 400 11px/1.2 var(--font-mono);
+    font: 400 var(--fs-etikett)/1.2 var(--font-mono);
   }
   /* Der eigene Wert hebt sich ab — die Vorgabe steht blass als Platzhalter. */
   .sp-input::placeholder { color: var(--hint); }
@@ -69,6 +69,6 @@
      Ausrichtung, ist also links). Mittig stand der Wert unter der falschen
      Spalte — und der Bearbeiten-Modus sah anders aus als die Anzeige. */
     display: block; text-align: left;
-    color: var(--muted); font: 400 11px/1.2 var(--font-mono);
+    color: var(--muted); font: 400 var(--fs-etikett)/1.2 var(--font-mono);
   }
 }

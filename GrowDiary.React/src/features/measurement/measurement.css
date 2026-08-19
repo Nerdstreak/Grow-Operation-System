@@ -112,7 +112,7 @@
 }
 .rc2-measurement-derived span {
   color: var(--v1-muted);
-  font-size: 12px;
+  font-size: var(--fs-klein);
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -123,12 +123,12 @@
   gap: 5px;
   color: var(--v1-text);
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: var(--fs-gross);
   font-weight: 800;
 }
 .rc2-measurement-derived em {
   color: var(--v1-soft);
-  font-size: 12px;
+  font-size: var(--fs-klein);
   font-style: normal;
 }
 .rc2-measurement-photo .rc-file-input {

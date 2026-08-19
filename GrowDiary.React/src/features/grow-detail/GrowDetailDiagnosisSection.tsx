@@ -55,7 +55,7 @@ export function GrowDetailDiagnosisSection({
       <div className="card">
         <div className="card-header">
           <span className="card-title">Was ist los</span>
-          <span className="text-muted" style={{ fontSize: 13 }}>{riskEvents.length}</span>
+          <span className="text-muted" style={{ fontSize: 'var(--fs-text)' }}>{riskEvents.length}</span>
         </div>
         {riskEventError ? (
           <div className="empty-hint" style={{ color: 'var(--red)' }}>{riskEventError}</div>

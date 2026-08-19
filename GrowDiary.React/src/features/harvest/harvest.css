@@ -1,10 +1,10 @@
 /* Ernte pro Pflanze. */
 @layer features {
   .hv-table-wrap { container-type: inline-size; overflow-x: auto; }
-  .hv-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .hv-table { width: 100%; border-collapse: collapse; font-size: var(--fs-text); }
   .hv-table th, .hv-table td { padding: 6px 8px; border-bottom: 1px solid var(--hair); text-align: left; }
   .hv-table thead th {
-    font: 700 11px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--faint);
+    font: 700 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--faint);
     white-space: nowrap;
   }
   .hv-table tbody th { font-weight: 500; width: 34%; }
@@ -16,12 +16,12 @@
     flex: 1 1 150px; min-width: 0; padding: 11px 13px;
     border: 1px solid var(--hair); border-radius: var(--r); background: var(--panel);
   }
-  .hv-sums span { display: block; font: 500 10px/1 var(--font-mono); letter-spacing: .14em; color: var(--faint); }
+  .hv-sums span { display: block; font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .14em; color: var(--faint); }
   .hv-sums strong {
     display: block; margin-top: 7px;
-    font: 500 21px/1 var(--font-mono); font-variant-numeric: tabular-nums;
+    font: 500 var(--fs-zahl)/1 var(--font-mono); font-variant-numeric: tabular-nums;
   }
-  .hv-sums em { margin-left: 3px; font-size: 11px; font-style: normal; color: var(--muted); }
+  .hv-sums em { margin-left: 3px; font-size: var(--fs-etikett); font-style: normal; color: var(--muted); }
 }
 
 /* Nackte Inputs ausserhalb von V1Field fallen sonst ins native Grau zurueck. */

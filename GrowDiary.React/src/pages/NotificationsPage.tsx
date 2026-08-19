@@ -218,7 +218,7 @@ function NotificationsPage() {
 
       <V1Section title="Ruhezeiten">
         <V1Card>
-          <p style={{ marginTop: 0, color: 'var(--ix-muted, #8a988e)', fontSize: 14 }}>In diesem Zeitfenster (Stunde 0–23) schickt Grow OS keine Push-Nachrichten. Beide Felder leer = immer erlaubt.</p>
+          <p style={{ marginTop: 0, color: 'var(--ix-muted, #8a988e)', fontSize: 'var(--fs-text)' }}>In diesem Zeitfenster (Stunde 0–23) schickt Grow OS keine Push-Nachrichten. Beide Felder leer = immer erlaubt.</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <V1Field label="Von (Uhr)"><input inputMode="numeric" value={quietStart} onChange={(event) => setQuietStart(event.target.value)} placeholder="z. B. 22" /></V1Field>
             <V1Field label="Bis (Uhr)"><input inputMode="numeric" value={quietEnd} onChange={(event) => setQuietEnd(event.target.value)} placeholder="z. B. 7" /></V1Field>

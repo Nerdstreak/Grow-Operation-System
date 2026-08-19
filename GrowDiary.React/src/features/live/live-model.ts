@@ -53,13 +53,25 @@ export function mapMetrics(items: MetricPayload[], definitions: readonly (readon
  */
 const handVeraltetAbMinuten = 36 * 60
 
-/** „Hand · vor 2 Std“ — die Herkunftszeile einer Handmessung, lesbar statt exakt. */
-export function handHerkunft(ageMinutes: number): string {
-  const rel = ageMinutes < 1 ? 'gerade eben'
+/** „vor 2 Std“ — das Alter lesbar statt exakt. */
+function alterInWorten(ageMinutes: number): string {
+  return ageMinutes < 1 ? 'gerade eben'
     : ageMinutes < 60 ? `vor ${ageMinutes} Min`
       : ageMinutes < 48 * 60 ? `vor ${Math.round(ageMinutes / 60)} Std`
         : `vor ${Math.round(ageMinutes / (24 * 60))} Tagen`
-  return `Hand · ${rel}`
+}
+
+/**
+ * „Hand · vor 2 Std“ oder „Automatik · vor 2 Std“.
+ *
+ * <b>Warum zwei Woerter.</b> Bis beta.49 stand „Hand“ ueber JEDEM Wert, der
+ * aus einer gespeicherten Messung kam — auch ueber den vier Kacheln, die die
+ * automatische Messung geschrieben hatte. Wer daraufhin nachmessen ging,
+ * suchte einen Fehler, den es nicht gab.
+ */
+export function handHerkunft(ageMinutes: number, herkunft: 'hand' | 'auto' = 'hand'): string {
+  const wer = herkunft === 'auto' ? 'Automatik' : 'Hand'
+  return `${wer} · ${alterInWorten(ageMinutes)}`
 }
 
 export function handVeraltet(ageMinutes: number): boolean {
@@ -69,12 +81,20 @@ export function handVeraltet(ageMinutes: number): boolean {
 /**
  * Die beiden Zeilen unter der Kachel: Herkunft (neutral) oder Veraltet (mahnend).
  * Live-Werte bekommen keine — sie sind der Normalfall, den niemand erklärt braucht.
+ *
+ * <b>Die Mahnung ist nicht dieselbe.</b> Bei einer Handmessung heisst alt
+ * „geh nochmal messen“. Bei einem Wert der Automatik heisst alt „deine
+ * Automatik liefert nicht mehr“ — dorthin zu laufen und selbst zu messen
+ * behebt nichts. Zwei Zustaende, zwei Saetze.
  */
 export function metricProvenance(metric: MetricPayload): { sourceNote?: string; stale?: string } {
-  if (metric.valueSource !== 'hand' || metric.measuredAgeMinutes == null) return {}
-  return handVeraltet(metric.measuredAgeMinutes)
-    ? { stale: `${handHerkunft(metric.measuredAgeMinutes)} — nachmessen?` }
-    : { sourceNote: handHerkunft(metric.measuredAgeMinutes) }
+  const herkunft = metric.valueSource === 'auto' ? 'auto' : metric.valueSource === 'hand' ? 'hand' : null
+  if (herkunft == null || metric.measuredAgeMinutes == null) return {}
+  const zeile = handHerkunft(metric.measuredAgeMinutes, herkunft)
+  if (!handVeraltet(metric.measuredAgeMinutes)) return { sourceNote: zeile }
+  return herkunft === 'auto'
+    ? { stale: `${zeile} — Automatik prüfen?` }
+    : { stale: `${zeile} — nachmessen?` }
 }
 
 export function findMetric(items: MetricPayload[], keys: string[]) {

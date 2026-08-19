@@ -163,4 +163,20 @@ describe('metricProvenance', () => {
   it('bleibt knapp unter der Schwelle noch neutral', () => {
     expect(metricProvenance({ ...basis, valueSource: 'hand', measuredAgeMinutes: 35 * 60 }).stale).toBeUndefined()
   })
+
+  // Bis beta.49 stand „Hand“ ueber JEDEM Wert aus einer gespeicherten Messung —
+  // auch ueber den vieren, die die Automatik geschrieben hatte. Wer daraufhin
+  // nachmessen ging, suchte einen Fehler, den es nicht gab.
+  it('nennt die Automatik beim Namen', () => {
+    const zeilen = metricProvenance({ ...basis, valueSource: 'auto', measuredAgeMinutes: 120 })
+    expect(zeilen.sourceNote).toBe('Automatik · vor 2 Std')
+    expect(zeilen.stale).toBeUndefined()
+  })
+
+  // Bei der Automatik heisst alt etwas anderes als bei der Hand: dorthin zu
+  // laufen und selbst zu messen behebt nichts, die Automatik liefert nicht mehr.
+  it('mahnt bei alten Automatikwerten die Automatik an, nicht den Nutzer', () => {
+    const zeilen = metricProvenance({ ...basis, valueSource: 'auto', measuredAgeMinutes: 3 * 24 * 60 })
+    expect(zeilen.stale).toBe('Automatik · vor 3 Tagen — Automatik prüfen?')
+  })
 })

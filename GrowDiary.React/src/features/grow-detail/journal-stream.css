@@ -7,14 +7,14 @@
     display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px;
   }
   .js-row:last-child { border-bottom: 0; }
-  .js-when { font: 400 11px/1.5 var(--font-mono); color: var(--muted); }
+  .js-when { font: 400 var(--fs-etikett)/1.5 var(--font-mono); color: var(--muted); }
 
   .js-headline { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-  .js-headline strong { font-size: 13px; font-weight: 600; }
-  .js-content > p { margin: 5px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+  .js-headline strong { font-size: var(--fs-text); font-weight: 600; }
+  .js-content > p { margin: 5px 0 0; font-size: var(--fs-text); line-height: 1.5; color: var(--muted); }
 
   .js-tag {
-    font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
   }
   .js-tag.is-accent { color: var(--accent-text); }
   .js-tag.is-warn { color: var(--warn-text); }

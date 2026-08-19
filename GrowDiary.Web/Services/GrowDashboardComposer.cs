@@ -79,6 +79,19 @@ public sealed class GrowDashboardComposer
         // Fuer die Herkunft am Wert: die Verbund-Messung oben verschmilzt Werte
         // aus MEHREREN Messungen, traegt aber nur den juengsten Zeitstempel. Ein
         // pH von vor fuenf Tagen saehe damit aus wie von heute — genau die
+        // Alter einer Messung in Minuten, oder nichts.
+        //
+        // Nichts bei einem Zeitstempel aus der Zukunft: so eine Messung ist
+        // kein frischer Wert, sondern ein Datenfehler. Sie als „gerade eben"
+        // auszugeben hat auf der Startseite die echte letzte Messung
+        // verdeckt.
+        static int? AlterInMinuten(DateTime? gemessenAm)
+        {
+            if (gemessenAm is not { } zeit) return null;
+            var minuten = (int)(DateTime.Now - zeit).TotalMinutes;
+            return minuten >= 0 ? minuten : null;
+        }
+
         // Sorte Ehrlichkeit, um die es hier geht. Also je Messgroesse einzeln
         // nachsehen, aus welcher Messung der Wert wirklich stammt.
         var geordnet = measurements
@@ -86,14 +99,22 @@ public sealed class GrowDashboardComposer
             .ThenByDescending(measurement => measurement.Id)
             .ToList();
 
-        (double? Wert, DateTime? Zeit) LetzteMessung(Func<Measurement, double?> selector)
+        // Die Herkunft gehoert mit heraus. Ohne sie stand auf der Startseite
+        // „Hand" ueber Werten, die die Automatik gemessen hatte — samt der
+        // Mahnung „nachmessen?", die dort nichts zu suchen hat.
+        //
+        // Sie wird JE KENNZAHL aufgeloest, nicht je Messung: die Schleife
+        // sucht fuer jede Groesse die letzte Messung, die einen Wert dafuer
+        // hat, und das koennen verschiedene Messungen mit verschiedenen
+        // Quellen sein.
+        (double? Wert, DateTime? Zeit, ValueOrigin? Herkunft) LetzteMessung(Func<Measurement, double?> selector)
         {
             foreach (var messung in geordnet)
             {
-                if (selector(messung) is { } wert) return (wert, messung.TakenAt);
+                if (selector(messung) is { } wert) return (wert, messung.TakenAt, messung.Source);
             }
 
-            return (null, null);
+            return (null, null, null);
         }
 
         // Die Phase des aktivsten Grows im Zelt bestimmt die Sollwerte. Ohne
@@ -153,7 +174,7 @@ public sealed class GrowDashboardComposer
                 };
             }
 
-            var (value, gemessenAm) = LetzteMessung(m => fallback(m));
+            var (value, gemessenAm, herkunft) = LetzteMessung(m => fallback(m));
             return new MetricCard
             {
                 Key = key,
@@ -165,13 +186,22 @@ public sealed class GrowDashboardComposer
                     ? "Letzte Messung"
                     : states.Count == 0 ? "Noch nicht mit Home Assistant verbunden" : "Kein Entity gemappt",
                 NumericValue = value,
-                ValueSource = value.HasValue ? "hand" : null,
+                // „auto" nur, wenn der Wert wirklich aus Home Assistant kam.
+                // Alles andere (von Hand, importiert, berechnet) bleibt
+                // „hand" — es ist jedenfalls nichts, was ein Sensor gerade
+                // liefert.
+                ValueSource = value.HasValue
+                    ? (herkunft == ValueOrigin.HomeAssistant ? "auto" : "hand")
+                    : null,
                 // TakenAt ist Ortszeit (so wird sie erfasst und gelesen), also
                 // gegen DateTime.Now rechnen — gegen UtcNow waere der Wert um
                 // die Zeitzone zu alt. Die Falle aus beta.20, andersherum.
-                MeasuredAgeMinutes = gemessenAm is { } zeit
-                    ? Math.Max(0, (int)(DateTime.Now - zeit).TotalMinutes)
-                    : null,
+                //
+                // Eine Messung, deren Zeitstempel in der ZUKUNFT liegt, ist
+                // kein frischer Wert. Vorher wurde das negative Alter auf 0
+                // geklemmt — eine Zeile mit dem Datum 2099 galt damit als
+                // „gerade eben" und verdraengte die echten Messungen.
+                MeasuredAgeMinutes = AlterInMinuten(gemessenAm),
                 TargetMin = TargetFor(key, targets).Min,
                 TargetMax = TargetFor(key, targets).Max
             };

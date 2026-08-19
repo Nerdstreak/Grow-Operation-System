@@ -58,6 +58,26 @@
     --font-sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 
+    /* Schriftgroessen — sieben Stufen statt 24 gewachsener Werte.
+
+       Gemessen vor dem Umbau: 763 von 2056 Textstellen standen unter 12 px,
+       auf der Startseite 62 % bei einem Median von 11 px, die kleinste Stelle
+       8,5 px. Der Nutzer sagte dazu einen Satz: „viel zu klein“.
+
+       In rem, damit die Schriftgroesse aus den Browser-Einstellungen endlich
+       ankommt — vorher folgten ihr 8,7 % des Textes, weil 326 feste
+       px-Angaben dagegenstanden.
+
+       NUR SCHRIFT wird rem. gap, padding, border, min-height und die
+       Rasterspalten bleiben px: rem an Kanten ist die Stelle, an der das
+       Telefon kaputtgeht. */
+    --fs-etikett: 0.6875rem;  /* 11 px — Versalien-Etikett, Marke, Einheit, Tabellenkopf */
+    --fs-klein:   0.75rem;    /* 12 px — Beiwerk: Zeitstempel, Herkunft, Chip, Fussnote */
+    --fs-text:    0.875rem;   /* 14 px — Fliesstext, Tabellenzelle, Formularfeld, Menue */
+    --fs-gross:   1rem;       /* 16 px — Kartenueberschrift, Zeilentitel, Leerzustand */
+    --fs-titel:   1.25rem;    /* 20 px — Abschnitts- und Dialogtitel */
+    --fs-zahl:    1.5rem;     /* 24 px — die Zahl in der Kachel, Score, Hero */
+
     /* Radien — EIN Satz statt 22/14 vs 10/7 vs 14/11 */
     --r-sm: 7px;
     --r:    10px;

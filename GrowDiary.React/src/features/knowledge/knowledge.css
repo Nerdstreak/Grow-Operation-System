@@ -8,7 +8,7 @@
     min-height: 34px; min-width: min(260px, 100%);
     border: 1px solid var(--hair); border-radius: 8px;
     background: var(--sunk); color: var(--ink);
-    padding: 0 12px; font: 400 13px/1 var(--font-sans);
+    padding: 0 12px; font: 400 var(--fs-text)/1 var(--font-sans);
   }
   @media (min-width: 900px) {
     /* `min-width: min(260px, 100%)` griff nie: die 100 Prozent beziehen sich
@@ -25,15 +25,15 @@
     background: var(--panel); padding: 14px 16px;
     display: grid; gap: 0; align-content: start;
   }
-  .kb-card-title { margin-top: 7px; font-size: 14px; font-weight: 600; }
+  .kb-card-title { margin-top: 7px; font-size: var(--fs-text); font-weight: 600; }
   .kb-card > p {
-    margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted);
+    margin: 6px 0 0; font-size: var(--fs-text); line-height: 1.5; color: var(--muted);
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
   }
   .kb-card .ls-btn { margin-top: 10px; justify-self: start; }
 
   .kb-tag {
-    font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
   }
   .kb-tag.is-accent { color: var(--accent-text); }
   .kb-tag.is-warn { color: var(--warn-text); }
@@ -44,7 +44,7 @@
   /* ---------- Zonen-Überschriften ---------- */
   .kb-zone {
     display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
-    font: 500 10px/1 var(--font-mono); letter-spacing: .16em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .16em; text-transform: uppercase;
     color: var(--faint);
   }
   .kb-zone i { flex: 1; height: 1px; background: var(--hair); }
@@ -77,9 +77,9 @@
     text-align: left; cursor: pointer; font: inherit;
   }
   .kb-rowbtn:hover { background: var(--accent-wash); }
-  .kb-rowbtn.kb-more { color: var(--accent-text); font-weight: 500; font-size: 12.5px; }
+  .kb-rowbtn.kb-more { color: var(--accent-text); font-weight: 500; font-size: var(--fs-text); }
   .kb-row-preview {
-    margin-left: auto; font: 400 11px/1.4 var(--font-mono); color: var(--faint);
+    margin-left: auto; font: 400 var(--fs-etikett)/1.4 var(--font-mono); color: var(--faint);
     /* Mitwachsend statt fest: 28ch sind 185 px, also weniger als heute — am
        Telefon kann nichts ueberlaufen; am Schreibtisch loesen die 45 Prozent
        zu 449 px bei 1280 und 528 px bei 1920 px auf. */
@@ -92,42 +92,42 @@
      ein Drittel zu weit. */
   .kb-detail { padding: 14px 16px 18px; max-width: 560px; }
   .kb-detail .kk {
-    font: 500 10px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase;
     color: var(--faint);
   }
-  .kb-detail h2 { margin: 6px 0 0; font: 600 20px/1.2 var(--font-mono); letter-spacing: -.01em; }
+  .kb-detail h2 { margin: 6px 0 0; font: 600 var(--fs-titel)/1.2 var(--font-mono); letter-spacing: -.01em; }
 
   .ix-kb-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
   .ix-kb-tag {
     display: inline-flex; align-items: center; padding: 3px 8px;
     border: 1px solid var(--hair-2); border-radius: 999px;
-    font: 500 10px/1 var(--font-mono); color: var(--muted);
+    font: 500 var(--fs-etikett)/1 var(--font-mono); color: var(--muted);
   }
   .ix-kb-tag.ok { color: var(--accent-text); border-color: var(--accent); }
   .ix-kb-tag.warn { color: var(--warn-text); }
   .ix-kb-tag.crit { color: var(--danger); border-color: var(--danger); }
 
-  .ix-kb-lede { margin: 10px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+  .ix-kb-lede { margin: 10px 0 0; font-size: var(--fs-text); line-height: 1.6; color: var(--muted); }
 
   .ix-kb-sec { margin-top: 16px; }
   .ix-kb-sec h4 {
-    margin: 0 0 6px; font: 500 10px/1 var(--font-mono); letter-spacing: .14em;
+    margin: 0 0 6px; font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .14em;
     text-transform: uppercase; color: var(--faint);
   }
-  .ix-kb-sec p { margin: 0; font-size: 13px; line-height: 1.6; }
+  .ix-kb-sec p { margin: 0; font-size: var(--fs-text); line-height: 1.6; }
 
-  .ix-kb-ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.7; }
+  .ix-kb-ul { margin: 0; padding-left: 18px; font-size: var(--fs-text); line-height: 1.7; }
 
   .ix-kb-steps { display: grid; gap: 1px; border: 1px solid var(--hair); border-radius: 10px; overflow: hidden; background: var(--hair); }
   .ix-kb-step { background: var(--panel); padding: 10px 12px; }
   .ix-kb-step .h { display: flex; gap: 10px; align-items: baseline; }
-  .ix-kb-step .num { font: 500 11px/1 var(--font-mono); color: var(--accent-text); }
-  .ix-kb-step strong { font-size: 13px; font-weight: 600; }
-  .ix-kb-step p { margin: 4px 0 0 26px; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+  .ix-kb-step .num { font: 500 var(--fs-etikett)/1 var(--font-mono); color: var(--accent-text); }
+  .ix-kb-step strong { font-size: var(--fs-text); font-weight: 600; }
+  .ix-kb-step p { margin: 4px 0 0 26px; font-size: var(--fs-text); line-height: 1.5; color: var(--muted); }
 
   .ix-kb-facts { margin: 0; display: grid; gap: 6px; }
-  .ix-kb-fact { display: grid; grid-template-columns: minmax(min(100%, 120px), 200px) minmax(0, 1fr); gap: 10px; font-size: 12.5px; }
-  .ix-kb-fact dt { color: var(--faint); font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; }
+  .ix-kb-fact { display: grid; grid-template-columns: minmax(min(100%, 120px), 200px) minmax(0, 1fr); gap: 10px; font-size: var(--fs-text); }
+  .ix-kb-fact dt { color: var(--faint); font-family: var(--font-mono); font-size: var(--fs-etikett); letter-spacing: .04em; }
   .ix-kb-fact dd { margin: 0; overflow-wrap: anywhere; }
 
   .ix-kb-refs { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -136,17 +136,17 @@
     min-height: 26px; padding: 0 9px;
     border: 1px solid var(--hair-2); border-radius: 7px;
     background: transparent; color: var(--ink);
-    font: 500 11px/1 var(--font-mono); cursor: pointer;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); cursor: pointer;
   }
   .ix-kb-ref:hover { border-color: var(--accent); color: var(--accent-text); }
   .ix-kb-ref .arr { color: var(--faint); }
   .ix-kb-ref.dead { color: var(--faint); cursor: default; }
 
   .ix-kb-table-wrap { overflow-x: auto; border: 1px solid var(--hair); border-radius: 10px; }
-  .ix-kb-table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 480px; }
+  .ix-kb-table { width: 100%; border-collapse: collapse; font-size: var(--fs-text); min-width: 480px; }
   .ix-kb-table th, .ix-kb-table td { padding: 8px 10px; border-bottom: 1px solid var(--hair); text-align: left; }
   .ix-kb-table thead th {
-    font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase;
     color: var(--faint); background: var(--panel-2);
   }
   .ix-kb-table td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
@@ -161,7 +161,7 @@
 
 .sl-group-head {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-klein);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   margin-bottom: 4px;
@@ -191,4 +191,4 @@
    ueber die volle Fensterbreite gestreckt zu werden. Gemessen fiel die Luecke
    zwischen einem Posten und seinem Grund von 1211 px auf den Spaltenabstand. */
 .sl-item { flex: 0 1 auto; }
-.sl-for { color: var(--muted); font-size: 0.78rem; }
+.sl-for { color: var(--muted); font-size: var(--fs-klein); }

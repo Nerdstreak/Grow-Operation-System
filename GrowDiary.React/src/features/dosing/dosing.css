@@ -14,20 +14,20 @@
   }
   .dz-pump.is-dosing { border-color: var(--accent); }
   .dz-pump-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
-  .dz-pump-head .name { font: 600 13px/1 var(--font-mono); }
+  .dz-pump-head .name { font: 600 var(--fs-text)/1 var(--font-mono); }
   /* --faint statt --hint: --hint hat 30 % Deckkraft und ist fuer Andeutungen
      gedacht (Platzhalter, Trennzeichen). Hier steht der ZUSTAND einer Pumpe —
      „bereit", „dosiert", „gesperrt". Gemessen kam er auf Kontrast 2,2 von
      noetigen 4,5, in beiden Themen. Wer wissen will, ob die Pumpe laeuft,
      muss es lesen koennen. */
   .dz-pump-state {
-    margin-left: auto; font: 500 9.5px/1 var(--font-mono); letter-spacing: .12em;
+    margin-left: auto; font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .12em;
     text-transform: uppercase; color: var(--faint);
   }
   .dz-pump.is-dosing .dz-pump-state { color: var(--accent-text); }
   .dz-pump-state.is-blocked { color: var(--warn-text); }
 
-  .dz-facts { display: grid; gap: 5px; font: 400 11.5px/1.5 var(--font-mono); color: var(--muted); min-width: 0; }
+  .dz-facts { display: grid; gap: 5px; font: 400 var(--fs-klein)/1.5 var(--font-mono); color: var(--muted); min-width: 0; }
   /* Die Zeile muss umbrechen duerfen und die Beschriftung nachgeben.
    *
    * Seit die Werte nicht mehr INNERHALB eines Wortes brechen (conventions.css),
@@ -45,7 +45,7 @@
   .dz-dose-input {
     width: 84px; min-height: 30px; padding: 0 9px;
     border: 1px solid var(--hair-2); border-radius: 8px;
-    background: var(--sunk); color: var(--ink); font: 400 12px/1 var(--font-mono);
+    background: var(--sunk); color: var(--ink); font: 400 var(--fs-klein)/1 var(--font-mono);
   }
 
   /* ---------- Die Pumpe ---------- */
@@ -74,7 +74,7 @@
 
   /* ---------- Kalibrieren ---------- */
   .dz-calib { display: grid; gap: 10px; }
-  .dz-calib-steps { display: grid; gap: 7px; font: 400 12px/1.6 var(--font-mono); color: var(--muted); }
+  .dz-calib-steps { display: grid; gap: 7px; font: 400 var(--fs-klein)/1.6 var(--font-mono); color: var(--muted); }
   .dz-calib-steps .step { display: flex; gap: 10px; }
   .dz-calib-steps .step > span:first-child { color: var(--faint); min-width: 26px; }
   .dz-calib-steps b { color: var(--ink); font-weight: 500; }
@@ -99,7 +99,7 @@
     display: flex; gap: 10px; align-items: flex-start;
     padding: 10px 13px; border-left: 2px solid var(--danger);
     background: var(--danger-wash); border-radius: 0 8px 8px 0;
-    font: 400 12.5px/1.55 var(--font-sans); color: var(--muted);
+    font: 400 var(--fs-text)/1.55 var(--font-sans); color: var(--muted);
   }
   .dz-warn b { color: var(--ink); font-weight: 600; }
 }
@@ -110,7 +110,7 @@
     display: inline-flex; align-items: center;
     padding: 3px 8px; border-radius: 999px;
     border: 1px solid var(--warn); color: var(--warn-text);
-    font: 500 9px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase;
     white-space: nowrap;
   }
   /* Keine eigene Schriftgroesse mehr: 8,5 px war die kleinste der App — an
@@ -125,10 +125,10 @@
   }
   .dz-suggestion.is-allowed { border-left-color: var(--accent); }
   .dz-suggestion-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-  .dz-suggestion-head b { font: 600 13px/1.3 var(--font-mono); color: var(--ink); }
-  .dz-suggestion-head span { font: 400 11.5px/1.45 var(--font-mono); color: var(--muted); }
+  .dz-suggestion-head b { font: 600 var(--fs-text)/1.3 var(--font-mono); color: var(--ink); }
+  .dz-suggestion-head span { font: 400 var(--fs-klein)/1.45 var(--font-mono); color: var(--muted); }
   .dz-suggestion-facts {
     display: grid; gap: 3px;
-    font: 400 11px/1.5 var(--font-mono); color: var(--faint);
+    font: 400 var(--fs-etikett)/1.5 var(--font-mono); color: var(--faint);
   }
 }

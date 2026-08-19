@@ -1,7 +1,7 @@
 @layer pages {
   .ab-text {
     margin: 0 0 10px;
-    font: 400 12px/1.6 var(--font-mono);
+    font: 400 var(--fs-klein)/1.6 var(--font-mono);
     color: var(--muted);
     max-width: 68ch;
   }
@@ -14,7 +14,7 @@
     padding-left: 20px;
     display: grid;
     gap: 6px;
-    font: 400 12px/1.6 var(--font-mono);
+    font: 400 var(--fs-klein)/1.6 var(--font-mono);
     color: var(--muted);
     max-width: 68ch;
   }
@@ -26,7 +26,7 @@
     text-align: left;
     padding: 7px 10px 7px 0;
     border-top: 1px solid var(--hair);
-    font: 400 12px/1.5 var(--font-mono);
+    font: 400 var(--fs-klein)/1.5 var(--font-mono);
     vertical-align: top;
   }
   .ab-dateien th { color: var(--ink); font-weight: 500; white-space: nowrap; padding-right: 18px; }
@@ -35,12 +35,12 @@
   .ab-fragen { display: grid; gap: 10px; }
 
   .ab-frage-kopf { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .ab-frage-kopf strong { font: 500 14px/1.2 var(--font-sans); color: var(--ink); }
+  .ab-frage-kopf strong { font: 500 var(--fs-text)/1.2 var(--font-sans); color: var(--ink); }
   .ab-nummer {
     display: inline-flex; align-items: center; justify-content: center;
     width: 22px; height: 22px; border-radius: 999px;
     background: var(--sunk); border: 1px solid var(--hair);
-    font: 500 11px/1 var(--font-mono); color: var(--muted);
+    font: 500 var(--fs-etikett)/1 var(--font-mono); color: var(--muted);
   }
 
   /* Die Frage ist das, was der Nutzer abtippt — sie steht abgesetzt, damit er
@@ -51,12 +51,12 @@
     border-left: 2px solid var(--accent);
     border-radius: 0;
     background: var(--sunk);
-    font: 400 12px/1.6 var(--font-mono);
+    font: 400 var(--fs-klein)/1.6 var(--font-mono);
     color: var(--ink);
     max-width: 68ch;
   }
 
-  .ab-beleg { margin: 0 0 8px; font: 400 11px/1.5 var(--font-mono); color: var(--faint); }
+  .ab-beleg { margin: 0 0 8px; font: 400 var(--fs-etikett)/1.5 var(--font-mono); color: var(--faint); }
   .ab-beleg code { color: var(--accent-text); }
 
   .ab-anweisung {
@@ -67,7 +67,7 @@
     background: var(--sunk);
     border: 1px solid var(--hair);
     border-radius: 12px;
-    font: 400 11.5px/1.65 var(--font-mono);
+    font: 400 var(--fs-klein)/1.65 var(--font-mono);
     color: var(--ink);
     white-space: pre-wrap;
   }

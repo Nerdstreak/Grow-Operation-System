@@ -129,10 +129,10 @@ export function SensorChart({
         {/* latest reading */}
         <circle cx={scale.x(new Date(last.t).getTime())} cy={scale.y(last.v)} r="3.5" fill="var(--v1-green)" />
         {/* scale labels */}
-        <text x={PAD.left - 6} y={scale.y(highest) + 4} textAnchor="end" fontSize="10" fill="var(--v1-muted)">{formatValue(highest)}</text>
-        <text x={PAD.left - 6} y={scale.y(lowest) + 4} textAnchor="end" fontSize="10" fill="var(--v1-muted)">{formatValue(lowest)}</text>
-        <text x={PAD.left} y={H - 6} fontSize="10" fill="var(--v1-muted)">{formatDay(points[0].t)}</text>
-        <text x={W - PAD.right} y={H - 6} textAnchor="end" fontSize="10" fill="var(--v1-muted)">{formatDay(last.t)}</text>
+        <text x={PAD.left - 6} y={scale.y(highest) + 4} textAnchor="end" fontSize="11" fill="var(--v1-muted)">{formatValue(highest)}</text>
+        <text x={PAD.left - 6} y={scale.y(lowest) + 4} textAnchor="end" fontSize="11" fill="var(--v1-muted)">{formatValue(lowest)}</text>
+        <text x={PAD.left} y={H - 6} fontSize="11" fill="var(--v1-muted)">{formatDay(points[0].t)}</text>
+        <text x={W - PAD.right} y={H - 6} textAnchor="end" fontSize="11" fill="var(--v1-muted)">{formatDay(last.t)}</text>
       </svg>
       <figcaption style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 4 }}>
         <span className="rc2-measurement-note">{label}{unit ? ` (${unit})` : ''}</span>

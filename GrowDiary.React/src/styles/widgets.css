@@ -76,7 +76,7 @@
    (11,5) und die Feldbeschriftung (10). Die leere Meldung war damit auffaelliger
    als der Knopf, den man druecken soll. */
 .rc-file-input-name {
-  font-size: 12px;
+  font-size: var(--fs-klein);
   min-width: 0;
   flex: 1 1 160px;
   color: var(--v1-muted);

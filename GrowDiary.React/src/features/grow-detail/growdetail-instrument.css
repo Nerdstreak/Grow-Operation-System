@@ -19,7 +19,7 @@
 
 /* section tabs → instrument pills */
 .ix-growdetail .detail-tabs { border: 1px solid var(--ix-hair); background: rgba(10, 16, 14, 0.5); border-radius: 12px; }
-.ix-growdetail .detail-tabs .btn { font-family: var(--ix-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 9px; min-height: 44px; }
+.ix-growdetail .detail-tabs .btn { font-family: var(--ix-mono); font-size: var(--fs-klein); letter-spacing: 0.06em; text-transform: uppercase; border-radius: 9px; min-height: 44px; }
 
 /* cards → flat instrument panels with green hairlines */
 .ix-growdetail .card { border-color: var(--ix-hair); border-radius: 14px; background: rgba(10, 16, 14, 0.72); box-shadow: none; }
@@ -47,7 +47,7 @@
 }
 .ix-growdetail .auto-preset h3 {
   font-family: var(--ix-mono);
-  font-size: 14px;
+  font-size: var(--fs-text);
   font-weight: 700;
   letter-spacing: 0.01em;
   color: var(--ix-ink);
@@ -55,7 +55,7 @@
 }
 .ix-growdetail .auto-preset p {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-text);
   line-height: 1.45;
   color: var(--ix-muted);
   max-width: 64ch;
@@ -66,7 +66,7 @@
    normal input font here (the real measurement entry pages keep the mono style). */
 .ix-growdetail .meas-input {
   font-family: inherit;
-  font-size: 15px;
+  font-size: var(--fs-gross);
   font-weight: 500;
 }
 
@@ -81,7 +81,7 @@
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
   background: transparent; border-bottom: 1px solid var(--v1-line); padding: 14px 18px;
 }
-.v1-page .card-title, .v1-page .section-label { color: var(--v1-muted); font-size: 11px; letter-spacing: 0.2em; }
+.v1-page .card-title, .v1-page .section-label { color: var(--v1-muted); font-size: var(--fs-etikett); letter-spacing: 0.2em; }
 .v1-page .empty-hint { color: var(--v1-muted); }
 .v1-page .tl-title { color: var(--v1-text); }
 .v1-page .tl-sub, .v1-page .text-muted { color: var(--v1-muted); }

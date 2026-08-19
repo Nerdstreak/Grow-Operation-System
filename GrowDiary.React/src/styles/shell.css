@@ -19,7 +19,7 @@
     position: fixed; top: 8px; left: 8px; z-index: 200;
     padding: 10px 14px; border-radius: var(--r-sm);
     border: 1px solid var(--accent); background: var(--panel); color: var(--ink);
-    font-size: 13px; text-decoration: none;
+    font-size: var(--fs-text); text-decoration: none;
     clip-path: inset(50%); opacity: 0;
   }
   .gos-skip-link:focus-visible { clip-path: none; opacity: 1; }
@@ -41,10 +41,10 @@
     width: 26px; height: 26px; border-radius: var(--r-sm);
     display: grid; place-items: center;
     background: var(--accent); color: var(--accent-ink);
-    font: 700 13px/1 var(--font-mono);
+    font: 700 var(--fs-text)/1 var(--font-mono);
   }
-  .v1-brand strong { display: block; font: 600 12px/1.2 var(--font-mono); letter-spacing: 0.14em; }
-  .v1-brand span { display: block; margin-top: 2px; font-size: 11px; color: var(--faint); }
+  .v1-brand strong { display: block; font: 600 var(--fs-klein)/1.2 var(--font-mono); letter-spacing: 0.14em; }
+  .v1-brand span { display: block; margin-top: 2px; font-size: var(--fs-etikett); color: var(--faint); }
 
   .v1-nav-group { display: grid; gap: 2px; }
   .v1-nav-group-head {
@@ -53,18 +53,18 @@
     /* Kein `cursor: pointer`: die Ueberschrift ist ein <div> ohne onClick
        (AppShell.tsx), die Hand versprach ein Zuklappen, das es nicht gibt. */
     border: 0; background: transparent;
-    font: 500 10px/1 var(--font-mono); letter-spacing: 0.18em;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: 0.18em;
     text-transform: uppercase; color: var(--faint);
   }
   .v1-nav-group-head::after { content: ''; flex: 1; height: 1px; background: var(--hair); }
   .v1-nav-item {
     min-height: 34px; display: flex; align-items: center; justify-content: space-between;
     gap: var(--s-2); padding: 0 10px; border-radius: var(--r-sm);
-    color: var(--muted); font-size: 13.5px; font-weight: 500; text-decoration: none;
+    color: var(--muted); font-size: var(--fs-text); font-weight: 500; text-decoration: none;
   }
   .v1-nav-item:hover { color: var(--ink); background: var(--accent-wash); }
   .v1-nav-item.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
-  .v1-nav-item .badge { font: 500 10px/1 var(--font-mono); color: var(--faint); }
+  .v1-nav-item .badge { font: 500 var(--fs-etikett)/1 var(--font-mono); color: var(--faint); }
   .v1-nav-item .badge.warn { color: var(--warn-text); }
   /* Auf der Accent-Fuellung des aktiven Eintrags gilt die Auf-Accent-Farbe —
      sonst steht Gelb auf Gruen (1,0:1). Gilt fuer JEDE Status-Farbe auf Accent. */
@@ -76,13 +76,13 @@
   .v1-nav-foot {
     margin-top: auto; padding-top: var(--s-3); border-top: 1px solid var(--hair);
     display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
-    font: 500 11px/1 var(--font-mono); letter-spacing: 0.1em; color: var(--faint);
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: 0.1em; color: var(--faint);
   }
   .theme-toggle {
     min-height: var(--h-xs); padding: 0 var(--s-2);
     border: 1px solid var(--hair-2); border-radius: var(--r-sm);
     background: transparent; color: var(--muted);
-    font: 500 10px/1 var(--font-mono); cursor: pointer;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); cursor: pointer;
   }
 
   .v1-route-frame { min-width: 0; display: flex; flex-direction: column; }
@@ -111,7 +111,7 @@
       min-height: var(--h-lg); padding: 0 var(--s-3);
       border: 1px solid var(--hair-2); border-radius: var(--r-sm);
       background: transparent; color: var(--ink);
-      font: 500 12px/1 var(--font-mono); cursor: pointer;
+      font: 500 var(--fs-klein)/1 var(--font-mono); cursor: pointer;
     }
     .v1-mobile-more-panel {
       display: block; position: fixed; inset: 107px 0 auto; z-index: 29;
@@ -128,7 +128,7 @@
       min-height: var(--h-lg); display: grid; place-items: center;
       border: 1px solid var(--hair); border-radius: var(--r-sm);
       background: var(--panel); color: var(--muted);
-      font: 500 12px/1 var(--font-mono); text-decoration: none;
+      font: 500 var(--fs-klein)/1 var(--font-mono); text-decoration: none;
     }
     .v1-more-tile.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
     /* Die Hauptnavigation direkt unter der Kopfzeile — siehe AppShell.tsx:
@@ -151,7 +151,7 @@
     }
     .v1-mobile-nav-item {
       min-height: 40px; display: grid; place-items: center; border-radius: var(--r-sm);
-      color: var(--muted); font: 500 12px/1 var(--font-mono); text-decoration: none;
+      color: var(--muted); font: 500 var(--fs-klein)/1 var(--font-mono); text-decoration: none;
     }
     .v1-mobile-nav-item.active { background: var(--accent); color: var(--accent-ink); }
     .gos-contextbar { padding: 0 var(--s-3); gap: var(--s-2); overflow-x: auto; }
@@ -159,7 +159,7 @@
 
   /* ---------- aus Phase 2 zurueckgeholt ---------- */
   .v1-scope-picker { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
-  .v1-scope-picker > span { color: var(--v1-soft); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; }
+  .v1-scope-picker > span { color: var(--v1-soft); font-size: var(--fs-etikett); font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; }
   .v1-scope-picker select { min-height: 44px; max-width: 220px; border-radius: 13px; border: 1px solid var(--v1-line); background: var(--sunk); color: var(--v1-text); padding: 0 12px; }
 
   @media (max-width: 720px) {
@@ -171,7 +171,7 @@
   }
   /* --- App-wide search --- */
 .app-search { position: relative; margin: 0 0 14px; }
-  .app-search-input { width: 100%; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--v1-line); background: var(--panel-2); color: inherit; font: inherit; font-size: 13px; }
+  .app-search-input { width: 100%; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--v1-line); background: var(--panel-2); color: inherit; font: inherit; font-size: var(--fs-text); }
   .app-search-input::placeholder { color: var(--v1-muted); }
   .app-search-input:focus { outline: 2px solid var(--v1-accent, #6ee7b7); outline-offset: 1px; }
   /* `--v1-panel` ist im dunklen Thema halbdurchsichtig — die Trefferliste war
@@ -181,7 +181,7 @@
      faellt: dort war die Titelspalte nur 89 px breit und Titel brachen auf fuenf
      Zeilen. `scroll-padding-block-end` haelt die letzte Zeile ganz im Bild. */
   .app-search-results { position: absolute; z-index: 60; inset-inline: 0; top: calc(100% + 6px); min-width: min(360px, 92vw); max-height: 60vh; overflow: auto; overscroll-behavior: contain; scroll-padding-block-end: 8px; display: grid; gap: 2px; padding: 6px; border: 1px solid var(--v1-line); border-radius: 14px; background: var(--panel-2); box-shadow: 0 18px 40px rgba(0,0,0,0.28); }
-  .app-search-empty { padding: 10px 12px; color: var(--v1-muted); font-size: 13px; }
+  .app-search-empty { padding: 10px 12px; color: var(--v1-muted); font-size: var(--fs-text); }
 
   /**
    * Die Trefferzeile.
@@ -215,13 +215,13 @@
      sich jede Zeile nach der Laenge ihrer eigenen Marke. */
   .app-search-hit .k {
     grid-column: 1; grid-row: 1; justify-self: start; min-width: 5.5em; text-align: center;
-    font: 500 10px/1.6 var(--font-mono); letter-spacing: 0.08em;
+    font: 500 var(--fs-etikett)/1.6 var(--font-mono); letter-spacing: 0.08em;
     color: var(--v1-muted); background: var(--sunk);
     border: 1px solid var(--v1-line); border-radius: 4px; padding: 1px 5px; white-space: nowrap;
   }
-  .app-search-hit .t { grid-column: 2; grid-row: 1; font-size: 13.5px; line-height: 1.35; min-width: 0; }
+  .app-search-hit .t { grid-column: 2; grid-row: 1; font-size: var(--fs-text); line-height: 1.35; min-width: 0; }
   .app-search-hit .s {
-    grid-column: 2; grid-row: 2; font-size: 12px; line-height: 1.4; color: var(--v1-muted);
+    grid-column: 2; grid-row: 2; font-size: var(--fs-klein); line-height: 1.4; color: var(--v1-muted);
     min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   }
 }

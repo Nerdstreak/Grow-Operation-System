@@ -45,7 +45,7 @@
   display: grid;
   gap: 5px;
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--fs-text);
   line-height: 1.45;
 }
 .grow-deviation-copy p {
@@ -53,7 +53,7 @@
 }
 .grow-deviation-copy small {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-text);
   line-height: 1.4;
 }
 .grow-overview-card__actions .v1-button,
@@ -75,7 +75,7 @@
       gap: 8px;
     }
     .grows-page .grow-overview-card__header h2 {
-      font-size: 18px;
+      font-size: var(--fs-titel);
       line-height: 1.2;
     }
     .grows-page .grow-overview-card__metrics {
@@ -129,7 +129,7 @@
     }
     .grow-deviation-values,
     .grow-deviation-copy {
-      font-size: 13px;
+      font-size: var(--fs-text);
     }
 }
 
@@ -139,7 +139,7 @@
   .gp-phase {
     flex: 1 1 0; min-width: 0; padding: 9px 10px;
     border-radius: var(--r-sm);
-    font: 500 10px/1 var(--font-mono); letter-spacing: .12em;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .12em;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .gp-phase.is-veg { background: var(--accent-wash); color: var(--accent-text); }
@@ -147,25 +147,25 @@
   .gp-phase.is-open { background: var(--panel-2); color: var(--faint); }
   .gp-dates {
     display: flex; flex-wrap: wrap; gap: 4px 14px;
-    font: 400 11px/1.4 var(--font-mono); color: var(--muted);
+    font: 400 var(--fs-etikett)/1.4 var(--font-mono); color: var(--muted);
   }
 
   .gp-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
   .gp-check {
     display: flex; align-items: baseline; gap: 10px;
-    padding: 9px 0; border-bottom: 1px solid var(--hair); font-size: 13px;
+    padding: 9px 0; border-bottom: 1px solid var(--hair); font-size: var(--fs-text);
   }
   .gp-check:last-child { border-bottom: 0; }
   .gp-mark {
     flex: 0 0 24px; text-align: center;
-    font: 700 11px/1 var(--font-mono);
+    font: 700 var(--fs-etikett)/1 var(--font-mono);
   }
   .gp-check.is-ok .gp-mark { color: var(--accent-text); }
   .gp-check.is-warn .gp-mark { color: var(--warn-text); }
   .gp-check.is-crit .gp-mark { color: var(--danger); }
   .gp-check.is-crit { color: var(--ink); }
 
-  .gp-idle { margin: 0; color: var(--muted); font-size: 13px; }
+  .gp-idle { margin: 0; color: var(--muted); font-size: var(--fs-text); }
 }
 
 /* Grow-Detail: Ueberblick nach dem Entwurf. */
@@ -178,7 +178,7 @@
     display: inline-flex; align-items: center;
     min-height: 32px; padding: 0 14px;
     border-radius: 8px; color: var(--muted);
-    font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase;
     white-space: nowrap;
   }
   .gd-tab:hover { color: var(--ink); background: var(--panel-2); }
@@ -194,14 +194,14 @@
   .gd-dev::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--hair-2); }
   .gd-dev.is-critical::before { background: var(--danger); }
   .gd-dev.is-warning::before { background: var(--warn); }
-  .gd-dev strong { display: block; font-size: 14px; font-weight: 600; }
-  .gd-dev p { margin: 4px 0 8px; font-size: 13px; color: var(--muted); }
+  .gd-dev strong { display: block; font-size: var(--fs-text); font-weight: 600; }
+  .gd-dev p { margin: 4px 0 8px; font-size: var(--fs-text); color: var(--muted); }
 
   .gd-meas-wrap { overflow-x: auto; }
-  .gd-meas-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .gd-meas-table { width: 100%; border-collapse: collapse; font-size: var(--fs-text); }
   .gd-meas-table th, .gd-meas-table td { padding: 9px 14px; border-bottom: 1px solid var(--hair); text-align: left; }
   .gd-meas-table thead th {
-    font: 700 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
+    font: 700 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint);
   }
   .gd-meas-table td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
   .gd-meas-table tbody tr:last-child td { border-bottom: 0; }
@@ -219,15 +219,15 @@
     padding: 12px 16px; border-bottom: 1px solid var(--hair);
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   }
-  .gc-head strong { font-size: 15px; font-weight: 600; }
-  .gc-day { margin-left: auto; font: 400 11px/1 var(--font-mono); color: var(--muted); white-space: nowrap; }
+  .gc-head strong { font-size: var(--fs-gross); font-weight: 600; }
+  .gc-day { margin-left: auto; font: 400 var(--fs-etikett)/1 var(--font-mono); color: var(--muted); white-space: nowrap; }
 
   .gc-body { padding: 12px 16px; display: grid; gap: 10px; }
 
-  .gc-facts { font: 400 11.5px/1.6 var(--font-mono); color: var(--muted); max-width: 68ch; }
+  .gc-facts { font: 400 var(--fs-klein)/1.6 var(--font-mono); color: var(--muted); max-width: 68ch; }
 
   /* Termine unter dem Strahl — die Phasen selbst stehen im Balken. */
-  .gc-phasetext { font: 400 11px/1.5 var(--font-mono); color: var(--muted); }
+  .gc-phasetext { font: 400 var(--fs-etikett)/1.5 var(--font-mono); color: var(--muted); }
 
   /* Geplante Grows tragen die Info-Farbe, wie DAUERHAFT im Entwurf. */
   .ls-pill.is-plan { color: var(--info-text); }
@@ -249,7 +249,7 @@
 .gd-ready-note {
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--fs-klein);
 }
 
 /* Die Nachtabsenkung: der Plan als Kette von Wochen. Die laufende Woche traegt
@@ -284,14 +284,14 @@
   background: var(--accent-wash);
 }
 
-.nr-week-label { color: var(--muted); font-size: 0.75rem; }
-.nr-week-val { font-variant-numeric: tabular-nums; font-size: 0.95rem; }
-.nr-week-note { color: var(--muted); font-size: 0.72rem; }
+.nr-week-label { color: var(--muted); font-size: var(--fs-klein); }
+.nr-week-val { font-variant-numeric: tabular-nums; font-size: var(--fs-gross); }
+.nr-week-note { color: var(--muted); font-size: var(--fs-klein); }
 
 .nr-source,
 .nr-state {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--fs-klein);
 }
 
 .nr-source { max-width: 68ch; }
@@ -312,7 +312,7 @@
    Auswahlfeld klaffte dadurch eine Handbreit. Der Name bleibt links, das
    Feld rueckt direkt daneben. */
 .gp-label { flex: 0 1 auto; min-width: 140px; min-width: 0; }
-.gp-rolle { color: var(--muted); font-style: normal; font-size: 0.8rem; }
+.gp-rolle { color: var(--muted); font-style: normal; font-size: var(--fs-text); }
 /* Eine feste Untergrenze ist eine Zusage, die der Browser auch dann haelt, wenn
    der Platz nicht reicht. `min(100%, 170px)` gibt sie auf schmalen Schirmen auf. */
 /* Die Felder sahen aus wie vom Browser geliefert — als einzige der App. Die
@@ -323,7 +323,7 @@
   min-height: var(--h-md); padding: 0 10px;
   border: 1px solid var(--hair); border-radius: var(--r-sm);
   background: var(--sunk); color: var(--ink);
-  font: 400 13px/1 var(--font-sans);
+  font: 400 var(--fs-text)/1 var(--font-sans);
 }
 .gp-liste select:focus-visible, .gp-neu select:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
@@ -332,5 +332,5 @@
    Listeneintrag. Eine Trennlinie sagt, dass hier die Liste aufhoert. */
 .gp-neu { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center;
   margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--border); }
-.gp-hinweis { color: var(--muted); font-size: 0.8rem; margin: var(--s-3) 0 0; }
-.gp-fehler { color: var(--danger); font-size: 0.85rem; margin: 0 0 var(--s-2); }
+.gp-hinweis { color: var(--muted); font-size: var(--fs-text); margin: var(--s-3) 0 0; }
+.gp-fehler { color: var(--danger); font-size: var(--fs-text); margin: 0 0 var(--s-2); }

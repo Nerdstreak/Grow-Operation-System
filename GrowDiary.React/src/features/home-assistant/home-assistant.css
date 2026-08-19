@@ -19,13 +19,13 @@
      Eingabefelder endeten auf drei verschiedenen Kanten. */
   .ha-layout .co-row > .co-row-value,
   .ha-layout .co-row > .ls-btn { flex: 0 0 96px; text-align: right; }
-  .ha-metric { flex: 0 0 110px; font-size: 13px; }
-  .ha-metric small { color: var(--faint); font-size: 11px; }
+  .ha-metric { flex: 0 0 110px; font-size: var(--fs-text); }
+  .ha-metric small { color: var(--faint); font-size: var(--fs-etikett); }
   .ha-entity-input {
     flex: 1 1 160px; min-width: 0; min-height: 28px; padding: 0 8px;
     border: 1px solid var(--hair); border-radius: 6px;
     background: var(--sunk); color: var(--ink);
-    font: 400 11.5px/1 var(--font-mono);
+    font: 400 var(--fs-klein)/1 var(--font-mono);
   }
   .ha-entity-input::placeholder { color: var(--faint); }
 
@@ -53,11 +53,11 @@
     overflow: hidden; display: grid; place-items: center;
   }
   .ha-preview-frame img { width: 100%; height: 100%; object-fit: cover; }
-  .ha-preview-frame span { font: 400 11px/1.4 var(--font-mono); color: var(--muted); padding: 8px; text-align: center; }
-  .ha-preview figcaption { font: 400 11px/1.4 var(--font-mono); color: var(--muted); }
+  .ha-preview-frame span { font: 400 var(--fs-etikett)/1.4 var(--font-mono); color: var(--muted); padding: 8px; text-align: center; }
+  .ha-preview figcaption { font: 400 var(--fs-etikett)/1.4 var(--font-mono); color: var(--muted); }
 
   /* Kurzer Verweis auf „Aufs Handy holen" — der QR-Code wohnt dort.
      Hier stand bis 2.0.0-beta.15 ein zweiter, der auf die Ingress-Adresse mit
      Token zeigte und darum nur einmal funktionierte. */
-  .ha-pair-text { margin: 5px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+  .ha-pair-text { margin: 5px 0 0; font-size: var(--fs-text); line-height: 1.5; color: var(--muted); }
 }

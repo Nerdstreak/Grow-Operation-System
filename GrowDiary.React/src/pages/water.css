@@ -18,13 +18,13 @@
 }
 
 .wp-summary strong {
-  font-size: 1.35rem;
+  font-size: var(--fs-zahl);
   font-variant-numeric: tabular-nums;
 }
 
 .wp-summary span {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: var(--fs-text);
 }
 
 /* Die Ampel. Drei Stufen, aber der Punkt traegt die Farbe — nicht der Text:
@@ -35,7 +35,7 @@
   align-items: center;
   gap: var(--s-2);
   margin: 0 0 var(--s-3);
-  font-size: 1.02rem;
+  font-size: var(--fs-titel);
 }
 
 .wp-dot {
@@ -78,7 +78,7 @@
 .wp-ampel-wert {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
-  font-size: 0.9rem;
+  font-size: var(--fs-gross);
 }
 
 .wp-ampel-aussage {
@@ -88,7 +88,7 @@
 .wp-ampel-quelle,
 .wp-ampel-fuss {
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: var(--fs-text);
   margin: 6px 0 0;
 }
 
@@ -98,7 +98,7 @@
 
 .wp-updated {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: var(--fs-text);
   align-self: center;
 }
 

@@ -34,7 +34,7 @@ export function GrowDetailSopSection({
       <div className="card" style={{ marginBottom: 14, display: isVisible ? undefined : 'none' }}>
         <div className="card-header">
           <span className="card-title">Laufende Routinen</span>
-          <span className="text-muted" style={{ fontSize: 13 }}>{sopInstances.length}</span>
+          <span className="text-muted" style={{ fontSize: 'var(--fs-text)' }}>{sopInstances.length}</span>
         </div>
         {sopInstanceError ? (
           <div className="empty-hint" style={{ color: 'var(--red)' }}>{sopInstanceError}</div>

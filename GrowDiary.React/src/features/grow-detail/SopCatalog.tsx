@@ -116,7 +116,7 @@ export function SopCatalog({
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="card-header">
           <span className="card-title">SOP-Katalog</span>
-          <span className="text-muted" style={{ fontSize: 13 }}>{catalog.length}</span>
+          <span className="text-muted" style={{ fontSize: 'var(--fs-text)' }}>{catalog.length}</span>
         </div>
         {error && <div className="empty-hint" style={{ color: 'var(--red)' }}>{error}</div>}
         {catalog.length === 0 && !error ? (

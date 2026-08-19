@@ -47,16 +47,16 @@
   }
   .v1-hero h1 {
     margin: 6px 0 0;
-    font: 600 24px/1.15 var(--font-mono);
+    font: 600 var(--fs-zahl)/1.15 var(--font-mono);
     letter-spacing: -0.01em;
   }
   .v1-hero p {
     margin: 7px 0 0; max-width: 68ch;
-    font-size: 13px; line-height: 1.5; color: var(--muted);
+    font-size: var(--fs-text); line-height: 1.5; color: var(--muted);
     text-wrap: pretty;
   }
   .v1-eyebrow, .v1-card-kicker {
-    font: 500 10px/1 var(--font-mono);
+    font: 500 var(--fs-etikett)/1 var(--font-mono);
     letter-spacing: 0.2em; text-transform: uppercase; color: var(--faint);
   }
   /* `min-width: 0` an den Behaeltern, nicht am Feld: ein Flex-Kind kann sonst
@@ -79,13 +79,13 @@
   }
   .v1-section-head h2 {
     margin: 0;
-    font: 500 10px/1 var(--font-mono);
+    font: 500 var(--fs-etikett)/1 var(--font-mono);
     letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
   }
   .v1-section-body { padding: var(--s-4); }
   .v1-card { padding: var(--s-4); }
-  .v1-card h2 { margin: 4px 0 0; font-size: 16px; font-weight: 600; letter-spacing: 0; }
-  .v1-card p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .v1-card h2 { margin: 4px 0 0; font-size: var(--fs-gross); font-weight: 600; letter-spacing: 0; }
+  .v1-card p { margin: 6px 0 0; color: var(--muted); font-size: var(--fs-text); line-height: 1.5; }
   /**
    * Die Karte setzt nur einen Innenabstand, keinen Abstand zwischen ihren
    * Kindern. Ueberschrift und Absatz bringen einen eigenen mit — Felder,
@@ -117,7 +117,7 @@
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     border: 1px solid var(--hair-2); border-radius: var(--r-sm);
     background: transparent; color: var(--ink);
-    font: 500 12px/1 var(--font-mono); letter-spacing: 0.04em;
+    font: 500 var(--fs-klein)/1 var(--font-mono); letter-spacing: 0.04em;
     text-decoration: none; cursor: pointer;
     transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
   }
@@ -140,7 +140,7 @@
     display: inline-flex; align-items: center; gap: 5px;
     min-height: var(--h-xs); padding: 0 var(--s-2);
     border: 1px solid var(--hair-2); border-radius: var(--r-pill);
-    font: 500 10px/1 var(--font-mono); letter-spacing: 0.1em; color: var(--muted);
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: 0.1em; color: var(--muted);
   }
   .v1-badge.tone-ok { color: var(--accent-text); border-color: var(--accent); }
   .v1-badge.tone-warn { color: var(--warn-text); border-color: var(--warn); }
@@ -183,7 +183,7 @@
      ein Einheitenzeichen. Das ist die Trennlinie: eine Messgroesse wird
      geschrieben, wie man sie schreibt; ein Band wird gesetzt. */
   .v1-stat > span {
-    font: 500 10px/1 var(--font-mono);
+    font: 500 var(--fs-etikett)/1 var(--font-mono);
     letter-spacing: 0.12em; color: var(--faint);
   }
   /* Kuerzen statt ueberschreiben: „Purple Lemonade" lief ueber die Trennlinie
@@ -191,12 +191,12 @@
      lesen. conventions.css:320 setzt hier `white-space: nowrap !important`,
      der Text kann also nicht umbrechen; dann muss er wenigstens enden. */
   .v1-stat strong {
-    font: 500 20px/1 var(--font-mono); letter-spacing: 0;
+    font: 500 var(--fs-titel)/1 var(--font-mono); letter-spacing: 0;
     min-width: 0; overflow: hidden; text-overflow: ellipsis;
   }
-  .v1-stat em { font-style: normal; margin-left: 3px; font-size: 12px; color: var(--muted); }
+  .v1-stat em { font-style: normal; margin-left: 3px; font-size: var(--fs-klein); color: var(--muted); }
   /* 12,5 statt 11: hier stehen ganze Saetze, keine Etiketten (13 Stellen). */
-  .v1-stat small { font-size: 12.5px; color: var(--faint); }
+  .v1-stat small { font-size: var(--fs-text); color: var(--faint); }
   .v1-stat.tone-ok strong { color: var(--accent-text); }
   .v1-stat.tone-warn strong { color: var(--warn-text); }
   .v1-stat.tone-critical strong { color: var(--danger); }
@@ -217,7 +217,7 @@
   .v1-tab {
     min-height: var(--h-sm); padding: 0 var(--s-3);
     border: 0; border-radius: var(--r-sm); background: transparent; color: var(--muted);
-    font: 500 11px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase;
+    font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase;
     white-space: nowrap; cursor: pointer;
   }
   .v1-tab:hover:not(.active) { color: var(--ink); background: var(--panel-2); }
@@ -246,14 +246,14 @@
    * Laufweite bleiben — der Rhythmus der Formulare aendert sich dadurch nicht.
    */
   .v1-field > span {
-    font: 500 10px/1 var(--font-mono);
+    font: 500 var(--fs-etikett)/1 var(--font-mono);
     letter-spacing: 0.1em; color: var(--faint);
   }
   .v1-field input, .v1-field select, .v1-field textarea {
     width: 100%; min-height: var(--h-md);
     border: 1px solid var(--hair); border-radius: var(--r-sm);
     background: var(--sunk); color: var(--ink); padding: 0 10px;
-    font: 400 13px/1 var(--font-sans);
+    font: 400 var(--fs-text)/1 var(--font-sans);
   }
   .v1-field input:focus-visible, .v1-field select:focus-visible, .v1-field textarea:focus-visible {
     outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
@@ -261,7 +261,7 @@
   .v1-field textarea { padding: 9px 10px; line-height: 1.5; resize: vertical; }
   /* 68ch, dieselbe Lesebreite wie .v1-hero p weiter oben: hier stand der
      laengste Satz der App mit 177 Zeichen in einer Zeile. */
-  .v1-field small { font-size: 11.5px; color: var(--faint); max-width: 68ch; }
+  .v1-field small { font-size: var(--fs-klein); color: var(--faint); max-width: 68ch; }
   /* Mit `padding: 0` klebte ein zweizeiliger Schaltertext oben und unten am
      Rahmen, und das Kaestchen stand mittig — also neben der zweiten Zeile
      statt neben der Beschriftung. Luft nach oben und unten, `align-items:
@@ -270,7 +270,7 @@
   .v1-switch {
     min-height: var(--h-md); display: flex; align-items: center; gap: var(--s-2);
     padding: 9px 11px; border: 1px solid var(--hair); border-radius: var(--r-sm);
-    background: var(--sunk); font-size: 12.5px; cursor: pointer;
+    background: var(--sunk); font-size: var(--fs-text); cursor: pointer;
   }
   .v1-switch input { width: 16px; height: 16px; accent-color: var(--accent); flex: 0 0 auto; }
   /* Nur wenn der Text mehrzeilig ist, wandert das Kaestchen nach oben. */
@@ -280,7 +280,7 @@
      Trennung aneinander — „LoesungswechselReservoir oder Naehrloesung …". */
   .v1-switch > span { display: grid; gap: 2px; min-width: 0; }
   .v1-switch strong { font-weight: 500; }
-  .v1-switch small { color: var(--muted); font-size: 11.5px; line-height: 1.4; }
+  .v1-switch small { color: var(--muted); font-size: var(--fs-klein); line-height: 1.4; }
   .v1-form-actions { display: flex; gap: var(--s-2); flex-wrap: wrap; align-items: center; }
 
   /* ---------- Auswahl-Karten ---------- */
@@ -290,8 +290,8 @@
     border: 1.5px solid var(--hair-2); border-radius: var(--r);
     background: transparent; color: var(--ink); cursor: pointer;
   }
-  .v1-choice strong { display: block; font: 600 14px/1 var(--font-mono); }
-  .v1-choice span { display: block; margin-top: 6px; font-size: 12px; line-height: 1.45; color: var(--muted); }
+  .v1-choice strong { display: block; font: 600 var(--fs-text)/1 var(--font-mono); }
+  .v1-choice span { display: block; margin-top: 6px; font-size: var(--fs-klein); line-height: 1.45; color: var(--muted); }
   .v1-choice.active { border-color: var(--accent); background: var(--accent-wash); }
 
   /* ---------- Listen / Info ---------- */
@@ -318,19 +318,19 @@
   .v1-info-grid > .v1-info, .v1-info-grid > .v1-fact { border-left: 1px solid var(--hair); border-top: 1px solid var(--hair); margin: -1px 0 0 -1px; }
   /* Ebenfalls Messgroessen — siehe .v1-stat > span. */
   .v1-info span, .v1-fact span {
-    font: 500 10px/1 var(--font-mono);
+    font: 500 var(--fs-etikett)/1 var(--font-mono);
     letter-spacing: 0.11em; color: var(--faint);
   }
-  .v1-info strong, .v1-fact strong { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+  .v1-info strong, .v1-fact strong { font-size: var(--fs-text); font-weight: 600; overflow-wrap: anywhere; }
   .v1-chip-row { display: flex; flex-wrap: wrap; gap: 5px; }
   .v1-chip-row span {
     min-height: var(--h-xs); display: inline-flex; align-items: center; padding: 0 var(--s-2);
     border: 1px solid var(--hair-2); border-radius: var(--r-pill);
-    font: 400 10.5px/1 var(--font-mono); color: var(--muted);
+    font: 400 var(--fs-etikett)/1 var(--font-mono); color: var(--muted);
   }
 
   /* ---------- Zustände ---------- */
-  .v1-alert { display: flex; gap: var(--s-2); align-items: baseline; padding: 11px var(--s-4); font-size: 13px; }
+  .v1-alert { display: flex; gap: var(--s-2); align-items: baseline; padding: 11px var(--s-4); font-size: var(--fs-text); }
   .v1-alert strong { font-weight: 600; }
   .v1-alert.tone-warn { border-color: var(--warn); background: var(--warn-wash); color: var(--warn-text); }
   /* --danger-text statt --danger: als Text auf der hellen Waschung kam
@@ -343,7 +343,7 @@
     display: grid; place-items: center; gap: var(--s-2);
     padding: var(--s-5); text-align: center; color: var(--muted);
   }
-  .v1-empty strong { color: var(--ink); font-size: 15px; font-weight: 600; }
+  .v1-empty strong { color: var(--ink); font-size: var(--fs-gross); font-weight: 600; }
 
   /* ---------- Zwei-Spalten-Muster ----------
      Regel für das ganze Projekt: NIE  minmax(0,1fr) + fixe Spalte.
@@ -366,7 +366,7 @@
   }
   /* The verbatim payload on the AI page: shown so the transparency claim is checkable,
    which only works if long lines wrap instead of running off the side. */
-.v1-pre { margin: 12px 0 0; padding: 12px 14px; max-height: 420px; overflow: auto; border: 1px solid var(--v1-line); border-radius: 12px; background: rgba(0,0,0,0.25); font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.v1-pre { margin: 12px 0 0; padding: 12px 14px; max-height: 420px; overflow: auto; border: 1px solid var(--v1-line); border-radius: 12px; background: rgba(0,0,0,0.25); font-size: var(--fs-klein); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 
   @media (max-width: 860px) {
     .v1-card-grid { gap: 10px; }
@@ -396,7 +396,7 @@
     min-height: 44px; padding: 0 18px;
     border: none; border-radius: 7px;
     background: var(--accent); color: var(--accent-ink);
-    font-size: 15px; font-weight: 700;
+    font-size: var(--fs-gross); font-weight: 700;
   }
   .btn-primary:hover { opacity: .88; color: var(--accent-ink); }
   .section-tabs .btn:not(.btn-primary):hover { background: var(--panel-2); border-color: var(--hair); }
@@ -408,13 +408,13 @@
     display: inline-flex; align-items: center; justify-content: center;
     min-height: 24px; padding: 3px 9px;
     border: 1px solid transparent; border-radius: 999px;
-    font-size: 12px; font-weight: 650;
+    font-size: var(--fs-klein); font-weight: 650;
   }
   .badge-neutral { background: var(--panel-2); color: var(--muted); }
 
   .section-label {
     margin: 24px 0 12px;
-    font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+    font-family: var(--font-mono); font-size: var(--fs-klein); font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.14em; color: var(--faint);
   }
   .section-label:first-child { margin-top: 0; }
@@ -422,7 +422,7 @@
   .live-dashboard .section-label { margin-top: 4px; }
 
   .data-table-header { display: grid; padding: 10px 16px; border-bottom: 1px solid var(--hair); background: var(--panel-2); }
-  .data-table-header span { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); }
+  .data-table-header span { font-size: var(--fs-klein); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); }
   .data-row { display: grid; padding: 12px 16px; border-bottom: 1px solid var(--hair); align-items: center; }
   .data-row:last-child { border-bottom: none; }
   .data-row:hover { background: var(--panel-2); }
@@ -468,7 +468,7 @@
     margin: 0 auto var(--s-3); padding: var(--s-2) var(--s-4);
     width: min(var(--page-max), 100%);
     border: 1px solid var(--warn); border-radius: var(--r);
-    background: var(--warn-wash); font-size: 13px;
+    background: var(--warn-wash); font-size: var(--fs-text);
   }
   .gos-offline strong { color: var(--warn-text); font-weight: 600; }
   .gos-offline span { color: var(--muted); }
@@ -482,11 +482,11 @@
     margin: 0 auto var(--s-3); padding: var(--s-2) var(--s-4);
     width: min(var(--page-max), 100%);
     border: 1px solid var(--info); border-radius: var(--r);
-    background: var(--info-wash); font-size: 13px;
+    background: var(--info-wash); font-size: var(--fs-text);
   }
   .gos-demo strong {
     color: var(--info-text); font-weight: 600;
-    letter-spacing: .12em; text-transform: uppercase; font-size: 11px;
+    letter-spacing: .12em; text-transform: uppercase; font-size: var(--fs-etikett);
   }
   .gos-demo span { color: var(--muted); }
 }

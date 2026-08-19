@@ -24,11 +24,30 @@
 }
 
 .v1-badge,
-.v1-card-kicker,
 .v1-eyebrow,
 .v1-tab strong,
 .v1-mobile-nav-item {
   white-space: nowrap;
+}
+
+/**
+ * Der Kicker darf umbrechen — als einziger dieser Gruppe.
+ *
+ * Die anderen vier tragen kurze Einzelbegriffe. Der Kicker traegt ganze
+ * Satzteile mit Leerzeichen, etwa „Im Grow · Tab „Automatisierung““ auf
+ * /start. Mit "white-space: nowrap" konnte er weder ausweichen noch schrumpfen — er konnte
+ * nur abgeschnitten werden, und bei 320 px verschwand genau das schliessende
+ * Anfuehrungszeichen. Gemessen 10,8 px ueber der Klemmkante, in beiden Themen.
+ *
+ * Aufgefallen ist das erst, als die Pruefung den TEXT mass statt seines
+ * Kastens: der Kasten lag brav in der Spalte, nur die Buchstaben liefen
+ * heraus. Siehe zz-schrift/text-gegenprobe.mjs.
+ *
+ * "overflow-wrap: normal" aus conventions.css bleibt: Woerter brechen
+ * weiterhin nicht mittendrin, der Umbruch findet am Trennpunkt statt.
+ */
+.v1-card-kicker {
+  white-space: normal;
 }
 .v1-alert {
   align-items: flex-start;

@@ -560,7 +560,7 @@ function PhotoThumbs({ files, onRemove }: { files: File[]; onRemove: (index: num
             type="button"
             onClick={() => onRemove(index)}
             aria-label="Foto entfernen"
-            style={{ position: 'absolute', top: -7, right: -7, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.72)', color: 'white', cursor: 'pointer', fontSize: 14, lineHeight: '22px', padding: 0 }}
+            style={{ position: 'absolute', top: -7, right: -7, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.72)', color: 'white', cursor: 'pointer', fontSize: 'var(--fs-text)', lineHeight: '22px', padding: 0 }}
           >
             ×
           </button>
