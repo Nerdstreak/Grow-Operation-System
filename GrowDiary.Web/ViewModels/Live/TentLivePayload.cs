@@ -8,6 +8,48 @@ public sealed class TentLivePayload
     public List<MetricPayload> Metrics { get; set; } = new();
     public string? CameraUrl { get; set; }
     public DateTime RefreshedAtUtc { get; set; }
+
+    /// <summary>Was der Kühler-Regler gerade tut; <c>null</c>, wenn er für dieses Zelt aus ist.</summary>
+    /// <remarks>
+    /// Absichtlich nur beim Einschalten gefüllt: eine Kachel, die dauerhaft
+    /// „nicht eingerichtet" sagt, ist Rauschen auf dem Bildschirm, den man am
+    /// häufigsten ansieht.
+    /// </remarks>
+    public KuehlerLivePayload? Chiller { get; set; }
+}
+
+/// <summary>Der Kühler auf der Live-Seite — Lage und Begründung.</summary>
+/// <remarks>
+/// <b>Warum der Grund mitkommt.</b> Ohne ihn sieht ein stehender Kühler bei
+/// 21 °C wie ein Fehler aus, obwohl gerade die Mindestpause läuft. Der Satz
+/// stammt aus <c>KuehlerService.Entscheiden</c> — derselben Rechnung, die
+/// auch schaltet, nicht einer zweiten fürs Anzeigen.
+/// </remarks>
+public sealed class KuehlerLivePayload
+{
+    /// <summary>Die Steckdose, an der der Kühler hängt.</summary>
+    public string SwitchEntityId { get; set; } = string.Empty;
+
+    /// <summary>Der Sollwert, der jetzt gilt — Tag- oder Nachtwert.</summary>
+    public double? SollC { get; set; }
+
+    /// <summary>Die gemessene Wassertemperatur.</summary>
+    public double? IstC { get; set; }
+
+    /// <summary>Alter des Messwerts in Minuten; null, wenn unbekannt.</summary>
+    public int? MesswertAlterMinuten { get; set; }
+
+    /// <summary>Brennt das Licht? Entscheidet, welcher der beiden Sollwerte gilt.</summary>
+    public bool Tagbetrieb { get; set; }
+
+    /// <summary>Läuft der Kühler gerade? <c>null</c> = Zustand der Steckdose unbekannt.</summary>
+    public bool? LaeuftGerade { get; set; }
+
+    /// <summary>Was der Regler jetzt vorhat: „ein", „aus" oder „nichts".</summary>
+    public string Schaltung { get; set; } = "nichts";
+
+    /// <summary>Der ausgeschriebene Grund — genau der Satz, der auch ins Protokoll geht.</summary>
+    public string Grund { get; set; } = string.Empty;
 }
 
 public sealed class MetricPayload

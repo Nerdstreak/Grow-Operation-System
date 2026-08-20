@@ -117,6 +117,23 @@ public static class Demoverlauf
            + (Stoerung(ortszeit) ? 4.4 : 0)
            + Tagesgang(ortszeit) * 0.75;
 
+    /// <summary>
+    /// Läuft der Kühler gerade? — nur für den Testbestand.
+    /// </summary>
+    /// <remarks>
+    /// <b>Aus derselben Kurve wie die Wassertemperatur.</b> Ein zweiter,
+    /// unabhängig gewürfelter Zustand widerspräche sich sofort: die Karte
+    /// zeigt Temperatur und Kühlerzustand nebeneinander, und ein stehender
+    /// Kühler bei 23 °C wäre im Testbestand kein Fund, sondern ein Fehler in
+    /// den Testdaten. Die Schwelle liegt bewusst mitten im Band, damit über
+    /// den Tag beide Zustände vorkommen.
+    ///
+    /// Während der Störung (dem simulierten Kühlerausfall) steht er — das ist
+    /// ja gerade die Störung.
+    /// </remarks>
+    public static bool KuehlerLaeuft(DateTime ortszeit)
+        => !Stoerung(ortszeit) && WasserTempC(ortszeit) > 19.4;
+
     /// <summary>Gelöster Sauerstoff in mg/L — fällt mit der Wärme.</summary>
     /// <remarks>
     /// Warmes Wasser hält weniger Sauerstoff. Deshalb faellt er waehrend des

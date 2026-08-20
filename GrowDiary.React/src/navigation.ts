@@ -85,6 +85,7 @@ export const navGroups: NavGroup[] = [
       { to: '/sensoren', label: 'Sensoren & Wartung', end: true, keywords: 'hardware geräte kalibrierung inventar wechseln lebensdauer' },
       { to: '/regeln', label: 'Regeln & Automatik', end: true, keywords: 'grenzwerte schwellen alarm push zeitplan automation' },
       { to: '/sollwerte', label: 'Sollwert-Profile', end: true, keywords: 'zielwerte setpoints profil rdwc dwc phasen erfahrung eigene werte' },
+      { to: '/cropsteering', label: 'Crop Steering', end: true, keywords: 'wassertemperatur kühler chiller steckdose nachtabsenkung rampe tag nacht wurzeltemperatur steuern' },
     ],
   },
   {

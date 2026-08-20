@@ -1,3 +1,5 @@
+using GrowDiary.Web.Services;
+
 namespace GrowDiary.Web.Models;
 
 public sealed class Tent
@@ -11,6 +13,56 @@ public sealed class Tent
     /// das andere stellt. Leer heisst: es wird nichts geschrieben.
     /// </remarks>
     public string? WaterTargetEntityId { get; set; }
+
+    /* ---------- Kuehler ueber eine smarte Steckdose ---------- */
+
+    /// <summary>Die Steckdose, an der der Wasserkuehler haengt.</summary>
+    /// <remarks>
+    /// <para>Ein Schalter (<c>switch.…</c>). <b>Drei Entitaeten, drei
+    /// Aufgaben</b>, und sie sind bewusst getrennt:</para>
+    /// <list type="bullet">
+    ///   <item><see cref="WaterTargetEntityId"/> STELLT einen Sollwert an einem
+    ///   Thermostat, das selbst regelt.</item>
+    ///   <item>Der Chiller-SENSOR (<c>SensorMetricType.Chiller</c>) LIEST, ob
+    ///   der Kuehler laeuft — daran haengt der Waechter.</item>
+    ///   <item>Diese hier SCHALTET ihn.</item>
+    /// </list>
+    /// <para>Wer sie verwechselt, schreibt einen Sollwert an eine Steckdose
+    /// oder schaltet einen Sensor.</para>
+    /// </remarks>
+    public string? ChillerSwitchEntityId { get; set; }
+
+    /// <summary>Darf Grow OS den Kuehler selbst schalten?</summary>
+    /// <remarks>
+    /// Standard <b>aus</b>. Etwas, das einen Kompressor taktet, schaltet sich
+    /// nicht von selbst ein, weil jemand ein Update eingespielt hat.
+    /// </remarks>
+    public bool ChillerControlEnabled { get; set; }
+
+    /// <summary>Das halbe Totband um den Sollwert, in Grad.</summary>
+    /// <remarks>
+    /// An bei Soll + Hysterese, aus bei Soll − Hysterese. Am Zelt und nicht im
+    /// Profil, weil es an der Traegheit des Beckens haengt und nicht an der
+    /// Pflanzenphase: 100 Liter schwingen anders als 30.
+    /// </remarks>
+    public double ChillerHysteresisC { get; set; } = KuehlerService.StandardHystereseC;
+
+    /// <summary>Mindestlaufzeit des Kompressors in Minuten.</summary>
+    public int ChillerMinRunMinutes { get; set; } = KuehlerService.StandardMindestlaufMinuten;
+
+    /// <summary>Mindestpause des Kompressors in Minuten.</summary>
+    /// <remarks>
+    /// Die wichtigere der beiden Sperren: ein Kaeltekompressor braucht die
+    /// Druckangleichung, bevor er wieder anlaufen darf.
+    /// </remarks>
+    public int ChillerMinPauseMinutes { get; set; } = KuehlerService.StandardMindestpauseMinuten;
+
+    /// <summary>Wie alt die gemessene Wassertemperatur hoechstens sein darf.</summary>
+    /// <remarks>
+    /// Auf einen halbstuendigen Wert zu regeln ist etwas anderes, als ihn
+    /// anzuzeigen. Dieselbe Sicherung wie <c>DosingPump.MaxReadingAgeMinutes</c>.
+    /// </remarks>
+    public int ChillerMaxReadingAgeMinutes { get; set; } = KuehlerService.StandardHoechstalterMinuten;
     public string Name { get; set; } = string.Empty;
     public string Kind { get; set; } = "Grow Tent";
     public TentType TentType { get; set; } = TentType.MultiPurpose;

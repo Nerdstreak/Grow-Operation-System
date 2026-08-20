@@ -162,6 +162,18 @@ public sealed class SettingsApiController : ApiControllerBase
         // (auch ein blosses Sensor-Mapping) der Rampe still ihr Ziel.
         tentToSave.WaterTargetEntityId = existing.WaterTargetEntityId;
 
+        // Dasselbe fuer die Kuehler-Steuerung. Sie wird auf der
+        // Crop-Steering-Seite eingestellt, nicht im Zelt-Formular — ohne diese
+        // Zeilen naehme jedes Sensor-Mapping ihr still die Steckdose und alle
+        // Kompressor-Grenzen. Genau dieser Fehler ist bei der Nachtabsenkung
+        // schon einmal passiert, siehe den Kommentar darueber.
+        tentToSave.ChillerSwitchEntityId = existing.ChillerSwitchEntityId;
+        tentToSave.ChillerControlEnabled = existing.ChillerControlEnabled;
+        tentToSave.ChillerHysteresisC = existing.ChillerHysteresisC;
+        tentToSave.ChillerMinRunMinutes = existing.ChillerMinRunMinutes;
+        tentToSave.ChillerMinPauseMinutes = existing.ChillerMinPauseMinutes;
+        tentToSave.ChillerMaxReadingAgeMinutes = existing.ChillerMaxReadingAgeMinutes;
+
         _repository.UpdateTent(tentToSave);
         if (request.Sensors is not null)
         {

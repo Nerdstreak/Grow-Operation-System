@@ -157,7 +157,16 @@ public sealed class HomeAssistantService
                 State = root.TryGetProperty("state", out var stateEl) ? stateEl.GetString() ?? string.Empty : string.Empty,
                 LastChanged = root.TryGetProperty("last_changed", out var changedEl) && DateTime.TryParse(changedEl.GetString(), out var changed)
                     ? changed.ToUniversalTime()
-                    : null
+                    : null,
+                // last_updated, NICHT last_changed: Letzteres rueckt nur vor,
+                // wenn sich der Zustandstext aendert. Eine Wassertemperatur,
+                // die zwoelf Minuten lang „19.0" meldet — der Normalfall am
+                // Sollwert —, waere sonst „zwoelf Minuten alt", und der
+                // Kuehler-Regler haette genau dann aufgehoert zu regeln,
+                // wenn er sein Ziel erreicht hat.
+                LastUpdated = root.TryGetProperty("last_updated", out var updatedEl) && DateTime.TryParse(updatedEl.GetString(), out var updated)
+                    ? updated.ToUniversalTime()
+                    : null,
             };
 
             if (root.TryGetProperty("attributes", out var attrs))
@@ -185,6 +194,36 @@ public sealed class HomeAssistantService
     }
 
 
+
+    /// <summary>
+    /// Den Zustand EINER Entität holen, die keine Zelt-Messgröße ist.
+    /// </summary>
+    /// <remarks>
+    /// <b>Warum das eine eigene Methode braucht.</b>
+    /// <see cref="GetStatesAsync"/> liefert ein Wörterbuch, dessen Schlüssel
+    /// <b>Metrik-Kennungen</b> sind (<c>chiller</c>, <c>reservoir-temp</c>, …) —
+    /// nie Entitäts-Kennungen. Wer dort mit <c>switch.kuehler</c> nachschlägt,
+    /// findet grundsätzlich nichts. Genau das ist beim Kühler-Regler passiert,
+    /// und es fiel nicht auf, weil der Testbestand diesen einen Schlüssel
+    /// zusätzlich einträgt: die Demo-Daten haben den Fehler verdeckt.
+    /// </remarks>
+    public async Task<HomeAssistantState?> GetEntityStateAsync(
+        HomeAssistantSettings settings, string entityId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(entityId)) return null;
+
+        if (DemoData.IsEnabled)
+        {
+            // Auch hier durch dieselbe Quelle wie der Betrieb.
+            return DemoData.EntityState(entityId, DateTime.UtcNow);
+        }
+
+        if (!settings.IsConfigured || IsCircuitOpen()) return null;
+
+        var client = CreateClient(settings);
+        var (_, zustand, _) = await FetchStateAsync(client, entityId, entityId, cancellationToken);
+        return zustand;
+    }
 
     public async Task<(byte[] Bytes, string ContentType)?> GetCameraSnapshotAsync(HomeAssistantSettings settings, string entityId, CancellationToken cancellationToken = default)
     {

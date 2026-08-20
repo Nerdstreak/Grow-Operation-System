@@ -199,6 +199,18 @@ test.describe('Formular-Rundweg', () => {
     await expect(page.locator('main').last(),
       'Nach dem Speichern und Neuladen steht der Wert nicht im Protokoll — abgeschickt wurde er.')
       .toContainText(ph)
+
+    // AUFRAEUMEN: die Pruefmessung wieder weg. Sonst waechst das Protokoll mit
+    // jedem Lauf, und die Kacheln der Live-Seite rechnen irgendwann mit Werten,
+    // die eine Pruefung erfunden hat.
+    const alle = await (await page.request.get('/api/grows/1/measurements')).json()
+    for (const m of alle.filter((x: { reservoirPh: number | null }) => x.reservoirPh === 5.71)) {
+      await page.request.delete(`/api/measurements/${m.id}`)
+    }
+    const danach = await (await page.request.get('/api/grows/1/measurements')).json()
+    expect(danach.filter((x: { reservoirPh: number | null }) => x.reservoirPh === 5.71),
+      'Die Prüfmessung liess sich nicht wieder loeschen — der Bestand waechst mit jedem Lauf.')
+      .toEqual([])
   })
 
   test('Rundweg: ManualMeasurementPage — ein unlesbarer Wert wird nicht still verschluckt', async ({ page }) => {
@@ -247,6 +259,11 @@ test.describe('Formular-Rundweg', () => {
     darfUeberspringen(messungen.length === 0, 'Keine Messung zum Bearbeiten im Bestand.')
 
     const id = messungen[0].id
+    // Diese Pruefung UEBERSCHREIBT eine Messung des Demobestands. Der
+    // Ausgangswert wird deshalb vorher gelesen und am Ende zurueckgeschrieben —
+    // sonst traegt der Bestand nach jedem Lauf einen erfundenen pH.
+    const vorher = await (await page.request.get(`/api/measurements/${id}`)).json()
+
     await page.goto(`/grows/measurements/${id}/edit`, { waitUntil: 'networkidle' })
 
     const neuerWert = '5,63'
@@ -271,6 +288,14 @@ test.describe('Formular-Rundweg', () => {
     await expect(page.getByLabel(/^Reservoir-pH/),
       'Nach dem Speichern und Neuladen steht der alte Wert wieder da — gespeichert wurde nichts.')
       .toHaveValue(/5[,.]63/)
+
+    // Zurueckschreiben und nachsehen.
+    await page.request.put(`/api/measurements/${id}`, { data: vorher })
+    const wieder = await (await page.request.get(`/api/measurements/${id}`)).json()
+    expect(wieder.reservoirPh,
+      'Der Ausgangswert der Messung wurde nicht wiederhergestellt — der Demobestand traegt '
+      + 'jetzt einen Pruefwert.')
+      .toBe(vorher.reservoirPh)
   })
 
   /* ---------------------------------------------------------------- */
@@ -302,6 +327,12 @@ test.describe('Formular-Rundweg', () => {
     await expect(page.locator('main').last(),
       'Der Eintrag wurde abgeschickt, ist nach dem Neuladen aber nicht da.')
       .toContainText(titel)
+
+    // KEIN Aufraeumen moeglich: `JournalApiController` hat GET und POST, aber
+    // kein DELETE — ein Journal ist ein Tagebuch, aus dem man nichts
+    // herausreisst. Der Eintrag traegt deshalb „Rundweg" plus Uhrzeit im Titel
+    // und ist im Bestand als Pruefspur erkennbar. Das ist die einzige Stelle
+    // dieser Datei, die etwas hinterlaesst; alle anderen raeumen ab.
   })
 
   /* ---------------------------------------------------------------- */
@@ -331,5 +362,116 @@ test.describe('Formular-Rundweg', () => {
     await expect(page.locator('main').last(),
       'Das Zelt wurde abgeschickt, steht nach dem Neuladen aber nicht in der Liste.')
       .toContainText(name)
+
+    // AUFRAEUMEN. Ohne das steht nach jedem Lauf ein „Rundweg"-Zelt mehr im
+    // Umschalter der Live-Seite — nach drei Laeufen sah der Bestand fuer den
+    // Nutzer „anders und weniger" aus, weil ploetzlich ein leeres Zelt
+    // ausgewaehlt war. Eine Pruefung, die den Gegenstand veraendert, den sie
+    // prueft, ist keine Pruefung, sondern eine Nebenwirkung.
+    const alle = await (await page.request.get('/api/settings/tents')).json()
+    for (const zelt of alle.filter((t: { name: string }) => t.name.startsWith('Rundweg '))) {
+      await page.request.delete(`/api/settings/tents/${zelt.id}`)
+    }
+    const danach = await (await page.request.get('/api/settings/tents')).json()
+    expect(danach.filter((t: { name: string }) => t.name.startsWith('Rundweg ')),
+      'Das Prüfzelt liess sich nicht wieder loeschen — der Bestand waechst mit jedem Lauf.')
+      .toEqual([])
+  })
+
+  /* ---------------------------------------------------------------- */
+  /* Rundweg: CropSteeringPage                                         */
+  /* ---------------------------------------------------------------- */
+
+  test('Rundweg: CropSteeringPage — Kühler einstellen und wiederfinden', async ({ page }) => {
+    darfUeberspringen(!await backendDa(page), 'Kein Backend — siehe oben.')
+
+    // Der Kuehler haengt am ZELT des Demobestands — dieser Rundweg veraendert
+    // also etwas, das alle anderen Pruefungen mitbenutzen. Deshalb wird der
+    // Ausgangsstand vorher gelesen und am Ende zurueckgeschrieben.
+    const vorher = await (await page.request.get('/api/grows/1/night-ramp')).json()
+
+    await page.goto('/cropsteering', { waitUntil: 'networkidle' })
+    const kuehler = page.locator('[data-audit="kuehler"]')
+    await expect(kuehler).toBeVisible()
+
+    // Ein Totband mit KOMMA. Genau daran ist ein <input type="number"> beim
+    // ersten Bau gescheitert: der Wert kam gar nicht erst ins Feld, und
+    // gespeichert worden wäre stillschweigend der alte.
+    const totband = '0,7'
+    const steckdose = 'switch.rundweg_kuehler'
+
+    await page.locator('.v1-switch', { hasText: 'Kühler von Grow OS schalten lassen' })
+      .locator('input').check()
+    await kuehler.getByLabel(/^Steckdose in Home Assistant/).fill(steckdose)
+    await kuehler.getByLabel(/^Totband/).fill(totband)
+    await kuehler.getByLabel(/^Mindestpause/).fill('8')
+
+    const anfrage = page.waitForRequest((r) =>
+      r.method() === 'PUT' && /\/api\/grows\/\d+\/night-ramp/.test(r.url()))
+
+    await page.getByRole('button', { name: 'Speichern' }).click()
+
+    const rumpf = JSON.parse((await anfrage).postData() ?? '{}')
+    expect(rumpf.chiller?.switchEntityId, 'Die Steckdose steht nicht im gesendeten Rumpf.')
+      .toBe(steckdose)
+    expect(rumpf.chiller?.hysteresisC, `Getippt wurde ${totband}, gesendet ${rumpf.chiller?.hysteresisC}.`)
+      .toBe(0.7)
+    expect(rumpf.chiller?.minPauseMinutes).toBe(8)
+
+    // Neu laden — hier fällt auf, was unterwegs verlorengeht. Die Felder hängen
+    // am ZELT, nicht am Grow; ein vergessenes UpdateTent bliebe ohne diesen
+    // Schritt unsichtbar.
+    await page.reload({ waitUntil: 'networkidle' })
+    await expect(kuehler).toBeVisible()
+    await expect(kuehler.getByLabel(/^Steckdose in Home Assistant/),
+      'Die Steckdose war abgeschickt, ist nach dem Neuladen aber wieder weg.')
+      .toHaveValue(steckdose)
+    await expect(kuehler.getByLabel(/^Totband/)).toHaveValue(totband)
+    await expect(kuehler.getByLabel(/^Mindestpause/)).toHaveValue('8')
+
+    // Zurueckschreiben — und nachsehen, dass es angekommen ist.
+    await page.request.put('/api/grows/1/night-ramp', {
+      data: {
+        enabled: vorher.enabled,
+        floorC: vorher.floorC,
+        targetEntityId: vorher.targetEntityId ?? '',
+        chiller: vorher.chiller,
+      },
+    })
+    const wieder = await (await page.request.get('/api/grows/1/night-ramp')).json()
+    expect(wieder.chiller?.switchEntityId,
+      'Der Ausgangsstand des Kuehlers wurde nicht wiederhergestellt — der Demobestand '
+      + 'traegt jetzt Pruefwerte.')
+      .toBe(vorher.chiller?.switchEntityId)
+    expect(wieder.chiller?.hysteresisC).toBe(vorher.chiller?.hysteresisC)
+  })
+
+  test('Rundweg: CropSteeringPage — ein unlesbarer Wert wird nicht still verschluckt', async ({ page }) => {
+    darfUeberspringen(!await backendDa(page), 'Kein Backend — siehe oben.')
+
+    // Dieselbe Fehlerklasse wie im Messformular: „16x" ist keine Zahl. Vorher
+    // ging `floorC: null` raus — die Untergrenze war weg, und die App meldete
+    // „Gespeichert.".
+    await page.goto('/cropsteering', { waitUntil: 'networkidle' })
+    await expect(page.locator('[data-audit="kuehler"]')).toBeVisible()
+
+    await page.getByLabel(/^Untergrenze \(°C\)/).fill('16x')
+
+    let abgeschickt = false
+    page.on('request', (r) => {
+      if (r.method() === 'PUT' && /night-ramp/.test(r.url())) abgeschickt = true
+    })
+
+    await page.getByRole('button', { name: 'Speichern' }).click()
+    await page.waitForTimeout(900)
+
+    expect(abgeschickt,
+      '„16x" ist keine Zahl. Trotzdem ging die Rampe raus — dann steht die Untergrenze auf leer '
+      + 'und der Nutzer bekommt eine Erfolgsmeldung für etwas, das nicht da ist.')
+      .toBe(false)
+
+    await expect(page.locator('main').last(),
+      'Der unlesbare Wert wird zwar nicht gesendet, aber es steht auch nirgends, warum nichts passiert.')
+      .toContainText(/keine Zahl/i)
   })
 })

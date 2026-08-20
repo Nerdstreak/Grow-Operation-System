@@ -36,6 +36,16 @@ public static class DemoData
     /// <summary>Wie eine Demo-Entität heißt — überall sichtbar, nie zu verwechseln.</summary>
     public const string EntityPrefix = "demo";
 
+    /// <summary>Die Steckdose, an der im Testbestand der Kühler hängt.</summary>
+    /// <remarks>
+    /// Steht hier und nicht in <see cref="Demobestand"/>: der Bestand trägt sie
+    /// ins Zelt ein, <see cref="StatesFor"/> liefert ihren Zustand. Zwei
+    /// abgetippte Kennungen wären nach der ersten Umbenennung stumm
+    /// auseinandergelaufen — der Kühler stünde dann dauerhaft auf „Zustand
+    /// unbekannt", ohne dass irgendwo etwas rot wird.
+    /// </remarks>
+    public const string KuehlerSteckdose = "switch.demo_kuehler";
+
     /// <summary>
     /// Ein Wert je Messgröße: Mittelwert, Schwankung, Periode in Stunden und
     /// eine langsame Drift pro Stunde.
@@ -168,8 +178,22 @@ public static class DemoData
                 UnitOfMeasurement = shape.Unit,
                 NumericValue = wert,
                 LastChanged = nowUtc,
+            LastUpdated = nowUtc,
             };
         }
+
+        // Die Kuehler-Steckdose unter ihrer ENTITAETS-Kennung: der Regler sucht
+        // sie genau so, weil dort steht, ob Strom anliegt — der Chiller-Sensor
+        // sagt nur, ob das Geraet laeuft.
+        var kuehlerAn = Demoverlauf.KuehlerLaeuft(nowUtc.ToLocalTime());
+        states[KuehlerSteckdose] = new HomeAssistantState
+        {
+            EntityId = KuehlerSteckdose,
+            State = kuehlerAn ? "on" : "off",
+            FriendlyName = "Demo Kühler-Steckdose",
+            LastChanged = nowUtc,
+            LastUpdated = nowUtc,
+        };
 
         var lichtKey = TentSensorMetricKeyMap.Resolve(SensorMetricType.LightStatus);
         states[lichtKey] = new HomeAssistantState
@@ -178,9 +202,32 @@ public static class DemoData
             State = LightOn(nowUtc) ? "on" : "off",
             FriendlyName = "Demo Licht",
             LastChanged = nowUtc,
+            LastUpdated = nowUtc,
         };
 
         return states;
+    }
+
+    /// <summary>Der Zustand einer einzelnen Entität im Testbestand.</summary>
+    /// <remarks>
+    /// Bewusst NUR die Kühler-Steckdose: sie ist die einzige Entität, die der
+    /// Testbestand unter ihrer eigenen Kennung schaltet. Alles andere geht
+    /// über <see cref="StatesFor"/> und dessen Metrik-Kennungen. Wer hier
+    /// grosszügig würde, baute dem Betrieb wieder eine Kulisse.
+    /// </remarks>
+    public static HomeAssistantState? EntityState(string entityId, DateTime nowUtc)
+    {
+        if (!string.Equals(entityId, KuehlerSteckdose, StringComparison.OrdinalIgnoreCase)) return null;
+
+        var an = Demoverlauf.KuehlerLaeuft(nowUtc.ToLocalTime());
+        return new HomeAssistantState
+        {
+            EntityId = KuehlerSteckdose,
+            State = an ? "on" : "off",
+            FriendlyName = "Demo Kühler-Steckdose",
+            LastChanged = nowUtc,
+            LastUpdated = nowUtc,
+        };
     }
 
     /// <summary>

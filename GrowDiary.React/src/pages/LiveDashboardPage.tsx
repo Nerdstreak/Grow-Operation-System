@@ -411,6 +411,7 @@ function LiveDashboardPage() {
       tents={state.tents}
       systemWarning={systemWarning}
       trends={trends}
+      chiller={live?.chiller ?? null}
       dashboard={dashboardPanel}
       onTent={setSelectedTentId}
       onRefresh={() => setRefresh((current) => current + 1)}

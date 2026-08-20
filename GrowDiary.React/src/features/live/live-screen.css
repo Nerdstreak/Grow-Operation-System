@@ -644,3 +644,14 @@
   padding: var(--s-3);
   margin-top: var(--s-2);
 }
+
+/* Kühler-Karte: der Zustand als Wort, nicht als Farbfleck allein.
+
+   Farbe trägt hier nur mit — „läuft" und „steht" stehen ausgeschrieben da.
+   Wer die Farben nicht unterscheidet, liest denselben Satz.
+   Textfarben, nicht Flächenfarben: --warn hat als Schrift auf dem hellen
+   Thema 4,26 statt 4,5 — das ist in diesem Projekt schon einmal durchgerutscht. */
+.ls-chiller-state { display: block; }
+.ls-chiller-state.is-an { color: var(--accent-text); }
+.ls-chiller-state.is-aus { color: var(--ink); }
+.ls-chiller-state:not(.is-an):not(.is-aus) { color: var(--warn-text); }

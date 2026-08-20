@@ -254,40 +254,10 @@
 
 /* Die Nachtabsenkung: der Plan als Kette von Wochen. Die laufende Woche traegt
    den Akzent — man soll auf einen Blick sehen, was HEUTE gilt. */
-.nr-plan {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-2);
-  margin: var(--s-3) 0 0;
-}
-
-/* `align-content: start` fehlte — dieselbe Zeile, die `.v1-field`
-   (primitives.css:225) aus genau demselben Grund schon traegt. Ohne sie
-   sassen im Kasten der Nachtabsenkung zwei Temperaturen 10 px tiefer als
-   die anderen zwei. */
-/* Ohne diese Grenze stuenden die zwei Felder bei 1920 px in zwei von sechs
-   Spuren und das Formular liefe weiter auseinander. */
-[data-audit="night-ramp"] .v1-form-grid { max-width: 720px; }
-
-.nr-week {
-  align-content: start;
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 8px 12px;
-  display: grid;
-  gap: 1px;
-  min-width: 118px;
-}
-
-.nr-week.is-now {
-  border-color: var(--accent);
-  background: var(--accent-wash);
-}
-
-.nr-week-label { color: var(--muted); font-size: var(--fs-klein); }
-.nr-week-val { font-variant-numeric: tabular-nums; font-size: var(--fs-gross); }
-.nr-week-note { color: var(--muted); font-size: var(--fs-klein); }
-
+/* Die Wochentabelle der Nachtabsenkung stand bis beta.51 in dieser Karte;
+   seit beta.52 steht sie auf /cropsteering und hat dort eigene Klassen.
+   `.nr-plan`, `.nr-week*` sind mit ihrem Markup gestorben — nur `.nr-state`
+   und `.nr-source` leben weiter. */
 .nr-source,
 .nr-state {
   color: var(--muted);

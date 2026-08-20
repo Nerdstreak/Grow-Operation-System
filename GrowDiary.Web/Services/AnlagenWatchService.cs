@@ -62,13 +62,21 @@ public static class AnlagenWatchService
     /// hat, hört von diesem Wächter nichts. Alles andere wäre eine Dauerwarnung
     /// über etwas, das gar nicht existiert.
     /// </remarks>
+    /// <param name="kuehlerAbsichtlichAus">
+    /// Hat GROW OS den Kuehler gerade selbst abgeschaltet, weil das Wasser kalt
+    /// genug ist? Dann ist „aus" kein Ausfall, sondern der Regler bei der
+    /// Arbeit — und eine Stoerungsmeldung waere die App, die sich selbst
+    /// anzeigt. Seit es die Kuehler-Steuerung gibt, muss diese Seite mitgeteilt
+    /// werden; ohne sie meldet der Waechter jeden normalen Regeltakt.
+    /// </param>
     public static IReadOnlyList<AnlagenBefund> Beurteilen(
         IReadOnlyDictionary<string, HomeAssistantState> zustaende,
         DateTime nowUtc,
-        int schonfristMinuten = PumpWatchService.StandardSchonfristMinuten)
+        int schonfristMinuten = PumpWatchService.StandardSchonfristMinuten,
+        bool kuehlerAbsichtlichAus = false)
     {
         var befunde = new List<AnlagenBefund>();
-        KuehlerPruefen(zustaende, nowUtc, schonfristMinuten, befunde);
+        KuehlerPruefen(zustaende, nowUtc, schonfristMinuten, kuehlerAbsichtlichAus, befunde);
         UsvPruefen(zustaende, befunde);
         return befunde;
     }
@@ -77,6 +85,7 @@ public static class AnlagenWatchService
         IReadOnlyDictionary<string, HomeAssistantState> zustaende,
         DateTime nowUtc,
         int schonfristMinuten,
+        bool absichtlichAus,
         List<AnlagenBefund> befunde)
     {
         if (!zustaende.TryGetValue("chiller", out var chiller) || chiller is null) return;
@@ -96,6 +105,18 @@ public static class AnlagenWatchService
             : schonfristMinuten;
 
         if (seit < schonfristMinuten) return;
+
+        // Der Regler hat ihn selbst ausgeschaltet, weil das Wasser kalt genug
+        // ist. Das als Stoerung zu melden hiesse, die App zeigt ihre eigene
+        // Arbeit als Ausfall an — und wer das ein paarmal gesehen hat, glaubt
+        // der Meldung beim echten Ausfall nicht mehr.
+        if (absichtlichAus)
+        {
+            befunde.Add(new AnlagenBefund("chiller", "Kühler", "ok",
+                "Der Kühler ist aus — die Steuerung hat ihn abgeschaltet, das Wasser ist kalt genug.",
+                "Kühler-Steuerung von Grow OS."));
+            return;
+        }
 
         befunde.Add(new AnlagenBefund(
             "chiller", "Kühler", "kritisch",

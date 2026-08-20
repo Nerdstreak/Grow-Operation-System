@@ -111,6 +111,11 @@ public static class Demobestand
             LightType = "LED",
             LightWatt = 480,
             Notes = "Testdaten — dieses Zelt gibt es nicht.",
+            // Die Kuehler-Steuerung ist im Testbestand AN. Sonst waere die
+            // Karte auf der Live-Seite unsichtbar und niemand — ich
+            // eingeschlossen — saehe je, was sie zeigt.
+            ChillerControlEnabled = true,
+            ChillerSwitchEntityId = DemoData.KuehlerSteckdose,
             // LeafTempOffsetC bleibt auf seinem Standard (2,0). Auf 0 gesetzt
             // rechnete die App Luft- statt Blatt-VPD.
         });
@@ -190,6 +195,10 @@ public static class Demobestand
             Light = "LED 480 W",
             ReservoirSize = "100 L",
             Notes = "Testdaten: laufender Lauf in der Blüte.",
+            // Ohne die Rampe gibt es keinen Sollwert, und ohne Sollwert
+            // schaltet der Kuehler-Regler bewusst gar nichts — die Karte
+            // saegte dann immer denselben Satz.
+            NightRampEnabled = true,
         };
 
         grow.Id = grows.CreateGrow(grow);

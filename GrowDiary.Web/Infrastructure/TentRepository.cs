@@ -89,14 +89,14 @@ public sealed class TentRepository : RepositoryBase
                 WidthCm, DepthCm, TentHeightCm, LightType, LightWatt,
                 LightController, LightControllerEntityId, ExhaustFanCount, ExhaustM3h,
                 CirculationFanCount, HvacController, HvacControllerEntityId,
-                Co2Available, HasCo2Enrichment, CameraEntityId, CameraEntityIds, WaterTargetEntityId, LeafTempOffsetC, CreatedAtUtc, UpdatedAtUtc
+                Co2Available, HasCo2Enrichment, CameraEntityId, CameraEntityIds, WaterTargetEntityId, ChillerSwitchEntityId, ChillerControlEnabled, ChillerHysteresisC, ChillerMinRunMinutes, ChillerMinPauseMinutes, ChillerMaxReadingAgeMinutes, LeafTempOffsetC, CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
                 $name, $kind, $tentType, $status, $notes, $displayOrder, $accentColor,
                 $widthCm, $depthCm, $tentHeightCm, $lightType, $lightWatt,
                 $lightController, $lightControllerEntityId, $exhaustFanCount, $exhaustM3h,
                 $circulationFanCount, $hvacController, $hvacControllerEntityId,
-                $co2Available, $hasCo2Enrichment, $cameraEntityId, $cameraEntityIds, $waterTargetEntityId, $leafTempOffsetC, datetime('now'), datetime('now')
+                $co2Available, $hasCo2Enrichment, $cameraEntityId, $cameraEntityIds, $waterTargetEntityId, $chillerSwitchEntityId, $chillerControlEnabled, $chillerHysteresisC, $chillerMinRunMinutes, $chillerMinPauseMinutes, $chillerMaxReadingAgeMinutes, $leafTempOffsetC, datetime('now'), datetime('now')
             );
             SELECT last_insert_rowid();
         """;
@@ -143,6 +143,12 @@ public sealed class TentRepository : RepositoryBase
                 CameraEntityId = $cameraEntityId,
                 CameraEntityIds = $cameraEntityIds,
                 WaterTargetEntityId = $waterTargetEntityId,
+                ChillerSwitchEntityId = $chillerSwitchEntityId,
+                ChillerControlEnabled = $chillerControlEnabled,
+                ChillerHysteresisC = $chillerHysteresisC,
+                ChillerMinRunMinutes = $chillerMinRunMinutes,
+                ChillerMinPauseMinutes = $chillerMinPauseMinutes,
+                ChillerMaxReadingAgeMinutes = $chillerMaxReadingAgeMinutes,
                 LeafTempOffsetC = $leafTempOffsetC,
                 UpdatedAtUtc = datetime('now')
             WHERE Id = $id;
@@ -499,6 +505,12 @@ public sealed class TentRepository : RepositoryBase
             CameraEntityId = NullString(reader["CameraEntityId"]),
             CameraEntityIds = HasColumn(reader, "CameraEntityIds") ? NullString(reader["CameraEntityIds"]) : null,
             WaterTargetEntityId = HasColumn(reader, "WaterTargetEntityId") ? NullString(reader["WaterTargetEntityId"]) : null,
+            ChillerSwitchEntityId = HasColumn(reader, "ChillerSwitchEntityId") ? NullString(reader["ChillerSwitchEntityId"]) : null,
+            ChillerControlEnabled = HasColumn(reader, "ChillerControlEnabled") && Convert.ToInt64(reader["ChillerControlEnabled"]) == 1,
+            ChillerHysteresisC = HasColumn(reader, "ChillerHysteresisC") ? Convert.ToDouble(reader["ChillerHysteresisC"]) : KuehlerService.StandardHystereseC,
+            ChillerMinRunMinutes = HasColumn(reader, "ChillerMinRunMinutes") ? Convert.ToInt32(reader["ChillerMinRunMinutes"]) : KuehlerService.StandardMindestlaufMinuten,
+            ChillerMinPauseMinutes = HasColumn(reader, "ChillerMinPauseMinutes") ? Convert.ToInt32(reader["ChillerMinPauseMinutes"]) : KuehlerService.StandardMindestpauseMinuten,
+            ChillerMaxReadingAgeMinutes = HasColumn(reader, "ChillerMaxReadingAgeMinutes") ? Convert.ToInt32(reader["ChillerMaxReadingAgeMinutes"]) : KuehlerService.StandardHoechstalterMinuten,
             LeafTempOffsetC = HasColumn(reader, "LeafTempOffsetC") ? Convert.ToDouble(reader["LeafTempOffsetC"] is DBNull ? 0d : reader["LeafTempOffsetC"]) : 0d,
             ActiveGrowCount = reader["ActiveGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ActiveGrowCount"], CultureInfo.InvariantCulture),
             ArchivedGrowCount = reader["ArchivedGrowCount"] is DBNull ? 0 : Convert.ToInt32(reader["ArchivedGrowCount"], CultureInfo.InvariantCulture),
@@ -561,6 +573,12 @@ public sealed class TentRepository : RepositoryBase
         command.Parameters.AddWithValue("$cameraEntityId", (object?)tent.CameraEntityId ?? DBNull.Value);
         command.Parameters.AddWithValue("$cameraEntityIds", (object?)tent.CameraEntityIds ?? DBNull.Value);
         command.Parameters.AddWithValue("$waterTargetEntityId", (object?)tent.WaterTargetEntityId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$chillerSwitchEntityId", (object?)tent.ChillerSwitchEntityId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$chillerControlEnabled", tent.ChillerControlEnabled ? 1 : 0);
+        command.Parameters.AddWithValue("$chillerHysteresisC", tent.ChillerHysteresisC);
+        command.Parameters.AddWithValue("$chillerMinRunMinutes", tent.ChillerMinRunMinutes);
+        command.Parameters.AddWithValue("$chillerMinPauseMinutes", tent.ChillerMinPauseMinutes);
+        command.Parameters.AddWithValue("$chillerMaxReadingAgeMinutes", tent.ChillerMaxReadingAgeMinutes);
         command.Parameters.AddWithValue("$leafTempOffsetC", tent.LeafTempOffsetC);
     }
 

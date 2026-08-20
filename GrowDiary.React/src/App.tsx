@@ -5,6 +5,7 @@ import { GrowScopedSectionPage } from './pages/GrowScopedSectionPage'
 import GettingStartedPage from './pages/GettingStartedPage'
 import DosingPage from './pages/DosingPage'
 import SetpointProfilesPage from './pages/SetpointProfilesPage'
+import { CropSteeringPage } from './pages/CropSteeringPage'
 import MobilePage from './pages/MobilePage'
 import DosingPumpSetupPage from './pages/DosingPumpSetupPage'
 import GrowDetailPage from './pages/GrowDetailPage'
@@ -114,6 +115,7 @@ function App() {
           <Route path="/sensoren" element={<HardwarePage />} />
 
           <Route path="/sollwerte" element={<SetpointProfilesPage />} />
+          <Route path="/cropsteering" element={<CropSteeringPage />} />
           <Route path="/wasser" element={<WaterProfilePage />} />
 
           {/* Dosierung: Liste, neu, bearbeiten. Reihenfolge zaehlt — „neu" muss

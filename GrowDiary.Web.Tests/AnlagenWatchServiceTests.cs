@@ -50,6 +50,37 @@ public sealed class AnlagenWatchServiceTests
     }
 
     [Fact]
+    public void Ein_selbst_abgeschalteter_Kuehler_ist_keine_Stoerung()
+    {
+        // Seit es die Kuehler-Steuerung gibt, ist „aus" zweideutig: entweder
+        // ist der Kuehler ausgefallen — oder der Regler hat ihn abgeschaltet,
+        // weil das Wasser kalt genug ist. Beides gleich zu melden hiesse, die
+        // App zeigt ihre eigene Arbeit als Ausfall an. Wer das ein paarmal
+        // gesehen hat, glaubt der Meldung beim echten Ausfall nicht mehr.
+        var b = Assert.Single(AnlagenWatchService.Beurteilen(
+            Zustaende(("chiller", "off", null, 90)), Jetzt,
+            schonfristMinuten: 15, kuehlerAbsichtlichAus: true));
+
+        Assert.Equal("ok", b.Stufe);
+        Assert.Contains("abgeschaltet", b.Meldung);
+    }
+
+    [Fact]
+    public void Ohne_die_Absicht_bleibt_derselbe_Zustand_kritisch()
+    {
+        // <b>Der Beweis, dass die Unterscheidung traegt.</b> Genau dieselben
+        // Zustaende, nur ohne das Wissen um die eigene Schaltung — und schon
+        // ist es wieder eine Stoerung. Ohne diesen Gegentest waere nicht zu
+        // erkennen, ob die neue Fahne ueberhaupt etwas bewirkt oder ob der
+        // Waechter jetzt gar nichts mehr meldet.
+        var b = Assert.Single(AnlagenWatchService.Beurteilen(
+            Zustaende(("chiller", "off", null, 90)), Jetzt,
+            schonfristMinuten: 15, kuehlerAbsichtlichAus: false));
+
+        Assert.Equal("kritisch", b.Stufe);
+    }
+
+    [Fact]
     public void Ein_laenger_stehender_Kuehler_ist_kritisch_und_nennt_die_Folge()
     {
         var b = Assert.Single(AnlagenWatchService.Beurteilen(Zustaende(("chiller", "off", null, 90)), Jetzt, schonfristMinuten: 15));

@@ -1,0 +1,99 @@
+/* Crop Steering — die Wassertemperatur über den Tag.
+
+   Grundformen zuerst, Bedingungen danach: eine @media- oder @container-Abfrage
+   hebt die Spezifität NICHT an, und bei Gleichstand gewinnt die spätere Regel.
+   Diese Klasse Fehler ist in diesem Projekt dreimal zugeschnappt; die Zählung
+   dagegen steht in `src/css-reihenfolge.node.test.ts`. Diese Datei kommt ohne
+   Bedingungsblock aus. */
+
+/* Die Tabelle scrollt in sich, nicht die Seite. Ohne eigene Hülle zieht eine
+   breite Zeile am Telefon das ganze Dokument auf — die Grid-Falle aus beta.40
+   (`min-width: auto` am Grid-Item). */
+.cs-tabelle-huelle { overflow-x: auto; }
+
+.cs-tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-text);
+}
+
+.cs-tabelle th[scope='col'] {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: var(--fs-etikett);
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 0 var(--s-3) var(--s-2) 0;
+  white-space: nowrap;
+}
+
+.cs-tabelle th[scope='row'] {
+  text-align: left;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.cs-tabelle td,
+.cs-tabelle th[scope='row'] {
+  padding: var(--s-2) var(--s-3) var(--s-2) 0;
+  border-top: 1px solid var(--hair);
+  white-space: nowrap;
+}
+
+/* Ohne Einheit in der Zelle stünden die Zahlen sonst unruhig untereinander. */
+.cs-tabelle td { font-variant-numeric: tabular-nums; }
+
+.cs-hinweis {
+  color: var(--muted);
+  font-size: var(--fs-klein);
+  white-space: normal;
+}
+
+/* Die laufende Woche hervorheben — sonst sucht man sie in vierzehn Zeilen.
+   Die Spalte „Hinweis" sagt dasselbe in Worten: Farbe allein trägt hier nichts. */
+.cs-tabelle tr.is-jetzt th[scope='row'],
+.cs-tabelle tr.is-jetzt td {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.cs-hinter-rampe {
+  color: var(--ink);
+  font-size: var(--fs-text);
+  margin: var(--s-3) 0 0;
+  max-width: 68ch;
+}
+
+.cs-quelle {
+  color: var(--muted);
+  font-size: var(--fs-klein);
+  margin: var(--s-3) 0 0;
+  max-width: 68ch;
+}
+
+/* Die Überschrift über der zweiten Feldgruppe des Kühlers. */
+.cs-gruppe {
+  color: var(--ink);
+  font-size: var(--fs-text);
+  font-weight: 500;
+  margin: 0;
+}
+
+/* ---------- Fugen ----------
+
+   `primitives.css` gibt einer Karte nur dann Abstand zwischen ihren Teilen,
+   wenn diese DIREKTE Kinder sind (`.v1-card > .v1-switch` und so weiter). Hier
+   liegt die `data-audit`-Hülle dazwischen, also greift keine dieser Regeln —
+   Warnkasten, Schalter und Feldraster klebten randlos aneinander. Ein
+   Abstandsmodell je Block: Gitterabstand statt Außenränder. */
+[data-audit='night-ramp'],
+[data-audit='kuehler'] { display: grid; gap: var(--s-3); }
+
+[data-audit='kuehler'] > .cs-quelle { margin-top: 0; }
+
+/* Dasselbe eine Ebene höher: der Abstand in `.v1-page` gilt nur für deren
+   direkte Kinder, und das ist hier das <form>. */
+.cs-formular { display: grid; gap: var(--s-3); }
+.cs-einstellen .v1-section-body { display: grid; gap: var(--s-3); }

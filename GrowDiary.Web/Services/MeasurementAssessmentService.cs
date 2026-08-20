@@ -120,8 +120,8 @@ public sealed class MeasurementAssessmentService
     /// Grenzwert; der Arbeitsbereich stammt aus
     /// App_Data/knowledge/guidance/water-temperature-band.json (SOP-RDWC-CAN-N1).
     /// </remarks>
-    private const double WaterTempWorkMin = 17;
-    private const double WaterTempWorkMax = 22;
+    // Die Zahlen stehen in <see cref="Wasserband"/> — sie galten frueher hier
+    // UND im DeviationAnalyzerService, also zweimal.
 
     private readonly TargetValueService _targetValues;
     private readonly AlertRuleRepository? _alertRules;
@@ -147,6 +147,14 @@ public sealed class MeasurementAssessmentService
         var profil = SetpointProfileResolver.Resolve(grow.SetpointProfileId, systemProfileId, grow.HydroStyle);
         var regeln = grow.TentId is { } tentId ? _alertRules?.GetForTent(tentId) : null;
         var phVomNutzer = UserTargets.IsUserSet("reservoir-ph", regeln);
+
+        // Der Wert, auf den die Absenkrampe faehrt. Er zieht die Untergrenze
+        // des Arbeitsbereichs mit nach unten — sonst meldet die App ihre
+        // eigene Regelung als Abweichung.
+        var rampenBoden = Wasserband.RampenBodenC(
+            grow,
+            _targetValues.GetTargets(profil.ProfileId, GrowStage.Flower),
+            _targetValues.GetTargets(profil.ProfileId, GrowStage.Finish));
 
         // Was außerhalb des Laufs liegt, ist ein Datenfehler und keine Messung.
         // Der Bestand enthält Zeilen mit 2099 und 1800 — beides Handeinträge aus
@@ -184,7 +192,7 @@ public sealed class MeasurementAssessmentService
             PruefePh(messung, mitNutzer, phVomNutzer, werte);
             PruefeEc(messung, mitNutzer, werte);
             PruefeOrp(messung, mitNutzer, werte);
-            PruefeWasserTemp(messung, werte);
+            PruefeWasserTemp(messung, ziele, rampenBoden, werte);
             PruefeVpd(messung, mitNutzer, leafTempOffsetC, werte);
             PruefeSauerstoff(messung, werte);
             PruefeOhneZielband(messung, werte);
@@ -271,11 +279,22 @@ public sealed class MeasurementAssessmentService
             $"Ziel {ziele.OrpMin:0}–{ziele.OrpMax:0} mV."));
     }
 
-    private static void PruefeWasserTemp(Measurement m, List<MetricAssessment> raus)
+    /// <summary>
+    /// Die Wassertemperatur gegen ihren Arbeitsbereich.
+    /// </summary>
+    /// <remarks>
+    /// Die Untergrenze kommt aus <see cref="Wasserband"/> und haengt am
+    /// Nachtwert des Profils: seit die Nachtabsenkung nicht mehr nur geplant,
+    /// sondern gefahren wird, meldete die App sonst ihre eigene Regelung als
+    /// Abweichung.
+    /// </remarks>
+    private static void PruefeWasserTemp(
+        Measurement m, HydroTargetValues? ziele, double? rampenBoden, List<MetricAssessment> raus)
     {
         if (m.ReservoirWaterTempC is not { } wert) return;
-        raus.Add(Urteil("water-temp", "Wassertemperatur", wert, "°C", WaterTempWorkMin, WaterTempWorkMax,
-            "Arbeitsbereich 17–22 °C, Ziel 19–20 °C (SOP-RDWC-CAN-N1)."));
+        raus.Add(Urteil("water-temp", "Wassertemperatur", wert, "°C",
+            Wasserband.UntergrenzeC(ziele, rampenBoden), Wasserband.ArbeitsbereichMaxC,
+            Wasserband.Begruendung(ziele, rampenBoden)));
     }
 
     /// <summary>

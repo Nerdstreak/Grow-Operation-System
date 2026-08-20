@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test'
 const ROUTEN = [
   '/', '/messung', '/addback', '/aufgaben',
   '/grows', '/diagnose', '/journal', '/sorten', '/aushaerten', '/archiv',
-  '/dosierung', '/sensoren', '/regeln', '/sollwerte',
+  '/dosierung', '/sensoren', '/regeln', '/sollwerte', '/cropsteering',
   '/zelte', '/hydro', '/wasser', '/home-assistant', '/handy',
   '/wissen', '/einkaufsliste', '/berater', '/einstellungen',
   // Detailseiten: hier stehen die laufende Phase, die Messkacheln und die

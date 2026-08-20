@@ -14,14 +14,18 @@ public sealed class TentsController : Controller
     private readonly GrowDashboardComposer _composer;
     private readonly GrowAlertService _growAlertService;
     private readonly AppPaths _paths;
+    private readonly NachtabsenkungWriter _absenkung;
+    private readonly AppSettingsRepository _einstellungen;
 
-    public TentsController(GrowRepository repository, HomeAssistantService homeAssistantService, GrowDashboardComposer composer, GrowAlertService growAlertService, AppPaths paths)
+    public TentsController(GrowRepository repository, HomeAssistantService homeAssistantService, GrowDashboardComposer composer, GrowAlertService growAlertService, AppPaths paths, NachtabsenkungWriter absenkung, AppSettingsRepository einstellungen)
     {
         _repository = repository;
         _homeAssistantService = homeAssistantService;
         _composer = composer;
         _growAlertService = growAlertService;
         _paths = paths;
+        _absenkung = absenkung;
+        _einstellungen = einstellungen;
     }
 
     [HttpGet("")]
@@ -66,8 +70,59 @@ public sealed class TentsController : Controller
                 ? Url.Action("CameraSnapshot", "Tents", new { id = tent.Id, t = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() })
                 : null,
             RefreshedAtUtc = DateTime.UtcNow,
-            Metrics = metrics.Select(metric => metric.ToPayload()).ToList()
+            Metrics = metrics.Select(metric => metric.ToPayload()).ToList(),
+            Chiller = await KuehlerLageAsync(tent, settings, states, cancellationToken)
         });
+    }
+
+    /// <summary>
+    /// Was der Kühler-Regler gerade tut — für die Live-Seite.
+    /// </summary>
+    /// <remarks>
+    /// <b>Dieselbe Rechnung, die auch schaltet.</b> Lage und Urteil kommen aus
+    /// <see cref="KuehlerWorker.LageLesen"/> und <see cref="KuehlerService.Entscheiden"/>;
+    /// eine zweite Fassung fürs Anzeigen würde von der ersten abdriften. Nur
+    /// der Zeitpunkt unterscheidet sich: der Worker sieht die Lage im
+    /// Minutentakt, die Seite beim Aufruf.
+    /// </remarks>
+    private async Task<KuehlerLivePayload?> KuehlerLageAsync(
+        Tent tent,
+        HomeAssistantSettings settings,
+        IReadOnlyDictionary<string, HomeAssistantState> states,
+        CancellationToken cancellationToken)
+    {
+        // Ist die Steuerung aus, gibt es nichts zu zeigen. Eine Kachel, die
+        // dauerhaft „nicht eingerichtet" sagt, waere Rauschen.
+        if (!tent.ChillerControlEnabled || string.IsNullOrWhiteSpace(tent.ChillerSwitchEntityId))
+        {
+            return null;
+        }
+
+        // Dieselbe Quelle wie im Worker: die Steckdose EINZELN, weil `states`
+        // nur Metrik-Kennungen kennt.
+        var steckdose = await _homeAssistantService.GetEntityStateAsync(
+            settings, tent.ChillerSwitchEntityId!, cancellationToken);
+
+        var lage = KuehlerWorker.LageLesen(
+            _repository, _absenkung, _einstellungen, tent, states, steckdose);
+        var urteil = KuehlerService.Entscheiden(lage, tent, DateTime.UtcNow);
+
+        return new KuehlerLivePayload
+        {
+            SwitchEntityId = tent.ChillerSwitchEntityId!,
+            SollC = lage.SollC,
+            IstC = lage.IstC,
+            MesswertAlterMinuten = lage.MesswertAlter is { } alter ? (int)Math.Round(alter.TotalMinutes) : null,
+            Tagbetrieb = lage.Tagbetrieb,
+            LaeuftGerade = lage.KuehlerLaeuftGerade,
+            Schaltung = urteil.Schaltung switch
+            {
+                KuehlerSchaltung.Ein => "ein",
+                KuehlerSchaltung.Aus => "aus",
+                _ => "nichts",
+            },
+            Grund = urteil.Grund,
+        };
     }
 
     [HttpGet("{id:int}/camera.jpg")]

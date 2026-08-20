@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { GrowSummary, MetricPayload, RiskEventDto, TentDto } from '../../types'
+import type { GrowSummary, KuehlerLivePayload, MetricPayload, RiskEventDto, TentDto } from '../../types'
 import type { HistoryPoint } from '../../components/SensorChart'
 import { SensorChart } from '../../components/SensorChart'
 import { MetricTile } from './MetricTile'
@@ -70,6 +70,14 @@ export type LiveScreenProps = {
   systemWarning: { headline: string; detail: string } | null
   /** Die 24-h-Kurve je Messwert; fehlt sie, zeigt die Kachel ihr Zielband. */
   trends: Map<string, HistoryPoint[]>
+  /**
+   * Was der Kühler-Regler gerade tut — null, solange er für dieses Zelt aus ist.
+   *
+   * Absichtlich nur beim Einschalten: eine Karte, die dauerhaft „nicht
+   * eingerichtet" sagt, wäre Rauschen auf dem Bildschirm, den man am
+   * häufigsten ansieht.
+   */
+  chiller: KuehlerLivePayload | null
   /** Gesetzt, sobald der Nutzer eine eigene Anordnung hat oder gerade anpasst. */
   dashboard: DashboardPanel | null
   onTent: (tentId: number) => void
@@ -94,7 +102,7 @@ export type DashboardPanel = {
 export function LiveScreen({
   tent, grow, score, scoreParts, climate, hydro, alleMetriken, sensorsLive,
   lastMeasurement, stageLine, risks, tasks, timeline, timelineDates, plantLine,
-  flipIsPlanned, daysToFlip, tents, systemWarning, trends, dashboard, onTent, onRefresh,
+  flipIsPlanned, daysToFlip, tents, systemWarning, trends, chiller, dashboard, onTent, onRefresh,
 }: LiveScreenProps) {
   const topRisk = risks[0] ?? null
   // Die eigene Anordnung zeichnet nur, wer eine hat oder gerade eine baut.
@@ -249,6 +257,30 @@ export function LiveScreen({
               </ul>
             )}
           </article>
+
+          {/* Der Kühler steht hier und nicht bei den Kacheln: eine Kachel zeigt
+              einen Messwert, das hier ist eine laufende Steuerung. Ohne den
+              Grund sieht ein stehender Kühler bei 21 °C wie ein Fehler aus,
+              obwohl gerade die Mindestpause läuft. */}
+          {chiller && (
+            <article className="ls-panel ls-chiller" data-audit="live-chiller">
+              <div className="ls-panel-head">
+                <span className="ls-label">Kühler · Crop Steering</span>
+                <span className="ls-panel-meta">
+                  {chiller.tagbetrieb ? 'Tagwert' : 'Nachtwert'}
+                  {chiller.sollC != null ? ` ${grad(chiller.sollC)}` : ' – '}
+                </span>
+                <Link className="ls-btn is-small" to="/cropsteering">Einstellen</Link>
+              </div>
+              <div className="ls-panel-body">
+                <strong className={classNames('ls-chiller-state', chiller.laeuftGerade === true && 'is-an', chiller.laeuftGerade === false && 'is-aus')}>
+                  {chiller.laeuftGerade == null ? 'Zustand der Steckdose unbekannt' : chiller.laeuftGerade ? 'läuft' : 'steht'}
+                  {chiller.istC != null ? ` · Wasser ${grad(chiller.istC)}` : ''}
+                </strong>
+                <p>{chiller.grund}</p>
+              </div>
+            </article>
+          )}
 
           {/* Die Watchdog-Beobachtungen (Drift, Verbrauch) blieben beim Umbau
               zunaechst auf der Strecke — sie sind ein bestehendes Feature und
@@ -416,6 +448,11 @@ function ScoreRing({ value, tone }: { value: number | null; tone: 'ok' | 'warn' 
       </div>
     </div>
   )
+}
+
+/** „19,4 °C" — eine Nachkommastelle, deutsches Komma. */
+function grad(wert: number): string {
+  return `${wert.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} °C`
 }
 
 function sinceLabel(iso: string): string {

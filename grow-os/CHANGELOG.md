@@ -1,5 +1,144 @@
 # Changelog
 
+## 2.0.0-beta.52
+
+**Beta.** The water chiller can now be steered, which is what crop steering in
+RDWC was missing. And the tests stopped changing the data they were testing.
+
+### Steering the water temperature
+
+Grow OS has *planned* a night ramp since beta.32 — one degree cooler per flower
+week, the "Cold Morning Routine" from SKX. It could never *execute* it. A Hailea
+chiller takes no setpoint from outside; it has its own thermostat and no bus.
+
+The tester turned it around: set the chiller itself to a low floor — around
+15 °C — so its own thermostat is only a backstop, and switch it through a smart
+plug. The socket becomes the thermostat and the setpoint comes from the profile.
+The clever part is the direction of failure: if the socket ever sticks on, the
+chiller cools to its own floor and stops. Cold, not fatal. At 5 °C the same
+fault would be root damage — which is why the floor is stated in the interface
+as a **condition**, not a recommendation.
+
+- New — **two-point control with compressor protection.** Dead band ±0.4 °C,
+  minimum run 5 min, minimum pause 5 min, reading no older than 10 min, all
+  adjustable per tent. Off by default: something that cycles a compressor does
+  not switch itself on.
+
+  The order of checks is deliberate — first every reason *not* to switch, then
+  the control. No setpoint does **not** mean "off then": an autoflower never
+  flips, so it has no flower week and no ramp, and switching a running chiller
+  off on that basis would be a rising reservoir. It stays as it is.
+
+  The minimum pause is the one that matters. A refrigeration compressor needs
+  the pressures to equalise; restarting too early works against residual
+  pressure. The last switching time lives in the database, not in memory — a
+  field on an object would be null after every add-on update, and then the
+  compressor cycles exactly when someone installs one.
+
+- New — **its own one-minute tick,** not the light edge. The night ramp hangs on
+  the edge and writes a setpoint twice a day; for a controller that is useless,
+  because the water drifts *between* the edges.
+
+- New — **page "Crop Steering"** (`/cropsteering`). The plan, the setpoint
+  target and the chiller in one place. Until now the ramp sat in a card on the
+  grow, the target values in the setpoint profile and the chiller nowhere;
+  anyone asking why the water is this warm had to look in three places. The card
+  on the grow now shows the state and links here — the same main action on two
+  pages is a finding in this project, not a feature.
+
+- New — **a card on the live screen** while the control is active, carrying the
+  reason in full: "18.9 °C, the chiller is off and would start at 20.4 °C
+  (day value 20.0 °C)". Without it a chiller standing still at 21 °C looks like
+  a fault when the minimum pause is simply running.
+
+- Fixed — **the plant watchdog called a deliberate switch-off a failure.** Every
+  regulated pause would have been reported as a fault.
+
+### What a second pair of eyes found
+
+The controller above was reviewed against the running build before release, by
+something that had not built it. Three of its findings would have shipped
+broken:
+
+- Fixed — **the controller would never have switched anything in a real
+  install.** It looked up the socket's state in the dictionary returned by
+  `GetStatesAsync` — whose keys are *metric* keys (`chiller`,
+  `reservoir-temp`), never entity ids. `switch.kuehler` was never a key there.
+  It appeared to work only because the demo data added that one key on purpose:
+  **the test fixture was hiding the bug.** The socket is now fetched as a single
+  entity, and a test asserts that an entry under the entity id is *not* read —
+  put the old lookup back and it goes red.
+
+- Fixed — **a chiller the controller had switched off was still reported as a
+  failure,** twenty minutes later. The plant watchdog was told "deliberate"
+  only within a time window; a cool night is exactly the case that outlives it.
+  The question now goes through the last *command*: off because I wanted it is
+  fine, "I commanded on and the socket says off" is the real fault.
+
+- Fixed — **reading age was measured against `last_changed`.** That only moves
+  when the state *text* changes, so a temperature sitting steady on its setpoint
+  — the normal case once control works — counted as stale and blocked further
+  control. `last_updated` is now read and used.
+
+- Fixed — **an emptied field became the harshest setting.** `Number('')` is 0,
+  and clamping 0 into the allowed range picked the *minimum*: dead band 0.2 °C,
+  minimum pause 1 minute, on a compressor. Below the allowed range the default
+  applies now, not the edge.
+
+- Fixed — **an unreadable floor value was swallowed in silence,** with a success
+  message. Same class of fault as the 21 numeric fields in the measurement form.
+
+- Fixed — **the floor was stored uncapped** while the calculation capped it, so
+  the tile could read "8 °C · set by you" beside a table ending at 12.
+
+- Fixed — **the off threshold could fall below the hard floor.** Setpoint 12
+  with a 3.0 dead band kept the chiller running to 9 °C while the same class
+  claimed it does not cool below 12.
+
+- Fixed — "Regeln & Automatik" still sent people to the grow for the night ramp.
+
+### One working range, not three
+
+- Fixed — **the app reported its own regulation as a deviation.** The night ramp
+  drives the water to the profile's finish night value — 16 °C by default — while
+  the working range started at 17 °C. From flower week 3 on, every night reading
+  was out of range.
+
+  Both numbers are right; they mean different times of day. The knowledge source
+  says "below 18 °C nutrient uptake is inhibited" — and that is precisely the
+  *point* of SKX's cold night: the gate the nutrients pass through narrows, and
+  the stress goes into resin. What would be a deficiency by day is the method by
+  night.
+
+  So the lower bound now follows the profile's night value rather than a number
+  invented here, and the verdict says which is which. The upper bound and the
+  17 °C day floor keep their source.
+
+  The numbers lived in **three** places across two services, which is why nobody
+  noticed when the ramp went from planned to real. They live in one now, and a
+  census over both services fails if a bare 17, 22, 14 or 24 reappears — it
+  found a third occurrence while being written.
+
+### Tests that changed what they were testing
+
+- Fixed — **the form round-trips wrote into the demo data and left it there.**
+  Each run added a tent named "Rundweg HH:MM:SS" and a measurement, and one
+  test overwrote an existing measurement. After three runs an empty test tent
+  won the tent selection and half the live screen looked blank.
+
+  Every writing round-trip now cleans up and **verifies that it did**: created
+  rows are deleted, changed rows are read before and written back after. Proof:
+  count the stock before and after a full run — unchanged. The one exception is
+  the journal, which has no delete endpoint by design; its entry carries
+  "Rundweg" in the title.
+
+- Fixed — **`/cropsteering` was in no visual check at all.** It is now in the
+  contrast, phone-cut and touch-target sweeps like every other page.
+
+- Fixed — **a decimal field rejected the German comma.** `<input type="number">`
+  drops "0,6" in many browsers, and what would have been saved is the old value
+  in silence. The round-trip types a comma on purpose now.
+
 ## 2.0.0-beta.51
 
 **Beta.** A layout that had been skewed since it was written, and the reason it

@@ -370,4 +370,18 @@ export interface TentLivePayload {
   metrics: MetricPayload[]
   cameraUrl: string | null
   refreshedAtUtc: string
+  /** Was der Kühler-Regler gerade tut; null, wenn er für dieses Zelt aus ist. */
+  chiller: KuehlerLivePayload | null
+}
+
+/** Der Kühler auf der Live-Seite — Lage und Begründung aus derselben Rechnung, die auch schaltet. */
+export interface KuehlerLivePayload {
+  switchEntityId: string
+  sollC: number | null
+  istC: number | null
+  messwertAlterMinuten: number | null
+  tagbetrieb: boolean
+  laeuftGerade: boolean | null
+  schaltung: 'ein' | 'aus' | 'nichts'
+  grund: string
 }

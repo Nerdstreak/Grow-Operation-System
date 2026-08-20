@@ -123,6 +123,9 @@ builder.Services.AddHostedService<HomeAssistantSnapshotWorker>();
 builder.Services.AddHostedService<AlertWatchWorker>();
 builder.Services.AddHostedService<AutoMeasurementWorker>();
 builder.Services.AddHostedService<DosingWorker>();
+// Eigener Minutentakt und NICHT an der Lichtflanke: die haengt zweimal am Tag,
+// die Wassertemperatur wandert dazwischen.
+builder.Services.AddHostedService<KuehlerWorker>();
 
 var defaultUrls = builder.Configuration["Hosting:DefaultUrls"];
 if (!string.IsNullOrWhiteSpace(defaultUrls))

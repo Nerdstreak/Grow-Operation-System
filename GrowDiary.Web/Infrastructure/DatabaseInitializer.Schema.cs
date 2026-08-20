@@ -137,6 +137,17 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "Tents", "Status", "TEXT NOT NULL DEFAULT 'Active'");
         EnsureColumn(connection, "Tents", "CameraEntityIds", "TEXT NULL");
         EnsureColumn(connection, "Tents", "WaterTargetEntityId", "TEXT NULL");
+
+        // Kuehler ueber eine smarte Steckdose. Die Standardwerte stehen hier
+        // UND in Tent.cs — das ist die einzige Doppelung, die SQLite verlangt:
+        // eine bestehende Datenbank bekommt sie beim Nachziehen, ein neues
+        // Objekt im Speicher aus dem Modell.
+        EnsureColumn(connection, "Tents", "ChillerSwitchEntityId", "TEXT NULL");
+        EnsureColumn(connection, "Tents", "ChillerControlEnabled", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumn(connection, "Tents", "ChillerHysteresisC", "REAL NOT NULL DEFAULT 0.4");
+        EnsureColumn(connection, "Tents", "ChillerMinRunMinutes", "INTEGER NOT NULL DEFAULT 5");
+        EnsureColumn(connection, "Tents", "ChillerMinPauseMinutes", "INTEGER NOT NULL DEFAULT 5");
+        EnsureColumn(connection, "Tents", "ChillerMaxReadingAgeMinutes", "INTEGER NOT NULL DEFAULT 10");
         EnsureColumn(connection, "Tents", "LeafTempOffsetC", "REAL NOT NULL DEFAULT 0");
         EnsureColumn(connection, "GrowSystems", "TentId", "INTEGER NULL");
         EnsureColumn(connection, "GrowSystems", "Status", "TEXT NOT NULL DEFAULT 'Active'");

@@ -136,7 +136,21 @@ public sealed class PumpWatchNotifier
         DateTime nowUtc,
         CancellationToken cancellationToken)
     {
-        var befunde = AnlagenWatchService.Beurteilen(zustaende, nowUtc, SchonfristMinuten);
+        // Hat die Kuehler-Steuerung ihn selbst abgeschaltet? Dann ist „aus" der
+        // Regler bei der Arbeit und kein Ausfall.
+        //
+        // ENTSCHEIDEND ist der letzte BEFEHL, nicht die letzte Schaltzeit. Eine
+        // erste Fassung gab hier ein Zeitfenster von 20 Minuten (Schonfrist +
+        // Mindestpause) — ab Minute 21 kam die kritische Meldung samt Push doch,
+        // und eine kuehle Nacht ist genau dieser Fall. Ein Regler, der ein Geraet
+        // besitzt, darf es beliebig lange ausgeschaltet lassen.
+        //
+        // Umgekehrt bleibt der echte Ausfall sichtbar: hat der Regler EIN
+        // befohlen und die Steckdose meldet trotzdem aus, ist das keine
+        // Regelpause, sondern ein Defekt — dann greift die alte Beurteilung.
+        var absichtlich = KuehlerService.IstAbsichtlichAus(tent, KuehlerWorker.LetzterBefehl(_settings, tent.Id));
+
+        var befunde = AnlagenWatchService.Beurteilen(zustaende, nowUtc, SchonfristMinuten, absichtlich);
 
         foreach (var (schluessel, typ) in new[]
                  {

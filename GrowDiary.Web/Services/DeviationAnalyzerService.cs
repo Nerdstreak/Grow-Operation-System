@@ -121,7 +121,10 @@ public sealed class DeviationAnalyzerService
         CheckEc(grow, sorted, targets, deviations);
         CheckPhDriftRate(grow, sorted, deviations);
         CheckOrp(grow, sorted, deviations);
-        CheckWaterTemp(grow, sorted, deviations);
+        CheckWaterTemp(grow, sorted, targets, Wasserband.RampenBodenC(
+            grow,
+            _targetValues.GetTargets(profil.ProfileId, GrowStage.Flower),
+            _targetValues.GetTargets(profil.ProfileId, GrowStage.Finish)), deviations);
         CheckDissolvedOxygen(grow, sorted, deviations);
         CheckVpd(grow, sorted, targets, leafTempOffsetC, deviations);
         CheckPpfd(grow, sorted, targets, deviations);
@@ -240,7 +243,14 @@ public sealed class DeviationAnalyzerService
             participants));
     }
 
-    private static void CheckWaterTemp(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
+    /// <remarks>
+    /// Die Grenzen kommen aus <see cref="Wasserband"/>, nicht aus Ziffern in
+    /// dieser Datei — sie standen frueher auch im MeasurementAssessmentService,
+    /// und zwei Kopien derselben Zahl laufen auseinander.
+    /// </remarks>
+    private static void CheckWaterTemp(
+        GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, double? rampenBoden,
+        List<GrowDeviation> result)
     {
         sorted = sorted.Where(measurement => measurement.ReservoirWaterTempC.HasValue).ToList();
         if (sorted.Count == 0 || sorted[0].ReservoirWaterTempC is not { } actual)
@@ -248,26 +258,31 @@ public sealed class DeviationAnalyzerService
             return;
         }
 
-        var critical = actual > 24 || actual < 14;
-        var warning = actual > 22 || actual < 17;
+        // Die Untergrenze zieht der Nachtwert des Profils mit nach unten: die
+        // Absenkung faehrt dort absichtlich hin.
+        var unten = Wasserband.UntergrenzeC(targets, rampenBoden);
+        var kritischUnten = Math.Min(Wasserband.KritischMinC, unten - 3);
+        var critical = actual > Wasserband.KritischMaxC || actual < kritischUnten;
+        var warning = actual > Wasserband.ArbeitsbereichMaxC || actual < unten;
         if (!critical && !warning)
         {
             return;
         }
 
-        var participants = Consecutive(sorted, measurement => measurement.ReservoirWaterTempC, value => value > 22 || value < 17);
+        var participants = Consecutive(sorted, measurement => measurement.ReservoirWaterTempC,
+            value => value > Wasserband.ArbeitsbereichMaxC || value < unten);
         result.Add(CreateDeviation(
             grow,
             "hydro.water-temp",
             DeviationMetric.WaterTemp,
             actual,
-            17,
-            22,
+            unten,
+            Wasserband.ArbeitsbereichMaxC,
             "C",
             critical ? DeviationSeverity.Critical : DeviationSeverity.Warning,
             $"Reservoir-Wassertemperatur {actual:0.0} C liegt ausserhalb des Arbeitsbereichs.",
             "Wassertemperatur und Kuehlung pruefen.",
-            actual > 22 ? "water-temp-rising-rapid" : null,
+            actual > Wasserband.ArbeitsbereichMaxC ? "water-temp-rising-rapid" : null,
             participants));
     }
 
