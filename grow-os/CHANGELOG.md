@@ -1,5 +1,43 @@
 # Changelog
 
+## 2.0.0-beta.51
+
+**Beta.** A layout that had been skewed since it was written, and the reason it
+stayed that way.
+
+### Sensors & maintenance
+
+- Fixed — **the device row was skewed.** On a wide screen the three buttons of
+  each device stacked vertically inside a 127 px column, making the row 131 px
+  tall instead of 66.
+
+  The cause is worth writing down. `.hw-actions { flex-wrap: wrap }` sat *two
+  lines below* `@container (min-width: 761px) { .hw-actions { flex-wrap:
+  nowrap } }` — and won. A container query does not raise specificity; at a tie,
+  order decides. Half of the intent did work: the rule that narrows the column
+  uses an attribute selector and is therefore stronger, so the column shrank
+  while the `nowrap` evaporated.
+
+- Fixed — **the counters were ragged on a phone.** "Kalibrierung fällig" wraps
+  onto two lines and "Störung" does not, so the two zeros beside each other sat
+  at different heights. The values now align to the bottom of their tile. The
+  same strip appears on the addback and Home Assistant pages.
+
+- Fixed — on a tablet the label column of a device card took 42 % of the width,
+  which is right on a phone and about 300 px of empty space next to the word
+  "Art" on a 710 px card. It is capped now.
+
+### Three dead media queries
+
+A new check walks every stylesheet and reports any rule inside a `@media` or
+`@container` block that a later unconditional rule overrides. It found three
+more on the tents page: the button width on a phone, the tighter tile grid on a
+tablet, and right-aligned values on narrow screens — all three dead since the
+day they were written, for the same reason as above.
+
+The check carries its own proof: it contains the case from this release as
+text and must report it.
+
 ## 2.0.0-beta.50
 
 **Beta.** Numbers were written the English way, and the measurement log was
