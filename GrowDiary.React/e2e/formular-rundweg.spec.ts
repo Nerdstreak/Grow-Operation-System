@@ -109,6 +109,35 @@ function marke(): string {
   return `Rundweg ${new Date().toISOString().slice(11, 19)}`
 }
 
+/**
+ * Auf die ANTWORT warten, nicht auf die Anfrage — und ihren Rumpf zurückgeben.
+ *
+ * <b>Warum das der Unterschied ist.</b> `waitForRequest` ist erfüllt, sobald
+ * der Browser gesendet hat. Wer danach sofort weiternavigiert, prüft ein
+ * Protokoll, in dem der Datensatz noch gar nicht stehen kann — und auf einem
+ * langsamen Läufer bricht der Browser die Anfrage beim Navigieren sogar ab.
+ * Genau so ist der Messungs-Rundweg am 20.08.2026 in CI umgefallen und beim
+ * zweiten Versuch durchgelaufen: als „flaky" gemeldet, also mit einem Achselzucken.
+ *
+ * Eine Prüfung, die manchmal grün ist, hat nichts geprüft. Deshalb gehen alle
+ * Rundwege dieser Datei über diesen Helfer.
+ */
+async function abgeschickt(
+  seite: Page,
+  methode: 'POST' | 'PUT',
+  muster: RegExp,
+  handlung: () => Promise<void>,
+): Promise<Record<string, unknown>> {
+  const antwort = seite.waitForResponse(
+    (r) => r.request().method() === methode && muster.test(r.url()))
+
+  await handlung()
+
+  const fertig = await antwort
+  expect(fertig.ok(), `${methode} ${fertig.url()} kam mit HTTP ${fertig.status()} zurück.`).toBe(true)
+  return JSON.parse(fertig.request().postData() ?? '{}') as Record<string, unknown>
+}
+
 /* ------------------------------------------------------------------ */
 /* Die Zählung über die Grundmenge                                      */
 /* ------------------------------------------------------------------ */
@@ -181,13 +210,9 @@ test.describe('Formular-Rundweg', () => {
 
     // Den ausgehenden Aufruf abfangen: steht der getippte Wert wirklich im
     // Rumpf? Eine Oberflaeche, die ihn nur anzeigt, faellt hier durch.
-    const anfrage = page.waitForRequest((r) =>
-      r.method() === 'POST' && /\/api\/(grows\/\d+\/measurements|measurements)/.test(r.url()))
-
-    await formular.getByRole('button', { name: 'Messung speichern' }).click()
-
-    const gesendet = await anfrage
-    const rumpf = JSON.parse(gesendet.postData() ?? '{}')
+    const rumpf = await abgeschickt(
+      page, 'POST', /\/api\/(grows\/\d+\/measurements|measurements)/,
+      () => formular.getByRole('button', { name: 'Messung speichern' }).click())
     expect(rumpf.reservoirPh, `pH ${ph} wurde getippt, gesendet wurde ${rumpf.reservoirPh}`).toBe(5.71)
     expect(rumpf.reservoirEc).toBe(1.37)
     expect(rumpf.airTemperatureC).toBe(24.3)
@@ -276,10 +301,9 @@ test.describe('Formular-Rundweg', () => {
     await expect(phFeld).toBeVisible()
     await phFeld.fill(neuerWert)
 
-    const anfrage = page.waitForRequest((r) => r.method() === 'PUT' && /measurements/.test(r.url()))
-    await page.getByRole('button', { name: 'Änderungen speichern' }).click()
-
-    const rumpf = JSON.parse((await anfrage).postData() ?? '{}')
+    const rumpf = await abgeschickt(
+      page, 'PUT', /measurements/,
+      () => page.getByRole('button', { name: 'Änderungen speichern' }).click())
     expect(rumpf.reservoirPh, 'Der geänderte pH steht nicht im gesendeten Rumpf.').toBe(5.63)
 
     // Und wirklich nachlesen: die Seite frisch holen, nicht dem Zustand glauben.
@@ -316,10 +340,9 @@ test.describe('Formular-Rundweg', () => {
     await formular.getByLabel('Titel', { exact: true }).fill(titel)
     await formular.getByLabel('Text', { exact: true }).fill('Testdaten aus dem Formular-Rundweg.')
 
-    const anfrage = page.waitForRequest((r) => r.method() === 'POST' && /\/journal/.test(r.url()))
-    await formular.getByRole('button', { name: 'Eintrag speichern' }).click()
-
-    const rumpf = JSON.parse((await anfrage).postData() ?? '{}')
+    const rumpf = await abgeschickt(
+      page, 'POST', /\/journal/,
+      () => formular.getByRole('button', { name: 'Eintrag speichern' }).click())
     expect(rumpf.title, 'Der getippte Titel steht nicht im gesendeten Rumpf.').toBe(titel)
 
     await page.reload({ waitUntil: 'networkidle' })
@@ -350,10 +373,9 @@ test.describe('Formular-Rundweg', () => {
     await formular.getByLabel('Name', { exact: true }).first().fill(name)
     await formular.getByLabel('Breite cm', { exact: true }).fill('100')
 
-    const anfrage = page.waitForRequest((r) => r.method() === 'POST' && /\/api\/settings\/tents/.test(r.url()))
-    await formular.getByRole('button', { name: 'Speichern' }).click()
-
-    const rumpf = JSON.parse((await anfrage).postData() ?? '{}')
+    const rumpf = await abgeschickt(
+      page, 'POST', /\/api\/settings\/tents/,
+      () => formular.getByRole('button', { name: 'Speichern' }).click())
     expect(rumpf.name).toBe(name)
     expect(rumpf.widthCm, 'Die getippte Breite steht nicht im gesendeten Rumpf.').toBe(100)
 
@@ -406,12 +428,11 @@ test.describe('Formular-Rundweg', () => {
     await kuehler.getByLabel(/^Totband/).fill(totband)
     await kuehler.getByLabel(/^Mindestpause/).fill('8')
 
-    const anfrage = page.waitForRequest((r) =>
-      r.method() === 'PUT' && /\/api\/grows\/\d+\/night-ramp/.test(r.url()))
-
-    await page.getByRole('button', { name: 'Speichern' }).click()
-
-    const rumpf = JSON.parse((await anfrage).postData() ?? '{}')
+    const rumpf = await abgeschickt(
+      page, 'PUT', /\/api\/grows\/\d+\/night-ramp/,
+      () => page.getByRole('button', { name: 'Speichern' }).click()) as {
+        chiller?: { switchEntityId?: string; hysteresisC?: number; minPauseMinutes?: number }
+      }
     expect(rumpf.chiller?.switchEntityId, 'Die Steckdose steht nicht im gesendeten Rumpf.')
       .toBe(steckdose)
     expect(rumpf.chiller?.hysteresisC, `Getippt wurde ${totband}, gesendet ${rumpf.chiller?.hysteresisC}.`)
