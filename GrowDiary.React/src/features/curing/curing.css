@@ -81,6 +81,9 @@
     border: 1px solid var(--hair); border-radius: 8px;
     background: var(--sunk); color: var(--ink); font: 400 var(--fs-text)/1 var(--font-sans);
   }
-  .cu-new .cu-check { flex: 0 1 auto; display: flex; align-items: center; gap: 8px; min-height: 40px; }
+  /* 40 px waren zwei zu wenig. Das Kaestchen tippt man ueber die
+     Beschriftung — deshalb muss DIESE die Mindesthoehe haben, nicht das
+     13 px breite Kaestchen selbst. */
+  .cu-new .cu-check { flex: 0 1 auto; display: flex; align-items: center; gap: 8px; min-height: var(--h-lg); }
   .cu-new .cu-check span { text-transform: none; letter-spacing: 0; font-size: var(--fs-text); color: var(--ink); }
 }

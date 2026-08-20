@@ -167,11 +167,21 @@
 
   /* Ein Verweis im Fliesstext soll kein Knopf werden — aber treffbar sein.
      Polster nach oben und unten mit ausgleichendem Gegenrand, damit die Zeile
-     dadurch nicht auseinandergeht. */
+     dadurch nicht auseinandergeht.
+
+     12 statt 8: mit 8 kam die Trefferflaeche auf 37 px, und 44 sind die
+     Untergrenze, die Apple und Google unabhaengig voneinander nennen. Zwei
+     Links auf /grows/1 sind daran haengengeblieben — gesehen erst, als die
+     Seite im Testbestand ueberhaupt Inhalt hatte.
+
+     Diese Regel ist der richtige Ort dafuer: sie fasst JEDEN Verweis im
+     Fliesstext einer Karte. Zwei Sonderregeln fuer die zwei aufgefallenen
+     Stellen haetten die anderen weiter zu klein gelassen — und waeren an
+     dieser hier ohnehin gescheitert, die drei Klassen stark ist. */
   .v1-section-body p a:not(.v1-button):not(.v1-link-button),
   .v1-card p a:not(.v1-button):not(.v1-link-button) {
-    padding-block: 8px;
-    margin-block: -8px;
+    padding-block: 12px;
+    margin-block: -12px;
     display: inline-block;
   }
 }

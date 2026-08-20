@@ -76,6 +76,49 @@ Belegte Fälle. Wer eine davon benutzt und „grün" meldet, hat nichts gemessen
   `routes-reachable` sucht Links im ganzen Quelltext einschließlich `App.tsx`,
   wo die Routen stehen — die Route belegt sich selbst.
 
+### Drei Regeln, die aus belegten Fehlern folgen
+
+**Ein übersprungener Test ist kein bestandener.** Von 34 Fällen aus vier
+E2E-Dateien liefen im Tor drei — der Rest übersprang sich, weil kein Backend
+lief. Genau die Prüfung, die das leere Archiv gefunden hätte, war darunter.
+Gehalten wird das von `e2e/pflicht.ts` (`darfUeberspringen`) und
+`e2e/keine-stillen-uebersprunge.spec.ts`; im Tor läuft `E2E_STRENG=1`.
+
+**Eine Textsuche darf die Datei nicht mitlesen, die sie prüft.**
+`routes-reachable` sucht Links im ganzen Quelltext einschließlich `App.tsx`, wo
+die Routen stehen — eine erfundene Route belegt sich dadurch selbst. Dieselbe
+Falle ist der neuen Übersprung-Zählung im ersten Lauf passiert: ihr eigener
+Suchtext stand in ihr.
+
+**Ein Formular gilt erst als geprüft, wenn jemand es ausgefüllt, abgeschickt
+und den Wert nach dem Neuladen wiedergefunden hat.** Vorher gab es in der
+ganzen E2E-Mappe zwei `fill()` und keinen einzigen Absende-Klick — und zwei
+Fehler dieser Klasse hat der Tester gefunden: einen toten Speichern-Knopf und
+einen stillen Datenverlust bei 21 Zahlenfeldern.
+`e2e/formular-rundweg.spec.ts` zählt über alle `<form onSubmit>`; wer keinen
+Rundweg hat, braucht einen ausgeschriebenen Grund.
+
+### Der Demobestand
+
+`GrowDiary.Web/Services/Demobestand.cs` legt beim Start einen vollständigen
+Datensatz an — aber **nur in eine Datenbank ganz ohne Grows**. Wer eigene Daten
+hat, behält sie.
+
+```bash
+GROW_OS_DEMO=1 dotnet run --project GrowDiary.Web
+```
+
+Gegen die laufende App prüfen:
+
+```bash
+GROW_OS_URL=http://localhost:5076 E2E_STRENG=1 npx playwright test
+```
+
+Ohne ihn prüft die halbe Oberflächen-Sammlung nichts. Zwei echte Fehler sind
+sofort aufgefallen, als es ihn gab: eine Karte mit Kontrast 1,05 im hellen
+Thema und vier Bedienelemente unter der Tippgröße — beide auf Seiten, die
+vorher leer standen.
+
 ### Die Hooks nehmen mir zwei Prüfungen ab
 
 Eingerichtet in `.claude/settings.json`, die Skripte in `.claude/hooks/`:

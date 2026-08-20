@@ -325,6 +325,13 @@
   background: var(--sunk); color: var(--ink);
   font: 400 var(--fs-text)/1 var(--font-sans);
 }
+/* Am groben Zeiger auf die Mindest-Trefferflaeche. --h-md sind 38 px — das
+   reicht mit der Maus und nicht mit dem Finger. Gefunden hat es der
+   Tippziel-Test, aber erst, als die Seite ueberhaupt eine Pflanzen-Karte
+   hatte: ohne Grow im Bestand gab es das Feld gar nicht. */
+@media (pointer: coarse) {
+  .gp-liste select, .gp-neu select { min-height: var(--h-lg); }
+}
 .gp-liste select:focus-visible, .gp-neu select:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
 }

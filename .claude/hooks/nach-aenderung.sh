@@ -28,7 +28,10 @@ case "$datei" in
     # -p:UseAppHost=false: sonst scheitert der Bau an der laufenden App, die
     # die .exe sperrt — das ist kein Fehler im Quelltext.
     if ! ausgabe="$(cd "$WURZEL" && dotnet build GrowDiary.slnx -v q --nologo -p:UseAppHost=false 2>&1)"; then
-      meldung="$(printf '%s' "$ausgabe" | grep -E "error [A-Z]+[0-9]+" | head -8)"
+      # MSB3021/3026/3027 sind KEINE Fehler im Quelltext: die laufende App
+      # sperrt ihre eigene .dll/.exe. Wer die mitmeldet, schickt bei jedem
+      # zweiten Bau einen Fehlalarm.
+      meldung="$(printf '%s' "$ausgabe" | grep -E "error [A-Z]+[0-9]+" | grep -vE "error MSB30(21|26|27)" | head -8)"
     fi
     ;;
   *.ts|*.tsx)

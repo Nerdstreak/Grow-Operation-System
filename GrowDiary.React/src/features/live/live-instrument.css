@@ -17,7 +17,20 @@
   @media (min-width: 1200px) {
     .v1-live-hero-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
-  .v1-camera-card, .v1-camera-empty { min-height: 360px; border-radius: var(--v1-radius); overflow: hidden; border: 1px solid var(--v1-line); background: #020603; position: relative; }
+  .v1-camera-card, .v1-camera-empty { min-height: 360px; border-radius: var(--v1-radius); overflow: hidden; border: 1px solid var(--v1-line); position: relative; }
+  /* Fast schwarz — aber NUR unter dem Bild: der dunkle Grund ist die
+     Letterbox um ein Foto, das die Kachel nicht ganz fuellt. */
+  .v1-camera-card { background: #020603; }
+  /* Die LEERE Karte traegt kein Bild und darf deshalb auch keinen
+     Foto-Grund haben. Sie hatte ihn trotzdem, und im hellen Thema stand
+     dadurch dunkler Text auf fast schwarzem Grund — gemessener Kontrast
+     1,05 bis 1,10, also unlesbar.
+
+     Derselbe Fehler wie beim Balken darunter, im selben Block, und der ist
+     laengst behoben. Uebersehen wurde er, weil die Karte nur erscheint, wenn
+     ein Zelt OHNE Kamera existiert — und im Testbestand gab es gar kein
+     Zelt. Gefunden hat ihn erst der volle Demobestand. */
+  .v1-camera-empty { background: var(--v1-surface); }
   .v1-camera-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 160ms ease; }
   .v1-camera-card img.ready { opacity: 1; }
   /* Der Balken liegt auf einem Foto und bleibt deshalb in BEIDEN Themen dunkel.

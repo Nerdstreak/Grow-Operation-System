@@ -181,18 +181,19 @@ if (DemoData.IsEnabled)
             demoLogger.LogInformation("Testdaten: kalibrierte pH-Sonde fuer Zelt {TentId} angelegt.", tent.Id);
         }
 
-        // Ein abgeschlossener Grow mit Ernte. Ohne ihn steht auf /archiv nur
-        // „Noch keine archivierten Grows", und die Kostenrechnung je Grow
-        // (Summe, EUR/g) laesst sich auf dem Entwicklungsrechner nirgends
-        // ansehen — obwohl sie gebaut ist. Nur, wenn wirklich keiner da ist.
+        // Der ganze fachliche Bestand — Zelt, Aufbau, drei Grows, sechs Wochen
+        // Messungen, Journal, Aufgaben, Geraet, Alarm, Risiko, Aushaerte-Glas
+        // und zwei Ernten. Nur in eine Datenbank ganz OHNE Grows: wer schon
+        // einen hat, hat eigene Daten, und die sind besser als jede Demo.
+        //
+        // Bis beta.50 stand hier ein Einzelfall, der nur den fehlenden
+        // Archiv-Grow nachtrug. Der ist in Demobestand aufgegangen — sonst
+        // haette es zwei Stellen gegeben, die Testdaten anlegen.
         var growsRepo = demoScope.ServiceProvider.GetRequiredService<GrowRepository>();
-        if (growsRepo.GetArchivedGrows().Count == 0)
+        if (Demobestand.IstNoetig(growsRepo))
         {
-            var (demoGrow, demoErnte) = DemoData.SeedArchivierterGrow(tents.FirstOrDefault()?.Id, DateTime.Today);
-            demoGrow.Id = growsRepo.CreateGrow(demoGrow);
-            demoErnte.GrowId = demoGrow.Id;
-            demoScope.ServiceProvider.GetRequiredService<HarvestRepository>().Create(demoErnte);
-            demoLogger.LogInformation("Testdaten: abgeschlossener Grow {Name} mit Ernte angelegt.", demoGrow.Name);
+            var was = Demobestand.Anlegen(demoScope.ServiceProvider);
+            demoLogger.LogInformation("Testdaten: Demobestand angelegt — {Was}.", was);
         }
 
         // Dazu ein paar zurueckliegende Dosen mit Wirkung. Ohne die hat keine

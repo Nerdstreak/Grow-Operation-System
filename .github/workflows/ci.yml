@@ -67,9 +67,52 @@ jobs:
         working-directory: GrowDiary.React
         run: npx playwright install --with-deps chromium
 
-      - name: E2E smoke tests
+      # Ohne Backend: jede Seite zeigt ihren Lade- oder Leerzustand. Das ist
+      # ein echter Rauchtest — keine Route darf beim Rendern abstuerzen —,
+      # aber mehr auch nicht.
+      - name: E2E ohne Backend (Rauchtest)
         working-directory: GrowDiary.React
         run: npm run test:e2e
+
+      # Und dasselbe noch einmal GEGEN DIE LAUFENDE APP mit vollem
+      # Demobestand. Erst hier pruefen die Faelle wirklich etwas:
+      # von 34 Faellen aus vier Dateien uebersprangen sich im Lauf ohne
+      # Backend 31 und drei liefen. E2E_STRENG=1 macht jeden Uebersprung
+      # zum Fehler, damit das nicht wieder still passiert.
+      #
+      # Die Datenbank liegt in einem frischen Temp-Verzeichnis: der
+      # Demobestand saet nur in eine Datenbank ganz ohne Grows, und die
+      # Tests schreiben.
+      - name: App mit Demobestand starten
+        run: |
+          mkdir -p "${RUNNER_TEMP}/growos-daten"
+          GROW_OS_DEMO=1 \
+          GROWDIARY_DATA_PATH="${RUNNER_TEMP}/growos-daten" \
+          GROWDIARY_DB_PATH="${RUNNER_TEMP}/growos-daten/grow-diary.db" \
+          dotnet run --project GrowDiary.Web --configuration Release --no-build \
+            > "${RUNNER_TEMP}/growos.log" 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5076/api/grows > /dev/null; then
+              echo "App antwortet nach ${i} s."
+              grep -i 'Testdaten: Demobestand' "${RUNNER_TEMP}/growos.log" || true
+              exit 0
+            fi
+            sleep 1
+          done
+          echo '::error::Die App ist nach 60 s nicht erreichbar.'
+          cat "${RUNNER_TEMP}/growos.log"
+          exit 1
+
+      - name: E2E gegen die laufende App (streng)
+        working-directory: GrowDiary.React
+        env:
+          GROW_OS_URL: http://localhost:5076
+          E2E_STRENG: '1'
+        run: npx playwright test
+
+      - name: Protokoll der App bei Fehlschlag
+        if: ${{ failure() }}
+        run: tail -n 200 "${RUNNER_TEMP}/growos.log" || true
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
