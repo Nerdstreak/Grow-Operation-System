@@ -135,6 +135,14 @@ broken:
 - Fixed — **`/cropsteering` was in no visual check at all.** It is now in the
   contrast, phone-cut and touch-target sweeps like every other page.
 
+- Fixed — **a round-trip that was "flaky" had checked nothing.** All five waited
+  for the *request* and then navigated away. `waitForRequest` is satisfied the
+  moment the browser has sent; asking for the log right after checks for a row
+  that cannot be there yet, and on a slow runner the navigation aborts the
+  request outright. It always passed locally and fell over once on CI, where it
+  was reported as flaky and shrugged off. They now wait for the *response* and
+  check its status — an HTTP 500 used to count as "sent".
+
 - Fixed — **a decimal field rejected the German comma.** `<input type="number">`
   drops "0,6" in many browsers, and what would have been saved is the old value
   in silence. The round-trip types a comma on purpose now.
