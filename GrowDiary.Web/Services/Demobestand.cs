@@ -280,6 +280,29 @@ public static class Demobestand
             }
         }
 
+        // EINE Zeile mit unmoeglichen Werten. Die gehoert in den Demobestand,
+        // weil die App dafuer eine eigene Anzeige hat — Zeichen, Farbe, Zaehler
+        // in der Bilanz —, und ohne so eine Zeile sieht sie niemand. Genau
+        // dieser Fall ist beim Nutzer aufgeschlagen: 9000 Grad Luft standen im
+        // Protokoll wie jede andere Zahl.
+        //
+        // Der Grund ist ein echter: ein Messgeraet, das die Verbindung verliert,
+        // meldet oft nicht nichts, sondern Unsinn.
+        var gestoert = DateTime.Today.AddDays(-11).AddHours(14);
+        messungen.CreateMeasurement(new Measurement
+        {
+            GrowId = grow.Id,
+            TakenAt = gestoert,
+            Stage = PhaseAm(grow, gestoert),
+            Source = ValueOrigin.HomeAssistant,
+            ReservoirEc = 99999,
+            ReservoirWaterTempC = 5000,
+            AirTemperatureC = 9000,
+            Co2Ppm = -500,
+            Notes = "Testdaten: Sonde hatte einen Aussetzer — die Werte kann es nicht geben.",
+        });
+        anzahl++;
+
         // Eine frische Messung zum Schluss. Ohne sie haengt „zuletzt gemessen"
         // je nach Uhrzeit bis zu einen Tag zurueck, und die App mahnt im
         // Demobestand sofort zum Nachmessen — ein Hinweis, der hier nichts
