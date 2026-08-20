@@ -5,11 +5,6 @@
   margin-top: 12px;
   align-items: stretch;
 }
-@media (max-width: 720px) {
-    .rc-tent-actions .v1-button {
-      flex: 1 1 138px;
-    }
-}
 
 .v1-tent-card {
   display: grid;
@@ -130,17 +125,7 @@
   overflow-wrap: normal;
   word-break: normal;
 }
-@media (max-width: 900px) {
-    .tent-metric-groups {
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
-    }
-}
 
-@media (max-width: 430px) {
-    .tent-metric-row dd {
-      text-align: right;
-    }
-}
 
 .tent-detail-room-grid {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
@@ -364,4 +349,33 @@
 
   .ls-btn.is-danger { border-color: var(--danger); color: var(--danger); }
   .ls-btn.is-danger:hover { border-color: var(--danger); color: var(--danger); opacity: .85; }
+}
+
+/* ---------- Enge Fenster ----------
+
+   Diese drei Bloecke standen bis beta.51 WEITER OBEN — vor ihren eigenen
+   Grundregeln. Eine @media-Abfrage erhoeht die Spezifitaet nicht, also gewann
+   jedes Mal die spaetere Grundregel, und alle drei Anpassungen waren tot:
+   die Knopfbreite am Telefon, das engere Kachelraster am Tablet und die
+   rechtsbuendigen Werte auf schmalen Schirmen.
+
+   Gefunden von `src/css-reihenfolge.node.test.ts`, gebaut nachdem dieselbe
+   Klasse zweimal in zwei Tagen zugeschlagen hatte. */
+
+@media (max-width: 900px) {
+  .tent-metric-groups {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .rc-tent-actions .v1-button {
+    flex: 1 1 138px;
+  }
+}
+
+@media (max-width: 430px) {
+  .tent-metric-row dd {
+    text-align: right;
+  }
 }

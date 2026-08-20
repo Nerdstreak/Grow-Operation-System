@@ -52,6 +52,21 @@
   .hw-empty { color: var(--faint); }
   .hw-overdue { color: var(--warn-text); }
   .hw-entity { font-family: var(--font-mono); font-size: var(--fs-klein); color: var(--muted); overflow-wrap: anywhere; }
+  /* Die Grundform steht VOR dem @container-Block — nicht dahinter.
+
+     Sie stand dahinter, und damit gewann `flex-wrap: wrap` gegen das
+     `nowrap` aus dem Container-Block: eine Container-Abfrage erhoeht die
+     Spezifitaet NICHT, bei Gleichstand gewinnt die spaetere Regel. Am
+     Schreibtisch stapelten sich dadurch die drei Knoepfe senkrecht in einer
+     127 px schmalen Spalte, und die Zeile wurde 131 statt 44 px hoch.
+
+     Dass die Spalte ueberhaupt schmal ist, kommt aus derselben Gruppe —
+     `td[data-label]` ist ein Attribut-Selektor und damit staerker, also
+     wirkte die Haelfte der Absicht und die andere nicht. Genau die Klasse,
+     die in CLAUDE.md steht: bei gleicher Spezifitaet entscheidet die
+     Reihenfolge. */
+  .hw-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+
   @container (min-width: 761px) {
     /* Die Aktionsspalte nimmt nur, was sie braucht — daneben standen zwei
        fast leere Spalten, waehrend „Loeschen" in eine zweite Knopfreihe
@@ -61,7 +76,6 @@
     .hw-table td[data-label="Aktionen"] { width: 1%; white-space: nowrap; }
     .hw-actions { flex-wrap: nowrap; }
   }
-  .hw-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 
   .hw-note { margin: var(--s-3) 0 0; color: var(--muted); font-size: var(--fs-text); max-width: 68ch; }
 
@@ -77,7 +91,11 @@
     .hw-table td { border-bottom: 0; display: flex; gap: 12px; align-items: baseline; padding: 6px 12px; }
     .hw-table td::before {
       content: attr(data-label);
-      flex: 0 0 42%;
+      /* Gedeckelt: 42 % sind am Telefon (390 px) richtig, auf einer 710 px
+         breiten Karte am Tablet waeren es 300 px Leerraum neben dem Wort
+         „ART". Bei 160 px sieht das Telefon fast gleich aus und die breite
+         Karte hoert auf, auseinanderzufallen. */
+      flex: 0 0 min(42%, 160px);
       font-size: var(--fs-etikett); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
       color: var(--faint);
     }

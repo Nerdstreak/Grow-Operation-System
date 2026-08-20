@@ -96,7 +96,16 @@
   /* Linie links UND oben plus negativer Rand — sonst haengt beim Umbruch ein
      Strich neben der ersten Kachel der zweiten Zeile in der Luft, und zwischen
      den Zeilen fehlt die Trennung. */
-  .co-cell { flex: 1 1 170px; padding: 11px 14px; border-left: 1px solid var(--hair); border-top: 1px solid var(--hair); margin: -1px 0 0 -1px; min-width: 0; }
+  /* `space-between` haelt die Zahlen auf einer Linie, auch wenn eine
+     Beschriftung umbricht. Am Telefon steht „Kalibrierung faellig" auf zwei
+     Zeilen und „Stoerung" auf einer — ohne das saessen die beiden Nullen
+     daneben auf verschiedenen Hoehen, und die Leiste sah verzogen aus. */
+  .co-cell {
+    flex: 1 1 170px; padding: 11px 14px;
+    border-left: 1px solid var(--hair); border-top: 1px solid var(--hair);
+    margin: -1px 0 0 -1px; min-width: 0;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
   .co-cell-label {
     font: 500 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase;
     color: var(--faint);
