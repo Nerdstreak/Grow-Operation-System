@@ -25,7 +25,13 @@ public static class DemoData
         (Environment.GetEnvironmentVariable("GROW_OS_DEMO") ?? string.Empty).Trim() is "1" or "true" or "TRUE";
 
     /// <summary>Der Zeitraum, den <see cref="SeedHistory"/> rückwirkend füllt.</summary>
-    public const int HistoryHours = 24;
+    /// <remarks>
+    /// So weit wie der Verlauf reicht — 42 Tage. Vorher waren es <b>24
+    /// Stunden</b>, während die Zelt-Historie 7, 14 und 30 Tage anbietet und
+    /// auf 14 steht: im Diagramm war das ein Strich am rechten Rand, und
+    /// genau das meinte „da ist kein verlauf zu sehen".
+    /// </remarks>
+    public const int HistoryHours = Demoverlauf.TageRueckwaerts * 24;
 
     /// <summary>Wie eine Demo-Entität heißt — überall sichtbar, nie zu verwechseln.</summary>
     public const string EntityPrefix = "demo";
@@ -66,19 +72,76 @@ public static class DemoData
     /// Der Wert einer Messgröße zu einem Zeitpunkt. Rein — dieselbe Zeit
     /// ergibt denselben Wert, auch nach einem Neustart.
     /// </summary>
+    /// <remarks>
+    /// <para>Rechnet nicht selbst, sondern fragt <see cref="Demoverlauf"/>.
+    /// Vorher lag hier eine eigene Sinuskurve um einen festen Mittelwert —
+    /// und die Messungen im <see cref="Demobestand"/> hatten ihre eigene.
+    /// Zwei Kurven für dieselbe Sache heißt: das Diagramm zeigt einen
+    /// EC-Sägezahn und das Protokoll daneben behauptet etwas anderes.</para>
+    /// <para><b>UTC hinein, Ortszeit hinaus.</b> Die Sensor-Tabelle rechnet in
+    /// UTC (Spalte <c>CapturedAtUtc</c>), der Verlauf denkt in Kalendertagen
+    /// und Tageszeiten — „nachts kühler" heißt nachts <i>hier</i>. Deshalb
+    /// die Umrechnung an genau dieser Stelle.</para>
+    /// </remarks>
     public static double? ValueFor(string metricKey, DateTime whenUtc)
+        => Demoverlauf.Wert(metricKey, whenUtc.ToLocalTime());
+    /// <summary>
+    /// Die Tageswerte der zurückliegenden Wochen.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Warum die zusätzlich nötig sind.</b> Die App bewahrt
+    /// <b>sieben Tage</b> Rohablesungen auf; alles Ältere räumt
+    /// <c>HomeAssistantSnapshotWorker.CleanupOldReadingsAsync</c> weg und
+    /// rollt es vorher zu Tageswerten zusammen. Die Zelt-Historie bietet
+    /// aber 7, 14 und 30 Tage an.</para>
+    ///
+    /// <para>Wer also nur Rohablesungen säte, bekam im 14-Tage-Diagramm
+    /// genau einen Punkt — gemessen, nachdem 11 520 gesäte Zeilen auf 312
+    /// zusammengeschmolzen waren. Das war der zweite Grund für „da ist kein
+    /// verlauf zu sehen", und er lässt sich nicht durch mehr Rohdaten
+    /// beheben: die werden ja gerade gelöscht.</para>
+    ///
+    /// <para>Min, Max und die Bänder kommen aus demselben Verlauf, im
+    /// Stundenraster über den Tag gerechnet — sonst behauptete das
+    /// Tagesband etwas anderes als die Kurve daneben.</para>
+    /// </remarks>
+    public static IEnumerable<TentSensorDailyStat> SeedDailyStats(int tentId, DateTime heute)
     {
-        if (!Shape.TryGetValue(metricKey, out var shape)) return null;
+        // Der jüngste Tag bleibt den Rohablesungen überlassen: für ihn ist
+        // die Aggregation noch nicht gelaufen, und zwei Quellen für denselben
+        // Tag ergäben einen Sprung im Diagramm.
+        for (var tag = Demoverlauf.TageRueckwaerts; tag >= 1; tag--)
+        {
+            var datum = heute.AddDays(-tag);
 
-        var stunden = whenUtc.Ticks / (double)TimeSpan.TicksPerHour;
-        var welle = Math.Sin(2 * Math.PI * (stunden % shape.Hours) / shape.Hours);
+            foreach (var key in Demoverlauf.Schluessel)
+            {
+                var werte = new List<double>();
+                for (var stunde = 0; stunde < 24; stunde++)
+                {
+                    var wert = Demoverlauf.Wert(key, datum.AddHours(stunde));
+                    if (wert is { } vorhanden) werte.Add(vorhanden);
+                }
 
-        // Die Drift läuft über den Tag und springt um Mitternacht zurück —
-        // sonst liefe der pH nach Wochen ins Unmögliche.
-        var seitMitternacht = whenUtc.TimeOfDay.TotalHours;
-        var wert = shape.Base + shape.Amp * welle + shape.DriftPerHour * seitMitternacht;
+                if (werte.Count == 0) continue;
+                werte.Sort();
 
-        return Math.Round(wert, metricKey == "reservoir-ph" ? 2 : metricKey is "co2" or "ppfd" or "orp" ? 0 : 1);
+                yield return new TentSensorDailyStat
+                {
+                    TentId = tentId,
+                    MetricKey = key,
+                    Date = DateOnly.FromDateTime(datum),
+                    Min = werte[0],
+                    Max = werte[^1],
+                    Median = werte[werte.Count / 2],
+                    P5 = werte[(int)(werte.Count * 0.05)],
+                    P95 = werte[(int)(werte.Count * 0.95)],
+                    Avg = Math.Round(werte.Average(), 2),
+                    Count = werte.Count,
+                    Unit = Demoverlauf.Einheit(key),
+                };
+            }
+        }
     }
 
     /// <summary>Das Licht: 18/6, an ab 06:00.</summary>
@@ -178,10 +241,19 @@ public static class DemoData
     /// </remarks>
     public static IEnumerable<TentSensorReading> SeedHistory(int tentId, DateTime nowUtc)
     {
+        // Zwei Auflösungen. Die letzten zwei Tage im Viertelstundentakt —
+        // dort schaut man auf die Kurve und will sie glatt sehen. Davor
+        // stündlich: 42 Tage im Viertelstundentakt wären rund 48 000 Zeilen
+        // je Zelt, und im 30-Tage-Diagramm sieht man den Unterschied nicht.
+        const int FeinBisStunden = 48;
+
         for (var minuten = HistoryHours * 60; minuten > 0; minuten -= 15)
         {
+            var grob = minuten > FeinBisStunden * 60;
+            if (grob && minuten % 60 != 0) continue;
+
             var zeitpunkt = nowUtc.AddMinutes(-minuten);
-            foreach (var (key, shape) in Shape)
+            foreach (var key in Demoverlauf.Schluessel)
             {
                 var wert = ValueFor(key, zeitpunkt);
                 if (wert is null) continue;
@@ -190,7 +262,7 @@ public static class DemoData
                     TentId = tentId,
                     MetricKey = key,
                     Value = wert.Value,
-                    Unit = shape.Unit,
+                    Unit = Demoverlauf.Einheit(key),
                     CapturedAtUtc = zeitpunkt,
                 };
             }

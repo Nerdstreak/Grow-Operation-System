@@ -216,70 +216,117 @@ public static class Demobestand
     /// Feuchte in <i>derselben</i> Zeile stehen. Deshalb stehen sie hier immer
     /// zusammen.</para>
     /// </remarks>
+    /// <summary>
+    /// Sechs Wochen Messungen — aus <see cref="Demoverlauf"/>, nicht aus
+    /// einer eigenen Kurve.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Warum von dort.</b> Die Diagramme auf der Live- und der
+    /// Zeltseite kommen aus den gefälschten Sensoren, dieses Protokoll aus
+    /// den Messungen. Zwei Kurven für dieselbe Sache heißt: das Diagramm
+    /// zeigt einen EC-Sägezahn, und die Zeile daneben behauptet etwas
+    /// anderes. Beide lesen deshalb dieselbe Quelle.</para>
+    ///
+    /// <para><b>Was hier eigen bleibt.</b> Nur die Auswahl: WANN gemessen
+    /// wird und WELCHE Felder dabei anfallen. Die Automatik kann elf Felder
+    /// füllen und misst zweimal am Tag; von Hand kommen ORP, Sauerstoff,
+    /// Füllstand und Höhe dazu, dafür nur einmal die Woche. Ein Bestand, in
+    /// dem beides vorkommt, ist die einzige Lage, in der die
+    /// Herkunfts-Anzeige („Hand" gegen „Automatik") etwas zu unterscheiden
+    /// hat.</para>
+    ///
+    /// <para><b>TakenAt ist Ortszeit</b>, nicht UTC — die Spalte heißt nicht
+    /// „…Utc". Wer hier UTC hineinschreibt, datiert in Deutschland jede
+    /// Messung ein bis zwei Stunden zurück und schiebt sie über Mitternacht
+    /// auf den falschen Tag.</para>
+    /// </remarks>
     private static int MessungenAnlegen(MeasurementRepository messungen, GrowRun grow)
     {
         var anzahl = 0;
 
-        // 42 Tage rueckwaerts. Die Werte wandern langsam — ein Bestand aus
-        // lauter perfekten Zahlen belegt nichts: dann hat die Beurteilung nie
-        // etwas zu beanstanden, und niemand sieht, ob sie es koennte.
-        for (var tag = 42; tag >= 0; tag--)
+        for (var tag = Demoverlauf.TageRueckwaerts; tag >= 0; tag--)
         {
             var wann = DateTime.Today.AddDays(-tag);
-            var woche = (42 - tag) / 7;
 
-            // Die Automatik misst zweimal am Tag, nach Licht an und vor Licht aus.
+            // Die Automatik misst zweimal am Tag: nach Licht an und vor Licht aus.
             foreach (var stunde in new[] { 7, 21 })
             {
-                // Nichts in der Zukunft anlegen. Wer den Bestand nachts um eins
-                // erzeugt, haette sonst zwei Messungen von „heute 07:00" und
-                // „heute 21:00" — die Beurteilung weist beide als
-                // „unplausibler Zeitpunkt" aus und laesst sie ganz aus der
-                // Bilanz. Gesehen beim LESEN der Seite, nicht beim Messen:
-                // „92 Messungen · 2 mit unplausiblem Zeitpunkt".
-                if (wann.AddHours(stunde) > DateTime.Now) continue;
+                var zeitpunkt = wann.AddHours(stunde);
+
+                // Nichts in der Zukunft anlegen. Wer den Bestand morgens
+                // erzeugt, haette sonst eine Messung von „heute 21:00" — die
+                // Beurteilung weist die als „unplausibler Zeitpunkt" aus und
+                // laesst sie ganz aus der Bilanz. Gesehen beim LESEN der
+                // Seite, nicht beim Messen.
+                if (zeitpunkt > DateTime.Now) continue;
 
                 messungen.CreateMeasurement(new Measurement
                 {
                     GrowId = grow.Id,
-                    TakenAt = wann.AddHours(stunde),
+                    TakenAt = zeitpunkt,
                     Stage = PhaseAm(grow, wann),
                     Source = ValueOrigin.HomeAssistant,
-                    ReservoirPh = Runden(5.85 + Schwankung(tag * 3 + stunde) * 0.18, 2),
-                    ReservoirEc = Runden(1.05 + woche * 0.09 + Schwankung(tag + stunde) * 0.08, 2),
-                    ReservoirWaterTempC = Runden(19.4 + Schwankung(tag * 2) * 0.9, 1),
-                    AirTemperatureC = Runden((stunde < 12 ? 24.2 : 25.6) + Schwankung(tag) * 1.1, 1),
-                    HumidityPercent = Runden((stunde < 12 ? 58 : 54) + Schwankung(tag * 5) * 4, 0),
-                    Notes = null,
+                    ReservoirPh = Runden(Demoverlauf.Ph(zeitpunkt), 2),
+                    ReservoirEc = Runden(Demoverlauf.Ec(zeitpunkt), 2),
+                    ReservoirWaterTempC = Runden(Demoverlauf.WasserTempC(zeitpunkt), 1),
+                    AirTemperatureC = Runden(Demoverlauf.LuftTempC(zeitpunkt), 1),
+                    HumidityPercent = Runden(Demoverlauf.FeuchtePercent(zeitpunkt), 0),
+                    ReservoirLevelLiters = Runden(Demoverlauf.FuellstandLiter(zeitpunkt), 0),
                 });
                 anzahl++;
             }
 
-            // Von Hand einmal die Woche — mit den Feldern, die die Automatik
-            // gar nicht kennt.
-            if (tag % 7 == 3 && wann.AddHours(19) <= DateTime.Now)
+            // Von Hand am Vorabend des Wasserwechsels — mit den Feldern, die
+            // die Automatik gar nicht kennt.
+            var abends = wann.AddHours(19).AddMinutes(20);
+            if (Demoverlauf.SeitWasserwechsel(wann) == Demoverlauf.WasserwechselAlleTage - 1
+                && abends <= DateTime.Now)
             {
                 messungen.CreateMeasurement(new Measurement
                 {
                     GrowId = grow.Id,
-                    TakenAt = wann.AddHours(19).AddMinutes(20),
+                    TakenAt = abends,
                     Stage = PhaseAm(grow, wann),
                     Source = ValueOrigin.Manual,
-                    ReservoirPh = Runden(5.92 + Schwankung(tag * 7) * 0.15, 2),
-                    ReservoirEc = Runden(1.08 + woche * 0.09, 2),
-                    ReservoirWaterTempC = Runden(19.6 + Schwankung(tag * 4) * 0.7, 1),
-                    AirTemperatureC = Runden(24.6 + Schwankung(tag * 6) * 0.8, 1),
-                    HumidityPercent = Runden(56 + Schwankung(tag * 9) * 3, 0),
-                    OrpMv = Runden(320 + Schwankung(tag * 11) * 40, 0),
-                    DissolvedOxygenMgL = Runden(7.4 + Schwankung(tag * 13) * 0.5, 1),
-                    ReservoirLevelLiters = Runden(92 - (woche % 2) * 6, 0),
-                    HeightCm = Runden(48 + woche * 7, 0),
-                    Notes = woche == 3 ? "Testdaten: nach dem Wasserwechsel." : null,
+                    ReservoirPh = Runden(Demoverlauf.Ph(abends), 2),
+                    ReservoirEc = Runden(Demoverlauf.Ec(abends), 2),
+                    ReservoirWaterTempC = Runden(Demoverlauf.WasserTempC(abends), 1),
+                    AirTemperatureC = Runden(Demoverlauf.LuftTempC(abends), 1),
+                    HumidityPercent = Runden(Demoverlauf.FeuchtePercent(abends), 0),
+                    OrpMv = Runden(Demoverlauf.OrpMv(abends), 0),
+                    DissolvedOxygenMgL = Runden(Demoverlauf.SauerstoffMgL(abends), 1),
+                    ReservoirLevelLiters = Runden(Demoverlauf.FuellstandLiter(abends), 0),
+                    HeightCm = Runden(46 + (Demoverlauf.TageRueckwaerts - tag) * 0.9, 0),
+                    Notes = Demoverlauf.Stoerung(wann)
+                        ? "Testdaten: Wasser zu warm, Kühler prüfen."
+                        : "Testdaten: Kontrolle vor dem Wasserwechsel.",
                 });
                 anzahl++;
             }
         }
 
+        // Eine frische Messung zum Schluss — sonst haengt „zuletzt gemessen"
+        // je nach Uhrzeit bis zu einen Tag zurueck, und die App mahnt im
+        // Demobestand sofort zum Nachmessen.
+        var jetzt = DateTime.Now.AddMinutes(-90);
+        messungen.CreateMeasurement(new Measurement
+        {
+            GrowId = grow.Id,
+            TakenAt = jetzt,
+            Stage = PhaseAm(grow, jetzt),
+            Source = ValueOrigin.Manual,
+            ReservoirPh = Runden(Demoverlauf.Ph(jetzt), 2),
+            ReservoirEc = Runden(Demoverlauf.Ec(jetzt), 2),
+            ReservoirWaterTempC = Runden(Demoverlauf.WasserTempC(jetzt), 1),
+            AirTemperatureC = Runden(Demoverlauf.LuftTempC(jetzt), 1),
+            HumidityPercent = Runden(Demoverlauf.FeuchtePercent(jetzt), 0),
+            OrpMv = Runden(Demoverlauf.OrpMv(jetzt), 0),
+            DissolvedOxygenMgL = Runden(Demoverlauf.SauerstoffMgL(jetzt), 1),
+            ReservoirLevelLiters = Runden(Demoverlauf.FuellstandLiter(jetzt), 0),
+            HeightCm = Runden(46 + Demoverlauf.TageRueckwaerts * 0.9, 0),
+            Notes = "Testdaten: letzte Kontrolle.",
+        });
+        anzahl++;
         // EINE Zeile mit unmoeglichen Werten. Die gehoert in den Demobestand,
         // weil die App dafuer eine eigene Anzeige hat — Zeichen, Farbe, Zaehler
         // in der Bilanz —, und ohne so eine Zeile sieht sie niemand. Genau
@@ -300,28 +347,6 @@ public static class Demobestand
             AirTemperatureC = 9000,
             Co2Ppm = -500,
             Notes = "Testdaten: Sonde hatte einen Aussetzer — die Werte kann es nicht geben.",
-        });
-        anzahl++;
-
-        // Eine frische Messung zum Schluss. Ohne sie haengt „zuletzt gemessen"
-        // je nach Uhrzeit bis zu einen Tag zurueck, und die App mahnt im
-        // Demobestand sofort zum Nachmessen — ein Hinweis, der hier nichts
-        // bedeutet ausser dass der Bestand nachts erzeugt wurde.
-        var jetzt = DateTime.Now.AddMinutes(-90);
-        messungen.CreateMeasurement(new Measurement
-        {
-            GrowId = grow.Id,
-            TakenAt = jetzt,
-            Stage = PhaseAm(grow, jetzt),
-            Source = ValueOrigin.Manual,
-            ReservoirPh = 5.94,
-            ReservoirEc = 1.48,
-            ReservoirWaterTempC = 19.5,
-            AirTemperatureC = 24.8,
-            HumidityPercent = 56,
-            OrpMv = 338,
-            DissolvedOxygenMgL = 7.6,
-            Notes = "Testdaten: letzte Kontrolle vor der Nacht.",
         });
         anzahl++;
 
@@ -346,14 +371,7 @@ public static class Demobestand
         return seitFlip < 10 ? GrowStage.Transition : GrowStage.Flower;
     }
 
-    /// <summary>
-    /// Eine ruhige, wiederholbare Schwankung zwischen −1 und 1.
-    /// </summary>
-    /// <remarks>
-    /// Kein Zufall: der Bestand muss bei jedem Anlegen derselbe sein, sonst
-    /// wird jede Prüfung, die auf einen Wert zeigt, mal grün und mal rot.
-    /// </remarks>
-    private static double Schwankung(int schritt) => Math.Sin(schritt * 0.7);
+
 
     private static double Runden(double wert, int stellen) => Math.Round(wert, stellen);
 

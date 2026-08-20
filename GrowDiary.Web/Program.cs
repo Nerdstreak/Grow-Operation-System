@@ -148,6 +148,26 @@ if (DemoData.IsEnabled)
     var demoLogger = demoScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
+        // Der ganze fachliche Bestand — Zelt, Aufbau, drei Grows, sechs Wochen
+        // Messungen, Journal, Aufgaben, Geraet, Alarm, Risiko, Aushaerte-Glas
+        // und zwei Ernten. Nur in eine Datenbank ganz OHNE Grows: wer schon
+        // einen hat, hat eigene Daten, und die sind besser als jede Demo.
+        //
+        // Bis beta.50 stand hier ein Einzelfall, der nur den fehlenden
+        // Archiv-Grow nachtrug. Der ist in Demobestand aufgegangen — sonst
+        // haette es zwei Stellen gegeben, die Testdaten anlegen.
+        var growsRepo = demoScope.ServiceProvider.GetRequiredService<GrowRepository>();
+        if (Demobestand.IstNoetig(growsRepo))
+        {
+            var was = Demobestand.Anlegen(demoScope.ServiceProvider);
+            demoLogger.LogInformation("Testdaten: Demobestand angelegt — {Was}.", was);
+        }
+
+        // ERST der Bestand, DANN die Zelte lesen. Andersherum stand hier
+        // `GetTents()` vor dem Anlegen: auf einer frischen Datenbank war die
+        // Liste leer, die Historie-Schleife lief null Mal, und im
+        // 14-Tage-Diagramm stand nichts. Gesehen, weil ich die Kurve
+        // angesehen habe statt der Log-Zeile zu glauben.
         var tents = demoScope.ServiceProvider.GetRequiredService<GrowRepository>().GetTents();
         var readings = demoScope.ServiceProvider.GetRequiredService<SensorReadingRepository>();
         var nowUtc = DateTime.UtcNow;
@@ -163,7 +183,20 @@ if (DemoData.IsEnabled)
                 anzahl++;
             }
 
-            demoLogger.LogInformation("Testdaten: {Count} Messwerte fuer Zelt {TentId} nachgetragen.", anzahl, tent.Id);
+            // Und die Tageswerte fuer alles, was aelter als sieben Tage ist:
+            // die Rohablesungen dort raeumt der Aufraeumer ohnehin weg, und
+            // ohne Tageswerte zeigt das 14- und 30-Tage-Diagramm genau einen
+            // Punkt.
+            var tageswerte = 0;
+            foreach (var stat in DemoData.SeedDailyStats(tent.Id, DateTime.Today))
+            {
+                readings.UpsertDailyStat(stat);
+                tageswerte++;
+            }
+
+            demoLogger.LogInformation(
+                "Testdaten: {Count} Messwerte und {Tage} Tageswerte fuer Zelt {TentId} nachgetragen.",
+                anzahl, tageswerte, tent.Id);
         }
 
         // Eine kalibrierte pH-Sonde, sonst bleibt die Automatik gesperrt.
@@ -179,21 +212,6 @@ if (DemoData.IsEnabled)
             calibration.HardwareItemId = angelegt.Id;
             hardware.CreateCalibrationEvent(calibration);
             demoLogger.LogInformation("Testdaten: kalibrierte pH-Sonde fuer Zelt {TentId} angelegt.", tent.Id);
-        }
-
-        // Der ganze fachliche Bestand — Zelt, Aufbau, drei Grows, sechs Wochen
-        // Messungen, Journal, Aufgaben, Geraet, Alarm, Risiko, Aushaerte-Glas
-        // und zwei Ernten. Nur in eine Datenbank ganz OHNE Grows: wer schon
-        // einen hat, hat eigene Daten, und die sind besser als jede Demo.
-        //
-        // Bis beta.50 stand hier ein Einzelfall, der nur den fehlenden
-        // Archiv-Grow nachtrug. Der ist in Demobestand aufgegangen — sonst
-        // haette es zwei Stellen gegeben, die Testdaten anlegen.
-        var growsRepo = demoScope.ServiceProvider.GetRequiredService<GrowRepository>();
-        if (Demobestand.IstNoetig(growsRepo))
-        {
-            var was = Demobestand.Anlegen(demoScope.ServiceProvider);
-            demoLogger.LogInformation("Testdaten: Demobestand angelegt — {Was}.", was);
         }
 
         // Dazu ein paar zurueckliegende Dosen mit Wirkung. Ohne die hat keine
