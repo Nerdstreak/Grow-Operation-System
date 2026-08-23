@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError, formatApiError } from '../api'
@@ -86,6 +86,26 @@ function HardwarePage() {
   const [wearTemplates, setWearTemplates] = useState<WearTemplateDto[]>([])
   const [filter, setFilter] = useState<HardwareFilter>('alle')
   const [formOpen, setFormOpen] = useState(false)
+
+  // Das Formular steht UNTER der Geraeteliste. Bei zwei Geraeten faellt das
+  // nicht auf, bei sieben schon: der Knopf „Bearbeiten" oeffnet es dann
+  // ausserhalb des Sichtbaren, der Scrollstand bleibt 0 — und fuer den
+  // Nutzer „reagiert der Knopf nicht". Gemessen am laufenden Stand: Formular
+  // bei y = 721 in einem 600 px hohen Fenster, nichts scrollte.
+  //
+  // Deshalb hinscrollen, sobald es aufgeht. `block: start` und nicht
+  // `center`: die Ueberschrift „Sensor oder Geraet bearbeiten" ist die
+  // Rueckmeldung, dass der Klick angekommen ist.
+  //
+  // Nur `formOpen` in der Abhaengigkeitsliste: `editingId` wird weiter unten
+  // deklariert, und ein Wechsel von einem Geraet zum naechsten scrollt ohnehin
+  // nicht weg — das Formular steht dann schon da.
+  const formularRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!formOpen) return
+    formularRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [formOpen])
   const [draft, setDraft] = useState<HardwareDraft>(() => createDraft())
   const [editingId, setEditingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -502,6 +522,7 @@ function HardwarePage() {
           </V1Section>
 
           {formOpen && (
+          <div ref={formularRef}>
           <V1Section title={editingId ? 'Sensor oder Gerät bearbeiten' : 'Sensor oder Gerät anlegen'}>
             <form className="ops1b-form" data-audit="hardware-edit-form" onSubmit={(event) => void saveHardware(event)}>
               <div className="ops1b-form-grid">
@@ -549,6 +570,7 @@ function HardwarePage() {
               </div>
             </form>
           </V1Section>
+          </div>
           )}
         </>
       )}
