@@ -1,5 +1,46 @@
 # Changelog
 
+## 2.0.0-beta.53
+
+**Beta.** A button that worked, and nobody could tell.
+
+### "Edit" did nothing
+
+- Fixed — **on "Sensoren & Wartung" the edit form opens *below* the device
+  list.** With two devices that is invisible; with seven it opens past the
+  bottom of the window, and nothing scrolled to it. The button had been working
+  the whole time — the reporter simply never saw the result. Measured on the
+  running build: the form appeared at y = 721 in a 600 px window, scroll
+  position 0. It now scrolls into view; y = 57.
+
+  Every existing check would have passed. The button exists, the state changes,
+  the form is in the DOM — even Playwright's `toBeVisible` says yes, because the
+  element has an area. What was missing was any look at *where* it lands. A new
+  check measures that instead: form position against window height, in a
+  deliberately short window that stands in for the rows a test fixture does not
+  have.
+
+### A test that depended on the calendar
+
+- Fixed — **CI turned red without a code change.** A demo-data check asserted a
+  fixed calendar day (2026-07-28) over 24 hours, while the demo curve is
+  anchored to *today*: each real day walks the sampled point further along the
+  water-change sawtooth. Green on the 20th, red on the 23rd, at EC 1.10 against
+  a lower bound of 1.20.
+
+  The luck it had been running on hid more. Against the real 42-day window the
+  app displays, **three of seven bounds were wrong** — EC (1.02–1.24 vs. 1.2
+  required), reservoir temperature (17.8–24.5 vs. 22 allowed) and dissolved
+  oxygen (5.8 vs. 6.0 required). The last two peaks are not faults but the
+  built-in chiller failure: warm water holds less oxygen. That is the story the
+  fixture is meant to tell, and the bounds forbade it.
+
+  It also covered seven of ten curves. It is a census now: the ground set is
+  `Demoverlauf.Schluessel`, the whole 42-day window is walked, and a new curve
+  without a plausibility bound fails. The bounds say "no tent looks like this"
+  rather than "the curve runs here today" — pinned to the curve, a check only
+  verifies itself.
+
 ## 2.0.0-beta.52
 
 **Beta.** The water chiller can now be steered, which is what crop steering in
