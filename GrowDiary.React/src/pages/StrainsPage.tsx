@@ -164,12 +164,27 @@ function StrainsPage() {
   //
   // `block: start`, nicht `center`: die Ueberschrift ist die Rueckmeldung,
   // dass der Klick angekommen ist.
+  // Ein ZAEHLER, nicht `formOpen`.
+  //
+  // Die erste Fassung hing an `formOpen` — und beim zweiten Klick ist das schon
+  // `true`, der Effekt lief also nicht mehr. Wer eine Zeile bearbeitet, hoch
+  // scrollt und die naechste anklickt, bekam den Inhalt gewechselt und sonst
+  // nichts: das Formular blieb unten ausserhalb des Bildes stehen.
+  //
+  // Der Tester hat genau das als Video geschickt, NACHDEM der erste Klick
+  // repariert war. Mein Kommentar an dieser Stelle behauptete sogar, ein
+  // Wechsel scrolle „ohnehin nicht weg" — geprueft hatte ich nur den ersten
+  // Klick.
+  //
+  // Ein Zaehler feuert bei jedem Aufruf, unabhaengig davon, ob das Formular
+  // schon offen war.
   const formularRef = useRef<HTMLDivElement | null>(null)
+  const [hinScrollen, setHinScrollen] = useState(0)
 
   useEffect(() => {
-    if (!formOpen) return
+    if (hinScrollen === 0) return
     formularRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [formOpen])
+  }, [hinScrollen])
   const [openPlantId, setOpenPlantId] = useState<number | null>(null)
   // Die Gewichtung gilt app-weit, aber der Editor gehoert in das Panel, dessen
   // Knopf gedrueckt wurde — vorher erschien er stur im ersten Hunt, und in
@@ -340,12 +355,14 @@ function StrainsPage() {
     setDraft(emptyDraft())
     setEditingId(null)
     setFormOpen(true)
+    setHinScrollen((n) => n + 1)
   }
 
   function startEdit(strain: StrainDto) {
     setDraft(draftFrom(strain))
     setEditingId(strain.id)
     setFormOpen(true)
+    setHinScrollen((n) => n + 1)
   }
 
   async function save() {

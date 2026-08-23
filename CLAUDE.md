@@ -43,6 +43,35 @@ ohne zu prüfen, und drei Ausnahmen griffen nie.
    nachgewiesen hat, dass sie den Fehler findet, ist kein Beleg. Fehler
    wiedereinbauen, Prüfung laufen lassen, muss rot werden.
 
+### Die Reparatur einmal WIEDERHOLEN
+
+Am 24.08.2026 hat der Tester denselben Knopf zweimal gemeldet. Der erste Bericht
+war „Bearbeiten reagiert nicht"; behoben, geprüft, ausgeliefert. Der zweite
+Bericht war derselbe Knopf — beim **zweiten** Klick. Der Fix hing an einer
+Zustandsflanke (`formOpen`), und die gibt es nur einmal.
+
+Meine Prüfung klickte einmal. Sie war grün und hat nichts gesehen.
+
+**Nach jeder Reparatur einer Bedienung: dieselbe Handlung ein zweites Mal
+ausführen, und zwar unter erschwerten Umständen** — anderer Datensatz,
+zwischendurch weggescrollt, Seite nicht neu geladen. Fast jede
+Zustandsverwaltung hat einen Fall „schon offen", den der erste Durchgang nicht
+berührt.
+
+Dasselbe gilt für Formulare: speichern, dann **nochmal** speichern. Und für
+Listen: den ersten Eintrag, dann den letzten.
+
+### Der Testbestand ist eine Miniatur — das verdeckt Fehler
+
+Der Nutzer hat sieben Geräte, der Testbestand hatte zwei. Zweimal an einem Tag
+war ein Fehler dadurch unsichtbar: das Formular lag bei zwei Zeilen ohnehin im
+Bild, und die neue Prüfung bestand **auch ohne den Fix**.
+
+Wer eine Prüfung schreibt, die von der Menge abhängt, stellt die Menge her —
+entweder im Bestand oder über ein kurzes Fenster (`setViewportSize`). Und wer
+einen Fehler „behoben" meldet, hat vorher gezeigt, dass die Prüfung **ohne** den
+Fix rot wird. Ohne diesen Nachweis ist nichts belegt.
+
 ### Zusätzlich bei bestimmten Änderungen
 
 - **Etwas auffindbar machen** (Menü, Link, Suchbegriff): die Zielseite vorher

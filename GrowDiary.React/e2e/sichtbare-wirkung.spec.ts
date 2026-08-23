@@ -61,6 +61,50 @@ test.describe('Sichtbare Wirkung', () => {
       .toBeGreaterThan(0)
   })
 
+  test('„Bearbeiten" holt das Formular auch beim ZWEITEN Klick ins Bild', async ({ page }) => {
+    darfUeberspringen(!(await page.request.get('/api/grows')).ok(), 'Kein Backend — siehe oben.')
+
+    // <b>Der Fall, den die erste Reparatur nicht traf.</b> Sie hing an
+    // `formOpen`; beim zweiten Klick ist das schon `true`, der Effekt lief
+    // nicht mehr. Der Inhalt wechselte, das Formular blieb unten stehen — der
+    // Tester hat das als Video geschickt, NACHDEM der erste Klick behoben war.
+    //
+    // Eine Prüfung, die nur einmal klickt, findet das nie. Genau so ist es
+    // passiert.
+    await page.goto('/sensoren', { waitUntil: 'networkidle' })
+
+    const knoepfe = page.getByRole('button', { name: 'Bearbeiten' })
+    darfUeberspringen(await knoepfe.count() < 2,
+      'Weniger als zwei Geräte im Bestand — für den zweiten Klick braucht es zwei.')
+
+    const formular = page.locator('[data-audit="hardware-edit-form"]')
+
+    await knoepfe.first().click()
+    await expect(formular).toBeVisible()
+    await page.waitForTimeout(600)
+
+    // Zurück nach oben, so wie der Nutzer es tut.
+    await page.evaluate(() => {
+      document.body.scrollTop = 0
+      document.documentElement.scrollTop = 0
+      window.scrollTo(0, 0)
+    })
+    await page.waitForTimeout(300)
+
+    await knoepfe.last().click()
+    await page.waitForTimeout(600)
+
+    const lage = await formular.evaluate((el) => {
+      const r = el.getBoundingClientRect()
+      return { oben: Math.round(r.top), fenster: window.innerHeight }
+    })
+
+    expect(lage.oben,
+      `Beim ZWEITEN Klick öffnet das Formular bei y = ${lage.oben} in einem `
+      + `${lage.fenster} px hohen Fenster. Der Inhalt wechselt, aber niemand sieht es.`)
+      .toBeLessThan(lage.fenster)
+  })
+
   test('Crop Steering sagt, ob es gerade aktiv ist', async ({ page }) => {
     darfUeberspringen(!(await page.request.get('/api/grows')).ok(), 'Kein Backend — siehe oben.')
 

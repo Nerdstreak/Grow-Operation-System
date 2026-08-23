@@ -100,12 +100,27 @@ function HardwarePage() {
   // Nur `formOpen` in der Abhaengigkeitsliste: `editingId` wird weiter unten
   // deklariert, und ein Wechsel von einem Geraet zum naechsten scrollt ohnehin
   // nicht weg — das Formular steht dann schon da.
+  // Ein ZAEHLER, nicht `formOpen`.
+  //
+  // Die erste Fassung hing an `formOpen` — und beim zweiten Klick ist das schon
+  // `true`, der Effekt lief also nicht mehr. Wer eine Zeile bearbeitet, hoch
+  // scrollt und die naechste anklickt, bekam den Inhalt gewechselt und sonst
+  // nichts: das Formular blieb unten ausserhalb des Bildes stehen.
+  //
+  // Der Tester hat genau das als Video geschickt, NACHDEM der erste Klick
+  // repariert war. Mein Kommentar an dieser Stelle behauptete sogar, ein
+  // Wechsel scrolle „ohnehin nicht weg" — geprueft hatte ich nur den ersten
+  // Klick.
+  //
+  // Ein Zaehler feuert bei jedem Aufruf, unabhaengig davon, ob das Formular
+  // schon offen war.
   const formularRef = useRef<HTMLDivElement | null>(null)
+  const [hinScrollen, setHinScrollen] = useState(0)
 
   useEffect(() => {
-    if (!formOpen) return
+    if (hinScrollen === 0) return
     formularRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [formOpen])
+  }, [hinScrollen])
   const [draft, setDraft] = useState<HardwareDraft>(() => createDraft())
   const [editingId, setEditingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -259,6 +274,7 @@ function HardwarePage() {
     setEditingId(item.id)
     setDraft(createDraft(item))
     setFormOpen(true)
+    setHinScrollen((n) => n + 1)
     setError(null)
     setMessage(null)
   }
@@ -267,6 +283,7 @@ function HardwarePage() {
     setEditingId(null)
     setDraft(createDraft())
     setFormOpen(true)
+    setHinScrollen((n) => n + 1)
     setError(null)
     setMessage(null)
   }
