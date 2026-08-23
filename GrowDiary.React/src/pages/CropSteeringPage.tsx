@@ -45,6 +45,18 @@ type Kuehler = {
   lastSwitchUtc: string | null
 }
 
+type Voraussetzung = { titel: string; erfuellt: boolean; text: string }
+
+type Stand = {
+  rampeSchreibt: boolean
+  kuehlerSchaltet: boolean
+  kurzfassung: string
+  rampe: Voraussetzung[]
+  kuehler: Voraussetzung[]
+  letzterSollwertUtc: string | null
+  letzteSchaltungUtc: string | null
+}
+
 type Steuerung = {
   enabled: boolean
   floorC: number | null
@@ -52,10 +64,54 @@ type Steuerung = {
   targetEntityId: string | null
   plan: Absenkplan
   chiller: Kuehler | null
+  stand: Stand
 }
 
 const grad = (wert: number | null | undefined) =>
   wert == null ? '–' : wert.toLocaleString('de-DE', { maximumFractionDigits: 1 })
+
+/**
+ * Eine Kette von Voraussetzungen — und wo sie reisst.
+ *
+ * Eine rote Ampel sagt „geht nicht" und lässt den Nutzer suchen. Die Kette
+ * zeigt, WELCHES Glied fehlt und was zu tun ist. Genau das war die Beschwerde.
+ */
+function Kette({ titel, laeuft, schritte, zuletzt, zuletztText }: {
+  titel: string
+  laeuft: boolean
+  schritte: Voraussetzung[]
+  zuletzt: string | null
+  zuletztText: string
+}) {
+  return (
+    <div className="cs-kette" data-audit={`kette-${laeuft ? 'aktiv' : 'inaktiv'}`}>
+      <p className="cs-kette-kopf">
+        <strong>{titel}</strong>
+        <V1Badge tone={laeuft ? 'ok' : 'neutral'}>{laeuft ? 'aktiv' : 'nicht aktiv'}</V1Badge>
+      </p>
+      <ul className="cs-schritte">
+        {schritte.map((schritt) => (
+          <li key={schritt.titel} className={schritt.erfuellt ? 'is-ok' : 'is-offen'}>
+            {/* Das Zeichen trägt die Aussage nicht allein — der Titel steht
+                daneben und die Liste ist auch ohne Farbe zu lesen. */}
+            <span className="cs-haken" aria-hidden="true">{schritt.erfuellt ? '✓' : '·'}</span>
+            <span>
+              <strong>{schritt.titel}</strong>
+              <span className="cs-schritt-text">{schritt.text}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="cs-quelle">
+        {/* Alle Haken heisst „müsste laufen". Dieser Zeitpunkt heisst „hat
+            gelaufen" — die Rampe schreibt nur zweimal am Tag. */}
+        {zuletzt
+          ? `${zuletztText}: ${new Date(zuletzt).toLocaleString('de-DE')}.`
+          : `${zuletztText}: noch nie.`}
+      </p>
+    </div>
+  )
+}
 
 export function CropSteeringPage() {
   const { grows, growId, setGrowId, loading: growsLaedt } = useSelectedGrow()
@@ -214,6 +270,31 @@ export function CropSteeringPage() {
       {meldung && <V1Alert message={meldung} tone="ok" />}
 
       {/* ======================= Ansehen ======================= */}
+      {/* ======================= Läuft es? ======================= */}
+      {/* Ganz oben und vor allem anderen. Die Rückmeldung des Testers war,
+          dass „nicht dort steht, wann es aktiv ist" — der Plan darunter sah im
+          Betrieb genauso aus wie im ausgeschalteten Zustand. */}
+      <V1Section title="Läuft es gerade?">
+        <V1Card tone={stand.stand.rampeSchreibt || stand.stand.kuehlerSchaltet ? 'ok' : 'neutral'}>
+          <p className="cs-kurzfassung">{stand.stand.kurzfassung}</p>
+
+          <div className="v1-split">
+            <Kette
+              titel="Sollwert schreiben"
+              laeuft={stand.stand.rampeSchreibt}
+              schritte={stand.stand.rampe}
+              zuletzt={stand.stand.letzterSollwertUtc}
+              zuletztText="Zuletzt geschrieben" />
+            <Kette
+              titel="Kühler schalten"
+              laeuft={stand.stand.kuehlerSchaltet}
+              schritte={stand.stand.kuehler}
+              zuletzt={stand.stand.letzteSchaltungUtc}
+              zuletztText="Zuletzt geschaltet" />
+          </div>
+        </V1Card>
+      </V1Section>
+
       <V1Section title="Heute">
         {/* Ohne Plan (kein Flip, Autoflower) fällt die zweite Karte weg — dann
             wäre eine halbe Seite leer, deshalb hängt der Split am Plan. */}

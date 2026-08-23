@@ -61,6 +61,29 @@ test.describe('Sichtbare Wirkung', () => {
       .toBeGreaterThan(0)
   })
 
+  test('Crop Steering sagt, ob es gerade aktiv ist', async ({ page }) => {
+    darfUeberspringen(!(await page.request.get('/api/grows')).ok(), 'Kein Backend — siehe oben.')
+
+    // Rückmeldung des Testers: „dort steht nicht, wann es aktiv ist." Der Plan
+    // sah im Betrieb genauso aus wie im ausgeschalteten Zustand.
+    await page.goto('/cropsteering', { waitUntil: 'networkidle' })
+
+    const ketten = page.locator('[data-audit^="kette-"]')
+    await expect(ketten).toHaveCount(2)
+
+    // Die Antwort muss OHNE Scrollen dastehen — sie ist der Grund der Seite.
+    const erste = ketten.first()
+    await expect(erste).toBeVisible()
+    const oben = await erste.evaluate((el) => Math.round(el.getBoundingClientRect().top))
+    expect(oben, `Die Kette steht bei y = ${oben} — ausserhalb des Fensters.`)
+      .toBeLessThan(FENSTER.height)
+
+    // Und sie sagt etwas Konkretes: entweder aktiv, oder WAS fehlt.
+    const text = await page.locator('.cs-kurzfassung').innerText()
+    expect(text, `Die Kurzfassung sagt nichts Verwertbares: „${text}"`)
+      .toMatch(/Aktiv\.|Nicht aktiv\. Es fehlt:|wird nicht/)
+  })
+
   test('„+ Gerät anlegen" ebenso', async ({ page }) => {
     darfUeberspringen(!(await page.request.get('/api/grows')).ok(), 'Kein Backend — siehe oben.')
 

@@ -21,13 +21,16 @@ public sealed class NightRampApiController : ApiControllerBase
     private readonly GrowRepository _grows;
     private readonly NachtabsenkungWriter _absenkung;
     private readonly AppSettingsRepository _einstellungen;
+    private readonly SystemAuditRepository _protokoll;
 
     public NightRampApiController(
-        GrowRepository grows, NachtabsenkungWriter absenkung, AppSettingsRepository einstellungen)
+        GrowRepository grows, NachtabsenkungWriter absenkung, AppSettingsRepository einstellungen,
+        SystemAuditRepository protokoll)
     {
         _grows = grows;
         _absenkung = absenkung;
         _einstellungen = einstellungen;
+        _protokoll = protokoll;
     }
 
     [HttpGet("")]
@@ -156,7 +159,42 @@ public sealed class NightRampApiController : ApiControllerBase
                 zelt.ChillerMinRunMinutes,
                 zelt.ChillerMinPauseMinutes,
                 zelt.ChillerMaxReadingAgeMinutes,
-                KuehlerWorker.LetzteSchaltung(_einstellungen, zelt.Id)));
+                KuehlerWorker.LetzteSchaltung(_einstellungen, zelt.Id)),
+            StandBauen(grow, zelt, plan));
+    }
+
+    /// <summary>
+    /// „Läuft es gerade?" — die Kette der Voraussetzungen, jede einzeln.
+    /// </summary>
+    /// <remarks>
+    /// <b>Der letzte Schreibvorgang ist der eigentliche Beleg.</b> Alle Haken
+    /// gesetzt heisst „müsste laufen"; eine Zeile aus dem Anlagen-Protokoll
+    /// heisst „hat gelaufen". Die Rampe schreibt nur an den Lichtflanken, also
+    /// zweimal am Tag — ohne diesen Zeitpunkt bleibt offen, ob je etwas ankam.
+    /// </remarks>
+    private Steuerungsstand StandBauen(GrowRun grow, Tent? zelt, Absenkplan plan)
+    {
+        var einstellungen = _grows.GetEffectiveHomeAssistantSettings();
+
+        // KEIN Kuehler-Urteil hier. Eine erste Fassung baute dafuer eine
+        // KuehlerLage mit lauter null zusammen — der Regler antwortete
+        // folgerichtig „Keine Wassertemperatur gemessen", und dieser Satz stand
+        // dann neben einem gruenen Haken. Ein erfundener Zustand liefert einen
+        // erfundenen Grund.
+        //
+        // Diese Seite beantwortet „ist es eingerichtet und aktiv". WAS der
+        // Regler gerade tut, steht auf der Live-Seite — dort mit der echten
+        // Lage aus Messwert und Steckdose.
+
+        var letzterSollwert = _protokoll.GetRecent(1, "night-ramp")
+            .FirstOrDefault(e => e.Success)?.CreatedAtUtc;
+        var letzteSchaltung = zelt is null
+            ? null
+            : KuehlerWorker.LetzteSchaltung(_einstellungen, zelt.Id);
+
+        return SteuerungsstandBauer.Bauen(
+            grow, zelt, plan, einstellungen.IsConfigured, DemoData.IsEnabled,
+            letzterSollwert, letzteSchaltung);
     }
 
     public sealed class NightRampRequest
@@ -194,7 +232,8 @@ public sealed record NightRampDto(
     double HardFloorC,
     string? TargetEntityId,
     Absenkplan Plan,
-    KuehlerDto? Chiller);
+    KuehlerDto? Chiller,
+    Steuerungsstand Stand);
 
 /// <summary>Die Kühler-Steuerung dieses Zelts.</summary>
 /// <param name="SwitchEntityId">Die smarte Steckdose, an der der Kühler hängt.</param>
