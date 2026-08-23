@@ -1,5 +1,77 @@
 # Changelog
 
+## 2.0.0-beta.54
+
+**Beta.** A test bench for controlling devices, and seven checks that stopped
+lying.
+
+### Zelt (AC-Test) — a test bench, marked as one
+
+- New — **a separate menu group "Versuch" with the page `/ac-test`.** Enter the
+  entities of your AC Infinity controller and set a device's level 0–10 by
+  clicking. A banner at the top says what it is: a test that writes real values,
+  unfinished, feedback wanted.
+
+  It writes through `number.set_value` — the same path the night ramp has used
+  for months, so no new machinery was needed. Nothing regulates itself: a level
+  is set when you click it, never otherwise. The controller keeps its own brain;
+  two systems steering one device is the trap that already earned the chiller
+  its own rule.
+
+  The configuration lives as JSON in the settings store, not as columns on the
+  tent. A test does not get a schema that every existing install carries forever.
+
+### Seven checks that could not fail
+
+Each one verified against the source before it was touched.
+
+- Fixed — **the gate could not fail.** In `ci.yml` the only evidence that the
+  demo fixture was seeded ended in `|| true`. If the line was missing from the
+  log the step still went green, and the strict end-to-end run would have
+  measured against an **empty database** and reported success.
+
+- Fixed — **routes proved themselves.** The reachability check searched the
+  whole source *including* `App.tsx`, which is where the routes are declared.
+  It has been named in `CLAUDE.md` under "checks that check nothing" for weeks;
+  nobody had repaired it. `App.tsx` is excluded now, a self-test holds that in
+  place, and an invented route is reported — demonstrated.
+
+- Fixed — **two missing count guards.** The submit-button census asserted "no
+  form without a submit button" while never saying whether it had seen a form
+  at all, and silently skipped every form without buttons. The contrast check
+  reported "nothing unreadable" even when no text had been measured — that
+  check has been blind three times in this project.
+
+- Fixed — **two exception lists nobody checked.** A typo in an exception
+  protected a file that does not exist while the real one failed, silently. The
+  header of one of those very test files *describes* this happening. Nothing
+  verified it.
+
+- Fixed — **a test that depended on the clock.** The quiet-hours check built a
+  one-hour window from `DateTime.Now.Hour`. Start at 14:59:59, evaluate at
+  15:00:00, and it fails with nothing changed. Three hours now, current one in
+  the middle.
+
+### Four more silent data losses
+
+- Fixed — on settings, "20x" silently became a 15-minute grace period and
+  "32,5x" an empty electricity price, both with a success message. Same class as
+  the two fixed a day earlier. Twenty pages each had their own number parsing;
+  a ratchet now allows only fewer, never more — 22 down to 16.
+
+### The effect landing off-screen, three more times
+
+- Fixed — the care form on "Sensoren & Wartung", the profile panel on setpoint
+  profiles, and the strain form all opened outside the window when the list
+  above them was long. Same shape as the edit button reported yesterday.
+
+  Two of my own mistakes surfaced here. The fixture's planned calibration set
+  the wrong date field, so no device ever showed the trigger — and the new
+  checks passed *without* the fix, because with two devices the target is on
+  screen anyway. They measure in a 300 px window now, which reproduces a real
+  user's install. Of the two new cases only the first is demonstrated to bite;
+  the other is precaution, and the test says so.
+
 ## 2.0.0-beta.53
 
 **Beta.** A button that worked, and nobody could tell.
