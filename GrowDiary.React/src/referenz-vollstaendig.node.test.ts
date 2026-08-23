@@ -37,6 +37,10 @@ const ABSCHNITTE = [
 const OHNE_REFERENZ: Record<string, string> = {
   '/handy': 'Eine Anleitung mit QR-Code, keine Funktion mit Regeln oder Zahlen. '
     + 'Was dort steht, steht auf der Seite selbst — eine Referenz dafür wäre eine Kopie.',
+  '/ac-test': 'Ein Versuchsaufbau, ausdrücklich als Test gekennzeichnet. Was er tut, '
+    + 'ändert sich nach jeder Rückmeldung; eine Referenz dafür wäre in einer Woche '
+    + 'falsch und würde denselben Weg gehen wie docs/architecture.md. Bleibt er, '
+    + 'bekommt er eine Seite — dann fällt diese Zeile hier weg.',
 }
 
 function referenzSeiten(): { name: string; inhalt: string }[] {

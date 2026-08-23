@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { navGroups } from '../src/navigation'
 
 // Every navigable route in the app. The backend is not running under this smoke
 // suite, so each page is expected to reach its loading/error/empty state — but it
@@ -116,7 +117,7 @@ test('lässt das Tab-Ziel der Weiterleitung gewinnen', async ({ page }) => {
   expect(url.searchParams.get('growId')).toBe('3')
 })
 
-test('zeigt die fuenf Navigationsgruppen, ohne globale Kontextleiste', async ({ page }) => {
+test('zeigt alle Navigationsgruppen, ohne globale Kontextleiste', async ({ page }) => {
   await page.goto('/', { waitUntil: 'networkidle' })
   await page.setViewportSize({ width: 1440, height: 900 })
 
@@ -124,11 +125,19 @@ test('zeigt die fuenf Navigationsgruppen, ohne globale Kontextleiste', async ({ 
   // Zielen — fuenf richtet man einmal ein, drei fasst man laufend an; die
   // drei mussten dazwischen herausgesucht werden. Jetzt getrennt in
   // „Betrieb" und „Einrichtung".
-  const groups = page.locator('.v1-desktop-nav .v1-nav-group')
-  await expect(groups).toHaveCount(5)
-  for (const label of ['Jetzt', 'Pflanzen', 'Betrieb', 'Einrichtung', 'Wissen']) {
-    await expect(page.locator('.v1-nav-group-head', { hasText: label })).toBeVisible()
+  // Zahl und Namen aus `navigation.ts` statt hier abgeschrieben. Die feste 5
+  // war richtig, bis eine sechste Gruppe dazukam („Versuch"), und dann meldet
+  // der Test einen Fehler, wo keiner ist — solche Tests werden angepasst statt
+  // gelesen, und irgendwann passt jemand einen an, der echt war.
+  const gruppen = page.locator('.v1-desktop-nav .v1-nav-group')
+  await expect(gruppen).toHaveCount(navGroups.length)
+  for (const gruppe of navGroups) {
+    await expect(page.locator('.v1-nav-group-head', { hasText: gruppe.label })).toBeVisible()
   }
+
+  // Und ein Mengenwaechter: waere `navGroups` leer, bestuende alles darueber
+  // grundlos.
+  expect(navGroups.length).toBeGreaterThanOrEqual(5)
 
   // Die globale Zelt/Grow-Leiste ist bewusst weg: sie steuerte nur zwei Badges
   // und keine einzige Seite — man stellte oben etwas ein und unten passierte

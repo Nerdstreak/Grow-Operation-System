@@ -46,6 +46,19 @@ public static class DemoData
     /// </remarks>
     public const string KuehlerSteckdose = "switch.demo_kuehler";
 
+    /// <summary>Das Dimmfeld des Lichts im Testbestand — 0 bis 10.</summary>
+    /// <remarks>
+    /// Fuer den Versuchsaufbau „Zelt (AC-Test)". Ohne diese Entitaet zeigt die
+    /// Seite im Testbetrieb nur „antwortet nicht" — richtig, aber nichts, woran
+    /// man den Aufbau ansehen kann.
+    ///
+    /// Der Wert wird hier NICHT gehalten: der Testbetrieb schickt nichts an ein
+    /// Geraet, also bleibt die Stufe, wie sie hier steht. Wer sie klickt, sieht
+    /// die Meldung und den unveraenderten Stand — das ist ehrlicher als eine
+    /// vorgetaeuschte Aenderung.
+    /// </remarks>
+    public const string LichtLeistung = "number.demo_licht_leistung";
+
     /// <summary>
     /// Ein Wert je Messgröße: Mittelwert, Schwankung, Periode in Stunden und
     /// eine langsame Drift pro Stunde.
@@ -217,6 +230,19 @@ public static class DemoData
     /// </remarks>
     public static HomeAssistantState? EntityState(string entityId, DateTime nowUtc)
     {
+        if (string.Equals(entityId, LichtLeistung, StringComparison.OrdinalIgnoreCase))
+        {
+            return new HomeAssistantState
+            {
+                EntityId = LichtLeistung,
+                State = "7",
+                NumericValue = 7,
+                FriendlyName = "Demo LED · Einschaltleistung",
+                LastChanged = nowUtc,
+                LastUpdated = nowUtc,
+            };
+        }
+
         if (!string.Equals(entityId, KuehlerSteckdose, StringComparison.OrdinalIgnoreCase)) return null;
 
         var an = Demoverlauf.KuehlerLaeuft(nowUtc.ToLocalTime());

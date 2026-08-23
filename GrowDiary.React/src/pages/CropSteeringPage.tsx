@@ -6,6 +6,7 @@ import {
   V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Skeleton, V1Stat, V1Switch,
 } from '../components/v1'
 import '../features/cropsteering/cropsteering.css'
+import { unlesbarMeldung, unlesbareFelder, zahlOderNull } from '../zahlenfeld'
 
 /**
  * Crop Steering: die Wassertemperatur über den Tag steuern.
@@ -185,31 +186,27 @@ export function CropSteeringPage() {
     setFehler(null)
     setMeldung(null)
     try {
-      // Unlesbares NICHT stillschweigend verschlucken. `Number('16x')` ist NaN,
-      // und daraus wurde bisher `floorC: null` plus „Gespeichert." — dieselbe
-      // Fehlerklasse, die im Messformular schon einmal 21 Zahlenfelder betraf.
-      const unlesbar = [
-        boden.trim() !== '' && !Number.isFinite(Number(boden.replace(',', '.'))) ? 'Untergrenze' : null,
-        totband.trim() !== '' && !Number.isFinite(Number(totband.replace(',', '.'))) ? 'Totband' : null,
-      ].filter(Boolean)
-      if (unlesbar.length > 0) {
-        setFehler(`${unlesbar.join(' und ')}: das ist keine Zahl. Nichts gespeichert.`)
-        setSpeichert(false)
-        return
-      }
+      // Unlesbares NICHT stillschweigend verschlucken — über die geteilte
+      // Fassung in `src/zahlenfeld.ts`. Die eigene Umwandlung hier war die
+      // vierte im Haus; drei davon hatten drei verschiedene Fehler.
+      const meldung = unlesbarMeldung(unlesbareFelder([
+        [boden, 'Untergrenze'],
+        [totband, 'Totband'],
+      ]))
+      if (meldung) { setFehler(meldung); setSpeichert(false); return }
 
-      const zahl = boden.trim() === '' ? null : Number(boden.replace(',', '.'))
-      const totbandZahl = Number(totband.replace(',', '.'))
+      const zahl = zahlOderNull(boden)
+      const totbandZahl = zahlOderNull(totband)
       uebernehmen(await apiFetch<Steuerung>(`/api/grows/${growId}/night-ramp`, {
         method: 'PUT',
         body: JSON.stringify({
           enabled: rampeAn,
-          floorC: Number.isFinite(zahl as number) ? zahl : null,
+          floorC: zahl,
           targetEntityId: ziel.trim(),
           chiller: kuehler && {
             enabled: kuehler.enabled,
             switchEntityId: kuehler.switchEntityId,
-            hysteresisC: Number.isFinite(totbandZahl) ? totbandZahl : kuehler.hysteresisC,
+            hysteresisC: totbandZahl ?? kuehler.hysteresisC,
             minRunMinutes: kuehler.minRunMinutes,
             minPauseMinutes: kuehler.minPauseMinutes,
             maxReadingAgeMinutes: kuehler.maxReadingAgeMinutes,

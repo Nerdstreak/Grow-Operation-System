@@ -4,6 +4,7 @@ import { apiFetch } from '../api'
 import type { TentDto } from '../types'
 import { V1Alert, V1Button, V1Card, V1Field, V1Page, V1Section, V1Skeleton, V1Switch } from '../components/v1'
 import '../features/dosing/dosing.css'
+import { unlesbarMeldung, unlesbareFelder, zahlOderNull } from '../zahlenfeld'
 
 /**
  * Eine Pumpe einrichten: was sie tut, was drin ist, wen sie in Home Assistant
@@ -53,10 +54,10 @@ function leer(): Form {
   }
 }
 
-function zahlOderNull(value: string): number | null {
-  const parsed = Number(value.replace(',', '.'))
-  return Number.isFinite(parsed) ? parsed : null
-}
+// zahlOderNull kommt aus `src/zahlenfeld.ts`. Die frühere Fassung hier hatte
+// KEINE Leerprüfung: `Number('')` ist 0 und `Number.isFinite(0)` ist true. Ein
+// geleertes Feld wurde damit zur Null — beim Mindestabstand heisst das keine
+// Mischpause mehr, still, mit Erfolgsmeldung.
 
 function DosingPumpSetupPage() {
   const { pumpId } = useParams<{ pumpId: string }>()
@@ -131,6 +132,23 @@ function DosingPumpSetupPage() {
       return
     }
     if (form.tentId == null) { setError('Wähle ein Zelt.'); return }
+
+    // Dieselbe Sperre wie im Messformular. Hier wiegt sie schwerer: ein
+    // unlesbarer Mindestabstand wurde zu `null`, das Backend liess ihn durch,
+    // und `DosingService` prüft `seit < TimeSpan.FromMinutes(0)` — nie wahr.
+    // Die Pumpe fuhr dann ohne Mischpause, still, mit Erfolgsmeldung.
+    const meldung = unlesbarMeldung(unlesbareFelder([
+      [form.concentrationPercent, 'Konzentration'],
+      [form.costPerLiterEur, 'Preis je Liter'],
+      [form.maxSingleDoseMl, 'Höchstmenge je Gabe'],
+      [form.minIntervalMinutes, 'Mindestabstand'],
+      [form.maxDosesPerDay, 'Gaben je Tag'],
+      [form.maxMlPerDay, 'Milliliter je Tag'],
+      [form.maxReadingAgeMinutes, 'Messwert höchstens alt'],
+      [form.partnerRatio, 'Verhältnis zum Partner'],
+      [form.partnerDelayMinutes, 'Abstand zum Partner'],
+    ]))
+    if (meldung) { setError(meldung); return }
 
     setSaving(true)
     setError(null)

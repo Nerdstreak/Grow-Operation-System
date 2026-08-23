@@ -7,6 +7,7 @@ import { formatDateTime, toLocalInputValue } from '../utils'
 import { V1Alert, V1Badge, V1Button, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import '../features/measurement/measurement-edit.css'
 import { FOTO_TAGS, PHASEN, fotoTagName, herkunftName, phaseName } from '../deutsche-woerter'
+import { unlesbarMeldung, unlesbareFelder, zahlOderNull } from '../zahlenfeld'
 
 interface MeasurementEditState {
   takenAtLocal: string
@@ -138,6 +139,14 @@ function MeasurementEditPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!measurementId || !draft) return
+
+    // Unlesbares NICHT stillschweigend verschlucken. `zahlOderNull` macht aus
+    // „leer" und aus „6,2x" dasselbe `null` — und DIESE Seite ist der einzige
+    // Weg, auf dem ein vorhandener Wert verschwinden kann. Auf der Erfassungs-
+    // seite war das 2026-08 behoben worden, hier stand es noch.
+    const meldung = unlesbarMeldung(unlesbareFelder(ZAHLENFELDER.map(
+      ([feld, beschriftung]) => [String(draft[feld] ?? ''), beschriftung] as [string, string])))
+    if (meldung) { setError(meldung); return }
 
     setSaving(true)
     try {
@@ -336,6 +345,38 @@ function createDraft(measurement: MeasurementDto): MeasurementEditState {
   }
 }
 
+
+/**
+ * Die Zahlenfelder dieser Seite mit ihrer Beschriftung.
+ *
+ * Nur dafür da, ein unlesbares Feld beim Namen nennen zu können — „Reservoir-pH"
+ * statt `reservoirPh`. Kommt ein Feld dazu, gehört es hier hinein; fehlt es,
+ * wird sein Inhalt weiterhin stillschweigend verworfen. Genau dagegen zählt
+ * `src/zahlen-verlust.node.test.ts`.
+ */
+const ZAHLENFELDER: Array<[keyof MeasurementEditState, string]> = [
+  ['airTemperatureC', 'Lufttemperatur'],
+  ['humidityPercent', 'Luftfeuchte'],
+  ['heightCm', 'Höhe'],
+  ['waterAmountMl', 'Gießmenge'],
+  ['runoffAmountMl', 'Ablauf'],
+  ['irrigationPh', 'pH (Gießwasser)'],
+  ['irrigationEc', 'EC (Gießwasser)'],
+  ['drainPh', 'pH (Ablauf)'],
+  ['drainEc', 'EC (Ablauf)'],
+  ['reservoirPh', 'Reservoir-pH'],
+  ['reservoirEc', 'Reservoir-EC'],
+  ['reservoirWaterTempC', 'Wassertemperatur'],
+  ['reservoirLevelCm', 'Füllstand (cm)'],
+  ['reservoirLevelLiters', 'Füllstand (L)'],
+  ['dissolvedOxygenMgL', 'Sauerstoff'],
+  ['orpMv', 'ORP'],
+  ['topOffLiters', 'Nachgefüllt'],
+  ['addbackEc', 'EC nach Addback'],
+  ['ppfdMol', 'PPFD'],
+  ['co2Ppm', 'CO₂'],
+  ['airflowAtLeafMPerMin', 'Luftstrom am Blatt'],
+]
 function toPayload(draft: MeasurementEditState): MeasurementUpsertPayload {
   return {
     takenAtLocal: draft.takenAtLocal,
@@ -373,11 +414,12 @@ function formatDraftNumber(value: number | null | undefined) {
   return String(value)
 }
 
+// Diese Fassung prüfte mit `Number.isNaN` statt `Number.isFinite` — damit galt
+// `Infinity` als gültige Zahl. Und aus „6,2x" wurde stillschweigend `null`,
+// obwohl gerade DIESE Seite der einzige Weg ist, auf dem ein vorhandener Wert
+// verschwinden kann. Beides erledigt jetzt `src/zahlenfeld.ts`.
 function parseNullableNumber(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  const parsed = Number(trimmed.replace(',', '.'))
-  return Number.isNaN(parsed) ? null : parsed
+  return zahlOderNull(value)
 }
 
 function trimToNull(value: string) {

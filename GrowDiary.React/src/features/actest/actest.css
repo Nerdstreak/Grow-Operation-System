@@ -1,0 +1,61 @@
+/* Zelt (AC-Test) — der Versuchsaufbau.
+
+   Grundformen zuerst, Bedingungen danach: eine @media-Abfrage hebt die
+   Spezifität nicht an, und bei Gleichstand gewinnt die spätere Regel. */
+
+.ac-geraete { display: grid; gap: var(--s-3); }
+
+.ac-kopf {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  color: var(--ink);
+}
+
+.ac-entity {
+  font-family: var(--font-mono);
+  font-size: var(--fs-klein);
+  color: var(--muted);
+  margin: var(--s-1) 0 var(--s-3);
+  overflow-wrap: anywhere;
+}
+
+/* Die elf Stufen. `flex-wrap`, damit sie am Telefon umbrechen statt die Seite
+   aufzuziehen — die Grid-Falle aus beta.40. */
+.ac-stufen { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+
+.ac-stufe {
+  /* 44 px: die Tippgröße, gegen die `e2e/touch-targets.spec.ts` misst. */
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--hair);
+  border-radius: var(--r-sm);
+  background: var(--panel-2);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-text);
+  cursor: pointer;
+}
+
+.ac-stufe:hover:not(:disabled) { border-color: var(--accent); }
+.ac-stufe:disabled { opacity: .5; cursor: default; }
+
+/* Die eingestellte Stufe. Sie trägt auch `aria-pressed`, die Farbe ist nicht
+   der einzige Träger der Aussage. */
+.ac-stufe.is-jetzt {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.ac-hinweis {
+  color: var(--muted);
+  font-size: var(--fs-klein);
+  margin: var(--s-3) 0 0;
+  max-width: 68ch;
+}
+
+.ac-zeile { align-items: end; }
+.ac-weg { display: flex; align-items: end; }

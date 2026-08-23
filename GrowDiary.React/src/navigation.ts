@@ -28,7 +28,7 @@ export type NavLeaf = {
 }
 
 export type NavGroup = {
-  id: 'now' | 'grow' | 'ops' | 'plant' | 'library'
+  id: 'now' | 'grow' | 'ops' | 'plant' | 'library' | 'versuch'
   label: string
   items: NavLeaf[]
 }
@@ -86,6 +86,18 @@ export const navGroups: NavGroup[] = [
       { to: '/regeln', label: 'Regeln & Automatik', end: true, keywords: 'grenzwerte schwellen alarm push zeitplan automation' },
       { to: '/sollwerte', label: 'Sollwert-Profile', end: true, keywords: 'zielwerte setpoints profil rdwc dwc phasen erfahrung eigene werte' },
       { to: '/cropsteering', label: 'Crop Steering', end: true, keywords: 'wassertemperatur kühler chiller steckdose nachtabsenkung rampe tag nacht wurzeltemperatur steuern' },
+    ],
+  },
+  {
+    // Eine eigene Gruppe statt eines Eintrags unter Betrieb: was hier steht,
+    // ist ein Versuch und soll auch so aussehen. Die Wegweiser-Zaehlung
+    // verlangt ausserdem, dass die Kopfzeile der Seite ihre Gruppe nennt —
+    // Versuch auf der Seite und Betrieb im Menue waere genau der Widerspruch,
+    // den sie seit beta.42 sucht.
+    id: 'versuch',
+    label: 'Versuch',
+    items: [
+      { to: '/ac-test', label: 'Zelt (AC-Test)', end: true, keywords: 'ac infinity controller uis licht lüfter abluft stufe leistung 0 10 dimmen versuch test gerät steuern zentrale' },
     ],
   },
   {

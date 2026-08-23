@@ -89,6 +89,14 @@ public static class Demobestand
             "Gorilla Glue (Testdaten)", "Gorilla Glue #4", "GG Strains",
             vorTagen: 95, dauerTage: 88, nass: 468, trocken: 108);
 
+        // Der Versuchsaufbau „Zelt (AC-Test)" bekommt ein Geraet, damit die
+        // Seite im Testbestand etwas zeigt statt nur „noch nichts eingetragen".
+        // Die Entitaet liefert DemoData.EntityState — ueber dieselbe
+        // Schnittstelle, die auch im Betrieb benutzt wird.
+        AcTest.Speichern(dienste.GetRequiredService<AppSettingsRepository>(), zelt.Id,
+        [
+            new AcGeraet("LED Top (Testdaten)", DemoData.LichtLeistung, null),
+        ]);
         return $"1 Zelt, 1 RDWC-Aufbau, 3 Grows (1 laufend, 2 im Archiv), {anzahl} Messungen";
     }
 

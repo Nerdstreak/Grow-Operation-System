@@ -431,6 +431,24 @@ public sealed class DosingApiController : ApiControllerBase
         return null;
     }
 
+    /// <summary>
+    /// Eine Sicherung uebernehmen — oder, wenn sie unter dem Erlaubten liegt,
+    /// den Standard statt der Kante.
+    /// </summary>
+    /// <remarks>
+    /// <b>Warum nicht <c>Math.Max</c>.</b> Eine 0 aus einem geleerten Feld ist
+    /// keine Absicht, sondern eine fehlende Angabe. Sie auf das Minimum zu
+    /// heben, ergaebe „1 Minute Mischpause" — auch das ist keine Pause. Wer
+    /// nichts angibt, bekommt den Wert, der ohne ihn gegolten haette.
+    /// </remarks>
+    private static double SperreOderStandard(double? gewuenscht, double minimum, double bisher, double standard)
+    {
+        if (gewuenscht is not { } wert) return bisher;
+        return wert < minimum ? standard : wert;
+    }
+
+    private static double SperreOderStandard(int? gewuenscht, double minimum, double bisher, double standard)
+        => SperreOderStandard((double?)gewuenscht, minimum, bisher, standard);
     private static DosingPump Apply(DosingPump pump, DosingPumpUpsertRequest request)
     {
         pump.TentId = request.TentId;
@@ -442,11 +460,25 @@ public sealed class DosingApiController : ApiControllerBase
         pump.HaEntityId = request.HaEntityId.Trim();
         pump.CalibrationIntervalDays = request.CalibrationIntervalDays;
         pump.TubeIntervalDays = request.TubeIntervalDays;
-        if (request.MaxSingleDoseMl is { } single) pump.MaxSingleDoseMl = single;
-        if (request.MinIntervalMinutes is { } interval) pump.MinIntervalMinutes = interval;
-        if (request.MaxDosesPerDay is { } doses) pump.MaxDosesPerDay = doses;
-        if (request.MaxMlPerDay is { } perDay) pump.MaxMlPerDay = perDay;
-        if (request.MaxReadingAgeMinutes is { } age) pump.MaxReadingAgeMinutes = age;
+        // Sperren, die auf 0 stehen, sind keine Sperren.
+        //
+        // Eine 0 kommt hier nicht aus Absicht, sondern aus einem geleerten Feld:
+        // `Number("")` ist im Browser 0 und `Number.isFinite(0)` ist true, also
+        // ging die Null als gueltiger Wert durch. Beim Mindestabstand hiess das
+        // stumme Katastrophe: `DosingService` prueft
+        // `seit < TimeSpan.FromMinutes(MinIntervalMinutes)`, und bei 0 ist das nie
+        // wahr — die Pumpe haette ohne jede Mischpause dosiert, mit
+        // Erfolgsmeldung. Die Oberflaeche schickt seit dem gleichen Stand keine
+        // 0 mehr; diese Sperre haelt sie trotzdem, weil die Schnittstelle auch
+        // von aussen erreichbar ist.
+        //
+        // Unter dem Erlaubten gilt der STANDARD, nicht die Kante — dasselbe
+        // Muster wie bei der Kuehler-Steuerung.
+        pump.MaxSingleDoseMl = SperreOderStandard(request.MaxSingleDoseMl, 0.1, pump.MaxSingleDoseMl, 5);
+        pump.MinIntervalMinutes = (int)SperreOderStandard(request.MinIntervalMinutes, 1, pump.MinIntervalMinutes, 18);
+        pump.MaxDosesPerDay = (int)SperreOderStandard(request.MaxDosesPerDay, 1, pump.MaxDosesPerDay, 6);
+        pump.MaxMlPerDay = SperreOderStandard(request.MaxMlPerDay, 0.1, pump.MaxMlPerDay, 25);
+        pump.MaxReadingAgeMinutes = (int)SperreOderStandard(request.MaxReadingAgeMinutes, 1, pump.MaxReadingAgeMinutes, 10);
         pump.AutomationEnabled = request.AutomationEnabled;
         pump.HasHomeAssistantAutoOff = request.HasHomeAssistantAutoOff;
         pump.SimulationMode = request.SimulationMode;
