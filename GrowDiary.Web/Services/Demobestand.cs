@@ -78,6 +78,7 @@ public static class Demobestand
         AufgabenAnlegen(aufgaben, laufend.Id);
         var geraet = GeraetMitHistorieAnlegen(hardware, zelt.Id, laufend.Id);
         AlarmregelAnlegen(alarme, zelt.Id);
+        LichtplanAnlegen(grows, zelt.Id);
         RisikoAnlegen(hardware, zelt.Id, laufend.Id, geraet.Id);
         GlasAnlegen(aushaerten, laufend.Id);
         PumpenAnlegen(dosierung, zelt.Id);
@@ -95,7 +96,8 @@ public static class Demobestand
         // Schnittstelle, die auch im Betrieb benutzt wird.
         AcTest.Speichern(dienste.GetRequiredService<AppSettingsRepository>(), zelt.Id,
         [
-            new AcGeraet("LED Top (Testdaten)", DemoData.LichtLeistung, null),
+            new AcGeraet("LED Top (Testdaten)", DemoData.LichtLeistung, null,
+                DemoData.LichtEinZeit, DemoData.LichtAusZeit),
         ]);
         return $"1 Zelt, 1 RDWC-Aufbau, 3 Grows (1 laufend, 2 im Archiv), {anzahl} Messungen";
     }
@@ -524,6 +526,30 @@ public static class Demobestand
         // jedem Abschluss selbst einen neuen Termin an, und aus drei Nachtraegen
         // wuerden drei offene Erinnerungen.
         return geraet;
+    }
+
+    /// <summary>Der Lichtplan des Testzelts.</summary>
+    /// <remarks>
+    /// <para><b>Ohne ihn fehlte dem Testbestand ein ganzes Kapitel.</b> Der
+    /// Lichtplan speist die Tag/Nacht-Erkennung der Alarme, die Stromkosten je
+    /// Grow und den Vorschlag im Versuchsaufbau „Zelt (AC-Test)". Alle drei
+    /// liefen im Testbetrieb auf einer Ersatzannahme — also genau da nicht, wo
+    /// man sie ansehen kann.</para>
+    ///
+    /// <para>Die Uhrzeiten kommen aus <see cref="Demoverlauf"/> und nicht von
+    /// Hand: sonst zeigte der Plan 08:00 und die Kurve ginge um 06:00 an.</para>
+    /// </remarks>
+    private static void LichtplanAnlegen(GrowRepository grows, int zeltId)
+    {
+        grows.CreateLightSchedule(new LightSchedule
+        {
+            TentId = zeltId,
+            Name = "Blüte 12/12 (Testdaten)",
+            IsActive = true,
+            LightsOnTime = Demoverlauf.LichtAnUhr,
+            LightsOffTime = Demoverlauf.LichtAusUhr,
+            Source = LightSource.Manual,
+        });
     }
 
     private static void AlarmregelAnlegen(AlertRuleRepository alarme, int zeltId)

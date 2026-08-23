@@ -386,13 +386,18 @@ public sealed class HomeAssistantService
             return false;
         }
 
-        // Im Testdatenmodus geht kein Aufruf raus — es gibt nichts zu schalten.
-        // Gemeldet wird trotzdem Erfolg, damit der ganze Weg durchlaeuft.
+        // Im Testdatenmodus geht kein Aufruf ins Netz — aber er wird
+        // FESTGEHALTEN. Vorher meldete dieser Zweig blanken Erfolg und
+        // veraenderte nichts; damit war alles, was nach dem Schalten kommt, im
+        // Testbestand nicht pruefbar (siehe Demoschaltbrett).
         if (DemoData.IsEnabled)
         {
-            _logger.LogInformation("Testdaten: {Domain}.{Service} fuer {Entity} — nicht wirklich geschaltet.", domain, service, entityId);
-            _ = daten;
-            return true;
+            var verstanden = Demoschaltbrett.Schalten(domain, service, entityId, daten);
+            _logger.LogInformation(
+                "Testdaten: {Domain}.{Service} fuer {Entity} — {Ergebnis}.",
+                domain, service, entityId,
+                verstanden ? "im Schaltbrett vermerkt" : "unbekannter Dienst, nicht vermerkt");
+            return verstanden;
         }
 
         try

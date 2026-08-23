@@ -146,15 +146,34 @@ public sealed class DemoDataTests
             + "was sie zu lesen glaubt.");
     }
 
+    /// <summary>Der pH steigt zwischen zwei Dosierungen — sonst gibt es nichts zu korrigieren.</summary>
+    /// <remarks>
+    /// <para><b>Was hier vorher stand, hat die Drift nie gemessen.</b> Der Test
+    /// verglich 06:00 mit 18:00 <i>desselben Tages</i>. Die Drift kommt aber aus
+    /// den Tagen seit der letzten Dosierung — die war in beiden Punkten gleich.
+    /// Gemessen wurde also die Tag/Nacht-Welle, und die kippte das Vorzeichen,
+    /// sobald der Tagesgang ans Licht gebunden wurde. Ein Test, der beim
+    /// Verschieben einer Sinuskurve rot wird, hat nie den pH geprüft.</para>
+    ///
+    /// <para>Jetzt läuft er über den ganzen Dosierzyklus und misst zur selben
+    /// Tageszeit — damit die Welle herausfällt und nur die Drift bleibt.</para>
+    /// </remarks>
     [Fact]
-    public void PhDriftsUpwards_SoThereIsSomethingToCorrect()
+    public void Der_pH_steigt_zwischen_zwei_Dosierungen()
     {
-        // Absicht: dadurch gibt es auf dem Entwicklungsrechner eine echte
-        // Abweichung, gegen die sich die Dosierung pruefen laesst.
-        var start = new DateTime(2026, 7, 28, 6, 0, 0, DateTimeKind.Utc);
+        var mittags = DateTime.Today.AddDays(-Demoverlauf.DosierAlleTage).AddHours(12);
+        var werte = Enumerable.Range(0, Demoverlauf.DosierAlleTage)
+            .Select(tag => Demoverlauf.Ph(mittags.AddDays(tag)))
+            .ToList();
 
-        Assert.True(DemoData.ValueFor("reservoir-ph", start.AddHours(12))
-                  > DemoData.ValueFor("reservoir-ph", start));
+        // Mengenwaechter: ohne mehrere Punkte vergleicht die Schleife nichts.
+        Assert.True(werte.Count >= 2, "Zu wenige Punkte im Dosierzyklus.");
+
+        for (var i = 1; i < werte.Count; i++)
+        {
+            Assert.True(werte[i] > werte[i - 1],
+                $"Tag {i} liegt bei {werte[i]:0.000} und damit nicht ueber Tag {i - 1} ({werte[i - 1]:0.000}).");
+        }
     }
 
     [Fact]
@@ -220,10 +239,60 @@ public sealed class DemoDataTests
         Assert.True(DemoData.Settings().IsConfigured);
     }
 
+    /// <summary>
+    /// Der Schaltzustand des Lichts und die Lichtkurven muessen ueber den
+    /// ganzen Tag dasselbe sagen.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Warum eine Zaehlung und keine zwei Stichproben.</b> Vorher
+    /// standen hier genau zwei Stunden — 03:00 und 12:00 UTC. Beide lagen
+    /// zufaellig auf der richtigen Seite, waehrend <c>LightOn</c> in UTC und
+    /// die Kurven in Ortszeit rechneten. Zwei Stunden am Tag meldete der
+    /// Testbestand deshalb „Licht an" bei PPFD 0. Der Test war gruen.</para>
+    ///
+    /// <para>Jetzt laeuft er ueber alle 24 Stunden und vergleicht die beiden
+    /// Quellen miteinander, statt beiden dieselbe Annahme zu unterstellen.</para>
+    /// </remarks>
     [Fact]
-    public void LightFollowsAnEighteenSixCycle()
+    public void Lichtschalter_und_Lichtkurve_widersprechen_sich_nie()
     {
-        Assert.False(DemoData.LightOn(new DateTime(2026, 7, 28, 3, 0, 0, DateTimeKind.Utc)));
-        Assert.True(DemoData.LightOn(new DateTime(2026, 7, 28, 12, 0, 0, DateTimeKind.Utc)));
+        var tag = DateTime.Today.AddDays(-1);
+        var widersprueche = new List<string>();
+        var anStunden = 0;
+
+        for (var stunde = 0; stunde < 24; stunde++)
+        {
+            var ortszeit = tag.AddHours(stunde).AddMinutes(30);
+            var utc = ortszeit.ToUniversalTime();
+
+            var schalter = DemoData.LightOn(utc);
+            var ppfd = Demoverlauf.Wert("ppfd", ortszeit) ?? 0;
+            if (schalter) anStunden++;
+
+            if (schalter != ppfd > 0)
+            {
+                widersprueche.Add($"{ortszeit:HH:mm} Ortszeit: Schalter {(schalter ? "an" : "aus")}, PPFD {ppfd}");
+            }
+        }
+
+        // Mengenwaechter: liefe die Schleife leer oder braechte die Kurve
+        // ueberall 0, waere der Test gruen ohne etwas zu pruefen.
+        Assert.InRange(anStunden, 1, 23);
+        Assert.Empty(widersprueche);
+    }
+
+    /// <summary>Der Testbestand faehrt einen Zyklus, den es wirklich gibt.</summary>
+    /// <remarks>
+    /// 18/6 oder 12/12 — eine krumme Zahl waere ein Fehler in den Testdaten
+    /// und liefe durch alles hindurch, was daran misst.
+    /// </remarks>
+    [Fact]
+    public void Der_Testbestand_faehrt_einen_echten_Zyklus()
+    {
+        var tag = DateTime.Today.AddDays(-1);
+        var an = Enumerable.Range(0, 24)
+            .Count(h => DemoData.LightOn(tag.AddHours(h).AddMinutes(30).ToUniversalTime()));
+
+        Assert.True(an is 18 or 12, $"Der Testbestand faehrt {an}/{24 - an} — das ist kein ueblicher Zyklus.");
     }
 }

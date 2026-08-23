@@ -21,6 +21,7 @@ public sealed class AcTestApiController : ControllerBase
     private readonly AppSettingsRepository _einstellungen;
     private readonly HomeAssistantService _homeAssistant;
     private readonly SystemAuditRepository _protokoll;
+    private readonly AcSchreiber _schreiber;
     private readonly ILogger<AcTestApiController> _logger;
 
     public AcTestApiController(
@@ -28,12 +29,14 @@ public sealed class AcTestApiController : ControllerBase
         AppSettingsRepository einstellungen,
         HomeAssistantService homeAssistant,
         SystemAuditRepository protokoll,
+        AcSchreiber schreiber,
         ILogger<AcTestApiController> logger)
     {
         _grows = grows;
         _einstellungen = einstellungen;
         _homeAssistant = homeAssistant;
         _protokoll = protokoll;
+        _schreiber = schreiber;
         _logger = logger;
     }
 
@@ -57,16 +60,39 @@ public sealed class AcTestApiController : ControllerBase
                 ? null
                 : await _homeAssistant.GetEntityStateAsync(einstellungen, geraet.ModusEntityId, ct);
 
+            // Die Zeiten werden GELESEN, nicht angenommen. Was die Seite anzeigt,
+            // muss der Controller melden — sonst steht dort der Wunsch und nicht
+            // die Wirklichkeit, und genau das war der teure Fehler beim Kuehler.
+            var einZeit = string.IsNullOrWhiteSpace(geraet.EinZeitEntityId)
+                ? null
+                : await _homeAssistant.GetEntityStateAsync(einstellungen, geraet.EinZeitEntityId, ct);
+            var ausZeit = string.IsNullOrWhiteSpace(geraet.AusZeitEntityId)
+                ? null
+                : await _homeAssistant.GetEntityStateAsync(einstellungen, geraet.AusZeitEntityId, ct);
+
             stand.Add(new AcGeraetStand(
                 geraet,
                 leistung?.NumericValue,
                 modus?.State,
+                AcTest.AlsHhMm(einZeit?.State),
+                AcTest.AlsHhMm(ausZeit?.State),
                 leistung is null
                     ? $"{geraet.LeistungEntityId} antwortet nicht — gibt es die Entität?"
                     : null));
         }
 
-        return Ok(new AcTestStand(zeltId, stand, einstellungen.IsConfigured, DemoData.IsEnabled));
+        // Der Vorschlag fuer den Zeitplan kommt aus dem Lichtplan des Zelts —
+        // derselben Quelle, aus der der Waechter gegen Lichteinbruch liest.
+        // Erfunden wird hier nichts.
+        var plan = _grows.GetActiveLightScheduleForTent(zeltId);
+        var ein = AcTest.AlsHhMm(plan?.LightsOnTime);
+        var aus = AcTest.AlsHhMm(plan?.LightsOffTime);
+        var lichtplan = plan is not null && ein is not null && aus is not null
+            ? new AcLichtplan(plan.Name, ein, aus)
+            : null;
+
+        return Ok(new AcTestStand(
+            zeltId, stand, einstellungen.IsConfigured, DemoData.IsEnabled, lichtplan));
     }
 
     /// <summary>Die Geräte eintragen oder ändern.</summary>
@@ -116,38 +142,124 @@ public sealed class AcTestApiController : ControllerBase
         var einstellungen = _grows.GetEffectiveHomeAssistantSettings();
         var domain = geraet.LeistungEntityId.Split('.', 2)[0];
 
-        var ok = await _homeAssistant.CallEntityServiceAsync(
-            einstellungen, domain, "set_value", geraet.LeistungEntityId, ct,
-            new Dictionary<string, object> { ["value"] = request.Stufe });
+        var ergebnisse = await _schreiber.SchreibenAsync(einstellungen,
+        [
+            new AcSchreibschritt(
+                geraet.LeistungEntityId, domain, "set_value",
+                new Dictionary<string, object> { ["value"] = request.Stufe },
+                request.Stufe.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)),
+        ], ct: ct);
+
+        return Antworten(zelt.Name, geraet.Name, $"Stufe {request.Stufe:0.#}", ergebnisse);
+    }
+
+    /// <summary>Den Zeitplan stellen — Ein-Zeit, Aus-Zeit, Modus.</summary>
+    /// <remarks>
+    /// <b>Der Grund fuer die Reihenfolge steht in der Karte des Testers:</b> die
+    /// AC-Infinity-Cloud verwirft parallele Updates. Drei gleichzeitige Aufrufe
+    /// ergaben <c>Unable to update device controls</c> und im besten Fall EINE
+    /// uebernommene Aenderung. <see cref="AcSchreiber"/> schreibt deshalb
+    /// nacheinander, wartet dazwischen und liest jedes Mal nach.
+    ///
+    /// Der Modus kommt ZULETZT. Ein Geraet im Zeitplan-Modus mit noch alten
+    /// Zeiten schaltet nach dem alten Plan — das waere schlimmer als gar nichts.
+    /// </remarks>
+    [HttpPost("{zeltId:int}/zeitplan")]
+    public async Task<IActionResult> Zeitplan(
+        int zeltId, [FromBody] ZeitplanRequest request, CancellationToken ct)
+    {
+        var zelt = _grows.GetTent(zeltId);
+        if (zelt is null) return NotFound();
+
+        var geraet = AcTest.Lesen(_einstellungen, zeltId)
+            .FirstOrDefault(g => g.LeistungEntityId == request.EntityId);
+        if (geraet is null)
+        {
+            return BadRequest(new[] { $"{request.EntityId} ist für dieses Zelt nicht eingetragen." });
+        }
+
+        if (string.IsNullOrWhiteSpace(geraet.EinZeitEntityId)
+            || string.IsNullOrWhiteSpace(geraet.AusZeitEntityId))
+        {
+            return BadRequest(new[]
+            {
+                "Für dieses Gerät sind keine Zeit-Entitäten eingetragen. "
+                + "Bei AC Infinity heissen sie Geplante Ein-Zeit und Geplante Aus-Zeit.",
+            });
+        }
+
+        var maengel = new List<string>();
+        if (!AcTest.ZeitErlaubt(request.Ein)) maengel.Add($"Ein-Zeit: {request.Ein} ist keine Uhrzeit im Format HH:MM.");
+        if (!AcTest.ZeitErlaubt(request.Aus)) maengel.Add($"Aus-Zeit: {request.Aus} ist keine Uhrzeit im Format HH:MM.");
+        if (maengel.Count > 0) return BadRequest(maengel);
+
+        var einstellungen = _grows.GetEffectiveHomeAssistantSettings();
+        var schritte = new List<AcSchreibschritt>
+        {
+            new(geraet.EinZeitEntityId!, "time", "set_value",
+                new Dictionary<string, object> { ["time"] = request.Ein + ":00" }, request.Ein),
+            new(geraet.AusZeitEntityId!, "time", "set_value",
+                new Dictionary<string, object> { ["time"] = request.Aus + ":00" }, request.Aus),
+        };
+
+        // Der Modus nur, wenn er eingetragen ist — und immer als Letztes.
+        if (!string.IsNullOrWhiteSpace(geraet.ModusEntityId))
+        {
+            schritte.Add(new AcSchreibschritt(
+                geraet.ModusEntityId!, "select", "select_option",
+                new Dictionary<string, object> { ["option"] = "Schedule" }, "Schedule"));
+        }
+
+        var ergebnisse = await _schreiber.SchreibenAsync(einstellungen, schritte, ct: ct);
+        return Antworten(zelt.Name, geraet.Name, $"Zeitplan {request.Ein}–{request.Aus}", ergebnisse);
+    }
+
+    /// <summary>
+    /// Aus den Ergebnissen eine ehrliche Antwort machen — und ins Protokoll.
+    /// </summary>
+    /// <remarks>
+    /// <b>Teilerfolg ist kein Erfolg.</b> Wenn die Ein-Zeit ankam und die
+    /// Aus-Zeit nicht, laeuft das Licht nach einem Plan, den niemand gewollt
+    /// hat. Die Antwort sagt dann, WAS ankam und was nicht — „gespeichert" waere
+    /// hier die gefaehrlichste aller Meldungen.
+    /// </remarks>
+    private IActionResult Antworten(
+        string zeltName, string geraetName, string was, IReadOnlyList<AcSchrittErgebnis> ergebnisse)
+    {
+        var offen = ergebnisse.Where(e => !e.Bestaetigt).ToList();
+        var ok = offen.Count == 0;
 
         _protokoll.Add(new SystemAuditEvent
         {
             EventType = AcTest.ProtokollTyp,
-            Action = ok ? "stufe-gesetzt" : "stufe-fehlgeschlagen",
-            Summary = $"{zelt.Name} · {geraet.Name}: Stufe {request.Stufe:0.#} "
-                + $"an {geraet.LeistungEntityId}.",
+            Action = ok ? "gestellt" : "nicht-bestaetigt",
+            Summary = $"{zeltName} · {geraetName}: {was} — "
+                + string.Join(", ", ergebnisse.Select(e =>
+                    $"{e.EntityId} {(e.Uebersprungen ? "stand schon" : e.Bestaetigt ? $"ok nach {e.Versuche}" : "NICHT bestaetigt")}")),
             Severity = ok ? "info" : "warning",
             Success = ok,
         });
 
-        if (!ok)
-        {
-            _logger.LogWarning(
-                "AC-Test: {Entity} liess sich nicht auf {Stufe} stellen.",
-                geraet.LeistungEntityId, request.Stufe);
-            return StatusCode(502, new[]
-            {
-                $"Home Assistant hat {geraet.LeistungEntityId} nicht gestellt. "
-                + "Steht die Verbindung, und gibt es die Entität?",
-            });
-        }
+        if (ok) return NoContent();
 
-        return NoContent();
+        return StatusCode(502, offen.Select(e =>
+            $"{e.EntityId}: {e.Fehler ?? "keine Bestätigung"}").ToArray());
     }
 
     public sealed class StufeRequest
     {
         public string EntityId { get; set; } = string.Empty;
         public double Stufe { get; set; }
+    }
+
+    public sealed class ZeitplanRequest
+    {
+        public string EntityId { get; set; } = string.Empty;
+
+        /// <summary>Ein-Zeit als HH:MM.</summary>
+        public string Ein { get; set; } = string.Empty;
+
+        /// <summary>Aus-Zeit als HH:MM.</summary>
+        public string Aus { get; set; } = string.Empty;
     }
 }

@@ -13,21 +13,45 @@ namespace GrowDiary.Web.Services;
 /// Optional das <c>select.</c>-Feld „Aktiver Modus". Wird hier nur GELESEN —
 /// siehe <see cref="AcTestStand"/>.
 /// </param>
-public sealed record AcGeraet(string Name, string LeistungEntityId, string? ModusEntityId);
+/// <param name="EinZeitEntityId">
+/// Das <c>time.</c>-Feld der geplanten Ein-Zeit; bei AC Infinity
+/// „… Geplante Ein-Zeit". Nur noetig, wenn Grow OS den Zeitplan stellen soll.
+/// </param>
+/// <param name="AusZeitEntityId">Dasselbe fuer die Aus-Zeit.</param>
+public sealed record AcGeraet(
+    string Name,
+    string LeistungEntityId,
+    string? ModusEntityId,
+    string? EinZeitEntityId = null,
+    string? AusZeitEntityId = null);
 
 /// <summary>Was der Test-Bereich über ein Gerät weiss.</summary>
 /// <param name="Stufe">Die eingestellte Stufe 0–10, oder <c>null</c> wenn nicht lesbar.</param>
 /// <param name="Modus">Der aktive Modus als Text, oder <c>null</c>.</param>
+/// <param name="EinZeit">Die Ein-Zeit, die der Controller MELDET — nicht die gewuenschte.</param>
+/// <param name="AusZeit">Dasselbe fuer die Aus-Zeit.</param>
 /// <param name="Fehler">Warum nichts gelesen werden konnte.</param>
 public sealed record AcGeraetStand(
-    AcGeraet Geraet, double? Stufe, string? Modus, string? Fehler);
+    AcGeraet Geraet, double? Stufe, string? Modus,
+    string? EinZeit, string? AusZeit, string? Fehler);
+
+/// <summary>Was Grow OS ueber die Lichtzeiten dieses Zelts schon weiss.</summary>
+/// <remarks>
+/// <b>Eine Wahrheit je Zahl.</b> Die Zeiten werden hier NICHT erfunden — kein
+/// „18/6 in der Vegetation" aus dem Kopf. Sie kommen aus dem Lichtplan des
+/// Zelts, also aus derselben Quelle, aus der auch der Waechter gegen
+/// Lichteinbruch und der gelernte Zyklus lesen. Steht dort nichts, gibt es
+/// keinen Vorschlag — dann traegt der Nutzer die Zeiten selbst ein.
+/// </remarks>
+public sealed record AcLichtplan(string Name, string Ein, string Aus);
 
 /// <summary>Der ganze Test-Bereich eines Zelts.</summary>
 public sealed record AcTestStand(
     int ZeltId,
     IReadOnlyList<AcGeraetStand> Geraete,
     bool HaVerbunden,
-    bool Testbetrieb);
+    bool Testbetrieb,
+    AcLichtplan? Lichtplan);
 
 /// <summary>
 /// Der Versuchsaufbau: Geräte eines AC-Infinity-Controllers direkt aus Grow OS
@@ -145,11 +169,68 @@ public static class AcTest
             if (!string.IsNullOrWhiteSpace(g.ModusEntityId)
                 && !g.ModusEntityId.StartsWith("select.", StringComparison.OrdinalIgnoreCase))
             {
-                maengel.Add($"Gerät {nummer}: der Modus ist ein select-Feld, „{g.ModusEntityId}\" nicht.");
+                maengel.Add($"Gerät {nummer}: der Modus ist ein select-Feld, {g.ModusEntityId} nicht.");
+            }
+
+            foreach (var (feld, was) in new[]
+                     {
+                         (g.EinZeitEntityId, "die Ein-Zeit"),
+                         (g.AusZeitEntityId, "die Aus-Zeit"),
+                     })
+            {
+                if (!string.IsNullOrWhiteSpace(feld)
+                    && !feld.StartsWith("time.", StringComparison.OrdinalIgnoreCase))
+                {
+                    maengel.Add($"Gerät {nummer}: {was} ist ein time-Feld, {feld} nicht.");
+                }
+            }
+
+            // Halb eingetragen ist schlimmer als gar nicht: mit nur einer der
+            // beiden Zeiten liesse sich kein Zeitplan stellen, die Oberflaeche
+            // haette aber ein Feld ausgefuellt und saehe fertig aus.
+            if (string.IsNullOrWhiteSpace(g.EinZeitEntityId)
+                != string.IsNullOrWhiteSpace(g.AusZeitEntityId))
+            {
+                maengel.Add($"Gerät {nummer}: für einen Zeitplan braucht es BEIDE Zeiten, "
+                    + "Ein und Aus — mit einer allein lässt sich nichts stellen.");
             }
         }
 
         return maengel;
+    }
+
+    /// <summary>Eine Uhrzeit aus der Datenbank auf HH:MM bringen.</summary>
+    /// <remarks>
+    /// Im Lichtplan steht mal „08:00", mal „08:00:00" — je nachdem, wer den
+    /// Eintrag angelegt hat. Der Zeitplan schickt HH:MM, also wird hier
+    /// gekuerzt statt an drei Stellen zu raten.
+    /// </remarks>
+    public static string? AlsHhMm(string? zeit)
+    {
+        if (string.IsNullOrWhiteSpace(zeit)) return null;
+        var kurz = zeit.Trim();
+        if (kurz.Length > 5) kurz = kurz[..5];
+        return ZeitErlaubt(kurz) ? kurz : null;
+    }
+
+    /// <summary>Ist das eine Uhrzeit im Format HH:MM?</summary>
+    /// <remarks>
+    /// Rein und ohne Kultur: Home Assistant nimmt <c>time.set_value</c> nur in
+    /// dieser Form entgegen. Ein deutsches „18.00" ginge stillschweigend
+    /// daneben — und die Nachkontrolle meldete dann einen Fehlschlag, dessen
+    /// Ursache in der Eingabe liegt und nicht in der Cloud.
+    /// </remarks>
+    public static bool ZeitErlaubt(string? zeit)
+    {
+        if (string.IsNullOrWhiteSpace(zeit)) return false;
+        if (!TimeOnly.TryParseExact(zeit, "HH:mm",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out _))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>Liegt die Stufe im erlaubten Bereich?</summary>

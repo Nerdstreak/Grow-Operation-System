@@ -45,6 +45,7 @@ public sealed partial class SystemApiController
             HydroSetupCount: hydroSetups.Count,
             GrowCount: grows.Count,
             ZeroTentStartupSupported: true,
+            BauKennung: Bauzeit.Kennung,
             Capabilities: new[]
             {
                 "zero-tent-startup",

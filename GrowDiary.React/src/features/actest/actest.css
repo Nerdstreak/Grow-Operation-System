@@ -59,3 +59,39 @@
 
 .ac-zeile { align-items: end; }
 .ac-weg { display: flex; align-items: end; }
+
+/* ---------- Zeitplan ----------
+   Abgesetzt, weil es die zweite Handlung auf derselben Karte ist: die Stufe
+   wirkt sofort, der Zeitplan erst später. Wer beides ungetrennt sieht, hält
+   das eine für eine Bestätigung des anderen. */
+.ac-zeitplan {
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--hair);
+}
+
+/* Zwei Spalten, aber `minmax(0, …)`: ohne die Null zieht ein Zeitfeld mit
+   seiner Mindestbreite die ganze Seite auf — die Grid-Falle aus beta.40. */
+.ac-zeitfelder {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+
+.ac-vorschlag { margin-top: var(--s-2); }
+
+.ac-uebernehmen {
+  /* Ein Textknopf im Fliesstext — er trägt keine eigene Zeile, also auch
+     keine 44 px Höhe; `e2e/touch-targets.spec.ts` nimmt Fliesstext-Links
+     ohnehin aus. Unterstrichen, damit er nicht nur an der Farbe hängt. */
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ac-uebernehmen:hover { color: var(--ink); }

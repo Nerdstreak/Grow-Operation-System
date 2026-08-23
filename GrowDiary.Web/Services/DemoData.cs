@@ -59,6 +59,18 @@ public static class DemoData
     /// </remarks>
     public const string LichtLeistung = "number.demo_licht_leistung";
 
+    /// <summary>Die geplante Ein-Zeit des Lichts im Testbestand.</summary>
+    /// <remarks>
+    /// Fuer den Zeitplan im Versuchsaufbau „Zelt (AC-Test)". Der Wert kommt aus
+    /// <see cref="Demoverlauf.LichtAnUhr"/> — derselben Zahl, aus der auch die
+    /// Lichtkurven und der Lichtplan des Zelts kommen. Drei abgetippte Uhrzeiten
+    /// waeren nach der ersten Aenderung auseinandergelaufen.
+    /// </remarks>
+    public const string LichtEinZeit = "time.demo_licht_ein";
+
+    /// <inheritdoc cref="LichtEinZeit"/>
+    public const string LichtAusZeit = "time.demo_licht_aus";
+
     /// <summary>
     /// Ein Wert je Messgröße: Mittelwert, Schwankung, Periode in Stunden und
     /// eine langsame Drift pro Stunde.
@@ -167,8 +179,19 @@ public static class DemoData
         }
     }
 
-    /// <summary>Das Licht: 18/6, an ab 06:00.</summary>
-    public static bool LightOn(DateTime whenUtc) => whenUtc.Hour is >= 6 and < 24;
+    /// <summary>Brennt das Licht? Eine Wahrheit, dieselbe wie fuer die Kurven.</summary>
+    /// <remarks>
+    /// <para><b>Hier standen zwei Wahrheiten.</b> Diese Methode rechnete mit der
+    /// <i>UTC</i>-Stunde, <see cref="Demoverlauf.LichtBrennt"/> mit der
+    /// <i>Ortszeit</i> — in Deutschland zwei Stunden Unterschied. Zweimal am Tag
+    /// meldete der Testbestand damit „Licht an" bei PPFD 0 und umgekehrt.
+    /// Aufgefallen ist es am 24.08.2026 um kurz nach eins nachts, weil die
+    /// Live-Seite genau das anzeigte.</para>
+    ///
+    /// <para>Deshalb steht die Stunde jetzt nur noch an einer Stelle. Wer sie
+    /// dort ändert, ändert Kurven und Schaltzustand gemeinsam.</para>
+    /// </remarks>
+    public static bool LightOn(DateTime whenUtc) => Demoverlauf.LichtBrennt(whenUtc.ToLocalTime());
 
     /// <summary>Alle Messwerte eines Zelts, so wie Home Assistant sie liefern würde.</summary>
     /// <remarks>
@@ -198,7 +221,12 @@ public static class DemoData
         // Die Kuehler-Steckdose unter ihrer ENTITAETS-Kennung: der Regler sucht
         // sie genau so, weil dort steht, ob Strom anliegt — der Chiller-Sensor
         // sagt nur, ob das Geraet laeuft.
-        var kuehlerAn = Demoverlauf.KuehlerLaeuft(nowUtc.ToLocalTime());
+        // Erst das Schaltbrett fragen: hat der Regler in dieser Sitzung schon
+        // geschaltet, ist DAS der Zustand der Steckdose. Sonst die Kurve.
+        var gestellteSteckdose = Demoschaltbrett.Lesen(KuehlerSteckdose);
+        var kuehlerAn = gestellteSteckdose is not null
+            ? gestellteSteckdose.State == "on"
+            : Demoverlauf.KuehlerLaeuft(nowUtc.ToLocalTime());
         states[KuehlerSteckdose] = new HomeAssistantState
         {
             EntityId = KuehlerSteckdose,
@@ -230,6 +258,30 @@ public static class DemoData
     /// </remarks>
     public static HomeAssistantState? EntityState(string entityId, DateTime nowUtc)
     {
+        // Was jemand gestellt hat, gewinnt ueber die Kurve — sonst zeigt die
+        // Oberflaeche den alten Wert und jede Nachkontrolle scheitert.
+        var gestellt = Demoschaltbrett.Lesen(entityId);
+        if (gestellt is not null) return gestellt;
+
+        foreach (var (kennung, uhr, name) in new[]
+                 {
+                     (LichtEinZeit, Demoverlauf.LichtAnUhr, "Demo LED · Geplante Ein-Zeit"),
+                     (LichtAusZeit, Demoverlauf.LichtAusUhr, "Demo LED · Geplante Aus-Zeit"),
+                 })
+        {
+            if (!string.Equals(entityId, kennung, StringComparison.OrdinalIgnoreCase)) continue;
+
+            return new HomeAssistantState
+            {
+                // Home Assistant meldet Uhrzeiten mit Sekunden.
+                EntityId = kennung,
+                State = uhr + ":00",
+                FriendlyName = name,
+                LastChanged = nowUtc,
+                LastUpdated = nowUtc,
+            };
+        }
+
         if (string.Equals(entityId, LichtLeistung, StringComparison.OrdinalIgnoreCase))
         {
             return new HomeAssistantState

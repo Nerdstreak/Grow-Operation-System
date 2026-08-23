@@ -20,12 +20,21 @@ import '../features/actest/actest.css'
  * Regel bekommen hat.
  */
 
-type Geraet = { name: string; leistungEntityId: string; modusEntityId: string | null }
+type Geraet = {
+  name: string
+  leistungEntityId: string
+  modusEntityId: string | null
+  einZeitEntityId: string | null
+  ausZeitEntityId: string | null
+}
 
 type GeraetStand = {
   geraet: Geraet
   stufe: number | null
   modus: string | null
+  /** Was der Controller MELDET — nicht, was jemand wollte. */
+  einZeit: string | null
+  ausZeit: string | null
   fehler: string | null
 }
 
@@ -34,9 +43,35 @@ type Stand = {
   geraete: GeraetStand[]
   haVerbunden: boolean
   testbetrieb: boolean
+  /** Der Lichtplan des Zelts, falls es einen gibt — die Quelle des Vorschlags. */
+  lichtplan: { name: string; ein: string; aus: string } | null
+}
+
+const LEERES_GERAET: Geraet = {
+  name: '',
+  leistungEntityId: '',
+  modusEntityId: null,
+  einZeitEntityId: null,
+  ausZeitEntityId: null,
 }
 
 const STUFEN = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+/**
+ * Die Eingabefelder mit dem fuellen, was der Controller MELDET.
+ *
+ * Nicht mit dem Lichtplan: sonst staende in den Feldern ein Wunsch, und wer
+ * sie anschaut, hielte ihn fuer den Zustand des Geraets. Der Lichtplan wird
+ * angeboten — mit einem Knopf, den jemand druecken muss.
+ */
+function ausStand(stand: Stand): Record<string, { ein: string; aus: string }> {
+  const gefuellt: Record<string, { ein: string; aus: string }> = {}
+  for (const g of stand.geraete) {
+    if (!g.geraet.einZeitEntityId || !g.geraet.ausZeitEntityId) continue
+    gefuellt[g.geraet.leistungEntityId] = { ein: g.einZeit ?? '', aus: g.ausZeit ?? '' }
+  }
+  return gefuellt
+}
 
 export function AcTestPage() {
   const [zelte, setZelte] = useState<TentDto[]>([])
@@ -50,6 +85,10 @@ export function AcTestPage() {
   // Der Entwurf der Geräteliste — getrennt vom Stand, damit ein halb getipptes
   // Feld nichts an einem laufenden Gerät ändert.
   const [entwurf, setEntwurf] = useState<Geraet[]>([])
+
+  // Die gewuenschten Zeiten je Geraet — getrennt vom Gemeldeten, damit die
+  // Anzeige nie behauptet, etwas sei gestellt, weil jemand getippt hat.
+  const [zeiten, setZeiten] = useState<Record<string, { ein: string; aus: string }>>({})
 
   useEffect(() => {
     const abbruch = new AbortController()
@@ -77,6 +116,7 @@ export function AcTestPage() {
       const geholt = await apiFetch<Stand>(`/api/ac-test/${id}`)
       setStand(geholt)
       setEntwurf(geholt.geraete.map((g) => g.geraet))
+      setZeiten(ausStand(geholt))
     } catch (caught) {
       setFehler(formatApiError(caught, 'Der Versuchsaufbau liess sich nicht laden.'))
     }
@@ -94,6 +134,7 @@ export function AcTestPage() {
         if (abbruch.signal.aborted) return
         setStand(geholt)
         setEntwurf(geholt.geraete.map((g) => g.geraet))
+        setZeiten(ausStand(geholt))
       } catch (caught) {
         if (!abbruch.signal.aborted) {
           setFehler(formatApiError(caught, 'Der Versuchsaufbau liess sich nicht laden.'))
@@ -127,10 +168,34 @@ export function AcTestPage() {
         method: 'POST',
         body: JSON.stringify({ entityId, stufe }),
       })
-      setMeldung(`Auf Stufe ${stufe} gestellt.`)
+      // Der Server antwortet erst, wenn der Controller den Wert MELDET —
+      // siehe AcSchreiber. Deshalb darf hier „gestellt" stehen.
+      setMeldung(`Stufe ${stufe} ist am Gerät angekommen.`)
       await laden(zeltId)
     } catch (caught) {
       setFehler(formatApiError(caught, 'Die Stufe liess sich nicht stellen.'))
+    } finally {
+      setArbeitet(null)
+    }
+  }
+
+  async function zeitplanStellen(g: Geraet) {
+    if (zeltId == null) return
+    const wunsch = zeiten[g.leistungEntityId]
+    if (!wunsch) return
+
+    setFehler(null)
+    setMeldung(null)
+    setArbeitet(`${g.leistungEntityId}:zeit`)
+    try {
+      await apiFetch(`/api/ac-test/${zeltId}/zeitplan`, {
+        method: 'POST',
+        body: JSON.stringify({ entityId: g.leistungEntityId, ein: wunsch.ein, aus: wunsch.aus }),
+      })
+      setMeldung(`Zeitplan ${wunsch.ein}–${wunsch.aus} ist am Gerät angekommen.`)
+      await laden(zeltId)
+    } catch (caught) {
+      setFehler(formatApiError(caught, 'Der Zeitplan liess sich nicht stellen.'))
     } finally {
       setArbeitet(null)
     }
@@ -231,6 +296,90 @@ export function AcTestPage() {
                   {/* 0 heisst aus — das steht dabei, damit niemand es ausprobieren muss. */}
                   Stufe 0 schaltet das Gerät aus. Es passiert nur, was du hier anklickst.
                 </p>
+
+                {/* ---------- Zeitplan ---------- */}
+                {g.geraet.einZeitEntityId && g.geraet.ausZeitEntityId && (
+                  <div className="ac-zeitplan" data-audit="ac-zeitplan">
+                    <div className="ac-kopf">
+                      <strong>Zeitplan</strong>
+                      {g.einZeit && g.ausZeit
+                        ? <V1Badge>Gerät meldet {g.einZeit}–{g.ausZeit}</V1Badge>
+                        : <V1Badge tone="warn">Gerät meldet keine Zeiten</V1Badge>}
+                    </div>
+
+                    <div className="ac-zeitfelder">
+                      <V1Field label="An um">
+                        <input
+                          type="time"
+                          value={zeiten[g.geraet.leistungEntityId]?.ein ?? ''}
+                          aria-label={`Ein-Zeit für ${g.geraet.name}`}
+                          onChange={(e) => setZeiten((alt) => ({
+                            ...alt,
+                            [g.geraet.leistungEntityId]: {
+                              ein: e.target.value,
+                              aus: alt[g.geraet.leistungEntityId]?.aus ?? '',
+                            },
+                          }))} />
+                      </V1Field>
+                      <V1Field label="Aus um">
+                        <input
+                          type="time"
+                          value={zeiten[g.geraet.leistungEntityId]?.aus ?? ''}
+                          aria-label={`Aus-Zeit für ${g.geraet.name}`}
+                          onChange={(e) => setZeiten((alt) => ({
+                            ...alt,
+                            [g.geraet.leistungEntityId]: {
+                              ein: alt[g.geraet.leistungEntityId]?.ein ?? '',
+                              aus: e.target.value,
+                            },
+                          }))} />
+                      </V1Field>
+                    </div>
+
+                    {/* Der Vorschlag kommt aus dem Lichtplan des Zelts, nicht aus
+                        einer Faustregel — und er wird angeboten, nicht gesetzt. */}
+                    {stand.lichtplan && (
+                      <p className="ac-hinweis ac-vorschlag">
+                        Grow OS kennt für dieses Zelt den Lichtplan
+                        {' '}<strong>{stand.lichtplan.name}</strong>:
+                        {' '}{stand.lichtplan.ein}–{stand.lichtplan.aus}.
+                        {' '}
+                        <button
+                          type="button"
+                          className="ac-uebernehmen"
+                          onClick={() => setZeiten((alt) => ({
+                            ...alt,
+                            [g.geraet.leistungEntityId]: {
+                              ein: stand.lichtplan!.ein,
+                              aus: stand.lichtplan!.aus,
+                            },
+                          }))}
+                        >
+                          Übernehmen
+                        </button>
+                      </p>
+                    )}
+
+                    <div className="v1-form-actions">
+                      <V1Button
+                        variant="primary"
+                        disabled={arbeitet != null}
+                        onClick={() => void zeitplanStellen(g.geraet)}
+                        audit="ac-zeitplan-stellen"
+                      >
+                        {arbeitet === `${g.geraet.leistungEntityId}:zeit`
+                          ? 'Stellt und prüft nach…'
+                          : 'Zeitplan stellen'}
+                      </V1Button>
+                    </div>
+
+                    <p className="ac-hinweis">
+                      Es wird nacheinander geschrieben und jedes Mal nachgelesen —
+                      die AC-Infinity-Cloud verwirft gleichzeitige Aufträge. Das
+                      dauert bis zu einer Minute.
+                    </p>
+                  </div>
+                )}
               </V1Card>
             ))}
           </div>
@@ -242,7 +391,7 @@ export function AcTestPage() {
         title="Geräte eintragen"
         action={(
           <V1Button
-            onClick={() => setEntwurf([...entwurf, { name: '', leistungEntityId: '', modusEntityId: null }])}
+            onClick={() => setEntwurf([...entwurf, { ...LEERES_GERAET }])}
           >
             + Gerät
           </V1Button>
@@ -255,6 +404,8 @@ export function AcTestPage() {
                 Die Entitäten findest du in Home Assistant unter deinem AC-Infinity-Gerät.
                 Für die Stufe brauchst du „… Einschaltleistung" (beginnt mit <code>number.</code>);
                 der aktive Modus (<code>select.</code>) ist freiwillig und wird nur angezeigt.
+                Trägst du zusätzlich beide <code>time.</code>-Entitäten ein, kann Grow OS
+                auch den Zeitplan stellen.
               </p>
             )}
 
@@ -277,6 +428,18 @@ export function AcTestPage() {
                     value={g.modusEntityId ?? ''}
                     placeholder="select.led_top_aktiver_modus"
                     onChange={(e) => setEntwurf(entwurf.map((x, k) => k === i ? { ...x, modusEntityId: e.target.value || null } : x))} />
+                </V1Field>
+                <V1Field label="Ein-Zeit (time, freiwillig)" hint={'Bei AC Infinity: Geplante Ein-Zeit.'}>
+                  <input
+                    value={g.einZeitEntityId ?? ''}
+                    placeholder="time.led_top_geplante_ein_zeit"
+                    onChange={(e) => setEntwurf(entwurf.map((x, k) => k === i ? { ...x, einZeitEntityId: e.target.value || null } : x))} />
+                </V1Field>
+                <V1Field label="Aus-Zeit (time, freiwillig)" hint="Nur zusammen mit der Ein-Zeit.">
+                  <input
+                    value={g.ausZeitEntityId ?? ''}
+                    placeholder="time.led_top_geplante_aus_zeit"
+                    onChange={(e) => setEntwurf(entwurf.map((x, k) => k === i ? { ...x, ausZeitEntityId: e.target.value || null } : x))} />
                 </V1Field>
                 <div className="ac-weg">
                   <V1Button variant="danger" onClick={() => setEntwurf(entwurf.filter((_, k) => k !== i))}>

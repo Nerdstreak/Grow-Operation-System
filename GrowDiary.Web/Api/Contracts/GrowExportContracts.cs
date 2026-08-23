@@ -98,6 +98,22 @@ public sealed record GrowImportResultDto(
     int SkippedPhotos,
     IReadOnlyList<string> Warnings);
 
+/// <param name="BauKennung">
+/// Die Kennung des Builds, aus dem die laufende Programmdatei stammt.
+///
+/// <para><b>Warum das hier steht.</b> Am 24.08.2026 habe ich eine Aenderung
+/// gegen eine App gemessen, die noch aus einer frueheren Sitzung lief — der
+/// Port war belegt, der Start meldete trotzdem Erfolg, und eine halbe Stunde
+/// Messung galt dem falschen Stand. Die Ergebnis-Regel in CLAUDE.md sagt „nur
+/// gegen den gebauten Stand"; ohne diese Zahl laesst sich das nicht
+/// nachpruefen, sondern nur glauben.</para>
+///
+/// <para><b>Es ist ausdruecklich KEIN Datum.</b> Bei einem deterministischen
+/// Build schreibt der Compiler dort einen Hash ueber die Eingaben, der als
+/// Zeitstempel gelesen im Jahr 2050 landet. Ein Feld namens „gebaut am" mit
+/// einem Datum aus der Zukunft waere schlimmer als gar keins — verglichen wird
+/// auf <b>Gleichheit</b>, nie auf frueher/spaeter.</para>
+/// </param>
 public sealed record BackendHealthDto(
     string AppName,
     string BackendSchema,
@@ -106,7 +122,8 @@ public sealed record BackendHealthDto(
     int HydroSetupCount,
     int GrowCount,
     bool ZeroTentStartupSupported,
-    IReadOnlyList<string> Capabilities);
+    IReadOnlyList<string> Capabilities,
+    string BauKennung);
 
 public sealed record BackupManifestDto(
     string BackupSchema,

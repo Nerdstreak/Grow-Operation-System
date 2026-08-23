@@ -111,6 +111,8 @@ builder.Services.AddScoped<AnlagenRisikoService>();
 builder.Services.AddScoped<PumpWatchNotifier>();
 builder.Services.AddScoped<WartungDueService>();
 builder.Services.AddScoped<NachtabsenkungWriter>();
+builder.Services.AddScoped<IAcFunk, HomeAssistantFunk>();
+builder.Services.AddScoped<AcSchreiber>();
 builder.Services.AddSingleton<EinkaufslisteService>();
 builder.Services.AddSingleton<BeobachtungsWegweiser>();
 builder.Services.AddSingleton<SolutionStabilityAnalyzer>();

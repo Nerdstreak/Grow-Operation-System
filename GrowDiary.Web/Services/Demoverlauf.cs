@@ -65,8 +65,27 @@ public static class Demoverlauf
     /// <summary>Bis hierher — danach ist er repariert.</summary>
     public const int StoerungBis = 14;
 
-    /// <summary>Licht an ab 06:00, 18 Stunden lang.</summary>
-    public const int LichtAn = 6;
+    /// <summary>Das Licht geht um 08:00 an.</summary>
+    /// <remarks>
+    /// <para><b>12/12, weil der Testbestand in der Blüte steht.</b> Bis zum
+    /// 24.08.2026 lief hier 18/6 — bei einem Grow, dessen Flip 35 Tage zurück
+    /// liegt. Das ist genau der Widerspruch, den Grow OS selbst als Fehler
+    /// meldet: <i>„Der Grow ist in der Blüte, das Licht läuft aber 18/6. Das
+    /// verhindert die Blüte."</i> (<see cref="LightCycleLearner.Mismatch"/>).
+    /// Aufgefallen ist es nie, weil der Testbestand keine Lichtflanken hat und
+    /// der Lerner deshalb nie etwas zu vergleichen bekam.</para>
+    ///
+    /// <para>Ein Testbestand, der die eigenen Regeln der App bricht, verdeckt
+    /// Fehler — beim Kühler ist genau das schon einmal passiert.</para>
+    /// </remarks>
+    public const int LichtAn = 8;
+
+    /// <summary>Und um 20:00 wieder aus.</summary>
+    /// <remarks>
+    /// Dieselbe Zahl steht im Lichtplan des Testzelts und in den
+    /// <c>time.</c>-Entitäten für den AC-Test. Alle drei lesen von hier.
+    /// </remarks>
+    public const int LichtAus = 20;
 
     /// <summary>Wie viele Tage liegt dieser Zeitpunkt zurück?</summary>
     private static int TageZurueck(DateTime ortszeit) => (DateTime.Today - ortszeit.Date).Days;
@@ -82,13 +101,39 @@ public static class Demoverlauf
     }
 
     /// <summary>Ist zu dieser Stunde Licht?</summary>
-    public static bool LichtBrennt(DateTime ortszeit) => ortszeit.Hour >= LichtAn;
+    /// <remarks>
+    /// Trägt auch den Fall mit, dass die Aus-Zeit vor der Ein-Zeit liegt (die
+    /// „umgekehrte" Beleuchtung über Mitternacht). Der Testbestand braucht das
+    /// heute nicht — aber eine Fensterprüfung, die nur die eine Richtung kann,
+    /// ist eine Falle für den, der die Zahlen oben ändert.
+    /// </remarks>
+    public static bool LichtBrennt(DateTime ortszeit)
+        => LichtAus > LichtAn
+            ? ortszeit.Hour >= LichtAn && ortszeit.Hour < LichtAus
+            : ortszeit.Hour >= LichtAn || ortszeit.Hour < LichtAus;
 
-    /// <summary>
-    /// Der Tag-Nacht-Gang: −1 um 6 Uhr (kälteste Stunde), +1 um 18 Uhr.
-    /// </summary>
+    /// <summary>Die Ein-Zeit als HH:MM — für Lichtplan und Zeit-Entitäten.</summary>
+    public static string LichtAnUhr => $"{LichtAn:00}:00";
+
+    /// <summary>Die Aus-Zeit als HH:MM.</summary>
+    public static string LichtAusUhr => $"{LichtAus % 24:00}:00";
+
+    /// <summary>Der Tag-Nacht-Gang: +1 in der Mitte der Lichtphase, −1 in der Mitte der Nacht.</summary>
+    /// <remarks>
+    /// <para><b>Er hängt am Licht, nicht an der Sonne.</b> Vorher war die Kurve
+    /// fest auf 6 Uhr (kalt) und 18 Uhr (warm) verdrahtet — draussen richtig, im
+    /// Zelt falsch: dort heizt die Lampe, und die kälteste Stunde liegt mitten
+    /// in der Dunkelphase. Bei 12/12 ab 08:00 ist der Höchstwert um 14:00 und
+    /// der Tiefstwert um 02:00.</para>
+    ///
+    /// <para>Damit folgen Luft- und Wassertemperatur automatisch mit, wenn
+    /// jemand <see cref="LichtAn"/> ändert.</para>
+    /// </remarks>
     private static double Tagesgang(DateTime ortszeit)
-        => Math.Sin(2 * Math.PI * (ortszeit.TimeOfDay.TotalHours - 12) / 24);
+    {
+        var mitte = (LichtAn + (LichtAus > LichtAn ? LichtAus : LichtAus + 24)) / 2.0;
+        return Math.Sin(2 * Math.PI * (ortszeit.TimeOfDay.TotalHours - mitte + 6) / 24);
+    }
 
     /// <summary>Tage seit dem letzten Wasserwechsel (0 bis 6).</summary>
     public static int SeitWasserwechsel(DateTime ortszeit) => Alter(ortszeit) % WasserwechselAlleTage;
