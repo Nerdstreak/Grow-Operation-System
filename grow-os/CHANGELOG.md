@@ -30,7 +30,7 @@
 
   The luck it had been running on hid more. Against the real 42-day window the
   app displays, **three of seven bounds were wrong** — EC (1.02–1.24 vs. 1.2
-  required), reservoir temperature (17.8–24.5 vs. 22 allowed) and dissolved
+  required), reservoir temperature (17.8–24.5 vs. 23 allowed) and dissolved
   oxygen (5.8 vs. 6.0 required). The last two peaks are not faults but the
   built-in chiller failure: warm water holds less oxygen. That is the story the
   fixture is meant to tell, and the bounds forbade it.
