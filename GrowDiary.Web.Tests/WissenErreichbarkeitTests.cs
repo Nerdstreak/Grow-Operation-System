@@ -94,6 +94,32 @@ public sealed class WissenErreichbarkeitTests
         ["harvest-preparation-flush"] = "Gehört zur Erntevorbereitung und wird geplant, nicht ausgelöst",
     };
 
+    /// <summary>
+    /// Jede Ausnahme nennt einen Ablauf, den es wirklich gibt.
+    /// </summary>
+    /// <remarks>
+    /// Der Kopf dieser Datei beschreibt den Fall bereits: ein erster Anlauf trug
+    /// erfundene Namen ein („addback-routine" statt „nutrient-addback"), die
+    /// Ausnahmen griffen nie. Beschrieben war das — geprueft nicht.
+    /// </remarks>
+    [Fact]
+    public void Jede_Ausnahme_nennt_einen_echten_Ablauf()
+    {
+        var kennungen = Ablaeufe()
+            .Select(fall => Kennung(Path.Combine(Wissensbasis(), "sops", (string)fall[0])))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        Assert.True(kennungen.Count > 5,
+            "Kaum Ablaeufe gefunden — dann prueft diese Zusicherung nichts.");
+
+        foreach (var kennung in GewollteAusnahmen.Keys)
+        {
+            Assert.True(kennungen.Contains(kennung),
+                $"„{kennung}\" steht in GewollteAusnahmen, aber es gibt keinen Ablauf "
+                + "mit dieser Kennung. Die Ausnahme greift nie.");
+        }
+    }
+
     [Fact]
     public void Der_Test_sieht_die_Wissensbasis()
     {

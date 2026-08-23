@@ -35,11 +35,11 @@ const QUELLE = new URL('./', import.meta.url)
  * alte umstellt, muss die Zahl mitsenken — sonst wird der Test rot und erinnert
  * ihn daran. Der Fortschritt ist damit sichtbar statt behauptet.
  *
- * Stand 2026-08-23: 18. Zwei sind an diesem Tag verschwunden
+ * Stand 2026-08-23: 16. Zwei sind an diesem Tag verschwunden
  * (`MeasurementEditPage`, `DosingPumpSetupPage`) — beide wegen eines echten,
  * lebenden Fehlers.
  */
-const HOECHSTENS = 18
+const HOECHSTENS = 16
 
 /** Das Kennzeichen: eine Komma-Ersetzung ergibt nur bei getipptem Text Sinn. */
 const EIGENE_FASSUNG = /Number\([^)]*\.replace\(\s*','/

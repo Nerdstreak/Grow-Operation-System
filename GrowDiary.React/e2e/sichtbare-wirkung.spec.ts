@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { darfUeberspringen } from './pflicht'
 
 /**
@@ -83,6 +83,79 @@ test.describe('Sichtbare Wirkung', () => {
     expect(text, `Die Kurzfassung sagt nichts Verwertbares: „${text}"`)
       .toMatch(/Aktiv\.|Nicht aktiv\. Es fehlt:|wird nicht/)
   })
+
+  /**
+   * Dieselbe Bauform an drei weiteren Stellen — gefunden, indem die Seiten
+   * daraufhin durchgesehen wurden, nicht indem jemand geklickt hat.
+   *
+   * Je Fall: der Auslöser sitzt in einer LISTE, das Ziel steht ausserhalb.
+   * Bei zwei Einträgen sieht man beides, bei sieben nicht mehr.
+   */
+  //
+  // NACHGEWIESEN beisst davon bisher nur der erste Fall: nimmt man den
+  // scrollIntoView auf /sensoren wieder heraus, wird er rot. Beim Profil-Panel
+  // auf /sollwerte bleibt er auch ohne Fix gruen — dort ist die Reparatur also
+  // Vorsorge und kein belegter Fehler. Das steht hier, damit niemand spaeter
+  // annimmt, beide seien bewiesen.
+  const GESCHWISTER = [
+    {
+      name: 'Kalibrierung eintragen auf /sensoren',
+      pfad: '/sensoren',
+      oeffnen: async (page: Page) => {
+        const zeile = page.getByRole('button', { name: /Kalibriert/ })
+        if (await zeile.count() === 0) return false
+        await zeile.last().click()
+        return true
+      },
+      ziel: '[data-audit="pflege-formular"]',
+    },
+    {
+      name: 'Profil bearbeiten auf /sollwerte',
+      pfad: '/sollwerte',
+      oeffnen: async (page: Page) => {
+        // „Ansehen" bei mitgelieferten Profilen, „Bearbeiten" bei eigenen —
+        // beide oeffnen dasselbe Panel unter der Liste.
+        const knopf = page.getByRole('button', { name: /Ansehen|Bearbeiten/ })
+        if (await knopf.count() === 0) return false
+        await knopf.last().click()
+        return true
+      },
+      ziel: '[data-audit="profil-panel"]',
+    },
+  ]
+
+  for (const fall of GESCHWISTER) {
+    test(`${fall.name} holt sein Ziel ins Bild`, async ({ page }) => {
+      darfUeberspringen(!(await page.request.get('/api/grows')).ok(), 'Kein Backend — siehe oben.')
+
+      // Ein SEHR kurzes Fenster. Der Testbestand hat zwei Geraete und keine
+      // eigenen Profile; bei so wenig Inhalt liegt das Ziel ohnehin im Bild,
+      // und die Pruefung waere vakuum — sie bestand auch ohne den Fix. Der
+      // Nutzer hat sieben Geraete. 300 px stellen seine Lage her, ohne dass
+      // der Bestand aufgeblaeht werden muss.
+      await page.setViewportSize({ width: 1440, height: 300 })
+
+      await page.goto(fall.pfad, { waitUntil: 'networkidle' })
+      darfUeberspringen(!await fall.oeffnen(page),
+        `Kein Auslöser auf ${fall.pfad} — im Demobestand fehlt der passende Datensatz.`)
+
+      await page.waitForTimeout(700)
+
+      const lage = await page.evaluate((ziel) => {
+        const el = document.querySelector(ziel)
+        if (!el) return null
+        const r = el.getBoundingClientRect()
+        return { oben: Math.round(r.top), unten: Math.round(r.bottom), fenster: window.innerHeight }
+      }, fall.ziel)
+
+      expect(lage, `Nach dem Klick gibt es ${fall.ziel} nicht.`).not.toBeNull()
+      expect(lage!.oben,
+        `Das Ziel öffnet bei y = ${lage!.oben} in einem ${lage!.fenster} px hohen Fenster — `
+        + 'ausserhalb des Sichtbaren. Für den Nutzer passiert beim Klick nichts.')
+        .toBeLessThan(lage!.fenster)
+      expect(lage!.unten, 'Das Ziel liegt oberhalb des Fensters.').toBeGreaterThan(0)
+    })
+  }
 
   test('„+ Gerät anlegen" ebenso', async ({ page }) => {
     darfUeberspringen(!(await page.request.get('/api/grows')).ok(), 'Kein Backend — siehe oben.')

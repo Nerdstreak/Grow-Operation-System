@@ -5,6 +5,7 @@ import type { GrowSummary, SettingsOverviewDto } from '../types'
 import FileInput from '../components/FileInput'
 import { useTheme } from '../useTheme'
 import { V1Alert, V1Page, V1Skeleton } from '../components/v1'
+import { unlesbarMeldung, unlesbareFelder, zahlOderNull } from '../zahlenfeld'
 
 type ImportPreview = { ok: boolean; title: string; details: string[] }
 type BackupManifest = { fileName?: string; downloadUrl?: string }
@@ -150,10 +151,16 @@ function SettingsPage() {
     setError(null)
     setMessage(null)
     try {
-      const minutes = Number(pumpSchonfrist.replace(',', '.'))
+      // Aus „20x" wurden vorher stillschweigend 15 Minuten — der Nutzer sah
+      // eine Erfolgsmeldung mit einer Zahl, die er nie eingegeben hat. Jetzt
+      // sagt die App, dass sie es nicht lesen kann.
+      const meldung = unlesbarMeldung(unlesbareFelder([[pumpSchonfrist, 'Schonfrist']]))
+      if (meldung) { setError(meldung); setPumpSaving(false); return }
+
+      const minutes = zahlOderNull(pumpSchonfrist)
       const gespeichert = await apiFetch<{ minutes: number }>('/api/pump-watch/grace', {
         method: 'PUT',
-        body: JSON.stringify({ minutes: Number.isFinite(minutes) ? Math.round(minutes) : 15 }),
+        body: JSON.stringify({ minutes: minutes == null ? 15 : Math.round(minutes) }),
       })
       setPumpSchonfrist(String(gespeichert.minutes))
       setMessage(`Schonfrist gespeichert: erst nach ${gespeichert.minutes} Minuten Stillstand wird gewarnt.`)
@@ -169,8 +176,16 @@ function SettingsPage() {
     setError(null)
     setMessage(null)
     try {
-      const wert = strompreis.trim() === '' ? null : Number(strompreis.replace(',', '.'))
-      await apiFetch('/api/costs/settings', { method: 'PUT', body: JSON.stringify({ strompreisCentProKwh: Number.isFinite(wert as number) ? wert : null }) })
+      // Aus „32,5x" wurde still `null`: der Strompreis war weg, das Archiv
+      // rechnete ohne ihn, und die Meldung sagte „gespeichert".
+      const meldung = unlesbarMeldung(unlesbareFelder([[strompreis, 'Strompreis']]))
+      if (meldung) { setError(meldung); setStrompreisSaving(false); return }
+
+      const wert = zahlOderNull(strompreis)
+      await apiFetch('/api/costs/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ strompreisCentProKwh: wert }),
+      })
       setMessage('Strompreis gespeichert — das Archiv rechnet damit die Kosten je Grow.')
     } catch (caught) {
       setError(formatApiError(caught, 'Strompreis konnte nicht gespeichert werden.'))

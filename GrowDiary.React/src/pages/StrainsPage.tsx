@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
 import type { CreateStrainRequest, GrowSummary, HarvestDto, PlantInstanceDto, StrainDominance, StrainDto } from '../types'
 import type { PhenoHuntDto, PhenoPlantDto, PhenoWeightsDto } from '../types/pheno'
@@ -156,6 +156,20 @@ function StrainsPage() {
   const [draft, setDraft] = useState<StrainDraft>(emptyDraft)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [formOpen, setFormOpen] = useState(false)
+
+  // Das Formular steht an anderer Stelle als der Knopf, der es oeffnet. Bei
+  // wenigen Zeilen faellt das nicht auf, bei vielen schon: dann geht es
+  // ausserhalb des Sichtbaren auf, nichts scrollt hin, und fuer den Nutzer
+  // „reagiert der Knopf nicht". Genau so kam die Meldung zu /sensoren.
+  //
+  // `block: start`, nicht `center`: die Ueberschrift ist die Rueckmeldung,
+  // dass der Klick angekommen ist.
+  const formularRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!formOpen) return
+    formularRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [formOpen])
   const [openPlantId, setOpenPlantId] = useState<number | null>(null)
   // Die Gewichtung gilt app-weit, aber der Editor gehoert in das Panel, dessen
   // Knopf gedrueckt wurde — vorher erschien er stur im ersten Hunt, und in
@@ -397,6 +411,7 @@ function StrainsPage() {
       {notice && <V1Alert message={notice} tone="ok" />}
 
       {formOpen && (
+      <div ref={formularRef} data-audit="sorten-formular">
         <V1Card className="st-form">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12 }}>
             <V1Field label="Name"><input value={draft.name} onChange={(event) => setDraft((d) => ({ ...d, name: event.target.value }))} placeholder="z. B. Purple Lemonade" /></V1Field>
@@ -456,6 +471,7 @@ function StrainsPage() {
             <V1Button variant="ghost" onClick={() => { setFormOpen(false); setEditingId(null) }}>Abbrechen</V1Button>
           </div>
         </V1Card>
+      </div>
       )}
 
       {loading ? (

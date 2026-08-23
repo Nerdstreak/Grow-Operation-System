@@ -115,6 +115,20 @@ function HardwarePage() {
   // Der offene „hab ich gemacht"-Beleg: null = keiner.
   const [careDraft, setCareDraft] = useState<CareDraft | null>(null)
 
+  // Das Formular steht an anderer Stelle als der Knopf, der es oeffnet. Bei
+  // wenigen Zeilen faellt das nicht auf, bei vielen schon: dann geht es
+  // ausserhalb des Sichtbaren auf, nichts scrollt hin, und fuer den Nutzer
+  // „reagiert der Knopf nicht". Genau so kam die Meldung zu /sensoren.
+  //
+  // `block: start`, nicht `center`: die Ueberschrift ist die Rueckmeldung,
+  // dass der Klick angekommen ist.
+  const pflegeRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!careDraft) return
+    pflegeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [careDraft])
+
   useEffect(() => { void load() }, [])
 
   function openCare(row: HardwareRow) {
@@ -399,6 +413,7 @@ function HardwarePage() {
       {message && <V1Alert message={message} tone="ok" />}
 
       {careDraft && (
+      <div ref={pflegeRef} data-audit="pflege-formular">
         <V1Section title={`${careDraft.kind} eintragen · ${careDraft.geraet}`}>
           <V1Card>
             <div className="hw-care-form" data-audit="care-form">
@@ -446,6 +461,7 @@ function HardwarePage() {
             </div>
           </V1Card>
         </V1Section>
+      </div>
       )}
 
       <div className="co-strip" data-audit="hardware-kpis">

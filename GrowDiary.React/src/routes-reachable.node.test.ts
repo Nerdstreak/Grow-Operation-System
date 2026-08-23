@@ -25,9 +25,14 @@ function alleDateien(ordner: string, treffer: string[] = []): string[] {
  * Klicktest, der die Adresse selbst kennt.
  */
 describe('Erreichbarkeit der Routen', () => {
-  const dateien = alleDateien(SRC)
-  const quelltext = dateien.map((datei) => readFileSync(datei, 'utf8')).join('\n')
   const appTsx = readFileSync(join(SRC, 'App.tsx'), 'utf8')
+
+  // App.tsx AUSGESCHLOSSEN. Dort stehen die Routen selbst — wer sie mitliest,
+  // lässt jede Route sich selbst belegen, und der Test ist immer grün. Er steht
+  // seit Wochen namentlich in CLAUDE.md unter „Prüfungen, die nichts prüfen";
+  // repariert hatte ihn niemand.
+  const dateien = alleDateien(SRC).filter((datei) => !datei.endsWith('App.tsx'))
+  const quelltext = dateien.map((datei) => readFileSync(datei, 'utf8')).join('\n')
 
   const routen = [...appTsx.matchAll(/<Route\s+path="([^"]+)"/g)]
     .map((treffer) => treffer[1])
@@ -37,6 +42,25 @@ describe('Erreichbarkeit der Routen', () => {
   const nurUmleitung = new Set([
     '/live', '/action', '/messungen/new', '/einstellungen', '/zelte/new', '/grows/new', '/hydro/new',
   ])
+
+  it('liest die Datei mit den Routen NICHT mit', () => {
+    // Der Beweis, dass der Ausschluss wirkt. Ohne ihn belegt sich jede Route
+    // selbst: `<Route path="/erfunden" …>` steht dann im durchsuchten Text.
+    expect(dateien.some((datei) => datei.endsWith('App.tsx')),
+      'App.tsx ist wieder in der Suchmenge — dann prüft dieser Test nichts mehr.')
+      .toBe(false)
+
+    expect(quelltext.includes('<Route path='),
+      'Im durchsuchten Text stehen Route-Definitionen. Kommt eine zweite Datei mit '
+      + 'Routen dazu, muss sie hier genauso ausgeschlossen werden.')
+      .toBe(false)
+
+    // Und die Grundmenge darf nicht leer sein.
+    expect(routen.length, 'Keine Route in App.tsx gefunden — die Suche greift ins Leere.')
+      .toBeGreaterThan(20)
+    expect(dateien.length, 'Keine Quelldateien — dann ist alles unerreichbar oder nichts.')
+      .toBeGreaterThan(50)
+  })
 
   it('führt zu jeder Route mindestens ein Link oder Navigationseintrag', () => {
     const navigation = readFileSync(join(SRC, 'navigation.ts'), 'utf8')

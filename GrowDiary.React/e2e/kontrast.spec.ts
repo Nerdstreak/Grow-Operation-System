@@ -213,6 +213,17 @@ for (const schema of ['light', 'dark'] as const) {
         // Funktion selbst zurueck und nie ihr Ergebnis.
         const funde: string[] = await page.evaluate(`(${MESSUNG})()`)
 
+        // Mengenwaechter: hat die Messung ueberhaupt Text gesehen? Ohne ihn ist
+        // eine leere Seite — oder ein Selektor, der nichts trifft — genauso
+        // gruen wie eine tadellos lesbare. Der Kontrast-Test war in diesem
+        // Projekt schon DREIMAL blind; einmal, weil er nur `main *` mass.
+        const gemessen: number = await page.evaluate(
+          `[...document.querySelectorAll('body *')].filter(e =>`
+          + ` e.children.length === 0 && (e.textContent || '').trim().length > 2).length`)
+        expect(gemessen, `Auf ${route} (${schema}) wurde kein Text gemessen — dann sagt `
+          + 'ein leeres Ergebnis nichts ueber die Lesbarkeit.')
+          .toBeGreaterThan(10)
+
         expect(funde, `Unlesbare Schrift auf ${route} (${schema}):\n` + funde.join('\n')).toEqual([])
       })
     }

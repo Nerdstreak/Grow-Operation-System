@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { apiFetch } from '../api'
 import { V1Alert, V1Button, V1Card, V1Field, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { classNames } from '../utils'
@@ -94,6 +94,20 @@ function SetpointProfilesPage() {
   }, [refresh])
 
   const offen = profiles.find((profile) => profile.id === openId) ?? null
+
+  // Das Formular steht an anderer Stelle als der Knopf, der es oeffnet. Bei
+  // wenigen Zeilen faellt das nicht auf, bei vielen schon: dann geht es
+  // ausserhalb des Sichtbaren auf, nichts scrollt hin, und fuer den Nutzer
+  // „reagiert der Knopf nicht". Genau so kam die Meldung zu /sensoren.
+  //
+  // `block: start`, nicht `center`: die Ueberschrift ist die Rueckmeldung,
+  // dass der Klick angekommen ist.
+  const offenRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!offen) return
+    offenRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [offen])
 
   /**
    * Ein mitgeliefertes Profil aufschlagen — nur lesen.
@@ -252,6 +266,7 @@ function SetpointProfilesPage() {
       </V1Section>
 
       {offen && (
+      <div ref={offenRef} data-audit="profil-panel">
         <V1Section
           title={`${offen.isShipped ? 'Ansehen' : 'Bearbeiten'} · ${offen.name}`}
           action={
@@ -343,6 +358,7 @@ function SetpointProfilesPage() {
             Graue Zahlen sind die mitgelieferten Werte. Was du eintippst, wird blau — das sind deine.
           </p>
         </V1Section>
+      </div>
       )}
     </V1Page>
   )

@@ -138,12 +138,18 @@ public sealed class AlertEvaluationBehaviorTests : IDisposable
     {
         // Regression for a real behavioral gap: a breach that started during quiet hours
         // used to persist its state without ever sending, so the user never got notified.
+        // Ein Fenster von DREI Stunden statt einer, mit der aktuellen in der
+        // Mitte. Die erste Fassung nahm `nowHour` bis `nowHour + 1`: laeuft der
+        // Test um 14:59:59 los und wertet der Dienst um 15:00:00 aus, liegt
+        // „jetzt" ausserhalb — der Test faellt dann durch, ohne dass sich etwas
+        // am Verhalten geaendert hat. Wie teuer so ein Zufall ist, hat
+        // beta.53 gezeigt.
         var nowHour = DateTime.Now.Hour;
         _notificationSettings.SaveNotificationSettings(new NotificationSettings
         {
             NotifyService = "notify.mobile_app_test",
-            QuietHoursStartHour = nowHour,
-            QuietHoursEndHour = (nowHour + 1) % 24,
+            QuietHoursStartHour = (nowHour + 23) % 24,
+            QuietHoursEndHour = (nowHour + 2) % 24,
         });
 
         var handler = new RecordingHttpHandler((_, _) => RecordingHttpHandler.Json("[]"));

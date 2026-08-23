@@ -31,6 +31,35 @@ public sealed class SollwertKetteVollstaendigTests
         ["SetpointProfilesApiController.cs"] = "Dort IST die Profil-Kennung die Frage, nicht das Ergebnis einer Auflösung",
     };
 
+    /// <summary>
+    /// Jede Ausnahme zeigt auf eine Datei, die es wirklich gibt.
+    /// </summary>
+    /// <remarks>
+    /// Ohne diese Zusicherung schuetzt ein Tippfehler eine Datei, die es nicht
+    /// gibt, waehrend die echte durchfaellt — und niemand merkt es, weil der
+    /// Test ja gruen ist. Genau das ist in diesem Projekt schon passiert
+    /// (siehe den Kopf von <c>WissenErreichbarkeitTests</c>).
+    /// </remarks>
+    [Fact]
+    public void Jede_Ausnahme_zeigt_auf_eine_echte_Datei()
+    {
+        var wurzel = ProjektWurzel();
+        var vorhanden = Directory
+            .GetFiles(wurzel, "*.cs", SearchOption.AllDirectories)
+            .Select(Path.GetFileName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        Assert.True(vorhanden.Count > 50,
+            "Kaum Quelldateien gefunden — dann prueft diese Zusicherung nichts.");
+
+        foreach (var name in GewollteAusnahmen.Keys)
+        {
+            Assert.True(vorhanden.Contains(name),
+                $"{name} steht in GewollteAusnahmen, aber es gibt keine solche Datei. "
+                + "Die Ausnahme schuetzt nichts, und die echte Datei faellt durch.");
+        }
+    }
+
     private static string ProjektWurzel()
     {
         var dir = AppContext.BaseDirectory;

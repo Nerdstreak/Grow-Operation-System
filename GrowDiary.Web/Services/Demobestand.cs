@@ -500,6 +500,26 @@ public static class Demobestand
             });
         }
 
+        // Ein GEPLANTER Termin, faellig seit fuenf Tagen. Ohne ihn hat kein
+        // Geraet ein `nextCare`, der Knopf „Kalibriert" erscheint nie, und die
+        // Pflege-Maske ist im Testbestand nicht erreichbar — die Analyse hat
+        // genau das als Schwaeche benannt: von allem genau eins, und was
+        // niemand ausloesen kann, prueft auch niemand.
+        hardware.CreateCalibrationEvent(new CalibrationEvent
+        {
+            HardwareItemId = geraet.Id,
+            Title = "2-Punkt-Kalibrierung pH",
+            CalibrationType = CalibrationEventType.Ph,
+            Status = CalibrationEventStatus.Planned,
+            ReferenceSolution = "pH 7,00 / pH 4,00 Pufferlösung",
+            ReferenceValue = 7.00m,
+            // DueAtUtc, nicht NextDueAtUtc: das eine sagt „ist faellig", das
+            // andere „danach waere wieder faellig". Die Oberflaeche liest fuer
+            // einen GEPLANTEN Termin das erste — mit dem zweiten stand das
+            // Geraet auf „Pflege geplant 0" und der Knopf erschien nie.
+            DueAtUtc = DateTime.UtcNow.AddDays(-5),
+        });
+
         // NICHT CompleteCalibrationEvent zum Nachtragen benutzen: das legt zu
         // jedem Abschluss selbst einen neuen Termin an, und aus drei Nachtraegen
         // wuerden drei offene Erinnerungen.

@@ -94,7 +94,16 @@ jobs:
           for i in $(seq 1 60); do
             if curl -sf http://localhost:5076/api/grows > /dev/null; then
               echo "App antwortet nach ${i} s."
-              grep -i 'Testdaten: Demobestand' "${RUNNER_TEMP}/growos.log" || true
+              # OHNE `|| true`: das ist der einzige Beleg, dass der Demobestand
+              # wirklich gesaet wurde. Mit dem `|| true` konnte dieser Schritt
+              # nicht fehlschlagen — der strenge E2E-Lauf haette im Zweifel
+              # gegen eine LEERE Datenbank gemessen und gruen gemeldet.
+              if ! grep -i 'Testdaten: Demobestand' "${RUNNER_TEMP}/growos.log"; then
+                echo "::error::Der Demobestand wurde nicht gesaet. Die E2E-Faelle wuerden"
+                echo "::error::gegen eine leere Datenbank laufen und nichts pruefen."
+                tail -40 "${RUNNER_TEMP}/growos.log"
+                exit 1
+              fi
               exit 0
             fi
             sleep 1

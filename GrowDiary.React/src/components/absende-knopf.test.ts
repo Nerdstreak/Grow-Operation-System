@@ -33,6 +33,32 @@ describe('Formulare senden ab', () => {
     return raus
   }
 
+  it('sieht ueberhaupt Formulare', () => {
+    // Ohne diesen Waechter behauptet der Test darunter `ohne.toEqual([])` und
+    // sagt nie, ob er je ein Formular gesehen hat. Bei einem verschobenen
+    // Ordner liefe er null Mal durch und waere gruen.
+    let formulare = 0
+    let knoepfe = 0
+
+    for (const datei of alleTsx(wurzel)) {
+      const text = readFileSync(datei, 'utf8')
+      for (const treffer of text.matchAll(/<form[^>]*onSubmit[^>]*>([\s\S]*?)<\/form>/g)) {
+        formulare++
+        knoepfe += [...treffer[1].matchAll(/<(V1Button|button)\b[^>]*?>/g)].length
+      }
+    }
+
+    expect(formulare, 'Kein Formular mit onSubmit gefunden — die Suche greift ins Leere.')
+      .toBeGreaterThan(5)
+
+    // Und: die Formulare enthalten wirklich Knoepfe. Der Test unten
+    // ueberspringt jedes Formular ohne Knopf still (`if (knoepfe.length === 0)
+    // continue`) — waeren es alle, bliebe er grundlos gruen.
+    expect(knoepfe, 'Kein einziger Knopf in irgendeinem Formular — dann prueft der '
+      + 'Test darunter nichts, weil er jedes knopflose Formular ueberspringt.')
+      .toBeGreaterThan(5)
+  })
+
   it('hat in jedem onSubmit-Formular einen Knopf mit type="submit"', () => {
     const ohne: string[] = []
 
