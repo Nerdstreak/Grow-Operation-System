@@ -45,25 +45,105 @@ public sealed class DemoDataTests
         Assert.NotEqual(jetzt, spaeter);
     }
 
-    [Theory]
-    [InlineData("temperature", 18, 30)]
-    [InlineData("humidity", 40, 80)]
-    [InlineData("reservoir-ph", 5.4, 6.6)]
-    [InlineData("reservoir-ec", 1.2, 2.2)]
-    [InlineData("reservoir-temp", 17, 23)]
-    [InlineData("orp", 250, 450)]
-    [InlineData("dissolved-oxygen", 6, 9.5)]
-    public void ValuesStayPlausible_AcrossAFullDay(string key, double min, double max)
+    /// <summary>
+    /// Was in einem echten Zelt überhaupt vorkommen kann — je Messgröße.
+    /// </summary>
+    /// <remarks>
+    /// <b>Plausibilitätsgrenzen, keine Kurvenmaße.</b> Sie sagen „das gibt es
+    /// in keinem Zelt", nicht „die Kurve läuft heute genau hier". Wer sie eng
+    /// an die Kurve legt, muss sie bei jeder Änderung nachziehen und prüft
+    /// am Ende nur noch sich selbst.
+    /// </remarks>
+    private static readonly Dictionary<string, (double Min, double Max)> Moeglich = new()
     {
-        // Ueber 24 Stunden in Viertelstundenschritten: die Drift darf nicht ins
-        // Unmoegliche laufen, sonst stuenden auf dem Entwicklungsrechner
-        // Werte, die es in keinem Zelt gibt.
-        var start = new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc);
-        for (var minuten = 0; minuten < 24 * 60; minuten += 15)
+        ["temperature"] = (15, 35),
+        ["humidity"] = (30, 90),
+        ["co2"] = (300, 1600),
+        ["ppfd"] = (0, 1200),               // 0 ist richtig: nachts ist es dunkel
+        ["reservoir-ph"] = (4.5, 7.5),
+        ["reservoir-ec"] = (0.4, 3.0),
+        ["reservoir-temp"] = (14, 28),      // die obere Spitze ist der Kühlerausfall
+        ["reservoir-level-cm"] = (5, 60),
+        ["orp"] = (200, 600),
+        ["dissolved-oxygen"] = (4, 10),     // die untere Spitze ist derselbe Ausfall
+    };
+
+    /// <summary>
+    /// Keine Kurve verlässt über die ganzen 42 Tage das Mögliche.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass.</b> Die erste Fassung prüfte <b>einen festen
+    /// Kalendertag</b> (28.07.2026) über 24 Stunden. Die Demokurve ist aber an
+    /// <c>DateTime.Today</c> verankert: mit jedem echten Tag wandert dieser
+    /// Punkt weiter durch den Sägezahn. Am 20.08. war der Test grün, am 23.08.
+    /// rot — bei einem EC von 1,10 gegen eine untere Schranke von 1,20. Der
+    /// Code hatte sich nicht geändert, nur das Datum.</para>
+    ///
+    /// <para><b>Und er prüfte zu wenig.</b> Sieben von zehn Kurven, und drei
+    /// der sieben Schranken waren gegen den echten Verlauf falsch — nur lag
+    /// der eine geprüfte Tag zufällig günstig. Deshalb geht die Prüfung jetzt
+    /// über die <b>Grundmenge</b> <see cref="Demoverlauf.Schluessel"/> und über
+    /// das ganze Fenster, das die App zeigt.</para>
+    /// </remarks>
+    [Fact]
+    public void JedeKurveBleibtImMoeglichen()
+    {
+        Assert.True(Demoverlauf.Schluessel.Length >= 8,
+            "Die Grundmenge ist leer oder geschrumpft — dann liefe diese Prüfung "
+            + "null Mal durch und wäre grundlos grün.");
+
+        var heute = DateTime.Now;
+        var befunde = new List<string>();
+
+        foreach (var key in Demoverlauf.Schluessel)
         {
-            var wert = DemoData.ValueFor(key, start.AddMinutes(minuten))!.Value;
-            Assert.InRange(wert, min, max);
+            Assert.True(Moeglich.ContainsKey(key),
+                $"Für „{key}\" gibt es keine Plausibilitätsgrenze. Neue Kurve ohne "
+                + "Schranke: entweder eine eintragen oder die Kurve wieder entfernen.");
+
+            var (min, max) = Moeglich[key];
+
+            // Stündlich über die ganzen 42 Tage — genau das Fenster, das die
+            // App anzeigt. Ein einzelner Tag beweist nichts über den Rest.
+            for (var stunde = 0; stunde < Demoverlauf.TageRueckwaerts * 24; stunde++)
+            {
+                var zeitpunkt = heute.AddHours(-stunde);
+                if (Demoverlauf.Wert(key, zeitpunkt) is not { } wert) continue;
+                if (wert < min || wert > max)
+                {
+                    befunde.Add($"{key} = {wert:0.##} am {zeitpunkt:dd.MM. HH}h "
+                        + $"(möglich wären {min:0.##} bis {max:0.##})");
+                    break;   // ein Beleg je Kurve reicht
+                }
+            }
         }
+
+        Assert.True(befunde.Count == 0,
+            "Diese Testdaten gibt es in keinem Zelt:\n" + string.Join("\n", befunde));
+    }
+
+    /// <summary>Beisst die Prüfung? Eine unmögliche Schranke muss auffallen.</summary>
+    [Fact]
+    public void Die_Pruefung_wuerde_einen_unmoeglichen_Wert_finden()
+    {
+        // Der EC-Verlauf liegt über die 42 Tage bei etwa 1,02 bis 1,24. Gegen
+        // eine Schranke, die erst bei 2,0 beginnt, MUSS er auffallen — sonst
+        // prüft die Schleife oben nichts.
+        var heute = DateTime.Now;
+        var getroffen = false;
+
+        for (var stunde = 0; stunde < Demoverlauf.TageRueckwaerts * 24; stunde++)
+        {
+            if (Demoverlauf.Wert("reservoir-ec", heute.AddHours(-stunde)) is { } wert && wert < 2.0)
+            {
+                getroffen = true;
+                break;
+            }
+        }
+
+        Assert.True(getroffen,
+            "Kein EC-Wert unter 2,0 gefunden — dann liest die Prüfung oben nicht, "
+            + "was sie zu lesen glaubt.");
     }
 
     [Fact]
