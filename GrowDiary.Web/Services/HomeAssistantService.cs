@@ -392,6 +392,17 @@ public sealed class HomeAssistantService
         // Testbestand nicht pruefbar (siehe Demoschaltbrett).
         if (DemoData.IsEnabled)
         {
+            // Eine Entitaet, die es im Testbestand nicht gibt, laesst sich auch
+            // nicht schalten — sonst verdeckt der Testbetrieb jeden Tippfehler
+            // in einer Kennung. Genau das ist beim Kuehler schon passiert.
+            if (!DemoData.KennstEntitaet(entityId))
+            {
+                _logger.LogWarning(
+                    "Testdaten: {Entity} gibt es nicht — {Domain}.{Service} wird nicht ausgefuehrt.",
+                    entityId, domain, service);
+                return false;
+            }
+
             var verstanden = Demoschaltbrett.Schalten(domain, service, entityId, daten);
             _logger.LogInformation(
                 "Testdaten: {Domain}.{Service} fuer {Entity} — {Ergebnis}.",

@@ -36,18 +36,19 @@ const ERLAUBT: Record<string, string> = {
   RDWC: 'Fachbegriff, auf Deutsch genauso — Recirculating Deep Water Culture',
   DWC: 'dasselbe für Deep Water Culture',
   Autoflower: 'die deutsche Sortenbezeichnung ist genau dieses Wort',
-  Automatic: 'dasselbe — im deutschen Samenhandel heissen sie Automatics',
   Finish: 'in PHASEN_NAMEN bewusst „Finish" — im Grow-Deutsch etabliert',
   Problem: 'in FOTO_NAMEN bewusst „Problem" — ist auch ein deutsches Wort',
   Training: 'in FOTO_NAMEN bewusst „Training" — LST/HST heissen hier so',
   Offline: 'deutsches Lehnwort; der Knopf „Offline" ist die Handlung',
-  System: 'deutsches Wort — steht in „Hydro-System", nicht als Enum-Wert',
+  System: 'deutsches Wort; steht in normalen Saetzen wie „im selben System“',
   Top: 'steht in Geraetenamen wie „LED Top", nicht als Tankposition',
   Root: 'steht im Namen des Krankheitsbildes „Root Rot" im Wissen',
   Flush: 'steht im Titel des Ablaufs „Erntevorbereitung — Flush"',
   Flower: 'steht in SOP- und Programmnamen („Flower Fuel"), nicht als Phase',
-  Normal: 'deutsches Wort',
-  Info: 'deutsches Kurzwort',
+  Indica: 'die deutsche Bezeichnung fuer diese Genetik ist genau dieses Wort',
+  Sativa: 'dasselbe',
+  Hybrid: 'dasselbe — ein deutsches Fremdwort, keine Uebersetzungsluecke',
+  Normal: 'die Aufgaben-Stufe heisst auf Deutsch genauso (JournalStreamSection)',
 }
 
 
@@ -120,3 +121,101 @@ for (const pfad of TEXTSEITEN) {
     ).toEqual([])
   })
 }
+
+/**
+ * Formulare, die erst nach einem Klick da sind.
+ *
+ * <b>Der blinde Fleck.</b> Die Prüfung oben sieht nur den Ruhezustand einer
+ * Seite. Auf „Sensoren &amp; Wartung" standen im Bearbeiten-Formular
+ * <i>Active</i>, <i>MaintenanceDue</i> und <i>Retired</i> roh — eine Zeile
+ * unter einem Feld, das ordentlich übersetzt. Im Journal zeigte die Auswahl
+ * „Art" alle neun Foto-Tags englisch. Beides blieb grün, weil niemand geklickt
+ * hat.
+ */
+const HINTER_EINEM_KLICK: Array<{ pfad: string, knopf: string, was: string }> = [
+  { pfad: '/sensoren', knopf: 'Bearbeiten', was: 'das Geräte-Formular' },
+  { pfad: '/journal', knopf: '+ Eintrag', was: 'das Journal-Formular' },
+  { pfad: '/sorten', knopf: '+ Sorte', was: 'das Sorten-Formular' },
+  { pfad: '/zelte', knopf: 'Bearbeiten', was: 'das Zelt-Formular' },
+]
+
+for (const fall of HINTER_EINEM_KLICK) {
+  test(`${fall.pfad} — ${fall.was} spricht Deutsch`, async ({ page }) => {
+    const antwort = await page.goto(fall.pfad, { waitUntil: 'networkidle' })
+    darfUeberspringen(
+      antwort == null || antwort.status() >= 400,
+      `${fall.pfad} antwortet nicht — laeuft die App unter GROW_OS_URL?`,
+    )
+
+    const knopf = page.getByRole('button', { name: fall.knopf, exact: false }).first()
+    darfUeberspringen(
+      await knopf.count() === 0,
+      `Auf ${fall.pfad} gibt es keinen Knopf „${fall.knopf}" — dann prueft dieser Fall nichts.`,
+    )
+
+    await knopf.click()
+    await page.waitForTimeout(500)
+
+    const roh = await roheWerte(page)
+    expect(
+      roh,
+      `Nach dem Klick auf „${fall.knopf}" stehen auf ${fall.pfad} rohe Bezeichner: ${roh.join(', ')}`,
+    ).toEqual([])
+  })
+}
+
+/**
+ * Jede Ausnahme muss irgendwo wirklich vorkommen.
+ *
+ * <b>Sonst ist ihr Grund eine Erfindung.</b> Beim ersten Anlauf standen fünf
+ * Wörter in der Liste, die auf keiner einzigen Seite auftauchen — mit Gründen
+ * wie „steht im Titel des Ablaufs …". Zwei davon waren Werte, die derselbe
+ * Commit als behoben meldete: die Ausnahme hätte sie nie wieder finden können.
+ */
+test('jede Ausnahme kommt wirklich vor', async ({ page }) => {
+  const gesehen = new Set<string>()
+
+  async function mitlesen() {
+    const text = await page.evaluate(() =>
+      (document.querySelector('main') as HTMLElement | null)?.innerText || '')
+
+    for (const wert of Object.keys(ERLAUBT)) {
+      // ZWEI Schraegstriche: im Template-String wird `\w` sonst zu einem
+      // einfachen w, und aus der Wortgrenze wird die Zeichenklasse [w-].
+      if (new RegExp(`(?<![\\w-])${wert}(?![\\w-])`).test(text)) gesehen.add(wert)
+    }
+  }
+
+  for (const pfad of TEXTSEITEN) {
+    const antwort = await page.goto(pfad, { waitUntil: 'networkidle' })
+    if (antwort == null || antwort.status() >= 400) continue
+    await page.waitForTimeout(200)
+    await mitlesen()
+  }
+
+  // Auch hinter die Knoepfe sehen: sonst gilt eine Ausnahme als tot, nur weil
+  // sie in einem Formular steht, das erst ein Klick oeffnet. Genau so sind
+  // „Indica", „Sativa" und „Hybrid" beim ersten Anlauf durchgefallen.
+  for (const fall of HINTER_EINEM_KLICK) {
+    const antwort = await page.goto(fall.pfad, { waitUntil: 'networkidle' })
+    if (antwort == null || antwort.status() >= 400) continue
+
+    const knopf = page.getByRole('button', { name: fall.knopf, exact: false }).first()
+    if (await knopf.count() === 0) continue
+
+    await knopf.click()
+    await page.waitForTimeout(400)
+    await mitlesen()
+  }
+
+  // Mengenwaechter: ohne Treffer haette die Schleife nichts gelesen.
+  expect(gesehen.size).toBeGreaterThan(3)
+
+  const tot = Object.keys(ERLAUBT).filter((wert) => !gesehen.has(wert))
+  expect(
+    tot,
+    `Diese Ausnahmen kommen auf keiner Seite vor — ihr Grund ist damit unbelegt: ${tot.join(', ')}
+`
+    + 'Wer sie behaelt, schuetzt etwas, das es nicht gibt. Raus damit.',
+  ).toEqual([])
+})

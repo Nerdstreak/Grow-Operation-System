@@ -348,4 +348,22 @@ public sealed class DemoDataTests
         Assert.Contains(DemoData.LichtAusZeit, auswahl);
         Assert.Contains(DemoData.KuehlerSteckdose, auswahl);
     }
+
+    /// <summary>Eine Entitaet, die es nicht gibt, kennt der Testbestand auch nicht.</summary>
+    /// <remarks>
+    /// Der Testbetrieb nahm anfangs jeden Schaltbefehl an. Eine erfundene
+    /// Steckdose meldete danach „laeuft" — weil das Schaltbrett vermerkt hatte,
+    /// was der Regler geschickt hat. Damit verdeckte der Testbestand genau die
+    /// Sorte Tippfehler, an der der Kuehler schon einmal gescheitert ist.
+    /// </remarks>
+    [Fact]
+    public void Eine_erfundene_Entitaet_kennt_der_Testbestand_nicht()
+    {
+        Assert.True(DemoData.KennstEntitaet(DemoData.KuehlerSteckdose));
+        Assert.True(DemoData.KennstEntitaet(DemoData.LichtLeistung));
+
+        Assert.False(DemoData.KennstEntitaet("switch.demo_wasserkuehler"));
+        Assert.False(DemoData.KennstEntitaet("sensor.gibt_es_nicht"));
+        Assert.False(DemoData.KennstEntitaet(""));
+    }
 }

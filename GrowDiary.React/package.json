@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:lan": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && node skripte/assets-leeren.mjs && vite build",
     "typecheck": "tsc -b --force",
     "lint": "eslint .",
     "preview": "vite preview",

@@ -52,6 +52,13 @@ const DETAILSEITEN = [
   '/diagnose',
   '/journal',
   '/sops',
+
+  // Diese drei stehen nicht im Menü, sind aber volle Seiten: die Einstellungen
+  // hängen am Zahnrad, „Erste Schritte" am ersten Start, „Release & Daten" an
+  // der Sicherung.
+  '/einstellungen',
+  '/start',
+  '/release',
 ]
 
 /** Jede Seite genau einmal. */

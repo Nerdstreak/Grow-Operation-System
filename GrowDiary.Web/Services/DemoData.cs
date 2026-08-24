@@ -532,6 +532,32 @@ public static class DemoData
         }
     }
 
+    /// <summary>Kennt der Testbestand diese Entität überhaupt?</summary>
+    /// <remarks>
+    /// <para><b>Sonst verdeckt der Testbetrieb genau den Fehler, um den es
+    /// geht.</b> Das Schaltbrett nahm anfangs jede Kennung an. Ein Prüfer hat
+    /// die Kühler-Steckdose im Bestand auf <c>switch.demo_wasserkuehler</c>
+    /// gesetzt — eine Entität, die es nicht gibt —, und die Live-Karte meldete
+    /// trotzdem „läuft": der Regler hatte eingeschaltet, das Brett hatte es
+    /// vermerkt, und niemand hat gefragt, ob das Gerät existiert.</para>
+    ///
+    /// <para>In einer echten Anlage antwortet Home Assistant auf einen Dienst
+    /// für eine unbekannte Entität nicht mit Erfolg. Der Testbetrieb tut es
+    /// jetzt auch nicht mehr.</para>
+    /// </remarks>
+    public static bool KennstEntitaet(string entityId)
+    {
+        if (string.IsNullOrWhiteSpace(entityId)) return false;
+
+        var jetzt = DateTime.UtcNow;
+        foreach (var eintrag in Entities(jetzt))
+        {
+            if (string.Equals(eintrag.EntityId, entityId, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+
+        return false;
+    }
+
     /// <summary>Welche Entität liefert diese Messgröße im Testbestand?</summary>
     /// <remarks>
     /// Damit niemand eine Kennung abtippt. Die Kennungen entstehen in

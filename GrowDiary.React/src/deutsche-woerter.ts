@@ -1,6 +1,7 @@
 import type {
   GrowEntryPoint, GrowStage, GrowStatus, HydroSetupLayoutType, PhotoTag,
-  ReservoirPosition, SeedType, StartMaterial, TentType, ValueOrigin,
+  HardwareItemStatus, ReservoirPosition, SeedKind, SeedType, StartMaterial, TentType,
+  ValueOrigin,
 } from './types'
 
 /**
@@ -129,6 +130,41 @@ const AUFSTELLUNG_NAMEN: Record<HydroSetupLayoutType, string> = {
   Custom: 'eigene Anordnung',
 }
 
+/** Der Zustand eines Geräts. */
+const GERAETESTATUS_NAMEN: Record<HardwareItemStatus, string> = {
+  Active: 'in Betrieb',
+  MaintenanceDue: 'Wartung fällig',
+  Offline: 'offline',
+  Retired: 'ausgemustert',
+}
+
+/** „MaintenanceDue" wird „Wartung fällig". */
+export function geraeteStatusName(wert: string | null | undefined): string {
+  if (!wert) return ''
+  return GERAETESTATUS_NAMEN[wert as HardwareItemStatus] ?? wert
+}
+
+/**
+ * Der Samen-Typ in der Sorten-Bibliothek.
+ *
+ * **Dasselbe wie `SeedType` am Grow, nur anders benannt.** Am Grow heisst der
+ * Wert `Autoflower`, in der Bibliothek `Automatic` — beide meinen dieselbe
+ * Pflanze. Auf dem Schirm steht deshalb beide Male **Autoflower**: ein Ding,
+ * ein Wort. Vorher hatte `StrainsPage` eine eigene Tabelle mit der
+ * Beschriftung „Automatic", also die vierte Kopie einer Uebersetzung.
+ */
+const SAMENART_NAMEN: Record<SeedKind, string> = {
+  Feminized: 'feminisiert',
+  Automatic: 'Autoflower',
+  Regular: 'regulär',
+}
+
+/** „Automatic" wird „Autoflower" — dasselbe Wort wie am Grow. */
+export function samenartName(wert: string | null | undefined): string {
+  if (!wert) return ''
+  return SAMENART_NAMEN[wert as SeedKind] ?? wert
+}
+
 /** Wo der Tank steht. */
 const TANKPLATZ_NAMEN: Record<ReservoirPosition, string> = {
   None: 'kein Tank',
@@ -203,4 +239,6 @@ export const WOERTERBUECHER = {
   aufstellung: AUFSTELLUNG_NAMEN,
   tankplatz: TANKPLATZ_NAMEN,
   zeltZweck: ZELTZWECK_NAMEN,
+  samenart: SAMENART_NAMEN,
+  geraeteStatus: GERAETESTATUS_NAMEN,
 }

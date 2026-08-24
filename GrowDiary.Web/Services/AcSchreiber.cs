@@ -102,12 +102,21 @@ public sealed class AcSchreiber
 
     /// <summary>In diesem Takt wird nachgefragt, bis die Wartezeit um ist.</summary>
     /// <remarks>
-    /// <b>Nachfragen statt schlafen.</b> Die 20 Sekunden sind eine Obergrenze
-    /// für den schlechten Fall, keine Wartepflicht. Wer sie stumpf abwartet,
-    /// sperrt die Oberfläche eine halbe Minute für eine Zahl, die meistens nach
-    /// zwei Sekunden steht — und bei drei Schritten wäre das eine Minute.
+    /// <para><b>Nachfragen statt schlafen.</b> Die 20 Sekunden sind eine
+    /// Obergrenze für den schlechten Fall, keine Wartepflicht. Wer sie stumpf
+    /// abwartet, sperrt die Oberfläche eine halbe Minute für eine Zahl, die
+    /// meistens nach zwei Sekunden steht — und bei drei Schritten wäre das eine
+    /// Minute.</para>
+    ///
+    /// <para><b>Eine Sekunde und nicht zwei.</b> Nachfragen ist ein <i>Lesen</i>;
+    /// der Abstand aus <see cref="Pause"/> gilt dem <i>Schreiben</i>, weil die
+    /// Wolke dicht aufeinanderfolgende Auftraege verwirft. Zwei verschiedene
+    /// Dinge brauchen zwei verschiedene Zahlen — solange beide 2 s waren, konnte
+    /// kein Test die Pause von einer Nachfrage unterscheiden, und genau das ist
+    /// beim ersten Anlauf passiert: die Pause liess sich ersatzlos streichen,
+    /// ohne dass ein einziger Test rot wurde.</para>
     /// </remarks>
-    public static readonly TimeSpan Nachfragetakt = TimeSpan.FromSeconds(2);
+    public static readonly TimeSpan Nachfragetakt = TimeSpan.FromSeconds(1);
 
     /// <summary>Wie oft ein Schritt wiederholt wird, bevor er als gescheitert gilt.</summary>
     public const int Versuche = 3;

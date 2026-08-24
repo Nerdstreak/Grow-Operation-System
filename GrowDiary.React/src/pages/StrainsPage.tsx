@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { apiFetch, ApiRequestError } from '../api'
-import type { CreateStrainRequest, GrowSummary, HarvestDto, PlantInstanceDto, StrainDominance, StrainDto } from '../types'
+import type { CreateStrainRequest, GrowSummary, HarvestDto, PlantInstanceDto, SeedKind, StrainDominance, StrainDto } from '../types'
+import { samenartName } from '../deutsche-woerter'
 import type { PhenoHuntDto, PhenoPlantDto, PhenoWeightsDto } from '../types/pheno'
 import { PhenoSheetEditor } from '../features/pheno/PhenoSheetEditor'
 import type { SheetDraft } from '../features/pheno/pheno-sheet-model'
@@ -28,11 +29,13 @@ type StrainDraft = {
   heightIndoorCm: string
 }
 
-const SEED_KINDS: Array<{ value: '' | 'Feminized' | 'Automatic' | 'Regular'; label: string }> = [
+// Die Beschriftungen kommen aus deutsche-woerter.ts. Hier stand die VIERTE
+// eigene Uebersetzungstabelle der App, und sie liess „Automatic" englisch
+// zwischen „Feminisiert" und „Regulär" stehen — im selben Auswahlfeld.
+const SEED_KINDS: Array<{ value: '' | SeedKind; label: string }> = [
   { value: '', label: '—' },
-  { value: 'Feminized', label: 'Feminisiert' },
-  { value: 'Automatic', label: 'Automatic' },
-  { value: 'Regular', label: 'Regulär' },
+  ...(['Feminized', 'Automatic', 'Regular'] as const)
+    .map((value) => ({ value, label: samenartName(value) })),
 ]
 
 const DOMINANCE: Array<{ value: StrainDominance; label: string }> = [
@@ -505,10 +508,11 @@ function StrainsPage() {
               aria-label="Sorten durchsuchen"
             />
             <select value={filterKind} onChange={(event) => setFilterKind(event.target.value as typeof filterKind)} aria-label="Nach Samen-Typ filtern">
-              <option value="">Alle Typen</option>
-              <option value="Feminized">Feminisiert</option>
-              <option value="Automatic">Automatic</option>
-              <option value="Regular">Regulär</option>
+              {SEED_KINDS.map((art) => (
+                <option key={art.value} value={art.value}>
+                  {art.value === '' ? 'Alle Typen' : art.label}
+                </option>
+              ))}
             </select>
             <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} aria-label="Sortierung">
               <option value="name">Name A–Z</option>

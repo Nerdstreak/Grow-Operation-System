@@ -74,5 +74,10 @@ public sealed class AcSchreiberTests
         // Der Takt muss in die Wartezeit passen und darf sie nicht ueberschreiten,
         // sonst wird genau einmal gefragt und die Obergrenze ist die Wartepflicht.
         Assert.True(AcSchreiber.Nachfragetakt < AcSchreiber.Wartezeit);
+
+        // Und er darf NICHT gleich der Pause sein: sonst laesst sich in keinem
+        // Test unterscheiden, ob zwischen zwei Schritten pausiert oder nur
+        // nachgefragt wurde — und die Pause verschwand unbemerkt.
+        Assert.NotEqual(AcSchreiber.Pause, AcSchreiber.Nachfragetakt);
     }
 }

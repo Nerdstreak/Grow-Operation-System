@@ -74,6 +74,32 @@ public sealed class AcSchreiberWegTests
     private static AcSchreiber Schreiber(Wolke wolke)
         => new(wolke, NullLogger<AcSchreiber>.Instance);
 
+    /// <summary>
+    /// Eine Uhr, die nicht wartet — aber mitschreibt, worauf gewartet wurde.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Vorher warf der Testdoppel die Wartezeit weg.</b> Damit liess
+    /// sich die Zeile <c>if (!erster) await warten(Pause, ct)</c> ersatzlos
+    /// streichen — 21 Tests blieben gruen, und das Backend meldete 1381 von
+    /// 1381. Die Pause ist der Grund, aus dem es diese Klasse ueberhaupt gibt:
+    /// die AC-Infinity-Cloud verwirft parallele Auftraege. Eine Vorsichts-
+    /// massnahme, die kein Test kennt, ist keine.</para>
+    /// </remarks>
+    private sealed class Uhr
+    {
+        /// <summary>Jede Wartezeit in der Reihenfolge, in der gewartet wurde.</summary>
+        public List<TimeSpan> Wartezeiten { get; } = new();
+
+        public Task Warten(TimeSpan dauer, CancellationToken _)
+        {
+            Wartezeiten.Add(dauer);
+            return Task.CompletedTask;
+        }
+
+        /// <summary>Wie oft die Pause zwischen zwei Schritten eingelegt wurde.</summary>
+        public int Pausen => Wartezeiten.Count(d => d == AcSchreiber.Pause);
+    }
+
     /// <summary>Im Test wird nicht gewartet — sonst dauert ein Lauf Minuten.</summary>
     private static Task Sofort(TimeSpan _, CancellationToken __) => Task.CompletedTask;
 
@@ -193,6 +219,60 @@ public sealed class AcSchreiberWegTests
         Assert.False(ergebnis[0].Bestaetigt);
         Assert.Equal(1, ergebnis[0].Versuche);
         Assert.Single(wolke.Gesendet);
+    }
+
+    [Fact]
+    public async Task Zwischen_zwei_Schritten_liegt_eine_Pause()
+    {
+        // Der Kern der Klasse: die Wolke verwirft parallele Auftraege.
+        var wolke = new Wolke();
+        wolke.Setzen("time.ein", "06:00");
+        wolke.Setzen("time.aus", "00:00");
+        wolke.Setzen("select.modus", "Auto");
+        var uhr = new Uhr();
+
+        await Schreiber(wolke).SchreibenAsync(Egal,
+        [
+            Zeit("time.ein", "08:00"),
+            Zeit("time.aus", "20:00"),
+            Auswahl("select.modus", "Schedule"),
+        ], uhr.Warten);
+
+        // Drei Schritte, also zwei Pausen dazwischen — vor dem ersten keine.
+        Assert.Equal(2, uhr.Pausen);
+    }
+
+    [Fact]
+    public async Task Vor_dem_ersten_Schritt_wird_nicht_gewartet()
+    {
+        // Sonst kostete jeder einzelne Klick zwei Sekunden ohne Grund.
+        var wolke = new Wolke();
+        wolke.Setzen("number.licht", "3");
+        var uhr = new Uhr();
+
+        await Schreiber(wolke).SchreibenAsync(Egal, [Zahl("number.licht", "7")], uhr.Warten);
+
+        Assert.Equal(0, uhr.Pausen);
+        Assert.NotEmpty(uhr.Wartezeiten);   // nachgefragt wurde trotzdem
+    }
+
+    [Fact]
+    public async Task Ein_uebersprungener_Schritt_kostet_keine_Pause()
+    {
+        // Steht der Wert schon, geht nichts raus — dann gibt es auch nichts,
+        // wovon die naechste Sendung Abstand halten muesste.
+        var wolke = new Wolke();
+        wolke.Setzen("time.ein", "08:00");     // steht schon richtig
+        wolke.Setzen("time.aus", "00:00");
+        var uhr = new Uhr();
+
+        await Schreiber(wolke).SchreibenAsync(Egal,
+        [
+            Zeit("time.ein", "08:00"),
+            Zeit("time.aus", "20:00"),
+        ], uhr.Warten);
+
+        Assert.Equal(0, uhr.Pausen);
     }
 
     [Fact]

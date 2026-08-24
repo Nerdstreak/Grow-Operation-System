@@ -169,11 +169,25 @@ public sealed class DemobestandStimmigTests : IDisposable
         // Mengenwaechter: ohne Geraete prueft die Schleife nichts.
         Assert.NotEmpty(geraete);
 
-        var kennungen = geraete
-            .SelectMany(g => new[] { g.LeistungEntityId, g.ModusEntityId, g.EinZeitEntityId, g.AusZeitEntityId })
+        // Die Kennungen kommen aus dem, was WIRKLICH gespeichert ist — Zelt und
+        // Geraete-Eintraege. Der erste Anlauf hat `DemoData.KuehlerSteckdose`
+        // abgetippt: damit prueft der Test seine eigene Annahme statt den
+        // Bestand. Ein Pruefer hat die Zeile im Bestand auf
+        // "switch.demo_wasserkuehler" gesetzt — plausibel, aber falsch — und
+        // alle 1381 Tests blieben gruen. Genau der Fehler, gegen den diese
+        // Datei geschrieben ist.
+        var ausGeraeten = geraete
+            .SelectMany(g => new[] { g.LeistungEntityId, g.ModusEntityId, g.EinZeitEntityId, g.AusZeitEntityId });
+
+        var ausZelt = new[] { zelt.ChillerSwitchEntityId, zelt.WaterTargetEntityId };
+
+        var ausHardware = _dienste.GetRequiredService<HardwareRepository>()
+            .GetHardwareItemsByTent(zelt.Id)
+            .Select(h => h.HaEntityId);
+
+        var kennungen = ausGeraeten.Concat(ausZelt).Concat(ausHardware)
             .Where(k => !string.IsNullOrWhiteSpace(k))
             .Select(k => k!)
-            .Append(DemoData.KuehlerSteckdose)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 

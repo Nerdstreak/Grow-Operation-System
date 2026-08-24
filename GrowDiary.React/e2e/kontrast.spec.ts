@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { ALLE_SEITEN } from './seiten'
 
 // Schrift, die man nicht lesen kann.
 //
@@ -11,18 +12,15 @@ import { test, expect } from '@playwright/test'
 // Deshalb misst dieser Test beide Ansichten. Er prüft NICHT die
 // Gestaltungsvorgaben — die Schwelle liegt bewusst tief bei 3,0. Alles
 // darunter ist kein Geschmacksfall mehr, sondern unleserlich.
-const ROUTEN = [
-  '/', '/messung', '/addback', '/aufgaben',
-  '/grows', '/diagnose', '/journal', '/sorten', '/aushaerten', '/archiv',
-  '/dosierung', '/sensoren', '/regeln', '/sollwerte', '/cropsteering',
-  '/zelte', '/hydro', '/wasser', '/home-assistant', '/handy',
-  '/wissen', '/einkaufsliste', '/berater', '/einstellungen',
-  // Detailseiten: hier stehen die laufende Phase, die Messkacheln und die
-  // Ablauf-Schritte — Bausteine, die es auf keiner Uebersichtsseite gibt. Ohne
-  // sie blieb ein ganzer Teil der App fuer diese Pruefung unsichtbar, und drei
-  // Funde des Desktop-Audits konnte sie deshalb nicht finden.
-  '/grows/1', '/zelte/1', '/hydro/1', '/messungen', '/sops', '/release', '/start',
-]
+/**
+ * Die Seiten kommen aus `e2e/seiten.ts` — also aus dem Menue der App.
+ *
+ * <b>Hier stand eine abgetippte Liste, und `/ac-test` fehlte darin.</b> Genau
+ * dort lag ein Knopf mit Kontrast 3,60 im hellen Thema (`--accent` als
+ * Textfarbe statt `--accent-text`, wovor die Randnotiz am Token sogar warnt).
+ * Vier Pruefungen pflegten vier verschiedene Listen; diese war die vierte.
+ */
+const ROUTEN = ALLE_SEITEN
 
 // Die Liste muss etwas hergeben. Ohne diese Zeile laeuft die Schleife
 // darunter bei einer leeren Liste null Mal durch — und der Testlauf meldet

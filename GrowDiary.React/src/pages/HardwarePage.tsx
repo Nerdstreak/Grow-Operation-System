@@ -5,6 +5,7 @@ import { apiFetch, ApiRequestError, formatApiError } from '../api'
 import type { CalibrationEventDto, CreateHardwareItemRequest, HardwareDeviceKind, HardwareItemCriticality, HardwareItemDto, HardwareItemStatus, HomeAssistantEntity, HydroSetupDto, MaintenanceEventDto, TentDto, UpdateHardwareItemRequest, WearTemplateDto } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { classNames, formatSeverityLabel, haWert } from '../utils'
+import { geraeteStatusName } from '../deutsche-woerter'
 import type { HardwareFilter, HardwareRow } from '../features/hardware/hardware-table-model'
 import { buildHardwareRows, countBy, dueLabel, filterHardwareRows, statusLabel, statusTone } from '../features/hardware/hardware-table-model'
 import '../features/hardware/hardware.css'
@@ -572,7 +573,7 @@ function HardwarePage() {
                   </V1Field>
                 )}
                 <V1Field label="Kategorie"><input value={draft.category} onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Sensor / Pumpe / Chiller" /></V1Field>
-                <V1Field label="Status"><select value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as HardwareItemStatus }))}>{statusOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select></V1Field>
+                <V1Field label="Status"><select value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as HardwareItemStatus }))}>{statusOptions.map((item) => <option key={item} value={item}>{geraeteStatusName(item)}</option>)}</select></V1Field>
                 <V1Field label="Kritikalität"><select value={draft.criticality} onChange={(event) => setDraft((current) => ({ ...current, criticality: event.target.value as HardwareItemCriticality }))}>{criticalityOptions.map((item) => <option key={item} value={item}>{formatSeverityLabel(item)}</option>)}</select></V1Field>
                 <V1Field label="Zelt"><select value={draft.tentId} onChange={(event) => setDraft((current) => ({ ...current, tentId: event.target.value, hydroSetupId: '' }))}><option value="">Kein Zelt</option>{tents.map((tent) => <option key={tent.id} value={tent.id}>{tent.name}</option>)}</select></V1Field>
                 <V1Field label="Hydro-Setup"><select value={draft.hydroSetupId} onChange={(event) => setDraft((current) => ({ ...current, hydroSetupId: event.target.value }))}><option value="">Kein Hydro-Setup</option>{hydroSetups.filter((setup) => !draft.tentId || String(setup.tentId) === draft.tentId).map((setup) => <option key={setup.id} value={setup.id}>{setup.name}</option>)}</select></V1Field>

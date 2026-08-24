@@ -6,9 +6,13 @@ import type { JournalFormState, PhotoFormState, TaskFormState } from './grow-det
 import { buildJournalStream, streamTimeLabel } from './journal-stream'
 import { V1Button, V1Field } from '../../components/v1'
 import { SymptomZuordnung } from '../knowledge/SymptomZuordnung'
+import { FOTO_TAGS, fotoTagName } from '../../deutsche-woerter'
 import './journal-stream.css'
 
-const photoTags: PhotoTag[] = ['Overview', 'Canopy', 'Leaf', 'Root', 'Training', 'Flower', 'Problem', 'Comparison', 'Other']
+// Die Liste UND die Beschriftungen kommen aus deutsche-woerter.ts. Hier stand
+// eine zweite Kopie der Aufzaehlung, und die Auswahl zeigte die englischen
+// Werte roh — „Overview", „Canopy", „Leaf", „Comparison", „Other".
+const photoTags: PhotoTag[] = FOTO_TAGS
 
 const taskPriorities: Array<{ value: string; label: string }> = [
   { value: 'Low', label: 'Niedrig' },
@@ -116,7 +120,7 @@ export function JournalStreamSection({ growId, entries, measurements, journalFor
             </V1Field>
             <V1Field label="Art">
               <select value={photoForm.photoTag} onChange={(event) => onPhotoFormChange({ photoTag: event.target.value as PhotoTag })}>
-                {photoTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
+                {photoTags.map((tag) => <option key={tag} value={tag}>{fotoTagName(tag)}</option>)}
               </select>
             </V1Field>
             <V1Field label="Bildunterschrift"><input value={photoForm.photoCaption} onChange={(event) => onPhotoFormChange({ photoCaption: event.target.value })} /></V1Field>

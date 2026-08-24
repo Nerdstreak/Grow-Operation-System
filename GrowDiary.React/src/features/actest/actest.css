@@ -88,7 +88,11 @@
   background: none;
   border: 0;
   padding: 0;
-  color: var(--accent);
+  /* `--accent-text`, NICHT `--accent`: die Randnotiz am Token sagt es, und ich
+     habe es trotzdem falsch gemacht. Im hellen Thema ergab `--accent` auf
+     Weiss 3,60 bei 12 px — unter der AA-Schwelle von 4,5. Dunkel war es
+     einwandfrei; genau deshalb faellt das beim Bauen nie auf. */
+  color: var(--accent-text);
   font: inherit;
   text-decoration: underline;
   cursor: pointer;
