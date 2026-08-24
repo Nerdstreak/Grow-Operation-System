@@ -139,6 +139,32 @@ const HINTER_EINEM_KLICK: Array<{ pfad: string, knopf: string, was: string }> = 
   { pfad: '/zelte', knopf: 'Bearbeiten', was: 'das Zelt-Formular' },
 ]
 
+/**
+ * Ein Formular aufklappen — und WARTEN, bis es wirklich da ist.
+ *
+ * Eine feste Wartezeit reichte auf dem Entwicklungsrechner und auf dem
+ * Bauserver nicht: dort klappte das Journal-Formular spaeter auf, die
+ * Pruefung las den alten Text und meldete eine Ausnahme als tot, die es
+ * sehr wohl gibt. Gewartet wird deshalb darauf, dass der Text WAECHST.
+ */
+async function aufklappen(page: Page, knopfName: string): Promise<boolean> {
+  const laenge = async () => page.evaluate(() =>
+    ((document.querySelector('main') as HTMLElement | null)?.innerText || '').length)
+
+  const vorher = await laenge()
+  const knopf = page.getByRole('button', { name: knopfName, exact: false }).first()
+  if (await knopf.count() === 0) return false
+
+  await knopf.click()
+
+  for (let versuch = 0; versuch < 20; versuch++) {
+    await page.waitForTimeout(150)
+    if (await laenge() > vorher) return true
+  }
+
+  return false
+}
+
 for (const fall of HINTER_EINEM_KLICK) {
   test(`${fall.pfad} — ${fall.was} spricht Deutsch`, async ({ page }) => {
     const antwort = await page.goto(fall.pfad, { waitUntil: 'networkidle' })
@@ -147,14 +173,11 @@ for (const fall of HINTER_EINEM_KLICK) {
       `${fall.pfad} antwortet nicht — laeuft die App unter GROW_OS_URL?`,
     )
 
-    const knopf = page.getByRole('button', { name: fall.knopf, exact: false }).first()
+    const offen = await aufklappen(page, fall.knopf)
     darfUeberspringen(
-      await knopf.count() === 0,
-      `Auf ${fall.pfad} gibt es keinen Knopf „${fall.knopf}" — dann prueft dieser Fall nichts.`,
+      !offen,
+      `Auf ${fall.pfad} liess sich ${fall.was} nicht aufklappen — dann prueft dieser Fall nichts.`,
     )
-
-    await knopf.click()
-    await page.waitForTimeout(500)
 
     const roh = await roheWerte(page)
     expect(
@@ -173,7 +196,27 @@ for (const fall of HINTER_EINEM_KLICK) {
  * Commit als behoben meldete: die Ausnahme hätte sie nie wieder finden können.
  */
 test('jede Ausnahme kommt wirklich vor', async ({ page }) => {
+  // Ein Fall, der 31 Seiten besucht und vier Formulare aufklappt, passt
+  // nicht in die Standardzeit von 30 s — im Tor lief er genau deshalb in
+  // eine Zeitueberschreitung.
+  test.setTimeout(180_000)
+
+  // OHNE BACKEND zeigen alle Seiten nur ihre Huelle: kein Formular klappt
+  // auf, kein Wort steht irgendwo, und JEDE Ausnahme gaelte als tot. Im Tor
+  // ist genau das passiert — der Rauchtest ohne Backend meldete acht tote
+  // Ausnahmen, die es alle gibt. Eine Zaehlung ohne Grundmenge zaehlt nicht,
+  // sie raet.
+  //
+  // Gefragt wird die API und NICHT die Textlaenge: eine Seite ohne Daten
+  // rendert trotzdem Ueberschrift, Menue und Leertext — oft ueber 200
+  // Zeichen. Der erste Anlauf hat sich genau daran vertan.
+  darfUeberspringen(
+    !(await page.request.get('/api/grows')).ok(),
+    'Kein Backend erreichbar — ohne Daten prueft diese Zaehlung nichts.',
+  )
+
   const gesehen = new Set<string>()
+  let geoeffnet = 0
 
   async function mitlesen() {
     const text = await page.evaluate(() =>
@@ -190,8 +233,11 @@ test('jede Ausnahme kommt wirklich vor', async ({ page }) => {
     const antwort = await page.goto(pfad, { waitUntil: 'networkidle' })
     if (antwort == null || antwort.status() >= 400) continue
     await page.waitForTimeout(200)
+
+
     await mitlesen()
   }
+
 
   // Auch hinter die Knoepfe sehen: sonst gilt eine Ausnahme als tot, nur weil
   // sie in einem Formular steht, das erst ein Klick oeffnet. Genau so sind
@@ -200,16 +246,19 @@ test('jede Ausnahme kommt wirklich vor', async ({ page }) => {
     const antwort = await page.goto(fall.pfad, { waitUntil: 'networkidle' })
     if (antwort == null || antwort.status() >= 400) continue
 
-    const knopf = page.getByRole('button', { name: fall.knopf, exact: false }).first()
-    if (await knopf.count() === 0) continue
-
-    await knopf.click()
-    await page.waitForTimeout(400)
+    if (!await aufklappen(page, fall.knopf)) continue
+    geoeffnet++
     await mitlesen()
   }
 
-  // Mengenwaechter: ohne Treffer haette die Schleife nichts gelesen.
+  // Mengenwaechter: ohne Treffer haette die Schleife nichts gelesen — und
+  // ohne aufgeklappte Formulare gilt jede Ausnahme aus einem Formular
+  // faelschlich als tot. Genau daran ist der erste Lauf im Tor gescheitert.
   expect(gesehen.size).toBeGreaterThan(3)
+  expect(
+    geoeffnet,
+    `Nur ${geoeffnet} von ${HINTER_EINEM_KLICK.length} Formularen liessen sich aufklappen.`,
+  ).toBe(HINTER_EINEM_KLICK.length)
 
   const tot = Object.keys(ERLAUBT).filter((wert) => !gesehen.has(wert))
   expect(
