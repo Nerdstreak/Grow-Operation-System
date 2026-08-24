@@ -91,6 +91,14 @@
   .v1-mobile-topbar, .v1-mobile-nav, .v1-mobile-more-panel { display: none; }
 
   @media (max-width: 860px) {
+    /* Die Hoehe der festen Kopfflaeche (Kopfzeile 58 + Navigationsreihe 49 + 1).
+       EINE Wahrheit: der Seitenrahmen haelt sie frei, und jedes Scroll-Ziel
+       (`.scroll-ziel`) muss sie ueberspringen — sonst landet ein Formular nach
+       scrollIntoView DARUNTER. Genau das war der „Springen"-Bug des Testers:
+       Bearbeiten tippen, die Seite scrollt, und Titel samt Name-Feld liegen
+       unsichtbar unter den zwei Leisten. */
+    :root { --mobil-kopf: 108px; }
+
     .v1-app-shell { grid-template-columns: 1fr; }
     .v1-desktop-nav { display: none; }
     /* Kopfzeile plus Navigationsreihe, beide oben angeschlagen. Unten
@@ -98,7 +106,11 @@
     /* Reserve unten, damit die letzte Zeile nicht an der Kante klebt und
        nicht unter dem Home-Indikator verschwindet. `--safe-bottom` ist
        env(safe-area-inset-bottom) und auf Geraeten ohne Aussparung 0. */
-    .v1-route-frame { padding-top: 108px; padding-bottom: calc(var(--s-5) + var(--safe-bottom) + 24px); }
+    .v1-route-frame { padding-top: var(--mobil-kopf); padding-bottom: calc(var(--s-5) + var(--safe-bottom) + 24px); }
+
+    /* Jedes Ziel eines scrollIntoView. Ohne den Rand scrollt der Browser die
+       Oberkante des Ziels an die Fensterkante — hinter die feste Kopfflaeche. */
+    .scroll-ziel { scroll-margin-top: calc(var(--mobil-kopf) + var(--s-2)); }
     .v1-page { padding: var(--s-3) var(--s-3) var(--s-5); }
     .v1-mobile-topbar {
       display: flex; position: fixed; inset: 0 0 auto; z-index: 30;

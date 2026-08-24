@@ -431,7 +431,7 @@ function StrainsPage() {
       {notice && <V1Alert message={notice} tone="ok" />}
 
       {formOpen && (
-      <div ref={formularRef} data-audit="sorten-formular">
+      <div ref={formularRef} className="scroll-ziel" data-audit="sorten-formular">
         <V1Card className="st-form">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12 }}>
             <V1Field label="Name"><input value={draft.name} onChange={(event) => setDraft((d) => ({ ...d, name: event.target.value }))} placeholder="z. B. Purple Lemonade" /></V1Field>

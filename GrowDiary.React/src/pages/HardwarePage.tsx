@@ -431,7 +431,7 @@ function HardwarePage() {
       {message && <V1Alert message={message} tone="ok" />}
 
       {careDraft && (
-      <div ref={pflegeRef} data-audit="pflege-formular">
+      <div ref={pflegeRef} className="scroll-ziel" data-audit="pflege-formular">
         <V1Section title={`${careDraft.kind} eintragen · ${careDraft.geraet}`}>
           <V1Card>
             <div className="hw-care-form" data-audit="care-form">
@@ -556,7 +556,7 @@ function HardwarePage() {
           </V1Section>
 
           {formOpen && (
-          <div ref={formularRef}>
+          <div ref={formularRef} className="scroll-ziel">
           <V1Section title={editingId ? 'Sensor oder Gerät bearbeiten' : 'Sensor oder Gerät anlegen'}>
             <form className="ops1b-form" data-audit="hardware-edit-form" onSubmit={(event) => void saveHardware(event)}>
               <div className="ops1b-form-grid">

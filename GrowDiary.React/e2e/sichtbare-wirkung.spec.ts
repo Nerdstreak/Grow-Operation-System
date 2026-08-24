@@ -105,6 +105,60 @@ test.describe('Sichtbare Wirkung', () => {
       .toBeLessThan(lage.fenster)
   })
 
+  test('am Handy landet das Formular UNTER den festen Leisten, nicht dahinter', async ({ page }) => {
+    darfUeberspringen(!(await page.request.get('/api/grows')).ok(), 'Kein Backend — siehe oben.')
+
+    // <b>Der dritte Bericht zum selben Knopf.</b> Nach den ersten beiden
+    // Reparaturen scrollte das Formular zwar ins Bild — aber am Telefon kleben
+    // OBEN zwei feste Leisten (Kopfzeile + Navigation, zusammen 108 px), und
+    // `scrollIntoView(block: 'start')` schob Titel und Name-Feld genau
+    // darunter. Der Nutzer sah einen Sprung mitten ins Formular.
+    //
+    // Die beiden Pruefungen oben KONNTEN das nicht sehen: sie messen gegen die
+    // Fensterkante, und hinter einer festen Leiste ist man im Fenster.
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/sensoren', { waitUntil: 'networkidle' })
+
+    const knoepfe = page.getByRole('button', { name: 'Bearbeiten' })
+    darfUeberspringen(await knoepfe.count() === 0,
+      'Kein Gerät im Bestand — Demobestand.cs sollte Hardware anlegen.')
+
+    await knoepfe.last().click()
+    const formular = page.locator('[data-audit="hardware-edit-form"]')
+    await expect(formular).toBeVisible()
+    await page.waitForTimeout(700)
+
+    const lage = await formular.evaluate((el) => {
+      const r = el.getBoundingClientRect()
+
+      // Die Unterkante der festen Kopfflaeche wird GEMESSEN, nicht behauptet —
+      // eine abgetippte 108 waere die zweite Wahrheit neben shell.css.
+      let leistenUnten = 0
+      for (const kandidat of document.querySelectorAll('*')) {
+        const st = getComputedStyle(kandidat)
+        if (st.position !== 'fixed' && st.position !== 'sticky') continue
+        const k = kandidat.getBoundingClientRect()
+        if (k.top <= 0 + 1 || (k.top < 120 && k.height > 10)) {
+          if (k.width > window.innerWidth / 2) leistenUnten = Math.max(leistenUnten, k.bottom)
+        }
+      }
+
+      return { oben: Math.round(r.top), leistenUnten: Math.round(leistenUnten) }
+    })
+
+    // Mengenwaechter: ohne feste Leisten misst der Vergleich nichts — dann
+    // laeuft der Test in der falschen Fensterbreite.
+    expect(lage.leistenUnten,
+      'Keine feste Kopfflaeche gefunden — ist das wirklich die Handy-Breite?')
+      .toBeGreaterThan(50)
+
+    expect(lage.oben,
+      `Das Formular beginnt bei y = ${lage.oben}, die festen Leisten enden bei `
+      + `${lage.leistenUnten} — Titel und erste Felder liegen DARUNTER verborgen. `
+      + 'Fuer den Nutzer springt die Seite mitten ins Formular.')
+      .toBeGreaterThanOrEqual(lage.leistenUnten)
+  })
+
   test('Crop Steering sagt, ob es gerade aktiv ist', async ({ page }) => {
     darfUeberspringen(!(await page.request.get('/api/grows')).ok(), 'Kein Backend — siehe oben.')
 

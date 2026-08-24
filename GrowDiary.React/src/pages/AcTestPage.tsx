@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiFetch, formatApiError } from '../api'
 import {
   V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section, V1Skeleton,
@@ -47,6 +47,12 @@ type Stand = {
   lichtplan: { name: string; ein: string; aus: string } | null
 }
 
+/** Die Antwort auf einen Stellbefehl — drei Ausgaenge, nicht zwei. */
+type StellErgebnis = {
+  ok: boolean
+  meldungen: string[]
+}
+
 const LEERES_GERAET: Geraet = {
   name: '',
   leistungEntityId: '',
@@ -80,7 +86,17 @@ export function AcTestPage() {
   const [laedt, setLaedt] = useState(true)
   const [fehler, setFehler] = useState<string | null>(null)
   const [meldung, setMeldung] = useState<string | null>(null)
+
+  // Der Schwebezustand: gesendet, die Wolke hat den Wert noch nicht
+  // zurueckgemeldet. GELB, nicht rot — der Tester hatte recht: "manchmal kommt
+  // 502, aber das Schalten funktioniert". Es hatte funktioniert.
+  const [schwebt, setSchwebt] = useState<string | null>(null)
   const [arbeitet, setArbeitet] = useState<string | null>(null)
+
+  // Laufende Nachlese-Timer, damit ein Seitenwechsel sie nicht verwaist.
+  const nachleseRef = useRef<number[]>([])
+  useEffect(() => () => { nachleseRef.current.forEach((t) => window.clearTimeout(t)) }, [])
+
 
   // Der Entwurf der Geräteliste — getrennt vom Stand, damit ein halb getipptes
   // Feld nichts an einem laufenden Gerät ändert.
@@ -122,6 +138,26 @@ export function AcTestPage() {
     }
   }, [])
 
+  /**
+   * Nach einem Schwebezustand den Stand spaeter von selbst nachlesen.
+   *
+   * Die AC-Infinity-Integration meldet neue Werte oft erst nach ihrer
+   * naechsten Wolken-Abfrage. Zweimal nachsehen deckt die uebliche Spanne ab;
+   * wer will, laedt frueher von Hand.
+   */
+  function nachleseAnstossen(id: number) {
+    nachleseRef.current.forEach((t) => window.clearTimeout(t))
+    nachleseRef.current = [15_000, 45_000].map((wartezeit) =>
+      window.setTimeout(() => {
+        void (async () => {
+          await laden(id)
+          // Aufgeloest? Dann den gelben Hinweis wegraeumen — der neue Stand
+          // steht ohnehin an den Karten.
+          setSchwebt((aktuell) => aktuell === null ? null : aktuell)
+        })()
+      }, wartezeit))
+  }
+
   useEffect(() => {
     if (zeltId == null) return
 
@@ -162,15 +198,26 @@ export function AcTestPage() {
     if (zeltId == null) return
     setFehler(null)
     setMeldung(null)
+    setSchwebt(null)
     setArbeitet(`${entityId}:${stufe}`)
     try {
-      await apiFetch(`/api/ac-test/${zeltId}/stufe`, {
+      const antwort = await apiFetch<StellErgebnis>(`/api/ac-test/${zeltId}/stufe`, {
         method: 'POST',
         body: JSON.stringify({ entityId, stufe }),
       })
-      // Der Server antwortet erst, wenn der Controller den Wert MELDET —
-      // siehe AcSchreiber. Deshalb darf hier „gestellt" stehen.
-      setMeldung(`Stufe ${stufe} ist am Gerät angekommen.`)
+
+      if (antwort.ok) {
+        // Der Controller MELDET den Wert — deshalb darf hier „angekommen" stehen.
+        setMeldung(`Stufe ${stufe} ist am Gerät angekommen.`)
+      } else {
+        // Gesendet, aber noch nicht zurueckgemeldet. Kein Fehler: das Geraet
+        // hat oft laengst geschaltet, nur die Wolke traegt nach.
+        setSchwebt(
+          `${antwort.meldungen.join(' ')} Das Gerät hat oft trotzdem geschaltet — `
+          + 'AC Infinity meldet neue Werte manchmal erst nach ein paar Minuten zurück. '
+          + 'Die Anzeige liest den Stand gleich von selbst nach.')
+        nachleseAnstossen(zeltId)
+      }
       await laden(zeltId)
     } catch (caught) {
       setFehler(formatApiError(caught, 'Die Stufe liess sich nicht stellen.'))
@@ -186,13 +233,23 @@ export function AcTestPage() {
 
     setFehler(null)
     setMeldung(null)
+    setSchwebt(null)
     setArbeitet(`${g.leistungEntityId}:zeit`)
     try {
-      await apiFetch(`/api/ac-test/${zeltId}/zeitplan`, {
+      const antwort = await apiFetch<StellErgebnis>(`/api/ac-test/${zeltId}/zeitplan`, {
         method: 'POST',
         body: JSON.stringify({ entityId: g.leistungEntityId, ein: wunsch.ein, aus: wunsch.aus }),
       })
-      setMeldung(`Zeitplan ${wunsch.ein}–${wunsch.aus} ist am Gerät angekommen.`)
+
+      if (antwort.ok) {
+        setMeldung(`Zeitplan ${wunsch.ein}–${wunsch.aus} ist am Gerät angekommen.`)
+      } else {
+        setSchwebt(
+          `${antwort.meldungen.join(' ')} Das Gerät hat oft trotzdem übernommen — `
+          + 'AC Infinity meldet neue Werte manchmal erst nach ein paar Minuten zurück. '
+          + 'Die Anzeige liest den Stand gleich von selbst nach.')
+        nachleseAnstossen(zeltId)
+      }
       await laden(zeltId)
     } catch (caught) {
       setFehler(formatApiError(caught, 'Der Zeitplan liess sich nicht stellen.'))
@@ -240,6 +297,7 @@ export function AcTestPage() {
 
       {fehler && <V1Alert title="Fehler" message={fehler} tone="critical" />}
       {meldung && <V1Alert message={meldung} tone="ok" />}
+      {schwebt && <V1Alert title="Gesendet — Bestätigung steht aus" message={schwebt} tone="warn" />}
 
       {stand?.testbetrieb && (
         <V1Alert

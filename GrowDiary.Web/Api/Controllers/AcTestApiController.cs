@@ -1,3 +1,4 @@
+using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
@@ -44,7 +45,10 @@ public sealed class AcTestApiController : ControllerBase
     [HttpGet("{zeltId:int}")]
     public async Task<ActionResult<AcTestStand>> Stand(int zeltId, CancellationToken ct)
     {
-        if (_grows.GetTent(zeltId) is null) return NotFound();
+        if (_grows.GetTent(zeltId) is null)
+        {
+            return NotFound(ApiErrorFactory.NotFound("zelt_nicht_gefunden", $"Zelt {zeltId} gibt es nicht."));
+        }
 
         var einstellungen = _grows.GetEffectiveHomeAssistantSettings();
         var geraete = AcTest.Lesen(_einstellungen, zeltId);
@@ -100,10 +104,20 @@ public sealed class AcTestApiController : ControllerBase
     public ActionResult<IReadOnlyList<string>> Speichern(
         int zeltId, [FromBody] List<AcGeraet> geraete)
     {
-        if (_grows.GetTent(zeltId) is null) return NotFound();
+        if (_grows.GetTent(zeltId) is null)
+        {
+            return NotFound(ApiErrorFactory.NotFound("zelt_nicht_gefunden", $"Zelt {zeltId} gibt es nicht."));
+        }
 
         var maengel = AcTest.Speichern(_einstellungen, zeltId, geraete);
-        if (maengel.Count > 0) return BadRequest(maengel);
+        if (maengel.Count > 0)
+        {
+            // Der FEHLERVERTRAG, keine rohe Liste: die Oberflaeche liest
+            // ApiError.Message. Eine rohe Liste hat kein message-Feld, und der
+            // Nutzer sah "API request failed with status 400" — der deutsche
+            // Satz war da und kam nie an.
+            return BadRequest(ApiErrorFactory.Validation(string.Join(" ", maengel)));
+        }
 
         return Ok(Array.Empty<string>());
     }
@@ -120,7 +134,10 @@ public sealed class AcTestApiController : ControllerBase
         int zeltId, [FromBody] StufeRequest request, CancellationToken ct)
     {
         var zelt = _grows.GetTent(zeltId);
-        if (zelt is null) return NotFound();
+        if (zelt is null)
+        {
+            return NotFound(ApiErrorFactory.NotFound("zelt_nicht_gefunden", $"Zelt {zeltId} gibt es nicht."));
+        }
 
         var geraet = AcTest.Lesen(_einstellungen, zeltId)
             .FirstOrDefault(g => g.LeistungEntityId == request.EntityId);
@@ -128,15 +145,15 @@ public sealed class AcTestApiController : ControllerBase
         {
             // Kein blindes Schreiben auf eine beliebige Entität: gestellt wird
             // nur, was der Nutzer vorher hier eingetragen hat.
-            return BadRequest(new[] { $"{request.EntityId} ist für dieses Zelt nicht eingetragen." });
+            return BadRequest(ApiErrorFactory.BadRequest(
+                "geraet_nicht_eingetragen",
+                $"{request.EntityId} ist für dieses Zelt nicht eingetragen."));
         }
 
         if (!AcTest.StufeErlaubt(request.Stufe))
         {
-            return BadRequest(new[]
-            {
-                $"Stufe {request.Stufe} liegt ausserhalb von {AcTest.StufeMin}–{AcTest.StufeMax}.",
-            });
+            return BadRequest(ApiErrorFactory.Validation(
+                $"Stufe {request.Stufe} liegt ausserhalb von {AcTest.StufeMin}–{AcTest.StufeMax}."));
         }
 
         var einstellungen = _grows.GetEffectiveHomeAssistantSettings();
@@ -169,29 +186,36 @@ public sealed class AcTestApiController : ControllerBase
         int zeltId, [FromBody] ZeitplanRequest request, CancellationToken ct)
     {
         var zelt = _grows.GetTent(zeltId);
-        if (zelt is null) return NotFound();
+        if (zelt is null)
+        {
+            return NotFound(ApiErrorFactory.NotFound("zelt_nicht_gefunden", $"Zelt {zeltId} gibt es nicht."));
+        }
 
         var geraet = AcTest.Lesen(_einstellungen, zeltId)
             .FirstOrDefault(g => g.LeistungEntityId == request.EntityId);
         if (geraet is null)
         {
-            return BadRequest(new[] { $"{request.EntityId} ist für dieses Zelt nicht eingetragen." });
+            return BadRequest(ApiErrorFactory.BadRequest(
+                "geraet_nicht_eingetragen",
+                $"{request.EntityId} ist für dieses Zelt nicht eingetragen."));
         }
 
         if (string.IsNullOrWhiteSpace(geraet.EinZeitEntityId)
             || string.IsNullOrWhiteSpace(geraet.AusZeitEntityId))
         {
-            return BadRequest(new[]
-            {
+            return BadRequest(ApiErrorFactory.BadRequest(
+                "zeit_entitaeten_fehlen",
                 "Für dieses Gerät sind keine Zeit-Entitäten eingetragen. "
-                + "Bei AC Infinity heissen sie Geplante Ein-Zeit und Geplante Aus-Zeit.",
-            });
+                + "Bei AC Infinity heissen sie Geplante Ein-Zeit und Geplante Aus-Zeit."));
         }
 
         var maengel = new List<string>();
         if (!AcTest.ZeitErlaubt(request.Ein)) maengel.Add($"Ein-Zeit: {request.Ein} ist keine Uhrzeit im Format HH:MM.");
         if (!AcTest.ZeitErlaubt(request.Aus)) maengel.Add($"Aus-Zeit: {request.Aus} ist keine Uhrzeit im Format HH:MM.");
-        if (maengel.Count > 0) return BadRequest(maengel);
+        if (maengel.Count > 0)
+        {
+            return BadRequest(ApiErrorFactory.Validation(string.Join(" ", maengel)));
+        }
 
         var einstellungen = _grows.GetEffectiveHomeAssistantSettings();
         var schritte = new List<AcSchreibschritt>
@@ -218,32 +242,44 @@ public sealed class AcTestApiController : ControllerBase
     /// Aus den Ergebnissen eine ehrliche Antwort machen — und ins Protokoll.
     /// </summary>
     /// <remarks>
-    /// <b>Teilerfolg ist kein Erfolg.</b> Wenn die Ein-Zeit ankam und die
-    /// Aus-Zeit nicht, laeuft das Licht nach einem Plan, den niemand gewollt
-    /// hat. Die Antwort sagt dann, WAS ankam und was nicht — „gespeichert" waere
-    /// hier die gefaehrlichste aller Meldungen.
+    /// <para><b>Teilerfolg ist kein Erfolg — aber „nicht bestätigt" ist auch
+    /// kein Fehlschlag.</b> Die erste Fassung gab hier 502 zurück, sobald die
+    /// Bestätigung ausblieb. Der Tester hat das sofort erlebt: „manchmal kommt
+    /// 502 — aber das Schalten funktioniert." Beides stimmte. Die
+    /// AC-Infinity-Integration meldet den neuen Wert oft erst Minuten später
+    /// zurück, länger als die Nachkontrolle wartet.</para>
+    ///
+    /// <para>Deshalb drei Ausgänge statt zwei: alles bestätigt → 200 mit
+    /// <c>ok=true</c>. Gesendet, aber (noch) nicht zurückgemeldet → 200 mit
+    /// <c>ok=false</c> und Klartext — die Oberfläche zeigt das gelb und liest
+    /// später nach. Nur wenn Home Assistant den Aufruf gar nicht ANNIMMT, ist
+    /// es ein Fehler (502): dann wurde nichts geschaltet.</para>
     /// </remarks>
     private IActionResult Antworten(
         string zeltName, string geraetName, string was, IReadOnlyList<AcSchrittErgebnis> ergebnisse)
     {
-        var offen = ergebnisse.Where(e => !e.Bestaetigt).ToList();
-        var ok = offen.Count == 0;
+        var antwort = AcStellAntwort.Bauen(ergebnisse);
+        var abgelehnt = AcStellAntwort.SendungAbgelehnt(ergebnisse);
 
         _protokoll.Add(new SystemAuditEvent
         {
             EventType = AcTest.ProtokollTyp,
-            Action = ok ? "gestellt" : "nicht-bestaetigt",
-            Summary = $"{zeltName} · {geraetName}: {was} — "
-                + string.Join(", ", ergebnisse.Select(e =>
-                    $"{e.EntityId} {(e.Uebersprungen ? "stand schon" : e.Bestaetigt ? $"ok nach {e.Versuche}" : "NICHT bestaetigt")}")),
-            Severity = ok ? "info" : "warning",
-            Success = ok,
+            Action = antwort.Ok ? "gestellt" : abgelehnt ? "abgelehnt" : "nicht-bestaetigt",
+            Summary = AcStellAntwort.ProtokollZeile(zeltName, geraetName, was, ergebnisse),
+            Severity = antwort.Ok ? "info" : "warning",
+            Success = antwort.Ok,
         });
 
-        if (ok) return NoContent();
+        if (abgelehnt)
+        {
+            return StatusCode(502, ApiErrorFactory.Create(
+                "ha_nimmt_nicht_an",
+                "Home Assistant hat den Aufruf nicht angenommen — es wurde nichts geschaltet. "
+                + "Steht die Verbindung, und gibt es die Entität noch?",
+                502));
+        }
 
-        return StatusCode(502, offen.Select(e =>
-            $"{e.EntityId}: {e.Fehler ?? "keine Bestätigung"}").ToArray());
+        return Ok(antwort);
     }
 
     public sealed class StufeRequest

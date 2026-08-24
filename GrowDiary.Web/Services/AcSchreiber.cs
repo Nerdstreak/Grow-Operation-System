@@ -63,8 +63,16 @@ public sealed class HomeAssistantFunk : IAcFunk
 /// <param name="Uebersprungen">Stand schon auf dem Sollwert — nichts gesendet.</param>
 /// <param name="Bestaetigt">Der Controller meldet den Sollwert.</param>
 /// <param name="Versuche">Wie oft geschrieben wurde.</param>
+/// <param name="Angenommen">
+/// Hat Home Assistant den Aufruf überhaupt entgegengenommen? <c>false</c>
+/// heisst: es wurde nichts gesendet — ein echter Fehler. <c>true</c> ohne
+/// <see cref="Bestaetigt"/> ist dagegen nur ein Schwebezustand: gesendet, die
+/// Wolke hat den neuen Wert noch nicht zurückgemeldet. Der Unterschied trägt
+/// die ganze Antwort an die Oberfläche (<see cref="AcStellAntwort"/>).
+/// </param>
 public sealed record AcSchrittErgebnis(
-    string EntityId, bool Uebersprungen, bool Bestaetigt, int Versuche, string? Ist, string? Fehler);
+    string EntityId, bool Uebersprungen, bool Bestaetigt, int Versuche, string? Ist, string? Fehler,
+    bool Angenommen = true);
 
 /// <summary>
 /// Schreibt an einen AC-Infinity-Controller — nacheinander und mit Nachkontrolle.
@@ -190,7 +198,7 @@ public sealed class AcSchreiber
             if (!gesendet)
             {
                 return new AcSchrittErgebnis(schritt.EntityId, false, false, versuch, null,
-                    "Home Assistant hat den Aufruf nicht angenommen.");
+                    "Home Assistant hat den Aufruf nicht angenommen.", Angenommen: false);
             }
 
             // So lange nachfragen, bis es steht — längstens die Wartezeit.

@@ -266,7 +266,7 @@ function SetpointProfilesPage() {
       </V1Section>
 
       {offen && (
-      <div ref={offenRef} data-audit="profil-panel">
+      <div ref={offenRef} className="scroll-ziel" data-audit="profil-panel">
         <V1Section
           title={`${offen.isShipped ? 'Ansehen' : 'Bearbeiten'} · ${offen.name}`}
           action={

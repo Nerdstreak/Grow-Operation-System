@@ -115,7 +115,7 @@ bekommt im besten Fall einen davon — und die Oberfläche sagt trotzdem
 |---|---|
 | Steht der Wert schon? | Nichts senden — jeder Aufruf kann scheitern |
 | Nach dem Senden | Alle 2 s nachfragen, längstens 20 s |
-| Meldet die Entität nicht den Sollwert | Bis zu 3 Versuche, dann Fehlschlag |
+| Meldet die Entität nicht den Sollwert | Bis zu 3 Versuche, dann **Schwebezustand** (gelb) |
 | Zwischen zwei Schritten | 2 s Pause |
 | Ein Schritt scheitert | Die folgenden werden **nicht** versucht |
 
@@ -123,6 +123,14 @@ Die Zahlen (2 s Pause, 20 s Wartezeit, 3 Versuche) stammen aus der
 Home-Assistant-Karte des Testers — **Faustregeln aus seinen Versuchen mit der
 Wolke, keine Herstellerangabe.** `AcSchreiberTests` hält sie fest, damit eine
 Änderung auffällt.
+
+**Drei Ausgänge, nicht zwei.** Bestätigt → grün. Von Home Assistant gar nicht
+angenommen → Fehler (502), denn dann wurde nichts geschaltet. Gesendet, aber
+nicht zurückgemeldet → **gelb, kein Fehler**: die AC-Infinity-Integration
+meldet neue Werte oft erst nach ihrer nächsten Wolken-Abfrage zurück — Minuten
+später, während das Gerät längst geschaltet hat. Genau so hat es der Tester
+erlebt („manchmal kommt 502, aber das Schalten funktioniert"); seither liest
+die Seite den Stand nach einem gelben Ausgang von selbst nach.
 
 **Warum die Reihenfolge zählt.** Beim Zeitplan kommt der Modus zuletzt: ein
 Gerät, das auf „nach Zeitplan" steht, aber noch die alten Zeiten trägt,
