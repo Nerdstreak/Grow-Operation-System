@@ -295,4 +295,57 @@ public sealed class DemoDataTests
 
         Assert.True(an is 18 or 12, $"Der Testbestand faehrt {an}/{24 - an} — das ist kein ueblicher Zyklus.");
     }
+
+    /// <summary>Was einen Zustand hat, steht auch in der Auswahlliste — und umgekehrt.</summary>
+    /// <remarks>
+    /// <para><b>Der Fund.</b> Der Testbestand hatte ZWEI Schreibweisen fuer
+    /// dieselbe Messgroesse: die Zustaende hiessen <c>demo.reservoir_ph</c>, die
+    /// Auswahlliste bot <c>sensor.demo_reservoir_ph</c> an. Wer im Testbetrieb
+    /// einen Sensor zuordnete, bekam nie einen Wert — die Zuordnung zeigte auf
+    /// eine Kennung, unter der nichts lag. Dieselbe Verwechslung wie beim
+    /// Kuehler: Metrik-Schluessel gegen Entitaets-Kennung.</para>
+    ///
+    /// <para>Die Auswahlliste ist auch der einzige Weg, im Testbetrieb etwas
+    /// EINZURICHTEN. Fehlt dort die Kuehler-Steckdose, laesst sich die
+    /// Kuehler-Steuerung im Testbestand ueberhaupt nicht durchspielen.</para>
+    /// </remarks>
+    [Fact]
+    public void Jeder_Zustand_steht_auch_in_der_Auswahlliste()
+    {
+        var jetzt = DateTime.UtcNow;
+        var zustaende = DemoData.StatesFor(jetzt).Values
+            .Select(z => z.EntityId)
+            .Where(k => !string.IsNullOrWhiteSpace(k))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var auswahl = DemoData.Entities(jetzt)
+            .Select(e => e.EntityId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Mengenwaechter fuer beide Seiten.
+        Assert.True(zustaende.Count >= 10, $"Nur {zustaende.Count} Zustaende — die Zaehlung sieht ihre Grundmenge nicht.");
+        Assert.True(auswahl.Count >= 10, $"Nur {auswahl.Count} Eintraege in der Auswahl.");
+
+        var ohneAuswahl = zustaende.Where(k => !auswahl.Contains(k)).ToList();
+        Assert.True(ohneAuswahl.Count == 0,
+            "Diese Entitaeten liefern einen Wert, stehen aber in keiner Auswahlliste: "
+            + string.Join(", ", ohneAuswahl));
+    }
+
+    /// <summary>Die Geraete des AC-Versuchs sind im Testbetrieb auswaehlbar.</summary>
+    /// <remarks>
+    /// Ohne sie laesst sich der Versuchsaufbau im Testbestand nicht einrichten —
+    /// und was niemand einrichten kann, prueft auch niemand.
+    /// </remarks>
+    [Fact]
+    public void Der_AC_Versuch_ist_im_Testbetrieb_einrichtbar()
+    {
+        var auswahl = DemoData.Entities(DateTime.UtcNow)
+            .Select(e => e.EntityId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        Assert.Contains(DemoData.LichtLeistung, auswahl);
+        Assert.Contains(DemoData.LichtEinZeit, auswahl);
+        Assert.Contains(DemoData.LichtAusZeit, auswahl);
+        Assert.Contains(DemoData.KuehlerSteckdose, auswahl);
+    }
 }

@@ -36,6 +36,21 @@ public static class DemoData
     /// <summary>Wie eine Demo-Entität heißt — überall sichtbar, nie zu verwechseln.</summary>
     public const string EntityPrefix = "demo";
 
+    /// <summary>Die Entitäts-Kennung zu einem Metrik-Schlüssel.</summary>
+    /// <remarks>
+    /// <para><b>Es gab hier zwei Schreibweisen.</b> <see cref="StatesFor"/>
+    /// bildete <c>demo.reservoir_ph</c>, <see cref="Entities"/> dagegen
+    /// <c>sensor.demo_reservoir_ph</c> — dieselbe Messgröße, zwei Namen. Wer im
+    /// Testbetrieb einen Sensor aus der Auswahlliste zuordnete, bekam deshalb
+    /// nie einen Wert angezeigt: die Zuordnung zeigte auf eine Kennung, unter
+    /// der kein Zustand lag.</para>
+    ///
+    /// <para>Es ist dieselbe Verwechslung, die den Kühler-Regler lahmgelegt
+    /// hat — Metrik-Schlüssel gegen Entitäts-Kennung.</para>
+    /// </remarks>
+    public static string Kennung(string metricKey)
+        => $"sensor.{EntityPrefix}_{metricKey.Replace('-', '_')}";
+
     /// <summary>Die Steckdose, an der im Testbestand der Kühler hängt.</summary>
     /// <remarks>
     /// Steht hier und nicht in <see cref="Demobestand"/>: der Bestand trägt sie
@@ -208,7 +223,7 @@ public static class DemoData
             if (wert is null) continue;
             states[key] = new HomeAssistantState
             {
-                EntityId = $"{EntityPrefix}.{key.Replace('-', '_')}",
+                EntityId = Kennung(key),
                 State = wert.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 FriendlyName = shape.Label,
                 UnitOfMeasurement = shape.Unit,
@@ -239,7 +254,7 @@ public static class DemoData
         var lichtKey = TentSensorMetricKeyMap.Resolve(SensorMetricType.LightStatus);
         states[lichtKey] = new HomeAssistantState
         {
-            EntityId = $"{EntityPrefix}.licht",
+            EntityId = Kennung(lichtKey),
             State = LightOn(nowUtc) ? "on" : "off",
             FriendlyName = "Demo Licht",
             LastChanged = nowUtc,
@@ -295,6 +310,21 @@ public static class DemoData
             };
         }
 
+        // Die Messgroessen unter IHRER Entitaets-Kennung.
+        //
+        // Ohne das stand auf „Sensoren & Wartung" bei einem zugeordneten Sensor
+        // in der Spalte WERT ein Strich: das Woerterbuch aus StatesFor ist nach
+        // METRIK-Schluesseln benannt, wer eine Entitaet sucht, findet dort
+        // nichts. Genau dieselbe Verwechslung hat den Kuehler-Regler lahmgelegt
+        // — nur andersherum.
+        foreach (var (_, zustand) in StatesFor(nowUtc))
+        {
+            if (string.Equals(zustand.EntityId, entityId, StringComparison.OrdinalIgnoreCase))
+            {
+                return zustand;
+            }
+        }
+
         if (!string.Equals(entityId, KuehlerSteckdose, StringComparison.OrdinalIgnoreCase)) return null;
 
         var an = Demoverlauf.KuehlerLaeuft(nowUtc.ToLocalTime());
@@ -314,16 +344,38 @@ public static class DemoData
     /// </summary>
     public static IReadOnlyList<HomeAssistantEntity> Entities(DateTime nowUtc)
     {
+        // Aus DERSELBEN Quelle wie die Zustaende. Vorher lief die Schleife
+        // ueber `Shape` und liess damit alles aus, was StatesFor zusaetzlich
+        // liefert — den Lichtstatus zum Beispiel. Was die App als Wert kennt,
+        // muss auch auswaehlbar sein; sonst gibt es Werte ohne Zuordnung und
+        // Zuordnungen ohne Wert.
         var liste = new List<HomeAssistantEntity>();
-        foreach (var (key, shape) in Shape)
+        foreach (var (_, zustand) in StatesFor(nowUtc))
         {
             liste.Add(new HomeAssistantEntity
             {
-                EntityId = $"sensor.{EntityPrefix}_{key.Replace('-', '_')}",
-                FriendlyName = shape.Label,
-                State = ValueFor(key, nowUtc)?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "0",
-                UnitOfMeasurement = shape.Unit,
-                Domain = "sensor",
+                EntityId = zustand.EntityId,
+                FriendlyName = zustand.FriendlyName,
+                State = zustand.State,
+                UnitOfMeasurement = zustand.UnitOfMeasurement,
+                Domain = zustand.EntityId.Split('.', 2)[0],
+            });
+        }
+
+        // Die benannten Geraete: ohne sie steht im Testbetrieb keine Steckdose
+        // und kein Dimmfeld in der Auswahl — und dann laesst sich weder der
+        // Kuehler noch der AC-Versuch ueberhaupt einrichten.
+        foreach (var kennung in new[] { LichtLeistung, LichtEinZeit, LichtAusZeit })
+        {
+            var zustand = EntityState(kennung, nowUtc);
+            if (zustand is null) continue;
+
+            liste.Add(new HomeAssistantEntity
+            {
+                EntityId = kennung,
+                FriendlyName = zustand.FriendlyName,
+                State = zustand.State,
+                Domain = kennung.Split('.', 2)[0],
             });
         }
 
@@ -480,6 +532,18 @@ public static class DemoData
         }
     }
 
+    /// <summary>Welche Entität liefert diese Messgröße im Testbestand?</summary>
+    /// <remarks>
+    /// Damit niemand eine Kennung abtippt. Die Kennungen entstehen in
+    /// <see cref="StatesFor"/> aus dem Metrik-Schlüssel; wer sie an einer
+    /// zweiten Stelle bildet, hat sie beim ersten Umbenennen verloren.
+    /// </remarks>
+    public static string? EntitaetFuer(SensorMetricType art)
+        => StatesFor(DateTime.UtcNow)
+            .TryGetValue(TentSensorMetricKeyMap.Resolve(art), out var zustand)
+            ? zustand.EntityId
+            : null;
+
     /// <summary>
     /// Eine kalibrierte pH-Sonde — sonst bleibt die Automatik im Testbetrieb gesperrt.
     /// </summary>
@@ -498,6 +562,10 @@ public static class DemoData
             Category = "Sonde",
             DeviceKind = HardwareDeviceKind.FixedSensor,
             MetricType = SensorMetricType.ReservoirPh,
+
+            // Ohne Zuordnung meldet die App dauerhaft „kein Mapping" — fuer ein
+            // Geraet, das sie selbst angelegt hat.
+            HaEntityId = EntitaetFuer(SensorMetricType.ReservoirPh),
             TentId = tentId,
             Status = HardwareItemStatus.Active,
             CalibrationIntervalDays = 14,

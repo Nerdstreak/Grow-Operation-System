@@ -416,7 +416,13 @@ function dueInDays(iso: string | null | undefined): { label: string; due: boolea
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return { label: '—', due: false }
   const days = Math.floor((date.getTime() - Date.now()) / 86_400_000)
-  return { label: `${days} T`, due: days <= 0 }
+
+  // „-6 T" stand unter der Ueberschrift „Wartung — 4 faellig", und niemand
+  // liest ein Minuszeichen als „seit sechs Tagen ueberfaellig". Ein Termin,
+  // der vorbei ist, heisst ueberfaellig; „0 T" heisst heute.
+  if (days < 0) return { label: 'überfällig', due: true }
+  if (days === 0) return { label: 'heute', due: true }
+  return { label: `${days} T`, due: false }
 }
 
 // A "mapping missing" warning only makes sense for FIXED sensors that are supposed to

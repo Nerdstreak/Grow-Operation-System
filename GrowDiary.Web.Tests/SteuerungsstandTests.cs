@@ -145,7 +145,7 @@ public sealed class SteuerungsstandTests
         var stand = Bauen(grow: Grow(rampeAn: false), zelt: Zelt(ziel: null, kuehlerAn: false));
 
         Assert.False(stand.RampeSchreibt);
-        Assert.Equal("Nicht aktiv. Es fehlt: absenkung eingeschaltet.", stand.Kurzfassung);
+        Assert.Equal("Nicht aktiv. Es fehlt die eingeschaltete Absenkung.", stand.Kurzfassung);
     }
 
     [Fact]
@@ -196,5 +196,40 @@ public sealed class SteuerungsstandTests
 
         // Und der gute Fall bleibt gut — sonst meldet die Kette immer „läuft nicht".
         Assert.True(Bauen().RampeSchreibt);
+    }
+
+    /// <summary>Jede Voraussetzung kann in einem deutschen Satz genannt werden.</summary>
+    /// <remarks>
+    /// <para><b>Der Anlass.</b> Die Kurzfassung hat den Listen-Titel mit
+    /// <c>ToLowerInvariant()</c> in den Satz gezwungen, und heraus kam „Es
+    /// fehlt: zielgerät zugeordnet." — ein kleingeschriebenes deutsches
+    /// Hauptwort. Dieselbe Sorte Fehler wie der englische Dezimalpunkt in
+    /// beta.50.</para>
+    ///
+    /// <para>Die Zaehlung geht ueber ALLE Voraussetzungen beider Ketten, nicht
+    /// ueber die eine, die gerade fehlt.</para>
+    /// </remarks>
+    [Fact]
+    public void Jede_Voraussetzung_passt_in_einen_deutschen_Satz()
+    {
+        var stand = Bauen();
+
+        var alle = stand.Rampe.Concat(stand.Kuehler).ToList();
+
+        // Mengenwaechter: ohne Glieder prueft die Schleife nichts.
+        Assert.True(alle.Count >= 6, $"Nur {alle.Count} Voraussetzungen — die Zaehlung sieht ihre Grundmenge nicht.");
+
+        foreach (var glied in alle)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(glied.Fehlt),
+                $"Die Voraussetzung {glied.Titel} hat keinen Satzteil fuer den Fehlt-Satz.");
+
+            // Der Satz lautet „Es fehlt <x>." — da gehoert kein Grossbuchstabe
+            // an den Anfang, ausser bei einem Eigennamen. Geprueft wird nur,
+            // dass ueberhaupt jemand darueber nachgedacht hat: ein Satzteil,
+            // der mit dem Titel identisch ist, ist keiner.
+            Assert.NotEqual(glied.Titel, glied.Fehlt);
+            Assert.DoesNotContain(glied.Fehlt, new[] { glied.Titel.ToLowerInvariant() });
+        }
     }
 }

@@ -77,9 +77,11 @@ public static class Demobestand
         JournalAnlegen(journal, laufend.Id);
         AufgabenAnlegen(aufgaben, laufend.Id);
         var geraet = GeraetMitHistorieAnlegen(hardware, zelt.Id, laufend.Id);
+        var pumpe = WeitereGeraeteAnlegen(hardware, zelt.Id, laufend.Id);
         AlarmregelAnlegen(alarme, zelt.Id);
         LichtplanAnlegen(grows, zelt.Id);
-        RisikoAnlegen(hardware, zelt.Id, laufend.Id, geraet.Id);
+        SensorenZuordnen(grows, zelt.Id);
+        RisikoAnlegen(hardware, zelt.Id, laufend.Id, pumpe.Id);
         GlasAnlegen(aushaerten, laufend.Id);
         PumpenAnlegen(dosierung, zelt.Id);
 
@@ -285,6 +287,19 @@ public static class Demobestand
                     TakenAt = zeitpunkt,
                     Stage = PhaseAm(grow, wann),
                     Source = ValueOrigin.HomeAssistant,
+
+                    // Am Wechseltag traegt die Morgenmessung den Vermerk.
+                    //
+                    // OHNE IHN LOG DER BESTAND: die EC-Kurve saegt woechentlich
+                    // zurueck und im Journal steht ein Wasserwechsel — aber
+                    // SopDueService liest den Wechsel aus `SolutionChange` an
+                    // einer Messung, und den setzte niemand. Auf der Seite
+                    // „Was jetzt zu tun ist" stand deshalb dauerhaft
+                    // „Woechentlicher Wasserwechsel: zuletzt vor 73 Tagen" —
+                    // 73 ist der Start des Grows, also die Ersatzannahme fuer
+                    // „gar kein Beleg". Gefunden beim LESEN der Seite.
+                    SolutionChange = stunde == 7 && Demoverlauf.SeitWasserwechsel(wann) == 0,
+
                     ReservoirPh = Runden(Demoverlauf.Ph(zeitpunkt), 2),
                     ReservoirEc = Runden(Demoverlauf.Ec(zeitpunkt), 2),
                     ReservoirWaterTempC = Runden(Demoverlauf.WasserTempC(zeitpunkt), 1),
@@ -461,6 +476,15 @@ public static class Demobestand
             Name = "Bluelab pH-Sonde (Testdaten)",
             Category = "Sensor",
             DeviceKind = HardwareDeviceKind.FixedSensor,
+
+            // OHNE DIESE ZWEI ZEILEN legte der Testbestand ZWEI pH-Sonden an:
+            // der Startlauf prueft „gibt es schon eine Sonde fuer ReservoirPh?",
+            // und dieses Geraet hatte gar keine Messgroesse. Dazu meldete die
+            // Seite „Sensoren & Wartung" fuer beide dauerhaft „kein Mapping" —
+            // fuer Geraete, die der Bestand selbst angelegt hat.
+            MetricType = SensorMetricType.ReservoirPh,
+            HaEntityId = DemoData.EntitaetFuer(SensorMetricType.ReservoirPh),
+
             Status = HardwareItemStatus.Active,
             Criticality = HardwareItemCriticality.High,
             CalibrationIntervalDays = 14,
@@ -526,6 +550,180 @@ public static class Demobestand
         // jedem Abschluss selbst einen neuen Termin an, und aus drei Nachtraegen
         // wuerden drei offene Erinnerungen.
         return geraet;
+    }
+
+    /// <summary>Jede Messgröße, für die es einen Wert gibt, dem Zelt zuordnen.</summary>
+    /// <remarks>
+    /// <para><b>Der groesste blinde Fleck im Testbestand.</b> Bis zum
+    /// 24.08.2026 stand auf der Home-Assistant-Seite <i>„Entities gemappt: 0
+    /// von 17"</i> — im Testbetrieb war <b>keine einzige</b> Messgröße
+    /// zugeordnet. Die Live-Seite zeigte trotzdem dreizehn Werte, weil
+    /// <see cref="DemoData.StatesFor"/> alles liefert, ob zugeordnet oder
+    /// nicht. Der Weg über eine <i>zugeordnete</i> Messgröße — und alles, was
+    /// daran hängt: die Sensorliste am Zelt, das Alter eines Werts, die
+    /// Zuordnungs-Warnungen — wurde von keiner Prüfung je betreten.</para>
+    ///
+    /// <para><b>Zählung statt Liste.</b> Durchlaufen wird die Aufzählung, nicht
+    /// eine abgetippte Auswahl. Was der Testbestand liefert, wird zugeordnet;
+    /// was er nicht liefert, bleibt frei — und bleibt damit auch ein sichtbarer
+    /// Fall „noch nicht eingerichtet", den es ebenfalls zu sehen geben muss.</para>
+    /// </remarks>
+    private static void SensorenZuordnen(GrowRepository grows, int zeltId)
+    {
+        var zustaende = DemoData.StatesFor(DateTime.UtcNow);
+
+        foreach (var art in Enum.GetValues<SensorMetricType>())
+        {
+            var schluessel = TentSensorMetricKeyMap.Resolve(art);
+            if (!zustaende.TryGetValue(schluessel, out var zustand)) continue;
+            if (string.IsNullOrWhiteSpace(zustand.EntityId)) continue;
+
+            grows.AddTentSensor(new TentSensor
+            {
+                TentId = zeltId,
+                MetricType = art,
+                HaEntityId = zustand.EntityId,
+                DisplayLabel = zustand.FriendlyName,
+                IsActive = true,
+            });
+        }
+    }
+
+    /// <summary>Die übrigen Geräte einer echten Anlage.</summary>
+    /// <returns>Die Umwälzpumpe — an ihr hängt das Risiko im Bestand.</returns>
+    /// <remarks>
+    /// <para><b>Warum acht Geräte und nicht eins.</b> Der Testbestand hatte
+    /// genau ein Gerät; der Tester hat sieben. Eine Prüfung, die im Bestand über
+    /// eine Liste läuft, sieht mit einer Zeile fast nichts: kein Sortieren, kein
+    /// Filtern, kein zweiter Klick, keine Zeile, die eine andere verdeckt. Am
+    /// 24.08.2026 ist genau das aufgeflogen — die Prüfung <i>„Bearbeiten holt
+    /// das Formular auch beim ZWEITEN Klick ins Bild"</i> konnte im Bestand
+    /// nicht laufen, weil es kein zweites Gerät gab. Und derselbe Knopf war dem
+    /// Tester schon zweimal aufgefallen.</para>
+    ///
+    /// <para><b>Und weil das Risiko sonst am falschen Gerät hing.</b> Der
+    /// Bestand meldete <i>„Umwälzpumpe meldet an, zieht aber 0 W"</i> und
+    /// verwies dabei auf die pH-Sonde: wer der Meldung folgte, landete beim
+    /// falschen Gerät. Jetzt gibt es die Pumpe.</para>
+    ///
+    /// <para>Die Verschleiß-Vorlagen sind echte Kennungen aus
+    /// <c>wwwroot/knowledge-defaults/wear</c> — abgetippte hätten stumm ins
+    /// Leere gezeigt.</para>
+    /// </remarks>
+    private static HardwareItem WeitereGeraeteAnlegen(
+        HardwareRepository hardware, int zeltId, int growId)
+    {
+        HardwareItem Anlegen(HardwareItem geraet)
+        {
+            geraet.TentId = zeltId;
+            geraet.GrowId = growId;
+            geraet.Status = HardwareItemStatus.Active;
+            return hardware.CreateHardwareItem(geraet);
+        }
+
+        // --- Messgeräte, fest verbaut und zugeordnet -------------------------
+        Anlegen(new HardwareItem
+        {
+            Name = "EC-Sonde (Testdaten)",
+            Category = "Sensor",
+            DeviceKind = HardwareDeviceKind.FixedSensor,
+            MetricType = SensorMetricType.ReservoirEc,
+            HaEntityId = DemoData.EntitaetFuer(SensorMetricType.ReservoirEc),
+            Criticality = HardwareItemCriticality.High,
+            CalibrationIntervalDays = 30,
+            WearTemplateId = "ec-probe",
+            Manufacturer = "Bluelab",
+            Model = "Guardian Monitor",
+            InstalledAtUtc = DateTime.UtcNow.AddDays(-120),
+        });
+
+        Anlegen(new HardwareItem
+        {
+            Name = "Wassertemperatur-Fühler (Testdaten)",
+            Category = "Sensor",
+            DeviceKind = HardwareDeviceKind.FixedSensor,
+            MetricType = SensorMetricType.ReservoirWaterTemp,
+            HaEntityId = DemoData.EntitaetFuer(SensorMetricType.ReservoirWaterTemp),
+            Criticality = HardwareItemCriticality.High,
+            InstalledAtUtc = DateTime.UtcNow.AddDays(-120),
+        });
+
+        Anlegen(new HardwareItem
+        {
+            Name = "Klimasensor Zelt (Testdaten)",
+            Category = "Sensor",
+            DeviceKind = HardwareDeviceKind.FixedSensor,
+            MetricType = SensorMetricType.AirTemperature,
+            HaEntityId = DemoData.EntitaetFuer(SensorMetricType.AirTemperature),
+            Criticality = HardwareItemCriticality.Medium,
+            InstalledAtUtc = DateTime.UtcNow.AddDays(-118),
+        });
+
+        // --- Technik ---------------------------------------------------------
+        var umwaelzpumpe = Anlegen(new HardwareItem
+        {
+            Name = "Umwälzpumpe (Testdaten)",
+            Category = "Pumpe",
+            DeviceKind = HardwareDeviceKind.Equipment,
+            Criticality = HardwareItemCriticality.Critical,
+            Manufacturer = "Jebao",
+            Model = "DCP-5000",
+            InstalledAtUtc = DateTime.UtcNow.AddDays(-210),
+            ExpectedLifespanDays = 900,
+            InspectionIntervalDays = 60,
+        });
+
+        Anlegen(new HardwareItem
+        {
+            Name = "Luftpumpe + Steine (Testdaten)",
+            Category = "Pumpe",
+            DeviceKind = HardwareDeviceKind.Equipment,
+            Criticality = HardwareItemCriticality.High,
+            WearTemplateId = "air-stones-ceramic",
+            InstalledAtUtc = DateTime.UtcNow.AddDays(-150),
+            InspectionIntervalDays = 30,
+        });
+
+        Anlegen(new HardwareItem
+        {
+            Name = "Wasserkühler (Testdaten)",
+            Category = "Klima",
+            DeviceKind = HardwareDeviceKind.Equipment,
+            Criticality = HardwareItemCriticality.High,
+            Manufacturer = "Hailea",
+            Model = "HC-130A",
+            HaEntityId = DemoData.KuehlerSteckdose,
+            InstalledAtUtc = DateTime.UtcNow.AddDays(-200),
+            InspectionIntervalDays = 90,
+        });
+
+        Anlegen(new HardwareItem
+        {
+            Name = "Aktivkohlefilter (Testdaten)",
+            Category = "Luft",
+            DeviceKind = HardwareDeviceKind.Equipment,
+            Criticality = HardwareItemCriticality.Medium,
+            InstalledAtUtc = DateTime.UtcNow.AddDays(-160),
+            ExpectedLifespanDays = 365,
+            InspectionIntervalDays = 45,
+        });
+
+        // --- Ein Handmessgerät: es wird NICHT zugeordnet, und das ist richtig.
+        // Ohne so ein Gerät bleibt der Fall „braucht kein Mapping" im Bestand
+        // ungeprüft, und die Warnung dazu hätte niemand je gegengelesen.
+        Anlegen(new HardwareItem
+        {
+            Name = "pH-Stift zum Nachmessen (Testdaten)",
+            Category = "Sonde",
+            DeviceKind = HardwareDeviceKind.HandheldMeter,
+            Criticality = HardwareItemCriticality.Low,
+            CalibrationIntervalDays = 60,
+            Manufacturer = "Apera",
+            Model = "PH60",
+            InstalledAtUtc = DateTime.UtcNow.AddDays(-90),
+        });
+
+        return umwaelzpumpe;
     }
 
     /// <summary>Der Lichtplan des Testzelts.</summary>

@@ -101,7 +101,16 @@ function ArchivePage() {
         <>
           <section className="ls-panel" data-audit="grows-archive">
             <div className="co-table-wrap">
-            <div className="co-table" style={{ gridTemplateColumns: '1.2fr .9fr .7fr .7fr .7fr .9fr 1fr' }}>
+            {/* Die Datumsspalte breiter und die Tabelle als Ganzes mindestens
+                620 px: bei 560 px bekam „21.05.2026" 87 px, brauchte aber 96 —
+                und weil `.co-td.is-muted` seit dem 18.08. bewusst NICHT mitten
+                im Wort umbricht (sonst stand da „Fe/mi/ni/si/er/t"), lief das
+                Datum ohne jedes Anzeichen in die Nachbarspalte. Am Telefon
+                stand dort „21.05.202688 T". */}
+            <div
+              className="co-table"
+              style={{ gridTemplateColumns: '1.2fr 1.2fr .6fr .7fr .6fr .9fr 1fr', minWidth: 620 }}
+            >
               <div className="co-th">Grow</div>
               <div className="co-th">Geerntet</div>
               <div className="co-th">Dauer</div>

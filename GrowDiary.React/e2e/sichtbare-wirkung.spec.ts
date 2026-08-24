@@ -123,9 +123,19 @@ test.describe('Sichtbare Wirkung', () => {
       .toBeLessThan(FENSTER.height)
 
     // Und sie sagt etwas Konkretes: entweder aktiv, oder WAS fehlt.
+    //
+    // Geprueft wird auf die AUSSAGE, nicht auf einen Wortlaut. Der erste Anlauf
+    // stand auf „Es fehlt:" mit Doppelpunkt und wurde rot, als der Satz von
+    // „Es fehlt: zielgerät zugeordnet." (kleingeschriebenes Hauptwort) auf
+    // „Es fehlt ein zugeordnetes Zielgerät." umgestellt wurde. Ein Test, der
+    // bei einer Verbesserung des Textes rot wird, prueft die Formulierung und
+    // nicht die Sache.
     const text = await page.locator('.cs-kurzfassung').innerText()
-    expect(text, `Die Kurzfassung sagt nichts Verwertbares: „${text}"`)
-      .toMatch(/Aktiv\.|Nicht aktiv\. Es fehlt:|wird nicht/)
+    const sagtAktiv = /^Aktiv\./.test(text)
+    const nenntGrund = /(fehlt|wird nicht)/.test(text) && text.trim().length > 25
+
+    expect(sagtAktiv || nenntGrund, `Die Kurzfassung sagt nichts Verwertbares: „${text}"`)
+      .toBe(true)
   })
 
   /**

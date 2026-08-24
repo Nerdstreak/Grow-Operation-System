@@ -25,7 +25,8 @@ public sealed partial class SystemApiController
     {
         enabled = DemoData.IsEnabled,
         hint = DemoData.IsEnabled
-            ? "Testdaten: alle Messwerte sind erfunden. Es ist kein Home Assistant verbunden und es wird nichts geschaltet."
+            ? "Testdaten: alle Messwerte sind erfunden. Es geht nichts an ein echtes Gerät — "
+              + "was hier gestellt wird, merkt sich nur der Testbestand."
             : null,
     });
 

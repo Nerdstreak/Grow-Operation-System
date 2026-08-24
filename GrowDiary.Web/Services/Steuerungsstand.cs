@@ -7,7 +7,19 @@ namespace GrowDiary.Web.Services;
 /// <param name="Titel">Kurz, drei bis fünf Wörter — die Zeile in der Liste.</param>
 /// <param name="Erfuellt">Grün oder nicht.</param>
 /// <param name="Text">Was es bedeutet; bei „nicht erfüllt" <b>was zu tun ist</b>.</param>
-public sealed record Voraussetzung(string Titel, bool Erfuellt, string Text);
+/// <param name="Fehlt">
+/// Wie dieses Glied in einem Satz genannt wird, wenn es fehlt — als Ergänzung
+/// zu „Es fehlt: …".
+///
+/// <para><b>Warum ein eigenes Feld und nicht der Titel.</b> Der Titel ist eine
+/// Zeile in einer Liste („Zielgerät zugeordnet"), kein Satzteil. Die Kurzfassung
+/// hat ihn bis zum 24.08.2026 mit <c>ToLowerInvariant()</c> in den Satz
+/// gezwungen — heraus kam „Nicht aktiv. Es fehlt: zielgerät zugeordnet.", also
+/// ein kleingeschriebenes deutsches Hauptwort mitten im Satz. Dieselbe Sorte
+/// Fehler wie der englische Dezimalpunkt in beta.50: englische Gewohnheit auf
+/// deutschen Text angewandt.</para>
+/// </param>
+public sealed record Voraussetzung(string Titel, bool Erfuellt, string Text, string Fehlt);
 
 /// <summary>
 /// Steuert Grow OS gerade wirklich — und wenn nicht, woran liegt es?
@@ -87,18 +99,21 @@ public static class SteuerungsstandBauer
             new("Absenkung eingeschaltet", grow.NightRampEnabled,
                 grow.NightRampEnabled
                     ? "Der Schalter unten steht auf an."
-                    : "Der Schalter unten steht auf aus — dann ist die Tabelle nur eine Vorschau."),
+                    : "Der Schalter unten steht auf aus — dann ist die Tabelle nur eine Vorschau.",
+                "die eingeschaltete Absenkung"),
 
             // Der Plan sagt selbst, was ihm fehlt. Diesen Satz nicht nachbauen.
             new("Ein Plan für heute", plan.Luecke is null && plan.Wochen.Count > 0,
                 plan.Luecke ?? (plan.Wochen.Count > 0
                     ? $"Blütewoche {plan.AktuelleWoche}, Nachtwert {Zahl(plan.HeuteNachtC)} °C."
-                    : "Es gibt keine Wochen im Plan.")),
+                    : "Es gibt keine Wochen im Plan."),
+                "ein Plan für heute"),
 
             new("Zielgerät zugeordnet", !string.IsNullOrWhiteSpace(zelt?.WaterTargetEntityId),
                 string.IsNullOrWhiteSpace(zelt?.WaterTargetEntityId)
                     ? "Ohne Zielgerät wird nur geplant. Trag unten ein climate- oder number-Gerät ein."
-                    : $"Der Sollwert geht an {zelt!.WaterTargetEntityId}."),
+                    : $"Der Sollwert geht an {zelt!.WaterTargetEntityId}.",
+                "ein zugeordnetes Zielgerät"),
 
             Verbindung(haVerbunden, testbetrieb, "geschrieben"),
         };
@@ -117,17 +132,20 @@ public static class SteuerungsstandBauer
             new("Kühler-Steuerung eingeschaltet", an,
                 an
                     ? "Grow OS darf die Steckdose schalten."
-                    : "Aus. Standard — etwas, das einen Kompressor taktet, schaltet sich nicht selbst ein."),
+                    : "Aus. Standard — etwas, das einen Kompressor taktet, schaltet sich nicht selbst ein.",
+                "die eingeschaltete Kühler-Steuerung"),
 
             new("Steckdose zugeordnet", steckdose,
                 steckdose
                     ? $"Geschaltet wird {zelt!.ChillerSwitchEntityId}."
-                    : "Ohne Steckdose gibt es nichts zu schalten."),
+                    : "Ohne Steckdose gibt es nichts zu schalten.",
+                "eine zugeordnete Steckdose"),
 
             new("Ein Sollwert für jetzt", plan.HeuteTagC is not null || plan.HeuteNachtC is not null,
                 plan.HeuteTagC is not null || plan.HeuteNachtC is not null
                     ? $"Tag {Zahl(plan.HeuteTagC)} °C, Nacht {Zahl(plan.HeuteNachtC)} °C."
-                    : "Ohne Sollwert regelt der Kühler nicht — er bleibt, wie er ist."),
+                    : "Ohne Sollwert regelt der Kühler nicht — er bleibt, wie er ist.",
+                "ein Sollwert für jetzt"),
 
             Verbindung(haVerbunden, testbetrieb, "geschaltet"),
         };
@@ -147,14 +165,16 @@ public static class SteuerungsstandBauer
         if (testbetrieb)
         {
             return new("Home Assistant verbunden", false,
-                $"Testbetrieb: die Messwerte sind erfunden und es wird nichts {tuwort}. "
-                + "Ohne GROW_OS_DEMO=1 gilt die echte Verbindung.");
+                $"Testbetrieb: die Messwerte sind erfunden und es geht nichts an ein echtes Gerät. "
+                + "Ohne GROW_OS_DEMO=1 gilt die echte Verbindung.",
+                "eine echte Verbindung zu Home Assistant (Testbetrieb)");
         }
 
         return new("Home Assistant verbunden", haVerbunden,
             haVerbunden
                 ? "Die Verbindung steht."
-                : $"Ohne Verbindung wird nichts {tuwort} — siehe Einrichtung → Home Assistant.");
+                : $"Ohne Verbindung wird nichts {tuwort} — siehe Einrichtung → Home Assistant.",
+            "die Verbindung zu Home Assistant");
     }
 
     /// <summary>Der eine Satz für ganz oben — er nennt das ERSTE fehlende Glied.</summary>
@@ -174,17 +194,17 @@ public static class SteuerungsstandBauer
         if (rampeLaeuft)
         {
             var fehlt = kuehler.First(s => !s.Erfuellt);
-            return $"Der Sollwert wird geschrieben. Der Kühler wird nicht geregelt: {fehlt.Titel.ToLowerInvariant()}.";
+            return $"Der Sollwert wird geschrieben. Der Kühler wird nicht geregelt — es fehlt {fehlt.Fehlt}.";
         }
 
         if (kuehlerLaeuft)
         {
             var fehlt = rampe.First(s => !s.Erfuellt);
-            return $"Der Kühler wird geregelt. Der Sollwert wird nicht geschrieben: {fehlt.Titel.ToLowerInvariant()}.";
+            return $"Der Kühler wird geregelt. Der Sollwert wird nicht geschrieben — es fehlt {fehlt.Fehlt}.";
         }
 
         var erstes = rampe.First(s => !s.Erfuellt);
-        return $"Nicht aktiv. Es fehlt: {erstes.Titel.ToLowerInvariant()}.";
+        return $"Nicht aktiv. Es fehlt {erstes.Fehlt}.";
     }
 
     private static string Zahl(double? wert)

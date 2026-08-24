@@ -188,6 +188,41 @@ public sealed class DemobestandStimmigTests : IDisposable
             + string.Join(", ", stumm));
     }
 
+    /// <summary>Jede Messgröße, für die es einen Wert gibt, ist auch zugeordnet.</summary>
+    /// <remarks>
+    /// <para><b>Der Fall, den niemand gesehen hat.</b> Auf der
+    /// Home-Assistant-Seite stand im Testbetrieb <i>„Entities gemappt: 0 von
+    /// 17"</i>, während die Live-Seite dreizehn Werte zeigte — der Testbestand
+    /// lieferte alles ohne Zuordnung. Damit lief jede Prüfung am zugeordneten
+    /// Weg vorbei: die Sensorliste am Zelt, das Alter eines Werts, die
+    /// Warnungen über fehlende Zuordnungen.</para>
+    ///
+    /// <para>Die Zählung geht über die Aufzählung, nicht über eine Liste: was
+    /// der Bestand liefert, muss zugeordnet sein.</para>
+    /// </remarks>
+    [Fact]
+    public void Jede_gelieferte_Messgroesse_ist_dem_Zelt_zugeordnet()
+    {
+        var zelt = _grows.GetTents()[0];
+        var zugeordnet = _grows.GetTentSensors(zelt.Id)
+            .Select(s => TentSensorMetricKeyMap.Resolve(s.MetricType))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var geliefert = DemoData.StatesFor(DateTime.UtcNow).Keys
+            .Where(k => Enum.GetValues<SensorMetricType>()
+                .Any(a => string.Equals(TentSensorMetricKeyMap.Resolve(a), k, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        // Mengenwaechter: ohne gelieferte Groessen prueft die Schleife nichts.
+        Assert.True(geliefert.Count >= 8,
+            $"Nur {geliefert.Count} Messgroessen im Testbestand — die Zaehlung sieht ihre Grundmenge nicht.");
+
+        var fehlend = geliefert.Where(k => !zugeordnet.Contains(k)).ToList();
+        Assert.True(fehlend.Count == 0,
+            "Der Testbestand liefert Werte, die keinem Sensor am Zelt zugeordnet sind: "
+            + string.Join(", ", fehlend));
+    }
+
     /// <summary>Der Bestand legt zu jedem Zelt einen Lichtplan an.</summary>
     /// <remarks>
     /// Ohne ihn laufen Alarme (Tag/Nacht), Stromkosten und der Zeitplan-Vorschlag

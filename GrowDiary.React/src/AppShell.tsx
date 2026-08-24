@@ -178,8 +178,14 @@ export function AppShell({ children, counts }: Props) {
           <div className="gos-demo" role="status" data-audit="demo-mode">
             <strong>Testdaten</strong>
             <span>
-              Alle Messwerte auf diesem Server sind erfunden. Kein Home Assistant verbunden,
-              es wird nichts geschaltet.
+              {/* „Es wird nichts geschaltet" stimmte nicht mehr, seit der
+                  Testbetrieb Schaltbefehle festhaelt (Demoschaltbrett). Wer
+                  eine Stufe stellt, sieht sie hinterher stehen — nur eben im
+                  Testbestand und nicht an einem Geraet. Der Unterschied
+                  gehoert hierhin, sonst glaubt jemand, er habe wirklich
+                  geschaltet. */}
+              Alle Messwerte auf diesem Server sind erfunden. Es geht nichts an ein echtes
+              Gerät — was du hier stellst, merkt sich nur der Testbestand.
             </span>
           </div>
         )}
