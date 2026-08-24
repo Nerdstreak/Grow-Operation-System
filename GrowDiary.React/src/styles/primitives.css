@@ -76,11 +76,19 @@
     min-height: 40px; display: flex; align-items: center; justify-content: space-between;
     gap: var(--s-3); padding: var(--s-2) var(--s-4);
     border-bottom: 1px solid var(--hair);
+    /* Am Telefon ist neben der Ueberschrift oft ein Reiterband. Ohne Umbruch
+       quetscht das die Ueberschrift, bis sie ueber ihren Kasten laeuft — auf
+       /zelte/1 brauchte „Verlauf" 61 px und hatte 58. Aufgefallen im Tor:
+       unter Linux sind die Schriften breiter als hier, und das Add-on laeuft
+       auf Linux. */
+    flex-wrap: wrap;
   }
   .v1-section-head h2 {
     margin: 0;
     font: 500 var(--fs-etikett)/1 var(--font-mono);
     letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
+    /* Eine Ueberschrift schrumpft nicht unter ihren eigenen Text. */
+    flex: 0 0 auto;
   }
   .v1-section-body { padding: var(--s-4); }
   .v1-card { padding: var(--s-4); }

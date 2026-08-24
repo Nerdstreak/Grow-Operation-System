@@ -30,6 +30,12 @@
     vertical-align: top;
   }
   .ab-dateien th { color: var(--ink); font-weight: 500; white-space: nowrap; padding-right: 18px; }
+  /* Deutsche Zusammensetzungen in einer 134 px schmalen Spalte: „Naehrstoff-
+     programme" passt nicht, und ohne Trennung bricht es mitten im Wort.
+     `hyphens: auto` setzt einen sichtbaren Trennstrich — dafuer steht
+     `lang="de"` am <html>. Aufgefallen ist es erst im Tor: unter Linux sind
+     die Schriften breiter als hier, und das Add-on laeuft auf Linux. */
+  .ab-dateien td { hyphens: auto; }
   .ab-dateien td { color: var(--muted); }
 
   .ab-fragen { display: grid; gap: 10px; }

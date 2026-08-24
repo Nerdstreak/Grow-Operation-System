@@ -116,6 +116,24 @@ Deshalb: `GrowDiary.Web.Tests/DemobestandStimmigTests.cs` prüft den Bestand
 gegen die **eigenen Regeln der App** — wo Grow OS eine Warnung ausgeben würde,
 ist der Bestand falsch, nicht die Warnung.
 
+### Mein Rechner ist nicht die Anlage
+
+Das Add-on läuft in einem **Linux-Container**. Dort sind die Schriften breiter
+als auf diesem Windows-Rechner — ein paar Prozent, aber genug. Zwei Befunde am
+25.08.2026 waren lokal grün und im Tor rot:
+
+| Stelle | hier | im Tor |
+|---|---|---|
+| „Nährstoffprogramme." auf `/berater` bei 390 px | passt in 134 px | braucht 139 px |
+| Überschrift „Verlauf" auf `/zelte/1` bei 360 px | 59 px in 58 px | 61 px in 58 px |
+
+Beide sind **echt** — der Nutzer sieht die Linux-Fassung, nicht meine. Ein
+lokaler Lauf ist also eine Vorprüfung, keine Freigabe: **was die Oberfläche
+in Pixeln misst, gilt erst, wenn das Tor es bestätigt hat.**
+
+Umgekehrt heisst das auch: eine Messung, die hier knapp durchgeht (ein, zwei
+Pixel Luft), ist ein Befund und kein Erfolg.
+
 ### Prüfe die Schicht, in der der Fehler entsteht
 
 Drei Prüfungen liefen jahrelang an ihrem eigenen Gegenstand vorbei:
