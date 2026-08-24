@@ -9,7 +9,7 @@ import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1Page, V1Section
 import { LiveCheckPanel } from '../features/measurement/LiveCheckPanel'
 import { checkDraft, type CheckSeverity } from '../features/measurement/live-check-model'
 import '../features/measurement/measurement-edit.css'
-import { toLocalInputValue } from '../utils'
+import { formatNumber, toLocalInputValue } from '../utils'
 import { FOTO_TAGS, PHASEN, fotoTagName, phaseName } from '../deutsche-woerter'
 
 type NumericKey = Exclude<keyof MeasurementDraft, 'takenAtLocal' | 'stage' | 'source' | 'notes' | 'solutionChange'>
@@ -714,7 +714,11 @@ function calculateVpd(temperatureValue: string, humidityValue: string, leafOffse
   if (temperature == null || humidity == null || humidity < 0 || humidity > 100) return null
   const actual = saturationKpa(temperature) * (humidity / 100)
   const leaf = saturationKpa(temperature - leafOffsetC)
-  return Math.max(0, leaf - actual).toFixed(2)
+
+  // `toFixed` schreibt IMMER mit Punkt — im Formular stand deshalb „1.00 kPa"
+  // mitten in einer deutschen Oberflaeche. Dieselbe Falle wie an den
+  // Diagramm-Achsen; gefunden, weil /messung in keiner Zahlen-Pruefung stand.
+  return formatNumber(Math.max(0, leaf - actual), 2)
 }
 
 /**

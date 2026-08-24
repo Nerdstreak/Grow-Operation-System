@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { darfUeberspringen } from './pflicht'
+import { TEXTSEITEN } from './seiten'
 
 /**
  * Kein Text darf in seinen Nachbarn laufen.
@@ -24,12 +25,6 @@ import { darfUeberspringen } from './pflicht'
  * Text liegt über dem Nachbarn, und niemand sieht, dass da zwei Dinge sind.
  */
 
-const SEITEN = [
-  '/', '/live', '/messungen', '/archiv', '/grows', '/aufgaben', '/sensoren',
-  '/dosierung', '/regeln', '/sorten', '/hydro', '/zelte', '/wasser',
-  '/diagnose', '/journal', '/aushaerten', '/sollwerte', '/cropsteering',
-  '/ac-test', '/einkaufsliste',
-]
 
 const BREITEN = [360, 390, 768]
 
@@ -87,7 +82,7 @@ for (const breite of BREITEN) {
   test.describe(`Zellen bei ${breite} px`, () => {
     test.use({ viewport: { width: breite, height: 900 } })
 
-    for (const pfad of SEITEN) {
+    for (const pfad of TEXTSEITEN) {
       test(`${pfad} — kein Text laeuft in den Nachbarn`, async ({ page }) => {
         const antwort = await page.goto(pfad, { waitUntil: 'networkidle' })
         darfUeberspringen(

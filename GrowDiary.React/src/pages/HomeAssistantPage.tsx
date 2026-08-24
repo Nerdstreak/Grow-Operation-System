@@ -6,6 +6,7 @@ import type { HomeAssistantEntity, HomeAssistantSettingsDto, SensorMetricType, S
 import { V1Alert, V1Button, V1Empty, V1Field, V1Page, V1Skeleton, V1Switch, V1Tabs } from '../components/v1'
 import { toNullableString } from '../components/v1-utils'
 import { resolveUrl } from '../base'
+import { haWert } from '../utils'
 import '../features/home-assistant/home-assistant.css'
 
 type GroupKey = 'tent' | 'reservoir' | 'hardware'
@@ -80,8 +81,7 @@ function suggestionsForMetric(entities: HomeAssistantEntity[], metricType: Senso
 function entityOptionLabel(entity: HomeAssistantEntity): string {
   const name = entity.friendlyName ?? entity.entityId
   if (entity.state == null || entity.state === '') return name
-  const unit = entity.unitOfMeasurement ? ` ${entity.unitOfMeasurement}` : ''
-  return `${name} — ${entity.state}${unit}`
+  return `${name} — ${haWert(entity.state, entity.unitOfMeasurement)}`
 }
 
 /**
@@ -151,8 +151,8 @@ function HomeAssistantPage() {
   function liveValue(entityId: string): string | null {
     if (!entityId.trim()) return null
     const entity = entities.find((item) => item.entityId === entityId.trim())
-    if (!entity || entity.state == null || entity.state === '') return null
-    return `${entity.state}${entity.unitOfMeasurement ? ` ${entity.unitOfMeasurement}` : ''}`
+    if (!entity) return null
+    return haWert(entity.state, entity.unitOfMeasurement)
   }
 
   async function saveConnection(event: FormEvent<HTMLFormElement>) {

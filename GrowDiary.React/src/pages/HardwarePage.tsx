@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError, formatApiError } from '../api'
 import type { CalibrationEventDto, CreateHardwareItemRequest, HardwareDeviceKind, HardwareItemCriticality, HardwareItemDto, HardwareItemStatus, HomeAssistantEntity, HydroSetupDto, MaintenanceEventDto, TentDto, UpdateHardwareItemRequest, WearTemplateDto } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
-import { classNames, formatNumber, formatSeverityLabel } from '../utils'
+import { classNames, formatSeverityLabel, haWert } from '../utils'
 import type { HardwareFilter, HardwareRow } from '../features/hardware/hardware-table-model'
 import { buildHardwareRows, countBy, dueLabel, filterHardwareRows, statusLabel, statusTone } from '../features/hardware/hardware-table-model'
 import '../features/hardware/hardware.css'
@@ -667,18 +667,10 @@ function HardwareRowView({ row, liveState, saving, onStatus, onEdit, onDelete, o
 function liveStateFor(item: HardwareItemDto, entities: HomeAssistantEntity[]): string | null {
   if (!item.haEntityId) return null
   const entity = entities.find((candidate) => candidate.entityId === item.haEntityId)
-  if (!entity || entity.state == null || entity.state === '') return null
+  if (!entity) return null
 
-  // Home Assistant liefert Zahlen IMMER mit Punkt — hier stand deshalb
-  // „5.78" mitten in einer deutschen Oberflaeche. Das gilt nicht nur im
-  // Testbetrieb: jede echte Anlage schickt denselben Punkt. Text bleibt Text
-  // (`on`, `unavailable`), nur Zahlen werden umgeschrieben.
-  const zahl = Number(entity.state)
-  const wert = entity.state.trim() !== '' && Number.isFinite(zahl)
-    ? formatNumber(zahl, Math.abs(zahl) < 10 ? 2 : 1)
-    : entity.state
-
-  return `${wert}${entity.unitOfMeasurement ? ` ${entity.unitOfMeasurement}` : ''}`
+  // Die Umschrift steht in `haWert` — sie wird an drei Stellen gebraucht.
+  return haWert(entity.state, entity.unitOfMeasurement)
 }
 
 function inferDeviceKind(item?: HardwareItemDto): HardwareDeviceKind {

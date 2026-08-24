@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { darfUeberspringen } from './pflicht'
+import { TEXTSEITEN } from './seiten'
 
 /**
  * Kein englischer Enum-Wert steht roh auf dem Bildschirm.
@@ -49,13 +50,6 @@ const ERLAUBT: Record<string, string> = {
   Info: 'deutsches Kurzwort',
 }
 
-const SEITEN = [
-  '/', '/live', '/zelte', '/zelte/1', '/grows', '/grows/new', '/grows/1',
-  '/grows/1/setup', '/messungen', '/messung', '/archiv', '/aufgaben',
-  '/dosierung', '/hydro', '/hydro/1', '/sensoren', '/sorten', '/journal',
-  '/diagnose', '/aushaerten', '/wasser', '/regeln', '/sollwerte',
-  '/cropsteering', '/ac-test',
-]
 
 /** Die Werte aller String-Unions aus den Typdateien. */
 function enumWerte(): Map<string, string> {
@@ -105,7 +99,7 @@ async function roheWerte(page: Page): Promise<string[]> {
   return gefunden
 }
 
-for (const pfad of SEITEN) {
+for (const pfad of TEXTSEITEN) {
   test(`${pfad} — kein englischer Enum-Wert`, async ({ page }) => {
     const antwort = await page.goto(pfad, { waitUntil: 'networkidle' })
     darfUeberspringen(

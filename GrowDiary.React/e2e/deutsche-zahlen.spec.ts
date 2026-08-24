@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { darfUeberspringen } from './pflicht'
+import { TEXTSEITEN } from './seiten'
 
 /**
  * Auf dem Schirm steht kein englischer Dezimalpunkt.
@@ -23,20 +24,22 @@ import { darfUeberspringen } from './pflicht'
  * gerade nicht sehen will.
  */
 
-const SEITEN = [
-  '/', '/live', '/zelte/1', '/messungen', '/archiv', '/grows/1', '/aufgaben',
-  '/dosierung', '/wasser', '/diagnose', '/aushaerten', '/sollwerte',
-  '/cropsteering', '/hydro/1', '/sensoren', '/einkaufsliste',
-]
 
-/** Eine Zahl mit Punkt zwischen Ziffern: 5.80, 1.24, 24.0 */
-const PUNKTZAHL = /(?<![\w.])\d+\.\d+(?![\w.])/
+/**
+ * Eine Zahl mit englischem Dezimalpunkt: 5.80, 1.24, 24.0
+ *
+ * **Ein bis zwei Nachkommastellen, nicht drei.** „3.600" ist im Deutschen der
+ * TAUSENDERPUNKT und völlig richtig — der erste Anlauf hat „3.600 cm²" und
+ * „3.600 L/h" als Fehler gemeldet. Ein Punkt mit genau drei Ziffern dahinter
+ * ist eine Tausendergruppe; alles andere ist ein Dezimalpunkt.
+ */
+const PUNKTZAHL = /(?<![\w.])\d+\.(\d{1,2}|\d{4,})(?![\d.])/
 
 type Fund = { text: string, klasse: string, tag: string }
 
 async function punktzahlen(page: Page): Promise<Fund[]> {
   return page.evaluate(() => {
-    const muster = /(?<![\w.])\d+\.\d+(?![\w.])/
+    const muster = /(?<![\w.])\d+\.(\d{1,2}|\d{4,})(?![\d.])/
     const raus: Array<{ text: string, klasse: string, tag: string }> = []
 
     // Kennungen und Quelltext sind keine Zahlen — sie stehen bewusst so da.
@@ -75,7 +78,7 @@ async function punktzahlen(page: Page): Promise<Fund[]> {
   })
 }
 
-for (const pfad of SEITEN) {
+for (const pfad of TEXTSEITEN) {
   test(`${pfad} — keine Zahl mit englischem Punkt`, async ({ page }) => {
     const antwort = await page.goto(pfad, { waitUntil: 'networkidle' })
     darfUeberspringen(
@@ -107,7 +110,14 @@ test('die Suche findet einen englischen Punkt ueberhaupt', () => {
   // Der Bissnachweis im Test selbst: ohne ihn koennte das Muster still
   // nichts treffen und alle Seiten waeren gruen.
   expect(PUNKTZAHL.test('zuletzt 5.80')).toBe(true)
+  expect(PUNKTZAHL.test('VPD 1.00 kPa')).toBe(true)
+  expect(PUNKTZAHL.test('Luft 24.0 Grad')).toBe(true)
   expect(PUNKTZAHL.test('zuletzt 5,80')).toBe(false)
   expect(PUNKTZAHL.test('sensor.demo_reservoir_ph')).toBe(false)
   expect(PUNKTZAHL.test('2.0.0-beta.54')).toBe(false)
+
+  // Der deutsche Tausenderpunkt ist KEIN Fehler.
+  expect(PUNKTZAHL.test('3.600 cm²')).toBe(false)
+  expect(PUNKTZAHL.test('12.500 L/h')).toBe(false)
+  expect(PUNKTZAHL.test('1.234,56 €')).toBe(false)
 })

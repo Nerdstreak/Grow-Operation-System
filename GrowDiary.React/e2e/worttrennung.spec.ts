@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { darfUeberspringen } from './pflicht'
+import { TEXTSEITEN } from './seiten'
 
 /**
  * Kein Wort bricht mitten durch.
@@ -29,12 +30,6 @@ import { darfUeberspringen } from './pflicht'
  * </ul>
  */
 
-const SEITEN = [
-  '/', '/live', '/zelte', '/zelte/1', '/grows', '/grows/new', '/grows/1',
-  '/messungen', '/messung', '/archiv', '/aufgaben', '/dosierung', '/hydro',
-  '/hydro/1', '/sensoren', '/sorten', '/journal', '/diagnose', '/aushaerten',
-  '/wasser', '/regeln', '/sollwerte', '/cropsteering', '/ac-test', '/einkaufsliste',
-]
 
 const BREITEN = [390, 1440]
 
@@ -115,7 +110,7 @@ for (const breite of BREITEN) {
   test.describe(`Worttrennung bei ${breite} px`, () => {
     test.use({ viewport: { width: breite, height: 900 } })
 
-    for (const pfad of SEITEN) {
+    for (const pfad of TEXTSEITEN) {
       test(`${pfad} — kein Wort bricht mitten durch`, async ({ page }) => {
         const antwort = await page.goto(pfad, { waitUntil: 'networkidle' })
         darfUeberspringen(
