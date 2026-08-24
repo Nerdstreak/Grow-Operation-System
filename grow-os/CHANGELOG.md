@@ -1,5 +1,103 @@
 # Changelog
 
+## 2.0.0-beta.56
+
+**Beta.** Three reports from the field, each fixed at its root: one strain per
+pot, a Crop Steering page that now *leads* instead of only telling, and a
+"502" that appeared while the device had in fact switched.
+
+### One strain per pot
+
+- New — **each plant carries its own pot number** (`SiteIndex`, starting at 1 —
+  the same numbering the hydro system's top-down view draws onto its sites).
+  The report was "I run a different strain in every pot of my RDWC and can't
+  enter that." Per-plant strains had existed since beta.37; what was missing
+  was the *place* — and finding the feature at all.
+
+  Deliberately just a number: no pot table, no coordinates, no dragging. The
+  top-down view already numbers its sites deterministically from the geometry;
+  a second model for the same truth would cost more than it gives.
+
+- New — the "Plants & strains" card has a pot field per row, and a new plant
+  gets the next free pot.
+- New — the grow form now says, right at the strain field, where the path for
+  multiple strains is. That is where you stand when you have the case.
+- Changed — the "Strain" tile in the grow overview says **"gemischt (2)"** with
+  the list instead of claiming a single main strain.
+
+- Fixed — **a silent data loss that would have started with this feature.** The
+  PUT on a plant overwrites *all* fields, and the card listed them by hand: the
+  new pot number would have been nulled the next time anyone changed only the
+  strain. Demonstrated — with the old version the new check reports "Beim
+  Sortenwechsel ging der Topf verloren (war 2, ist undefined)". The card now
+  copies the whole record and replaces one field.
+
+### Crop Steering: the chain leads to the fix
+
+- Changed — **every broken link now carries a button that takes you there.** A
+  user stood in front of the page and did not know how to switch the control
+  on. The chain did say what was missing ("the switch below is off") — but the
+  switch, the floor temperature and the target device sit scattered further
+  down, and the flip lives on another page entirely. "Zum Schalter", "Zur
+  Untergrenze", "Zum Zielgerät" and "Zur Steckdose" jump to the spot and flash
+  it; "Zu den Sollwert-Profilen", "Flip eintragen" and "Zur Einrichtung" lead
+  to the right page.
+
+  The mapping hangs on machine-readable keys, not on the German titles — a
+  mapping by wording would be silently dead after the next rewrite. A census
+  checks both directions: every backend key has an action, no action points at
+  an invented key, and every link target is a real route.
+
+- Changed — if your floor temperature sits above the flowering night value, the
+  warning now also stands **right at the floor field**, where you fix it, not
+  only far above in the chain.
+
+### "Sometimes it returns 502 — but the switching works"
+
+- Fixed — **both were true.** The AC Infinity integration often reports a new
+  value back only after its next cloud poll — longer than the confirmation
+  check waits. The first version knew only *confirmed* or *error*, and so it
+  lied in the opposite direction from before beta.55: first success without
+  proof, then failure without failure.
+
+  There are three outcomes now: confirmed (green); sent but not yet reported
+  back (**amber**, HTTP 200 — the page re-reads the state by itself after 15
+  and 45 seconds); and only a call Home Assistant refuses at all is an error,
+  because only then nothing was switched.
+
+- Fixed — the same screenshot showed "API request failed with status 502" as
+  raw English. The controller returned plain string lists while the app reads
+  the error contract — the German sentence existed and never arrived. All
+  AC-test responses go through the contract now.
+
+### The phone "jumped" on Edit — the third report about the same button
+
+- Fixed — the page scrolled correctly, but two bars are pinned at the top of a
+  phone (108 px), and `scrollIntoView` put the form's title and first field
+  right underneath them. Both existing checks *could not* see this: they
+  measure against the window edge, and behind a pinned bar you are inside the
+  window. One truth (`--mobil-kopf`) plus a scroll margin on all four jump
+  targets; the new check measures the bars' lower edge rather than assuming it.
+
+### The demo fixture grew again — and immediately exposed two older defects
+
+The fixture now seeds four plants in pots 1–4 across two strains. Before, it
+seeded none at all: in the demo the plants card only ever showed its empty
+state, so no screenshot, no end-to-end run and no look at the running app could
+ever see the multi-strain path. That is a large part of why nobody found it.
+
+- Fixed — on `/sorten`, "Hunt läuft · 3 Kandidaten" ran into the neighbouring
+  column (96 px of text in 93 px). Visible only once the hunt had candidates.
+- Fixed — the new Crop Steering buttons were 27 px tall instead of 44. Caught
+  by our own touch-target check, after it had passed for the buttons' first
+  version.
+
+### For the record
+
+The end-to-end suite is at 580 cases, the backend at 1391 tests. Every new
+check carries a bite proof: the defect was rebuilt and the check went red with
+the exact word, page and pixel count.
+
 ## 2.0.0-beta.55
 
 **Beta.** The test bench learned schedules, the demo fixture stopped lying,
