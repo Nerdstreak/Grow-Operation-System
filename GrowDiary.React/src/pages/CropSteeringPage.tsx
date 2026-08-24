@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
+import { KETTEN_AKTIONEN, type KettenAnker } from '../features/cropsteering/ketten-aktionen'
 import { apiFetch, formatApiError } from '../api'
 import { GrowScopePicker } from '../features/grow-scope/GrowScopePicker'
 import { useSelectedGrow } from '../features/grow-scope/useSelectedGrow'
@@ -34,6 +36,8 @@ type Absenkplan = {
   aktuelleWoche: number | null
   herkunft: string
   luecke: string | null
+  /** Der maschinenlesbare Grund der Luecke — daran haengen die Beheben-Knoepfe. */
+  lueckeSchluessel: string | null
 }
 
 type Kuehler = {
@@ -46,7 +50,7 @@ type Kuehler = {
   lastSwitchUtc: string | null
 }
 
-type Voraussetzung = { titel: string; erfuellt: boolean; text: string }
+type Voraussetzung = { titel: string; erfuellt: boolean; text: string; schluessel: string }
 
 type Stand = {
   rampeSchreibt: boolean
@@ -68,6 +72,15 @@ type Steuerung = {
   stand: Stand
 }
 
+/**
+ * Der Schlüssel eines Glieds — mit Netz für alte Server.
+ *
+ * Ein frisches Frontend kann kurz gegen ein noch nicht neu gestartetes
+ * Backend laufen; dann fehlt `schluessel` in der Antwort. Ohne Knopf ist die
+ * Kette dann genau so gut wie vorher — kaputt geht nichts.
+ */
+const schluesselVon = (schritt: Voraussetzung): string => schritt.schluessel ?? ''
+
 const grad = (wert: number | null | undefined) =>
   wert == null ? '–' : wert.toLocaleString('de-DE', { maximumFractionDigits: 1 })
 
@@ -77,12 +90,14 @@ const grad = (wert: number | null | undefined) =>
  * Eine rote Ampel sagt „geht nicht" und lässt den Nutzer suchen. Die Kette
  * zeigt, WELCHES Glied fehlt und was zu tun ist. Genau das war die Beschwerde.
  */
-function Kette({ titel, laeuft, schritte, zuletzt, zuletztText }: {
+function Kette({ titel, laeuft, schritte, zuletzt, zuletztText, growId, springe }: {
   titel: string
   laeuft: boolean
   schritte: Voraussetzung[]
   zuletzt: string | null
   zuletztText: string
+  growId: string | null
+  springe: (ziel: KettenAnker) => void
 }) {
   return (
     <div className="cs-kette" data-audit={`kette-${laeuft ? 'aktiv' : 'inaktiv'}`}>
@@ -91,17 +106,43 @@ function Kette({ titel, laeuft, schritte, zuletzt, zuletztText }: {
         <V1Badge tone={laeuft ? 'ok' : 'neutral'}>{laeuft ? 'aktiv' : 'nicht aktiv'}</V1Badge>
       </p>
       <ul className="cs-schritte">
-        {schritte.map((schritt) => (
-          <li key={schritt.titel} className={schritt.erfuellt ? 'is-ok' : 'is-offen'}>
-            {/* Das Zeichen trägt die Aussage nicht allein — der Titel steht
-                daneben und die Liste ist auch ohne Farbe zu lesen. */}
-            <span className="cs-haken" aria-hidden="true">{schritt.erfuellt ? '✓' : '·'}</span>
-            <span>
-              <strong>{schritt.titel}</strong>
-              <span className="cs-schritt-text">{schritt.text}</span>
-            </span>
-          </li>
-        ))}
+        {schritte.map((schritt) => {
+          // Der Knopf am gerissenen Glied — die Rueckmeldung des Nutzers war
+          // nicht "ich sehe nicht, was fehlt", sondern "ich weiss nicht, WIE
+          // ich es anschalte". Sagen reicht nicht; der Knopf fuehrt hin.
+          const aktion = schritt.erfuellt ? undefined : KETTEN_AKTIONEN[schluesselVon(schritt)]
+
+          return (
+            <li key={schritt.titel} className={schritt.erfuellt ? 'is-ok' : 'is-offen'}>
+              {/* Das Zeichen trägt die Aussage nicht allein — der Titel steht
+                  daneben und die Liste ist auch ohne Farbe zu lesen. */}
+              <span className="cs-haken" aria-hidden="true">{schritt.erfuellt ? '✓' : '·'}</span>
+              <span>
+                <strong>{schritt.titel}</strong>
+                <span className="cs-schritt-text">{schritt.text}</span>
+                {aktion?.art === 'anker' && (
+                  <button
+                    type="button"
+                    className="cs-beheben"
+                    data-audit={`beheben-${schluesselVon(schritt)}`}
+                    onClick={() => springe(aktion.ziel)}
+                  >
+                    {aktion.label} ↓
+                  </button>
+                )}
+                {aktion?.art === 'weg' && (
+                  <Link
+                    className="cs-beheben"
+                    data-audit={`beheben-${schluesselVon(schritt)}`}
+                    to={aktion.ziel.replace('{growId}', growId ?? '')}
+                  >
+                    {aktion.label} →
+                  </Link>
+                )}
+              </span>
+            </li>
+          )
+        })}
       </ul>
       <p className="cs-quelle">
         {/* Alle Haken heisst „müsste laufen". Dieser Zeitpunkt heisst „hat
@@ -129,6 +170,28 @@ export function CropSteeringPage() {
   const [ziel, setZiel] = useState('')
   const [boden, setBoden] = useState('')
   const [kuehler, setKuehler] = useState<Kuehler | null>(null)
+
+  // Die Sprungziele der Beheben-Knöpfe. Refs statt getElementById: die
+  // Blöcke gehören dieser Komponente, und ein Tippfehler in einer Kennung
+  // fiele hier beim Bauen auf, nicht erst beim Klicken.
+  const nightRampRef = useRef<HTMLDivElement | null>(null)
+  const untergrenzeRef = useRef<HTMLDivElement | null>(null)
+  const kuehlerRef = useRef<HTMLDivElement | null>(null)
+
+  /** Zum Formularblock scrollen und ihn kurz hervorheben. */
+  function springe(ziel: KettenAnker) {
+    const kasten = ziel === 'night-ramp' ? nightRampRef.current
+      : ziel === 'untergrenze' ? untergrenzeRef.current
+      : kuehlerRef.current
+    if (!kasten) return
+
+    // `.scroll-ziel` traegt am Handy den Rand fuer die festen Leisten —
+    // dieselbe Mechanik wie beim Bearbeiten-Knopf auf /sensoren.
+    kasten.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    kasten.classList.remove('cs-blitz')
+    // Erst im naechsten Frame wieder setzen, damit die Animation neu anlaeuft.
+    requestAnimationFrame(() => kasten.classList.add('cs-blitz'))
+  }
 
   // Das Totband als TEXT, nicht als Zahl.
   //
@@ -281,13 +344,17 @@ export function CropSteeringPage() {
               laeuft={stand.stand.rampeSchreibt}
               schritte={stand.stand.rampe}
               zuletzt={stand.stand.letzterSollwertUtc}
-              zuletztText="Zuletzt geschrieben" />
+              zuletztText="Zuletzt geschrieben"
+              growId={growId ?? null}
+              springe={springe} />
             <Kette
               titel="Kühler schalten"
               laeuft={stand.stand.kuehlerSchaltet}
               schritte={stand.stand.kuehler}
               zuletzt={stand.stand.letzteSchaltungUtc}
-              zuletztText="Zuletzt geschaltet" />
+              zuletztText="Zuletzt geschaltet"
+              growId={growId ?? null}
+              springe={springe} />
           </div>
         </V1Card>
       </V1Section>
@@ -368,7 +435,7 @@ export function CropSteeringPage() {
               Eindrucks „unstrukturiert". */}
           <V1Card>
             <h2>Sollwert an Home Assistant</h2>
-            <div data-audit="night-ramp">
+            <div ref={nightRampRef} className="scroll-ziel" data-audit="night-ramp">
               <V1Switch
                 label="Nachtabsenkung aktiv"
                 checked={rampeAn}
@@ -381,11 +448,20 @@ export function CropSteeringPage() {
                   hint="Thermostat oder Zahlenfeld. Leer: nur planen.">
                   <input value={ziel} onChange={(e) => setZiel(e.target.value)} placeholder="climate.chiller" />
                 </V1Field>
-                <V1Field
-                  label="Untergrenze (°C)"
-                  hint={`Leer: Finish-Wert des Profils. Nie unter ${grad(stand.hardFloorC)} °C.`}>
-                  <input inputMode="decimal" value={boden} onChange={(e) => setBoden(e.target.value)} placeholder="16" />
-                </V1Field>
+                <div ref={untergrenzeRef} className="scroll-ziel">
+                  <V1Field
+                    label="Untergrenze (°C)"
+                    hint={`Leer: Finish-Wert des Profils. Nie unter ${grad(stand.hardFloorC)} °C.`}>
+                    <input inputMode="decimal" value={boden} onChange={(e) => setBoden(e.target.value)} placeholder="16" />
+                  </V1Field>
+                  {/* Die Luecke steht AUCH hier, nicht nur oben in der Kette:
+                      behoben wird sie in diesem Feld. Der Nutzer, der die
+                      Untergrenze auf 20 gestellt hatte, sah die Warnung sonst
+                      nur weit weg vom Ort der Reparatur. */}
+                  {stand.plan.lueckeSchluessel === 'plan-untergrenze-zu-hoch' && (
+                    <p className="cs-feld-warnung" data-audit="untergrenze-warnung">{stand.plan.luecke}</p>
+                  )}
+                </div>
               </div>
             </div>
           </V1Card>
@@ -397,7 +473,7 @@ export function CropSteeringPage() {
                 title="Kein Zelt zugeordnet"
                 text="Der Kühler hängt am Zelt. Ordne dem Grow ein Zelt zu." />
             ) : (
-              <div data-audit="kuehler">
+              <div ref={kuehlerRef} className="scroll-ziel" data-audit="kuehler">
                 {/* Die Bedingung steht VOR dem Schalter. Eine Bedingung liest
                     man vor der Handlung, nicht danach. */}
                 <V1Alert

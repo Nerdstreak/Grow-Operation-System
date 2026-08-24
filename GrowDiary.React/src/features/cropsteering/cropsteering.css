@@ -150,3 +150,75 @@
   font-size: var(--fs-klein);
   max-width: 60ch;
 }
+
+/* ---------- Beheben-Knoepfe an der Kette ----------
+   Die Rueckmeldung des Nutzers war nicht "ich sehe nicht, was fehlt",
+   sondern "ich weiss nicht, WIE ich es anschalte". Der Knopf fuehrt hin. */
+.cs-beheben {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--accent);
+  border-radius: var(--r-sm);
+  background: transparent;
+  /* --accent-text, NICHT --accent: die Flaechenfarbe hat im hellen Thema auf
+     Weiss nur 3,60 — dieselbe Falle wie beim Uebernehmen-Knopf im AC-Test. */
+  color: var(--accent-text);
+  font: 500 var(--fs-klein)/1.4 var(--font-mono);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.cs-beheben:hover { background: var(--panel-2); }
+
+/* Das Sprungziel blitzt kurz auf — sonst scrollt es, und der Nutzer weiss
+   nicht, WOHIN er gucken soll. */
+@keyframes cs-blitz {
+  0% { outline: 2px solid var(--accent); outline-offset: 4px; }
+  100% { outline: 2px solid transparent; outline-offset: 4px; }
+}
+.cs-blitz { animation: cs-blitz 2s ease-out 1; }
+
+/* Die Warnung direkt am Feld, an dem repariert wird. */
+.cs-feld-warnung {
+  margin: 6px 0 0;
+  color: var(--warn-text);
+  font-size: var(--fs-klein);
+  max-width: 52ch;
+}
+
+/* ---------- Beheben-Knoepfe an der Kette ----------
+   Die Rueckmeldung des Nutzers war nicht "ich sehe nicht, was fehlt",
+   sondern "ich weiss nicht, WIE ich es anschalte". Der Knopf fuehrt hin. */
+.cs-beheben {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--accent);
+  border-radius: var(--r-sm);
+  background: transparent;
+  /* --accent-text, NICHT --accent: die Flaechenfarbe hat im hellen Thema auf
+     Weiss nur 3,60 - dieselbe Falle wie beim Uebernehmen-Knopf im AC-Test. */
+  color: var(--accent-text);
+  font: 500 var(--fs-klein)/1.4 var(--font-mono);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.cs-beheben:hover { background: var(--panel-2); }
+
+/* Das Sprungziel blitzt kurz auf - sonst scrollt es nur, und der Nutzer
+   weiss nicht, WOHIN er gucken soll. */
+@keyframes cs-blitz {
+  0% { outline: 2px solid var(--accent); outline-offset: 4px; }
+  100% { outline: 2px solid transparent; outline-offset: 4px; }
+}
+.cs-blitz { animation: cs-blitz 2s ease-out 1; }
+
+/* Die Warnung direkt am Feld, an dem repariert wird. */
+.cs-feld-warnung {
+  margin: 6px 0 0;
+  color: var(--warn-text);
+  font-size: var(--fs-klein);
+  max-width: 52ch;
+}

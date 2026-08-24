@@ -43,6 +43,22 @@ Formatzeichenketten in `KuehlerService.Entscheiden`, z. B. „18,9 °C, der Küh
 steht und liefe erst ab 20,4 °C an (Nachtwert 20,0 °C)". Sonst sieht ein
 stehender Kühler wie ein Defekt aus, während nur die Mindestpause läuft.
 
+## Der Einstieg: die Kette führt hin
+
+Die Karte „Läuft es gerade?" zeigt je Kette (Sollwert schreiben · Kühler
+schalten) jedes Glied mit Haken oder Punkt. **Jedes gerissene Glied trägt
+einen Knopf, der direkt zur Reparaturstelle führt** — zum Schalter, zur
+Untergrenze, zum Zielgerät, zur Steckdose, zu den Sollwert-Profilen, zum
+Grow (Flip eintragen) oder zur HA-Einrichtung. Anlass war ein Nutzer, der
+vor der Seite stand und nicht wusste, WIE er die Steuerung anschaltet: die
+Kette sagte nur, was fehlt, die Stellschrauben lagen verstreut.
+
+Die Zuordnung hängt an maschinenlesbaren Schlüsseln
+(`KettenSchluessel.cs` ↔ `ketten-aktionen.ts`), nicht an den deutschen
+Titeln; `ketten-aktionen.node.test.ts` zählt, dass jeder Schlüssel eine
+Aktion hat. Liegt die Untergrenze über dem Blüte-Nachtwert, steht die
+Warnung zusätzlich direkt am Untergrenze-Feld — dort, wo repariert wird.
+
 ## Die Zahlen und woher sie kommen
 
 | Zahl | Wert | Woher |

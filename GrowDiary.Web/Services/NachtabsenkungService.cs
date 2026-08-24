@@ -9,13 +9,20 @@ public sealed record AbsenkWoche(int BluetewocheAb1, double TagC, double NachtC,
 /// <param name="HeuteTagC">Sollwert für die Lichtphase, null wenn nichts gilt.</param>
 /// <param name="HeuteNachtC">Sollwert für die Dunkelphase.</param>
 /// <param name="AktuelleWoche">Blütewoche ab 1; null vor dem Flip.</param>
+/// <param name="LueckeSchluessel">
+/// Der maschinenlesbare Grund der Lücke (<see cref="KettenSchluessel"/>) —
+/// daran hängt die Oberfläche den Knopf, der zur richtigen Stelle führt.
+/// Der Text allein täte das nicht: eine Zuordnung am Wortlaut wäre beim
+/// nächsten Umformulieren still tot.
+/// </param>
 public sealed record Absenkplan(
     IReadOnlyList<AbsenkWoche> Wochen,
     double? HeuteTagC,
     double? HeuteNachtC,
     int? AktuelleWoche,
     string Herkunft,
-    string? Luecke);
+    string? Luecke,
+    string? LueckeSchluessel = null);
 
 /// <summary>
 /// Die Nachtabsenkung: Crop Steering, wie es im RDWC tatsächlich geht.
@@ -69,12 +76,14 @@ public static class NachtabsenkungService
         // soll, muss vorher sehen, worauf er sich einlaesst.
         if (!grow.NightRampEnabled && !vorschau)
         {
-            return Leer("Die Nachtabsenkung ist für diesen Grow nicht eingeschaltet.");
+            return Leer("Die Nachtabsenkung ist für diesen Grow nicht eingeschaltet.",
+                KettenSchluessel.PlanAbgeschaltet);
         }
 
         if (bluete is null)
         {
-            return Leer("Ohne Sollwerte für die Blüte gibt es keinen Startwert für die Rampe.");
+            return Leer("Ohne Sollwerte für die Blüte gibt es keinen Startwert für die Rampe.",
+                KettenSchluessel.PlanOhneProfil);
         }
 
         var start = bluete.WaterTempNightC;
@@ -88,7 +97,8 @@ public static class NachtabsenkungService
 
         if (boden > start)
         {
-            return Leer($"Die Untergrenze ({Zahl(boden)} °C) liegt über dem Blüte-Nachtwert ({Zahl(start)} °C) — so kann nichts absinken.");
+            return Leer($"Die Untergrenze ({Zahl(boden)} °C) liegt über dem Blüte-Nachtwert ({Zahl(start)} °C) — so kann nichts absinken.",
+                KettenSchluessel.PlanUntergrenzeZuHoch);
         }
 
         var wochen = new List<AbsenkWoche>();
@@ -116,7 +126,8 @@ public static class NachtabsenkungService
             aktuelle,
             $"Start {Zahl(start)} °C aus dem Blüte-Profil, {Zahl(SchrittProWocheC)} °C je Blütewoche tiefer bis {Zahl(boden)} °C. "
                 + "Methode nach SKX („Cold Morning Routine“); die Zahlen kommen aus deinem Sollwert-Profil.",
-            aktuelle is null ? "Noch keine Blüte — die Rampe beginnt mit dem Flip." : null);
+            aktuelle is null ? "Noch keine Blüte — die Rampe beginnt mit dem Flip." : null,
+            aktuelle is null ? KettenSchluessel.PlanVorDemFlip : null);
     }
 
     /// <summary>Die laufende Blütewoche ab 1, oder null vor dem Flip.</summary>
@@ -131,8 +142,8 @@ public static class NachtabsenkungService
         return tage < 0 ? null : tage / 7 + 1;
     }
 
-    private static Absenkplan Leer(string luecke)
-        => new([], null, null, null, string.Empty, luecke);
+    private static Absenkplan Leer(string luecke, string schluessel)
+        => new([], null, null, null, string.Empty, luecke, schluessel);
 
     private static string Zahl(double wert)
         => wert.ToString("0.#", Infrastructure.AppCulture.German);

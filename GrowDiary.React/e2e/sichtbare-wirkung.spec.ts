@@ -190,6 +190,19 @@ test.describe('Sichtbare Wirkung', () => {
 
     expect(sagtAktiv || nenntGrund, `Die Kurzfassung sagt nichts Verwertbares: „${text}"`)
       .toBe(true)
+
+    // Und jedes GERISSENE Glied traegt einen Knopf, der hinfuehrt. Die
+    // Rueckmeldung des Nutzers war nicht "ich sehe nicht, was fehlt", sondern
+    // "ich weiss nicht, WIE ich es anschalte" — sagen allein reicht nicht.
+    const offen = await page.locator('.cs-schritte li.is-offen').count()
+    const mitKnopf = await page.locator('.cs-schritte li.is-offen .cs-beheben').count()
+
+    // Mengenwaechter: im Demobestand ist mindestens die Verbindung offen
+    // (Testbetrieb). Waere nichts offen, pruefte der Vergleich nichts.
+    expect(offen, 'Kein offenes Glied — dann prueft dieser Fall nichts.').toBeGreaterThan(0)
+    expect(mitKnopf,
+      `${offen} Glieder sind gerissen, aber nur ${mitKnopf} tragen einen Beheben-Knopf.`)
+      .toBe(offen)
   })
 
   /**
