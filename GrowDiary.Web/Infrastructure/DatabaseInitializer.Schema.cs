@@ -24,6 +24,9 @@ public sealed partial class DatabaseInitializer
         EnsureColumn(connection, "Setups", "QuarantineStartedAt", "TEXT NULL");
         EnsureColumn(connection, "Setups", "QuarantinePlannedEndAt", "TEXT NULL");
         EnsureColumn(connection, "Setups", "QuarantineResult", "TEXT NULL");
+        // Der Topf der Pflanze (ab 1) — Bestandsdatenbanken bekommen die
+        // Spalte nachgeruestet, frische haben sie im CREATE TABLE.
+        EnsureColumn(connection, "PlantInstances", "SiteIndex", "INTEGER NULL");
         EnsureColumn(connection, "Grows", "TentId", "INTEGER NULL");
         EnsureColumn(connection, "Grows", "SetupId", "INTEGER NULL");
         command.CommandText = GrowIndexSql;

@@ -288,7 +288,7 @@
 /* Die Felder sahen aus wie vom Browser geliefert — als einzige der App. Die
    Angaben sind dieselben wie in `.v1-field select` (primitives.css); hier
    uebernommen, weil die Felder nicht in einem `V1Field` stecken. */
-.gp-liste select, .gp-neu select {
+.gp-liste select, .gp-neu select, .gp-topf input {
   min-width: min(100%, 170px); max-width: 100%;
   min-height: var(--h-md); padding: 0 10px;
   border: 1px solid var(--hair); border-radius: var(--r-sm);
@@ -311,3 +311,14 @@
   margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--border); }
 .gp-hinweis { color: var(--muted); font-size: var(--fs-text); margin: var(--s-3) 0 0; }
 .gp-fehler { color: var(--danger); font-size: var(--fs-text); margin: 0 0 var(--s-2); }
+
+/* Der Topf ab 1 — schmal, denn es ist eine ein- bis zweistellige Zahl.
+   Beschriftung + Feld als EIN Etikett, damit der Zusammenhang am Handy
+   nicht in zwei Zeilen zerfaellt. */
+.gp-topf {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 500 var(--fs-etikett)/1 var(--font-mono);
+  letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  flex: 0 0 auto;
+}
+.gp-topf input { width: 64px; min-width: 64px; min-height: var(--h-md); }

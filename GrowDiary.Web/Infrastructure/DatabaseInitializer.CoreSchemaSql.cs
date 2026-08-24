@@ -180,6 +180,7 @@ public sealed partial class DatabaseInitializer
                 StrainId INTEGER NULL,
                 SetupId INTEGER NULL,
                 GrowId INTEGER NULL,
+                SiteIndex INTEGER NULL,
                 ParentPlantId INTEGER NULL,
                 Label TEXT NOT NULL,
                 PlantRole TEXT NOT NULL,

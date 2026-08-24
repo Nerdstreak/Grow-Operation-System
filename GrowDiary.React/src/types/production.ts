@@ -100,6 +100,8 @@ export interface PlantInstanceDto {
   strainId: number | null
   setupId: number | null
   growId: number | null
+  /** Der Topf im System ab 1 — die Nummer aus der Draufsicht. */
+  siteIndex: number | null
   parentPlantId: number | null
   label: string
   plantRole: PlantRole

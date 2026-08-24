@@ -522,7 +522,15 @@ function StrainsPage() {
             </select>
           </div>
           <div className="co-table-wrap">
-          <div className="co-table" style={{ gridTemplateColumns: '1.6fr 1.1fr .5fr .5fr .8fr .9fr' }}>
+          {/* Mindestens 680 px: bei den 560 px aus `collection.css` bekam die
+              Pheno-Spalte 93 px, und „Hunt läuft · 3 Kandidaten" braucht 96 —
+              der Text lief ohne jedes Anzeichen in die Nachbarspalte. Sichtbar
+              wurde das erst, als der Testbestand Pflanzen bekam und der Hunt
+              damit ueberhaupt Kandidaten zeigte. Dieselbe Klasse wie im Archiv. */}
+          <div
+            className="co-table"
+            style={{ gridTemplateColumns: '1.6fr 1.1fr .5fr .5fr .8fr 1.1fr', minWidth: 680 }}
+          >
             <div className="co-th">Sorte</div>
             <div className="co-th">Züchter</div>
             <div className="co-th">Typ</div>

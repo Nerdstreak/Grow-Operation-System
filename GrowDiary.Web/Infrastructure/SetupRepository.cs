@@ -213,11 +213,11 @@ public sealed class SetupRepository : RepositoryBase
         using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO PlantInstances (
-                StrainId, SetupId, GrowId, ParentPlantId, Label, PlantRole, PlantStatus,
+                StrainId, SetupId, GrowId, SiteIndex, ParentPlantId, Label, PlantRole, PlantStatus,
                 PhenoLabel, StartedAt, EndedAt, Notes, CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
-                $strainId, $setupId, $growId, $parentPlantId, $label, $plantRole, $plantStatus,
+                $strainId, $setupId, $growId, $siteIndex, $parentPlantId, $label, $plantRole, $plantStatus,
                 $phenoLabel, $startedAt, $endedAt, $notes, $createdAtUtc, $updatedAtUtc
             );
             SELECT last_insert_rowid();
@@ -239,11 +239,11 @@ public sealed class SetupRepository : RepositoryBase
         insertCommand.Transaction = transaction;
         insertCommand.CommandText = """
             INSERT INTO PlantInstances (
-                StrainId, SetupId, GrowId, ParentPlantId, Label, PlantRole, PlantStatus,
+                StrainId, SetupId, GrowId, SiteIndex, ParentPlantId, Label, PlantRole, PlantStatus,
                 PhenoLabel, StartedAt, EndedAt, Notes, CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
-                $strainId, $setupId, $growId, $parentPlantId, $label, $plantRole, $plantStatus,
+                $strainId, $setupId, $growId, $siteIndex, $parentPlantId, $label, $plantRole, $plantStatus,
                 $phenoLabel, $startedAt, $endedAt, $notes, $createdAtUtc, $updatedAtUtc
             );
             SELECT last_insert_rowid();
@@ -302,6 +302,7 @@ public sealed class SetupRepository : RepositoryBase
                 StrainId = $strainId,
                 SetupId = $setupId,
                 GrowId = $growId,
+                SiteIndex = $siteIndex,
                 ParentPlantId = $parentPlantId,
                 Label = $label,
                 PlantRole = $plantRole,
@@ -361,6 +362,7 @@ public sealed class SetupRepository : RepositoryBase
                 StrainId = $strainId,
                 SetupId = $setupId,
                 GrowId = $growId,
+                SiteIndex = $siteIndex,
                 ParentPlantId = $parentPlantId,
                 Label = $label,
                 PlantRole = $plantRole,
@@ -513,6 +515,7 @@ public sealed class SetupRepository : RepositoryBase
             StrainId = reader["StrainId"] is DBNull or null ? null : Convert.ToInt32(reader["StrainId"], CultureInfo.InvariantCulture),
             SetupId = reader["SetupId"] is DBNull or null ? null : Convert.ToInt32(reader["SetupId"], CultureInfo.InvariantCulture),
             GrowId = reader["GrowId"] is DBNull or null ? null : Convert.ToInt32(reader["GrowId"], CultureInfo.InvariantCulture),
+            SiteIndex = reader["SiteIndex"] is DBNull or null ? null : Convert.ToInt32(reader["SiteIndex"], CultureInfo.InvariantCulture),
             ParentPlantId = reader["ParentPlantId"] is DBNull or null ? null : Convert.ToInt32(reader["ParentPlantId"], CultureInfo.InvariantCulture),
             Label = reader["Label"]?.ToString() ?? string.Empty,
             PlantRole = ParseEnum(reader["PlantRole"]?.ToString(), PlantRole.Production),
@@ -573,6 +576,7 @@ public sealed class SetupRepository : RepositoryBase
         command.Parameters.AddWithValue("$strainId", (object?)plant.StrainId ?? DBNull.Value);
         command.Parameters.AddWithValue("$setupId", (object?)plant.SetupId ?? DBNull.Value);
         command.Parameters.AddWithValue("$growId", (object?)plant.GrowId ?? DBNull.Value);
+        command.Parameters.AddWithValue("$siteIndex", (object?)plant.SiteIndex ?? DBNull.Value);
         command.Parameters.AddWithValue("$parentPlantId", (object?)plant.ParentPlantId ?? DBNull.Value);
         command.Parameters.AddWithValue("$label", plant.Label);
         command.Parameters.AddWithValue("$plantRole", plant.PlantRole.ToString());

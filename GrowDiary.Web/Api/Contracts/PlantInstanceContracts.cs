@@ -8,6 +8,7 @@ public sealed record PlantInstanceDto(
     int? StrainId,
     int? SetupId,
     int? GrowId,
+    int? SiteIndex,
     int? ParentPlantId,
     string Label,
     PlantRole PlantRole,
@@ -26,6 +27,10 @@ public sealed class CreatePlantInstanceRequest
     public int? StrainId { get; set; }
     public int? SetupId { get; set; }
     public int? GrowId { get; set; }
+
+    /// <summary>Der Topf im System, ab 1 — die Nummer aus der Draufsicht.</summary>
+    public int? SiteIndex { get; set; }
+
     public int? ParentPlantId { get; set; }
 
     [Required]
@@ -44,6 +49,10 @@ public sealed class UpdatePlantInstanceRequest
     public int? StrainId { get; set; }
     public int? SetupId { get; set; }
     public int? GrowId { get; set; }
+
+    /// <summary>Der Topf im System, ab 1 — die Nummer aus der Draufsicht.</summary>
+    public int? SiteIndex { get; set; }
+
     public int? ParentPlantId { get; set; }
 
     [Required]

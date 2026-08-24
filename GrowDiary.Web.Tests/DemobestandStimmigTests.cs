@@ -256,4 +256,42 @@ public sealed class DemobestandStimmigTests : IDisposable
 
         Assert.True(ohne.Count == 0, "Ohne Lichtplan: " + string.Join(", ", ohne));
     }
+
+    /// <summary>Der Bestand erzählt den Mehrsorten-Fall — je Topf eine Pflanze.</summary>
+    /// <remarks>
+    /// <para><b>Der Anlass.</b> Ein Nutzer fährt im RDWC je Topf eine eigene
+    /// Sorte und hat den Weg dafür nicht gefunden — auch deshalb, weil der
+    /// Testbestand keine einzige Pflanze anlegte: die Karte „Pflanzen &amp;
+    /// Sorten" zeigte in der Demo nur ihren Leerzustand, und kein Screenshot,
+    /// kein E2E-Lauf und kein Blick auf die laufende App konnte den
+    /// Mehrsorten-Weg je sehen.</para>
+    /// </remarks>
+    [Fact]
+    public void Der_Bestand_erzaehlt_den_Mehrsorten_Fall()
+    {
+        var setups = _dienste.GetRequiredService<SetupRepository>();
+        var grow = LaufenderGrow();
+        var pflanzen = setups.GetPlantsByGrow(grow.Id);
+
+        // Mengenwaechter: ohne Pflanzen prueft alles Weitere nichts.
+        Assert.True(pflanzen.Count >= 3,
+            $"Nur {pflanzen.Count} Pflanzen im Bestand — der Mehrsorten-Fall braucht mehrere.");
+
+        // So viele Pflanzen, wie der Grow behauptet — sonst widerspricht sich
+        // der Bestand selbst (PlantCount 4, aber 2 erfasst).
+        Assert.Equal(grow.PlantCount, pflanzen.Count);
+
+        // MEHRERE Sorten, jede Pflanze mit einer: das ist der gemeldete Fall.
+        var sorten = pflanzen.Select(p => p.StrainId).Distinct().ToList();
+        Assert.True(sorten.Count >= 2,
+            "Alle Pflanzen tragen dieselbe Sorte — der Mehrsorten-Fall ist unsichtbar.");
+        Assert.DoesNotContain(null, sorten);
+
+        // Jede Pflanze in ihrem eigenen Topf, Nummern ab 1 im Bereich des
+        // Systems — die Zaehlung der Draufsicht.
+        var toepfe = pflanzen.Select(p => p.SiteIndex).ToList();
+        Assert.DoesNotContain(null, toepfe);
+        Assert.Equal(toepfe.Count, toepfe.Distinct().Count());
+        Assert.All(toepfe, t => Assert.InRange(t!.Value, 1, grow.PlantCount ?? int.MaxValue));
+    }
 }

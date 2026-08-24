@@ -232,7 +232,7 @@ function RunStep({ form, patch, strains }: { form: GrowUpsertPayload; patch: (va
           <input value={form.name} onChange={(event) => patch({ name: event.target.value })} placeholder="Purple Lemonade RDWC" />
         </V1Field>
 
-        <V1Field label="Sorte" hint={sorten.length === 0 ? 'Noch keine Sorte in der Bibliothek \u2014 unter „Sorten & Pheno" anlegen.' : 'Aus der Bibliothek: z\u00e4hlt sp\u00e4ter in Runs und \u00d8-Ertrag mit.'}>
+        <V1Field label="Sorte" hint={sorten.length === 0 ? 'Noch keine Sorte in der Bibliothek \u2014 unter „Sorten & Pheno" anlegen.' : 'Aus der Bibliothek: z\u00e4hlt sp\u00e4ter in Runs und \u00d8-Ertrag mit. Mehrere Sorten im Zelt? Leg den Grow an und trag danach unter \u201ePflanzen & Sorten\u201c jede Pflanze mit ihrer eigenen Sorte und ihrem Topf ein.'}>
           <select value={form.strainId != null ? String(form.strainId) : ''} onChange={(event) => waehleSorte(event.target.value)}>
             <option value="">— frei eintragen —</option>
             {sorten.map((sorte) => (

@@ -155,9 +155,14 @@
    Die Rueckmeldung des Nutzers war nicht "ich sehe nicht, was fehlt",
    sondern "ich weiss nicht, WIE ich es anschalte". Der Knopf fuehrt hin. */
 .cs-beheben {
-  display: inline-block;
-  margin-top: 4px;
-  padding: 4px 10px;
+  /* 44 px Tippgroesse: `e2e/touch-targets.spec.ts` misst dagegen, und die
+     erste Fassung kam mit 27 px durch die eigene Pruefung — im Gewaechshaus
+     mit feuchten Haenden ist das keine Formalie. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 12px;
   border: 1px solid var(--accent);
   border-radius: var(--r-sm);
   background: transparent;

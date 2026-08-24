@@ -1,7 +1,7 @@
 import type {
   GrowEntryPoint, GrowStage, GrowStatus, HydroSetupLayoutType, PhotoTag,
-  HardwareItemStatus, ReservoirPosition, SeedKind, SeedType, StartMaterial, TentType,
-  ValueOrigin,
+  HardwareItemStatus, PlantRole, PlantStatus, ReservoirPosition, SeedKind, SeedType,
+  StartMaterial, TentType, ValueOrigin,
 } from './types'
 
 /**
@@ -130,6 +130,35 @@ const AUFSTELLUNG_NAMEN: Record<HydroSetupLayoutType, string> = {
   Custom: 'eigene Anordnung',
 }
 
+/** Die Rolle einer Pflanze. */
+const PFLANZENROLLE_NAMEN: Record<PlantRole, string> = {
+  Production: 'Produktion',
+  Mother: 'Mutter',
+  Clone: 'Klon',
+  Quarantine: 'Quarantäne',
+}
+
+/** „Mother" wird „Mutter". */
+export function pflanzenRolleName(wert: string | null | undefined): string {
+  if (!wert) return ''
+  return PFLANZENROLLE_NAMEN[wert as PlantRole] ?? wert
+}
+
+/** Der Zustand einer Pflanze. */
+const PFLANZENSTATUS_NAMEN: Record<PlantStatus, string> = {
+  Planned: 'geplant',
+  Active: 'aktiv',
+  Archived: 'archiviert',
+  Culled: 'aussortiert',
+  Harvested: 'geerntet',
+}
+
+/** „Culled" wird „aussortiert". */
+export function pflanzenStatusName(wert: string | null | undefined): string {
+  if (!wert) return ''
+  return PFLANZENSTATUS_NAMEN[wert as PlantStatus] ?? wert
+}
+
 /** Der Zustand eines Geräts. */
 const GERAETESTATUS_NAMEN: Record<HardwareItemStatus, string> = {
   Active: 'in Betrieb',
@@ -241,4 +270,6 @@ export const WOERTERBUECHER = {
   zeltZweck: ZELTZWECK_NAMEN,
   samenart: SAMENART_NAMEN,
   geraeteStatus: GERAETESTATUS_NAMEN,
+  pflanzenRolle: PFLANZENROLLE_NAMEN,
+  pflanzenStatus: PFLANZENSTATUS_NAMEN,
 }

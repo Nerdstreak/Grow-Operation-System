@@ -24,6 +24,7 @@ const noop = async () => {}
 function GrowDetailPage() {
   const { growId } = useParams()
   const navigate = useNavigate()
+  const [pflanzenSorten, setPflanzenSorten] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
@@ -207,7 +208,16 @@ function GrowDetailPage() {
 
         {/* Fakten-Leiste wie im Entwurf: die sechs Zahlen, nach denen man sucht. */}
         <section className="v1-kpi-grid" data-audit="grow-detail-summary">
-          <V1Stat label="Sorte" value={grow.strain ?? '—'} hint={[grow.breeder, samenName(grow.seedType)].filter(Boolean).join(' · ') || undefined} />
+          {/* Bei einem Mehrsorten-Grow ist EIN Sortenname eine Falschaussage.
+              Die Pflanzen-Karte meldet ihre Sorten herauf; ab zwei steht hier
+              „gemischt" mit der Liste — die Hauptsorte bleibt fuer Listen und
+              Zeitstrahl, behauptet aber nicht mehr, allein im Zelt zu sein. */}
+          <V1Stat
+            label="Sorte"
+            value={pflanzenSorten.length > 1 ? `gemischt (${pflanzenSorten.length})` : grow.strain ?? '—'}
+            hint={pflanzenSorten.length > 1
+              ? pflanzenSorten.join(' · ')
+              : [grow.breeder, samenName(grow.seedType)].filter(Boolean).join(' · ') || undefined} />
           <V1Stat label="Pflanzen" value={grow.plantCount ?? '—'} />
           <V1Stat label="pH / EC" value={`${formatNumber(latest?.reservoirPh, 2)} · ${formatNumber(latest?.reservoirEc, 2)}`} />
           <V1Stat label="Klima" value={latest ? `${formatNumber(latest.airTemperatureC, 1)}° · ${formatNumber(latest.humidityPercent, 0)}%` : '—'} />
@@ -274,7 +284,7 @@ function GrowDetailPage() {
         {/* Pflanzen einzeln, jede mit ihrer Sorte — der Mischgrow aus dem
             Tester-Feedback. Vor der Nachtabsenkung: erst wer drin steht,
             dann wie gefahren wird. */}
-        <GrowPlantsCard growId={grow.id} growPlantCount={grow.plantCount} />
+        <GrowPlantsCard growId={grow.id} growPlantCount={grow.plantCount} onSorten={setPflanzenSorten} />
 
         {/* Die Nachtabsenkung steht bei den Fakten, nicht bei der Verwaltung:
             sie ist eine Anbau-Entscheidung, kein Aufräumen. */}

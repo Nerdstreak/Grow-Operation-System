@@ -78,6 +78,7 @@ public static class StrainPlantMapping
         StrainId: plant.StrainId,
         SetupId: plant.SetupId,
         GrowId: plant.GrowId,
+        SiteIndex: plant.SiteIndex,
         ParentPlantId: plant.ParentPlantId,
         Label: plant.Label,
         PlantRole: plant.PlantRole,
@@ -96,6 +97,7 @@ public static class StrainPlantMapping
         StrainId = request.StrainId,
         SetupId = request.SetupId,
         GrowId = request.GrowId,
+        SiteIndex = request.SiteIndex,
         ParentPlantId = request.ParentPlantId,
         Label = request.Label.Trim(),
         PlantRole = request.PlantRole,
@@ -111,6 +113,7 @@ public static class StrainPlantMapping
         plant.StrainId = request.StrainId;
         plant.SetupId = request.SetupId;
         plant.GrowId = request.GrowId;
+        plant.SiteIndex = request.SiteIndex;
         plant.ParentPlantId = request.ParentPlantId;
         plant.Label = request.Label.Trim();
         plant.PlantRole = request.PlantRole;

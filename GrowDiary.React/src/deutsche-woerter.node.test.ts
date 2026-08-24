@@ -54,6 +54,8 @@ describe('Deutsche Wörter', () => {
     ['GrowEntryPoint', WOERTERBUECHER.einstieg],
     ['HydroSetupLayoutType', WOERTERBUECHER.aufstellung],
     ['ReservoirPosition', WOERTERBUECHER.tankplatz],
+    ['PlantRole', WOERTERBUECHER.pflanzenRolle],
+    ['PlantStatus', WOERTERBUECHER.pflanzenStatus],
   ] as const) {
     it(`jeder Wert von ${typ} hat ein deutsches Wort`, () => {
       const fehlend = werteVon(typ).filter((wert) => !(wert in woerterbuch))

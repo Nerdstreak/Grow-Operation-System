@@ -70,9 +70,10 @@ public static class Demobestand
 
         var zelt = ZeltAnlegen(grows);
         var aufbau = AufbauAnlegen(hydro, zelt.Id);
-        SorteAnlegen(setups);
+        var (hauptSorte, zweiteSorte) = SorteAnlegen(setups);
 
         var laufend = LaufenderGrowAnlegen(grows, zelt.Id, aufbau.Id);
+        PflanzenAnlegen(setups, laufend.Id, hauptSorte.Id, zweiteSorte.Id);
         var anzahl = MessungenAnlegen(messungen, laufend);
         JournalAnlegen(journal, laufend.Id);
         AufgabenAnlegen(aufgaben, laufend.Id);
@@ -159,9 +160,16 @@ public static class Demobestand
         });
     }
 
-    private static void SorteAnlegen(SetupRepository setups)
+    /// <summary>Zwei Sorten — damit der Mischgrow im Bestand existiert.</summary>
+    /// <remarks>
+    /// Mit nur einer Sorte war der ganze Mehrsorten-Weg (Sorte je Pflanze,
+    /// Verteilungszeile, „gemischt"-Kachel) im Testbestand unsichtbar — und
+    /// genau diesen Weg hat ein Nutzer nicht gefunden. Der Testbestand ist
+    /// die Miniatur, an der so etwas auffallen muss.
+    /// </remarks>
+    private static (Strain Haupt, Strain Zweite) SorteAnlegen(SetupRepository setups)
     {
-        setups.CreateStrain(new Strain
+        var haupt = setups.CreateStrain(new Strain
         {
             Name = "White Widow (Testdaten)",
             Breeder = "Royal Queen Seeds",
@@ -173,6 +181,53 @@ public static class Demobestand
             CbdPercent = 0.6,
             Notes = "Testdaten.",
         });
+
+        var zweite = setups.CreateStrain(new Strain
+        {
+            Name = "Gorilla Glue (Testdaten)",
+            Breeder = "GG Strains",
+            Dominance = StrainDominance.Hybrid,
+            FlowerWeeksMin = 8,
+            FlowerWeeksMax = 9,
+            SeedKind = Models.SeedKind.Feminized,
+            ThcPercent = 24,
+            CbdPercent = 0.1,
+            Notes = "Testdaten.",
+        });
+
+        return (haupt, zweite);
+    }
+
+    /// <summary>Die vier Pflanzen des laufenden Grows — je Topf eine, gemischt.</summary>
+    /// <remarks>
+    /// <para>Drei White Widow, eine Gorilla Glue, Töpfe 1–4: der Fall aus der
+    /// Nutzer-Meldung „im RDWC je Topf eine eigene Sorte". <c>SiteIndex</c>
+    /// zählt so, wie die Draufsicht ihre Sites zeichnet (1..n, zeilenweise).</para>
+    /// </remarks>
+    private static void PflanzenAnlegen(SetupRepository setups, int growId, int hauptSorteId, int zweiteSorteId)
+    {
+        var toepfe = new (int Topf, int SorteId)[]
+        {
+            (1, hauptSorteId),
+            (2, hauptSorteId),
+            (3, zweiteSorteId),
+            (4, hauptSorteId),
+        };
+
+        foreach (var (topf, sorteId) in toepfe)
+        {
+            setups.CreatePlant(new PlantInstance
+            {
+                GrowId = growId,
+                StrainId = sorteId,
+                SiteIndex = topf,
+                Label = $"Pflanze {topf}",
+                PlantRole = PlantRole.Production,
+                PlantStatus = PlantStatus.Active,
+                StartedAt = Tag(73),
+                Notes = "Testdaten.",
+            });
+        }
     }
 
     private static GrowRun LaufenderGrowAnlegen(GrowRepository grows, int zeltId, int aufbauId)

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../../api'
 import type { PlantInstanceDto, StrainDto } from '../../types'
+import { pflanzenRolleName } from '../../deutsche-woerter'
 import { V1Button, V1Card, V1Section } from '../../components/v1'
 
 /**
@@ -13,7 +14,16 @@ import { V1Button, V1Card, V1Section } from '../../components/v1'
  * und pflegt. Der Grow behält seine Hauptsorte für Listen und Strahl; wer
  * gemischt fährt, trägt es hier ein.
  */
-export function GrowPlantsCard({ growId, growPlantCount }: { growId: number; growPlantCount: number | null }) {
+export function GrowPlantsCard({ growId, growPlantCount, onSorten }: {
+  growId: number
+  growPlantCount: number | null
+  /**
+   * Meldet die Sorten der Pflanzen nach oben — die Detailseite ersetzt damit
+   * ihre „Sorte"-Kachel durch „gemischt", statt bei einem Mehrsorten-Grow
+   * eine einzelne Hauptsorte zu behaupten.
+   */
+  onSorten?: (sorten: string[]) => void
+}) {
   const [plants, setPlants] = useState<PlantInstanceDto[]>([])
   const [strains, setStrains] = useState<StrainDto[]>([])
   const [neuStrainId, setNeuStrainId] = useState('')
@@ -29,6 +39,7 @@ export function GrowPlantsCard({ growId, growPlantCount }: { growId: number; gro
     if (signal?.aborted) return
     setPlants(pflanzen)
     setStrains(sorten.sort((a, b) => a.name.localeCompare(b.name, 'de')))
+    onSorten?.([...new Set(pflanzen.map((p) => p.strainName).filter((n): n is string => !!n))])
   }
 
   useEffect(() => {
@@ -60,35 +71,49 @@ export function GrowPlantsCard({ growId, growPlantCount }: { growId: number; gro
       .join(' · ')
   }, [plants])
 
-  async function sorteAendern(plant: PlantInstanceDto, strainId: string) {
+  /**
+   * EIN Feld ändern, alle anderen unverändert mitschicken.
+   *
+   * Das PUT überschreibt ALLE Felder. Die erste Fassung zählte sie von Hand
+   * auf — und hätte beim nächsten neuen Feld genau das getan, was beim
+   * `siteIndex` fast passiert wäre: es stillschweigend genullt, sobald jemand
+   * die Sorte wechselt. Deshalb wird jetzt das ganze DTO kopiert und nur das
+   * eine Feld ersetzt.
+   */
+  async function feldAendern(plant: PlantInstanceDto, aenderung: Partial<PlantInstanceDto>, was: string) {
     setFehler(null)
     try {
       await apiFetch(`/api/plants/${plant.id}`, {
         method: 'PUT',
-        body: JSON.stringify({
-          strainId: strainId === '' ? null : Number(strainId),
-          setupId: plant.setupId,
-          growId: plant.growId,
-          parentPlantId: plant.parentPlantId,
-          label: plant.label,
-          plantRole: plant.plantRole,
-          plantStatus: plant.plantStatus,
-          phenoLabel: plant.phenoLabel,
-          startedAt: plant.startedAt,
-          endedAt: plant.endedAt,
-          notes: plant.notes,
-        }),
+        body: JSON.stringify({ ...plant, ...aenderung }),
       })
       await laden()
     } catch (caught) {
-      setFehler(caught instanceof Error ? caught.message : 'Sorte konnte nicht geändert werden.')
+      setFehler(caught instanceof Error ? caught.message : `${was} konnte nicht geändert werden.`)
     }
+  }
+
+  function sorteAendern(plant: PlantInstanceDto, strainId: string) {
+    return feldAendern(plant, { strainId: strainId === '' ? null : Number(strainId) }, 'Sorte')
+  }
+
+  /** Der Topf ab 1 — leer heisst „kein Topf zugeordnet". */
+  function topfAendern(plant: PlantInstanceDto, wert: string) {
+    const zahl = wert.trim() === '' ? null : Math.trunc(Number(wert))
+    if (zahl != null && (!Number.isFinite(zahl) || zahl < 1)) return
+    return feldAendern(plant, { siteIndex: zahl }, 'Topf')
   }
 
   async function hinzufuegen() {
     setBusy(true)
     setFehler(null)
     try {
+      // Der naechste freie Topf ab 1 — dieselbe Zaehlung, die die Draufsicht
+      // an ihre Sites zeichnet. Wer anders bestueckt, aendert die Nummer.
+      const belegt = new Set(plants.map((p) => p.siteIndex).filter((n): n is number => n != null))
+      let freierTopf = 1
+      while (belegt.has(freierTopf)) freierTopf++
+
       await apiFetch('/api/plants', {
         method: 'POST',
         body: JSON.stringify({
@@ -97,6 +122,7 @@ export function GrowPlantsCard({ growId, growPlantCount }: { growId: number; gro
           label: `Pflanze ${plants.length + 1}`,
           plantRole: 'Production',
           plantStatus: 'Active',
+          siteIndex: freierTopf,
         }),
       })
       await laden()
@@ -131,8 +157,21 @@ export function GrowPlantsCard({ growId, growPlantCount }: { growId: number; gro
                   <li key={plant.id}>
                     <span className="gp-label">
                       {plant.label}
-                      {plant.plantRole !== 'Production' && <em className="gp-rolle"> · {plant.plantRole === 'Mother' ? 'Mutter' : plant.plantRole === 'Clone' ? 'Klon' : 'Quarantäne'}</em>}
+                      {plant.plantRole !== 'Production' && <em className="gp-rolle"> · {pflanzenRolleName(plant.plantRole)}</em>}
                     </span>
+                    {/* Der Topf ab 1 — die Nummer aus der Draufsicht des
+                        Hydro-Systems. „In jedem Topf eine eigene Sorte" war
+                        die Meldung; die Sorte gab es, der Ort fehlte. */}
+                    <label className="gp-topf">
+                      Topf
+                      <input
+                        type="number"
+                        min={1}
+                        value={plant.siteIndex ?? ''}
+                        onChange={(event) => void topfAendern(plant, event.target.value)}
+                        aria-label={`Topf von ${plant.label}`}
+                      />
+                    </label>
                     <select
                       value={plant.strainId ?? ''}
                       onChange={(event) => void sorteAendern(plant, event.target.value)}

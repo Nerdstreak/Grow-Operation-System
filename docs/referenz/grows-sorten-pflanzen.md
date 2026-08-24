@@ -12,7 +12,7 @@
 | Keimung und Bewurzelung bestätigen | `/messung` (`ManualMeasurementPage`) |
 | Ernte eintragen | `/grows/:growId/harvest` |
 | Sorten & Pheno-Hunt | Menü „Pflanzen → Sorten & Pheno", `/sorten` (alt: `/phenohunt`) |
-| Pflanzen & Sorten dieses Grows | Karte im Grow-Überblick (`GrowPlantsCard`) |
+| Pflanzen & Sorten dieses Grows, **je Pflanze Sorte und Topf** | Karte im Grow-Überblick (`GrowPlantsCard`) |
 | Mutter klonen, Quarantäne entscheiden | `/zelte/:tentId`, an der Setup-Karte |
 | Zeitstrahl, dieselbe Rechnung | Live (`/`), Grow-Karten, Grow-Überblick |
 | Beendete Läufe | `/archiv` — nicht in `/grows` |
@@ -41,8 +41,11 @@ in 8 T", „Flip überfällig seit 3 T" — `flipLabel`).
 seit 4 Tagen"). Benutzt wird er an zwei Stellen — beim Anlegen (`GrowsApiController.Create`
 setzt den Lauf damit auf `Running`) und im `MischplanService`.
 
-**Pflanzen einzeln** (`PlantInstance`): eigene `StrainId`, Rolle (Production, Mother, Clone,
-Quarantine), Status. Der Grow behält seine Hauptsorte für Listen und Strahl; wer gemischt
+**Pflanzen einzeln** (`PlantInstance`): eigene `StrainId`, eigener **Topf** (`SiteIndex`,
+ab 1 — dieselbe Nummer, die die Draufsicht des Hydro-Systems an ihre Sites zeichnet),
+Rolle (Production, Mother, Clone, Quarantine), Status. Die Kachel „Sorte" im Überblick
+sagt bei mehreren Sorten „gemischt (2)" statt einen einzelnen Namen zu behaupten.
+Der Grow behält seine Hauptsorte für Listen und Strahl; wer gemischt
 fährt, pflegt es in der Pflanzen-Karte → „3× RS11 · 1× Purple Lemonade". Ein Mutter-Setup
 erzeugt Klone in die Quarantäne (Abstammung über `ParentPlantId`); von dort führt
 „Freigeben" in ein Production-Setup, „Ablehnen" zu `PlantStatus.Culled`.
@@ -74,6 +77,10 @@ und Ø-Ertrag je Sorte, darunter je aktivem Grow der Kandidatenstreifen mit Bewe
 - **Ein bewurzelter Klon ist ab Tag 1 Veg**; die Sämlingsphase gehört den Samen.
 - **Autoflower bekommen keinen Flip-Knopf** — der Server lehnt `flip-to-flower` mit 400 ab.
 - **Ein Vorab-Flipdatum zählt noch nicht:** bis zum Tag X bleibt der Lauf vegetativ.
+- **Der Topf ist eine Nummer, kein eigenes Ding.** `SiteIndex` zeigt auf die Zählung der
+  Draufsicht (1..n, zeilenweise aus Topfzahl und Reihen). Es gibt keine Topf-Tabelle, keine
+  Koordinaten und kein Ziehen — ein zweites Modell für dieselbe Wahrheit wäre teurer als der
+  Nutzen. Wer anders bestückt, ändert die Nummer.
 - **Ø-Ertrag nur bei reinsortigen Läufen.** Die Ernte wird als Gesamtgewicht erfasst; ein
   Mischzelt zeigt „— gemischt" (`StrainsPage`, `mixedOnly`).
 - **Fehlende Bewertungsblöcke kosten keine Punkte** — sie fallen raus, die Gewichte werden
