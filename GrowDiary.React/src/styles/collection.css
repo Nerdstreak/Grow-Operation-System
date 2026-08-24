@@ -85,6 +85,13 @@
      Anlauf liess sie an der Tabelle — die ist genau so breit wie der ganze
      Wischweg und deckend, also lag der komplette Hinweis DAHINTER. Gemessen:
      Randspalte und Innenspalte farblich identisch, Kontrast 1,00. */
+  /* 560 px ist ein Boden, keine Wahrheit. Eine Tabelle mit sechs oder sieben
+     Spalten bekommt daraus ~50–90 px je Spalte — zu wenig fuer ein Datum
+     ("21.05.2026" ueberlief in die Nachbarspalte) und zu wenig fuer eine
+     Messzahl ("6,31" brach mitten in der Zahl um). Wer eine breite Tabelle
+     baut, setzt `minWidth` an ihr selbst: /archiv 620, /dosierung 760.
+     Gehalten wird das von e2e/zellen-kollision.spec.ts und
+     e2e/worttrennung.spec.ts — beide melden die Stelle mit Zahlen. */
   .co-table-wrap .co-table { min-width: 560px; background: transparent; }
 
   /* ---------- Kennzahlen-Leiste ---------- */

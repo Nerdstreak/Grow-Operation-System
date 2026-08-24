@@ -72,6 +72,69 @@ entweder im Bestand oder über ein kurzes Fenster (`setViewportSize`). Und wer
 einen Fehler „behoben" meldet, hat vorher gezeigt, dass die Prüfung **ohne** den
 Fix rot wird. Ohne diesen Nachweis ist nichts belegt.
 
+### Erst belegen, dass der laufende Stand der gebaute ist
+
+In der Nacht auf den 25.08.2026 habe ich eine halbe Stunde gegen eine App
+gemessen, die noch aus einer früheren Sitzung lief. Der Port war belegt, mein
+Start meldete trotzdem `Now listening on: http://0.0.0.0:5076`, und die alte
+Instanz beantwortete jede Anfrage. Aufgefallen ist es nur, weil ein **neuer**
+Endpunkt 404 gab — sonst wären alle Messungen still auf den falschen Stand
+gegangen.
+
+`GET /api/system/backend-health` liefert deshalb `bauKennung` — den
+`TimeDateStamp` aus dem PE-Kopf der laufenden Assembly. **Kein Datum**: bei
+deterministischem Build steht dort ein Hash, verglichen wird auf Gleichheit.
+
+Vor jeder Messung an der laufenden App: die Kennung gegen die eben gebaute
+`GrowDiary.Web.dll` halten. Stimmt sie nicht, misst man etwas anderes.
+
+**Und: ein Bau schlägt fehl, solange die App läuft** — die `.exe` ist gesperrt.
+Dann läuft der Test gar nicht, meldet aber auch nichts. Zweimal in einer Nacht
+hätte ich so einen „Bissnachweis" gemeldet, der nie stattgefunden hat. Nach
+jedem Testlauf gehört der Blick auf `Bestanden!` oder `Fehler!` — nicht auf das
+Ausbleiben einer Meldung.
+
+### Der Testbestand ist Produktionscode
+
+Er ist die Grundlage, gegen die **alles** geprüft wird: jede
+Oberflächen-Messung, jeder E2E-Lauf, jeder Blick auf die laufende App. Ein
+Fehler *im Bestand* verdeckt Fehler *in der App*. Belegte Fälle aus einer
+einzigen Nacht:
+
+| was der Bestand erzählte | was daran falsch war |
+|---|---|
+| „Licht an" bei PPFD 0 | Schalter rechnete in UTC, Kurven in Ortszeit |
+| 18/6 in der Blüte | die App selbst nennt das „verhindert die Blüte" |
+| Wasserwechsel „vor 73 Tagen" | keine Messung trug `SolutionChange` |
+| „Umwälzpumpe zieht 0 W" | das Risiko hing an der pH-Sonde |
+| ein Gerät | der Nutzer hat sieben |
+| 0 von 17 Sensoren zugeordnet | der zugeordnete Weg lief nie |
+| zwei pH-Sonden | dem einen Gerät fehlte die Messgröße |
+| Schalten meldete Erfolg | und veränderte nichts |
+
+Deshalb: `GrowDiary.Web.Tests/DemobestandStimmigTests.cs` prüft den Bestand
+gegen die **eigenen Regeln der App** — wo Grow OS eine Warnung ausgeben würde,
+ist der Bestand falsch, nicht die Warnung.
+
+### Prüfe die Schicht, in der der Fehler entsteht
+
+Drei Prüfungen liefen jahrelang an ihrem eigenen Gegenstand vorbei:
+
+- `DeutscheZahlenTests.cs` prüft Texte aus dem **Backend**. Eine Zahl, die im
+  Browser aus einer JavaScript-Zahl entsteht, kommt dort nie vorbei — an den
+  Diagramm-Achsen stand deshalb „5.80". Jetzt zusätzlich
+  `e2e/deutsche-zahlen.spec.ts`.
+- `handy-zuschnitt.spec.ts` misst, was über den **Seitenrand** ragt. Ein
+  Zusammenstoß *innerhalb* eines Wischbereichs ist dort unsichtbar — im Archiv
+  stand „21.05.202688 T". Jetzt zusätzlich `e2e/zellen-kollision.spec.ts`.
+- `deutsche-woerter.node.test.ts` prüft, dass die **Übersetzungstabelle**
+  vollständig ist — nicht, dass eine Seite sie benutzt. Das Formular „Grow
+  starten" bot „Feminized / Seed / Planning" an. Jetzt zusätzlich
+  `e2e/rohe-enums.spec.ts`.
+
+Die Frage vor jeder neuen Prüfung: **in welcher Schicht entsteht der Fehler,
+den ich fangen will — und misst meine Prüfung dort?**
+
 ### Zusätzlich bei bestimmten Änderungen
 
 - **Etwas auffindbar machen** (Menü, Link, Suchbegriff): die Zielseite vorher

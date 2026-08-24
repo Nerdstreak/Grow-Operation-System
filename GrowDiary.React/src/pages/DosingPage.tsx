@@ -432,7 +432,15 @@ function DosingPage() {
       {log.length > 0 && (
         <V1Section title="Protokoll">
           <div className="co-table-wrap dz-log-wrap">
-            <div className="co-table" style={{ gridTemplateColumns: '.8fr 1.15fr .45fr .45fr .45fr 1.8fr' }}>
+            {/* Mindestens 700 px: bei den 560 px aus `collection.css` bekamen die
+                Zahlenspalten je 49 px, und darin brach „6,31" mitten in der Zahl
+                um — am Telefon stand „6,3" ueber „1". Die Spalten sind Anteile,
+                also wird die ganze Tabelle breiter statt einzelner Spalten; der
+                Wischkasten drumherum kann das. */}
+            <div
+              className="co-table"
+              style={{ gridTemplateColumns: '.8fr 1.15fr .6fr .6fr .6fr 1.6fr', minWidth: 760 }}
+            >
               <div className="co-th">Wann</div>
               <div className="co-th">Pumpe</div>
               <div className="co-th">Menge</div>

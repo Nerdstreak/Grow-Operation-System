@@ -40,6 +40,8 @@ Stand 2026-08-20 · Grow OS 2.0.0-beta.52 · Grow MCP 0.1.8
 | Warum `switch.kuehler` im Zustands-Wörterbuch nicht zu finden ist | [home-assistant-und-automatik.md](home-assistant-und-automatik.md) |
 | Welcher Hintergrunddienst in welchem Takt läuft | [home-assistant-und-automatik.md](home-assistant-und-automatik.md) |
 | Warum kein Push kam, obwohl der Grenzwert überschritten war | [home-assistant-und-automatik.md](home-assistant-und-automatik.md) |
+| Warum ein Stellbefehl ein paar Sekunden dauert, statt sofort „gespeichert" zu melden | [home-assistant-und-automatik.md](home-assistant-und-automatik.md) |
+| Warum „gesendet" nicht „angekommen" heißt, wenn ein Gerät hinter einer Hersteller-Wolke hängt | [home-assistant-und-automatik.md](home-assistant-und-automatik.md) |
 | In welcher Reihenfolge die Aufgabenseite sortiert und woher jede Zeile kommt | [aufgaben-journal-mcp.md](aufgaben-journal-mcp.md) |
 | Warum überhaupt keine Erinnerungen mehr kommen | [aufgaben-journal-mcp.md](aufgaben-journal-mcp.md) |
 | Was eine eigene KI von Grow OS lesen darf — und warum sie nichts schalten kann | [aufgaben-journal-mcp.md](aufgaben-journal-mcp.md) |

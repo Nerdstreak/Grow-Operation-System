@@ -245,8 +245,10 @@ export function AcTestPage() {
         <V1Alert
           tone="neutral"
           message={
-            'Testbetrieb: die Messwerte sind erfunden und es wird nichts an ein Gerät '
-            + 'geschickt. Ohne GROW_OS_DEMO=1 gilt die echte Verbindung.'
+            'Testbetrieb: die Messwerte sind erfunden und es geht nichts an ein echtes '
+            + 'Gerät. Was du hier stellst, merkt sich der Testbestand — so lässt sich der '
+            + 'ganze Weg samt Nachkontrolle durchspielen. Ohne GROW_OS_DEMO=1 gilt die '
+            + 'echte Verbindung.'
           } />
       )}
 
@@ -375,8 +377,8 @@ export function AcTestPage() {
 
                     <p className="ac-hinweis">
                       Es wird nacheinander geschrieben und jedes Mal nachgelesen —
-                      die AC-Infinity-Cloud verwirft gleichzeitige Aufträge. Das
-                      dauert bis zu einer Minute.
+                      die AC-Infinity-Cloud verwirft gleichzeitige Aufträge. Meist
+                      ein paar Sekunden; hängt die Cloud, bis zu einer Minute.
                     </p>
                   </div>
                 )}

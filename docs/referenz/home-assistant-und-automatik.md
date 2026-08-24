@@ -100,6 +100,39 @@ Alle starten versetzt, damit sie nicht im Gleichschritt auf HA einschlagen.
 - **Die Ruhezeit gilt für alles außer dem Tagesüberblick**
   (`NotificationService.SendDigestAsync`).
 
+## Schreiben mit Nachkontrolle
+
+Home Assistant meldet auf einen Dienstaufruf **„gesendet", nicht
+„angekommen"**. Bei Geräten hinter einer Hersteller-Wolke ist das ein echter
+Unterschied: die AC-Infinity-Wolke verwirft parallele Aufträge und antwortet
+mit `Unable to update device controls`. Wer drei Werte gleichzeitig schickt,
+bekommt im besten Fall einen davon — und die Oberfläche sagt trotzdem
+„gestellt".
+
+`AcSchreiber` schreibt deshalb **nacheinander** und liest **jedes Mal nach**:
+
+| Schritt | Verhalten |
+|---|---|
+| Steht der Wert schon? | Nichts senden — jeder Aufruf kann scheitern |
+| Nach dem Senden | Alle 2 s nachfragen, längstens 20 s |
+| Meldet die Entität nicht den Sollwert | Bis zu 3 Versuche, dann Fehlschlag |
+| Zwischen zwei Schritten | 2 s Pause |
+| Ein Schritt scheitert | Die folgenden werden **nicht** versucht |
+
+Die Zahlen (2 s Pause, 20 s Wartezeit, 3 Versuche) stammen aus der
+Home-Assistant-Karte des Testers — **Faustregeln aus seinen Versuchen mit der
+Wolke, keine Herstellerangabe.** `AcSchreiberTests` hält sie fest, damit eine
+Änderung auffällt.
+
+**Warum die Reihenfolge zählt.** Beim Zeitplan kommt der Modus zuletzt: ein
+Gerät, das auf „nach Zeitplan" steht, aber noch die alten Zeiten trägt,
+schaltet nach dem alten Plan — schlimmer als gar nichts. Und ein Teilerfolg
+wird als Teilerfolg gemeldet, nicht als „gespeichert".
+
+Benutzt wird das heute vom Versuchsaufbau `/ac-test` (Stufe 0–10 und
+Zeitplan). Der Zeitplan-Vorschlag kommt aus dem **Lichtplan des Zelts** —
+derselben Quelle, aus der auch der Wächter gegen Lichteinbruch liest.
+
 ## Im Code
 
 | Aufgabe | Datei |
@@ -113,6 +146,9 @@ Alle starten versetzt, damit sie nicht im Gleichschritt auf HA einschlagen.
 | Push-Torwächter (Kategorie, Ruhezeit, Ziel-Pfad) | `GrowDiary.Web/Services/NotificationService.cs` |
 | Pumpen-, Kühler-, USV-Meldung | `GrowDiary.Web/Services/PumpWatchNotifier.cs` |
 | Kühler-Regelung (rein) und Ausführung | `GrowDiary.Web/Services/KuehlerService.cs`, `KuehlerWorker.cs` |
+| Schreiben mit Nachkontrolle (Wolke verwirft still) | `GrowDiary.Web/Services/AcSchreiber.cs` |
+| Bau-Kennung der laufenden Assembly | `GrowDiary.Web/Services/Bauzeit.cs` |
+| Testbetrieb: was geschaltet wurde, bleibt geschaltet | `GrowDiary.Web/Services/Demoschaltbrett.cs` |
 | Tag/Nacht-Frage für Alarme und Kacheln | `GrowDiary.Web/Services/LightClock.cs` |
 | Liste der Hintergrunddienste | `GrowDiary.Web/Program.cs` |
 | Oberfläche (`GrowDiary.React/src/pages/`) | `HomeAssistantPage.tsx`, `AlertsPage.tsx`, `AutomationPage.tsx`, `NotificationsPage.tsx`, `collections.tsx` |
@@ -131,6 +167,19 @@ Alle starten versetzt, damit sie nicht im Gleichschritt auf HA einschlagen.
 - **Zeitfenster statt Befehl.** Ein vom Regler abgeschalteter Kühler galt nach
   20 Minuten wieder als Ausfall; eine kühle Nacht ist genau dieser Fall. Jetzt
   entscheidet der zuletzt *gesendete* Befehl (`KuehlerService.IstAbsichtlichAus`).
+- **„Gesendet" ist nicht „angekommen".** Ein Dienstaufruf, der zurückkehrt,
+  belegt nur, dass Home Assistant ihn entgegengenommen hat. Alles hinter einer
+  Hersteller-Wolke braucht eine Nachkontrolle (siehe oben).
+- **Der Testbetrieb meldete Erfolg, ohne etwas zu ändern.** Damit war alles,
+  was *nach* dem Schalten kommt, im Testbestand nicht prüfbar — die
+  Nachkontrolle, der Wächter über der Steckdose, jede Anzeige eines
+  geschalteten Geräts. Und die Kühler-Karte zeigte „steht" neben dem Satz
+  „Kühler an". Seit dem 25.08.2026 hält `Demoschaltbrett` fest, was gestellt
+  wurde.
+- **Der laufende Stand war nicht der gebaute.** Ein Prozess aus einer früheren
+  Sitzung hielt den Port; der neue Start meldete trotzdem Erfolg. Deshalb
+  trägt `backend-health` jetzt `bauKennung` — vor jeder Messung gegen die eben
+  gebaute `GrowDiary.Web.dll` halten.
 - **Watchdog nach dem Neustart.** Der Herzschlag lebt im Speicher, also meldete
   er nach jedem Update „Überwachung steht". Eigener Zustand `Starting` (beta.8).
 - **Ruhezeit verschluckte Alarme** (1.0.22), später auch Entwarnungen (beta.38).

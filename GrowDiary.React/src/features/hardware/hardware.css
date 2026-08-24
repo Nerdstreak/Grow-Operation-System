@@ -48,6 +48,13 @@
      fuer Fliesstext, falsch fuer einen Geraetenamen: ein einzelnes „r" stand
      allein in der Zeile. */
   .hw-table strong { display: block; font-weight: 600; overflow-wrap: normal; word-break: normal; hyphens: manual; }
+  /* Dasselbe fuer die ZELLEN: geschuetzt war nur der Geraetename. Sobald der
+     Testbestand von einem auf neun Geraete wuchs, standen in den schmaleren
+     Spalten „HA-Senso/r", „Messg/eraet" und „Blütezelt (Testdaten/)". Ein
+     Wort mitten durchzubrechen ist nie richtig — der Kasten wird dadurch
+     nicht breiter, nur unleserlich. Die Entitaets-Kennung behaelt ihre
+     Ausnahme (`.hw-entity`): die ist ein Bezeichner und darf brechen. */
+  .hw-table td { overflow-wrap: normal; word-break: normal; hyphens: manual; }
   .hw-sub { display: block; margin-top: 2px; color: var(--muted); font-size: var(--fs-klein); }
   .hw-empty { color: var(--faint); }
   .hw-overdue { color: var(--warn-text); }
