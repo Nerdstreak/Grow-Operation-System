@@ -1,5 +1,128 @@
 # Changelog
 
+## 2.0.0-beta.55
+
+**Beta.** The test bench learned schedules, the demo fixture stopped lying,
+and one night of reading every page on the running app found fourteen visible
+defects — plus six places where our own checks checked nothing.
+
+### Zelt (AC-Test) — schedules, and honest success messages
+
+- New — **set the on/off schedule of a device.** Enter the two `time.`
+  entities of your AC Infinity device and Grow OS writes the schedule: on
+  time, off time, then the mode — in that order, because a device switched to
+  "Schedule" while still carrying old times would run the *old* plan. The
+  suggested times come from the tent's light schedule, the same source the
+  light-intrusion guard reads. Nothing is invented.
+
+- Changed — **"set" now means the controller confirmed it.** The AC Infinity
+  cloud silently drops parallel updates ("Unable to update device controls" —
+  our tester learned this the hard way and documented it in his Home Assistant
+  card). Grow OS now writes one value at a time, re-reads the entity until it
+  reports the target, retries up to three times, and stops the remaining steps
+  after a failure. A partial success is reported as exactly that, naming what
+  arrived and what did not — "saved" would be the most dangerous message of
+  all. The already-shipped level buttons go through the same path.
+
+  You can tell: setting a value takes a few seconds now, and the page says
+  why. Before, "set to 7" appeared instantly whether the device obeyed or not.
+
+### The demo fixture was a miniature — and it hid defects
+
+Everything is verified against the demo install: every screenshot, every
+end-to-end run. One night found eight contradictions in it, each of which had
+been masking a class of bugs:
+
+- Fixed — the light switch computed in UTC while the sensor curves used local
+  time: twice a day the fixture reported "light on" at PPFD 0, visible on the
+  live page.
+- Fixed — the fixture ran 18/6 light on a grow 35 days into flower — the exact
+  situation the app itself warns about ("this prevents flowering"). The demo
+  now runs 12/12, has a light schedule on the tent, and a consistency test
+  holds the fixture to the app's own rules.
+- Fixed — "weekly water change: 73 days overdue" showed permanently, because
+  no measurement carried the change marker even though the EC curve sawtoothed
+  weekly and the journal said otherwise.
+- Fixed — the "circulation pump draws 0 W" risk pointed at the pH probe;
+  following the alert led to the wrong device. There was no pump. The fixture
+  now has nine devices (probes, pumps, chiller, filter, a handheld meter that
+  correctly needs no mapping) instead of one — the tester has seven.
+- Fixed — zero of seventeen metrics were mapped, so every screen showing
+  values took a path no real install uses. Eleven sensors are now mapped
+  through the same code a real installation uses.
+- Fixed — in demo mode every switch command reported success and changed
+  nothing. What you set now stays set (a switchboard remembers it), and a
+  command for an entity that does not exist fails — like in a real install.
+
+### Fourteen defects found by reading the running pages
+
+- Fixed — **the "Start grow" form spoke English.** Seed type offered
+  "Feminized / Autoflower / Regular", start material "Seed / Clone", entry
+  point "Germination / Seedling / …", status "Planning / Running / …" — 29 raw
+  developer identifiers across the app, including "Automatic" sitting between
+  "Feminisiert" and "Regulär" in the same dropdown. One translation table now
+  serves all pages (it existed four times, each copy different), and a check
+  reads every page — including the forms behind a click — and fails on any
+  raw value without a written-out exception.
+- Fixed — **"Linked grows" on every hydro system page was always empty**: the
+  page filtered on the wrong field. Your running grow now shows up there.
+- Fixed — **English decimal points in a German UI**: chart axes ("5.80"),
+  the VPD preview in the measurement form ("1.00 kPa"), and every value from
+  Home Assistant (HA always sends "17.8"). A check now reads 31 pages and
+  fails on any digit-dot-digit that is not a German thousands separator.
+- Fixed — **text collided with its neighbours**: on the phone the archive
+  showed "21.05.202688 T" (date ran into the duration column), and the dosing
+  log broke "6,31" into "6,3" over "1" — a pH value split across two lines.
+  Device names broke mid-word ("HA-Senso/r") as soon as the fixture had more
+  than one device. Two new checks measure word rectangles, not element boxes.
+- Fixed — an overdue maintenance entry showed "-6 T"; it now says "überfällig".
+- Fixed — the diagnosis page printed a developer sentence ("Deviation '…'
+  passt zu Knowledge-Symptom '…'"). It now says what it means: the deviation
+  matches a known condition — in German, without our internal words.
+- Fixed — "Es fehlt: zielgerät zugeordnet." — a lower-cased German noun
+  mid-sentence, produced by forcing a list title into a sentence. Each
+  prerequisite now carries its own sentence form ("Es fehlt ein zugeordnetes
+  Zielgerät.").
+- Fixed — the new "Übernehmen" link on the test bench had contrast 3.60 in the
+  light theme (the token comment even warns about exactly this mix-up).
+  Fourth time the light theme caught a defect; the contrast check now reads
+  its pages from the shared page list, so no new page can be forgotten.
+- Fixed — two defects visible **only on Linux** (fonts run wider there, and
+  the add-on runs on Linux): a table cell on /berater broke mid-word, and the
+  "Verlauf" heading on the tent page was squeezed past its own text at 360 px.
+  Both were green locally and red in the gate — which is now a documented
+  rule: pixel measurements count once CI confirms them.
+
+### Six places where our own checks checked nothing
+
+An independent review pass ran after "all green" — and won:
+
+- The **pause between cloud writes** — the reason the writer class exists —
+  could be deleted with all 1381 backend tests staying green: the test clock
+  discarded wait times, and pause and poll interval were both 2 s, so no test
+  could tell them apart. The poll is 1 s now, a test clock records every wait,
+  and deleting the pause turns the suite red.
+- The fixture consistency test **hard-coded the chiller entity id** instead of
+  reading it from the tent — the very mistake it exists to catch. Verified by
+  planting a plausible-but-wrong id: 1381 tests stayed green. They fail now.
+- Exception lists that excused values nobody had ever seen; a census now
+  requires every exception to actually occur somewhere on a rendered page.
+- The backend build-stamp guard covered only the backend — while practically
+  all visible work ships in the frontend. A new check compares the served
+  bundle against the newest source file and names the file and the seconds if
+  `npm run build` was forgotten. Prerequisite: the assets folder no longer
+  accumulates old bundles (481 files, 246 of them stale bundles, cleaned on
+  every build).
+
+### For the record
+
+- The end-to-end suite grew from 399 to 577 cases, the backend from 1364 to
+  1385 tests. Every new check carries a bite proof: the defect was rebuilt,
+  and the check went red with the exact word, page and pixel count.
+- All page-reading checks share one page list, generated from the app's own
+  menu — four hand-maintained lists, each missing something different, are
+  gone.
+
 ## 2.0.0-beta.54
 
 **Beta.** A test bench for controlling devices, and seven checks that stopped
