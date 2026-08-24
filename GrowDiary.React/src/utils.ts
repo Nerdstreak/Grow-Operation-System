@@ -43,6 +43,9 @@ export function classNames(...values: Array<string | false | null | undefined>):
 const severityLabels: Record<string, string> = {
   Critical: 'Kritisch',
   Warning: 'Warnung',
+  // „Info" fehlte — und wo ein Wort fehlt, faellt der englische Wert durch:
+  // auf der Diagnose stand deshalb „Info" zwischen lauter deutschen Stufen.
+  Info: 'Hinweis',
   High: 'Hoch',
   Medium: 'Mittel',
   Low: 'Niedrig',

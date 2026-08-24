@@ -69,9 +69,22 @@ function bandPath(points: HistoryPoint[], scale: Scale): string | null {
   return `M${top.join(' L')} L${bottom.join(' L')} Z`
 }
 
+/**
+ * Eine Zahl an der Achse — mit deutschem Komma.
+ *
+ * `toFixed` und `String` schreiben IMMER mit Punkt. An den Achsen stand
+ * deshalb „5.80" und „1.24" mitten in einer deutschen Oberflaeche — dieselbe
+ * Falle, die im Container schon einmal 80 Saetze mit englischem Dezimalpunkt
+ * ausgeliefert hat.
+ */
 function formatValue(value: number): string {
   const rounded = Math.round(value * 100) / 100
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(Math.abs(rounded) < 10 ? 2 : 1)
+  const stellen = Number.isInteger(rounded) ? 0 : Math.abs(rounded) < 10 ? 2 : 1
+
+  return new Intl.NumberFormat('de-DE', {
+    minimumFractionDigits: stellen,
+    maximumFractionDigits: stellen,
+  }).format(rounded)
 }
 
 function formatDay(value: string): string {

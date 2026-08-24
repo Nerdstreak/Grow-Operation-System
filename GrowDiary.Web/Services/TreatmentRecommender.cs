@@ -140,7 +140,9 @@ public sealed class TreatmentRecommender
             SopId: null,
             SopTitle: null,
             Confidence: ResolveConfidence(deviation),
-            Reason: $"Deviation '{deviation.Message}' passt zu Knowledge-Symptom '{symptom.Name}'.",
+            // Der Nutzer liest diesen Satz. „Deviation" und „Knowledge-Symptom"
+            // sind unsere Woerter fuer unsere Bauteile, nicht seine.
+            Reason: $"Die Abweichung „{deviation.Message}\" passt zum Krankheitsbild „{symptom.Name}\".",
             SafetyNotes: safetyNotes,
             SourceDocumentIds: ToSourceDocumentIds(treatment.Sources),
             Conflicts: treatment.Conflicts.Select(conflict => conflict.Reason).Where(reason => !string.IsNullOrWhiteSpace(reason)).ToList(),
@@ -164,7 +166,7 @@ public sealed class TreatmentRecommender
             SopId: sop.Id,
             SopTitle: sop.Name,
             Confidence: ResolveConfidence(deviation),
-            Reason: $"Deviation '{deviation.Message}' passt zu Knowledge-Symptom '{symptom.Name}'.",
+            Reason: $"Die Abweichung „{deviation.Message}\" passt zum Krankheitsbild „{symptom.Name}\".",
             SafetyNotes: sop.RequiredMaterials.Count > 0
                 ? new[] { $"Material beachten: {string.Join(", ", sop.RequiredMaterials)}" }
                 : Array.Empty<string>(),
@@ -186,7 +188,7 @@ public sealed class TreatmentRecommender
             SopId: null,
             SopTitle: null,
             Confidence: ResolveConfidence(deviation),
-            Reason: $"Knowledge-Symptom '{symptom.Name}' erkannt, aber keine Treatments oder SOPs hinterlegt.",
+            Reason: $"Das Krankheitsbild „{symptom.Name}\" passt, aber dafuer ist weder eine Behandlung noch ein Ablauf hinterlegt.",
             SafetyNotes: symptom.DiagnosticChecks,
             SourceDocumentIds: Array.Empty<string>(),
             Conflicts: Array.Empty<string>(),
@@ -206,7 +208,7 @@ public sealed class TreatmentRecommender
             SopId: null,
             SopTitle: null,
             Confidence: ResolveConfidence(deviation),
-            Reason: "Keine passende Knowledge-Symptom-ID vorhanden; Deviation fachlich pruefen.",
+            Reason: "Zu dieser Abweichung kennt Grow OS kein Krankheitsbild — hier hilft nur der Blick auf die Pflanze.",
             SafetyNotes: Array.Empty<string>(),
             SourceDocumentIds: Array.Empty<string>(),
             Conflicts: Array.Empty<string>(),

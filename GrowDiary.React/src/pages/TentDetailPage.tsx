@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
+import { aufstellungName, phaseName, statusName, zeltZweckName } from '../deutsche-woerter'
 import type { GrowSummary, HydroSetupDto, MetricPayload, PlantInstanceDto, SetupDto, TentDto, TentLivePayload } from '../types'
 import { V1Alert, V1Badge, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { PlantActions } from '../features/plants/PlantActions'
@@ -169,7 +170,7 @@ function TentDetailPage() {
       </V1Section>
 
       <V1Section title="Aktive Grows" action={<V1LinkButton to="/grows/new">Grow starten</V1LinkButton>}>
-        {grows.length === 0 ? <V1Empty title="Kein Grow in diesem Zelt" /> : <div className="v1-list">{grows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>{grow.strain ?? 'Sorte offen'}{grow.breeder ? ` · ${grow.breeder}` : ''}</span><em>{grow.latestStage ?? grow.status}</em></Link>)}</div>}
+        {grows.length === 0 ? <V1Empty title="Kein Grow in diesem Zelt" /> : <div className="v1-list">{grows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>{grow.strain ?? 'Sorte offen'}{grow.breeder ? ` · ${grow.breeder}` : ''}</span><em>{grow.latestStage ? phaseName(grow.latestStage) : statusName(grow.status)}</em></Link>)}</div>}
       </V1Section>
 
       <V1Section title="Setups & Pflanzen">
@@ -180,7 +181,7 @@ function TentDetailPage() {
 }
 
 function HydroSetupCard({ setup }: { setup: HydroSetupDto }) {
-  return <V1Card><div className="v1-card-title-row"><div><span className="v1-card-kicker">{setup.hydroStyle}</span><h2>{setup.name}</h2></div><V1Badge tone="accent">{setup.layoutType}</V1Badge></div><div className="v1-info-grid compact"><Info label="Sites" value={String(setup.potCount ?? '–')} /><Info label="Topf" value={formatLiters(setup.potSizeLiters)} /><Info label="Tank" value={formatLiters(setup.reservoirLiters)} /><Info label="Gesamt" value={formatLiters(setup.totalVolumeLiters)} /><Info label="Chiller" value={setup.hasChiller ? 'ja' : 'nein'} /><Info label="Luft" value={setup.hasAirPump ? `${setup.airStoneCount ?? '–'} Steine` : 'offen'} /></div></V1Card>
+  return <V1Card><div className="v1-card-title-row"><div><span className="v1-card-kicker">{setup.hydroStyle}</span><h2>{setup.name}</h2></div><V1Badge tone="accent">{aufstellungName(setup.layoutType)}</V1Badge></div><div className="v1-info-grid compact"><Info label="Sites" value={String(setup.potCount ?? '–')} /><Info label="Topf" value={formatLiters(setup.potSizeLiters)} /><Info label="Tank" value={formatLiters(setup.reservoirLiters)} /><Info label="Gesamt" value={formatLiters(setup.totalVolumeLiters)} /><Info label="Chiller" value={setup.hasChiller ? 'ja' : 'nein'} /><Info label="Luft" value={setup.hasAirPump ? `${setup.airStoneCount ?? '–'} Steine` : 'offen'} /></div></V1Card>
 }
 
 function SetupCard({ setup, plants, quarantineSetups, productionSetups, grows, onChanged }: { setup: SetupDto; plants: PlantInstanceDto[]; quarantineSetups: SetupDto[]; productionSetups: SetupDto[]; grows: GrowSummary[]; onChanged: (notice: string) => void }) {
@@ -196,7 +197,9 @@ function formatDate(value: string): string { return value.slice(0, 10) }
 function formatPlantLine(plant: PlantInstanceDto): string { const strain = plant.strainName ?? (plant.strainId ? `Strain #${plant.strainId}` : 'Ohne Strain'); const pheno = plant.phenoLabel ? ` · ${plant.phenoLabel}` : ''; return `${plant.plantRole} · ${strain}${pheno}` }
 function isActiveSetup(setup: SetupDto): boolean { return setup.status === 'Planning' || setup.status === 'Active' }
 async function fetchPlantsForSetups(setups: SetupDto[], signal?: AbortSignal): Promise<Array<readonly [number, PlantInstanceDto[]]>> { return Promise.all(setups.map(async (setup) => { const plants = await apiFetch<PlantInstanceDto[]>(`/api/plants?setupId=${setup.id}`, { signal }); return [setup.id, plants] as const })) }
-function formatTentType(value: string) { return value === 'Production' ? 'Blüte / Run' : value === 'Mother' ? 'Mutter' : value === 'Propagation' ? 'Anzucht' : value === 'Quarantine' ? 'Quarantäne' : value === 'MultiPurpose' ? 'Mehrzweck' : value }
+// Die Tabelle steht in deutsche-woerter.ts — sie stand vorher hier UND in
+// live-model.ts, und an einer dritten Stelle gar nicht.
+function formatTentType(value: string) { return zeltZweckName(value) }
 function formatSize(tent: TentDto) { return !tent.widthCm && !tent.depthCm && !tent.tentHeightCm ? 'Größe offen' : `${tent.widthCm ?? '–'}×${tent.depthCm ?? '–'}×${tent.tentHeightCm ?? '–'} cm` }
 function formatLiters(value: number | null | undefined) { return value == null ? '–' : `${value.toLocaleString('de-DE', { maximumFractionDigits: 1 })} L` }
 

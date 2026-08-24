@@ -1,4 +1,7 @@
-import type { GrowStage, PhotoTag, ValueOrigin } from './types'
+import type {
+  GrowEntryPoint, GrowStage, GrowStatus, HydroSetupLayoutType, PhotoTag,
+  ReservoirPosition, SeedType, StartMaterial, TentType, ValueOrigin,
+} from './types'
 
 /**
  * Deutsche Namen für die Enum-Werte, die auf dem Bildschirm landen.
@@ -80,9 +83,124 @@ export function herkunftName(wert: string | null | undefined): string {
   return HERKUNFT_NAMEN[wert as ValueOrigin] ?? wert
 }
 
+/** Der Zustand eines Laufs. */
+const STATUS_NAMEN: Record<GrowStatus, string> = {
+  Planning: 'geplant',
+  Running: 'läuft',
+  Completed: 'abgeschlossen',
+  Aborted: 'abgebrochen',
+}
+
+/** „Running" wird „läuft". */
+export function statusName(wert: string | null | undefined): string {
+  if (!wert) return ''
+  return STATUS_NAMEN[wert as GrowStatus] ?? wert
+}
+
+/** Woraus der Lauf gestartet ist. */
+const SAMEN_NAMEN: Record<SeedType, string> = {
+  Feminized: 'feminisiert',
+  Autoflower: 'Autoflower',
+  Regular: 'regulär',
+}
+
+/** Samen oder Steckling. */
+const MATERIAL_NAMEN: Record<StartMaterial, string> = {
+  Seed: 'Samen',
+  Clone: 'Steckling',
+}
+
+/** Wo der Lauf eingestiegen ist. */
+const EINSTIEG_NAMEN: Record<GrowEntryPoint, string> = {
+  Germination: 'Keimung',
+  Seedling: 'Sämling',
+  Veg: 'Wachstum',
+  Flower: 'Blüte',
+  Flush: 'Spülen',
+}
+
+/** Wie die Töpfe stehen. */
+const AUFSTELLUNG_NAMEN: Record<HydroSetupLayoutType, string> = {
+  SingleBucket: 'Einzeleimer',
+  Row: 'Reihe',
+  Grid2x2: '2×2-Raster',
+  Grid2x3: '2×3-Raster',
+  Grid2x4: '2×4-Raster',
+  Custom: 'eigene Anordnung',
+}
+
+/** Wo der Tank steht. */
+const TANKPLATZ_NAMEN: Record<ReservoirPosition, string> = {
+  None: 'kein Tank',
+  Left: 'links',
+  Right: 'rechts',
+  Top: 'oben',
+  Bottom: 'unten',
+  External: 'ausserhalb',
+}
+
+/** „Feminized" wird „feminisiert". */
+export function samenName(wert: string | null | undefined): string {
+  if (!wert) return ''
+  return SAMEN_NAMEN[wert as SeedType] ?? wert
+}
+
+/** „Seed" wird „Samen". */
+export function materialName(wert: string | null | undefined): string {
+  if (!wert) return ''
+  return MATERIAL_NAMEN[wert as StartMaterial] ?? wert
+}
+
+/** „Germination" wird „Keimung". */
+export function einstiegName(wert: string | null | undefined): string {
+  if (!wert) return ''
+  return EINSTIEG_NAMEN[wert as GrowEntryPoint] ?? wert
+}
+
+/** „Grid2x2" wird „2×2-Raster". */
+export function aufstellungName(wert: string | null | undefined): string {
+  if (!wert) return ''
+  return AUFSTELLUNG_NAMEN[wert as HydroSetupLayoutType] ?? wert
+}
+
+/**
+ * Wozu ein Zelt da ist.
+ *
+ * **Diese Tabelle stand zweimal im Code** — einmal in `live-model.ts`, einmal
+ * in `TentDetailPage.tsx`, beide Male als Kette von Fragezeichen-Operatoren.
+ * Am dritten Ort („Grow starten") stand gar keine, deshalb las man dort
+ * „Production". Zwei Wahrheiten laufen auseinander; drei erst recht.
+ */
+const ZELTZWECK_NAMEN: Record<TentType, string> = {
+  Production: 'Blüte / Run',
+  Mother: 'Mutter',
+  Quarantine: 'Quarantäne',
+  Propagation: 'Anzucht',
+  MultiPurpose: 'Mehrzweck',
+}
+
+/** „Production" wird „Blüte / Run". */
+export function zeltZweckName(wert: string | null | undefined): string {
+  if (!wert) return ''
+  return ZELTZWECK_NAMEN[wert as TentType] ?? wert
+}
+
+/** „External" wird „ausserhalb". */
+export function tankplatzName(wert: string | null | undefined): string {
+  if (!wert) return ''
+  return TANKPLATZ_NAMEN[wert as ReservoirPosition] ?? wert
+}
+
 /** Nur für die Zählung: was übersetzt ist. */
 export const WOERTERBUECHER = {
   phase: PHASEN_NAMEN,
   fotoTag: FOTO_NAMEN,
   herkunft: HERKUNFT_NAMEN,
+  status: STATUS_NAMEN,
+  samen: SAMEN_NAMEN,
+  material: MATERIAL_NAMEN,
+  einstieg: EINSTIEG_NAMEN,
+  aufstellung: AUFSTELLUNG_NAMEN,
+  tankplatz: TANKPLATZ_NAMEN,
+  zeltZweck: ZELTZWECK_NAMEN,
 }

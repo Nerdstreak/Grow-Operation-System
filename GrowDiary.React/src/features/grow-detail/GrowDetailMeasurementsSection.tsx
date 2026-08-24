@@ -5,6 +5,7 @@ import { formatDateTime, formatNumber } from '../../utils'
 import type { GrowDetailSection } from './grow-detail-model'
 import { V1LinkButton } from '../../components/v1'
 import { useAbBreite } from '../../breite'
+import { phaseName } from '../../deutsche-woerter'
 import { bilanzKurz, bilanzSatz, herkunftWort, stellenFuer, urteilFuer, urteilKlasse, urteilSatz, urteilZeichen, wertUrteil } from './mess-urteil'
 import type { MeasurementAssessmentReportDto } from '../../types'
 import './grow-detail-legacy.css'
@@ -124,12 +125,12 @@ export function GrowDetailMeasurementsSection({
                     <em className="gd-mess-herkunft">{herkunftWort(measurement.source)}</em>
                   </div>
                   <div className="co-td is-muted">
-                    {measurement.stage}
+                    {phaseName(measurement.stage)}
                     {/* Weicht die gerechnete Phase ab, stehen beide da. Die
                         gespeicherte still zu ueberschreiben waere schlimmer:
                         im Bestand laeuft sie stellenweise rueckwaerts. */}
                     {zeile?.computedStage && zeile.computedStage !== measurement.stage && (
-                      <em className="gd-mess-herkunft" title={`Der Lauf war an dem Tag in Phase ${zeile.computedStage}`}>≠ {zeile.computedStage}</em>
+                      <em className="gd-mess-herkunft" title={`Der Lauf war an dem Tag in Phase ${phaseName(zeile.computedStage)}`}>≠ {phaseName(zeile.computedStage)}</em>
                     )}
                   </div>
                   {zelle('ph', measurement.reservoirPh)}
@@ -160,7 +161,7 @@ export function GrowDetailMeasurementsSection({
                 <div className="tl-line" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="tl-title">{measurement.stage} · pH {formatNumber(measurement.reservoirPh, stellenFuer('ph'))} · EC {formatNumber(measurement.reservoirEc, stellenFuer('ec'))}</div>
+                <div className="tl-title">{phaseName(measurement.stage)} · pH {formatNumber(measurement.reservoirPh, stellenFuer('ph'))} · EC {formatNumber(measurement.reservoirEc, stellenFuer('ec'))}</div>
                 <div className="tl-sub">{formatNumber(measurement.airTemperatureC, stellenFuer('air-temp'))}°C · {formatNumber(measurement.humidityPercent, stellenFuer('humidity'))}% rF · {herkunftWort(measurement.source)}{kurz ? ' · ' + kurz : ''}</div>
               </div>
               <div style={{ display: 'grid', gap: 6, justifyItems: 'end' }}>

@@ -78,7 +78,11 @@ public sealed class TreatmentRecommenderTests : IDisposable
         Assert.Null(recommendation.SymptomId);
         Assert.Null(recommendation.TreatmentId);
         Assert.Null(recommendation.SopId);
-        Assert.Contains("Keine passende Knowledge-Symptom-ID", recommendation.Reason);
+        // Der Satz ist fuer den NUTZER. Geprueft wird, dass er kein
+        // Entwicklerwort enthaelt und trotzdem sagt, woran es liegt.
+        Assert.Contains("Krankheitsbild", recommendation.Reason);
+        Assert.DoesNotContain("Knowledge", recommendation.Reason);
+        Assert.DoesNotContain("Deviation", recommendation.Reason);
     }
 
     [Fact]

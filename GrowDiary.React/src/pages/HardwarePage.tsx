@@ -625,9 +625,16 @@ function HardwareRowView({ row, liveState, saving, onStatus, onEdit, onDelete, o
       {/* Die Zuordnung wird hier NICHT gesetzt, sie kommt von der HA-Seite. Ein
           blosses „nicht gemappt" laedt zum Ausfuellen ein, wo es nichts auszufuellen
           gibt — deshalb der Weg dorthin statt einer Sackgasse. */}
+      {/* Ein Handmessgeraet hat keine Entitaet — ein Stift zum Reinhalten
+          liefert nichts an Home Assistant. „zuordnen →" schickte den Nutzer
+          dort auf eine Suche, die nicht enden kann. Die App weiss das
+          ohnehin: `isMappingExpected` warnt bei Handmessgeraeten bewusst
+          NICHT ueber eine fehlende Zuordnung. */}
       <td data-label="HA-Entity">{item.haEntityId
         ? <code className="hw-entity">{item.haEntityId}</code>
-        : <Link className="hw-empty" to="/home-assistant">zuordnen →</Link>}</td>
+        : inferDeviceKind(item) === 'HandheldMeter'
+          ? <span className="hw-empty">von Hand</span>
+          : <Link className="hw-empty" to="/home-assistant">zuordnen →</Link>}</td>
       <td data-label="Wert">{liveState ?? <span className="hw-empty">—</span>}</td>
       <td data-label="Kalibrierung">
         {row.nextCare ? (

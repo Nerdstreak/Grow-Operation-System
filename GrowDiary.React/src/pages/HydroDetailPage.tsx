@@ -5,6 +5,7 @@ import type { GrowSummary, HydroSetupDto } from '../types'
 import { V1Alert, V1Badge, V1Card, V1Empty, V1LinkButton, V1Page, V1Section } from '../components/v1'
 import { LevelCalibrationPanel } from '../features/hydro/LevelCalibrationPanel'
 import { formatNumber } from '../utils'
+import { aufstellungName, phaseName, statusName, tankplatzName } from '../deutsche-woerter'
 
 function HydroDetailPage() {
   const { setupId } = useParams()
@@ -39,7 +40,14 @@ function HydroDetailPage() {
     return () => controller.abort()
   }, [setupId, refresh])
 
-  const linkedGrows = useMemo(() => setup ? grows.filter((grow) => grow.setupId === setup.id) : [], [grows, setup])
+  // `systemId` ist die Verknuepfung zum Hydro-System; `setupId` ist etwas
+  // anderes und beim laufenden Grow leer. Diese Seite fragte NUR nach
+  // `setupId` und meldete deshalb bei jedem System dauerhaft "Keine aktiven
+  // Grows verknuepft" — auch wenn ein Grow daran haengt. HydroPage und
+  // useHydroSetups fragen beide Felder ab; nur hier fehlte das erste.
+  const linkedGrows = useMemo(
+    () => (setup ? grows.filter((grow) => grow.systemId === setup.id || grow.setupId === setup.id) : []),
+    [grows, setup])
 
   if (loading) return <V1Page eyebrow="Hydro" title="Lade Setup..."><V1Empty title="Hydro-Setup wird geladen." /></V1Page>
   if (!setup) return <V1Page eyebrow="Hydro" title="Nicht gefunden" action={<V1LinkButton to="/hydro">Zurück</V1LinkButton>}><V1Alert message={error ?? 'Hydro-Setup nicht gefunden.'} tone="warn" /></V1Page>
@@ -48,7 +56,7 @@ function HydroDetailPage() {
     <V1Page eyebrow={setup.hydroStyle} title={setup.name} action={<div className="v1-action-row"><V1LinkButton to="/hydro" variant="ghost">Hydro</V1LinkButton><V1LinkButton to="/hydro/new">Neu</V1LinkButton></div>}>
       {error && <V1Alert message={error} tone="warn" />}
       <section className="v1-kpi-grid">
-        <V1Card><span className="v1-card-kicker">Zelt</span><h2>{setup.tentName ?? 'offen'}</h2><p>{setup.status}</p></V1Card>
+        <V1Card><span className="v1-card-kicker">Zelt</span><h2>{setup.tentName ?? 'offen'}</h2><p>{setup.status === 'Active' ? 'aktiv' : 'archiviert'}</p></V1Card>
         {/* Gemessen schlaegt gerechnet. Die Summe aus Topf- und Tankgroesse ist
             eine Nennweite; sie unterstellt randvolle Toepfe und vergisst
             Schlaeuche. Wer einmal mit der Wasseruhr gefuellt hat, hat die
@@ -62,8 +70,8 @@ function HydroDetailPage() {
               ? `Gemessen · gerechnet ${formatNumber(setup.totalVolumeLiters, 0)} L`
               : 'Gemessen'}</p>
         </V1Card>
-        <V1Card><span className="v1-card-kicker">Sites</span><h2>{setup.potCount ?? '–'}</h2><p>{setup.layoutType}</p></V1Card>
-        <V1Card tone={setup.status === 'Active' ? 'ok' : 'neutral'}><span className="v1-card-kicker">Status</span><h2>{setup.status === 'Active' ? 'aktiv' : 'Archiv'}</h2><p>{setup.reservoirPosition}</p></V1Card>
+        <V1Card><span className="v1-card-kicker">Sites</span><h2>{setup.potCount ?? '–'}</h2><p>{aufstellungName(setup.layoutType)}</p></V1Card>
+        <V1Card tone={setup.status === 'Active' ? 'ok' : 'neutral'}><span className="v1-card-kicker">Status</span><h2>{setup.status === 'Active' ? 'aktiv' : 'Archiv'}</h2><p>Tank {tankplatzName(setup.reservoirPosition)}</p></V1Card>
       </section>
 
       <V1Section title="Details">
@@ -106,7 +114,7 @@ function HydroDetailPage() {
       </V1Section>
 
       <V1Section title="Verknüpfte Grows">
-        {linkedGrows.length === 0 ? <V1Empty title="Keine aktiven Grows verknüpft" /> : <div className="v1-list">{linkedGrows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>{grow.tentName ?? 'ohne Zelt'} · {grow.status}</span><V1Badge>{grow.latestStage ?? grow.status}</V1Badge></Link>)}</div>}
+        {linkedGrows.length === 0 ? <V1Empty title="Keine aktiven Grows verknüpft" /> : <div className="v1-list">{linkedGrows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>{grow.tentName ?? 'ohne Zelt'} · {statusName(grow.status)}</span><V1Badge>{grow.latestStage ? phaseName(grow.latestStage) : statusName(grow.status)}</V1Badge></Link>)}</div>}
       </V1Section>
     </V1Page>
   )

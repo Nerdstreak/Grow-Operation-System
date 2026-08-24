@@ -34,12 +34,26 @@ describe('Deutsche Wörter', () => {
     expect(werteVon('GrowStage').length).toBeGreaterThanOrEqual(8)
     expect(werteVon('PhotoTag').length).toBeGreaterThanOrEqual(9)
     expect(werteVon('ValueOrigin').length).toBeGreaterThanOrEqual(4)
+    expect(werteVon('GrowStatus').length).toBeGreaterThanOrEqual(4)
+    expect(werteVon('SeedType').length).toBeGreaterThanOrEqual(3)
+    expect(werteVon('GrowEntryPoint').length).toBeGreaterThanOrEqual(5)
   })
 
+  // Jeder Typ, den die Oberflaeche ANZEIGT, braucht eine Tabelle. Die Liste
+  // hier waechst nur, wenn jemand einen neuen Typ auf den Schirm bringt —
+  // dass er ueberhaupt vollstaendig ist, prueft e2e/rohe-enums.spec.ts an der
+  // laufenden App: dort faellt ein roher Wert auf, egal ob hier jemand
+  // nachgetragen hat.
   for (const [typ, woerterbuch] of [
     ['GrowStage', WOERTERBUECHER.phase],
     ['PhotoTag', WOERTERBUECHER.fotoTag],
     ['ValueOrigin', WOERTERBUECHER.herkunft],
+    ['GrowStatus', WOERTERBUECHER.status],
+    ['SeedType', WOERTERBUECHER.samen],
+    ['StartMaterial', WOERTERBUECHER.material],
+    ['GrowEntryPoint', WOERTERBUECHER.einstieg],
+    ['HydroSetupLayoutType', WOERTERBUECHER.aufstellung],
+    ['ReservoirPosition', WOERTERBUECHER.tankplatz],
   ] as const) {
     it(`jeder Wert von ${typ} hat ein deutsches Wort`, () => {
       const fehlend = werteVon(typ).filter((wert) => !(wert in woerterbuch))

@@ -10,6 +10,7 @@ import { balkenText, buildPhaseTimeline, flipLabel } from '../features/grows/pha
 import { NightRampCard } from '../features/grows/NightRampCard'
 import { CuringSection } from '../features/curing/CuringSection'
 import { GrowPlantsCard } from '../features/grow-detail/GrowPlantsCard'
+import { samenName } from '../deutsche-woerter'
 import type { GrowDeviationDto } from '../types'
 import { resolveUrl } from '../base'
 import { apiFetch } from '../api'
@@ -206,7 +207,7 @@ function GrowDetailPage() {
 
         {/* Fakten-Leiste wie im Entwurf: die sechs Zahlen, nach denen man sucht. */}
         <section className="v1-kpi-grid" data-audit="grow-detail-summary">
-          <V1Stat label="Sorte" value={grow.strain ?? '—'} hint={[grow.breeder, grow.seedType].filter(Boolean).join(' · ') || undefined} />
+          <V1Stat label="Sorte" value={grow.strain ?? '—'} hint={[grow.breeder, samenName(grow.seedType)].filter(Boolean).join(' · ') || undefined} />
           <V1Stat label="Pflanzen" value={grow.plantCount ?? '—'} />
           <V1Stat label="pH / EC" value={`${formatNumber(latest?.reservoirPh, 2)} · ${formatNumber(latest?.reservoirEc, 2)}`} />
           <V1Stat label="Klima" value={latest ? `${formatNumber(latest.airTemperatureC, 1)}° · ${formatNumber(latest.humidityPercent, 0)}%` : '—'} />

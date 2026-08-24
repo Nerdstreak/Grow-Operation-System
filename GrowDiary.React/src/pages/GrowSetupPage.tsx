@@ -6,6 +6,7 @@ import type { GrowDetail, GrowEntryPoint, GrowStatus, GrowSummary, GrowUpsertPay
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { formatLiters, toNullableInt } from '../components/v1-utils'
 import { classNames } from '../utils'
+import { aufstellungName, einstiegName, materialName, samenName, statusName, zeltZweckName } from '../deutsche-woerter'
 import { ProfileSelect } from '../features/setpoints/ProfileSelect'
 import { GrowPlanPanel } from '../features/grows/GrowPlanPanel'
 import { buildTimeline, canCreate, checkPlan } from '../features/grows/grow-plan-model'
@@ -256,13 +257,13 @@ function RunStep({ form, patch, strains }: { form: GrowUpsertPayload; patch: (va
 
         <V1Field label="Samen-Typ">
           <select value={form.seedType} onChange={(event) => patch({ seedType: event.target.value as SeedType })}>
-            {seedTypes.map((value) => <option key={value} value={value}>{value}</option>)}
+            {seedTypes.map((value) => <option key={value} value={value}>{samenName(value)}</option>)}
           </select>
         </V1Field>
 
         <V1Field label="Startmaterial">
           <select value={form.startMaterial} onChange={(event) => patch({ startMaterial: event.target.value as StartMaterial, entryPoint: (event.target.value === 'Clone' ? 'Veg' : form.entryPoint) as GrowEntryPoint })}>
-            {startMaterials.map((value) => <option key={value} value={value}>{value}</option>)}
+            {startMaterials.map((value) => <option key={value} value={value}>{materialName(value)}</option>)}
           </select>
         </V1Field>
       </div>
@@ -273,18 +274,18 @@ function RunStep({ form, patch, strains }: { form: GrowUpsertPayload; patch: (va
 
 function TentStep({ tents, selectedId, onSelect }: { tents: TentDto[]; selectedId: number | null; onSelect: (id: number) => void }) {
   if (tents.length === 0) return <V1Empty title="Kein Zelt angelegt" action={<V1LinkButton to="/zelte/new" variant="primary">Zelt anlegen</V1LinkButton>} />
-  return <V1Section title="Zelt"><div className="grow-select-grid">{tents.map((tent) => <button type="button" key={tent.id} className={classNames('grow-select-card', selectedId === tent.id && 'active')} onClick={() => onSelect(tent.id)}><span className="grow-card-topline"><strong>{tent.name}</strong><V1Badge tone={tent.status === 'Active' ? 'ok' : 'neutral'}>{tent.status}</V1Badge></span><span className="grow-card-meta">{tent.tentType} · {formatTentSize(tent)}</span><span className="grow-card-facts"><b>{tent.activeGrowCount} Grows</b><b>{tent.activeSetupCount} Setups</b></span></button>)}</div></V1Section>
+  return <V1Section title="Zelt"><div className="grow-select-grid">{tents.map((tent) => <button type="button" key={tent.id} className={classNames('grow-select-card', selectedId === tent.id && 'active')} onClick={() => onSelect(tent.id)}><span className="grow-card-topline"><strong>{tent.name}</strong><V1Badge tone={tent.status === 'Active' ? 'ok' : 'neutral'}>{tent.status === 'Active' ? 'aktiv' : 'archiviert'}</V1Badge></span><span className="grow-card-meta">{zeltZweckName(tent.tentType)} · {formatTentSize(tent)}</span><span className="grow-card-facts"><b>{tent.activeGrowCount} {tent.activeGrowCount === 1 ? 'Grow' : 'Grows'}</b><b>{tent.activeSetupCount} {tent.activeSetupCount === 1 ? 'Setup' : 'Setups'}</b></span></button>)}</div></V1Section>
 }
 
 function HydroStep({ setups, exactCount, selectedId, onSelect, tent }: { setups: HydroSetupDto[]; exactCount: number; selectedId: number | null; onSelect: (setup: HydroSetupDto) => void; tent: TentDto | null }) {
   if (setups.length === 0) return <V1Empty title="Kein Hydro-Setup vorhanden" text="Lege zuerst ein DWC/RDWC-System an." action={<V1LinkButton to="/hydro/new" variant="primary">Hydro anlegen</V1LinkButton>} />
-  return <V1Section title="Hydro">{tent && exactCount === 0 && <V1Alert title="Kein Setup direkt am Zelt" message="Es gibt aktive Hydro-Setups, aber keines ist diesem Zelt zugeordnet. Du kannst eines wählen oder zuerst die Zeltzuordnung im Hydro-Setup korrigieren." tone="warn" />}<div className="grow-select-grid">{setups.map((setup) => <button type="button" key={setup.id} className={classNames('grow-select-card', selectedId === setup.id && 'active')} onClick={() => onSelect(setup)}><span className="grow-card-topline"><strong>{setup.name}</strong><V1Badge tone="accent">{setup.hydroStyle}</V1Badge></span><span className="grow-card-meta">{setup.tentName ?? 'ohne Zelt'} · {setup.layoutType}</span><span className="grow-card-facts"><b>{setup.potCount ?? 1} Sites</b><b>{formatLiters(setup.totalVolumeLiters)}</b><b>{setup.hasChiller ? 'Chiller' : 'ohne Chiller'}</b></span></button>)}</div></V1Section>
+  return <V1Section title="Hydro">{tent && exactCount === 0 && <V1Alert title="Kein Setup direkt am Zelt" message="Es gibt aktive Hydro-Setups, aber keines ist diesem Zelt zugeordnet. Du kannst eines wählen oder zuerst die Zeltzuordnung im Hydro-Setup korrigieren." tone="warn" />}<div className="grow-select-grid">{setups.map((setup) => <button type="button" key={setup.id} className={classNames('grow-select-card', selectedId === setup.id && 'active')} onClick={() => onSelect(setup)}><span className="grow-card-topline"><strong>{setup.name}</strong><V1Badge tone="accent">{setup.hydroStyle}</V1Badge></span><span className="grow-card-meta">{setup.tentName ?? 'ohne Zelt'} · {aufstellungName(setup.layoutType)}</span><span className="grow-card-facts"><b>{setup.potCount ?? 1} Sites</b><b>{formatLiters(setup.totalVolumeLiters)}</b><b>{setup.hasChiller ? 'Chiller' : 'ohne Chiller'}</b></span></button>)}</div></V1Section>
 }
 
 function TimeStep({ form, patch }: { form: GrowUpsertPayload; patch: (value: Partial<GrowUpsertPayload>) => void }) {
   return <V1Section title="Zeit"><div className="v1-form-grid grow-form-grid"><V1Field label="Startdatum *" hint="Tag 1 des Grows — daran haengen Phasen, Tageszaehlung und Zeitstrahl. Leer heisst heute.">
     <input type="date" required value={form.startDate} onChange={(event) => patch({ startDate: event.target.value })} />
-  </V1Field><V1Field label="Startpunkt"><select value={form.entryPoint} onChange={(event) => patch({ entryPoint: event.target.value as GrowEntryPoint })}>{entryPoints.map((value) => <option key={value} value={value}>{value}</option>)}</select></V1Field><V1Field label="Tage in Phase"><input type="number" min="0" value={form.daysAlreadyInPhase ?? ''} onChange={(event) => patch({ daysAlreadyInPhase: toNullableInt(event.target.value) })} /></V1Field>{form.seedType !== 'Autoflower' && (
+  </V1Field><V1Field label="Startpunkt"><select value={form.entryPoint} onChange={(event) => patch({ entryPoint: event.target.value as GrowEntryPoint })}>{entryPoints.map((value) => <option key={value} value={value}>{einstiegName(value)}</option>)}</select></V1Field><V1Field label="Tage in Phase"><input type="number" min="0" value={form.daysAlreadyInPhase ?? ''} onChange={(event) => patch({ daysAlreadyInPhase: toNullableInt(event.target.value) })} /></V1Field>{form.seedType !== 'Autoflower' && (
     <V1Field label="Veg-Dauer geplant (Tage)" hint={vegHinweis(form)}>
       <input
         type="number" min="1" max="365"
@@ -293,7 +294,7 @@ function TimeStep({ form, patch }: { form: GrowUpsertPayload; patch: (value: Par
         onChange={(event) => patch({ plannedVegDays: toNullableInt(event.target.value) })}
       />
     </V1Field>
-  )}{form.seedType !== 'Autoflower' && <V1Field label="Flipdatum" hint="Erst ausfüllen, wenn wirklich geflippt wurde."><input type="date" value={form.flipDate ?? ''} onChange={(event) => patch({ flipDate: event.target.value || null })} /></V1Field>}<V1Field label="Status"><select value={form.status} onChange={(event) => patch({ status: event.target.value as GrowStatus })}>{statuses.map((value) => <option key={value} value={value}>{value}</option>)}</select></V1Field>
+  )}{form.seedType !== 'Autoflower' && <V1Field label="Flipdatum" hint="Erst ausfüllen, wenn wirklich geflippt wurde."><input type="date" value={form.flipDate ?? ''} onChange={(event) => patch({ flipDate: event.target.value || null })} /></V1Field>}<V1Field label="Status"><select value={form.status} onChange={(event) => patch({ status: event.target.value as GrowStatus })}>{statuses.map((value) => <option key={value} value={value}>{statusName(value)}</option>)}</select></V1Field>
     {/* Sollwerte sind, wie man DIESEN Lauf faehrt. Steht hier nichts, gilt das
         Profil des Hydro-Systems — das sagt der Hinweis auch. */}
     <ProfileSelect

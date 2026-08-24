@@ -1,4 +1,5 @@
 import type { GrowSummary, MetricPayload, TentDto, TentLivePayload } from '../../types'
+import { zeltZweckName } from '../../deutsche-woerter'
 
 export type LiveState = {
   tents: TentDto[]
@@ -168,7 +169,8 @@ export function chooseInitialTent(tents: TentDto[], grows: GrowSummary[]) {
 }
 
 export function formatTentType(value: string) {
-  return value === 'Production' ? 'Blüte / Run' : value === 'Mother' ? 'Mutter' : value === 'Propagation' ? 'Anzucht' : value === 'Quarantine' ? 'Quarantäne' : value === 'MultiPurpose' ? 'Mehrzweck' : value
+  // Eine Wahrheit: die Tabelle steht in deutsche-woerter.ts.
+  return zeltZweckName(value)
 }
 
 export function formatGrowStatus(value: string) {
