@@ -43,12 +43,19 @@ async function punktzahlen(page: Page): Promise<Fund[]> {
     const raus: Array<{ text: string, klasse: string, tag: string }> = []
 
     // Kennungen und Quelltext sind keine Zahlen — sie stehen bewusst so da.
+    //
+    // `<a>` war hier zuerst pauschal ausgenommen, weil Adressen Punkte tragen.
+    // Das war zu grosszuegig: der TEXT eines Links ist normales Deutsch, und
+    // eine Zahl darin waere durchgerutscht. Ausgenommen wird jetzt nur, was
+    // wirklich eine Adresse ist.
     const istKennung = (el: Element): boolean => {
       for (let n: Element | null = el; n && n !== document.body; n = n.parentElement) {
         const tag = n.tagName.toLowerCase()
-        if (tag === 'code' || tag === 'pre' || tag === 'kbd' || tag === 'a') return true
-        const klasse = n.getAttribute('class') || ''
-        if (/entity|kennung|mono|url|version/i.test(klasse)) return true
+        if (tag === 'code' || tag === 'pre' || tag === 'kbd') return true
+        if (/entity|kennung|mono|url|version/i.test(n.getAttribute('class') || '')) return true
+
+        // Ein Link, dessen Beschriftung SELBST die Adresse ist.
+        if (tag === 'a' && /^(https?:\/\/|www\.)/.test((n.textContent || '').trim())) return true
       }
       return false
     }
