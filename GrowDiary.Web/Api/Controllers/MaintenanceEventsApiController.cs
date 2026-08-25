@@ -156,4 +156,21 @@ public sealed class MaintenanceEventsApiController : ApiControllerBase
             ModelState.AddModelError(nameof(CreateMaintenanceEventRequest.NextDueAtUtc), "NextDueAtUtc darf nicht vor PerformedAtUtc liegen.");
         }
     }
+
+    /// <summary>Einen falsch eingetragenen Wartungsvorgang entfernen.</summary>
+    /// <remarks>Gleiche Begruendung wie bei der Kalibrierung.</remarks>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public IActionResult Delete(int id)
+    {
+        if (_repository.GetMaintenanceEvent(id) is null)
+        {
+            return NotFoundError("maintenance_event_not_found", $"Wartungsvorgang mit Id {id} existiert nicht.");
+        }
+
+        _repository.DeleteMaintenanceEvent(id);
+        return NoContent();
+    }
+
 }

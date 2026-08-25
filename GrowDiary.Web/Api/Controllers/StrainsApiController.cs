@@ -110,4 +110,49 @@ public sealed class StrainsApiController : ApiControllerBase
                 "VPD-Vorliebe ist eine Verschiebung in kPa und sollte zwischen -1 und +1 liegen.");
         }
     }
+
+    /// <summary>Eine Sorte entfernen.</summary>
+    /// <remarks>
+    /// <para><b>Warum es das erst seit dem 25.08.2026 gibt.</b> Sorten liessen
+    /// sich anlegen und aendern, aber nirgends entfernen — wer sich vertippte,
+    /// behielt den Eintrag fuer immer in jeder Auswahlliste. Gezaehlt hat das
+    /// <c>CrudVollstaendigTests</c>: neun Controller mit demselben Loch.</para>
+    ///
+    /// <para><b>Der Waechter.</b> <c>PlantInstances.StrainId</c> und
+    /// <c>CuringJars.StrainId</c> haengen mit <c>ON DELETE SET NULL</c> an der
+    /// Sorte. Ohne diese Pruefung naehme ein Loeschen den betroffenen Pflanzen
+    /// und Glaesern wortlos ihre Sorte.</para>
+    /// </remarks>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public IActionResult Delete(int id)
+    {
+        var sorte = _repository.GetStrain(id);
+        if (sorte is null)
+        {
+            return NotFoundError("strain_not_found", $"Sorte mit Id {id} existiert nicht.");
+        }
+
+        var pflanzen = _repository.CountPlantsWithStrain(id);
+        var glaeser = _repository.CountCuringJarsWithStrain(id);
+        // Grows.StrainId hat keinen Fremdschluessel — der Verweis bliebe stehen
+        // und zeigte auf eine Sorte, die es nicht mehr gibt.
+        var grows = _repository.CountGrowsWithStrain(id);
+        if (pflanzen > 0 || glaeser > 0 || grows > 0)
+        {
+            var wo = new List<string>();
+            if (pflanzen > 0) wo.Add($"{pflanzen} Pflanzen");
+            if (glaeser > 0) wo.Add($"{glaeser} Aushärte-Gläser");
+            if (grows > 0) wo.Add($"{grows} Grows");
+            return ValidationError(
+                $"'{sorte.Name}' wird noch benutzt: {string.Join(" und ", wo)}. "
+                + "Sonst verlören die ihre Sorte, ohne dass es jemand merkt.");
+        }
+
+        _repository.DeleteStrain(id);
+        return NoContent();
+    }
+
 }

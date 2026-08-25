@@ -148,4 +148,47 @@ public sealed class SetupsApiController : ApiControllerBase
             ModelState.AddModelError(nameof(UpdateSetupRequest.QuarantinePlannedEndAt), "Das geplante Ende darf nicht vor dem Quarantaene-Start liegen.");
         }
     }
+
+    /// <summary>Ein Setup entfernen.</summary>
+    /// <remarks>
+    /// Dieselbe Falle wie bei der Sorte: <c>PlantInstances.SetupId</c> haengt
+    /// mit <c>ON DELETE SET NULL</c> daran. Stehen noch Pflanzen darin, waere
+    /// das Loeschen ein stiller Datenverlust.
+    /// </remarks>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public IActionResult Delete(int id)
+    {
+        var setup = _repository.GetSetup(id);
+        if (setup is null)
+        {
+            return NotFoundError("setup_not_found", $"Setup mit Id {id} existiert nicht.");
+        }
+
+        // ALLE Verweise, nicht nur die mit Fremdschluessel: HardwareItems.SetupId
+        // und Grows.SetupId sind blosse Zahlen. Ein geloeschtes Setup laesst sie
+        // ins Leere zeigen — und beim Grow ist die Folge, dass er sich gar nicht
+        // mehr speichern laesst (GrowsApiController lehnt mit
+        // "Setup mit Id X existiert nicht" ab).
+        var haengt = new List<string>();
+        var pflanzen = _repository.CountPlantsInSetup(id);
+        if (pflanzen > 0) haengt.Add($"{pflanzen} Pflanzen");
+        var geraete = _repository.CountHardwareInSetup(id);
+        if (geraete > 0) haengt.Add($"{geraete} Geräte");
+        var grows = _repository.CountGrowsWithSetup(id);
+        if (grows > 0) haengt.Add($"{grows} Grows");
+
+        if (haengt.Count > 0)
+        {
+            return ValidationError(
+                $"An '{setup.Name}' hängen noch {string.Join(" und ", haengt)}. "
+                + "Lös das erst — sonst zeigen die Verweise ins Leere.");
+        }
+
+        _repository.DeleteSetup(id);
+        return NoContent();
+    }
+
 }

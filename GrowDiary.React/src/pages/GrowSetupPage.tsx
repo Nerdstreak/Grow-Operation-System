@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { nurDatum } from '../features/grows/nur-datum'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { apiFetch, formatApiError } from '../api'
-import type { GrowDetail, GrowEntryPoint, GrowStatus, GrowSummary, GrowUpsertPayload, HydroSetupDto, KnowledgeOverviewDto, NutrientProgramDto, SeedType, StartMaterial, StrainDto, TentDto } from '../types'
+import type { GrowDetail, GrowEntryPoint, GrowStatus, GrowSummary, GrowUpsertPayload, HydroSetupDto, KnowledgeOverviewDto, NutrientProgramDto, SeedType, StartMaterial, StrainDto, TentDto, PlantInstanceDto } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { formatLiters, toNullableInt } from '../components/v1-utils'
 import { classNames } from '../utils'
@@ -45,6 +45,19 @@ function GrowSetupPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Wie viele Pflanzen einzeln erfasst sind. Sind es welche, sind SIE die
+  // Wahrheit ueber die Anzahl — der Server zieht plantCount danach.
+  const [erfasstePflanzen, setErfasstePflanzen] = useState(0)
+
+  useEffect(() => {
+    if (!isEditing || !growId) return
+    const controller = new AbortController()
+    apiFetch<PlantInstanceDto[]>(`/api/plants?growId=${growId}`, { signal: controller.signal })
+      .then((pflanzen) => setErfasstePflanzen(pflanzen.length))
+      .catch(() => { /* Ohne Pflanzen-API bleibt das Feld beschreibbar. */ })
+    return () => controller.abort()
+  }, [isEditing, growId])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -150,7 +163,7 @@ function GrowSetupPage() {
           ist, merkte man vorher erst am Ende — oder gar nicht. */}
       <div className="grow-wizard-shell">
         <div className="grow-wizard-main">
-          <RunStep form={form} patch={patch} strains={strains} />
+          <RunStep form={form} patch={patch} strains={strains} erfasstePflanzen={erfasstePflanzen} />
           <TentStep tents={tents} selectedId={form.tentId} onSelect={selectTent} />
           <HydroStep setups={availableHydro} exactCount={exactHydro.length} selectedId={form.systemId ?? null} onSelect={selectHydro} tent={selectedTent} />
           <TimeStep form={form} patch={patch} />
@@ -191,7 +204,7 @@ function GrowSetupPage() {
  * Zuechter und Bluetewochen; „frei eintragen" bleibt fuer alles, was (noch)
  * nicht in der Bibliothek steht.
  */
-function RunStep({ form, patch, strains }: { form: GrowUpsertPayload; patch: (value: Partial<GrowUpsertPayload>) => void; strains: StrainDto[] }) {
+function RunStep({ form, patch, strains, erfasstePflanzen }: { form: GrowUpsertPayload; patch: (value: Partial<GrowUpsertPayload>) => void; strains: StrainDto[]; erfasstePflanzen: number }) {
   const sorten = [...strains].sort((a, b) => a.name.localeCompare(b.name, 'de'))
   // Was der letzte Bibliotheks-Klick bei den Bluetewochen eingetragen hat.
   // Beim Wechsel auf eine andere Sorte wird nur genau das ersetzt \u2014 sonst
@@ -251,8 +264,24 @@ function RunStep({ form, patch, strains }: { form: GrowUpsertPayload; patch: (va
           <input value={form.breeder ?? ''} onChange={(event) => patch({ breeder: event.target.value })} />
         </V1Field>
 
-        <V1Field label="Pflanzen">
-          <input type="number" min="1" value={form.plantCount ?? ''} onChange={(event) => patch({ plantCount: toNullableInt(event.target.value) })} />
+        {/* Sind Pflanzen EINZELN erfasst, sind sie die Wahrheit ueber die Zahl
+            — der Server zieht plantCount seit dem 25.08.2026 nach. Ein
+            beschreibbares Feld daneben behauptete etwas anderes: eingetragen,
+            gespeichert, danach stand wieder die alte Zahl da. Gefunden von
+            e2e/formularfelder-kommen-an.spec.ts. */}
+        <V1Field
+          label="Pflanzen"
+          hint={erfasstePflanzen > 0
+            ? `${erfasstePflanzen} einzeln erfasst — die Zahl folgt der Karte „Pflanzen & Sorten" am Grow.`
+            : undefined}
+        >
+          <input
+            type="number"
+            min="1"
+            value={erfasstePflanzen > 0 ? erfasstePflanzen : form.plantCount ?? ''}
+            readOnly={erfasstePflanzen > 0}
+            onChange={(event) => patch({ plantCount: toNullableInt(event.target.value) })}
+          />
         </V1Field>
 
         <V1Field label="Samen-Typ">
@@ -285,7 +314,23 @@ function HydroStep({ setups, exactCount, selectedId, onSelect, tent }: { setups:
 function TimeStep({ form, patch }: { form: GrowUpsertPayload; patch: (value: Partial<GrowUpsertPayload>) => void }) {
   return <V1Section title="Zeit"><div className="v1-form-grid grow-form-grid"><V1Field label="Startdatum *" hint="Tag 1 des Grows — daran haengen Phasen, Tageszaehlung und Zeitstrahl. Leer heisst heute.">
     <input type="date" required value={form.startDate} onChange={(event) => patch({ startDate: event.target.value })} />
-  </V1Field><V1Field label="Startpunkt"><select value={form.entryPoint} onChange={(event) => patch({ entryPoint: event.target.value as GrowEntryPoint })}>{entryPoints.map((value) => <option key={value} value={value}>{einstiegName(value)}</option>)}</select></V1Field><V1Field label="Tage in Phase"><input type="number" min="0" value={form.daysAlreadyInPhase ?? ''} onChange={(event) => patch({ daysAlreadyInPhase: toNullableInt(event.target.value) })} /></V1Field>{form.seedType !== 'Autoflower' && (
+  </V1Field><V1Field label="Startpunkt"><select value={form.entryPoint} onChange={(event) => patch({ entryPoint: event.target.value as GrowEntryPoint })}>{entryPoints.map((value) => <option key={value} value={value}>{einstiegName(value)}</option>)}</select></V1Field>{/* Nur anbieten, wo es auch ankommt: der Server nimmt „Tage in Phase" nur
+    ausserhalb der Keimung und nur fuer Nicht-Autoflower an
+    (GrowFormViewModel.NeedsDaysInPhase). Vorher stand das Feld immer da
+    und wurde still verworfen — dieselbe Bauart wie beim Flipdatum, gefunden
+    von e2e/formularfelder-kommen-an.spec.ts. */}
+{form.entryPoint !== 'Germination' && form.seedType !== 'Autoflower' && (
+  <V1Field label="Tage in Phase"><input type="number" min="0" value={form.daysAlreadyInPhase ?? ''} onChange={(event) => patch({ daysAlreadyInPhase: toNullableInt(event.target.value) })} /></V1Field>
+)}
+{/* Eine Autoflower hat keine Phasen-Tage, sondern ein Alter seit der
+    Keimung — der Server kennt das Feld laengst, das Formular bot es nie an.
+    Ohne diese Zeile konnte ein Autoflower-Grower sein Alter nirgends
+    eintragen. */}
+{form.seedType === 'Autoflower' && (
+  <V1Field label="Tage seit Keimung" hint="Bei Autoflowern zählt das Alter, nicht die Phase.">
+    <input type="number" min="0" value={form.autoflowerDaysSinceGermination ?? ''} onChange={(event) => patch({ autoflowerDaysSinceGermination: toNullableInt(event.target.value) })} />
+  </V1Field>
+)}{form.seedType !== 'Autoflower' && (
     <V1Field label="Veg-Dauer geplant (Tage)" hint={vegHinweis(form)}>
       <input
         type="number" min="1" max="365"

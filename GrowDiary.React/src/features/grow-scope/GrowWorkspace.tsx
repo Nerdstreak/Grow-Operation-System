@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { apiFetch } from '../../api'
+import type { SopInstanceDto } from '../../types'
 import { GrowDetailDiagnosisSection } from '../grow-detail/GrowDetailDiagnosisSection'
 import { JournalStreamSection } from '../grow-detail/JournalStreamSection'
 import { GrowDetailMeasurementsSection } from '../grow-detail/GrowDetailMeasurementsSection'
@@ -117,6 +119,23 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
     return <div className="empty-hint" style={{ color: 'var(--red)' }}>{error ?? 'Grow nicht gefunden.'}</div>
   }
 
+  /**
+   * Einen versehentlich gestarteten Ablauf abbrechen.
+   *
+   * Der Server nimmt die Erinnerungen in den Aufgaben mit — sie haengen an
+   * einer Spalte ohne Fremdschluessel und blieben sonst stehen.
+   */
+  async function ablaufAbbrechen(instanz: SopInstanceDto) {
+    if (!window.confirm(`Ablauf „${instanz.sopName}" wirklich abbrechen?`)) return
+    try {
+      await apiFetch(`/api/sop-instances/${instanz.id}`, { method: 'DELETE' })
+      setNotice(`„${instanz.sopName}" abgebrochen.`)
+      void loadSopInstances()
+    } catch (caught) {
+      setNotice(caught instanceof Error ? caught.message : 'Ablauf konnte nicht abgebrochen werden.')
+    }
+  }
+
   return (
     <>
       {error && (
@@ -179,6 +198,7 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
           saving={saving}
           onNoteChange={(stepId, notes) => setSopStepNotesById((current) => ({ ...current, [stepId]: notes }))}
           onUpdateStep={(step, status) => void updateSopStep(step, status)}
+          onAbbrechen={(instanz) => void ablaufAbbrechen(instanz)}
         />
       )}
 
@@ -192,6 +212,7 @@ export function GrowWorkspace({ growId, section }: { growId: string; section: Gr
           taskForm={taskForm}
           saving={saving}
           selectedMeasurementId={selectedMeasurementId}
+          onEntfernt={() => void loadBundle()}
           onMeasurementSelection={(measurementId) => void handleMeasurementSelection(measurementId)}
           onJournalFormChange={(patch) => setJournalForm((current) => ({ ...current, ...patch }))}
           onPhotoFormChange={(patch) => setPhotoForm((current) => ({ ...current, ...patch }))}

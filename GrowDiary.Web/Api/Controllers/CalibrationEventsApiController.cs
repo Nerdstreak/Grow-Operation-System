@@ -179,4 +179,25 @@ public sealed class CalibrationEventsApiController : ApiControllerBase
             ModelState.AddModelError(nameof(CreateCalibrationEventRequest.NextDueAtUtc), "NextDueAtUtc darf nicht vor PerformedAtUtc liegen.");
         }
     }
+
+    /// <summary>Einen falsch eingetragenen Kalibriervorgang entfernen.</summary>
+    /// <remarks>
+    /// Ein Protokoll ist erst eines, wenn es stimmt. Bleibt ein Vertipper
+    /// stehen, rechnet der Faelligkeits-Waechter mit einem Datum, das nie
+    /// stattgefunden hat — und meldet die naechste Kalibrierung zu spaet.
+    /// </remarks>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public IActionResult Delete(int id)
+    {
+        if (_repository.GetCalibrationEvent(id) is null)
+        {
+            return NotFoundError("calibration_event_not_found", $"Kalibriervorgang mit Id {id} existiert nicht.");
+        }
+
+        _repository.DeleteCalibrationEvent(id);
+        return NoContent();
+    }
+
 }

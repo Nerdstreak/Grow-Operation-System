@@ -231,4 +231,33 @@ public sealed class SopInstancesApiController : ApiControllerBase
             _repository.UpdateSopStepReminderTaskId(step.Id, taskId);
         }
     }
+
+    /// <summary>Einen Ablauf abbrechen.</summary>
+    /// <remarks>
+    /// <para>Wer den falschen Ablauf startet, hatte ihn bis zum 25.08.2026 fuer
+    /// immer offen stehen — mitsamt seinen Erinnerungen in den Aufgaben.</para>
+    ///
+    /// <para><b>Die Erinnerungen gehen mit.</b> <c>ReminderTaskId</c> ist eine
+    /// blosse Zahl ohne Fremdschluessel; die Datenbank raeumt dort nichts weg.
+    /// Bliebe die Aufgabe stehen, erinnerte sie an einen Ablauf, den es nicht
+    /// mehr gibt.</para>
+    /// </remarks>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public IActionResult Delete(int id)
+    {
+        if (_repository.GetSopInstance(id) is null)
+        {
+            return NotFoundError("sop_instance_not_found", $"Ablauf mit Id {id} existiert nicht.");
+        }
+
+        foreach (var aufgabeId in _repository.DeleteSopInstance(id))
+        {
+            _taskRepository.Delete(aufgabeId);
+        }
+
+        return NoContent();
+    }
+
 }

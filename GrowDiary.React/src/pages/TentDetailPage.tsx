@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import { aufstellungName, phaseName, statusName, zeltZweckName } from '../deutsche-woerter'
 import type { GrowSummary, HydroSetupDto, MetricPayload, PlantInstanceDto, SetupDto, TentDto, TentLivePayload } from '../types'
-import { V1Alert, V1Badge, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
+import { V1Alert, V1Badge, V1Button, V1Card, V1Empty, V1LinkButton, V1Page, V1Section, V1Stat } from '../components/v1'
 import { PlantActions } from '../features/plants/PlantActions'
 import { LightScheduleSection } from '../features/tents/LightScheduleSection'
 import { TentHistorySection } from '../features/tents/TentHistorySection'
@@ -185,7 +185,23 @@ function HydroSetupCard({ setup }: { setup: HydroSetupDto }) {
 }
 
 function SetupCard({ setup, plants, quarantineSetups, productionSetups, grows, onChanged }: { setup: SetupDto; plants: PlantInstanceDto[]; quarantineSetups: SetupDto[]; productionSetups: SetupDto[]; grows: GrowSummary[]; onChanged: (notice: string) => void }) {
-  return <V1Card><div className="v1-card-title-row"><div><span className="v1-card-kicker">{setup.setupType}</span><h2>{setup.name}</h2></div><V1Badge tone={setup.status === 'Active' ? 'ok' : 'neutral'}>{setup.status}</V1Badge></div><div className="v1-info-grid compact">{formatSetupDetails(setup).map((detail) => <Info key={detail.label} label={detail.label} value={detail.value} />)}</div>{plants.length === 0 ? <V1Empty title="Keine Pflanzen in diesem Setup" /> : <div className="plant-list">{plants.map((plant) => <div key={plant.id} className="plant-entry"><div className="plant-row"><strong>{plant.label}</strong><span>{formatPlantLine(plant)}</span><em>{plant.plantStatus}</em></div><PlantActions plant={plant} setup={setup} quarantineSetups={quarantineSetups} productionSetups={productionSetups} grows={grows} onChanged={onChanged} /></div>)}</div>}</V1Card>
+  /**
+   * Einen Bereich entfernen.
+   *
+   * Der Server lehnt ab, solange Pflanzen, Geräte oder Grows daran hängen —
+   * und sagt auch welche. Bis zum 25.08.2026 gab es diesen Weg nur in der API.
+   */
+  async function entfernen() {
+    if (!window.confirm(`Bereich „${setup.name}" wirklich entfernen?`)) return
+    try {
+      await apiFetch(`/api/setups/${setup.id}`, { method: 'DELETE' })
+      onChanged(`„${setup.name}" entfernt.`)
+    } catch (caught) {
+      onChanged(caught instanceof Error ? caught.message : 'Bereich konnte nicht entfernt werden.')
+    }
+  }
+
+  return <V1Card><div className="v1-card-title-row"><div><span className="v1-card-kicker">{setup.setupType}</span><h2>{setup.name}</h2></div><V1Badge tone={setup.status === 'Active' ? 'ok' : 'neutral'}>{setup.status}</V1Badge><V1Button variant="ghost" onClick={() => void entfernen()}>Entfernen</V1Button></div><div className="v1-info-grid compact">{formatSetupDetails(setup).map((detail) => <Info key={detail.label} label={detail.label} value={detail.value} />)}</div>{plants.length === 0 ? <V1Empty title="Keine Pflanzen in diesem Setup" /> : <div className="plant-list">{plants.map((plant) => <div key={plant.id} className="plant-entry"><div className="plant-row"><strong>{plant.label}</strong><span>{formatPlantLine(plant)}</span><em>{plant.plantStatus}</em></div><PlantActions plant={plant} setup={setup} quarantineSetups={quarantineSetups} productionSetups={productionSetups} grows={grows} onChanged={onChanged} /></div>)}</div>}</V1Card>
 }
 
 function MetricCard({ metric }: { metric: MetricPayload }) { return <V1Stat label={metric.label} value={metric.value} unit={metric.unit} hint={metric.hint ?? undefined} tone={metricTone(metric)} /> }

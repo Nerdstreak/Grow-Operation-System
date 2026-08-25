@@ -257,6 +257,85 @@ public sealed class SopInstancesApiControllerTests : IDisposable
         Assert.NotNull(dto.DueAtUtc);
     }
 
+    /// <summary>
+    /// Ein versehentlich gestarteter Ablauf laesst sich abbrechen.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (25.08.2026).</b> „CRUD ist grundlegend und das
+    /// befolgst du nicht." <c>CrudVollstaendigTests</c> zaehlte neun
+    /// Controller, die etwas anlegen, das niemand wieder loswird — dieser war
+    /// einer davon. Wer den falschen Ablauf startete, hatte ihn fuer immer
+    /// offen stehen.</para>
+    /// </remarks>
+    [Fact]
+    public void EinVersehentlichGestarteterAblaufLaesstSichAbbrechen()
+    {
+        var lauf = StartRoutine();
+        Assert.NotEmpty(_repository.GetSopStepInstances(lauf.Id));
+
+        Assert.IsType<NoContentResult>(_controller.Delete(lauf.Id));
+
+        Assert.Null(_repository.GetSopInstance(lauf.Id));
+        Assert.Empty(_repository.GetSopStepInstances(lauf.Id));
+    }
+
+    /// <summary>
+    /// Der Abbruch laesst keine Erinnerung in den Aufgaben zurueck.
+    /// </summary>
+    /// <remarks>
+    /// <c>SopStepInstances.ReminderTaskId</c> hat KEINEN Fremdschluessel — die
+    /// Datenbank raeumt dort nichts weg. Bliebe die Aufgabe stehen, erinnerte
+    /// sie ewig an einen Ablauf, den es nicht mehr gibt.
+    /// </remarks>
+    [Fact]
+    public void DerAbbruchLaesstKeineErinnerungZurueck()
+    {
+        var lauf = StartRoutine();
+        var schritt = _repository.GetSopStepInstances(lauf.Id).First();
+        var aufgabeId = _taskRepository.Create(new GrowTask
+        {
+            GrowId = lauf.GrowId,
+            Title = "Erinnerung",
+            Status = GrowTaskStatus.Open,
+        });
+        _repository.UpdateSopStepReminderTaskId(schritt.Id, aufgabeId);
+        Assert.NotNull(_taskRepository.Get(aufgabeId));
+
+        _controller.Delete(lauf.Id);
+
+        Assert.Null(_taskRepository.Get(aufgabeId));
+    }
+
+    /// <summary>
+    /// Der Abbruch laesst auch keinen Wartungsvorgang ins Leere zeigen.
+    /// </summary>
+    /// <remarks>
+    /// <c>MaintenanceEvents.SopInstanceId</c> hat KEINEN Fremdschluessel — vom
+    /// Pruefer aus dem Schema gelesen. Der Vorgang selbst bleibt (es war echte
+    /// Arbeit), er verliert nur seinen Verweis.
+    /// </remarks>
+    [Fact]
+    public void DerAbbruchLaesstKeinenWartungsvorgangInsLeereZeigen()
+    {
+        var lauf = StartRoutine();
+        var geraet = _repository.CreateHardwareItem(new HardwareItem
+        {
+            Name = "Umwaelzpumpe", Category = "Pump",
+        });
+        var vorgang = _repository.CreateMaintenanceEvent(new MaintenanceEvent
+        {
+            HardwareItemId = geraet.Id,
+            Title = "Filter wechseln",
+            SopInstanceId = lauf.Id,
+        });
+
+        _controller.Delete(lauf.Id);
+
+        var danach = _repository.GetMaintenanceEvent(vorgang.Id);
+        Assert.NotNull(danach);
+        Assert.Null(danach!.SopInstanceId);
+    }
+
     private int CreateGrow()
         => _repository.CreateGrow(new GrowRun
         {

@@ -147,6 +147,35 @@ function HardwarePage() {
 
   useEffect(() => { void load() }, [])
 
+  /**
+   * Einen falsch eingetragenen Termin entfernen.
+   *
+   * Ein Protokoll ist erst eines, wenn es stimmt: bleibt ein Vertipper stehen,
+   * rechnet der Faelligkeits-Waechter mit einem Datum, das nie stattgefunden
+   * hat, und meldet die naechste Kalibrierung zu spaet. Bis zum 25.08.2026 gab
+   * es diesen Weg nur in der API.
+   */
+  async function terminEntfernen(row: HardwareRow) {
+    if (!row.nextCare) return
+    if (!window.confirm(`Termin „${row.nextCare.title}" wirklich entfernen?`)) return
+    setMessage(null)
+    setError(null)
+    try {
+      // Beide Wege ausgeschrieben, nicht zusammengesetzt: ein Pfad aus
+      // Bausteinen ist fuer die Zaehlung loeschwege-erreichbar.node.test.ts
+      // unsichtbar — und ein Leser sieht so auch, welche Endpunkte es gibt.
+      if (row.nextCare.kind === 'Kalibrierung') {
+        await apiFetch(`/api/calibration-events/${row.nextCare.eventId}`, { method: 'DELETE' })
+      } else {
+        await apiFetch(`/api/maintenance-events/${row.nextCare.eventId}`, { method: 'DELETE' })
+      }
+      setMessage('Termin entfernt.')
+      await load()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Termin konnte nicht entfernt werden.')
+    }
+  }
+
   function openCare(row: HardwareRow) {
     if (!row.nextCare) return
     setMessage(null)
@@ -541,6 +570,7 @@ function HardwarePage() {
                         onEdit={startEdit}
                         onDelete={deleteHardware}
                         onCare={openCare}
+                        onCareEntfernen={(row) => void terminEntfernen(row)}
                       />
                     ))}
                   </tbody>
@@ -613,7 +643,7 @@ function HardwarePage() {
 }
 
 /** Eine Gerätezeile. Bei schmalem Rahmen legt hardware.css sie zu einer Karte um. */
-function HardwareRowView({ row, liveState, saving, onStatus, onEdit, onDelete, onCare }: { row: HardwareRow; liveState: string | null; saving: boolean; onStatus: (item: HardwareItemDto, status: HardwareItemStatus) => void; onEdit: (item: HardwareItemDto) => void; onDelete: (item: HardwareItemDto) => void; onCare: (row: HardwareRow) => void }) {
+function HardwareRowView({ row, liveState, saving, onStatus, onEdit, onDelete, onCare, onCareEntfernen }: { row: HardwareRow; liveState: string | null; saving: boolean; onStatus: (item: HardwareItemDto, status: HardwareItemStatus) => void; onEdit: (item: HardwareItemDto) => void; onDelete: (item: HardwareItemDto) => void; onCare: (row: HardwareRow) => void; onCareEntfernen: (row: HardwareRow) => void }) {
   const { item } = row
   return (
     <tr className={classNames(row.overdue && 'overdue')}>
@@ -654,6 +684,10 @@ function HardwareRowView({ row, liveState, saving, onStatus, onEdit, onDelete, o
             <V1Button variant="primary" audit="care-complete" onClick={() => onCare(row)}>
               {row.nextCare.kind === 'Kalibrierung' ? 'Kalibriert' : 'Gemacht'}
             </V1Button>
+          )}
+          {/* Und der Weg zurueck, wenn der Termin falsch eingetragen war. */}
+          {row.nextCare && (
+            <V1Button audit="care-remove" onClick={() => onCareEntfernen(row)}>Termin weg</V1Button>
           )}
           <V1Button onClick={() => onEdit(item)}>Bearbeiten</V1Button>
           <V1Button disabled={saving} onClick={() => void onStatus(item, item.status === 'Offline' ? 'Active' : 'Offline')}>{item.status === 'Offline' ? 'Aktivieren' : 'Offline'}</V1Button>

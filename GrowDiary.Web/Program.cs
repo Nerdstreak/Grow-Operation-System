@@ -436,3 +436,15 @@ if (!Deutsch.IstWirksam)
 }
 
 app.Run();
+
+/// <summary>
+/// Nur damit der Test die App starten kann.
+/// </summary>
+/// <remarks>
+/// Top-Level-Anweisungen erzeugen eine <c>internal</c> Programmklasse;
+/// <c>WebApplicationFactory&lt;Program&gt;</c> braucht sie öffentlich. Ohne
+/// diese Zeile gäbe es im ganzen Projekt keinen Weg, die App im Test zu
+/// starten — und genau der fehlte, als das Flipdatum still verworfen wurde.
+/// Sie fügt der laufenden App nichts hinzu.
+/// </remarks>
+public partial class Program { }

@@ -56,6 +56,21 @@ public sealed class AutoMeasurementRepository : RepositoryBase
         command.ExecuteNonQuery();
     }
 
+    /// <summary>Eine Auto-Messung entfernen.</summary>
+    /// <remarks>
+    /// <c>AutoMeasurementFieldMappings</c> und <c>AutoMeasurementRuns</c>
+    /// haengen mit <c>ON DELETE CASCADE</c> daran und gehen mit — beide
+    /// gehoeren zur Vorlage und haben ohne sie keinen Sinn.
+    /// </remarks>
+    public void DeleteAutoMeasurementConfig(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM AutoMeasurementConfigs WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
     public AutoMeasurementConfig? GetAutoMeasurementConfig(int id)
     {
         using var connection = OpenConnection();

@@ -14,6 +14,13 @@ type GrowDetailSopSectionProps = {
   saving: string | null
   onNoteChange: (stepId: number, notes: string) => void
   onUpdateStep: (step: SopStepInstanceDto, status: SopStepInstanceStatus) => void
+  /**
+   * Einen versehentlich gestarteten Ablauf abbrechen.
+   *
+   * Ohne diesen Weg stand er fuer immer offen — samt seinen
+   * Erinnerungen in den Aufgaben. Der Server raeumt die mit ab.
+   */
+  onAbbrechen?: (instanz: SopInstanceDto) => void
 }
 
 export function GrowDetailSopSection({
@@ -25,6 +32,7 @@ export function GrowDetailSopSection({
   saving,
   onNoteChange,
   onUpdateStep,
+  onAbbrechen,
 }: GrowDetailSopSectionProps) {
   const isVisible = activeSection === 'sops'
 
@@ -50,6 +58,16 @@ export function GrowDetailSopSection({
                   </div>
                   <V1Badge tone="neutral">{ablaufArt(instance.sopType)}</V1Badge>
                   <span className={`badge ${instance.status === 'Completed' ? 'badge-ok' : 'badge-neutral'}`}>{instanzZustand(instance.status)}</span>
+                  {onAbbrechen && (
+                    <V1Button
+                      type="button"
+                      variant="ghost"
+                      disabled={saving === `sop-abbruch-${instance.id}`}
+                      onClick={() => onAbbrechen(instance)}
+                    >
+                      Abbrechen
+                    </V1Button>
+                  )}
                   <div className="tl-sub">
                     {instance.stepCount} Schritte &ndash; Start {formatDateTime(instance.startedAtUtc)}
                     {instance.isRecurring && <span className="badge badge-neutral" style={{ marginLeft: 8 }}>Wiederkehrend</span>}

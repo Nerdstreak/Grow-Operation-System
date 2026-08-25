@@ -379,6 +379,81 @@ public sealed class SetupRepository : RepositoryBase
         command.ExecuteNonQuery();
     }
 
+    /// <summary>Eine Sorte entfernen.</summary>
+    /// <remarks>
+    /// <b>Achtung, stiller Datenverlust.</b> <c>PlantInstances.StrainId</c> und
+    /// <c>CuringJars.StrainId</c> haengen mit <c>ON DELETE SET NULL</c> daran:
+    /// die Datenbank nimmt betroffenen Pflanzen und Glaesern wortlos ihre
+    /// Sorte. Ob geloescht werden darf, entscheidet deshalb der Controller.
+    /// </remarks>
+    public void DeleteStrain(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM Strains WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>Wie viele Pflanzen diese Sorte fuehren.</summary>
+    public int CountPlantsWithStrain(int strainId)
+        => Zaehlen("SELECT COUNT(*) FROM PlantInstances WHERE StrainId = $id;", strainId);
+
+    /// <summary>Wie viele Aushaerte-Glaeser diese Sorte fuehren.</summary>
+    public int CountCuringJarsWithStrain(int strainId)
+        => Zaehlen("SELECT COUNT(*) FROM CuringJars WHERE StrainId = $id;", strainId);
+
+    /// <summary>Ein Setup entfernen.</summary>
+    /// <remarks>
+    /// Dieselbe Falle wie bei der Sorte: <c>PlantInstances.SetupId</c> haengt
+    /// mit <c>ON DELETE SET NULL</c> daran.
+    /// </remarks>
+    public void DeleteSetup(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM Setups WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>Wie viele Pflanzen in diesem Setup stehen.</summary>
+    public int CountPlantsInSetup(int setupId)
+        => Zaehlen("SELECT COUNT(*) FROM PlantInstances WHERE SetupId = $id;", setupId);
+
+    /// <summary>Wie viele Geraete diesem Setup zugeordnet sind.</summary>
+    /// <remarks>
+    /// <b>Ohne Fremdschluessel.</b> <c>HardwareItems.SetupId</c> ist eine blosse
+    /// Zahl — die Datenbank raeumt hier nichts weg und setzt auch nichts auf
+    /// NULL. Bliebe sie stehen, zeigte sie ins Leere.
+    /// </remarks>
+    public int CountHardwareInSetup(int setupId)
+        => Zaehlen("SELECT COUNT(*) FROM HardwareItems WHERE SetupId = $id;", setupId);
+
+    /// <summary>Wie viele Grows dieses Setup fuehren.</summary>
+    /// <remarks>
+    /// Ebenfalls ohne Fremdschluessel — und hier waere die Folge am
+    /// schlimmsten: <c>GrowsApiController</c> lehnt jedes Speichern mit
+    /// <c>Setup mit Id X existiert nicht</c> ab. Der Grow liesse sich nach dem
+    /// Loeschen gar nicht mehr aendern.
+    /// </remarks>
+    public int CountGrowsWithSetup(int setupId)
+        => Zaehlen("SELECT COUNT(*) FROM Grows WHERE SetupId = $id;", setupId);
+
+    /// <summary>Wie viele Grows diese Sorte als Hauptsorte fuehren.</summary>
+    /// <remarks>Auch <c>Grows.StrainId</c> hat keinen Fremdschluessel.</remarks>
+    public int CountGrowsWithStrain(int strainId)
+        => Zaehlen("SELECT COUNT(*) FROM Grows WHERE StrainId = $id;", strainId);
+
+    private int Zaehlen(string sql, int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("$id", id);
+        return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+    }
+
     /// <summary>Eine Pflanze entfernen.</summary>
     /// <remarks>
     /// <para><b>Warum es das erst seit dem 25.08.2026 gibt.</b> Pflanzen liessen

@@ -77,6 +77,27 @@ export function LightScheduleSection({ tentId }: { tentId: number }) {
     }
   }
 
+  /**
+   * Einen Lichtplan entfernen.
+   *
+   * Der Server lehnt den letzten Plan eines Zelts ab und sagt auch warum — an
+   * ihm haengen Nachtabsenkung, Lichteinbruch-Waechter und Auto-Messungen.
+   * Ohne diesen Knopf konnte diese Meldung niemand je zu sehen bekommen.
+   */
+  async function entfernen(schedule: LightScheduleDto) {
+    if (!window.confirm(`Lichtzyklus „${schedule.name}" wirklich entfernen?`)) return
+    setBusy(`del-${schedule.id}`)
+    setError(null)
+    try {
+      await apiFetch(`/api/light-schedules/${schedule.id}`, { method: 'DELETE' })
+      reload()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Lichtzyklus konnte nicht entfernt werden.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
   async function add() {
     setBusy('add')
     setError(null)
@@ -120,6 +141,7 @@ export function LightScheduleSection({ tentId }: { tentId: number }) {
               </div>
               <div className="v1-action-row" style={{ marginTop: 10 }}>
                 <V1Button variant="primary" disabled={busy === `save-${schedule.id}`} onClick={() => void saveExisting(schedule)}>{busy === `save-${schedule.id}` ? 'Speichert…' : 'Speichern'}</V1Button>
+                <V1Button variant="ghost" disabled={busy === `del-${schedule.id}`} onClick={() => void entfernen(schedule)}>{busy === `del-${schedule.id}` ? 'Entfernt…' : 'Entfernen'}</V1Button>
               </div>
             </V1Card>
           )

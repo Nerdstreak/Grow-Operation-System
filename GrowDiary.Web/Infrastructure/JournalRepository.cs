@@ -38,6 +38,23 @@ public sealed class JournalRepository
         return reader.Read() ? Map(reader) : null;
     }
 
+    /// <summary>Einen Journaleintrag entfernen.</summary>
+    /// <remarks>
+    /// Ein Journal ist ein Tagebuch, kein Gesetzblatt. Wer den falschen Grow
+    /// erwischt oder sich vertippt, muss den Eintrag loswerden koennen.
+    /// <c>SopStepInstances.JournalEntryId</c> haengt mit
+    /// <c>ON DELETE SET NULL</c> daran — der Ablaufschritt bleibt, er verliert
+    /// nur seinen Verweis.
+    /// </remarks>
+    public void Delete(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM JournalEntries WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
     public int Create(JournalEntry entry)
     {
         entry.CreatedAtUtc = DateTime.UtcNow;

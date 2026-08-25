@@ -1,5 +1,6 @@
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services.Knowledge;
 
 namespace GrowDiary.Web.Services;
 
@@ -85,6 +86,7 @@ public static class Demobestand
         RisikoAnlegen(hardware, zelt.Id, laufend.Id, pumpe.Id);
         GlasAnlegen(aushaerten, laufend.Id);
         PumpenAnlegen(dosierung, zelt.Id);
+        LaufendenAblaufAnlegen(dienste, laufend.Id);
 
         AbgeschlossenenGrowAnlegen(grows, ernten, zelt.Id, aufbau.Id,
             "Northern Lights (Testdaten)", "Northern Lights", "Sensi Seeds",
@@ -997,4 +999,26 @@ public static class Demobestand
             NugStructure = "Dicht.",
         });
     }
+    /// <summary>Ein Ablauf, der gerade laeuft.</summary>
+    /// <remarks>
+    /// <para><b>Warum das noetig ist.</b> Der Bestand hatte keine einzige
+    /// laufende Routine — <c>/sops</c> stand leer. Damit war der Knopf
+    /// „Abbrechen" im Testbestand unsichtbar, und keine Oberflaechen-Pruefung
+    /// konnte ihn je erreichen. Genau die Falle „der Testbestand ist eine
+    /// Miniatur, das verdeckt Fehler" aus CLAUDE.md.</para>
+    ///
+    /// <para>Genommen wird der erste Ablauf der Bibliothek, nicht ein
+    /// festverdrahteter Name: eine Kennung aus dem Kopf ist in diesem Projekt
+    /// ueber 30-mal danebengegangen.</para>
+    /// </remarks>
+    private static void LaufendenAblaufAnlegen(IServiceProvider dienste, int growId)
+    {
+        var wissen = dienste.GetRequiredService<KnowledgeBaseLoader>();
+        var ablauf = wissen.Sops.FirstOrDefault();
+        if (ablauf is null) return;
+
+        dienste.GetRequiredService<SopRepository>().StartSopInstance(
+            growId, ablauf, SopStartSource.Manual, null, null, "Testdaten: laeuft gerade.");
+    }
+
 }

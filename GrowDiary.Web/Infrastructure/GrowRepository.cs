@@ -163,6 +163,9 @@ public sealed class GrowRepository
     public MaintenanceEvent? GetMaintenanceEvent(int id)
         => _hardwareRepository.GetMaintenanceEvent(id);
 
+    public void DeleteMaintenanceEvent(int id)
+        => _hardwareRepository.DeleteMaintenanceEvent(id);
+
     public List<MaintenanceEvent> GetMaintenanceEvents()
         => _hardwareRepository.GetMaintenanceEvents();
 
@@ -186,6 +189,9 @@ public sealed class GrowRepository
 
     public CalibrationEvent? GetCalibrationEvent(int id)
         => _hardwareRepository.GetCalibrationEvent(id);
+
+    public void DeleteCalibrationEvent(int id)
+        => _hardwareRepository.DeleteCalibrationEvent(id);
 
     public List<CalibrationEvent> GetCalibrationEvents()
         => _hardwareRepository.GetCalibrationEvents();
@@ -280,6 +286,30 @@ public sealed class GrowRepository
     public void DeletePlant(int id)
         => _setupRepository.DeletePlant(id);
 
+    public void DeleteStrain(int id)
+        => _setupRepository.DeleteStrain(id);
+
+    public int CountPlantsWithStrain(int strainId)
+        => _setupRepository.CountPlantsWithStrain(strainId);
+
+    public int CountCuringJarsWithStrain(int strainId)
+        => _setupRepository.CountCuringJarsWithStrain(strainId);
+
+    public void DeleteSetup(int id)
+        => _setupRepository.DeleteSetup(id);
+
+    public int CountPlantsInSetup(int setupId)
+        => _setupRepository.CountPlantsInSetup(setupId);
+
+    public int CountHardwareInSetup(int setupId)
+        => _setupRepository.CountHardwareInSetup(setupId);
+
+    public int CountGrowsWithSetup(int setupId)
+        => _setupRepository.CountGrowsWithSetup(setupId);
+
+    public int CountGrowsWithStrain(int strainId)
+        => _setupRepository.CountGrowsWithStrain(strainId);
+
     public int CountPlantChildren(int parentPlantId)
         => _setupRepository.CountPlantChildren(parentPlantId);
 
@@ -303,6 +333,9 @@ public sealed class GrowRepository
 
     public AutoMeasurementConfig? GetAutoMeasurementConfig(int id)
         => _autoMeasurementRepository.GetAutoMeasurementConfig(id);
+
+    public void DeleteAutoMeasurementConfig(int id)
+        => _autoMeasurementRepository.DeleteAutoMeasurementConfig(id);
 
     public List<AutoMeasurementConfig> GetAutoMeasurementConfigs()
         => _autoMeasurementRepository.GetAutoMeasurementConfigs();
@@ -342,6 +375,9 @@ public sealed class GrowRepository
 
     public LightSchedule? GetLightSchedule(int id)
         => _lightRepository.GetLightSchedule(id);
+
+    public void DeleteLightSchedule(int id)
+        => _lightRepository.DeleteLightSchedule(id);
 
     public List<LightSchedule> GetLightSchedulesByTent(int tentId)
         => _lightRepository.GetLightSchedulesByTent(tentId);
@@ -391,6 +427,9 @@ public sealed class GrowRepository
 
     public SopInstance? GetSopInstance(int id)
         => _sopRepository.GetSopInstance(id);
+
+    public IReadOnlyList<int> DeleteSopInstance(int id)
+        => _sopRepository.DeleteSopInstance(id);
 
     public List<SopInstance> GetSopInstancesByGrow(int growId)
         => _sopRepository.GetSopInstancesByGrow(growId);

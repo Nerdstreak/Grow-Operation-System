@@ -11,6 +11,17 @@
 
   .js-headline { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
   .js-headline strong { font-size: var(--fs-text); font-weight: 600; }
+  /* Entfernen steht am Zeilenende und bleibt zurueckhaltend: es ist die
+     seltene Aktion. --h-lg, weil der Tippziel-Test hier schon einmal einen
+     27-px-Knopf gefunden hat. */
+  .js-weg {
+    margin-left: auto; min-height: var(--h-lg); padding: 0 10px;
+    border: 1px solid var(--hair); border-radius: var(--r-sm);
+    background: transparent; color: var(--muted);
+    font: 400 var(--fs-klein)/1 var(--font-sans); cursor: pointer;
+  }
+  .js-weg:hover { color: var(--danger-text); border-color: var(--danger); }
+  .js-weg:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .js-content > p { margin: 5px 0 0; font-size: var(--fs-text); line-height: 1.5; color: var(--muted); }
 
   .js-tag {

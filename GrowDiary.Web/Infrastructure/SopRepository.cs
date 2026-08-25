@@ -183,6 +183,45 @@ public sealed class SopRepository : RepositoryBase
         return instance;
     }
 
+    /// <summary>Einen Ablauf abbrechen und entfernen.</summary>
+    /// <remarks>
+    /// <para>Die Schritte gehen mit (<c>SopStepInstances</c> haengt mit
+    /// <c>ON DELETE CASCADE</c>). Die Erinnerungen NICHT: <c>ReminderTaskId</c>
+    /// ist eine blosse Zahl ohne Fremdschluessel, die Datenbank raeumt dort
+    /// nichts weg. Deshalb gibt diese Methode die betroffenen Aufgaben-Ids
+    /// zurueck — der Aufrufer muss sie loeschen, sonst erinnert die App ewig
+    /// an einen Ablauf, den es nicht mehr gibt.</para>
+    /// </remarks>
+    public IReadOnlyList<int> DeleteSopInstance(int id)
+    {
+        var erinnerungen = GetSopStepInstances(id)
+            .Select(s => s.ReminderTaskId)
+            .Where(t => t.HasValue)
+            .Select(t => t!.Value)
+            .Distinct()
+            .ToList();
+
+        using var connection = OpenConnection();
+
+        // Erst den Verweis loesen, dann loeschen: MaintenanceEvents.SopInstanceId
+        // hat keinen Fremdschluessel, die Datenbank raeumt dort nichts weg. Der
+        // Vorgang selbst bleibt — es war echte Arbeit; er verliert nur seinen
+        // Verweis auf einen Ablauf, den es nicht mehr gibt.
+        using (var loesen = connection.CreateCommand())
+        {
+            loesen.CommandText = "UPDATE MaintenanceEvents SET SopInstanceId = NULL WHERE SopInstanceId = $id;";
+            loesen.Parameters.AddWithValue("$id", id);
+            loesen.ExecuteNonQuery();
+        }
+
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM SopInstances WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+
+        return erinnerungen;
+    }
+
     public SopInstance? GetSopInstance(int id)
     {
         using var connection = OpenConnection();

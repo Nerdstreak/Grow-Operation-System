@@ -66,3 +66,38 @@ Stand 2026-08-20 · Grow OS 2.0.0-beta.52 · Grow MCP 0.1.8
 `grow-os/CHANGELOG.md` (2325 Zeilen, englisch) hält jede Änderung mit ihrem Grund
 fest — die beste Antwort auf „warum ist das so". Für das zweite Add-on:
 `grow-mcp/CHANGELOG.md`.
+
+## Was sich entfernen laesst
+
+Seit dem 25.08.2026 haelt `GrowDiary.Web.Tests/Api/CrudVollstaendigTests.cs`
+fest: **wer etwas anlegen kann, muss es auch wieder entfernen koennen.** Die
+Grundmenge ist nicht „POST" — ein POST kann auch eine Handlung sein
+(`flip-to-flower`, `watchdog/test`) —, sondern wer **201 Created** ausschreibt.
+
+Entfernen laesst sich: Grow, Pflanze, Sorte, Setup, Zelt, Hydro-System, Geraet,
+Dosierpumpe, Messung, Aufgabe, Sollwert-Profil, Aushaerte-Glas, Lichtplan,
+Kalibrier- und Wartungsvorgang, Journaleintrag, Auto-Messung und ein laufender
+Ablauf (Abbruch).
+
+Es gibt **Waechter**, damit ein Loeschen keinen stillen Datenverlust erzeugt:
+
+| Was | Bleibt stehen, wenn |
+|---|---|
+| Sorte | Pflanzen oder Aushaerte-Glaeser sie fuehren |
+| Setup | noch Pflanzen darin stehen |
+| Lichtplan | es der letzte des Zelts ist (daran haengen Nachtabsenkung, Lichteinbruch-Waechter und Auto-Messungen) |
+| Pflanze | sie Mutter von Stecklingen ist |
+
+Drei Ausnahmen ohne Loeschweg, jeweils mit Begruendung im Test: das
+Anlagen-Protokoll eines Grows, die Sicherung (liegt als Datei) und Risiken —
+die haben einen Lebenslauf (offen → bestaetigt → erledigt) statt eines
+Loeschwegs.
+
+**Wo die Knoepfe stehen:** Sorte im Bearbeiten-Formular auf `/sorten`, Bereich
+und Lichtplan auf `/zelte/:id`, Journaleintrag im Strom auf `/journal`, Abbruch
+eines laufenden Ablaufs auf `/sops`, Wartungs- und Kalibriertermin auf
+`/sensoren` („Termin weg"), Pflanze in der Karte am Grow. Dass keiner davon
+fehlt, haelt `GrowDiary.React/src/loeschwege-erreichbar.node.test.ts` fest: sie
+zaehlt die `HttpDelete`-Wege des Backends und verlangt fuer jeden einen echten
+Aufruf in der Oberflaeche — oder eine Ausnahme mit Grund. Die einzige heute:
+die Auto-Messung, wo Ausschalten der Weg zurueck ist.

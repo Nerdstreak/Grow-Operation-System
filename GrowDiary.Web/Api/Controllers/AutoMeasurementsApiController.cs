@@ -194,4 +194,25 @@ public sealed class AutoMeasurementsApiController : ApiControllerBase
             }
         }
     }
+
+    /// <summary>Eine Auto-Messung entfernen.</summary>
+    /// <remarks>
+    /// Ihre Feldzuordnungen und ihre Laufhistorie gehen mit
+    /// (<c>ON DELETE CASCADE</c>) — beide gehoeren zur Vorlage und haben ohne
+    /// sie keinen Sinn.
+    /// </remarks>
+    [HttpDelete("configs/{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public IActionResult DeleteConfig(int id)
+    {
+        if (_repository.GetAutoMeasurementConfig(id) is null)
+        {
+            return NotFoundError("auto_measurement_config_not_found", $"Auto-Messung mit Id {id} existiert nicht.");
+        }
+
+        _repository.DeleteAutoMeasurementConfig(id);
+        return NoContent();
+    }
+
 }

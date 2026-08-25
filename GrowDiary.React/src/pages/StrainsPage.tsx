@@ -391,6 +391,31 @@ function StrainsPage() {
     }
   }
 
+  /**
+   * Eine Sorte entfernen.
+   *
+   * Bis zum 25.08.2026 ging das nirgends — wer sich vertippte, behielt den
+   * Eintrag fuer immer in jeder Auswahlliste. Der Server lehnt ab, solange
+   * Pflanzen oder Aushaerte-Glaeser die Sorte fuehren, und sagt auch warum.
+   */
+  async function entfernen() {
+    if (editingId == null) return
+    const name = draft.name.trim()
+    if (!window.confirm(`„${name}" wirklich entfernen?`)) return
+
+    setError(null)
+    setNotice(null)
+    try {
+      await apiFetch(`/api/strains/${editingId}`, { method: 'DELETE' })
+      setNotice(`„${name}" entfernt.`)
+      setFormOpen(false)
+      setEditingId(null)
+      setReloadKey((key) => key + 1)
+    } catch (caught) {
+      setError(caught instanceof ApiRequestError ? caught.message : 'Sorte konnte nicht entfernt werden.')
+    }
+  }
+
   async function saveWeights() {
     if (!weightDraft) return
     setError(null)
@@ -489,6 +514,11 @@ function StrainsPage() {
           <div className="co-actions" style={{ marginTop: 12 }}>
             <V1Button variant="primary" onClick={() => void save()} disabled={saving}>{saving ? 'Speichert…' : 'Speichern'}</V1Button>
             <V1Button variant="ghost" onClick={() => { setFormOpen(false); setEditingId(null) }}>Abbrechen</V1Button>
+            {/* Nur beim Bearbeiten: eine Sorte, die es noch nicht gibt,
+                laesst sich nicht entfernen. */}
+            {editingId != null && (
+              <V1Button variant="ghost" onClick={() => void entfernen()}>Entfernen</V1Button>
+            )}
           </div>
         </V1Card>
       </div>

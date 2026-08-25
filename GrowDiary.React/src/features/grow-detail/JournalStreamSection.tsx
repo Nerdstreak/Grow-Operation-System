@@ -38,7 +38,7 @@ const entryTypes: Array<{ value: string; label: string }> = [
  * Eintrag rechts, Messfotos direkt beim Eintrag. „Nur Fotos" filtert den
  * Strom, „+ Eintrag" öffnet das Formular unter dem Panelkopf.
  */
-export function JournalStreamSection({ growId, entries, measurements, journalForm, photoForm, taskForm, saving, selectedMeasurementId, onMeasurementSelection, onJournalFormChange, onPhotoFormChange, onTaskFormChange, onJournalSubmit, onPhotoSubmit, onTaskSubmit }: {
+export function JournalStreamSection({ growId, entries, measurements, journalForm, photoForm, taskForm, saving, selectedMeasurementId, onMeasurementSelection, onJournalFormChange, onPhotoFormChange, onTaskFormChange, onJournalSubmit, onPhotoSubmit, onTaskSubmit, onEntfernt }: {
   growId: string
   entries: JournalEntryDto[]
   measurements: MeasurementDto[]
@@ -54,6 +54,8 @@ export function JournalStreamSection({ growId, entries, measurements, journalFor
   onJournalSubmit: (event: FormEvent<HTMLFormElement>) => void
   onPhotoSubmit: (event: FormEvent<HTMLFormElement>) => void
   onTaskSubmit: (event: FormEvent<HTMLFormElement>) => void
+  /** Nach dem Entfernen neu laden — die Seite haelt die Eintraege. */
+  onEntfernt?: () => void
 }) {
   const [photos, setPhotos] = useState<PhotoAssetDto[]>([])
   const [photosOnly, setPhotosOnly] = useState(false)
@@ -78,6 +80,17 @@ export function JournalStreamSection({ growId, entries, measurements, journalFor
   }, [growId, entries])
 
   const stream = useMemo(() => buildJournalStream(entries, photos), [entries, photos])
+
+  /** Einen Journaleintrag entfernen — mit Rueckfrage, danach neu laden. */
+  async function eintragEntfernen(eintragId: number, titel: string) {
+    if (!window.confirm(`Eintrag „${titel}" wirklich entfernen?`)) return
+    try {
+      await apiFetch(`/api/journal/${eintragId}`, { method: 'DELETE' })
+      onEntfernt?.()
+    } catch (caught) {
+      window.alert(caught instanceof Error ? caught.message : 'Eintrag konnte nicht entfernt werden.')
+    }
+  }
   const visible = photosOnly ? stream.filter((item) => item.photos.length > 0) : stream
 
   return (
@@ -160,6 +173,19 @@ export function JournalStreamSection({ growId, entries, measurements, journalFor
                   <div className="js-headline">
                     <span className={`js-tag is-${item.tone}`}>{item.tag}</span>
                     <strong>{item.title}</strong>
+                    {/* Ein Journal ist ein Tagebuch, kein Gesetzblatt: wer den
+                        falschen Grow erwischt oder sich vertippt, muss den
+                        Eintrag loswerden. Bis zum 25.08.2026 ging das nirgends. */}
+                    {item.eintragId != null && (
+                      <button
+                        type="button"
+                        className="js-weg"
+                        title="Eintrag entfernen"
+                        onClick={() => void eintragEntfernen(item.eintragId!, item.title)}
+                      >
+                        Entfernen
+                      </button>
+                    )}
                   </div>
                   {item.body && <p>{item.body}</p>}
                   {item.photos.length > 0 && (

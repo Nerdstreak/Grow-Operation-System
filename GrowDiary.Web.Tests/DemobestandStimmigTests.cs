@@ -1,6 +1,7 @@
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
+using GrowDiary.Web.Services.Knowledge;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GrowDiary.Web.Tests;
@@ -55,7 +56,14 @@ public sealed class DemobestandStimmigTests : IDisposable
             $"Nur {ablagen.Count} Ablagen gefunden — die Reflexion sieht ihre Grundmenge nicht.");
 
         foreach (var typ in ablagen) sammlung.AddSingleton(typ);
+
+        // Die Wissensbibliothek ist keine "Repository"-Ablage und faellt aus
+        // der Reflexion — der Bestand braucht sie aber, seit er einen
+        // laufenden Ablauf anlegt. Sie wird hier ausdruecklich eingetragen und
+        // geladen, sonst stuende der Ablauf nur im Betrieb.
+        sammlung.AddSingleton<KnowledgeBaseLoader>();
         _dienste = sammlung.BuildServiceProvider();
+        _dienste.GetRequiredService<KnowledgeBaseLoader>().Initialize();
 
         _grows = _dienste.GetRequiredService<GrowRepository>();
         Assert.True(Demobestand.IstNoetig(_grows), "Eine frische Datenbank sollte leer sein.");

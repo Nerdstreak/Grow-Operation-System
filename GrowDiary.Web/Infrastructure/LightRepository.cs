@@ -56,6 +56,21 @@ public sealed class LightRepository : RepositoryBase
         command.ExecuteNonQuery();
     }
 
+    /// <summary>Einen Lichtplan entfernen.</summary>
+    /// <remarks>
+    /// Ob es der letzte des Zelts ist, entscheidet der Controller — an einem
+    /// Lichtplan haengen die Nachtabsenkung, der Waechter gegen Lichteinbruch
+    /// und die Auto-Messungen.
+    /// </remarks>
+    public void DeleteLightSchedule(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM LightSchedules WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
     public LightSchedule? GetLightSchedule(int id)
     {
         using var connection = OpenConnection();

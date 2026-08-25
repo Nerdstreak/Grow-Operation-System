@@ -11,6 +11,13 @@ import type { JournalEntryDto, PhotoAssetDto } from '../../types'
 
 export type StreamItem = {
   key: string
+  /**
+   * Die Id des Journaleintrags — null bei Zeilen, die nur Fotos buendeln.
+   *
+   * Ohne sie hatte die Oberflaeche keinen Griff, um einen Eintrag zu
+   * entfernen: der Loeschweg gab es nur in der API.
+   */
+  eintragId: number | null
   at: string
   tag: string
   tone: 'accent' | 'warn' | 'info' | 'muted'
@@ -58,6 +65,7 @@ export function buildJournalStream(entries: JournalEntryDto[], photos: PhotoAsse
     if (entry.measurementId != null) claimed.add(entry.measurementId)
     return {
       key: `entry-${entry.id}`,
+      eintragId: entry.id,
       at: entry.occurredAtUtc,
       tag: spec.tag,
       tone: spec.tone,
@@ -81,6 +89,7 @@ function photoItem(key: string, list: PhotoAssetDto[]): StreamItem {
   const newest = [...list].sort((a, b) => b.takenAtUtc.localeCompare(a.takenAtUtc))[0]
   return {
     key: `photos-${key}`,
+    eintragId: null,
     at: newest.takenAtUtc,
     tag: 'Foto',
     tone: 'accent',

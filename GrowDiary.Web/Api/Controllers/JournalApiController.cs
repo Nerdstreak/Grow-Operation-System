@@ -85,4 +85,34 @@ public sealed class JournalApiController : ApiControllerBase
             return ValidationError();
         }
     }
+
+    /// <summary>Einen Journaleintrag entfernen.</summary>
+    /// <remarks>
+    /// Ein Journal ist ein Tagebuch, kein Gesetzblatt. Wer den falschen Grow
+    /// erwischt oder sich vertippt, muss den Eintrag loswerden — bis zum
+    /// 25.08.2026 ging das nirgends.
+    /// </remarks>
+    [HttpDelete("journal/{entryId:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public IActionResult DeleteEntry(int entryId)
+    {
+        var eintrag = _journalRepository.Get(entryId);
+        if (eintrag is null)
+        {
+            return NotFoundError("journal_entry_not_found", $"Journaleintrag mit Id {entryId} existiert nicht.");
+        }
+
+        _journalRepository.Delete(entryId);
+        _auditRepository.Add(new AuditEntry
+        {
+            GrowId = eintrag.GrowId,
+            EntityType = "JournalEntry",
+            EntityId = entryId,
+            Action = "Journaleintrag entfernt",
+            Summary = $"'{eintrag.Title}' wurde entfernt.",
+        });
+        return NoContent();
+    }
+
 }

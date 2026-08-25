@@ -109,6 +109,21 @@ public sealed partial class HardwareRepository
     }
 
 
+    /// <summary>Einen falsch eingetragenen Vorgang entfernen.</summary>
+    /// <remarks>
+    /// Ein Protokoll ist es erst, wenn es stimmt. Wer sich vertippt, muss den
+    /// Eintrag loswerden — sonst rechnet der Faelligkeits-Waechter mit einem
+    /// Datum, das nie stattgefunden hat.
+    /// </remarks>
+    public void DeleteMaintenanceEvent(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM MaintenanceEvents WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
     public MaintenanceEvent? GetMaintenanceEvent(int id)
     {
         using var connection = OpenConnection();
