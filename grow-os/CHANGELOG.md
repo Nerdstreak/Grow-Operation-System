@@ -1,5 +1,85 @@
 # Changelog
 
+## 2.0.0-beta.58
+
+**Beta.** Not a feature release. A user said the quiet part out loud — "CRUD is
+fundamental and you are not following it, and there is no proper test for the
+flip date" — and he was right, more broadly than the case that prompted it.
+Counted rather than guessed: **13 of 24** routes that create something had no
+way to delete it, **471** fields across 36 write contracts, and **two** test
+files that ever checked whether a saved value comes back.
+
+### What you can now undo
+
+- New — **nine things can be removed that never could be**: a strain, an area,
+  a light schedule, a calibration or maintenance entry, a journal entry, an
+  automatic measurement, a plant, and a routine you started by mistake. Until
+  now the app could create all of them and delete none. Whoever added one too
+  many kept it.
+
+- New — **each of them refuses when something still depends on it, and says
+  what.** A strain in use stays ("'White Widow' is still used by 3 plants").
+  So does an area that still holds plants, devices or grows — deleting it used
+  to leave the grow unsavable, because the app then rejected every save with
+  "setup with id X does not exist". The last light schedule of a tent stays as
+  well: the night ramp, the light-intrusion watch and both automatic
+  measurements hang off it, and each of them reads a missing schedule as
+  "nothing to do".
+
+- New — aborting a routine takes its reminders in the tasks list with it. They
+  hang off a column with no foreign key, so nothing would have cleaned them up;
+  they would have reminded you forever about a routine that no longer exists.
+
+### The flip date had a sibling
+
+- Fixed — **"days already in phase" was offered on every grow and thrown away
+  on most of them.** Same shape as the flip date in the last release: the form
+  showed the field, the server only accepted it outside germination and only
+  for non-autoflowers. Found by a new check, not by a user.
+
+- New — **autoflower grows can finally state their age.** The field "days since
+  germination" existed on the server and was never offered anywhere; an
+  autoflower grower starting mid-veg had no way to tell the app how old the
+  plant was.
+
+- Changed — the "plants" field on the grow form now only displays the number
+  when plants are recorded individually, instead of accepting a number the
+  server then overrides.
+
+### Three censuses, so this class of defect reports itself
+
+Each walks its own ground set and demands either handling or a written-out
+reason — no hand-maintained lists.
+
+- **Every route that promises "201 Created" needs a way to delete.** Not every
+  POST: a POST can be an action ("flip to flower", "test push"). Three
+  exceptions carry their reasons in the test.
+- **Every field of every write request must survive a round trip** — change one
+  field, save, read back, compare. This one immediately found the case above.
+- **Every delete route needs a real button.** Seven of the nine new ones had
+  none; the refusal message about the last light schedule could not have been
+  seen by anyone.
+
+To make the second one possible the project got its **first integration
+harness** — until now every backend test called controllers directly, which
+cannot answer "does the value a form sends come back out".
+
+### For the record: what a review pass found in that work
+
+Worth stating plainly, because it is the point of having one. The round-trip
+census filtered on one route shape and thereby missed **15** endpoints —
+including the measurement form, the most-used one in the app. Demonstrated by
+planting a defect that silently discarded the nutrient-solution pH on every
+measurement: **all 1442 tests stayed green**. The census now covers every write
+contract and catches exactly that.
+
+The same pass found that the new delete guards only counted references the
+database itself protects, and that the user-interface census saw four of eight
+fields because those inputs carry no type attribute. Both fixed.
+
+Backend at 1446 tests, 272 unit tests, 581 end-to-end cases. Every check
+carries a bite proof.
+
 ## 2.0.0-beta.57
 
 **Beta.** Two reports from the field — a flip date that never arrived and a
