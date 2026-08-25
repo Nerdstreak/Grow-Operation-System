@@ -1,5 +1,78 @@
 # Changelog
 
+## 2.0.0-beta.57
+
+**Beta.** Two reports from the field — a flip date that never arrived and a
+tent that accepted more plants than it has pots. Both were the same kind of
+defect: the app said yes and did nothing.
+
+### The flip date was thrown away without a word
+
+- Fixed — **you can now enter the flip date whatever phase the grow started
+  in.** The form shows the field for every grow that is not an autoflower; the
+  server only accepted it when the *entry point* was "Flower". But the normal
+  case is the other one: a grow starts in germination or veg and is flipped
+  weeks later. Whoever typed the date then got HTTP 200 back and an unchanged
+  value. Demonstrated against the running app: 2026-08-01 sent, 2026-07-20
+  still stored, no message.
+
+  One condition now decides it, in one place: a flip exists unless the plant is
+  an autoflower. Three cases in the update: a missing field preserves what is
+  stored (an outside caller must not be able to take a grow's flip away), an
+  empty field clears it, a date sets it.
+
+  Held by a census over *every* entry point rather than a hand-written list —
+  including the one that only exists tomorrow.
+
+### More plants than pots
+
+- Fixed — **a pot holds one plant, and there are no more plants than pots.**
+  The check never looked at the pot number at all. Demonstrated against the
+  running app on a four-pot system: eight plants accepted, pot 1 occupied
+  twice, one plant in a pot 999 — every one of them HTTP 201.
+
+  The number must now lie within the system's pot count and must not belong to
+  another plant of the same grow. The count applies to anyone newly entering
+  the grow, not only to newly created plants — moving a plant in from another
+  grow and releasing one from quarantine were two more doors into the same
+  room.
+
+  Existing data that already breaks the rule stays editable on purpose: a
+  change is only checked when the pot actually changes. Otherwise the people
+  who have the problem would be locked out of fixing it.
+
+- New — **plants can be removed.** There was no way at all: no endpoint, no
+  repository call, no button. Whoever added one too many kept it. A mother with
+  cuttings still stays — otherwise the lineage loses its beginning; a
+  phenotype evaluation belongs to the plant and goes with it. The card asks
+  before removing.
+
+- New — the card says **"3 of 4 pots taken"**, marks a doubly occupied pot, and
+  greys out "Add plant" with the reason next to it. A disabled button without a
+  reason is a broken button.
+
+### Two smaller things that fell out of it
+
+- Fixed — **the reason for a refusal never reached you.** The app reads only
+  the `message` field of an error; every per-field sentence sat in a part
+  nothing displays. "In Topf 1 steht schon 'Pflanze 1'." now arrives verbatim.
+
+  The obvious fix was wrong and is recorded as such: folding all field errors
+  into the message ships the framework's own English texts — "The field
+  HumidityPercent must be between 0 and 100." — from 37 attributes that never
+  had a German one.
+
+- Fixed — **the "Plants" tile counted the form, not the plants.** The report's
+  screenshot showed "Plants 6" above eight rows. Where plants are recorded
+  individually they are now the truth, for the grow list, the live tile, the
+  area per plant, the archive and grams per plant alike.
+
+### For the record
+
+Backend at 1421 tests, 269 unit tests, 580 end-to-end cases against the running
+app. Every new check carries a bite proof: with the old code 14 of 27 new
+backend cases went red, and 3 of 12 for the ones a review pass added.
+
 ## 2.0.0-beta.56
 
 **Beta.** Three reports from the field, each fixed at its root: one strain per
