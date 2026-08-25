@@ -322,3 +322,31 @@
   flex: 0 0 auto;
 }
 .gp-topf input { width: 64px; min-width: 64px; min-height: var(--h-md); }
+
+/* Die Topfbilanz — „3 von 4 Töpfen belegt". Beantwortet die Frage, die beim
+   Hinzufügen als Nächstes kommt, und macht den Widerspruch sichtbar, wenn ein
+   Altbestand mehr Pflanzen trägt als das System Töpfe hat. */
+.gp-bilanz {
+  margin: var(--s-2) 0 0;
+  font: 500 var(--fs-klein)/1.4 var(--font-mono);
+  color: var(--muted);
+}
+.gp-bilanz.zuviel { color: var(--warn-text); }
+
+/* Warum der Knopf gesperrt ist. Ein gesperrter Knopf ohne Grund ist ein
+   kaputter Knopf — genau die Klasse Fehler, die hier schon gemeldet wurde. */
+.gp-voll { color: var(--muted); font-size: var(--fs-text); margin: var(--s-2) 0 0; }
+
+/* „Entfernen" steht am Zeilenende und bleibt zurückhaltend: es ist die
+   seltene Aktion, nicht die naheliegende. --h-lg, weil der Tippziel-Test
+   schon einmal einen 27-px-Knopf gefunden hat. */
+.gp-weg {
+  margin-left: auto; flex: 0 0 auto;
+  min-height: var(--h-lg); padding: 0 12px;
+  border: 1px solid var(--hair); border-radius: var(--r-sm);
+  background: transparent; color: var(--muted);
+  font: 400 var(--fs-klein)/1 var(--font-sans);
+  cursor: pointer;
+}
+.gp-weg:hover { color: var(--danger-text); border-color: var(--danger); }
+.gp-weg:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

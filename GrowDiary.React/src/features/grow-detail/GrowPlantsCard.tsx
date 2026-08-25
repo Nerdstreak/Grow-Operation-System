@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../../api'
-import type { PlantInstanceDto, StrainDto } from '../../types'
+import type { HydroSetupDto, PlantInstanceDto, StrainDto } from '../../types'
 import { pflanzenRolleName } from '../../deutsche-woerter'
 import { V1Button, V1Card, V1Section } from '../../components/v1'
 
@@ -14,18 +14,39 @@ import { V1Button, V1Card, V1Section } from '../../components/v1'
  * und pflegt. Der Grow behält seine Hauptsorte für Listen und Strahl; wer
  * gemischt fährt, trägt es hier ein.
  */
-export function GrowPlantsCard({ growId, growPlantCount, onSorten }: {
+export function GrowPlantsCard({ growId, growPlantCount, systemId, onSorten, onAnzahl }: {
   growId: number
   growPlantCount: number | null
+  /**
+   * Das Hydro-System des Grows — daraus kommt die Zahl der Töpfe.
+   *
+   * Ohne sie konnte die Karte beliebig viele Pflanzen anlegen: gemeldet wurde
+   * „du kannst mehr Sorten angeben, als es Töpfe gibt", belegt mit acht
+   * Pflanzen in einem Vier-Topf-System. Die Sperre sitzt im Backend; hier
+   * steht sie, damit der Knopf gar nicht erst einlädt.
+   */
+  systemId: number | null
   /**
    * Meldet die Sorten der Pflanzen nach oben — die Detailseite ersetzt damit
    * ihre „Sorte"-Kachel durch „gemischt", statt bei einem Mehrsorten-Grow
    * eine einzelne Hauptsorte zu behaupten.
    */
   onSorten?: (sorten: string[]) => void
+  /**
+   * Meldet, wie viele Pflanzen wirklich erfasst sind.
+   *
+   * <b>Eine Wahrheit je Zahl.</b> Die Kachel „Pflanzen" zeigte bisher
+   * <c>grow.plantCount</c> — die Zahl aus dem Grow-Formular. Im gemeldeten
+   * Fall stand dort 6, während acht Pflanzen einzeln erfasst waren. Sind
+   * Pflanzen einzeln erfasst, sind sie die Wahrheit.
+   */
+  onAnzahl?: (anzahl: number) => void
 }) {
   const [plants, setPlants] = useState<PlantInstanceDto[]>([])
   const [strains, setStrains] = useState<StrainDto[]>([])
+  // Zusammen abgelegt, nicht getrennt: sonst zeigt die Karte nach einem
+  // Systemwechsel kurz die Topfzahl des VORIGEN Systems.
+  const [systemToepfe, setSystemToepfe] = useState<{ systemId: number, potCount: number | null } | null>(null)
   const [neuStrainId, setNeuStrainId] = useState('')
   const [busy, setBusy] = useState(false)
   const [fehler, setFehler] = useState<string | null>(null)
@@ -40,6 +61,7 @@ export function GrowPlantsCard({ growId, growPlantCount, onSorten }: {
     setPlants(pflanzen)
     setStrains(sorten.sort((a, b) => a.name.localeCompare(b.name, 'de')))
     onSorten?.([...new Set(pflanzen.map((p) => p.strainName).filter((n): n is string => !!n))])
+    onAnzahl?.(pflanzen.length)
   }
 
   useEffect(() => {
@@ -57,6 +79,35 @@ export function GrowPlantsCard({ growId, growPlantCount, onSorten }: {
     return () => controller.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- laden haengt nur an growId
   }, [growId])
+
+  // Die Topfzahl kommt aus dem Hydro-System und nirgendwo sonst — dieselbe
+  // Zahl, die die Draufsicht an ihre Sites zeichnet.
+  useEffect(() => {
+    if (systemId == null) return
+    const controller = new AbortController()
+    apiFetch<HydroSetupDto>(`/api/hydro-setups/${systemId}`, { signal: controller.signal })
+      .then((system) => setSystemToepfe({ systemId, potCount: system.potCount ?? null }))
+      .catch(() => setSystemToepfe({ systemId, potCount: null }))
+    return () => controller.abort()
+  }, [systemId])
+
+  /** Die Topfzahl — nur, wenn sie zu DIESEM System gehoert. */
+  const toepfe = systemId != null && systemToepfe?.systemId === systemId
+    ? systemToepfe.potCount
+    : null
+
+  /** Wie viele Töpfe noch frei sind — null heisst „System kennt keine Töpfe". */
+  const freiePlaetze = toepfe == null ? null : Math.max(0, toepfe - plants.length)
+
+  /** Ein Topf, der schon jemandem gehört — die Meldung nennt beide. */
+  const doppelteToepfe = useMemo(() => {
+    const zaehler = new Map<number, number>()
+    for (const p of plants) {
+      if (p.siteIndex == null) continue
+      zaehler.set(p.siteIndex, (zaehler.get(p.siteIndex) ?? 0) + 1)
+    }
+    return [...zaehler.entries()].filter(([, n]) => n > 1).map(([topf]) => topf)
+  }, [plants])
 
   /** „3× RS11 · 1× Purple Lemonade" — der Satz, der den Mischgrow beschreibt. */
   const verteilung = useMemo(() => {
@@ -102,6 +153,30 @@ export function GrowPlantsCard({ growId, growPlantCount, onSorten }: {
     const zahl = wert.trim() === '' ? null : Math.trunc(Number(wert))
     if (zahl != null && (!Number.isFinite(zahl) || zahl < 1)) return
     return feldAendern(plant, { siteIndex: zahl }, 'Topf')
+  }
+
+  /**
+   * Eine Pflanze entfernen.
+   *
+   * Bis zum 25.08.2026 ging das nirgends — nicht hier und nicht über die API.
+   * Wer eine zu viel anlegte, behielt sie; bei acht Pflanzen in einem
+   * Vier-Topf-System gab es keinen Weg zurück.
+   */
+  async function entfernen(plant: PlantInstanceDto) {
+    // Rückfrage, wie beim Verwerfen einer Pflanze aus der Quarantäne: das
+    // Entfernen nimmt auch den Pheno-Bogen mit (ON DELETE CASCADE), und der
+    // Knopf sitzt am Ende jeder Zeile.
+    const jaWirklich = window.confirm(
+      `„${plant.label}" wirklich entfernen? Eine Pheno-Bewertung dieser Pflanze geht mit.`)
+    if (!jaWirklich) return
+
+    setFehler(null)
+    try {
+      await apiFetch(`/api/plants/${plant.id}`, { method: 'DELETE' })
+      await laden()
+    } catch (caught) {
+      setFehler(caught instanceof Error ? caught.message : 'Pflanze konnte nicht entfernt werden.')
+    }
   }
 
   async function hinzufuegen() {
@@ -152,6 +227,23 @@ export function GrowPlantsCard({ growId, growPlantCount, onSorten }: {
           ) : (
             <>
               {verteilung && <p className="gc-facts">Im Zelt: {verteilung}</p>}
+              {/* Die Topfbilanz steht ÜBER der Liste, weil sie die Frage
+                  beantwortet, die beim Hinzufügen als Nächstes kommt. */}
+              {toepfe != null && (
+                <p className={`gp-bilanz ${plants.length > toepfe ? 'zuviel' : ''}`}>
+                  {plants.length > toepfe
+                    ? `${plants.length} Pflanzen bei ${toepfe} Töpfen — ${plants.length - toepfe} zu viel.`
+                    : `${plants.length} von ${toepfe} Töpfen belegt.`}
+                </p>
+              )}
+              {doppelteToepfe.length > 0 && (
+                <p className="gp-fehler">
+                  {doppelteToepfe.length === 1
+                    ? `Topf ${doppelteToepfe[0]} ist doppelt belegt.`
+                    : `Doppelt belegt: Topf ${doppelteToepfe.join(', ')}.`}{' '}
+                  Ein Topf trägt eine Pflanze.
+                </p>
+              )}
               <ul className="gp-liste">
                 {plants.map((plant) => (
                   <li key={plant.id}>
@@ -167,6 +259,7 @@ export function GrowPlantsCard({ growId, growPlantCount, onSorten }: {
                       <input
                         type="number"
                         min={1}
+                        max={toepfe ?? undefined}
                         value={plant.siteIndex ?? ''}
                         onChange={(event) => void topfAendern(plant, event.target.value)}
                         aria-label={`Topf von ${plant.label}`}
@@ -180,6 +273,15 @@ export function GrowPlantsCard({ growId, growPlantCount, onSorten }: {
                       <option value="">Ohne Sorte</option>
                       {strains.map((strain) => <option key={strain.id} value={strain.id}>{strain.name}</option>)}
                     </select>
+                    <button
+                      type="button"
+                      className="gp-weg"
+                      onClick={() => void entfernen(plant)}
+                      aria-label={`${plant.label} entfernen`}
+                      title={`${plant.label} entfernen`}
+                    >
+                      Entfernen
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -191,10 +293,17 @@ export function GrowPlantsCard({ growId, growPlantCount, onSorten }: {
               <option value="">Sorte wählen …</option>
               {strains.map((strain) => <option key={strain.id} value={strain.id}>{strain.name}</option>)}
             </select>
-            <V1Button onClick={() => void hinzufuegen()} disabled={busy}>
+            <V1Button onClick={() => void hinzufuegen()} disabled={busy || freiePlaetze === 0}>
               {busy ? 'Lege an…' : 'Pflanze hinzufügen'}
             </V1Button>
           </div>
+          {/* Ein gesperrter Knopf ohne Grund ist ein kaputter Knopf. */}
+          {freiePlaetze === 0 && (
+            <p className="gp-voll">
+              Alle {toepfe} Töpfe sind belegt. Entferne eine Pflanze, oder gib dem
+              System unter <Link to="/hydro">Hydro-Systeme</Link> mehr Sites.
+            </p>
+          )}
 
           {/* Der vergessene Weg — existiert seit der Klon-Phase, wusste nur niemand mehr. */}
           <p className="gp-hinweis">

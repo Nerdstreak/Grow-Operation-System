@@ -277,6 +277,12 @@ public sealed class GrowRepository
     public void UpdatePlant(PlantInstance plant)
         => _setupRepository.UpdatePlant(plant);
 
+    public void DeletePlant(int id)
+        => _setupRepository.DeletePlant(id);
+
+    public int CountPlantChildren(int parentPlantId)
+        => _setupRepository.CountPlantChildren(parentPlantId);
+
     public PlantInstance? GetPlant(int id)
         => _setupRepository.GetPlant(id);
 

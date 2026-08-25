@@ -76,7 +76,25 @@ public sealed class GrowFormViewModel
 
     // Hilfseigenschaften
     public bool IsAutoflower => SeedType == SeedType.Autoflower;
-    public bool NeedsFlipDate => !IsAutoflower && EntryPoint == GrowEntryPoint.Flower;
+
+    /// <summary>
+    /// Ob das Formular ein Flipdatum kennt — die EINE Wahrheit dazu.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Fehler, aus dem das hier steht.</b> Bis zum 25.08.2026 stand
+    /// hier zusätzlich <c>EntryPoint == GrowEntryPoint.Flower</c>. Das Formular
+    /// zeigt das Feld aber für <i>jeden</i> Grow, der keine Autoflower ist
+    /// (<c>GrowSetupPage.tsx</c>) — und der Normalfall ist genau der andere:
+    /// ein Grow beginnt in der Keimung oder Vegetation und wird später
+    /// geflippt. Wer das Datum dann eintrug, bekam HTTP 200 und einen
+    /// unveränderten Wert zurück. Belegt am laufenden Stand: 2026-08-01
+    /// geschickt, 2026-07-20 geblieben, keine Meldung.</para>
+    ///
+    /// <para>Ein Autoflower hat keinen Flip — sie geht nach Tagen in die Blüte
+    /// (<c>GrowStageResolver.AutoflowerBluetenStart</c>). Deshalb bleibt das
+    /// die einzige Bedingung.</para>
+    /// </remarks>
+    public bool NeedsFlipDate => !IsAutoflower;
     public bool NeedsDaysInPhase => EntryPoint != GrowEntryPoint.Germination && !IsAutoflower;
 
     public static GrowFormViewModel FromGrow(GrowRun grow)

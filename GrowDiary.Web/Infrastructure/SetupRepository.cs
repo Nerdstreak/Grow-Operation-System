@@ -379,6 +379,44 @@ public sealed class SetupRepository : RepositoryBase
         command.ExecuteNonQuery();
     }
 
+    /// <summary>Eine Pflanze entfernen.</summary>
+    /// <remarks>
+    /// <para><b>Warum es das erst seit dem 25.08.2026 gibt.</b> Pflanzen liessen
+    /// sich anlegen und aendern, aber nie entfernen — weder ueber die API noch
+    /// ueber die Oberflaeche. Wer eine zu viel anlegte, behielt sie. Zusammen
+    /// mit der fehlenden Topf-Pruefung hiess das: acht Pflanzen in einem
+    /// Vier-Topf-System, und kein Weg zurueck.</para>
+    ///
+    /// <para><b>Was dranhaengt.</b> <c>PhenoEvaluations</c> haengt mit
+    /// <c>ON DELETE CASCADE</c>, <c>ParentPlantId</c> mit
+    /// <c>ON DELETE SET NULL</c> — beides greift, weil
+    /// <see cref="RepositoryBase.OpenConnection"/> die Fremdschluessel
+    /// einschaltet. Ob eine Pflanze mit Abstammung oder Bewertung ueberhaupt
+    /// verschwinden darf, entscheidet der Controller; hier wird nur geloescht.</para>
+    /// </remarks>
+    public void DeletePlant(int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM PlantInstances WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>Wie viele Pflanzen diese hier als Mutter fuehren.</summary>
+    /// <remarks>
+    /// Eigene Abfrage statt <c>GetPlantsByWhere</c>: das nimmt nur
+    /// <c>$setupId</c> und <c>$growId</c> entgegen, keinen dritten Namen.
+    /// </remarks>
+    public int CountPlantChildren(int parentPlantId)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM PlantInstances WHERE ParentPlantId = $parentPlantId;";
+        command.Parameters.AddWithValue("$parentPlantId", parentPlantId);
+        return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+    }
+
     public PlantInstance? GetPlant(int id)
     {
         using var connection = OpenConnection();

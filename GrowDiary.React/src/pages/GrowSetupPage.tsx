@@ -294,7 +294,7 @@ function TimeStep({ form, patch }: { form: GrowUpsertPayload; patch: (value: Par
         onChange={(event) => patch({ plannedVegDays: toNullableInt(event.target.value) })}
       />
     </V1Field>
-  )}{form.seedType !== 'Autoflower' && <V1Field label="Flipdatum" hint="Erst ausfüllen, wenn wirklich geflippt wurde."><input type="date" value={form.flipDate ?? ''} onChange={(event) => patch({ flipDate: event.target.value || null })} /></V1Field>}<V1Field label="Status"><select value={form.status} onChange={(event) => patch({ status: event.target.value as GrowStatus })}>{statuses.map((value) => <option key={value} value={value}>{statusName(value)}</option>)}</select></V1Field>
+  )}{form.seedType !== 'Autoflower' && <V1Field label="Flipdatum" hint="Erst ausfüllen, wenn wirklich geflippt wurde."><input type="date" value={form.flipDate ?? ''} onChange={(event) => patch({ flipDate: event.target.value })} /></V1Field>}<V1Field label="Status"><select value={form.status} onChange={(event) => patch({ status: event.target.value as GrowStatus })}>{statuses.map((value) => <option key={value} value={value}>{statusName(value)}</option>)}</select></V1Field>
     {/* Sollwerte sind, wie man DIESEN Lauf faehrt. Steht hier nichts, gilt das
         Profil des Hydro-Systems — das sagt der Hinweis auch. */}
     <ProfileSelect

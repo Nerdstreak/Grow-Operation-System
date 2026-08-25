@@ -25,6 +25,9 @@ function GrowDetailPage() {
   const { growId } = useParams()
   const navigate = useNavigate()
   const [pflanzenSorten, setPflanzenSorten] = useState<string[]>([])
+  // Wie viele Pflanzen wirklich erfasst sind. Die Kachel zeigte bisher die
+  // Zahl aus dem Grow-Formular; gemeldet wurde 6 bei acht erfassten Pflanzen.
+  const [pflanzenAnzahl, setPflanzenAnzahl] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
@@ -218,7 +221,12 @@ function GrowDetailPage() {
             hint={pflanzenSorten.length > 1
               ? pflanzenSorten.join(' · ')
               : [grow.breeder, samenName(grow.seedType)].filter(Boolean).join(' · ') || undefined} />
-          <V1Stat label="Pflanzen" value={grow.plantCount ?? '—'} />
+          <V1Stat
+            label="Pflanzen"
+            value={pflanzenAnzahl && pflanzenAnzahl > 0 ? pflanzenAnzahl : grow.plantCount ?? '—'}
+            hint={pflanzenAnzahl && pflanzenAnzahl > 0 && grow.plantCount != null && grow.plantCount !== pflanzenAnzahl
+              ? `einzeln erfasst · im Formular stehen ${grow.plantCount}`
+              : undefined} />
           <V1Stat label="pH / EC" value={`${formatNumber(latest?.reservoirPh, 2)} · ${formatNumber(latest?.reservoirEc, 2)}`} />
           <V1Stat label="Klima" value={latest ? `${formatNumber(latest.airTemperatureC, 1)}° · ${formatNumber(latest.humidityPercent, 0)}%` : '—'} />
           <V1Stat label="Messungen" value={bundle.measurements.length} />
@@ -284,7 +292,7 @@ function GrowDetailPage() {
         {/* Pflanzen einzeln, jede mit ihrer Sorte — der Mischgrow aus dem
             Tester-Feedback. Vor der Nachtabsenkung: erst wer drin steht,
             dann wie gefahren wird. */}
-        <GrowPlantsCard growId={grow.id} growPlantCount={grow.plantCount} onSorten={setPflanzenSorten} />
+        <GrowPlantsCard growId={grow.id} growPlantCount={grow.plantCount} systemId={grow.systemId ?? null} onSorten={setPflanzenSorten} onAnzahl={setPflanzenAnzahl} />
 
         {/* Die Nachtabsenkung steht bei den Fakten, nicht bei der Verwaltung:
             sie ist eine Anbau-Entscheidung, kein Aufräumen. */}

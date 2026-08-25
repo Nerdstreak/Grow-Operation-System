@@ -77,10 +77,26 @@ und Ø-Ertrag je Sorte, darunter je aktivem Grow der Kandidatenstreifen mit Bewe
 - **Ein bewurzelter Klon ist ab Tag 1 Veg**; die Sämlingsphase gehört den Samen.
 - **Autoflower bekommen keinen Flip-Knopf** — der Server lehnt `flip-to-flower` mit 400 ab.
 - **Ein Vorab-Flipdatum zählt noch nicht:** bis zum Tag X bleibt der Lauf vegetativ.
+- **Das Flipdatum lässt sich bei jedem Einstiegspunkt eintragen** — nicht nur bei „Blüte".
+  Ein Grow startet in aller Regel in der Keimung und wird später geflippt. Im PUT gilt:
+  `null` heißt „das Feld kam nicht mit" (bewahren), ein leerer Text heißt „gelöscht", ein
+  Datum heißt „gesetzt". Eine Autoflower bekommt nie eines — sie geht nach Tagen in die
+  Blüte.
 - **Der Topf ist eine Nummer, kein eigenes Ding.** `SiteIndex` zeigt auf die Zählung der
   Draufsicht (1..n, zeilenweise aus Topfzahl und Reihen). Es gibt keine Topf-Tabelle, keine
   Koordinaten und kein Ziehen — ein zweites Modell für dieselbe Wahrheit wäre teurer als der
   Nutzen. Wer anders bestückt, ändert die Nummer.
+- **Ein Topf trägt eine Pflanze, und es gibt nicht mehr Pflanzen als Töpfe.**
+  `PlantsApiController.ValidateTopf` prüft gegen `GrowSystem.PotCount` des Grows: die Nummer
+  muss in 1..n liegen und darf keiner anderen Pflanze desselben Grows gehören. Beim Ändern
+  wird nur ein Topf geprüft, der sich auch ändert — sonst könnte ein Bestand von vor dieser
+  Regel nicht mehr in Ordnung gebracht werden. Ohne Hydro-System (Mutterpflanzen, Klone in
+  einem Setup) greift die Regel nicht.
+- **Pflanzen lassen sich entfernen** (`DELETE /api/plants/{id}`, Knopf in der Karte) — außer
+  einer Mutter, an der noch Stecklinge hängen: dann verlöre die Abstammung ihren Anfang.
+  Die Pheno-Bewertung gehört zur Pflanze und geht mit ihr.
+- **Die Kachel „Pflanzen" zählt die erfassten Pflanzen**, nicht das Feld `PlantCount` aus dem
+  Formular. Weichen beide ab, steht die Formularzahl im Hinweis darunter.
 - **Ø-Ertrag nur bei reinsortigen Läufen.** Die Ernte wird als Gesamtgewicht erfasst; ein
   Mischzelt zeigt „— gemischt" (`StrainsPage`, `mixedOnly`).
 - **Fehlende Bewertungsblöcke kosten keine Punkte** — sie fallen raus, die Gewichte werden

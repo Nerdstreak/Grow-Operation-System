@@ -219,13 +219,36 @@ public sealed class GrowsApiController : ApiControllerBase
         grow.NightRampEnabled = existing.NightRampEnabled;
         grow.NightRampFloorC = existing.NightRampFloorC;
 
-        // Den Flip kann das Formular nur ausdruecken, wenn der Einstieg
-        // "Bluete" ist (NeedsFlipDate). In allen anderen Faellen ist das
-        // null im Formular kein "loeschen", sondern "nicht gefragt".
-        var formKenntFlip = request.EntryPoint == GrowEntryPoint.Flower && request.SeedType != SeedType.Autoflower;
+        // Der Flip, in drei Faellen:
+        //
+        //   Autoflower          -> gibt es nicht, bewahren (sie geht nach Tagen
+        //                          in die Bluete, siehe GrowStageResolver)
+        //   FlipDate == null    -> das Feld kam gar nicht mit, bewahren
+        //   FlipDate == ""      -> ausdruecklich geleert, loeschen
+        //   FlipDate == Datum   -> setzen
+        //
+        // Frueher stand hier zusaetzlich EntryPoint == Flower. Das Formular
+        // zeigt das Feld aber fuer JEDEN Nicht-Autoflower, und der Normalfall
+        // ist der andere: ein Grow startet in der Keimung und wird spaeter
+        // geflippt. Wer das Datum dann eintrug, bekam HTTP 200 und einen
+        // unveraenderten Wert zurueck. Warum null trotzdem bewahrt: ein
+        // fremder Aufrufer, der das Feld weglaesst, darf dem Grow seinen Flip
+        // nicht nehmen — genau diese Klasse hat schon einmal Meilensteine
+        // geloescht (GrowUpdatePreservationTests).
+        var formKenntFlip = request.SeedType != SeedType.Autoflower && request.FlipDate is not null;
         if (!formKenntFlip)
         {
             grow.FlipDate = existing.FlipDate;
+        }
+
+        // Sind Pflanzen EINZELN erfasst, sind sie die Wahrheit ueber die Zahl.
+        // Sonst zeigt die Detailseite die erfassten Pflanzen, waehrend
+        // Grow-Liste, Live-Kachel, Flaeche je Pflanze, Archiv und g/Pflanze
+        // weiter die Formularzahl lesen — fuenf Stellen gegen eine.
+        var erfasst = _repository.GetPlantsByGrow(id).Count;
+        if (erfasst > 0)
+        {
+            grow.PlantCount = erfasst;
         }
 
         // Gleiches Prinzip fuer das Feedchart-Opt-in: fehlt das Feld im
