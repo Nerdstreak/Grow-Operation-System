@@ -291,3 +291,76 @@ test('entfernen und neu anlegen gibt keiner Pflanze den Namen einer anderen', as
     }
   }
 })
+
+/**
+ * Der Topf wird GEWÄHLT, nicht getippt — und steht nur einmal da.
+ *
+ * <b>Der Anlass (28.08.2026).</b> Gemeldet: „Die Topf durchzählung ist
+ * fehlerhaft und die Prüfung ob der Topf belegt ist ist etwas komisch, kannst
+ * du das angenehmer und verständlicher für den user machen."
+ *
+ * <b>Was daran komisch war.</b> Die Zeile las sich
+ * <code>Pflanze 1 · TOPF [1] · White Widow</code> — der Name und die Topfzahl
+ * sagten dasselbe, zweimal nebeneinander. Und der Topf war ein Zahlenfeld:
+ * wer 2 eintippte, während Topf 2 belegt war, bekam eine Fehlermeldung, statt
+ * die belegten Töpfe vorher zu sehen. Die App weiss, welche frei sind.
+ *
+ * <b>Die Regel des Nutzers dazu</b> („es soll nichts doppelt sein und die
+ * abbildung hat immer vorrang"): eine Angabe, eine Stelle. Der Topf ist die
+ * Kennung der Zeile, und was belegt ist, steht in der Auswahl.
+ */
+test('der Topf steht einmal da und wird aus den freien gewaehlt', async ({ page, request }) => {
+  darfUeberspringen(!(await request.get('/api/grows')).ok(), 'Kein Backend.')
+
+  const grow = await (await request.get('/api/grows/1')).json()
+  darfUeberspringen(grow.systemId == null, 'Der Grow hängt an keinem Hydro-System.')
+  const system = await (await request.get(`/api/hydro-setups/${grow.systemId}`)).json()
+  const pflanzen = await (await request.get('/api/plants?growId=1')).json() as
+    Array<{ siteIndex: number | null }>
+  darfUeberspringen(pflanzen.length === 0, 'Keine Pflanzen — dann gibt es keine Zeile.')
+
+  await page.goto('/grows/1', { waitUntil: 'networkidle' })
+  const karte = page.locator('[data-audit="grow-plants"]')
+  await karte.scrollIntoViewIfNeeded()
+  await page.waitForTimeout(600)
+
+  /* <b>Kein Zahlenfeld mehr.</b> Ein Feld, in das man eine belegte Nummer
+     tippen kann, verschiebt die Prüfung auf den Moment NACH der Eingabe. */
+  expect(await karte.locator('.gp-topf input[type="number"]').count(),
+    'Der Topf ist noch ein Zahlenfeld — wer eine belegte Nummer tippt, erfährt es '
+    + 'erst danach.').toBe(0)
+
+  const topfWahl = karte.locator('.gp-topf select')
+  await expect(topfWahl.first(), 'Es gibt keine Topf-Auswahl.').toBeVisible()
+
+  /* Die Auswahl kennt ALLE Töpfe des Systems — sonst kann man eine Pflanze
+     nicht auf einen freien schieben, den es gibt. */
+  const optionen = await topfWahl.first().locator('option').count()
+  expect(optionen, `Die Auswahl hat ${optionen} Einträge, das System ${system.potCount} `
+    + 'Töpfe (plus „kein Topf"). Ein Topf, der fehlt, ist nicht erreichbar.')
+    .toBeGreaterThanOrEqual(system.potCount)
+
+  /* Und die Zeile nennt die Nummer nur EINMAL. Vorher stand „Pflanze 1" neben
+     „TOPF 1" — dieselbe Zahl zweimal, was nach zwei Angaben aussieht. */
+  /* Der SICHTBARE Text der Zeile — inklusive der gewaehlten Option. Die erste
+     Fassung nahm `innerText`, und das liest den Wert eines Auswahlfelds nicht
+     mit: sie war gruen, waehrend im Bild „Topf 1 · TOPF · [1]" stand. */
+  const ersteZeile = await karte.locator('.gp-liste li').first().evaluate((li) => {
+    const stuecke: string[] = []
+    for (const el of li.querySelectorAll('*')) {
+      const eigen = [...el.childNodes].filter((k) => k.nodeType === 3)
+        .map((k) => k.textContent ?? '').join('').trim()
+      if (eigen) stuecke.push(eigen)
+      if (el instanceof HTMLSelectElement) {
+        stuecke.push(el.options[el.selectedIndex]?.textContent?.trim() ?? '')
+      }
+    }
+    return stuecke.filter(Boolean).join(' · ')
+  })
+  const topfNummer = String(pflanzen[0].siteIndex ?? '')
+  if (topfNummer) {
+    const treffer = ersteZeile.split(new RegExp(`\b${topfNummer}\b`)).length - 1
+    expect(treffer, `Die Nummer ${topfNummer} steht ${treffer}-mal in derselben Zeile: `
+      + `„${ersteZeile.replace(/\n/g, ' · ')}"`).toBeLessThanOrEqual(1)
+  }
+})

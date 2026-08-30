@@ -152,6 +152,26 @@ export function GrowPlantsCard({ growId, growPlantCount, systemId, onSorten, onA
     return [...zaehler.entries()].filter(([, n]) => n > 1).map(([topf]) => topf)
   }, [plants])
 
+  /**
+   * Die Töpfe des Systems mit ihrem Bewohner — die Grundlage der Auswahl.
+   *
+   * Kennt das System keine Topfzahl, bleibt wenigstens das, was vergeben ist:
+   * sonst verschwände bei einem Grow ohne Hydro-System der Topf ganz, und man
+   * käme an eine falsch gesetzte Nummer nicht mehr heran.
+   */
+  const topfAuswahl = useMemo(() => {
+    const bewohner = new Map<number, string>()
+    for (const p of plants) {
+      if (p.siteIndex == null) continue
+      bewohner.set(p.siteIndex, p.strainName ?? 'ohne Sorte')
+    }
+    const hoechste = Math.max(toepfe ?? 0, ...[...bewohner.keys()], 0)
+    return Array.from({ length: hoechste }, (_, i) => ({
+      topf: i + 1,
+      belegtVon: bewohner.get(i + 1) ?? null,
+    }))
+  }, [plants, toepfe])
+
   /** „3× RS11 · 1× Purple Lemonade" — der Satz, der den Mischgrow beschreibt. */
   const verteilung = useMemo(() => {
     const zaehler = new Map<string, number>()
@@ -299,23 +319,46 @@ export function GrowPlantsCard({ growId, growPlantCount, systemId, onSorten, onA
               <ul className="gp-liste">
                 {plants.map((plant) => (
                   <li key={plant.id}>
-                    <span className="gp-label">
-                      {plant.label}
-                      {plant.plantRole !== 'Production' && <em className="gp-rolle"> · {pflanzenRolleName(plant.plantRole)}</em>}
-                    </span>
-                    {/* Der Topf ab 1 — die Nummer aus der Draufsicht des
-                        Hydro-Systems. „In jedem Topf eine eigene Sorte" war
-                        die Meldung; die Sorte gab es, der Ort fehlte. */}
+                    {/* <b>Der Topf IST die Kennung der Zeile.</b> Vorher stand
+                        hier „Pflanze 1" und daneben „TOPF 1" — dieselbe Zahl
+                        zweimal, was nach zwei Angaben aussieht. Gemeldet als
+                        „etwas komisch"; die Regel dazu lautet „es soll nichts
+                        doppelt sein".
+
+                        Ein selbst vergebener Name bleibt sichtbar — nur die
+                        automatischen („Pflanze 3") fallen weg, weil sie nichts
+                        sagen, was der Topf daneben nicht schon sagt. */}
+                    {/* Nur ein SELBST vergebener Name steht hier. Der
+                        automatische fiel weg: „Topf 1" neben dem Auswahlfeld,
+                        das „Topf 1" zeigt, ist dieselbe Angabe zweimal — und
+                        genau das war gemeldet. */}
+                    {!istAutomatischerName(plant.label) && (
+                      <span className="gp-label">{plant.label}</span>
+                    )}
+                    {plant.plantRole !== 'Production' && (
+                      <em className="gp-rolle">{pflanzenRolleName(plant.plantRole)}</em>
+                    )}
+                    {/* <b>Gewaehlt, nicht getippt.</b> Ein Zahlenfeld liess
+                        eine belegte Nummer zu und meldete den Fehler erst
+                        danach — dabei weiss die App, welche Toepfe frei sind.
+                        Belegte stehen mit ihrem Bewohner dabei, damit ein
+                        Tausch sichtbar ist statt einer Sperre. */}
                     <label className="gp-topf">
-                      Topf
-                      <input
-                        type="number"
-                        min={1}
-                        max={toepfe ?? undefined}
+                      <select
                         value={plant.siteIndex ?? ''}
                         onChange={(event) => void topfAendern(plant, event.target.value)}
-                        aria-label={`Topf von ${plant.label}`}
-                      />
+                        aria-label={`Topf von ${istAutomatischerName(plant.label)
+                          ? `Pflanze in Topf ${plant.siteIndex ?? '–'}` : plant.label}`}
+                      >
+                        <option value="">— kein Topf —</option>
+                        {topfAuswahl.map((eintrag) => (
+                          <option key={eintrag.topf} value={eintrag.topf}>
+                            Topf {eintrag.topf}
+                            {eintrag.belegtVon != null && eintrag.topf !== plant.siteIndex
+                              ? ` · belegt (${eintrag.belegtVon})` : ''}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                     <select
                       value={plant.strainId ?? ''}
