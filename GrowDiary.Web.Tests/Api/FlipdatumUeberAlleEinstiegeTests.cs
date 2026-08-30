@@ -49,7 +49,9 @@ public sealed class FlipdatumUeberAlleEinstiegeTests : IDisposable
             new AuditRepository(_paths),
             new WeekCounterService(),
             new DeviationAnalyzerService(new TargetValueService(loader)),
-            new TreatmentRecommender(loader));
+            new TreatmentRecommender(loader),
+            new SetupRepository(_paths),
+            new HydroSetupRepository(_paths, new TentRepository(_paths)));
     }
 
     public void Dispose()

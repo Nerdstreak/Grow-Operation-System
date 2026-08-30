@@ -14,6 +14,49 @@ import { V1Button, V1Card, V1Section } from '../../components/v1'
  * und pflegt. Der Grow behält seine Hauptsorte für Listen und Strahl; wer
  * gemischt fährt, trägt es hier ein.
  */
+/**
+ * Der Name einer Pflanze folgt ihrem TOPF, nicht der Anzahl.
+ *
+ * <b>Der Anlass (28.08.2026).</b> Gemeldet: „Der user hat eine pflanze
+ * gelöscht und wieder hinzugefügt und da taucht diese doppelt auf."
+ * Nachgestellt: vier Pflanzen, die dritte entfernt, eine neue angelegt —
+ * heraus kam „Pflanze 4" auf Topf 4 UND „Pflanze 4" auf Topf 3.
+ *
+ * Der Name kam aus `plants.length + 1`, der Topf aus der ersten freien Lücke.
+ * Nach einer Löschung laufen die beiden auseinander: drei Pflanzen ergeben
+ * „Pflanze 4", und die gibt es schon.
+ *
+ * Ein Topf trägt eine Pflanze — seine Nummer ist also eindeutig, und das
+ * macht sie zum besseren Namen. Zwei Nummern nebeneinander, die verschiedene
+ * Dinge sagen („Pflanze 4" auf „Topf 3"), lassen den Leser ohnehin raten.
+ */
+export function pflanzenName(topf: number | null): string {
+  return topf == null ? 'Pflanze ohne Topf' : `Pflanze ${topf}`
+}
+
+/**
+ * Der nächste freie Topf ab 1 — dieselbe Zählung, die die Draufsicht an ihre
+ * Sites zeichnet.
+ */
+export function naechsterFreierTopf(plants: ReadonlyArray<{ siteIndex: number | null }>): number {
+  const belegt = new Set(plants.map((p) => p.siteIndex).filter((n): n is number => n != null))
+  let frei = 1
+  while (belegt.has(frei)) frei += 1
+  return frei
+}
+
+/**
+ * Stammt dieser Name von der App — oder hat ihn jemand selbst vergeben?
+ *
+ * Nur automatische Namen wandern beim Topfwechsel mit. „Mutter Nord" bleibt
+ * stehen, wo sie steht; sonst überschriebe ein Topfwechsel eine Angabe, die
+ * jemand mit Absicht gemacht hat.
+ */
+export function istAutomatischerName(label: string | null | undefined): boolean {
+  if (label == null) return true
+  return /^\s*(Pflanze|Topf)\s*(\d+)?\s*$/i.test(label) || label.trim() === 'Pflanze ohne Topf'
+}
+
 export function GrowPlantsCard({ growId, growPlantCount, systemId, onSorten, onAnzahl }: {
   growId: number
   growPlantCount: number | null
@@ -148,11 +191,24 @@ export function GrowPlantsCard({ growId, growPlantCount, systemId, onSorten, onA
     return feldAendern(plant, { strainId: strainId === '' ? null : Number(strainId) }, 'Sorte')
   }
 
-  /** Der Topf ab 1 — leer heisst „kein Topf zugeordnet". */
+  /**
+   * Der Topf ab 1 — leer heisst „kein Topf zugeordnet".
+   *
+   * <b>Der Name zieht mit.</b> Wer eine Pflanze von Topf 3 auf Topf 5 setzt,
+   * hat danach nicht „Pflanze 3" auf Topf 5 stehen. Ausdrücklich verlangt:
+   * „dass er automatisch durchzählt und wenn sich was ändert, er die Zahl
+   * automatisch zieht."
+   *
+   * Ein selbst vergebener Name bleibt unberührt — nur die automatischen
+   * („Pflanze 3", „Topf 3") wandern mit. Sonst überschriebe ein Topfwechsel
+   * einen Namen, den jemand mit Absicht gesetzt hat.
+   */
   function topfAendern(plant: PlantInstanceDto, wert: string) {
     const zahl = wert.trim() === '' ? null : Math.trunc(Number(wert))
     if (zahl != null && (!Number.isFinite(zahl) || zahl < 1)) return
-    return feldAendern(plant, { siteIndex: zahl }, 'Topf')
+    const aenderung: Partial<PlantInstanceDto> = { siteIndex: zahl }
+    if (istAutomatischerName(plant.label)) aenderung.label = pflanzenName(zahl)
+    return feldAendern(plant, aenderung, 'Topf')
   }
 
   /**
@@ -183,18 +239,14 @@ export function GrowPlantsCard({ growId, growPlantCount, systemId, onSorten, onA
     setBusy(true)
     setFehler(null)
     try {
-      // Der naechste freie Topf ab 1 — dieselbe Zaehlung, die die Draufsicht
-      // an ihre Sites zeichnet. Wer anders bestueckt, aendert die Nummer.
-      const belegt = new Set(plants.map((p) => p.siteIndex).filter((n): n is number => n != null))
-      let freierTopf = 1
-      while (belegt.has(freierTopf)) freierTopf++
+      const freierTopf = naechsterFreierTopf(plants)
 
       await apiFetch('/api/plants', {
         method: 'POST',
         body: JSON.stringify({
           growId,
           strainId: neuStrainId === '' ? null : Number(neuStrainId),
-          label: `Pflanze ${plants.length + 1}`,
+          label: pflanzenName(freierTopf),
           plantRole: 'Production',
           plantStatus: 'Active',
           siteIndex: freierTopf,

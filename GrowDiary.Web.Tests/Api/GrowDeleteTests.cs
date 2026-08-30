@@ -43,7 +43,9 @@ public sealed class GrowDeleteTests : IDisposable
             new AuditRepository(paths),
             new WeekCounterService(),
             new DeviationAnalyzerService(new TargetValueService(loader)),
-            new TreatmentRecommender(loader));
+            new TreatmentRecommender(loader),
+            new SetupRepository(paths),
+            new HydroSetupRepository(paths, new TentRepository(paths)));
     }
 
     public void Dispose()

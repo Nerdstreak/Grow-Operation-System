@@ -32,7 +32,9 @@ public sealed class GrowsApiControllerSetupTests : IDisposable
             new AuditRepository(_paths),
             new WeekCounterService(),
             CreateDeviationAnalyzer(),
-            CreateTreatmentRecommender());
+            CreateTreatmentRecommender(),
+            new SetupRepository(_paths),
+            new HydroSetupRepository(_paths, new TentRepository(_paths)));
     }
 
     public void Dispose()

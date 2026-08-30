@@ -19,6 +19,8 @@ public sealed class GrowsApiController : ApiControllerBase
     private readonly GrowRepository _repository;
     private readonly AuditRepository _auditRepository;
     private readonly WeekCounterService _weekCounter;
+    private readonly SetupRepository _setups;
+    private readonly HydroSetupRepository _hydro;
     private readonly DeviationAnalyzerService _deviationAnalyzer;
     private readonly TreatmentRecommender _treatmentRecommender;
 
@@ -27,11 +29,15 @@ public sealed class GrowsApiController : ApiControllerBase
         AuditRepository auditRepository,
         WeekCounterService weekCounter,
         DeviationAnalyzerService deviationAnalyzer,
-        TreatmentRecommender treatmentRecommender)
+        TreatmentRecommender treatmentRecommender,
+        SetupRepository setups,
+        HydroSetupRepository hydro)
     {
         _repository = repository;
         _auditRepository = auditRepository;
         _weekCounter = weekCounter;
+        _setups = setups;
+        _hydro = hydro;
         _deviationAnalyzer = deviationAnalyzer;
         _treatmentRecommender = treatmentRecommender;
     }
@@ -143,12 +149,23 @@ public sealed class GrowsApiController : ApiControllerBase
             _repository.UpdateGrow(savedGrow);
         }
 
+        /* Die Pflanzen gleich mit — eine je Topf, mit der Sorte des Grows.
+           Gemeldet am 28.08.2026: „der User kann unter grow nur eine Sorte
+           auswaehlen aber bei den Toepfen fuer den Grow 4 Stueck auswaehlen".
+           Ein Grow mit `plantCount: 4` legte null Pflanzen an; wer vier Toepfe
+           fuhr, klickte danach viermal „Pflanze hinzufuegen" und waehlte jedes
+           Mal dieselbe Sorte. Siehe `GrowPflanzen`. */
+        var angelegtePflanzen = GrowPflanzen.NachAnlage(_repository, _setups, _hydro, growId);
+
         _auditRepository.Add(new AuditEntry
         {
             GrowId = growId,
             EntityType = "Grow",
             Action = "Grow angelegt",
-            Summary = $"Grow '{request.Name}' wurde erstellt{(request.TemplateId.HasValue ? $" auf Basis des Templates #{request.TemplateId}" : string.Empty)}."
+            Summary = $"Grow '{request.Name}' wurde erstellt"
+                + (request.TemplateId.HasValue ? $" auf Basis des Templates #{request.TemplateId}" : string.Empty)
+                + (angelegtePflanzen > 0 ? $" mit {angelegtePflanzen} Pflanzen auf Topf 1–{angelegtePflanzen}" : string.Empty)
+                + "."
         });
 
         return CreatedAtAction(nameof(Detail), new { id = growId }, _repository.GetGrow(growId)!.ToDetailDto());

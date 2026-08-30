@@ -203,3 +203,91 @@ test('sind alle Töpfe belegt, sagt die Karte es — und das Entfernen macht wie
     expect(system2.potCount, 'Die Topfzahl wurde nicht zurückgesetzt.').toBe(toepfe)
   }
 })
+
+/**
+ * Nach dem Entfernen und Neuanlegen heisst keine Pflanze wie eine andere.
+ *
+ * <b>Der Anlass (28.08.2026).</b> Gemeldet: „Der user hat eine pflanze
+ * gelöscht und wieder hinzugefügt und da taucht diese doppelt auf."
+ * Nachgestellt am laufenden Stand:
+ * <pre>
+ *   Ausgangslage:       Pflanze 1@Topf1 | Pflanze 2@Topf2 | Pflanze 3@Topf3 | Pflanze 4@Topf4
+ *   nach dem Entfernen: Pflanze 1@Topf1 | Pflanze 2@Topf2 | Pflanze 4@Topf4
+ *   nach dem Anlegen:   Pflanze 1@Topf1 | Pflanze 2@Topf2 | Pflanze 4@Topf4 | Pflanze 4@Topf3
+ * </pre>
+ *
+ * <b>Die Ursache.</b> Der Name kam aus der ANZAHL
+ * (<code>Pflanze ${plants.length + 1}</code>), der Topf aus der ersten freien
+ * Lücke. Nach einer Löschung laufen die beiden auseinander: drei Pflanzen
+ * ergeben „Pflanze 4", und die gibt es schon.
+ *
+ * <b>Die Regel.</b> Der Name folgt dem TOPF, nicht der Anzahl. Ein Topf trägt
+ * eine Pflanze, also ist seine Nummer eindeutig — und wenn der Topf wechselt,
+ * zieht der Name mit. Genau das hat der Nutzer verlangt: „dass er automatisch
+ * durchzählt und wenn sich was ändert, er die Zahl automatisch zieht".
+ */
+test('entfernen und neu anlegen gibt keiner Pflanze den Namen einer anderen', async ({ page, request }) => {
+  darfUeberspringen(!(await request.get('/api/grows')).ok(), 'Kein Backend.')
+
+  const grow = await (await request.get('/api/grows/1')).json()
+  darfUeberspringen(grow.systemId == null, 'Der Grow hängt an keinem Hydro-System.')
+
+  const stand = async () => (await request.get('/api/plants?growId=1')).json() as
+    Promise<Array<{ id: number; label: string; siteIndex: number | null; strainId: number | null }>>
+
+  const vorher = await stand()
+  expect(vorher.length, 'Zu wenige Pflanzen — der Fall braucht mindestens drei, damit '
+    + 'nach dem Entfernen eine Lücke IN DER MITTE entsteht.').toBeGreaterThanOrEqual(3)
+
+  await page.goto('/grows/1', { waitUntil: 'networkidle' })
+  const karte = page.locator('[data-audit="grow-plants"]')
+  await karte.scrollIntoViewIfNeeded()
+
+  let angelegt: number | null = null
+  try {
+    /* Die MITTLERE entfernen, nicht die letzte: nur dann entsteht eine Lücke,
+       und nur dann laufen Anzahl und Topfnummer auseinander. Hätte der Fall
+       die letzte genommen, wäre er zufällig grün geblieben. */
+    const mitte = Math.floor(vorher.length / 2)
+    page.once('dialog', (dialog) => void dialog.accept())
+    await karte.locator('.gp-weg').nth(mitte).click()
+    await expect.poll(async () => (await stand()).length).toBe(vorher.length - 1)
+
+    await karte.locator('.gp-neu button').click()
+    await expect.poll(async () => (await stand()).length).toBe(vorher.length)
+
+    const nachher = await stand()
+    angelegt = nachher.find((p) => !vorher.some((v) => v.id === p.id))?.id ?? null
+    expect(angelegt, 'Die neue Pflanze ist nicht auffindbar.').toBeTruthy()
+
+    const namen = nachher.map((p) => p.label)
+    const doppelt = namen.filter((n, i) => namen.indexOf(n) !== i)
+    expect(doppelt, `Diese Namen kommen mehrfach vor: ${[...new Set(doppelt)].join(', ')}\n`
+      + nachher.map((p) => `  ${p.label} auf Topf ${p.siteIndex}`).join('\n')).toEqual([])
+
+    /* Und der Name PASST zum Topf. Zwei Nummern nebeneinander, die
+       verschiedene Dinge sagen, sind schlimmer als eine falsche: „Pflanze 4"
+       auf „Topf 3" lässt den Leser raten, welche gilt. */
+    const unpassend = nachher.filter((p) =>
+      p.siteIndex != null && !p.label.includes(String(p.siteIndex)))
+    expect(unpassend, 'Name und Topfnummer widersprechen sich:\n'
+      + unpassend.map((p) => `  „${p.label}" sitzt auf Topf ${p.siteIndex}`).join('\n'))
+      .toEqual([])
+  } finally {
+    if (angelegt != null) await request.delete(`/api/plants/${angelegt}`)
+    /* Die entfernte Pflanze wieder anlegen — mit ihren Feldern, damit der
+       Bestand danach dieselbe MENGE hat. Die Id ist eine andere; das lässt
+       sich nicht vermeiden, wenn ein Fall das Löschen prüft. */
+    const fehlend = vorher.filter(async () => true)
+    const jetzt = await stand()
+    for (const p of fehlend) {
+      if (jetzt.some((j) => j.id === p.id)) continue
+      await request.post('/api/plants', {
+        data: {
+          growId: 1, strainId: p.strainId, label: p.label,
+          plantRole: 'Production', plantStatus: 'Active', siteIndex: p.siteIndex,
+        },
+      })
+    }
+  }
+})
