@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { apiFetch } from '../../api'
 import type { HydroSetupDto, PlantInstanceDto, StrainDto } from '../../types'
 import { pflanzenRolleName } from '../../deutsche-woerter'
+import { istAutomatischerName, naechsterFreierTopf, pflanzenName } from './pflanzen-namen'
 import { V1Button, V1Card, V1Section } from '../../components/v1'
 
 /**
@@ -14,49 +15,6 @@ import { V1Button, V1Card, V1Section } from '../../components/v1'
  * und pflegt. Der Grow behält seine Hauptsorte für Listen und Strahl; wer
  * gemischt fährt, trägt es hier ein.
  */
-/**
- * Der Name einer Pflanze folgt ihrem TOPF, nicht der Anzahl.
- *
- * <b>Der Anlass (28.08.2026).</b> Gemeldet: „Der user hat eine pflanze
- * gelöscht und wieder hinzugefügt und da taucht diese doppelt auf."
- * Nachgestellt: vier Pflanzen, die dritte entfernt, eine neue angelegt —
- * heraus kam „Pflanze 4" auf Topf 4 UND „Pflanze 4" auf Topf 3.
- *
- * Der Name kam aus `plants.length + 1`, der Topf aus der ersten freien Lücke.
- * Nach einer Löschung laufen die beiden auseinander: drei Pflanzen ergeben
- * „Pflanze 4", und die gibt es schon.
- *
- * Ein Topf trägt eine Pflanze — seine Nummer ist also eindeutig, und das
- * macht sie zum besseren Namen. Zwei Nummern nebeneinander, die verschiedene
- * Dinge sagen („Pflanze 4" auf „Topf 3"), lassen den Leser ohnehin raten.
- */
-export function pflanzenName(topf: number | null): string {
-  return topf == null ? 'Pflanze ohne Topf' : `Pflanze ${topf}`
-}
-
-/**
- * Der nächste freie Topf ab 1 — dieselbe Zählung, die die Draufsicht an ihre
- * Sites zeichnet.
- */
-export function naechsterFreierTopf(plants: ReadonlyArray<{ siteIndex: number | null }>): number {
-  const belegt = new Set(plants.map((p) => p.siteIndex).filter((n): n is number => n != null))
-  let frei = 1
-  while (belegt.has(frei)) frei += 1
-  return frei
-}
-
-/**
- * Stammt dieser Name von der App — oder hat ihn jemand selbst vergeben?
- *
- * Nur automatische Namen wandern beim Topfwechsel mit. „Mutter Nord" bleibt
- * stehen, wo sie steht; sonst überschriebe ein Topfwechsel eine Angabe, die
- * jemand mit Absicht gemacht hat.
- */
-export function istAutomatischerName(label: string | null | undefined): boolean {
-  if (label == null) return true
-  return /^\s*(Pflanze|Topf)\s*(\d+)?\s*$/i.test(label) || label.trim() === 'Pflanze ohne Topf'
-}
-
 export function GrowPlantsCard({ growId, growPlantCount, systemId, onSorten, onAnzahl }: {
   growId: number
   growPlantCount: number | null
@@ -360,7 +318,12 @@ export function GrowPlantsCard({ growId, growPlantCount, systemId, onSorten, onA
                         ))}
                       </select>
                     </label>
+                    {/* `gp-sorte`: seit der Topf ebenfalls ein Auswahlfeld ist,
+                        gibt es zwei je Zeile — und ein Zugriff ueber die
+                        Position trifft das falsche. Genau daran ist eine
+                        bestehende Pruefung gescheitert. */}
                     <select
+                      className="gp-sorte"
                       value={plant.strainId ?? ''}
                       onChange={(event) => void sorteAendern(plant, event.target.value)}
                       aria-label={`Sorte von ${plant.label}`}

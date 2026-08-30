@@ -74,3 +74,23 @@ _audit_packages/
 
 # Local go-to-market drafts — not part of the public product repo
 LAUNCH-KIT.md
+
+# ── Arbeitsmaterial der Oberflaechen-Messungen ───────────────────────────────
+# Die `zz-*`-Skripte und ihre Screenshots entstehen beim Messen an der
+# laufenden App — hunderte Dateien, groesstenteils Bilder. Sie sind Werkzeug,
+# kein Quelltext, und ohne diese Regel nimmt jedes `git add -A` sie mit: am
+# 28.08.2026 landeten so 2071 Messdateien in einem Commit.
+#
+# `zz-plausibel/` ist ausgenommen, weil CLAUDE.md die Mappe als Werkzeug NENNT
+# — ein Verweis auf eine Datei, die es im Repository nicht gibt, ist dieselbe
+# Klasse Fehler wie eine Ausnahmeliste mit erfundenen Kennungen.
+GrowDiary.React/zz-*
+!GrowDiary.React/zz-plausibel/
+!GrowDiary.React/zz-plausibel/**
+
+# Screenshots direkt im React-Wurzelverzeichnis sind ebenfalls Messmaterial —
+# echte Bilder der App liegen in `public/icons/`. Das Muster ohne `**` trifft
+# nur die oberste Ebene, `zz-plausibel/zz-messungen.png` bleibt also drin.
+GrowDiary.React/*.png
+GrowDiary.React/*.jpg
+GrowDiary.React/zzq*

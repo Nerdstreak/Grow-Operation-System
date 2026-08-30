@@ -54,8 +54,17 @@ HTTP 200 und amd64 · arm64 · arm — sonst **anhalten**.
 ## Schritt 4 — erst jetzt hochzählen
 
 `grow-os/config.yaml` auf die neue Nummer, `grow-os/CHANGELOG.md` um einen
-Abschnitt ergänzen. Der Changelog ist auf Englisch (die App ist es nicht — das
-ist Absicht, er richtet sich an Fremde).
+Abschnitt ergänzen.
+
+**Der Changelog ist auf DEUTSCH.** Bis beta.58 war er englisch — mit dem
+Gedanken, er richte sich an Fremde. Der Nutzer hat das am 28.08.2026
+widerrufen: „einmal müssen die Release Notes auf Deutsch sein, weil das unsere
+Hauptsprache ist." Home Assistant zeigt genau diesen Text beim Update an, und
+wer aktualisiert, ist kein Fremder.
+
+Die Einträge vor beta.58 bleiben englisch; sie sind Geschichte. Gehalten wird
+das von `src/release-notes-deutsch.node.test.ts` — die Prüfung liest den
+NEUESTEN Eintrag und meldet englische Wendungen.
 
 Schreibe darin, **was der Nutzer merkt**, nicht was im Code steht. Je Punkt:
 was war, warum es passierte, und woran man es misst. Keine Aufzählung ohne

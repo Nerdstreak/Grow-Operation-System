@@ -1,84 +1,93 @@
 # Changelog
 
+> **Hinweis.** Ab 2.0.0-beta.58 stehen die Release Notes auf Deutsch — das ist
+> die Sprache dieses Projekts, und wer ein Update einspielt, soll lesen können,
+> was sich ändert. Die älteren Einträge darunter sind noch englisch; sie sind
+> Geschichte und werden nicht nachübersetzt.
+
 ## 2.0.0-beta.58
 
-**Beta.** Not a feature release. A user said the quiet part out loud — "CRUD is
-fundamental and you are not following it, and there is no proper test for the
-flip date" — and he was right, more broadly than the case that prompted it.
-Counted rather than guessed: **13 of 24** routes that create something had no
-way to delete it, **471** fields across 36 write contracts, and **two** test
-files that ever checked whether a saved value comes back.
+**Beta.** Kein Funktions-Release. Ein Nutzer hat ausgesprochen, was niemand
+hören wollte — „CRUD ist grundlegend und du hältst dich nicht daran, und für
+das Flip-Datum gibt es keine ordentliche Prüfung" — und er hatte recht, weiter
+als nur in dem Fall, der ihn dazu gebracht hat. Gezählt statt geschätzt: **13
+von 24** Routen, die etwas anlegen, hatten keinen Weg, es wieder zu löschen;
+**471** Felder in 36 schreibenden Verträgen; und **zwei** Testdateien, die je
+geprüft haben, ob ein gespeicherter Wert auch zurückkommt.
 
-### What you can now undo
+### Was sich jetzt rückgängig machen lässt
 
-- New — **nine things can be removed that never could be**: a strain, an area,
-  a light schedule, a calibration or maintenance entry, a journal entry, an
-  automatic measurement, a plant, and a routine you started by mistake. Until
-  now the app could create all of them and delete none. Whoever added one too
-  many kept it.
+- Neu — **neun Dinge lassen sich entfernen, die vorher blieben**: eine Sorte,
+  ein Bereich, ein Lichtplan, ein Kalibrier- oder Wartungseintrag, ein
+  Journaleintrag, eine automatische Messung, eine Pflanze und ein Ablauf, den
+  man versehentlich gestartet hat. Bis jetzt konnte die App all das anlegen und
+  nichts davon löschen. Wer eines zu viel angelegt hatte, behielt es.
 
-- New — **each of them refuses when something still depends on it, and says
-  what.** A strain in use stays ("'White Widow' is still used by 3 plants").
-  So does an area that still holds plants, devices or grows — deleting it used
-  to leave the grow unsavable, because the app then rejected every save with
-  "setup with id X does not exist". The last light schedule of a tent stays as
-  well: the night ramp, the light-intrusion watch and both automatic
-  measurements hang off it, and each of them reads a missing schedule as
-  "nothing to do".
+- Neu — **jedes davon verweigert sich, wenn noch etwas daran hängt, und sagt
+  was.** Eine Sorte, die benutzt wird, bleibt („‚White Widow' wird noch von 3
+  Pflanzen verwendet"). Ebenso ein Bereich, in dem noch Pflanzen, Geräte oder
+  Grows stehen — ihn zu löschen machte den Grow vorher unspeicherbar, weil die
+  App danach jedes Speichern mit „Setup mit Id X existiert nicht" ablehnte. Der
+  letzte Lichtplan eines Zelts bleibt auch: die Nachtabsenkung, die
+  Lichteinbruch-Überwachung und beide automatischen Messungen hängen daran, und
+  jede von ihnen liest einen fehlenden Plan als „nichts zu tun".
 
-- New — aborting a routine takes its reminders in the tasks list with it. They
-  hang off a column with no foreign key, so nothing would have cleaned them up;
-  they would have reminded you forever about a routine that no longer exists.
+- Neu — wer einen Ablauf abbricht, wird seine Erinnerungen in der Aufgabenliste
+  mit los. Sie hängen an einer Spalte ohne Fremdschlüssel, es hätte sie also
+  nichts aufgeräumt; sie wären als Karteileichen liegen geblieben.
 
-### The flip date had a sibling
+### Das Flip-Datum hatte ein Geschwister
 
-- Fixed — **"days already in phase" was offered on every grow and thrown away
-  on most of them.** Same shape as the flip date in the last release: the form
-  showed the field, the server only accepted it outside germination and only
-  for non-autoflowers. Found by a new check, not by a user.
+- Behoben — **„Tage bereits in der Phase" wurde bei jedem Grow angeboten und
+  bei den meisten weggeworfen.** Dieselbe Form wie das Flip-Datum im letzten
+  Release: das Formular zeigte das Feld, der Server nahm es nur außerhalb der
+  Keimung an und nur bei Nicht-Autoflowers. Gefunden von einer neuen Zählung,
+  nicht von einem Nutzer.
 
-- New — **autoflower grows can finally state their age.** The field "days since
-  germination" existed on the server and was never offered anywhere; an
-  autoflower grower starting mid-veg had no way to tell the app how old the
-  plant was.
+- Neu — **Autoflower-Grows können endlich ihr Alter angeben.** Das Feld „Tage
+  seit Keimung" gab es auf dem Server und wurde nirgends angeboten; wer einen
+  Autoflower mitten in der Vegetationsphase übernahm, konnte der App nicht
+  sagen, wie alt die Pflanze ist.
 
-- Changed — the "plants" field on the grow form now only displays the number
-  when plants are recorded individually, instead of accepting a number the
-  server then overrides.
+- Geändert — das Feld „Pflanzen" im Grow-Formular zeigt die Zahl jetzt nur noch
+  an, wenn Pflanzen einzeln erfasst sind, statt eine Zahl anzunehmen, die der
+  Server danach überschreibt.
 
-### Three censuses, so this class of defect reports itself
+### Drei Zählungen, damit diese Klasse Fehler sich selbst meldet
 
-Each walks its own ground set and demands either handling or a written-out
-reason — no hand-maintained lists.
+Jede läuft über ihre eigene Grundmenge und verlangt entweder eine Behandlung
+oder einen ausgeschriebenen Grund — keine handgepflegten Listen.
 
-- **Every route that promises "201 Created" needs a way to delete.** Not every
-  POST: a POST can be an action ("flip to flower", "test push"). Three
-  exceptions carry their reasons in the test.
-- **Every field of every write request must survive a round trip** — change one
-  field, save, read back, compare. This one immediately found the case above.
-- **Every delete route needs a real button.** Seven of the nine new ones had
-  none; the refusal message about the last light schedule could not have been
-  seen by anyone.
+- **Jede Route, die „201 Created" verspricht, braucht einen Weg zum Löschen.**
+  Nicht jedes POST: ein POST kann eine Handlung sein („auf Blüte umstellen",
+  „Testbenachrichtigung"). Drei Ausnahmen tragen ihren Grund im Test.
+- **Jedes Feld jeder schreibenden Anfrage muss einen Rundweg überstehen** — ein
+  Feld ändern, speichern, zurücklesen, vergleichen. Diese Zählung fand sofort
+  den Fall oben.
+- **Jede Löschroute braucht einen echten Knopf.** Sieben der neun neuen hatten
+  keinen; die Verweigerungsmeldung zum letzten Lichtplan konnte niemand je zu
+  sehen bekommen.
 
-To make the second one possible the project got its **first integration
-harness** — until now every backend test called controllers directly, which
-cannot answer "does the value a form sends come back out".
+Damit die zweite überhaupt möglich wurde, hat das Projekt seinen **ersten
+Integrations-Aufbau** bekommen — bis dahin rief jeder Backend-Test die
+Controller direkt auf, und das kann die Frage „kommt der Wert, den ein Formular
+schickt, auch wieder heraus" nicht beantworten.
 
-### For the record: what a review pass found in that work
+### Fürs Protokoll: was ein Prüfdurchgang in dieser Arbeit fand
 
-Worth stating plainly, because it is the point of having one. The round-trip
-census filtered on one route shape and thereby missed **15** endpoints —
-including the measurement form, the most-used one in the app. Demonstrated by
-planting a defect that silently discarded the nutrient-solution pH on every
-measurement: **all 1442 tests stayed green**. The census now covers every write
-contract and catches exactly that.
+Gehört klar gesagt, denn genau dafür gibt es ihn. Die Rundweg-Zählung filterte
+auf eine Routenform und übersah dadurch **15** Endpunkte — darunter das
+Messformular, das meistbenutzte der App. Nachgewiesen, indem ein Fehler
+eingebaut wurde, der den pH der Nährlösung bei jeder Messung still verwarf:
+**alle 1442 Tests blieben grün.** Die Zählung deckt jetzt jeden schreibenden
+Vertrag ab und fängt genau das.
 
-The same pass found that the new delete guards only counted references the
-database itself protects, and that the user-interface census saw four of eight
-fields because those inputs carry no type attribute. Both fixed.
+Derselbe Durchgang fand, dass die neuen Löschsperren nur Verweise zählten, die
+die Datenbank ohnehin schützt, und dass die Oberflächen-Zählung vier von acht
+Feldern sah, weil diese Eingaben kein Typ-Attribut tragen. Beides behoben.
 
-Backend at 1446 tests, 272 unit tests, 581 end-to-end cases. Every check
-carries a bite proof.
+Backend bei 1446 Tests, 272 Unit-Tests, 581 End-to-End-Fälle. Jede Prüfung
+trägt einen Bissnachweis.
 
 ## 2.0.0-beta.57
 

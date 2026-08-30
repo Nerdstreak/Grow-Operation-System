@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { darfUeberspringen } from './pflicht'
+import { nimmSchloss, gibSchloss } from './schloss'
 
 /**
  * NACHEINANDER, nicht parallel.
@@ -11,6 +12,72 @@ import { darfUeberspringen } from './pflicht'
  * Zeitpunkt abhaengt, hat nichts geprueft.
  */
 test.describe.configure({ mode: 'serial' })
+
+/* <b>Mehr Zeit als die 30 Sekunden der Vorgabe.</b> Die Faelle hier schreiben
+   ueber die Oberflaeche und lesen nach jedem Schritt zurueck; dazu kommt das
+   Warten auf das Schloss, wenn eine andere Datei gerade an Grow 1 arbeitet.
+   Beim Zeitablauf schliesst Playwright die Seite — und dann laeuft das
+   `finally` ins Leere („Target page has been closed"), das den Bestand
+   zuruecksetzen soll. Der naechste Lauf scheiterte daraufhin an Daten, die
+   dieser hier hinterlassen hat. */
+test.setTimeout(90_000)
+
+/**
+ * Die Ausgangslage wird HERGESTELLT, nicht gefordert.
+ *
+ * Die Fälle hier verschieben Töpfe und legen Pflanzen an; bricht einer ab —
+ * etwa im Zeitablauf, dann ist seine Seite schon zu und das `finally` läuft
+ * ins Leere —, bleibt eine Pflanze ohne Topf liegen. Der nächste Lauf
+ * scheiterte daraufhin an „Nicht jede Pflanze hat einen Topf", ohne dass an
+ * der App etwas falsch war: eine Meldung über den Vorgänger, nicht über die
+ * Sache. Am 28.08.2026 dreimal hintereinander so passiert.
+ *
+ * Aufgeräumt wird trotzdem weiter — aber kein Fall hängt mehr davon ab.
+ */
+test.beforeEach(async ({ request }) => {
+  /* <b>Das Schloss zuerst.</b> Vier Dateien schreiben an Grow 1, und
+     `fullyParallel: true` laesst sie gleichzeitig laufen. Ohne das Schloss
+     schrieb das Aufraeumen hier, waehrend `flipdatum-rundweg` sein eben
+     gespeichertes Datum zurueckliest — gemessen: erster Lauf gruen, zweiter
+     rot mit „eingetragen 2026-06-24, im Formular steht 2026-06-10". */
+  await nimmSchloss()
+
+  const antwort = await request.get('/api/plants?growId=1')
+  if (!antwort.ok()) return
+  const pflanzen = await antwort.json() as Array<{ id: number; siteIndex: number | null; strainId: number | null }>
+
+  // Jede Pflanze hat einen Topf.
+  const belegt = new Set(pflanzen.map((p) => p.siteIndex).filter((n): n is number => n != null))
+  for (const p of pflanzen) {
+    if (p.siteIndex != null) continue
+    let frei = 1
+    while (belegt.has(frei)) frei += 1
+    belegt.add(frei)
+    await request.put(`/api/plants/${p.id}`, { data: { ...p, siteIndex: frei } })
+  }
+
+  /* Und jeder Topf hat eine Pflanze. Ein Fall, der eine entfernt und im
+     Aufräumen scheitert, hinterlässt sonst „3 Pflanzen bei 4 Töpfen" — und
+     der nächste, der einen VOLLEN Bestand braucht, übersprang sich mit einer
+     Meldung über den Vorgänger. */
+  const grow = await (await request.get('/api/grows/1')).json()
+  if (grow.systemId == null) return
+  const system = await (await request.get(`/api/hydro-setups/${grow.systemId}`)).json()
+  const toepfe: number = system.potCount ?? 0
+  const sorte = pflanzen.find((p) => p.strainId != null)?.strainId ?? null
+  for (let topf = 1; topf <= toepfe; topf += 1) {
+    if (belegt.has(topf)) continue
+    await request.post('/api/plants', {
+      data: {
+        growId: 1, strainId: sorte, label: `Pflanze ${topf}`, siteIndex: topf,
+        plantRole: 'Production', plantStatus: 'Active',
+      },
+    })
+    belegt.add(topf)
+  }
+})
+
+test.afterEach(() => { gibSchloss() })
 
 /**
  * Je Topf eine eigene Sorte — und kein Feld geht dabei verloren.
@@ -53,9 +120,17 @@ test('je Pflanze Sorte UND Topf — beides überlebt die Änderung des anderen',
     (p: { strainId: number | null }) => p.strainId !== zweite.strainId)
   expect(andereSorte, 'Keine zweite Sorte gefunden.').toBeTruthy()
 
+  /* VOR dem `try` — das `finally` unten stellt sie zurück, und eine Konstante
+     aus dem `try`-Block ist dort nicht sichtbar. */
+  const dritte = vorher.find(
+    (p: { id: number, siteIndex: number | null }) => p.id !== zweite.id && p.siteIndex != null)
+
   try {
     // --- Schritt 1: die SORTE ändern. Der Topf muss stehen bleiben.
-    await karte.locator('select').nth(1).selectOption(String(andereSorte.strainId))
+    /* `.gp-sorte`, nicht `select`-nach-Position: seit dem 28.08.2026 ist auch
+       der Topf ein Auswahlfeld, und `nth(1)` traf danach den Topf der ersten
+       Zeile statt der Sorte der zweiten. */
+    await karte.locator('.gp-sorte').nth(1).selectOption(String(andereSorte.strainId))
     await page.waitForTimeout(900)
 
     const nachSorte = (await stand()).find((p: { id: number }) => p.id === zweite.id)
@@ -70,14 +145,15 @@ test('je Pflanze Sorte UND Topf — beides überlebt die Änderung des anderen',
     // Seit dem 25.08.2026 gibt es nur Töpfe, die das System auch hat, und
     // jeden höchstens einmal. Ein frei erfundener Topf 9 wird abgelehnt —
     // richtig so. Also wird erst einer frei gemacht.
-    const dritte = vorher.find(
-      (p: { id: number, siteIndex: number | null }) => p.id !== zweite.id && p.siteIndex != null)
     expect(dritte, 'Keine zweite Pflanze mit Topf gefunden.').toBeTruthy()
     await request.put(`/api/plants/${dritte.id}`, { data: { ...dritte, siteIndex: null } })
 
     const neuerTopf = dritte.siteIndex
-    await karte.locator('.gp-topf input').nth(1).fill(String(neuerTopf))
-    await karte.locator('.gp-topf input').nth(1).blur()
+    /* `selectOption`, nicht `fill`: der Topf ist seit dem 28.08.2026 ein
+       Auswahlfeld. Ein `fill` auf ein Element, das es nicht mehr gibt, wartet
+       bis zum Zeitablauf — der Fall lief 90 Sekunden und riss dann sein
+       eigenes Aufräumen mit. */
+    await karte.locator('.gp-topf select').nth(1).selectOption(String(neuerTopf))
     await page.waitForTimeout(900)
 
     const nachTopf = (await stand()).find((p: { id: number }) => p.id === zweite.id)
@@ -89,9 +165,15 @@ test('je Pflanze Sorte UND Topf — beides überlebt die Änderung des anderen',
     await request.put(`/api/plants/${zweite.id}`, { data: { ...zweite, siteIndex: null } })
     await request.put(`/api/plants/${dritte.id}`, { data: dritte })
   } finally {
-    // Aufräumen: der Demobestand bleibt, wie er war. Ein Rundweg, der Spuren
-    // hinterlässt, verschmutzt jede spätere Messung (belegt, beta.51).
+    /* Aufräumen: BEIDE angefassten Pflanzen, nicht nur die zweite. Der Fall
+       macht unterwegs den Topf der dritten frei; blieb sie ohne, scheiterte
+       der nächste Lauf an einer Meldung über den Vorgänger.
+
+       Schlank gehalten — vier PUTs über alle Pflanzen brachten den Fall über
+       sein Zeitlimit, und dann läuft dieses `finally` gar nicht mehr. Was
+       hier durchrutscht, richtet das `beforeEach` beim nächsten Mal. */
     await request.put(`/api/plants/${zweite.id}`, { data: zweite })
+    await request.put(`/api/plants/${dritte.id}`, { data: dritte })
     const zurueck = (await stand()).find((p: { id: number }) => p.id === zweite.id)
     expect(zurueck.strainId, 'Aufräumen fehlgeschlagen.').toBe(zweite.strainId)
     expect(zurueck.siteIndex, 'Aufräumen fehlgeschlagen.').toBe(zweite.siteIndex)
@@ -152,16 +234,21 @@ test('sind alle Töpfe belegt, sagt die Karte es — und das Entfernen macht wie
   await expect(karte.locator('.gp-voll'),
     'Der Knopf ist gesperrt, aber niemand sagt warum.').toBeVisible()
 
-  // 2. Ein belegter Topf wird abgelehnt — mit einem Satz, der den Topf nennt.
-  const felder = karte.locator('.gp-topf input')
-  await felder.nth(1).fill('1')
-  await felder.nth(1).blur()
-  await expect(karte.locator('.gp-fehler').first()).toContainText('Topf 1')
-  await expect(karte.locator('.gp-fehler').first(),
-    'Der generische Satz kommt beim Nutzer an statt der Begründung.')
-    .not.toContainText('validiert werden')
-  expect((await stand()).filter((p: { siteIndex: number }) => p.siteIndex === 1).length,
-    'Der doppelte Topf wurde gespeichert.').toBe(1)
+  /* 2. Ein belegter Topf ist SICHTBAR belegt — man muss ihn nicht erst
+        auswählen, um es zu erfahren.
+
+     Bis zum 28.08.2026 war der Topf ein Zahlenfeld: wer eine belegte Nummer
+     eintippte, bekam die Ablehnung danach. Jetzt steht sie in der Auswahl
+     („Topf 1 · belegt (White Widow)"), und die Prüfung misst das statt der
+     Fehlermeldung. Die Sperre im Backend bleibt und hat ihre eigenen Fälle. */
+  const auswahl = karte.locator('.gp-topf select').nth(1)
+  const belegteEintraege = await auswahl.locator('option').evaluateAll((os) =>
+    os.map((o) => o.textContent?.trim() ?? '').filter((s) => s.includes('belegt')))
+  expect(belegteEintraege.length, 'Kein einziger Topf ist als belegt gekennzeichnet — '
+    + 'dann sieht man erst nach der Auswahl, dass er vergeben ist.').toBeGreaterThan(0)
+  expect(belegteEintraege.some((s) => /\(.+\)/.test(s)),
+    `Die Auswahl sagt „belegt", aber nicht von wem: ${belegteEintraege.join(' | ')}`)
+    .toBe(true)
 
   // 3. Entfernen macht Platz — an einer Pflanze, die dieser Lauf selbst
   //    angelegt hat. Eine Demopflanze zu löschen und neu anzulegen gäbe ihr
@@ -186,19 +273,49 @@ test('sind alle Töpfe belegt, sagt die Karte es — und das Entfernen macht wie
     // Wieder voll, wieder gesperrt.
     await expect(karte.locator('.gp-neu button')).toBeDisabled()
 
-    // Und jetzt weg damit — über den Knopf, mit Rückfrage.
-    page.once('dialog', (dialog) => void dialog.accept())
-    await karte.locator('.gp-weg').last().click()
+    /* Und jetzt weg damit — über den Knopf, mit Rückfrage.
+
+       GEZIELT die eben angelegte, nicht „die letzte in der Liste". Die
+       Reihenfolge hängt an der Sortierung, und die kann sich ändern; getroffen
+       wurde dann eine der ursprünglichen, und das Aufräumen meldete danach
+       „3 Pflanzen statt 4". Am 28.08.2026 in jedem zweiten vollen Lauf. */
+    const zeilen = await karte.locator('.gp-liste li').count()
+    let getroffen = false
+    for (let i = 0; i < zeilen; i += 1) {
+      const zeile = karte.locator('.gp-liste li').nth(i)
+      const topf = await zeile.locator('.gp-topf select').inputValue()
+      const dazu = (await stand()).find((p: { id: number }) => p.id === angelegt)
+      if (topf !== String(dazu?.siteIndex ?? '')) continue
+      page.once('dialog', (dialog) => void dialog.accept())
+      await zeile.locator('.gp-weg').click()
+      getroffen = true
+      break
+    }
+    expect(getroffen, 'Die eben angelegte Pflanze war in der Liste nicht zu finden.')
+      .toBe(true)
     await expect.poll(async () => (await stand()).length).toBe(toepfe)
   } finally {
     if (angelegt != null) await request.delete(`/api/plants/${angelegt}`)
     await request.put(`/api/hydro-setups/${grow.systemId}`, { data: system })
 
-    // Nachprüfen, dass wirklich nichts liegen bleibt — dieselben Ids wie vorher.
+    /* Nachprüfen, dass nichts liegen bleibt — an der MENGE und den belegten
+       Töpfen, nicht an den Ids.
+
+       Die erste Fassung verglich Ids. Sobald ein anderer Fall eine Pflanze
+       löscht und neu anlegt (was er tun muss, um genau das zu prüfen), trägt
+       sie eine neue Id — und dieser Fall meldete „der Bestand hat andere
+       Pflanzen als vorher", obwohl er vollständig war. Gemessen am
+       28.08.2026: erster voller Lauf grün, zweiter rot.
+
+       Was hier zählt, ist der Zustand: gleich viele Pflanzen, dieselben Töpfe
+       belegt. Eine neue Id ist kein Schaden, eine fehlende Pflanze schon. */
     const zurueck = await stand()
-    expect(zurueck.map((p: { id: number }) => p.id).sort(),
-      'Aufräumen fehlgeschlagen — der Bestand hat andere Pflanzen als vorher.')
-      .toEqual(vorher.map((p: { id: number }) => p.id).sort())
+    expect(zurueck.length,
+      `Aufräumen fehlgeschlagen — ${zurueck.length} Pflanzen statt ${vorher.length}.`)
+      .toBe(vorher.length)
+    expect(zurueck.map((p: { siteIndex: number | null }) => p.siteIndex).sort(),
+      'Aufräumen fehlgeschlagen — es sind andere Töpfe belegt als vorher.')
+      .toEqual(vorher.map((p: { siteIndex: number | null }) => p.siteIndex).sort())
     const system2 = await (await request.get(`/api/hydro-setups/${grow.systemId}`)).json()
     expect(system2.potCount, 'Die Topfzahl wurde nicht zurückgesetzt.').toBe(toepfe)
   }
@@ -229,22 +346,47 @@ test('sind alle Töpfe belegt, sagt die Karte es — und das Entfernen macht wie
 test('entfernen und neu anlegen gibt keiner Pflanze den Namen einer anderen', async ({ page, request }) => {
   darfUeberspringen(!(await request.get('/api/grows')).ok(), 'Kein Backend.')
 
-  const grow = await (await request.get('/api/grows/1')).json()
-  darfUeberspringen(grow.systemId == null, 'Der Grow hängt an keinem Hydro-System.')
+  /* <b>Ein EIGENER Grow.</b> Dieser Fall entfernt eine Pflanze und legt eine
+     neue an — die bekommt eine neue Id, und ein Fall, der danach die Ids mit
+     denen von vorher vergleicht, schlägt fehl, ohne dass an der App etwas
+     falsch wäre. Gemessen: erster voller Lauf grün, zweiter rot mit
+     „Aufräumen fehlgeschlagen — der Bestand hat andere Pflanzen als vorher".
 
-  const stand = async () => (await request.get('/api/plants?growId=1')).json() as
-    Promise<Array<{ id: number; label: string; siteIndex: number | null; strainId: number | null }>>
+     Wer den geteilten Bestand umbaut, baut sich seinen eigenen. */
+  const vorlage = await (await request.get('/api/grows/1')).json()
+  darfUeberspringen(vorlage.systemId == null, 'Der Muster-Grow hängt an keinem System.')
 
-  const vorher = await stand()
-  expect(vorher.length, 'Zu wenige Pflanzen — der Fall braucht mindestens drei, damit '
-    + 'nach dem Entfernen eine Lücke IN DER MITTE entsteht.').toBeGreaterThanOrEqual(3)
+  const angelegterGrow = await request.post('/api/grows', {
+    data: {
+      name: 'Prüflauf Pflanzennamen (Testdaten)',
+      tentId: vorlage.tentId,
+      systemId: vorlage.systemId,
+      hydroStyle: vorlage.hydroStyle ?? 'RDWC',
+      plantCount: 4,
+      strainId: vorlage.strainId,
+      startDate: new Date().toISOString().slice(0, 10),
+      status: 'Planning',
+      entryPoint: 'Germination',
+    },
+  })
+  expect(angelegterGrow.ok(), `Prüf-Grow liess sich nicht anlegen: `
+    + `${angelegterGrow.status()} ${await angelegterGrow.text()}`).toBe(true)
+  const growId = (await angelegterGrow.json() as { id: number }).id
 
-  await page.goto('/grows/1', { waitUntil: 'networkidle' })
-  const karte = page.locator('[data-audit="grow-plants"]')
-  await karte.scrollIntoViewIfNeeded()
+  const stand = async () => (await request.get(`/api/plants?growId=${growId}`)).json() as
+    Promise<Array<{ id: number; label: string; siteIndex: number | null }>>
 
-  let angelegt: number | null = null
   try {
+    const vorher = await stand()
+    /* Der Grow legt seine Pflanzen beim Anlegen selbst an (siehe
+       `GrowPflanzen`) — das ist zugleich die Probe darauf. */
+    expect(vorher.length, 'Der neue Grow hat keine Pflanzen bekommen — dann prüft '
+      + 'dieser Fall nichts.').toBeGreaterThanOrEqual(3)
+
+    await page.goto(`/grows/${growId}`, { waitUntil: 'networkidle' })
+    const karte = page.locator('[data-audit="grow-plants"]')
+    await karte.scrollIntoViewIfNeeded()
+
     /* Die MITTLERE entfernen, nicht die letzte: nur dann entsteht eine Lücke,
        und nur dann laufen Anzahl und Topfnummer auseinander. Hätte der Fall
        die letzte genommen, wäre er zufällig grün geblieben. */
@@ -257,9 +399,6 @@ test('entfernen und neu anlegen gibt keiner Pflanze den Namen einer anderen', as
     await expect.poll(async () => (await stand()).length).toBe(vorher.length)
 
     const nachher = await stand()
-    angelegt = nachher.find((p) => !vorher.some((v) => v.id === p.id))?.id ?? null
-    expect(angelegt, 'Die neue Pflanze ist nicht auffindbar.').toBeTruthy()
-
     const namen = nachher.map((p) => p.label)
     const doppelt = namen.filter((n, i) => namen.indexOf(n) !== i)
     expect(doppelt, `Diese Namen kommen mehrfach vor: ${[...new Set(doppelt)].join(', ')}\n`
@@ -274,21 +413,7 @@ test('entfernen und neu anlegen gibt keiner Pflanze den Namen einer anderen', as
       + unpassend.map((p) => `  „${p.label}" sitzt auf Topf ${p.siteIndex}`).join('\n'))
       .toEqual([])
   } finally {
-    if (angelegt != null) await request.delete(`/api/plants/${angelegt}`)
-    /* Die entfernte Pflanze wieder anlegen — mit ihren Feldern, damit der
-       Bestand danach dieselbe MENGE hat. Die Id ist eine andere; das lässt
-       sich nicht vermeiden, wenn ein Fall das Löschen prüft. */
-    const fehlend = vorher.filter(async () => true)
-    const jetzt = await stand()
-    for (const p of fehlend) {
-      if (jetzt.some((j) => j.id === p.id)) continue
-      await request.post('/api/plants', {
-        data: {
-          growId: 1, strainId: p.strainId, label: p.label,
-          plantRole: 'Production', plantStatus: 'Active', siteIndex: p.siteIndex,
-        },
-      })
-    }
+    await request.delete(`/api/grows/${growId}`)
   }
 })
 

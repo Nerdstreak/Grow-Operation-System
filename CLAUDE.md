@@ -290,7 +290,10 @@ Wo eine Zahl gebraucht wird, die es schon gibt: **verweisen, nicht abtippen.**
 - **Keine KI in der App.** Nie vorschlagen.
 - **Faustregeln nur mit Etikett**, Empfehlungen nur mit Quelle. Eine Zahl, die
   niemand nachprüfen kann, ist schlechter als „zu wenig Daten".
-- **Alles auf Deutsch** — Kommentare, Bezeichner, Oberflächentexte.
+- **Alles auf Deutsch** — Kommentare, Bezeichner, Oberflächentexte **und die
+  Release Notes**. Der Changelog war bis beta.58 englisch; der Nutzer hat das
+  am 28.08.2026 widerrufen, weil Home Assistant genau diesen Text beim Update
+  zeigt. Gehalten von `src/release-notes-deutsch.node.test.ts`.
 - **Beide Themen prüfen.** Das helle wird beim Bauen regelmäßig vergessen; die
   Falle ist dreimal zugeschnappt.
 - **Das Telefon ist sauber** (320–768 px, null Überlauf über zwölf Breiten).

@@ -1,5 +1,19 @@
 import { test, expect } from '@playwright/test'
 import { darfUeberspringen } from './pflicht'
+import { nimmSchloss, gibSchloss } from './schloss'
+
+/* <b>Ein Schloss um Grow 1.</b> Vier E2E-Dateien schreiben an denselben Grow
+   — dieser Rundweg, die Feldpruefung des Grow-Formulars, der
+   Formular-Rundweg und die Pflanze-je-Topf-Faelle. Playwright faehrt mit
+   `fullyParallel: true` und verschiedene Dateien in verschiedenen Prozessen,
+   also gleichzeitig auf demselben Datensatz.
+
+   Gemessen am 28.08.2026: erster voller Lauf gruen, zweiter rot mit
+   „Durchgang 2: 2026-06-24 eingetragen und gespeichert, im Formular steht
+   2026-06-10" — ein anderer Fall hatte dazwischen geschrieben. Ein Test,
+   dessen Ausgang vom Zeitpunkt abhaengt, hat nichts geprueft. */
+test.beforeEach(async () => { await nimmSchloss() })
+test.afterEach(() => { gibSchloss() })
 
 /**
  * Jedes Feld, das ein Formular ANBIETET, kommt auch an.
