@@ -1,0 +1,73 @@
+import { test, expect } from '@playwright/test'
+import { darfUeberspringen } from './pflicht'
+
+/**
+ * Ein Wasserwechsel lässt sich nachtragen — mit dem Tag, an dem er war.
+ *
+ * <b>Der Anlass (28.08.2026).</b> Gemeldet: „nachträglich einen wasserwechsel
+ * einzutragen wäre schön und ein Datum fest zu legen, also wenn das vor tagen
+ * passiert ist, dass man das nachtragen kann."
+ *
+ * <b>Was fehlte.</b> Das Formular unter „Wasserwechsel" fragte nach Art,
+ * Anteil, Menge, EC, pH und Notiz — aber nach keinem Zeitpunkt. Jeder Eintrag
+ * landete auf „jetzt". Wer sonntags wechselt und dienstags einträgt, hatte
+ * danach einen Wechsel vom Dienstag in der Historie; die Berechnung „letzter
+ * Wechsel vor N Tagen" zählte ab dem falschen Tag.
+ *
+ * Das Backend konnte es die ganze Zeit: <c>CreateChangeoutRequest</c> trägt
+ * <c>PerformedAtUtc</c>. Es fragte nur niemand danach.
+ */
+
+test('ein Wasserwechsel laesst sich auf einen vergangenen Tag buchen', async ({ page, request }) => {
+  darfUeberspringen(!(await request.get('/api/grows')).ok(), 'Kein Backend.')
+
+  const vorher = await (await request.get('/api/grows/1/changeouts')).json() as
+    Array<{ id: number; performedAtUtc: string }>
+
+  await page.goto('/addback', { waitUntil: 'networkidle' })
+  const bereich = page.locator('.changeouts-section')
+  await bereich.scrollIntoViewIfNeeded()
+  await bereich.getByRole('button', { name: /Wechsel erfassen/ }).click()
+
+  const formular = page.locator('[data-audit="changeout-form"]')
+  await expect(formular).toBeVisible()
+
+  /* Das Datumsfeld — der Kern dieser Prüfung. Ohne es landet jeder Eintrag
+     auf „jetzt", und ein Nachtrag ist unmöglich. */
+  const wann = formular.locator('input[type="date"], input[type="datetime-local"]').first()
+  await expect(wann, 'Das Formular hat kein Feld für den Zeitpunkt — ein Wechsel von '
+    + 'vorgestern lässt sich damit nicht nachtragen.').toBeVisible()
+
+  /* Drei Tage zurück. Nicht „gestern": bei einem Lauf um Mitternacht wäre
+     gestern womöglich heute, und der Fall bewiese nichts. */
+  const dreiTage = new Date(Date.now() - 3 * 24 * 3600 * 1000)
+  const iso = dreiTage.toISOString().slice(0, 10)
+  const istDatum = await wann.getAttribute('type') === 'date'
+  await wann.fill(istDatum ? iso : `${iso}T12:00`)
+
+  await formular.locator('input').filter({ hasText: '' }).first().waitFor()
+  await formular.getByPlaceholder('z. B. 50').fill('60')
+  await formular.getByRole('button', { name: /speichern/i }).click()
+
+  let angelegt: number | null = null
+  try {
+    await expect.poll(async () =>
+      ((await (await request.get('/api/grows/1/changeouts')).json()) as unknown[]).length,
+    { timeout: 15_000 }).toBe(vorher.length + 1)
+
+    const nachher = await (await request.get('/api/grows/1/changeouts')).json() as
+      Array<{ id: number; performedAtUtc: string }>
+    const neu = nachher.find((c) => !vorher.some((v) => v.id === c.id))
+    expect(neu, 'Der neue Eintrag ist nicht auffindbar.').toBeTruthy()
+    angelegt = neu!.id
+
+    const gebucht = new Date(neu!.performedAtUtc)
+    const alterTage = (Date.now() - gebucht.getTime()) / (24 * 3600 * 1000)
+    expect(alterTage, `Der Wechsel wurde auf ${gebucht.toISOString()} gebucht — das ist `
+      + `${alterTage.toFixed(1)} Tage her, eingetragen war der Tag vor drei Tagen. Ein `
+      + 'Nachtrag, der auf „jetzt" landet, verfälscht jede Rechnung „letzter Wechsel '
+      + 'vor N Tagen".').toBeGreaterThan(2)
+  } finally {
+    if (angelegt != null) await request.delete(`/api/changeouts/${angelegt}`)
+  }
+})

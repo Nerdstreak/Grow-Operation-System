@@ -7,6 +7,8 @@ import './changeouts.css'
 
 type FormState = {
   kind: ChangeoutKind
+  /** Wann der Wechsel WAR — nicht, wann er eingetragen wird. */
+  performedAtLocal: string
   percentChanged: string
   volumeChangedLiters: string
   ecBefore: string
@@ -16,8 +18,16 @@ type FormState = {
   notes: string
 }
 
+/** „2026-08-28T14:30" — jetzt, im Format des Eingabefelds. */
+function jetztLokal(): string {
+  const jetzt = new Date()
+  const versatz = jetzt.getTimezoneOffset() * 60_000
+  return new Date(jetzt.getTime() - versatz).toISOString().slice(0, 16)
+}
+
 const emptyForm: FormState = {
   kind: 'Partial',
+  performedAtLocal: jetztLokal(),
   percentChanged: '',
   volumeChangedLiters: '',
   ecBefore: '',
@@ -76,8 +86,24 @@ export function ChangeoutsPanel({ growId, growName }: { growId: number; growName
     setError(null)
     setNotice(null)
     try {
+      /* <b>Der Zeitpunkt, den der Nutzer angibt.</b> Bis zum 28.08.2026 gab
+         es kein Feld dafür, und jeder Eintrag landete auf „jetzt" — wer
+         sonntags wechselte und dienstags eintrug, hatte danach einen Wechsel
+         vom Dienstag in der Historie, und die Rechnung „letzter Wechsel vor N
+         Tagen" zählte ab dem falschen Tag. Ausdrücklich gemeldet: „wenn das
+         vor tagen passiert ist, dass man das nachtragen kann."
+
+         Das Backend konnte es die ganze Zeit (`CreateChangeoutRequest`
+         trägt `PerformedAtUtc`) — es fragte nur niemand danach.
+
+         Als UTC geschickt, weil das Feld einen LOKALEN Zeitpunkt liefert. Ohne
+         die Umrechnung läge ein Wechsel um 01:00 in Mitteleuropa einen Tag zu
+         früh — dieselbe Falle wie bei den Datumsfeldern des Grows. */
       const body: CreateChangeoutRequest = {
         kind: form.kind,
+        performedAtUtc: form.performedAtLocal
+          ? new Date(form.performedAtLocal).toISOString()
+          : null,
         percentChanged: toNumber(form.percentChanged),
         volumeChangedLiters: toNumber(form.volumeChangedLiters),
         ecBefore: toNumber(form.ecBefore),
@@ -110,6 +136,15 @@ export function ChangeoutsPanel({ growId, growName }: { growId: number; growName
       {open && (
         <V1Card className="changeouts-form-card">
           <form onSubmit={submit} className="changeouts-form" data-audit="changeout-form">
+            {/* Ganz oben: die Frage „wann war das" kommt vor jeder Zahl. */}
+            <V1Field label="Wann" hint="Vorbelegt mit jetzt — für einen Nachtrag zurückstellen.">
+              <input
+                type="datetime-local"
+                value={form.performedAtLocal}
+                max={jetztLokal()}
+                onChange={(event) => patch({ performedAtLocal: event.target.value })}
+              />
+            </V1Field>
             <V1Field label="Art">
               <select value={form.kind} onChange={(event) => {
                 const kind = event.target.value as ChangeoutKind
