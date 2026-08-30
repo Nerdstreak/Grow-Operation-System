@@ -5,6 +5,94 @@
 > was sich ändert. Die älteren Einträge darunter sind noch englisch; sie sind
 > Geschichte und werden nicht nachübersetzt.
 
+## 2.0.0-beta.59
+
+**Beta.** Fehlerbehebungen rund um Pflanzen, Töpfe und den Wasserwechsel — alle
+vier vom Tester gemeldet. Drei davon hatten dieselbe Wurzel: die Nummer einer
+Pflanze kam aus der **Anzahl** statt aus ihrem **Topf**, und sobald eine
+Pflanze fehlte, liefen die beiden auseinander.
+
+### Ein Grow legt seine Pflanzen jetzt selbst an
+
+- Behoben — **ein Grow mit vier Töpfen legte null Pflanzen an.** Gemeldet als
+  „der User kann unter Grow nur eine Sorte auswählen, aber bei den Töpfen für
+  den Grow 4 Stück". Wer im Formular Sorte und Pflanzenzahl angab, klickte
+  danach viermal „Pflanze hinzufügen" und wählte jedes Mal dieselbe Sorte;
+  die Karte „Pflanzen & Sorten" stand derweil auf „keine ist einzeln erfasst",
+  und der Zeltplan zeichnete vier leere Töpfe.
+
+  Jetzt entstehen sie mit: eine je Topf, mit der Sorte des Grows, höchstens so
+  viele wie das System Töpfe hat. Danach lässt sich je Topf eine andere Sorte
+  wählen — dafür ist die Karte da. Beim **Bearbeiten** entsteht nichts: wer
+  eine Pflanze entfernt hat, will sie nicht beim nächsten Speichern zurück.
+
+### Nach dem Löschen hieß eine Pflanze wie eine andere
+
+- Behoben — **„eine Pflanze gelöscht und wieder hinzugefügt, da taucht diese
+  doppelt auf".** Am laufenden Stand nachgestellt: vier Pflanzen, die dritte
+  entfernt, eine neue angelegt — heraus kamen zwei mit Namen „Pflanze 4", und
+  die neue saß auf Topf 3.
+
+  Der Name kam aus der Anzahl (`Pflanze ${anzahl + 1}`), der Topf aus der
+  ersten freien Lücke. Nach einer Löschung ergeben drei Pflanzen „Pflanze 4",
+  und die gibt es schon. Der Name folgt jetzt dem Topf — ein Topf trägt eine
+  Pflanze, seine Nummer ist also eindeutig. Wer eine Pflanze umsetzt, hat den
+  Namen danach mitgezogen; ein selbst vergebener bleibt stehen.
+
+### Der Topf stand zweimal in derselben Zeile
+
+- Geändert — die Zeile las sich `Pflanze 1 · TOPF [1] · White Widow`: Name und
+  Topfzahl sagten dasselbe, zweimal nebeneinander. Gemeldet als „etwas komisch,
+  kannst du das angenehmer und verständlicher machen". Jetzt steht dort
+  `[Topf 1 ▾] [White Widow ▾]` — jede Angabe einmal.
+
+- Geändert — **der Topf wird gewählt statt getippt.** Ein Zahlenfeld liess eine
+  belegte Nummer zu und meldete den Fehler erst danach; dabei weiss die App,
+  welche Töpfe frei sind. Belegte stehen jetzt mit ihrem Bewohner in der
+  Auswahl („Topf 2 · belegt (White Widow)") — ein Tausch ist damit sichtbar
+  statt gesperrt.
+
+### Ein Wasserwechsel liess sich nicht nachtragen
+
+- Behoben — **das Formular hatte kein Datumsfeld.** Gemeldet: „wenn das vor
+  Tagen passiert ist, dass man das nachtragen kann." Es fragte nach Art,
+  Anteil, Menge, EC, pH und Notiz — nach keinem Zeitpunkt, und jeder Eintrag
+  landete auf „jetzt". Wer sonntags wechselte und dienstags eintrug, hatte
+  einen Wechsel vom Dienstag in der Historie, und die Rechnung „letzter
+  Wechsel vor N Tagen" zählte ab dem falschen Tag.
+
+  Das Feld steht jetzt ganz oben — die Frage „wann war das" kommt vor jeder
+  Zahl —, ist mit dem aktuellen Zeitpunkt vorbelegt und lässt sich nicht in die
+  Zukunft stellen. Der Server konnte es die ganze Zeit; es fragte nur niemand
+  danach.
+
+### Diese Release Notes sind auf Deutsch
+
+- Geändert — **der Änderungstext, den Home Assistant beim Update zeigt, steht
+  ab dieser Version auf Deutsch.** Bis beta.58 war er englisch, mit dem
+  Gedanken, er richte sich an Fremde. Wer aktualisiert, ist kein Fremder. Die
+  älteren Einträge bleiben englisch; sie sind Geschichte.
+
+  Gehalten wird das von einer Prüfung, die den neuesten Eintrag liest und
+  englische Wendungen meldet — die Regel „alles auf Deutsch" stand seit Langem
+  im Projekt und wurde 114-mal gebrochen, weil sie niemand gemessen hat.
+
+### Was die Prüfungen selbst betrifft
+
+Vier E2E-Dateien schreiben an denselben Grow, und die Sammlung läuft parallel.
+Zwei volle Läufe hintereinander ergaben verschiedene Ergebnisse: der erste
+grün, der zweite rot mit „eingetragen 2026-06-24, im Formular steht
+2026-06-10" — ein anderer Fall hatte dazwischengeschrieben. Ein Test, dessen
+Ausgang vom Zeitpunkt abhängt, hat nichts geprüft.
+
+Die vier teilen sich jetzt ein Schloss, und die Pflanzen-Fälle stellen ihre
+Ausgangslage **her**, statt sie vorauszusetzen: ein Fall, der abbricht,
+hinterliess sonst eine Lücke, und der nächste meldete einen Fehler über seinen
+Vorgänger statt über die App.
+
+Backend bei 1451 Tests, 275 Unit-Tests, 585 End-to-End-Fälle — drei volle
+Läufe hintereinander ohne Abweichung.
+
 ## 2.0.0-beta.58
 
 **Beta.** Kein Funktions-Release. Ein Nutzer hat ausgesprochen, was niemand
