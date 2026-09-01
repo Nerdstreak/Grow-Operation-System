@@ -5,6 +5,166 @@
 > was sich ändert. Die älteren Einträge darunter sind noch englisch; sie sind
 > Geschichte und werden nicht nachübersetzt.
 
+## 2.0.0-beta.60
+
+**Beta.** Zwei Meldungen des Testers, und beide gingen tiefer als sie klangen:
+ein Grow konnte im Formular nur **eine** Sorte bekommen, obwohl das Datenmodell
+sie je Topf längst trug — und der Wasserwechsel war nicht nur schwer zu finden,
+er **zählte auch nicht**, wenn man ihn eintrug.
+
+### Ein Grow führt N Sorten — jetzt auch im Formular
+
+- Neu — **„Töpfe & Sorten" beim Anlegen und Bearbeiten.** Der Tester hat
+  ausgeschrieben, was ein Grow ist: „ein Durchgang in einem RDWC/DWC, der N
+  Pflanzen mit N verschiedenen Sorten/Phenos beinhalten kann. In dem Grow
+  sollten die ganzen Sorten im RDWC-System stehen wie bei den Töpfen."
+
+  Das Formular bot **ein** Sortenfeld und schickte den Nutzer per Hinweis weg:
+  „Leg den Grow an und trag danach unter ‚Pflanzen & Sorten' jede Pflanze mit
+  ihrer eigenen Sorte und ihrem Topf ein." Ein Weg, der aus zwei Schritten
+  besteht, weil einer davon fehlt, ist kein Weg. Jetzt stehen unter der
+  System-Auswahl die Töpfe des Systems, jeder mit seiner Sorte, dazu „alle auf
+  …" für den häufigsten Fall. Beim Bearbeiten steht dort, was wirklich drin ist.
+
+  Gelöscht wird dort nie: was das Formular nicht nennt, bleibt unberührt — eine
+  Pflanze entfernt man in der Karte „Pflanzen & Sorten", die vorher nachfragt.
+
+- Geändert — **die Pflanzenzahl folgt den belegten Töpfen.** Belegte Töpfe *sind*
+  die Pflanzen; das Feld darüber ist dann nur noch Anzeige. Zwei beschreibbare
+  Stellen für dieselbe Zahl laufen auseinander, und genau das ist in diesem
+  Projekt schon dreimal passiert.
+
+- Behoben — **fünf Ansichten nannten bei zwei Sorten trotzdem eine.**
+  Grow-Liste, Zelt-Detail, Messformular, Addback-Kopf und Addback-Übersicht
+  gaben die Hauptsorte aus, als wäre sie die einzige. Nur die Grow-Detailseite
+  konnte „gemischt", weil ihre Pflanzen-Karte es ihr meldete — ein Mechanismus,
+  den die anderen fünf nicht hatten. Jetzt liest der Server die Sorten aus den
+  Pflanzen, und eine Regel gilt überall.
+
+  Und danach zeigte die Grow-Liste immer noch den Züchter: die Zeile lautete
+  „Züchter **oder** Sorte", also gewann der Züchter *immer*. Bei einem Becken
+  mit White Widow (Royal Queen Seeds) und Gorilla Glue (GG Strains) stand dort
+  „Royal Queen Seeds". Gefunden, indem die Karte angesehen wurde — nicht die
+  Änderung.
+
+- Behoben — **die Suche fand eine Sorte nicht, die nur an einer Pflanze hing.**
+  Gesucht wurde über Name, Hauptsorte und Züchter des Grows. „Wo steht meine
+  Gorilla Glue" ist aber genau die Frage, die jemand in ein Suchfeld tippt.
+
+- Neu — **Hinweis bei sehr verschiedenen Blütezeiten.** Ein RDWC teilt ein
+  Becken, und die Ernte hat einen Tag. Stehen eine 8-Wochen- und eine
+  11-Wochen-Sorte zusammen, rechnet der Zeitstrahl mit der Hauptsorte und liegt
+  bei der anderen um Wochen daneben. Das ist kein Fehler, den man
+  wegprogrammiert — es ist eine Entscheidung, und die wird jetzt gesagt statt
+  verschwiegen. Ab zwei Wochen Unterschied; darunter wäre es Lärm.
+
+### Der Wasserwechsel: gefunden, und er zählt
+
+- Behoben — **ein eingetragener Wasserwechsel räumte keine einzige Mahnung weg.**
+  Gemeldet: „der User findet den Wasserwechsel nicht wirklich, das ist sehr
+  umständlich von uns gelöst, weil er hat jetzt einen gemacht und will den
+  eintragen und zurückdatieren."
+
+  Beim Nachsehen war das Eintragen nicht das Problem — es blieb nur wirkungslos.
+  Es gab **zwei Wahrheiten** darüber, wann zuletzt gewechselt wurde: das Häkchen
+  „Lösungswechsel" an einer Messung und die Tabelle hinter dem Formular. Von
+  vier Rechnungen lasen **drei** nur die erste. Wer den Wechsel im Formular
+  eintrug, sah weiter „Wöchentlicher Wasserwechsel: zuletzt vor 20 Tagen".
+
+  Am laufenden Stand nachgestellt und wieder nachgemessen: die Mahnung ist nach
+  dem Eintrag weg. Gehalten wird das von einer Zählung über alle Dateien des
+  Web-Projekts — wer künftig selbst rechnet, statt zu fragen, wird rot.
+
+- Neu — **eine eigene Seite `/wasserwechsel` im Menü.** Das Formular lag als
+  dritter Abschnitt auf „Addback"; das Wort „Wasserwechsel" stand im ganzen
+  Menü nur als *Suchbegriff bei den Aufgaben* — wer es tippte, landete also auf
+  der falschen Seite. Es ist **umgezogen**, nicht kopiert: auf Addback steht
+  jetzt der Stand mit einem Weg dorthin. Nachfüllen und Wechseln sind zwei
+  Handlungen.
+
+- Neu — **der Stand als Bild.** Ein Punkt je Tag, der Plan als Länge: neun
+  Punkte, von denen zwei überstehen, sieht man. „Letzter Wechsel vor 9 Tagen,
+  Plan alle 7" ist ein Satz, den man erst im Kopf verrechnen muss.
+
+- Behoben — **vier Stellen mahnten den Wechsel an, keine führte zum Eintragen.**
+  „Heute fällig" auf der Live-Seite, „Fällige Routinen" am Handy, die
+  Beobachtungen über Tage: der Knopf hieß überall „Öffnen" und ging zur
+  Aufgaben- oder Grow-Seite, wo das Formular auch nicht steht. Jetzt heißt er
+  „Eintragen" und führt hin.
+
+- Neu — **ein Wasserwechsel lässt sich wieder entfernen.** Es gab keinen Weg
+  zurück. Solange die Mahnung diese Tabelle nicht las, war ein Fehleintrag
+  folgenlos; seit sie es tut, legt er sie für eine Woche still.
+
+- Geändert — **ein Teilwechsel ohne Menge wird abgelehnt.** Vorher ließ sich das
+  Formular vollständig leer abschicken. Verlangt wird eine Zahl: der Anteil oder
+  die Liter. Der Komplettwechsel trägt seine Auskunft im Namen.
+
+- Behoben — **Fehlermeldungen sagten nicht mehr, was fehlt.** Auf dem Schirm
+  stand „Eingaben konnten nicht validiert werden", während der Grund daneben
+  lag und niemand ihn las. Gilt für die ganze App, nicht nur hier.
+
+### Der Testbestand
+
+- Behoben — **keine Sorte im Testbestand hatte je einen Lauf.** Der laufende
+  Demo-Grow hieß „White Widow", die Bibliothek führte „White Widow (Testdaten)",
+  und weil die Statistik über die Verknüpfung zählt, stand bei jeder Sorte
+  „0 Läufe, kein Ø-Ertrag". Ein Fehler *im* Bestand verdeckt Fehler *in* der App.
+
+- Behoben — **die neue Wasserwechsel-Seite stand im Testbestand leer.** Der
+  Bestand markierte den Wechsel nur an der Messung; die Tabelle war nie befüllt.
+  Jetzt stehen dort vier Wechsel im selben Rhythmus.
+
+- Behoben — **eine Aufräumzeile in einem Test räumte nichts auf.** Sie rief eine
+  Route, die es nicht gab, lief in ein 404, meldete nichts — und der Testbestand
+  wuchs mit jedem Lauf. Genau daran ist aufgefallen, dass Löschen fehlt.
+
+- Behoben — **eine fünfte Testdatei fasste denselben Bestand an, ohne sich
+  abzustimmen.** Der zweite volle Lauf hintereinander meldete prompt einen
+  Fehlschlag, während dieselbe Datei allein dreimal grün lief. Eine Zahl im
+  Kommentar („vier Dateien") altert; eine Zählung über alle Dateien nicht.
+
+### Was der Prüfer gefunden hat
+
+Zwei Durchgänge mit einem Agenten, der die Änderung nicht gebaut hat, ergaben
+siebzehn Befunde. Die schwersten stammten von mir:
+
+- Behoben — **beim Bearbeiten stand „0 von 4 Töpfen belegt"**, während vier
+  Pflanzen mit ihren Sorten in der Datenbank lagen. Zwei Effekte schrieben
+  dasselbe Feld; der schnellere gewann und löschte die Belegung wieder. An
+  genau dieser Stelle stand ein Kommentar von mir, der das Gegenteil behauptete
+  — geprüft hatte ich das Anlegen, nicht das Bearbeiten.
+- Behoben — **die Sperre, die ich beschrieben hatte, gab es nicht.** Wer von
+  einem 4-Topf- auf ein 2-Topf-System wechselte, konnte speichern; heraus kam
+  ein Grow mit vier Pflanzen auf zwei Plätzen, den man danach nicht mehr
+  speichern konnte. Die Prüfung bekam die Pflanzenzahl gar nicht zu sehen.
+- Behoben — **ein gelöschter Grow ließ seine Pflanzen zurück.** Im Testbestand
+  lagen 92 solche Leichen, und jeder volle Testlauf legte zwei weitere dazu.
+  Dieselbe Lücke war für die Warnungen schon einmal geschlossen worden, eine
+  Tabelle weiter stand sie noch offen. Produktionspflanzen gehen jetzt mit dem
+  Lauf; eine Mutterpflanze überlebt ihn und verliert nur den Bezug.
+- Behoben — **der Züchter stand neben der falschen Sorte.** Erst zeigte die
+  Detailseite „Gorilla Glue · Royal Queen Seeds"; nach dem ersten Fix riet ein
+  Namensvergleich, und „Northern Lights" gegen „Northern Lights Auto" ging
+  prompt daneben. Jetzt vergleicht der Server die Verknüpfungen — geraten wird
+  nicht mehr.
+- Behoben — **die Warnung über verschiedene Blütezeiten rechnete nur mit dem
+  Maximum.** Bei 8–9 gegen 9–11 Wochen stand „9 bis 11"; tatsächlich liegen
+  drei Wochen dazwischen. Und ein Paar 8–9 gegen 9–10 fiel ganz durch.
+- Behoben — **zwei meiner eigenen Prüfungen waren zu leicht zu umgehen.** Eine
+  kannte nur eine Schreibweise, die andere ließ sich mit einem unbenutzten
+  Import zufriedenstellen. Der Prüfer hat beides vorgeführt.
+- Behoben — **die Kontrast-Prüfung sah geerbte Deckkraft nicht.** Fünfter
+  blinder Fleck dieser Datei. Sie rechnet jetzt die ganze Kette und nimmt
+  gesperrte Bedienelemente aus, die WCAG ausdrücklich ausnimmt.
+- Behoben — **ein Testfall wartete auf die Schnittstelle und suchte auf dem
+  Schirm.** In etwa jedem dritten Lauf rot. Ein Test, dessen Ausgang vom
+  Zeitpunkt abhängt, hat nichts geprüft.
+
+Backend bei 1466 Tests, 84 MCP-Tests, 296 Unit-Tests, 601 End-to-End-Fälle —
+drei volle Läufe hintereinander ohne Abweichung, und der Testbestand ist danach
+unverändert.
+
 ## 2.0.0-beta.59
 
 **Beta.** Fehlerbehebungen rund um Pflanzen, Töpfe und den Wasserwechsel — alle
