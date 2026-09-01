@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { sortenText } from '../features/grows/sorten-text'
 import { Link } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
-import type { AddbackLogDto, GrowDetail, GrowSummary, HydroSetupDto } from '../types'
+import type { AddbackLogDto, GrowDetail, GrowSummary, HydroSetupDto, WasserwechselStandDto } from '../types'
 import { formatNumber } from '../utils'
-import { ChangeoutsPanel } from '../features/changeouts/ChangeoutsPanel'
+import { WasserwechselStand } from '../features/changeouts/WasserwechselStand'
 import { V1Alert, V1Empty, V1Page, V1Skeleton } from '../components/v1'
 
 type GrowWithLogs = { detail: GrowDetail; logs: AddbackLogDto[] }
@@ -79,6 +80,19 @@ function AddbackHubPage() {
   )
   const lastAddback = selectedGrow ? latestByGrowId.get(selectedGrow.id) ?? null : null
 
+  // Der Stand des Wasserwechsels — gerechnet im Backend, damit hier und auf
+  // /wasserwechsel nicht zwei verschiedene Zahlen stehen koennen.
+  const [wechselStand, setWechselStand] = useState<WasserwechselStandDto | null>(null)
+  const standGrowId = selectedGrow?.id ?? null
+  useEffect(() => {
+    if (standGrowId == null) return
+    const controller = new AbortController()
+    apiFetch<WasserwechselStandDto>(`/api/grows/${standGrowId}/changeouts/stand`, { signal: controller.signal })
+      .then((daten) => { if (!controller.signal.aborted) setWechselStand(daten) })
+      .catch(() => { if (!controller.signal.aborted) setWechselStand(null) })
+    return () => controller.abort()
+  }, [standGrowId])
+
   return (
     <V1Page
       eyebrow="Jetzt / Addback"
@@ -134,7 +148,7 @@ function AddbackHubPage() {
           <section className="ls-panel" data-audit="addback-next">
             <div className="ls-panel-head">
               <span className="ls-label">Nächster Addback</span>
-              <span className="ls-panel-meta">{[selectedGrow.tentName ?? 'ohne Zelt', selectedGrow.strain, selectedGrow.hydroStyle].filter(Boolean).join(' · ')}</span>
+              <span className="ls-panel-meta">{[selectedGrow.tentName ?? 'ohne Zelt', sortenText(selectedGrow), selectedGrow.hydroStyle].filter(Boolean).join(' · ')}</span>
             </div>
             <div className="ls-panel-body">
               <strong>{selectedGrow.name}</strong>
@@ -146,7 +160,22 @@ function AddbackHubPage() {
             </div>
           </section>
 
-          <ChangeoutsPanel growId={selectedGrow.id} growName={selectedGrow.name} />
+          {/* Das Formular „Wasserwechsel" stand bis zum 31.08.2026 HIER, als
+              dritter Abschnitt — und war damit unauffindbar. Es ist auf
+              /wasserwechsel umgezogen; hier bleibt der Stand, weil Nachfüllen
+              und Wechseln zusammen gelesen werden. Ein zweites Formular waere
+              genau die Doppelung, die dieses Projekt nicht will. */}
+          <section className="ls-panel" data-audit="addback-wasserwechsel">
+            <div className="ls-panel-head">
+              <span className="ls-label">Wasserwechsel</span>
+              <Link className="ls-panel-meta ww-weg" to="/wasserwechsel">eintragen →</Link>
+            </div>
+            <div className="ls-panel-body">
+              {wechselStand
+                ? <WasserwechselStand stand={wechselStand} />
+                : <p>Stand wird geladen…</p>}
+            </div>
+          </section>
 
           <section className="ls-panel" data-audit="addback-log-list">
             <div className="ls-panel-head">

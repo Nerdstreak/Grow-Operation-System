@@ -56,7 +56,8 @@ public sealed class TrendWatchService
     public static IReadOnlyList<TrendFinding> Evaluate(
         IReadOnlyList<Measurement> measurements,
         HydroTargetValues? targets,
-        DateTime now)
+        DateTime now,
+        IReadOnlyList<ChangeoutEntry>? wechsel = null)
     {
         var window = measurements
             .Where(measurement => measurement.TakenAt >= now.AddDays(-WindowDays))
@@ -77,7 +78,7 @@ public sealed class TrendWatchService
         AddDrift(findings, window, "watertemp", "Wassertemperatur", measurement => measurement.ReservoirWaterTempC, 2.0, "0.0",
             targets?.WaterTempNightC, targets?.WaterTempDayC, null);
 
-        AddWaterChange(findings, measurements, now);
+        AddWaterChange(findings, measurements, wechsel, now);
         AddConsumption(findings, window);
         AddOrpTopUp(findings, measurements, now);
 
@@ -153,12 +154,13 @@ public sealed class TrendWatchService
             guidanceId));
     }
 
-    private static void AddWaterChange(List<TrendFinding> findings, IReadOnlyList<Measurement> measurements, DateTime now)
+    private static void AddWaterChange(
+        List<TrendFinding> findings, IReadOnlyList<Measurement> measurements,
+        IReadOnlyList<ChangeoutEntry>? wechsel, DateTime now)
     {
-        var lastChange = measurements
-            .Where(measurement => measurement.SolutionChange)
-            .OrderByDescending(measurement => measurement.TakenAt)
-            .FirstOrDefault();
+        // Beide Belege zaehlen — Haekchen an der Messung und Eintrag im
+        // Formular. Bis zum 31.08.2026 sah diese Stelle nur den ersten.
+        var lastChange = Wasserwechsel.ZuletztOrtszeit(measurements, wechsel);
 
         // Without a recorded change there is nothing to count from; saying "overdue" to
         // someone who simply never logged one would be noise, not a warning.
@@ -167,7 +169,7 @@ public sealed class TrendWatchService
             return;
         }
 
-        var days = (int)(now.Date - lastChange.TakenAt.Date).TotalDays;
+        var days = (int)(now.Date - lastChange.Value.Date).TotalDays;
         if (days < WaterChangeDueDays)
         {
             return;
@@ -177,7 +179,7 @@ public sealed class TrendWatchService
             "trend.waterchange.overdue",
             days >= WaterChangeOverdueDays ? TrendSeverity.Warning : TrendSeverity.Info,
             $"Wasserwechsel seit {days} Tagen offen",
-            $"Der letzte dokumentierte Wechsel war am {lastChange.TakenAt.ToString("dd.MM.", De)}. "
+            $"Der letzte dokumentierte Wechsel war am {lastChange.Value.ToString("dd.MM.", De)}. "
             + "Der Growplan sieht wöchentlich vor.",
             "weekly-water-change"));
     }

@@ -41,7 +41,9 @@ public static class GrowMapping
         LatestStage: grow.LatestMeasurement?.Stage,
         LatestReservoirPh: grow.LatestReservoirPh ?? grow.LatestMeasurement?.ReservoirPh,
         LatestReservoirEc: grow.LatestReservoirEc ?? grow.LatestMeasurement?.ReservoirEc,
-        LatestMeasurementAt: grow.LatestMeasurement?.TakenAt
+        LatestMeasurementAt: grow.LatestMeasurement?.TakenAt,
+        PflanzenSorten: grow.PflanzenSorten,
+        NurHauptsorte: grow.NurHauptsorte
     );
 
     public static GrowDetailDto ToDetailDto(this GrowRun grow) => new(
@@ -99,6 +101,8 @@ public static class GrowMapping
         LatestPhotoPath: grow.LatestPhotoPath,
         LatestMeasurement: grow.LatestMeasurement?.ToDto(),
         CreatedAtUtc: grow.CreatedAtUtc,
-        UpdatedAtUtc: grow.UpdatedAtUtc
+        UpdatedAtUtc: grow.UpdatedAtUtc,
+        PflanzenSorten: grow.PflanzenSorten,
+        NurHauptsorte: grow.NurHauptsorte
     );
 }

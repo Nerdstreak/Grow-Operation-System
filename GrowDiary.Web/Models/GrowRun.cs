@@ -25,6 +25,39 @@ public sealed class GrowRun
     /// oder geloescht wird.
     /// </summary>
     public int? StrainId { get; set; }
+
+    /// <summary>
+    /// Die Sorten, die wirklich in diesem Grow stehen — aus seinen Pflanzen.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (31.08.2026).</b> Der Tester hat definiert, was ein
+    /// Grow ist: ein Durchgang mit N Pflanzen und N Sorten. <see cref="Strain"/>
+    /// trägt aber nur EINE — und fünf Ansichten gaben sie als die Sorte des
+    /// Grows aus: Grow-Liste, Zelt-Detail, Messformular, Addback-Kopf und
+    /// Addback-Übersicht. Bei zwei Sorten im selben Becken war das schlicht
+    /// falsch.</para>
+    ///
+    /// <para>Gelesen wird sie aus <c>PlantInstances</c> — dort steht die Sorte
+    /// je Topf, und das ist die Wahrheit. Leer heisst „keine Pflanze einzeln
+    /// erfasst"; dann gilt weiter <see cref="Strain"/>.</para>
+    /// </remarks>
+    public IReadOnlyList<string> PflanzenSorten { get; set; } = [];
+
+    /// <summary>
+    /// Tragen <b>alle</b> erfassten Pflanzen die Hauptsorte des Laufs?
+    /// </summary>
+    /// <remarks>
+    /// <para>Nur dann gehört <see cref="Breeder"/> zu dem, was angezeigt wird.
+    /// Die Oberfläche hat das zuerst über den NAMEN geraten — und lag bei
+    /// „Northern Lights" gegen „Northern Lights Auto" falsch: richtige Sorte,
+    /// Züchter der anderen. Gefunden vom Prüfer, der sich zwei solche Sorten
+    /// selbst angelegt hat.</para>
+    ///
+    /// <para><c>false</c> auch, wenn gar keine Pflanze erfasst ist — dann ist
+    /// die Frage gegenstandslos, und <see cref="PflanzenSorten"/> ist leer.</para>
+    /// </remarks>
+    public bool NurHauptsorte { get; set; }
+
     public string? Strain { get; set; }
     public string? Breeder { get; set; }
     public GrowStatus Status { get; set; } = GrowStatus.Planning;

@@ -1,3 +1,4 @@
+using System.Globalization;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
@@ -301,5 +302,121 @@ public sealed class DemobestandStimmigTests : IDisposable
         Assert.DoesNotContain(null, toepfe);
         Assert.Equal(toepfe.Count, toepfe.Distinct().Count());
         Assert.All(toepfe, t => Assert.InRange(t!.Value, 1, grow.PlantCount ?? int.MaxValue));
+    }
+
+    /// <summary>
+    /// Kein Wasserwechsel im Bestand liegt in der Zukunft.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Der Bestand legte den jüngsten
+    /// Wechsel auf „07:00 Ortszeit am Wechseltag". Startet die App an einem
+    /// solchen Tag <b>vor</b> 07:00, liegt dieser Zeitpunkt in der Zukunft — und
+    /// genau das verbietet das Formular (<c>max</c> am Datumsfeld). Der Bestand
+    /// erzeugte damit Daten, die die App selbst ablehnen würde.</para>
+    ///
+    /// <para><b>Warum es niemand sah.</b> Der Stand klemmt mit
+    /// <c>Math.Max(0, …)</c> auf „0 Tage / frisch" — der Fehler wird unsichtbar
+    /// gerechnet. Gefunden vom Prüfer, der auf die Uhr geschaut hat.</para>
+    ///
+    /// <para>„Der Testbestand ist Produktionscode": wo Grow OS eine Warnung
+    /// ausgeben würde, ist der Bestand falsch, nicht die Warnung.</para>
+    /// </remarks>
+    [Fact]
+    public void KeinWasserwechselLiegtInDerZukunft()
+    {
+        var grow = LaufenderGrow();
+        var wechsel = _grows.GetChangeoutsForGrow(grow.Id);
+
+        // Mengenwaechter: ohne Eintraege liefe die Pruefung null Mal durch.
+        Assert.True(wechsel.Count >= 3,
+            $"Nur {wechsel.Count} Wasserwechsel im Bestand — die Seite /wasserwechsel "
+            + "stuende damit fast leer da, und diese Pruefung liefe fast leer mit.");
+
+        var jetzt = DateTime.UtcNow;
+        var zukunft = wechsel.Where(w => w.PerformedAtUtc > jetzt).ToList();
+
+        Assert.True(zukunft.Count == 0,
+            "Diese Wasserwechsel im Testbestand liegen in der ZUKUNFT: "
+            + string.Join(" | ", zukunft.Select(w => $"{w.PerformedAtUtc:O} (jetzt: {jetzt:O})"))
+            + ". Das Formular laesst das nicht zu — der Bestand darf keine Daten erzeugen, "
+            + "die die App selbst ablehnen wuerde.");
+
+        // Und sie gehoeren zu diesem Grow und seinem System, nicht irgendwohin.
+        Assert.All(wechsel, w => Assert.Equal(grow.Id, w.GrowId));
+        Assert.All(wechsel, w => Assert.Equal(grow.SystemId, w.HydroSetupId));
+
+        // Ein Wechsel, bei dem EC vorher und nachher gleich sind, behauptet,
+        // er habe nichts bewirkt. Die erste Fassung des Bestands tat genau das.
+        var wirkungslos = wechsel
+            .Where(w => w.EcBefore is { } vor && w.EcAfter is { } nach && Math.Abs(vor - nach) < 0.05)
+            .ToList();
+        Assert.True(wirkungslos.Count == 0,
+            $"{wirkungslos.Count} Wasserwechsel im Bestand aendern den EC nicht — "
+            + "ein Wechsel, der nichts bewirkt, ist keine brauchbare Testlage.");
+    }
+
+    /// <summary>
+    /// Die Sorten im Bestand haben unterschiedliche Blütezeiten.
+    /// </summary>
+    /// <remarks>
+    /// Beide Demo-Sorten trugen 8–9 Wochen. Damit konnte die Warnung „die
+    /// Sorten in diesem Becken brauchen unterschiedlich lange" gegen den
+    /// Bestand <b>nie</b> auslösen — sie wäre ungeprüft ausgeliefert worden.
+    /// Ein Bestand, an dem eine Funktion nicht sichtbar wird, verdeckt sie.
+    /// Gefunden vom Prüfer.
+    /// </remarks>
+    [Fact]
+    public void DieSortenHabenVerschiedeneBluetezeiten()
+    {
+        var setups = _dienste.GetRequiredService<SetupRepository>();
+        var sorten = setups.GetStrains();
+
+        Assert.True(sorten.Count >= 2, $"Nur {sorten.Count} Sorten im Bestand.");
+
+        var wochen = sorten
+            .Select(s => s.FlowerWeeksMax ?? s.FlowerWeeksMin)
+            .Where(w => w is > 0)
+            .Select(w => w!.Value)
+            .ToList();
+
+        Assert.True(wochen.Count >= 2, "Weniger als zwei Sorten mit Bluetewochen.");
+        Assert.True(wochen.Max() - wochen.Min() >= 2,
+            $"Alle Sorten liegen zwischen {wochen.Min()} und {wochen.Max()} Bluetewochen. "
+            + "Die Warnung ueber unterschiedliche Bluetezeiten (Schwelle: 2 Wochen) kann "
+            + "gegen diesen Bestand nie auslosen — sie waere ungeprueft.");
+    }
+
+    /// <summary>
+    /// Die Regel selbst: ein gesäter Wechsel liegt nie in der Zukunft.
+    /// </summary>
+    /// <remarks>
+    /// <para>Die Prüfung über den fertigen Bestand darüber fängt den Fehler nur
+    /// in einem Zeitfenster — läuft sie nach 07:00 an einem Wechseltag, wäre
+    /// derselbe kaputte Code grün. Der Prüfer hat darauf hingewiesen: „der
+    /// Bissnachweis gilt, aber die Prüfung fängt den Fehler nur in einem
+    /// Zeitfenster."</para>
+    ///
+    /// <para>Hier steht die Entscheidung ohne Uhr — zu jeder Tageszeit gleich.</para>
+    /// </remarks>
+    [Theory]
+    // Tag lange vorbei: 07:00 dieses Tages, unveraendert.
+    [InlineData("2026-08-25T00:00:00", "2026-09-01T02:18:00", "2026-08-25T05:00:00")]
+    // Heute, aber es ist erst 02:18: 07:00 laege in der Zukunft, also jetzt.
+    [InlineData("2026-09-01T00:00:00", "2026-09-01T02:18:00", "2026-09-01T02:18:00")]
+    // Heute, und es ist schon 09:00: 07:00 ist vorbei und gilt.
+    [InlineData("2026-09-01T00:00:00", "2026-09-01T09:00:00", "2026-09-01T05:00:00")]
+    public void WechselZeitpunkt_LiegtNieInDerZukunft(string tag, string jetzt, string erwartet)
+    {
+        // Ortszeit hier ist MESZ (UTC+2) — dieselbe Umrechnung, die der Bestand
+        // macht. Das Ergebnis steht in UTC.
+        var ergebnis = Demobestand.WechselZeitpunkt(
+            DateTime.Parse(tag, CultureInfo.InvariantCulture),
+            DateTime.Parse(jetzt, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal));
+
+        Assert.True(ergebnis <= DateTime.Parse(jetzt, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal),
+            $"Der Zeitpunkt {ergebnis:O} liegt nach {jetzt} — also in der Zukunft.");
+        Assert.Equal(
+            DateTime.Parse(erwartet, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal),
+            ergebnis);
     }
 }

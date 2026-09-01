@@ -132,6 +132,37 @@ public sealed class AddbackRepository : RepositoryBase
         return items;
     }
 
+    /// <summary>
+    /// Einen Wasserwechsel wieder entfernen.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (31.08.2026).</b> Es gab keinen Weg zurück: ein
+    /// falsch eingetragener Wechsel blieb für immer stehen. Bis dahin war das
+    /// harmlos — die Mahnung „Wöchentlicher Wasserwechsel" las diese Tabelle
+    /// ohnehin nicht. Seit sie es tut, legt ein Fehlgriff die Mahnung für eine
+    /// Woche still, und dann muss man ihn zurücknehmen können.</para>
+    ///
+    /// <para>Aufgefallen ist es an einer <b>Aufräumzeile in einem Test</b>, die
+    /// ins Leere lief: sie rief <c>DELETE /api/changeouts/{id}</c> — eine
+    /// Route, die es nicht gab. Der Testbestand wuchs mit jedem Lauf, ohne
+    /// dass etwas gemeldet wurde.</para>
+    /// </remarks>
+    /// <returns><c>true</c>, wenn wirklich eine Zeile verschwunden ist.</returns>
+    public bool DeleteChangeout(int growId, int id)
+    {
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        // Der Grow steht mit in der Bedingung: eine Id allein duerfte sonst
+        // einen Eintrag eines FREMDEN Grows treffen.
+        command.CommandText = """
+            DELETE FROM ChangeoutEntries
+            WHERE Id = $id AND GrowId = $growId;
+        """;
+        command.Parameters.AddWithValue("$id", id);
+        command.Parameters.AddWithValue("$growId", growId);
+        return command.ExecuteNonQuery() > 0;
+    }
+
     private bool GrowExists(int growId)
         => RowExists("Grows", growId);
 

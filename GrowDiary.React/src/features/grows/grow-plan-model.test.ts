@@ -113,3 +113,74 @@ describe('canCreate', () => {
     expect(canCreate(checkPlan(input({ plantCount: 8 }), TODAY))).toBe(false)
   })
 })
+
+/**
+ * Sorten mit sehr verschiedener Blütezeit im selben Becken.
+ *
+ * <b>Der Anlass (31.08.2026).</b> Der Tester hat definiert, dass ein Grow N
+ * Sorten führen kann. Ein RDWC teilt aber ein Becken — und die Ernte hat einen
+ * Tag. Wer eine 8-Wochen- und eine 11-Wochen-Sorte zusammenstellt, erntet die
+ * eine zu spät oder die andere zu früh; der Zeitstrahl zeigt nur eine der
+ * beiden Wahrheiten (`GrowStageResolver` rechnet mit `BreederFlowerWeeksMax`
+ * des Grows).
+ *
+ * Das ist kein Fehler, den man wegprogrammiert — es ist eine Entscheidung. Also
+ * wird sie gesagt, statt sie zu verschweigen.
+ */
+describe('Blütezeiten im selben Becken', () => {
+  const basis = {
+    plantCount: 4, startDate: '2026-08-01', flipDate: null,
+    vegDays: null, flowerDays: null, tent: null, hydro: null,
+    otherGrows: [], programName: null,
+  }
+
+  const spanne = (min: number, max: number) => ({ min, max })
+
+  it('meldet die volle Spanne, nicht nur die Maxima', () => {
+    /* White Widow 8-9, Gorilla Glue 9-11. Die erste Fassung verglich nur die
+       Maxima und schrieb „9 bis 11 — 2 Wochen". Tatsächlich kann die eine ab
+       Woche 8 fertig sein und die andere bis 11 brauchen: drei Wochen.
+       Gefunden vom Prüfer. */
+    const befunde = checkPlan({ ...basis, bluetewochen: [spanne(8, 9), spanne(9, 11)] })
+    const treffer = befunde.find((b) => b.key === 'bluetezeit')
+    expect(treffer, 'Acht bis elf Wochen im selben Becken bleibt unerwähnt.').toBeTruthy()
+    expect(treffer!.text).toContain('8')
+    expect(treffer!.text).toContain('11')
+  })
+
+  it('faengt auch das Paar, das nur ueber die Minima auffaellt', () => {
+    // 8-9 gegen 9-10: die Maxima liegen eine Woche auseinander, die echte
+    // Spanne zwei. Die erste Fassung schwieg hier.
+    const befunde = checkPlan({ ...basis, bluetewochen: [spanne(8, 9), spanne(9, 10)] })
+    expect(befunde.find((b) => b.key === 'bluetezeit')).toBeTruthy()
+  })
+
+  it('schweigt bei einer Woche Unterschied', () => {
+    // Eine Woche liegt im Rahmen dessen, was man ohnehin nach Aussehen erntet.
+    // Eine Warnung dafür wäre Lärm, und Lärm wird binnen einer Woche übergangen.
+    const befunde = checkPlan({ ...basis, bluetewochen: [spanne(8, 8), spanne(9, 9)] })
+    expect(befunde.find((b) => b.key === 'bluetezeit')).toBeUndefined()
+  })
+
+  it('schweigt bei einer einzigen Sorte', () => {
+    const befunde = checkPlan({ ...basis, bluetewochen: [spanne(9, 11), spanne(9, 11)] })
+    expect(befunde.find((b) => b.key === 'bluetezeit')).toBeUndefined()
+  })
+
+  it('schweigt, wenn die Blütewochen unbekannt sind', () => {
+    // Eine Sorte ohne Angabe ist kein Widerspruch — „zu wenig Daten" ist eine
+    // bessere Auskunft als eine erfundene.
+    expect(checkPlan({ ...basis, bluetewochen: [null, null] })
+      .find((b) => b.key === 'bluetezeit')).toBeUndefined()
+    expect(checkPlan({ ...basis, bluetewochen: [{ min: null, max: null }, spanne(8, 9)] })
+      .find((b) => b.key === 'bluetezeit')).toBeUndefined()
+  })
+
+  it('eine halbe Angabe zaehlt als beides', () => {
+    // Nur ein Maximum eingetragen: dann ist es zugleich das Minimum.
+    const befunde = checkPlan({
+      ...basis, bluetewochen: [{ min: null, max: 8 }, { min: 11, max: null }],
+    })
+    expect(befunde.find((b) => b.key === 'bluetezeit')).toBeTruthy()
+  })
+})

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { sortenText } from '../features/grows/sorten-text'
 import type { FormEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError, formatApiError } from '../api'
@@ -390,7 +391,7 @@ function ManualMeasurementPage() {
           <V1Card className="rc2-sticky-card rc2-measurement-context" data-audit="measurement-section-context">
             <span className="v1-card-kicker">Kontext</span>
             <h2>{selectedGrow?.name ?? 'Grow wählen'}</h2>
-            <p>{selectedGrow?.strain ?? 'Sorte offen'} · {selectedGrow?.tentName ?? 'ohne Zelt'}</p>
+            <p>{(selectedGrow ? sortenText(selectedGrow) : null) ?? 'Sorte offen'} · {selectedGrow?.tentName ?? 'ohne Zelt'}</p>
             {selectedGrow && <p className="rc2-measurement-note">Hydro: {formatGrowHydroMedium(selectedGrow)}</p>}
             <V1Field label="Grow">
               <select value={selectedGrowId ?? ''} onChange={(event) => selectGrow(Number(event.target.value))}>

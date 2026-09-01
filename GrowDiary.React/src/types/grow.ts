@@ -24,6 +24,19 @@ export interface GrowSummary {
   id: number
   name: string
   strain: string | null
+  /**
+   * Die Sorten, die WIRKLICH in diesem Grow stehen — aus seinen Pflanzen.
+   *
+   * Leer heisst „keine Pflanze einzeln erfasst"; dann gilt weiter `strain`.
+   * Fuer die Anzeige immer `sortenText()` benutzen, nicht selbst verzweigen.
+   */
+  pflanzenSorten: string[]
+  /**
+   * Tragen ALLE erfassten Pflanzen die Hauptsorte des Laufs? Der Server
+   * vergleicht dafuer die Ids — die Oberflaeche hat es zuerst ueber die Namen
+   * geraten und lag bei „Northern Lights" gegen „Northern Lights Auto" falsch.
+   */
+  nurHauptsorte: boolean
   breeder: string | null
   status: GrowStatus
   hydroStyle: HydroStyle
@@ -195,6 +208,19 @@ export interface GrowDetail {
   setupId: number | null
   name: string
   strain: string | null
+  /**
+   * Die Sorten, die WIRKLICH in diesem Grow stehen — aus seinen Pflanzen.
+   *
+   * Leer heisst „keine Pflanze einzeln erfasst"; dann gilt weiter `strain`.
+   * Fuer die Anzeige immer `sortenText()` benutzen, nicht selbst verzweigen.
+   */
+  pflanzenSorten: string[]
+  /**
+   * Tragen ALLE erfassten Pflanzen die Hauptsorte des Laufs? Der Server
+   * vergleicht dafuer die Ids — die Oberflaeche hat es zuerst ueber die Namen
+   * geraten und lag bei „Northern Lights" gegen „Northern Lights Auto" falsch.
+   */
+  nurHauptsorte: boolean
   breeder: string | null
   status: GrowStatus
   mediumType: string
@@ -248,6 +274,14 @@ export interface GrowDetail {
   updatedAtUtc: string
 }
 
+/** Ein Topf des Hydro-Systems und die Sorte, die darin steht. */
+export interface TopfBelegung {
+  /** Topfnummer ab 1 — dieselbe, die die Draufsicht zeichnet. */
+  topf: number
+  /** Sorte aus der Bibliothek; null heisst „leer" bzw. „ohne Sorte". */
+  strainId: number | null
+}
+
 export interface GrowUpsertPayload {
   templateId: number | null
   name: string
@@ -267,6 +301,18 @@ export interface GrowUpsertPayload {
   plannedVegDays: number | null
   setpointProfileId?: string | null
   strainId: number | null
+  /**
+   * Welche Sorte in welchem Topf steht.
+   *
+   * <b>Der Anlass (31.08.2026).</b> Der Tester hat definiert, was ein Grow ist:
+   * ein Durchgang im RDWC mit N Pflanzen und N Sorten. Bis dahin bot das
+   * Formular EIN Sortenfeld und schickte den Nutzer per Hinweis auf eine
+   * andere Seite.
+   *
+   * <b>undefined heisst „nicht mitgeschickt"</b> und ändert nichts — nur eine
+   * echte Liste weist Sorten zu.
+   */
+  toepfe?: TopfBelegung[]
   hydroStyle: HydroStyle
   plantCount: number | null
   reservoirSize: string | null

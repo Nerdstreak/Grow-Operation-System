@@ -49,10 +49,35 @@ function pair(before: number | null, after: number | null): string {
   return `${formatNumber(before, 2)} → ${formatNumber(after, 2)}`
 }
 
-export function ChangeoutsPanel({ growId, growName }: { growId: number; growName: string }) {
+/**
+ * Die erfassten Wasserwechsel eines Grows — Liste und Eintrag.
+ *
+ * @param offenBeiStart Formular gleich aufgeklappt. Die eigene Seite nutzt das,
+ *   wenn der Wechsel fällig ist: wer deswegen hier landet, will eintragen und
+ *   nicht erst einen Knopf suchen.
+ * @param onGespeichert Meldet nach oben, dass sich etwas geändert hat — die
+ *   Seite lädt damit ihren Stand neu. Ohne das stünde oben „vor 9 Tagen",
+ *   während unten der eben nachgetragene Wechsel von gestern steht.
+ */
+export function ChangeoutsPanel({ growId, growName, offenBeiStart = false, onGespeichert, leerHinweis }: {
+  growId: number
+  growName: string
+  offenBeiStart?: boolean
+  onGespeichert?: () => void
+  /**
+   * Was statt „noch kein Wasserwechsel" steht, wenn die Liste leer ist.
+   *
+   * <b>Gefunden am laufenden Stand (31.08.2026).</b> Oben stand „0 Tage seit
+   * dem letzten Wechsel", unten „Noch kein Wasserwechsel" — beides richtig,
+   * zusammen ein Widerspruch. Die Liste kennt nur ihre eigene Tabelle; der
+   * letzte Wechsel kann auch aus einer Messung stammen. Wer das weiss, sagt es
+   * hier, statt die Liste eine Auskunft geben zu lassen, die sie nicht hat.
+   */
+  leerHinweis?: string
+}) {
   const [items, setItems] = useState<ChangeoutDto[]>([])
   const [loading, setLoading] = useState(true)
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(offenBeiStart)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [error, setError] = useState<string | null>(null)
@@ -79,6 +104,28 @@ export function ChangeoutsPanel({ growId, growName }: { growId: number; growName
   }, [growId, refresh])
 
   const patch = (next: Partial<FormState>) => setForm((current) => ({ ...current, ...next }))
+
+  /**
+   * Einen Eintrag zuruecknehmen.
+   *
+   * Es gab keinen Weg zurueck — und seit die Mahnung diese Tabelle liest,
+   * legt ein Fehlgriff sie fuer eine Woche still. Mit Rueckfrage, weil ein
+   * verlorener Eintrag nicht wiederherzustellen ist.
+   */
+  async function entfernen(eintrag: ChangeoutDto) {
+    const wann = formatDateTime(eintrag.performedAtUtc)
+    if (!window.confirm(`Wasserwechsel vom ${wann} wirklich entfernen?`)) return
+    setError(null)
+    setNotice(null)
+    try {
+      await apiFetch(`/api/grows/${growId}/changeouts/${eintrag.id}`, { method: 'DELETE' })
+      setNotice('Wasserwechsel entfernt.')
+      setRefresh((value) => value + 1)
+      onGespeichert?.()
+    } catch (caught) {
+      setError(caught instanceof ApiRequestError ? caught.message : 'Entfernen fehlgeschlagen.')
+    }
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -117,6 +164,7 @@ export function ChangeoutsPanel({ growId, growName }: { growId: number; growName
       setOpen(false)
       setNotice('Wasserwechsel gespeichert.')
       setRefresh((value) => value + 1)
+      onGespeichert?.()
     } catch (caught) {
       setError(caught instanceof ApiRequestError ? caught.message : 'Speichern fehlgeschlagen.')
     } finally {
@@ -172,7 +220,10 @@ export function ChangeoutsPanel({ growId, growName }: { growId: number; growName
       {loading ? (
         <V1Skeleton rows={3} label="Lade Wasserwechsel" />
       ) : items.length === 0 ? (
-        <V1Empty title="Noch kein Wasserwechsel" text={`Für ${growName} ist noch kein Reservoir-Wechsel erfasst.`} />
+        <V1Empty
+          title="Noch nichts über dieses Formular erfasst"
+          text={leerHinweis ?? `Für ${growName} ist hier noch kein Wechsel eingetragen.`}
+        />
       ) : (
         <div className="v1-list" data-audit="changeout-list">
           {items.map((item) => (
@@ -185,7 +236,18 @@ export function ChangeoutsPanel({ growId, growName }: { growId: number; growName
                 {` · EC ${pair(item.ecBefore, item.ecAfter)} · pH ${pair(item.phBefore, item.phAfter)}`}
                 {item.notes ? ` · ${item.notes}` : ''}
               </span>
-              <em>{item.kind === 'Full' ? 'FULL' : 'PART'}</em>
+              {/* Deutsch, seit die Seite im Hauptmenue steht. „FULL"/„PART"
+                  fielen der Wort-Pruefung nicht auf, weil sie nicht woertlich
+                  die Enum-Werte sind — eine Abkuerzung entkommt jeder Zaehlung,
+                  die nach dem Original sucht. Gefunden vom Pruefer. */}
+              <em>{item.kind === 'Full' ? 'ganz' : 'teils'}</em>
+              <button
+                type="button"
+                className="ls-btn is-small changeouts-weg"
+                onClick={() => void entfernen(item)}
+                aria-label={`Wasserwechsel vom ${formatDateTime(item.performedAtUtc)} entfernen`}
+                title="Entfernen"
+              >Entfernen</button>
             </div>
           ))}
         </div>

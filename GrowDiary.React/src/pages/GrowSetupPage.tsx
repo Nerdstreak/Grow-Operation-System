@@ -50,28 +50,36 @@ function GrowSetupPage() {
   // Wahrheit ueber die Anzahl — der Server zieht plantCount danach.
   const [erfasstePflanzen, setErfasstePflanzen] = useState(0)
 
-  useEffect(() => {
-    if (!isEditing || !growId) return
-    const controller = new AbortController()
-    apiFetch<PlantInstanceDto[]>(`/api/plants?growId=${growId}`, { signal: controller.signal })
-      .then((pflanzen) => setErfasstePflanzen(pflanzen.length))
-      .catch(() => { /* Ohne Pflanzen-API bleibt das Feld beschreibbar. */ })
-    return () => controller.abort()
-  }, [isEditing, growId])
+  /* Die Pflanzen werden MIT dem Grow geladen, nicht daneben.
 
+     Die erste Fassung hatte dafuer einen eigenen Effekt — und der lief gegen
+     den Hauptlader: dessen `setForm({ ...emptyForm(), … })` kennt `toepfe`
+     nicht und loeschte die eben gesetzte Belegung wieder. Die Pflanzen-Abfrage
+     ist die schnellere von beiden, also gewann das Loeschen praktisch immer.
+     Auf `/grows/1/setup` stand deshalb „0 von 4 Toepfen belegt", waehrend vier
+     Pflanzen mit ihren Sorten in der Datenbank lagen — das GEGENTEIL von dem,
+     was der Kommentar an dieser Stelle behauptete.
+
+     Gefunden vom Pruefer. Zwei Effekte, die dasselbe Feld schreiben, sind ein
+     Wettlauf; die Reihenfolge zu sortieren waere eine Wette. Hier gibt es
+     jetzt einen Schreiber. */
   useEffect(() => {
     const controller = new AbortController()
     async function load() {
       setLoading(true)
       setError(null)
       try {
-        const [tentData, hydroData, knowledge, grow, growsData, strainData] = await Promise.all([
+        const [tentData, hydroData, knowledge, grow, growsData, strainData, pflanzen] = await Promise.all([
           apiFetch<TentDto[]>('/api/settings/tents', { signal: controller.signal }),
           apiFetch<HydroSetupDto[]>('/api/hydro-setups?includeArchived=true', { signal: controller.signal }),
           apiFetch<KnowledgeOverviewDto>('/api/knowledge', { signal: controller.signal }),
           isEditing && growId ? apiFetch<GrowDetail>(`/api/grows/${growId}`, { signal: controller.signal }) : Promise.resolve(null),
           apiFetch<GrowSummary[]>('/api/grows?archived=false', { signal: controller.signal }).catch(() => []),
           apiFetch<StrainDto[]>('/api/strains', { signal: controller.signal }).catch(() => [] as StrainDto[]),
+          isEditing && growId
+            ? apiFetch<PlantInstanceDto[]>(`/api/plants?growId=${growId}`, { signal: controller.signal })
+                .catch(() => [] as PlantInstanceDto[])
+            : Promise.resolve([] as PlantInstanceDto[]),
         ])
         if (controller.signal.aborted) return
         setTents(tentData)
@@ -86,7 +94,14 @@ function GrowSetupPage() {
           const kartenTreffer = (knowledge.programs ?? []).some((program) => program.name === grow.nutrients || program.key === grow.nutrients)
           if (grow.nutrients && !kartenTreffer) setCustomProgram(grow.nutrients)
         }
-        if (grow) setForm({ ...emptyForm(), name: grow.name, tentId: grow.tentId, systemId: grow.systemId, setupId: grow.setupId, strain: grow.strain, breeder: grow.breeder, seedType: grow.seedType, startMaterial: grow.startMaterial, hydroStyle: grow.hydroStyle, plantCount: grow.plantCount, reservoirSize: grow.reservoirSize, containerSize: grow.containerSize, light: grow.light, hasChiller: grow.hasChiller, waterSource: grow.waterSource, nutrients: grow.nutrients, startDate: nurDatum(grow.startDate) ?? emptyForm().startDate, entryPoint: grow.entryPoint, daysAlreadyInPhase: grow.daysAlreadyInPhase, autoflowerDaysSinceGermination: grow.autoflowerDaysSinceGermination, flipDate: nurDatum(grow.flipDate), notes: grow.notes, status: grow.status, environment: grow.environment, germinationMethod: grow.germinationMethod, propagationMedium: grow.propagationMedium, cloneSource: grow.cloneSource, cloneIsRooted: grow.cloneIsRooted, phenoNumber: grow.phenoNumber, breederFlowerWeeksMin: grow.breederFlowerWeeksMin, breederFlowerWeeksMax: grow.breederFlowerWeeksMax, plannedVegDays: grow.plannedVegDays, strainId: grow.strainId, setpointProfileId: grow.setpointProfileId ?? null })
+        setErfasstePflanzen(pflanzen.length)
+        if (grow) setForm({ ...emptyForm(), name: grow.name, tentId: grow.tentId, systemId: grow.systemId, setupId: grow.setupId, strain: grow.strain, breeder: grow.breeder, seedType: grow.seedType, startMaterial: grow.startMaterial, hydroStyle: grow.hydroStyle, plantCount: grow.plantCount, reservoirSize: grow.reservoirSize, containerSize: grow.containerSize, light: grow.light, hasChiller: grow.hasChiller, waterSource: grow.waterSource, nutrients: grow.nutrients, startDate: nurDatum(grow.startDate) ?? emptyForm().startDate, entryPoint: grow.entryPoint, daysAlreadyInPhase: grow.daysAlreadyInPhase, autoflowerDaysSinceGermination: grow.autoflowerDaysSinceGermination, flipDate: nurDatum(grow.flipDate), notes: grow.notes, status: grow.status, environment: grow.environment, germinationMethod: grow.germinationMethod, propagationMedium: grow.propagationMedium, cloneSource: grow.cloneSource, cloneIsRooted: grow.cloneIsRooted, phenoNumber: grow.phenoNumber, breederFlowerWeeksMin: grow.breederFlowerWeeksMin, breederFlowerWeeksMax: grow.breederFlowerWeeksMax, plannedVegDays: grow.plannedVegDays, strainId: grow.strainId, setpointProfileId: grow.setpointProfileId ?? null,
+          /* Die Belegung kommt aus den PFLANZEN — im selben setForm wie alles
+             andere, damit sie niemand ueberschreibt. */
+          toepfe: pflanzen
+            .filter((pflanze) => pflanze.siteIndex != null)
+            .map((pflanze) => ({ topf: pflanze.siteIndex as number, strainId: pflanze.strainId ?? null }))
+            .sort((a, b) => a.topf - b.topf) })
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatApiError(caught, 'Grow-Wizard konnte nicht geladen werden.'))
       } finally {
@@ -106,8 +121,46 @@ function GrowSetupPage() {
     ?? null
 
   function patch(value: Partial<GrowUpsertPayload>) { setForm((current) => ({ ...current, ...value })) }
+
+  /* Wieviele Toepfe belegt sind — die eine Wahrheit ueber die Pflanzenzahl,
+     sobald der Nutzer sie im Abschnitt „Toepfe & Sorten" gesetzt hat. */
+  const belegteToepfe = form.toepfe?.length ?? 0
+
+  /* Die Pflanzenzahl, die gilt — an EINER Stelle, fuer Anzeige, Pruefung und
+     Speichern. Vorher stand dieselbe Ableitung dreimal im Code und einmal gar
+     nicht: die Pruefung rechnete mit `form.plantCount`, das auf diesem Weg
+     immer null ist. Reihenfolge: einzeln erfasste Pflanzen schlagen die
+     Belegung im Formular, die Belegung schlaegt das Zahlenfeld. */
+  const pflanzenzahl = erfasstePflanzen > 0 ? erfasstePflanzen
+    : belegteToepfe > 0 ? belegteToepfe
+    : form.plantCount ?? null
   function selectTent(id: number) { setForm((current) => ({ ...current, tentId: id, systemId: hydroSetups.some((setup) => setup.id === current.systemId && setup.tentId === id) ? current.systemId : null, setupId: null })) }
-  function selectHydro(setup: HydroSetupDto) { patch({ systemId: setup.id, setupId: null, hydroStyle: setup.hydroStyle, reservoirSize: formatLiters(setup.totalVolumeLiters ?? setup.reservoirLiters), containerSize: formatLiters(setup.potSizeLiters), hasChiller: setup.hasChiller }) }
+  /**
+   * Ein anderes Hydro-System — die Belegung bleibt, wie sie ist.
+   *
+   * <b>Zwei Anlaeufe, und der erste war schlimmer als das Problem.</b> Der
+   * Pruefer meldete: wechselt jemand von einem 4-Topf- auf ein 2-Topf-System,
+   * bleiben vier Eintraege stehen und der Kopf schreibt „4 von 2 belegt". Mein
+   * erster Fix schnitt die ueberzaehligen Toepfe weg — und beim Zurueckwechseln
+   * auf das grosse System standen Topf 3 und 4 auf „leer", obwohl dort Pflanzen
+   * sitzen. Das Formular log ueber den Bestand, und ein Speichern haette den
+   * Nutzer im Glauben gelassen, er habe zwei Toepfe frei.
+   *
+   * Richtig ist: nichts wegwerfen. Die Ueberzahl IST ein Widerspruch, und die
+   * Pruefung rechts sagt ihn schon aus („4 Pflanzen auf 2 Sites — zu wenig
+   * Plaetze") und sperrt das Speichern. Aufgeloest wird er, indem der Nutzer
+   * Pflanzen entfernt — nicht, indem das Formular es heimlich fuer ihn tut.
+   */
+  function selectHydro(setup: HydroSetupDto) {
+    patch({
+      systemId: setup.id,
+      setupId: null,
+      hydroStyle: setup.hydroStyle,
+      reservoirSize: formatLiters(setup.totalVolumeLiters ?? setup.reservoirLiters),
+      containerSize: formatLiters(setup.potSizeLiters),
+      hasChiller: setup.hasChiller,
+    })
+  }
 
   async function saveGrow() {
     // Der Validator lief frueher pro Wizard-Schritt. Auf einer Seite gilt er
@@ -124,7 +177,16 @@ function GrowSetupPage() {
       // die Id ins Wissen, und erst die macht den Mischplan moeglich.
       // Faellt der Wissens-Abruf aus, haelt die gespeicherte Id das Programm —
       // null wird nur daraus, wenn der Nutzer wirklich keins gewaehlt hat.
-      const payload = { ...form, nutrients: form.nutrients || customProgram || null, setupId: form.setupId ?? null, feedProgramId: selectedProgram?.key ?? feedProgramId }
+      const payload = {
+        ...form,
+        nutrients: form.nutrients || customProgram || null,
+        setupId: form.setupId ?? null,
+        feedProgramId: selectedProgram?.key ?? feedProgramId,
+        // Belegte Toepfe SIND die Pflanzen. Das Feld oben ist dann nur Anzeige;
+        // hier wird die Zahl daraus gezogen, damit Formular und Bestand nicht
+        // auseinanderlaufen.
+        plantCount: pflanzenzahl,
+      }
       const saved = await apiFetch<GrowDetail>(isEditing && growId ? `/api/grows/${growId}` : '/api/grows', { method: isEditing ? 'PUT' : 'POST', body: JSON.stringify(payload) })
       navigate(`/grows/${saved.id}`)
     } catch (caught) {
@@ -139,7 +201,16 @@ function GrowSetupPage() {
   // Prüfung und Timeline rechnen bei jeder Eingabe mit — das ist der Grund,
   // warum die sechs Schritte zu einer Seite werden konnten.
   const planInput = {
-    plantCount: form.plantCount ?? null,
+    /* Die Zahl, die WIRKLICH gilt — nicht das Feld.
+       Seit die Toepfe die Pflanzenzahl bestimmen, bleibt `form.plantCount` auf
+       diesem Weg fuer immer null: das Feld ist schreibgeschuetzt, sobald ein
+       Topf belegt ist. `checkPlan` bekam damit null und liess die ganze
+       Sites-Pruefung aus. Nachgestellt vom Pruefer: 4 Toepfe belegt, dann auf
+       ein 2-Topf-System gewechselt — „Grow starten" blieb aktiv, und heraus kam
+       ein Grow mit plantCount 4 auf 2 Sites, den man danach nicht mehr
+       speichern konnte. Der Kommentar bei `selectHydro` behauptete genau die
+       Sperre, die hier fehlte. */
+    plantCount: pflanzenzahl,
     // Pflichtfeld mit Regel statt Fehlermeldung: ohne Angabe ist heute Tag 1.
     startDate: form.startDate || new Date().toISOString().slice(0, 10),
     flipDate: form.flipDate ?? null,
@@ -149,6 +220,21 @@ function GrowSetupPage() {
     hydro: selectedHydro,
     otherGrows: otherGrows.filter((grow) => grow.id !== Number(growId)),
     programName: selectedProgram?.name ?? (customProgram.trim() || null),
+    /* Die Bluetewochen der wirklich gewaehlten Sorten — nicht die des Grows.
+       Ein Becken hat einen Erntetag; zwei Sorten mit acht und elf Wochen
+       passen physikalisch, zeitlich aber nicht. Das soll der Nutzer sehen,
+       BEVOR er startet. */
+    bluetewochen: (form.toepfe ?? []).map((eintrag) => {
+      const sorte = strains.find((s) => s.id === eintrag.strainId)
+      if (!sorte) return null
+      /* Die SPANNE, nicht nur das Maximum. Die erste Fassung nahm
+         `flowerWeeksMax ?? Min` je Sorte — bei White Widow 8-9 und Gorilla
+         Glue 9-11 stand deshalb „9 bis 11", obwohl die eine ab Woche 8 fertig
+         sein kann und die andere bis 11 braucht: drei Wochen, nicht zwei. Und
+         ein Paar 8-9 gegen 9-10 fiel ganz durch. Gefunden vom Pruefer. */
+      return { min: sorte.flowerWeeksMin ?? sorte.flowerWeeksMax ?? null,
+               max: sorte.flowerWeeksMax ?? sorte.flowerWeeksMin ?? null }
+    }),
   }
   const timeline = buildTimeline(planInput)
   const findings = checkPlan(planInput)
@@ -163,9 +249,10 @@ function GrowSetupPage() {
           ist, merkte man vorher erst am Ende — oder gar nicht. */}
       <div className="grow-wizard-shell">
         <div className="grow-wizard-main">
-          <RunStep form={form} patch={patch} strains={strains} erfasstePflanzen={erfasstePflanzen} />
+          <RunStep form={form} patch={patch} strains={strains} erfasstePflanzen={erfasstePflanzen} belegteToepfe={belegteToepfe} pflanzenzahl={pflanzenzahl} />
           <TentStep tents={tents} selectedId={form.tentId} onSelect={selectTent} />
           <HydroStep setups={availableHydro} exactCount={exactHydro.length} selectedId={form.systemId ?? null} onSelect={selectHydro} tent={selectedTent} />
+          <ToepfeStep form={form} patch={patch} strains={strains} hydro={selectedHydro} />
           <TimeStep form={form} patch={patch} />
           <ProgramStep programs={programs} selected={form.nutrients ?? ''} custom={customProgram} setCustom={setCustomProgram} selectProgram={setFeedProgramId} patch={patch} />
         </div>
@@ -195,6 +282,129 @@ function GrowSetupPage() {
 }
 
 /**
+ * Die Töpfe des Systems — und die Sorte, die in jedem steht.
+ *
+ * <b>Der Anlass (31.08.2026).</b> Der Tester hat definiert, was ein Grow ist:
+ * „ein Durchgang in einem RDWC/DWC, der N Pflanzen mit N verschiedenen
+ * Sorten/Phenos beinhalten kann. In dem Grow sollten die ganzen Sorten im
+ * RDWC-System stehen wie bei den Töpfen."
+ *
+ * <b>Was vorher war.</b> Ein einziges Sortenfeld, dazu ein Hinweis: „Mehrere
+ * Sorten im Zelt? Leg den Grow an und trag danach unter ‚Pflanzen &amp;
+ * Sorten' jede Pflanze mit ihrer eigenen Sorte und ihrem Topf ein." Das
+ * Datenmodell konnte es längst — nur das Formular schickte den Nutzer weg. Ein
+ * Weg, der aus zwei Schritten besteht, weil einer davon fehlt, ist kein Weg.
+ *
+ * <b>Warum hier und nicht oben.</b> Die Töpfe kommen aus dem Hydro-System.
+ * Vor dessen Auswahl gibt es nichts zu belegen — deshalb steht der Abschnitt
+ * darunter und nicht im Kopf des Formulars.
+ */
+function ToepfeStep({ form, patch, strains, hydro }: {
+  form: GrowUpsertPayload
+  patch: (value: Partial<GrowUpsertPayload>) => void
+  strains: StrainDto[]
+  hydro: HydroSetupDto | null
+}) {
+  const sorten = [...strains].sort((a, b) => a.name.localeCompare(b.name, 'de'))
+  const topfzahl = hydro?.potCount ?? 0
+  const belegung = form.toepfe ?? []
+  /* Toepfe, die es im GEWAEHLTEN System nicht gibt — nach einem Systemwechsel.
+     Sie werden nicht weggeworfen (das hat der erste Anlauf getan, und beim
+     Zurueckwechseln standen belegte Toepfe ploetzlich leer da). Stattdessen
+     stehen sie hier als das, was sie sind: ein Widerspruch, den der Nutzer
+     aufloest. Die Pruefung rechts sperrt das Speichern ohnehin. */
+  const ausserhalb = belegung.filter((eintrag) => eintrag.topf > topfzahl)
+
+  function sorteFuer(topf: number): number | null {
+    return belegung.find((eintrag) => eintrag.topf === topf)?.strainId ?? null
+  }
+
+  /** Setzt einen Topf; „leer" nimmt ihn aus der Liste. */
+  function setzeTopf(topf: number, wert: string) {
+    const ohne = belegung.filter((eintrag) => eintrag.topf !== topf)
+    const neu = wert === ''
+      ? ohne
+      : [...ohne, { topf, strainId: Number(wert) }]
+    patch({ toepfe: neu.sort((a, b) => a.topf - b.topf) })
+  }
+
+  /** Alle Töpfe auf dieselbe Sorte — der häufigste Fall in einem Griff. */
+  function alleAuf(wert: string) {
+    if (wert === '') { patch({ toepfe: [] }); return }
+    const strainId = Number(wert)
+    patch({ toepfe: Array.from({ length: topfzahl }, (_, i) => ({ topf: i + 1, strainId })) })
+  }
+
+  if (topfzahl <= 0) {
+    return (
+      <V1Section title="Töpfe & Sorten">
+        <p className="gw-toepfe-hinweis">
+          Wähle oben ein Hydro-System — dann stehen hier seine Töpfe, und du kannst
+          jedem seine Sorte geben.
+        </p>
+      </V1Section>
+    )
+  }
+
+  return (
+    <V1Section title="Töpfe & Sorten">
+      <div className="gw-toepfe" data-audit="grow-toepfe">
+        <div className="gw-toepfe-kopf">
+          {/* Die Zahl steht hier, nicht im Feld „Pflanzen" darueber: belegte
+              Toepfe SIND die Pflanzen. Zwei Stellen fuer dieselbe Zahl laufen
+              auseinander — das ist in diesem Projekt dreimal passiert. */}
+          <span className="gw-toepfe-zahl">
+            {belegung.length - ausserhalb.length} von {topfzahl} {topfzahl === 1 ? 'Topf' : 'Töpfen'} belegt
+          </span>
+          {sorten.length > 0 && (
+            <label className="gw-toepfe-alle">
+              <span>alle auf</span>
+              <select value="" onChange={(event) => alleAuf(event.target.value)} aria-label="Alle Töpfe auf eine Sorte setzen">
+                <option value="">— wählen —</option>
+                {sorten.map((sorte) => <option key={sorte.id} value={sorte.id}>{sorte.name}</option>)}
+              </select>
+            </label>
+          )}
+        </div>
+
+        <ul className="gw-toepfe-liste">
+          {Array.from({ length: topfzahl }, (_, i) => i + 1).map((topf) => (
+            <li key={topf} className={sorteFuer(topf) == null ? 'gw-topf is-leer' : 'gw-topf'}>
+              <span className="gw-topf-nr">Topf {topf}</span>
+              <select
+                value={sorteFuer(topf) ?? ''}
+                onChange={(event) => setzeTopf(topf, event.target.value)}
+                aria-label={`Sorte in Topf ${topf}`}
+              >
+                <option value="">— leer —</option>
+                {sorten.map((sorte) => <option key={sorte.id} value={sorte.id}>{sorte.name}</option>)}
+              </select>
+            </li>
+          ))}
+        </ul>
+
+        {ausserhalb.length > 0 && (
+          <p className="gw-toepfe-hinweis is-warn">
+            {ausserhalb.length === 1
+              ? `Eine Pflanze steht auf Topf ${ausserhalb[0].topf} — den gibt es in `
+              : `${ausserhalb.length} Pflanzen stehen auf Töpfen ${ausserhalb.map((e) => e.topf).join(', ')} — die gibt es in `}
+            {hydro?.name ?? 'diesem System'} nicht. Entferne sie unter „Pflanzen &amp; Sorten"
+            am Grow, oder wähle wieder ein System mit genug Töpfen.
+          </p>
+        )}
+
+        {sorten.length === 0 && (
+          <p className="gw-toepfe-hinweis">
+            Noch keine Sorte in der Bibliothek — leg sie unter „Sorten &amp; Pheno" an,
+            dann kannst du sie hier den Töpfen zuordnen.
+          </p>
+        )}
+      </div>
+    </V1Section>
+  )
+}
+
+/**
  * Der Kopf des Grows: Name, Sorte, Pflanzenzahl.
  *
  * Die Sorte kommt aus der Bibliothek, statt frei getippt zu werden. Vorher
@@ -204,7 +414,7 @@ function GrowSetupPage() {
  * Zuechter und Bluetewochen; „frei eintragen" bleibt fuer alles, was (noch)
  * nicht in der Bibliothek steht.
  */
-function RunStep({ form, patch, strains, erfasstePflanzen }: { form: GrowUpsertPayload; patch: (value: Partial<GrowUpsertPayload>) => void; strains: StrainDto[]; erfasstePflanzen: number }) {
+function RunStep({ form, patch, strains, erfasstePflanzen, belegteToepfe, pflanzenzahl }: { form: GrowUpsertPayload; patch: (value: Partial<GrowUpsertPayload>) => void; strains: StrainDto[]; erfasstePflanzen: number; belegteToepfe: number; pflanzenzahl: number | null }) {
   const sorten = [...strains].sort((a, b) => a.name.localeCompare(b.name, 'de'))
   // Was der letzte Bibliotheks-Klick bei den Bluetewochen eingetragen hat.
   // Beim Wechsel auf eine andere Sorte wird nur genau das ersetzt \u2014 sonst
@@ -245,7 +455,13 @@ function RunStep({ form, patch, strains, erfasstePflanzen }: { form: GrowUpsertP
           <input value={form.name} onChange={(event) => patch({ name: event.target.value })} placeholder="Purple Lemonade RDWC" />
         </V1Field>
 
-        <V1Field label="Sorte" hint={sorten.length === 0 ? 'Noch keine Sorte in der Bibliothek \u2014 unter „Sorten & Pheno" anlegen.' : 'Aus der Bibliothek: z\u00e4hlt sp\u00e4ter in Runs und \u00d8-Ertrag mit. Mehrere Sorten im Zelt? Leg den Grow an und trag danach unter \u201ePflanzen & Sorten\u201c jede Pflanze mit ihrer eigenen Sorte und ihrem Topf ein.'}>
+        {/* „Hauptsorte", nicht mehr „Sorte": seit dem 31.08.2026 steht die
+            Sorte je Topf im Abschnitt „Töpfe & Sorten" weiter unten. Diese
+            hier trägt die Blütewochen des Laufs und die Statistik — und ist
+            der Rückfall für Töpfe ohne eigene Angabe. Der alte Hinweis
+            schickte den Nutzer auf eine ANDERE Seite; genau das war die
+            Beschwerde des Testers. */}
+        <V1Field label="Hauptsorte" hint={sorten.length === 0 ? 'Noch keine Sorte in der Bibliothek — unter „Sorten & Pheno" anlegen.' : 'Trägt Blütewochen und Statistik des Laufs. Mehrere Sorten? Die stehen unten je Topf.'}>
           <select value={form.strainId != null ? String(form.strainId) : ''} onChange={(event) => waehleSorte(event.target.value)}>
             <option value="">— frei eintragen —</option>
             {sorten.map((sorte) => (
@@ -269,17 +485,24 @@ function RunStep({ form, patch, strains, erfasstePflanzen }: { form: GrowUpsertP
             beschreibbares Feld daneben behauptete etwas anderes: eingetragen,
             gespeichert, danach stand wieder die alte Zahl da. Gefunden von
             e2e/formularfelder-kommen-an.spec.ts. */}
+        {/* Eine Wahrheit ueber die Zahl.
+            Belegte Toepfe SIND die Pflanzen — steht unten eine Belegung, ist
+            das Feld hier nur noch Anzeige. Zwei beschreibbare Stellen fuer
+            dieselbe Zahl laufen auseinander; genau das war der Fehler, den
+            e2e/formularfelder-kommen-an.spec.ts am 25.08.2026 gefunden hat. */}
         <V1Field
           label="Pflanzen"
           hint={erfasstePflanzen > 0
             ? `${erfasstePflanzen} einzeln erfasst — die Zahl folgt der Karte „Pflanzen & Sorten" am Grow.`
-            : undefined}
+            : belegteToepfe > 0
+              ? 'Folgt den belegten Töpfen unten.'
+              : undefined}
         >
           <input
             type="number"
             min="1"
-            value={erfasstePflanzen > 0 ? erfasstePflanzen : form.plantCount ?? ''}
-            readOnly={erfasstePflanzen > 0}
+            value={pflanzenzahl ?? ''}
+            readOnly={erfasstePflanzen > 0 || belegteToepfe > 0}
             onChange={(event) => patch({ plantCount: toNullableInt(event.target.value) })}
           />
         </V1Field>

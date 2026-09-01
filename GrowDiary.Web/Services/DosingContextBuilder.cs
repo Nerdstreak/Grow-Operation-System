@@ -120,16 +120,12 @@ public sealed class DosingContextBuilder
     {
         if (tent.ActiveGrows.FirstOrDefault() is not { } grow) return null;
 
-        var ausMessung = _repository.GetMeasurementsForGrow(grow.Id)
-            .Where(measurement => measurement.SolutionChange)
-            .Select(measurement => (DateTime?)measurement.TakenAt.ToUniversalTime())
-            .FirstOrDefault();
-
-        var ausWechsel = _addback?.GetChangeoutsForGrow(grow.Id)
-            .Select(entry => (DateTime?)entry.PerformedAtUtc)
-            .Max();
-
-        return new[] { ausMessung, ausWechsel }.Max();
+        // Diese Stelle las als EINZIGE beide Belege — und trug die Logik als
+        // eigene Kopie. Seit dem 31.08.2026 steht sie einmal in Wasserwechsel,
+        // und die drei anderen Leser sehen dasselbe.
+        return Wasserwechsel.ZuletztUtc(
+            _repository.GetMeasurementsForGrow(grow.Id),
+            _addback?.GetChangeoutsForGrow(grow.Id));
     }
 
     /// <summary>

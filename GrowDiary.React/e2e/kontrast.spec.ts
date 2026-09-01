@@ -126,11 +126,66 @@ const MESSUNG = `() => {
       .trim()
     if (!eigen) continue
     const s = getComputedStyle(el)
-    if (s.visibility === 'hidden' || s.display === 'none' || Number(s.opacity) < 0.3) continue
+    if (s.visibility === 'hidden' || s.display === 'none') continue
+
+    // GESPERRTE Bedienelemente sind ausgenommen.
+    //
+    // WCAG 1.4.3 nimmt inaktive Bedienelemente ausdruecklich aus: „Text, der
+    // Teil eines inaktiven Bedienelements ist, hat keine Kontrastanforderung."
+    // Genau darum geht es: die App zeigt gesperrte Knoepfe mit opacity 0.45,
+    // und seit die geerbte Deckkraft mitgerechnet wird, meldete diese Pruefung
+    // drei davon — „Eintragen" bei 1,76 auf /aushaerten, obwohl der Knopf dort
+    // absichtlich nicht anklickbar ist. Ein Fehlalarm, der die ganze Pruefung
+    // entwertet haette.
+    const gesperrt = el.closest('[disabled], [aria-disabled="true"], .is-disabled')
+    if (gesperrt) continue
+
+    // GEERBTE Deckkraft — und zwar richtig gerechnet.
+    //
+    // Hier stand nur die Deckkraft des Elements SELBST. Eine Gruppe darueber
+    // mit opacity 0.72 blieb damit unsichtbar, und ihre Wirkung auf den Text
+    // ebenso: „Topf N" im leeren Topf kam im hellen Thema auf 3,97:1 und riss
+    // AA, ohne dass diese Pruefung etwas meldete. Fuenfter blinder Fleck
+    // dieser Datei.
+    //
+    // Der erste Anlauf mischte nur die SCHRIFT in ihren Untergrund und liess
+    // den Untergrund stehen. Das ist zu hart: Gruppen-Deckkraft dimmt BEIDES.
+    // Die Gruppe wird fertig gemalt und dann als Ganzes ueber das gelegt, was
+    // ausserhalb von ihr liegt — also werden Schrift und Flaeche mit derselben
+    // Deckung gegen denselben aeusseren Grund gemischt.
+    // Laufende Einblendungen zaehlen NICHT.
+    //
+    // Die App blendet Karten beim Laden ein. Wird waehrenddessen gemessen,
+    // steht dort eine Deckkraft, die eine Zehntelsekunde spaeter 1 ist —
+    // gemeldet wurden dadurch „Laeuft" bei 1,76 und zwei Knoepfe, die in
+    // Ruhe tadellos sind. Eine Pruefung mit Fehlalarmen wird binnen einer
+    // Woche uebergangen; also wird nur bewertet, was steht.
+    let gruppe = null
+    let deckung = 1
+    for (let k = el; k && k !== document.documentElement; k = k.parentElement) {
+      const d = Number(getComputedStyle(k).opacity)
+      if (d >= 1) continue
+      const bewegt = typeof k.getAnimations === 'function'
+        && k.getAnimations().some((a) => a.playState === 'running')
+      if (bewegt) continue
+      deckung *= d
+      gruppe = k
+    }
+    if (deckung < 0.3) continue
+
     const [, , , ta = 1] = zahl(s.color)
-    if (ta < 0.3) continue
-    const grund = flaeche(el)
-    const vorne = alsRgb(s.color, grund)
+    if (ta * deckung < 0.3) continue
+
+    let grund = flaeche(el)
+    let vorne = alsRgb(s.color, grund)
+
+    if (gruppe && gruppe.parentElement) {
+      const aussen = flaeche(gruppe.parentElement)
+      const mische = (farbe) => [0, 1, 2].map((i) => deckung * farbe[i] + (1 - deckung) * aussen[i])
+      vorne = mische(vorne)
+      grund = mische(grund)
+    }
+
     const l1 = lum(vorne), l2 = lum(grund)
     const k = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
     // Grosse Schrift darf nach WCAG bei 3,0 bleiben — sie ist auch mit

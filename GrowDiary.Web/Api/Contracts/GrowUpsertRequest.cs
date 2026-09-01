@@ -31,7 +31,33 @@ public sealed class GrowUpsertRequest
     public string? SetpointProfileId { get; set; }
 
     /// <summary>Sorte aus der Bibliothek; leer = nur freier Text.</summary>
+    /// <remarks>
+    /// Die <b>Hauptsorte</b> des Laufs — für Laufzeiten, Blütewochen und die
+    /// Statistik. Steht in <see cref="Toepfe"/> eine Belegung, gilt sie je Topf
+    /// und diese hier ist nur noch der Rückfall für Töpfe ohne eigene Angabe.
+    /// </remarks>
     public int? StrainId { get; set; }
+
+    /// <summary>
+    /// Welche Sorte in welchem Topf steht — die Belegung des Systems.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (31.08.2026).</b> Der Tester hat definiert, was ein
+    /// Grow ist: „ein Durchgang in einem RDWC/DWC, der N Pflanzen mit N
+    /// verschiedenen Sorten/Phenos beinhalten kann. In dem Grow sollten die
+    /// ganzen Sorten im RDWC-System stehen wie bei den Töpfen."</para>
+    ///
+    /// <para><b>Zuweisung, nicht Ersetzung.</b> Beim Anlegen entstehen die
+    /// genannten Pflanzen. Beim Bearbeiten bekommt jeder genannte Topf seine
+    /// Sorte; ein leerer wird gefüllt, ein nicht genannter bleibt unberührt.
+    /// Gelöscht wird hier nie — dafür gibt es die Karte „Pflanzen &amp;
+    /// Sorten" mit ihrer Rückfrage.</para>
+    ///
+    /// <para><c>null</c> heisst „Feld nicht mitgeschickt" und ändert nichts —
+    /// fremde Aufrufer und der MCP-Server dürfen dem Grow seine Pflanzen nicht
+    /// dadurch nehmen, dass sie ein Feld nicht kennen.</para>
+    /// </remarks>
+    public List<TopfBelegungRequest>? Toepfe { get; set; }
     public HydroStyle HydroStyle { get; set; } = HydroStyle.RDWC;
     public int? PlantCount { get; set; }
     public string? ReservoirSize { get; set; }
@@ -58,4 +84,15 @@ public sealed class GrowUpsertRequest
     public string? Notes { get; set; }
     public GrowStatus Status { get; set; } = GrowStatus.Planning;
     public GrowEnvironment Environment { get; set; } = GrowEnvironment.Indoor;
+}
+
+/// <summary>Ein Topf und die Sorte, die darin steht.</summary>
+public sealed class TopfBelegungRequest
+{
+    /// <summary>Die Topfnummer, ab 1.</summary>
+    [Range(1, 512, ErrorMessage = "Die Topfnummer muss mindestens 1 sein.")]
+    public int Topf { get; set; }
+
+    /// <summary>Die Sorte aus der Bibliothek; leer = ohne Sorte.</summary>
+    public int? StrainId { get; set; }
 }

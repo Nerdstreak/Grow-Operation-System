@@ -51,7 +51,8 @@ public sealed class TrendWatchRunner
         // uebergeht damit das eigene Profil des Nutzers. Genau dieser Fehler
         // stand in der Diagnose und hat dort EC 0,6-0,8 gemeldet, waehrend die
         // Live-Kachel fuer denselben Grow 0,9-1,1 sagte.
-        return TrendWatchService.Evaluate(measurements, ZieleFuer(grow, stage), now);
+        return TrendWatchService.Evaluate(
+            measurements, ZieleFuer(grow, stage), now, _repository.GetChangeoutsForGrow(growId));
     }
 
     /// <summary>Die Sollwerte über die volle Profil-Kette.</summary>

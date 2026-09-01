@@ -279,6 +279,18 @@ test('sind alle Töpfe belegt, sagt die Karte es — und das Entfernen macht wie
        Reihenfolge hängt an der Sortierung, und die kann sich ändern; getroffen
        wurde dann eine der ursprünglichen, und das Aufräumen meldete danach
        „3 Pflanzen statt 4". Am 28.08.2026 in jedem zweiten vollen Lauf. */
+    /* Auf die LISTE warten, nicht nur auf die API.
+
+       Die Zusicherung darueber pollt `/api/plants` — dort steht die neue
+       Pflanze sofort. Die Karte rendert aber erst danach neu, und die Schleife
+       unten liest den DOM. In etwa jedem dritten vollen Lauf kam sie eine Zeile
+       zu frueh und meldete „die eben angelegte Pflanze war in der Liste nicht
+       zu finden": ein Test, dessen Ausgang vom Zeitpunkt abhaengt, hat nichts
+       geprueft. Gefunden am 01.09.2026 in vier Laeufen hintereinander. */
+    await expect(karte.locator('.gp-liste li'),
+      'Die Karte zeigt die neue Pflanze nicht — entweder rendert sie nicht neu, '
+      + 'oder das Anlegen ist gar nicht angekommen.').toHaveCount(toepfe + 1)
+
     const zeilen = await karte.locator('.gp-liste li').count()
     let getroffen = false
     for (let i = 0; i < zeilen; i += 1) {

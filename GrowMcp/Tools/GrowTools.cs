@@ -131,6 +131,31 @@ public sealed class GrowTools(GrowOsReader reader)
         => SicherAsync(async () =>
         {
             var grow = await DetailAsync(growId, cancellationToken);
+
+            /* Ein Grow kann MEHRERE Sorten fuehren.
+
+               Der Tester hat es am 01.09.2026 ausgeschrieben: „ein Grow ist ein
+               Durchgang in einem RDWC/DWC und kann N Pflanzen mit N
+               verschiedenen Sorten/Phenos beinhalten." Dieses Werkzeug gab bis
+               dahin GENAU EINE zurueck — die Hauptsorte des Laufs — und die KI
+               beriet damit ueber ein Becken, dessen halber Inhalt ihr unbekannt
+               war. Eine Halbwahrheit ist hier schlimmer als „zu wenig Daten":
+               sie sieht aus wie eine Antwort. */
+            var sorten = Texte(grow, "pflanzenSorten");
+            if (sorten.Count > 1)
+            {
+                var haupt = Zahl(grow, "strainId") is { } id
+                    ? await reader.LesenAsync($"api/strains/{id}", cancellationToken)
+                    : "(keine Hauptsorte in der Sortenliste hinterlegt)";
+
+                return $"Der Grow {growId} fuehrt {sorten.Count} Sorten: {string.Join(", ", sorten)}. "
+                     + "Bluetewochen, Stretch und Duengerbedarf unten gelten NUR fuer die Hauptsorte "
+                     + "des Laufs — die anderen koennen davon abweichen. Welche Sorte in welchem Topf "
+                     + "steht, liefert das Werkzeug 'pflanzen'."
+                     + Environment.NewLine + Environment.NewLine
+                     + "Hauptsorte:" + Environment.NewLine + haupt;
+            }
+
             if (Zahl(grow, "strainId") is { } sortenId)
             {
                 return await reader.LesenAsync($"api/strains/{sortenId}", cancellationToken);
@@ -720,6 +745,26 @@ public sealed class GrowTools(GrowOsReader reader)
         => element.TryGetProperty(name, out var wert) && wert.ValueKind == JsonValueKind.String
             ? wert.GetString()
             : null;
+
+    /// <summary>Ein Feld, das eine Liste von Texten traegt; leer, wenn es fehlt.</summary>
+    /// <remarks>
+    /// Oeffentlich wie <see cref="Verschmelzen"/>, damit es eine eigene Pruefung
+    /// bekommt: liest es das Feld falsch, faellt das Werkzeug still auf "eine
+    /// Sorte" zurueck — und eine Halbwahrheit sieht aus wie eine Antwort.
+    /// </remarks>
+    public static List<string> Texte(JsonElement element, string name)
+    {
+        if (!element.TryGetProperty(name, out var wert) || wert.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return wert.EnumerateArray()
+            .Where(eintrag => eintrag.ValueKind == JsonValueKind.String)
+            .Select(eintrag => eintrag.GetString()!)
+            .Where(text => !string.IsNullOrWhiteSpace(text))
+            .ToList();
+    }
 
     private static int? Zahl(JsonElement element, string name)
         => element.TryGetProperty(name, out var wert) && wert.ValueKind == JsonValueKind.Number

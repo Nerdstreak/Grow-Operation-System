@@ -32,7 +32,8 @@ public sealed class GrowWorkflowApiControllerTests : IDisposable
             new HarvestRepository(_paths),
             new JournalRepository(_paths),
             new AuditRepository(_paths),
-            CreateTargetValueService());
+            CreateTargetValueService(),
+            new WasserwechselStandService(_repository, WissenLaden()));
     }
 
     public void Dispose()
@@ -164,11 +165,13 @@ public sealed class GrowWorkflowApiControllerTests : IDisposable
             ReservoirSize = reservoirSize
         });
 
-    private TargetValueService CreateTargetValueService()
+    private TargetValueService CreateTargetValueService() => new(WissenLaden());
+
+    private KnowledgeBaseLoader WissenLaden()
     {
         var loader = new KnowledgeBaseLoader(_paths, NullLogger<KnowledgeBaseLoader>.Instance);
         loader.Initialize();
-        return new TargetValueService(loader);
+        return loader;
     }
 
     private static string FindProjectRoot()

@@ -106,6 +106,7 @@ builder.Services.AddSingleton<WaterProfileStore>();
 builder.Services.AddScoped<GrowCostService>();
 builder.Services.AddScoped<MischplanService>();
 builder.Services.AddScoped<SopDueService>();
+builder.Services.AddScoped<WasserwechselStandService>();
 builder.Services.AddSingleton<WasserAmpelService>();
 builder.Services.AddScoped<AnlagenRisikoService>();
 builder.Services.AddScoped<PumpWatchNotifier>();

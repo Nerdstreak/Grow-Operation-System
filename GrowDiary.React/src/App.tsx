@@ -12,6 +12,7 @@ import DosingPumpSetupPage from './pages/DosingPumpSetupPage'
 import GrowDetailPage from './pages/GrowDetailPage'
 import GrowsPage from './pages/GrowsPage'
 import GrowSetupPage from './pages/GrowSetupPage'
+import WasserwechselPage from './pages/WasserwechselPage'
 import HardwarePage from './pages/HardwarePage'
 import HarvestPage from './pages/HarvestPage'
 import HomeAssistantPage from './pages/HomeAssistantPage'
@@ -80,6 +81,7 @@ function App() {
           <Route path="/" element={<LiveDashboardPage />} />
           <Route path="/live" element={<Navigate to="/" replace />} />
           <Route path="/addback" element={<AddbackHubPage />} />
+          <Route path="/wasserwechsel" element={<WasserwechselPage />} />
           <Route path="/aufgaben" element={<MobileActionPage />} />
           <Route path="/action" element={<Navigate to="/aufgaben" replace />} />
           <Route path="/grows" element={<GrowsPage />} />

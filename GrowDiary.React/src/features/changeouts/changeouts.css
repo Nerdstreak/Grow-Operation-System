@@ -1,6 +1,90 @@
-/* Wasserwechsel erfassen (Addback-Hub). */
+/* Wasserwechsel: der Stand als Bild, darunter Eintrag und Verlauf. */
 @layer features {
   .changeouts-form-card { margin-bottom: 14px; }
   .changeouts-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px; align-items: end; }
   .changeouts-form .v1-field.is-wide { grid-column: 1 / -1; }
+
+  /* --- Der Stand -----------------------------------------------------------
+     Ein Punkt je Tag. „Vor 9 Tagen, Plan alle 7" ist ein Satz, den man im Kopf
+     verrechnen muss; neun Punkte, von denen zwei ueberstehen, sieht man.
+     Farben kommen aus den Token, damit helles und dunkles Thema beide stimmen
+     — das helle wird in diesem Projekt regelmaessig vergessen. */
+  .ww-stand-card { margin-bottom: 14px; }
+
+  .ww-stand { display: grid; gap: 10px; }
+
+  .ww-stand-zahl { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .ww-stand-zahl strong {
+    font-size: clamp(2rem, 8vw, 2.8rem);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--v1-text);
+  }
+  .ww-stand-zahl span { color: var(--v1-muted); font-size: 0.95rem; }
+
+  /* Textton, nicht Flaechenton — wie eine Zeile darunter. `--warn` ist als
+     Flaeche gedacht und kam auf Weiss auf 4,52:1: bestanden, aber zwei
+     Hundertstel Luft. `--warn-text` ist derselbe Ton fuer Schrift. */
+  .ww-stand.is-faellig .ww-stand-zahl strong { color: var(--warn-text, var(--warn)); }
+  .ww-stand.is-ueberfaellig .ww-stand-zahl strong { color: var(--danger-text, var(--danger)); }
+
+  /* Die Punktreihe. Sie darf umbrechen — bei 20 Tagen Rueckstand auf einem
+     320-px-Telefon passt keine Zeile mehr, und ein Ueberlauf ueber den
+     Seitenrand ist in diesem Projekt ein Befund. */
+  .ww-stand-punkte {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Der Rand traegt Information — er sagt, wieviele Tage der Plan noch hat.
+     WCAG 1.4.11 verlangt dafuer 3:1, und `--v1-line-strong` hat Deckkraft 0,26:
+     auf Weiss kommt effektiv 1,7:1 heraus. Genau dieser Fall — GEERBTE
+     Deckkraft — ist der vierte blinde Fleck, den die Kontrast-Pruefung dieses
+     Projekts hatte. Deshalb hier ein Textton, kein Haarlinien-Ton. */
+  .ww-punkt {
+    inline-size: 14px;
+    block-size: 14px;
+    border-radius: 50%;
+    border: 1px solid var(--v1-muted);
+    background: transparent;
+  }
+
+  /* Vergangene Tage sind gefuellt, kommende bleiben leer — der leere Rest IST
+     die Auskunft „so lange ist es noch hin". */
+  .ww-punkt.is-gelaufen { background: var(--v1-ok); border-color: var(--v1-ok); }
+  .ww-punkt.is-gelaufen.is-ueber-plan { background: var(--warn); border-color: var(--warn); }
+  .ww-stand.is-ueberfaellig .ww-punkt.is-gelaufen.is-ueber-plan {
+    background: var(--danger);
+    border-color: var(--danger);
+  }
+
+  /* Tage jenseits des Plans, die noch nicht erreicht sind, gibt es nicht —
+     die Reihe ist so lang wie der groessere von Plan und Rueckstand. Diese
+     Regel faengt trotzdem den Fall ab, damit der Rahmen nicht mitfaerbt. */
+  .ww-punkt.is-offen.is-ueber-plan { border-color: var(--v1-line); }
+
+  .ww-stand-satz { margin: 0; color: var(--v1-muted); font-size: 0.9rem; }
+
+  .ww-stand.is-unbekannt .ww-stand-zahl strong { color: var(--v1-muted); }
+
+  /* Der Weg von /addback hierher. Als Link im Kopf der Kachel, nicht als
+     zweiter Knopf — das Formular wohnt genau einmal in der App. */
+  .ww-weg { text-decoration: none; font-weight: 600; }
+  .ww-weg:hover { text-decoration: underline; }
+}
+
+@layer features {
+  /* Der Weg aus einer Beobachtung heraus — kleiner Knopf, eigene Zeile, damit
+     er den Satz darueber nicht auseinanderdrueckt. */
+  .ls-trends .ls-trend-weg { justify-self: start; margin-top: 4px; }
+}
+
+@layer features {
+  /* Der Weg zurueck. Klein und rechts — Loeschen ist nicht die Hauptaktion
+     dieser Zeile, aber es muss ihn geben. */
+  .changeouts-weg { justify-self: end; }
 }

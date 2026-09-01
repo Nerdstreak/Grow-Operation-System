@@ -131,6 +131,143 @@ public sealed class GrowLegtPflanzenAnTests : IDisposable
         Assert.Empty(_setups.GetPlantsByGrow(growId));
     }
 
+    /// <summary>
+    /// Je Topf eine eigene Sorte — schon beim Anlegen.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (31.08.2026).</b> Der Tester hat definiert, was ein
+    /// Grow ist: „ein Durchgang in einem RDWC/DWC, der N Pflanzen mit N
+    /// verschiedenen Sorten/Phenos beinhalten kann. In dem Grow sollten die
+    /// ganzen Sorten im RDWC-System stehen wie bei den Töpfen."</para>
+    ///
+    /// <para>Das Datenmodell konnte das längst — <c>PlantInstance</c> trägt
+    /// <c>StrainId</c> und <c>SiteIndex</c> je Pflanze. Nur das Formular
+    /// konnte es nicht: es bot EIN Sortenfeld und schickte den Nutzer per
+    /// Hinweis weg („Leg den Grow an und trag danach unter ‚Pflanzen &amp;
+    /// Sorten' jede Pflanze ein"). Ein Weg, der aus zwei Schritten besteht,
+    /// weil das Formular einen davon nicht kann, ist kein Weg.</para>
+    /// </remarks>
+    [Fact]
+    public void TopfBelegung_LegtJedenTopfMitSeinerEigenenSorteAn()
+    {
+        var zelt = _grows.CreateTent(new Tent { Name = "Zelt", TentType = TentType.Production });
+        var aufbau = _hydro.CreateHydroSetup(NeuerAufbau(zelt.Id, toepfe: 4));
+        var widow = _setups.CreateStrain(new Strain { Name = "White Widow" });
+        var gorilla = _setups.CreateStrain(new Strain { Name = "Gorilla Glue" });
+
+        var growId = _grows.CreateGrow(NeuerGrow(zelt.Id, aufbau.Id, widow.Id, pflanzen: 4));
+        GrowPflanzen.NachAnlage(_grows, _setups, _hydro, growId,
+        [
+            new TopfBelegung(1, widow.Id),
+            new TopfBelegung(2, widow.Id),
+            new TopfBelegung(3, gorilla.Id),
+            new TopfBelegung(4, gorilla.Id),
+        ]);
+
+        var pflanzen = _setups.GetPlantsByGrow(growId).OrderBy(p => p.SiteIndex).ToList();
+
+        Assert.Equal(4, pflanzen.Count);
+        Assert.Equal([widow.Id, widow.Id, gorilla.Id, gorilla.Id], pflanzen.Select(p => p.StrainId).ToArray());
+        Assert.Equal([1, 2, 3, 4], pflanzen.Select(p => p.SiteIndex).ToArray());
+    }
+
+    /// <summary>
+    /// Beim Bearbeiten wird die Sorte GESETZT, nicht neu angelegt — und was
+    /// nicht genannt ist, bleibt unberührt.
+    /// </summary>
+    /// <remarks>
+    /// Die Liste ist eine Zuweisung, keine Ersetzung. Wer Topf 3 im Formular
+    /// nicht anfasst, verliert seine Pflanze dort nicht — Löschen bleibt der
+    /// Karte mit ihrer Rückfrage vorbehalten. Ein Formular, das still Pflanzen
+    /// entfernt, ist genau der Datenverlust, den der Tester schon einmal
+    /// gemeldet hat.
+    /// </remarks>
+    [Fact]
+    public void TopfBelegung_SetztSortenUndLoeschtNichts()
+    {
+        var zelt = _grows.CreateTent(new Tent { Name = "Zelt", TentType = TentType.Production });
+        var aufbau = _hydro.CreateHydroSetup(NeuerAufbau(zelt.Id, toepfe: 4));
+        var widow = _setups.CreateStrain(new Strain { Name = "White Widow" });
+        var gorilla = _setups.CreateStrain(new Strain { Name = "Gorilla Glue" });
+
+        var growId = _grows.CreateGrow(NeuerGrow(zelt.Id, aufbau.Id, widow.Id, pflanzen: 3));
+        GrowPflanzen.NachAnlage(_grows, _setups, _hydro, growId);
+        Assert.Equal(3, _setups.GetPlantsByGrow(growId).Count);
+
+        // Topf 2 bekommt eine andere Sorte, Topf 4 ist neu, Topf 1 und 3 werden
+        // nicht genannt.
+        GrowPflanzen.SortenSetzen(_grows, _setups, _hydro, growId,
+        [
+            new TopfBelegung(2, gorilla.Id),
+            new TopfBelegung(4, gorilla.Id),
+        ]);
+
+        var pflanzen = _setups.GetPlantsByGrow(growId).OrderBy(p => p.SiteIndex).ToList();
+
+        Assert.Equal(4, pflanzen.Count);
+        Assert.Equal(widow.Id, pflanzen[0].StrainId);   // Topf 1 unberuehrt
+        Assert.Equal(gorilla.Id, pflanzen[1].StrainId); // Topf 2 gewechselt
+        Assert.Equal(widow.Id, pflanzen[2].StrainId);   // Topf 3 unberuehrt
+        Assert.Equal(gorilla.Id, pflanzen[3].StrainId); // Topf 4 neu
+    }
+
+    /// <summary>
+    /// Ein gelöschter Grow lässt keine Pflanzen-Leichen zurück.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> <c>DeleteGrow</c> löschte nur die
+    /// Zeile in <c>Grows</c>. Die Pflanzen blieben stehen, mit einem
+    /// <c>GrowId</c> auf einen Lauf, den es nicht mehr gibt. Im Testbestand
+    /// lagen <b>92</b> solche Leichen, und jeder volle E2E-Lauf legte zwei
+    /// weitere dazu. Gefunden vom Prüfer.</para>
+    ///
+    /// <para><b>Dieselbe Klasse wie bei den Warnungen</b>: für die hat
+    /// <c>DeleteGrow</c> seit dem 18.08.2026 einen eigenen Satz, weil sie sonst
+    /// „für immer offen" auf der Aufgabenseite standen. Eine Tabelle weiter
+    /// stand dieselbe Lücke.</para>
+    ///
+    /// <para><b>Warum nicht alles.</b> Eine Mutterpflanze gehört dem Aufbau,
+    /// nicht dem Durchgang — sie überlebt den Lauf und verliert nur den Bezug
+    /// darauf. Wer sie mitlöschte, nähme dem Nutzer seine Mutter mit dem Grow.</para>
+    /// </remarks>
+    [Fact]
+    public void GrowLoeschen_NimmtSeineProduktionsPflanzenMit_UndLaesstDieMutterStehen()
+    {
+        var zelt = _grows.CreateTent(new Tent { Name = "Zelt", TentType = TentType.Production });
+        var aufbau = _hydro.CreateHydroSetup(NeuerAufbau(zelt.Id, toepfe: 4));
+        var sorte = _setups.CreateStrain(new Strain { Name = "White Widow" });
+
+        var growId = _grows.CreateGrow(NeuerGrow(zelt.Id, aufbau.Id, sorte.Id, pflanzen: 3));
+        GrowPflanzen.NachAnlage(_grows, _setups, _hydro, growId);
+
+        var mutter = _setups.CreatePlant(new PlantInstance
+        {
+            GrowId = growId,
+            StrainId = sorte.Id,
+            Label = "Mutter",
+            PlantRole = PlantRole.Mother,
+            PlantStatus = PlantStatus.Active,
+        });
+
+        Assert.Equal(4, _setups.GetPlantsByGrow(growId).Count);
+
+        _grows.DeleteGrow(growId);
+
+        // Die drei Produktionspflanzen sind weg — restlos, nicht nur abgehaengt.
+        var uebrig = _setups.GetPlants().Where(p => p.GrowId == growId).ToList();
+        Assert.True(uebrig.Count == 0,
+            $"{uebrig.Count} Pflanzen zeigen noch auf den geloeschten Grow {growId}: "
+            + string.Join(", ", uebrig.Select(p => $"{p.Label} ({p.PlantRole})")));
+
+        // Die Mutter lebt weiter, ohne Lauf.
+        var nachher = _setups.GetPlant(mutter.Id);
+        Assert.True(nachher is not null, "Die Mutterpflanze wurde mit dem Grow geloescht.");
+        Assert.Null(nachher!.GrowId);
+
+        // Und keine Produktionspflanze ist bloss abgehaengt worden.
+        Assert.DoesNotContain(_setups.GetPlants(), p => p.Label.StartsWith("Pflanze ", StringComparison.Ordinal));
+    }
+
     private static GrowSystem NeuerAufbau(int zeltId, int toepfe) => new()
     {
         TentId = zeltId,

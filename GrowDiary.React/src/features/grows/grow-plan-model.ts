@@ -37,6 +37,16 @@ export type PlanInput = {
   /** Andere Grows, die dasselbe Zelt belegen könnten. */
   otherGrows: GrowSummary[]
   programName: string | null
+  /**
+   * Die Blütewochen der Sorten, die in diesem Grow stehen — je Topf eine.
+   *
+   * Ein RDWC teilt ein Becken: es gibt EINEN Zeitstrahl, EINE Phase, EINEN
+   * Sollwert. Stehen darin eine 8-Wochen- und eine 11-Wochen-Sorte, rechnet
+   * die App mit der Hauptsorte und liegt bei der anderen um Wochen daneben.
+   * Das ist kein Fehler, den man wegprogrammiert — es ist eine Entscheidung,
+   * die der Nutzer treffen soll. Also wird sie ihm gesagt.
+   */
+  bluetewochen?: Array<{ min: number | null; max: number | null } | null>
 }
 
 export type PlanTimeline = {
@@ -84,6 +94,40 @@ export function buildTimeline(input: PlanInput): PlanTimeline | null {
  */
 export function checkPlan(input: PlanInput, today: Date = new Date()): PlanFinding[] {
   const findings: PlanFinding[] = []
+
+  /* --- Sorten mit verschiedener Blütezeit ---
+     Der Tester hat definiert, dass ein Grow N Sorten führen kann. Physikalisch
+     geht das — ein Becken, N Töpfe. Zeitlich nicht: die Ernte hat einen Tag.
+     Wer 8 und 11 Wochen zusammenstellt, erntet die eine zu spät oder die
+     andere zu früh, und der Zeitstrahl zeigt nur eine der beiden Wahrheiten. */
+  const spannen = (input.bluetewochen ?? [])
+    .filter((w): w is { min: number | null; max: number | null } => w != null)
+    .map((w) => ({ min: w.min ?? w.max, max: w.max ?? w.min }))
+    .filter((w): w is { min: number; max: number } => w.min != null && w.max != null && w.min > 0)
+
+  /* VERSCHIEDENE Spannen — nicht einfach alle.
+     Eine Sorte mit 9-11 Wochen hat selbst eine Spanne von zwei; das ist ihr
+     natuerliches Fenster und kein Widerspruch. Gemeldet wird nur, wenn die
+     Toepfe untereinander auseinanderlaufen. Die erste Fassung tat das nicht
+     und warnte bei einem sortenreinen Becken. */
+  const verschieden = [...new Map(spannen.map((w) => [`${w.min}-${w.max}`, w])).values()]
+
+  if (verschieden.length > 1) {
+    // Die frueheste Ernte der einen gegen die spaeteste der anderen — das ist
+    // die Zeit, die tatsaechlich zwischen den Toepfen liegt. Nur die Maxima zu
+    // vergleichen unterschaetzt sie.
+    const kuerzeste = Math.min(...verschieden.map((w) => w.min))
+    const laengste = Math.max(...verschieden.map((w) => w.max))
+    if (laengste - kuerzeste >= 2) {
+      findings.push({
+        key: 'bluetezeit',
+        severity: 'warn',
+        text: `Die Sorten brauchen ${kuerzeste} bis ${laengste} Blütewochen — `
+          + `${laengste - kuerzeste} Wochen Unterschied im selben Becken. `
+          + 'Der Zeitstrahl rechnet mit der Hauptsorte; die anderen erntest du früher oder später.',
+      })
+    }
+  }
 
   // --- Pflanzen und Sites ---
   const sites = input.hydro?.potCount ?? null

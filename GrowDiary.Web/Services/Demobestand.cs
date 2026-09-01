@@ -68,14 +68,17 @@ public static class Demobestand
         var aushaerten = dienste.GetRequiredService<CuringRepository>();
         var setups = dienste.GetRequiredService<SetupRepository>();
         var dosierung = dienste.GetRequiredService<DosingRepository>();
+        var addback = dienste.GetRequiredService<AddbackRepository>();
 
         var zelt = ZeltAnlegen(grows);
         var aufbau = AufbauAnlegen(hydro, zelt.Id);
+        ZweiterAufbauAnlegen(hydro, zelt.Id);
         var (hauptSorte, zweiteSorte) = SorteAnlegen(setups);
 
-        var laufend = LaufenderGrowAnlegen(grows, zelt.Id, aufbau.Id);
+        var laufend = LaufenderGrowAnlegen(grows, zelt.Id, aufbau.Id, hauptSorte.Id);
         PflanzenAnlegen(setups, laufend.Id, hauptSorte.Id, zweiteSorte.Id);
         var anzahl = MessungenAnlegen(messungen, laufend);
+        WasserwechselAnlegen(addback, laufend);
         JournalAnlegen(journal, laufend.Id);
         AufgabenAnlegen(aufgaben, laufend.Id);
         var geraet = GeraetMitHistorieAnlegen(hardware, zelt.Id, laufend.Id);
@@ -88,12 +91,18 @@ public static class Demobestand
         PumpenAnlegen(dosierung, zelt.Id);
         LaufendenAblaufAnlegen(dienste, laufend.Id);
 
+        /* Der erste Lauf bleibt ABSICHTLICH ohne Verknuepfung in die
+           Bibliothek: "Northern Lights" steht dort nicht, und genau dieser
+           Fall — ein Lauf, dessen Sorte nur als Text existiert — muss in der
+           App noch anzeigbar sein. Der zweite ist verknuepft, damit die
+           Sortenstatistik ueberhaupt eine Zahl hat. */
         AbgeschlossenenGrowAnlegen(grows, ernten, zelt.Id, aufbau.Id,
             "Northern Lights (Testdaten)", "Northern Lights", "Sensi Seeds",
             vorTagen: 190, dauerTage: 82, nass: 412, trocken: 96);
         AbgeschlossenenGrowAnlegen(grows, ernten, zelt.Id, aufbau.Id,
             "Gorilla Glue (Testdaten)", "Gorilla Glue #4", "GG Strains",
-            vorTagen: 95, dauerTage: 88, nass: 468, trocken: 108);
+            vorTagen: 95, dauerTage: 88, nass: 468, trocken: 108,
+            sorteId: zweiteSorte.Id);
 
         // Der Versuchsaufbau „Zelt (AC-Test)" bekommt ein Geraet, damit die
         // Seite im Testbestand etwas zeigt statt nur „noch nichts eingetragen".
@@ -162,6 +171,45 @@ public static class Demobestand
         });
     }
 
+    /// <summary>Ein zweites, kleineres System — damit ein Wechsel prüfbar ist.</summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Der Prüfer fand einen Fehler, den
+    /// er nicht nachstellen konnte: wechselt jemand im Grow-Formular von einem
+    /// 4-Topf- auf ein 2-Topf-System, blieb die Belegung der vier Töpfe stehen
+    /// („4 von 2 belegt"). Er kam nicht dran, weil der Testbestand nur <b>ein</b>
+    /// System kannte.</para>
+    ///
+    /// <para>Dieselbe Klasse Lücke wie „ein Gerät, obwohl der Nutzer sieben
+    /// hat": eine Menge von eins lässt jeden Fehler unsichtbar, der erst beim
+    /// Wechseln auftritt. Zwei Systeme sind das Minimum, an dem sich „das eine
+    /// gegen das andere" überhaupt zeigen kann.</para>
+    /// </remarks>
+    private static GrowSystem ZweiterAufbauAnlegen(HydroSetupRepository hydro, int zeltId)
+        => hydro.CreateHydroSetup(new GrowSystem
+        {
+            TentId = zeltId,
+            Name = "DWC 2er Mutterecke (Testdaten)",
+            HydroStyle = Models.HydroStyle.DWC.ToString(),
+            PotCount = 2,
+            PotSizeLiters = 19,
+            ReservoirLiters = 38,
+            /* DIESELBEN Werte, die die Normalisierung daraus macht.
+               Der Bestand schrieb zuerst `Row` und `External`; DWC wird von
+               `HydroSetupRepository.NormalizeHydroSetup` aber immer auf
+               `SingleBucket`/`None` gezwungen. Auf /hydro/2 stand dadurch
+               „Tank kein Tank" und zwei Zeilen weiter „Tank 38 L" — der
+               Bestand widersprach sich selbst. Gefunden vom Pruefer. */
+            LayoutType = HydroSetupLayoutType.SingleBucket,
+            ReservoirPosition = ReservoirPosition.None,
+            Status = HydroSetupStatus.Active,
+            HasCirculationPump = false,
+            HasAirPump = true,
+            AirPumpLitersPerHour = 1800,
+            AirStoneCount = 2,
+            HasChiller = false,
+            DisplayOrder = 2,
+        });
+
     /// <summary>Zwei Sorten — damit der Mischgrow im Bestand existiert.</summary>
     /// <remarks>
     /// Mit nur einer Sorte war der ganze Mehrsorten-Weg (Sorte je Pflanze,
@@ -189,8 +237,14 @@ public static class Demobestand
             Name = "Gorilla Glue (Testdaten)",
             Breeder = "GG Strains",
             Dominance = StrainDominance.Hybrid,
-            FlowerWeeksMin = 8,
-            FlowerWeeksMax = 9,
+            /* Laenger als die White Widow — und zwar aus zwei Gruenden.
+               Erstens stimmt es: GG #4 wird ueblich mit 9 bis 10 Wochen
+               angegeben, White Widow mit 8 bis 9. Zweitens ist der Testbestand
+               Produktionscode: mit zweimal 8-9 konnte die Warnung „die Sorten
+               brauchen unterschiedlich lange" gegen ihn NIE ausloesen — sie
+               waere ungeprueft ausgeliefert worden. Gefunden vom Pruefer. */
+            FlowerWeeksMin = 9,
+            FlowerWeeksMax = 11,
             SeedKind = Models.SeedKind.Feminized,
             ThcPercent = 24,
             CbdPercent = 0.1,
@@ -198,6 +252,93 @@ public static class Demobestand
         });
 
         return (haupt, zweite);
+    }
+
+    /// <summary>
+    /// Die letzten Wasserwechsel — als eigene Einträge, nicht nur als Häkchen.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (31.08.2026).</b> Die Seite <c>/wasserwechsel</c>
+    /// stand im Testbestand leer da: der Bestand markierte den Wechsel nur an
+    /// der Messung (<c>SolutionChange</c>), die Tabelle <c>Changeouts</c> war
+    /// nie befüllt. Gefunden von <c>demobestand-vollstaendig.spec.ts</c> —
+    /// genau dafür gibt es sie.</para>
+    ///
+    /// <para><b>Warum das mehr ist als Kosmetik.</b> Ein Nutzer, der die App
+    /// zum ersten Mal öffnet, sieht sonst eine leere Seite und hält die
+    /// Funktion für unfertig. Und die Prüfungen darüber messen an einem
+    /// Bestand, der einen der beiden Wege nie geht — ein Fehler <i>im</i>
+    /// Bestand verdeckt Fehler <i>in</i> der App.</para>
+    ///
+    /// <para><b>Der Rhythmus ist derselbe</b> wie bei den Messungen
+    /// (<see cref="Demoverlauf.WasserwechselAlleTage"/>), damit beide Belege
+    /// auf denselben Tag fallen. Liefen sie auseinander, zeigte die App zwei
+    /// verschiedene „letzte Wechsel" — und niemand wüsste, welcher stimmt.</para>
+    /// </remarks>
+    /// <summary>
+    /// Wann ein gesäter Wasserwechsel stattgefunden hat — höchstens jetzt.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Öffentlich, damit die Entscheidung prüfbar ist.</b> Die Prüfung
+    /// über den fertigen Bestand (<c>DemobestandStimmigTests</c>) fängt einen
+    /// Zukunfts-Zeitpunkt nur, wenn sie zufällig <i>vor</i> 07:00 an einem
+    /// Wechseltag läuft — ab 07:00 wäre derselbe kaputte Code grün. Der Prüfer
+    /// hat darauf hingewiesen; hier steht die Regel selbst, und die lässt sich
+    /// zu jeder Uhrzeit prüfen.</para>
+    ///
+    /// <para>07:00 Ortszeit ist die Stunde, in der der Bestand auch die Messung
+    /// mit dem Häkchen setzt — beide Belege sollen auf denselben Zeitpunkt
+    /// fallen, sonst zeigte die App zwei verschiedene „letzte Wechsel".</para>
+    /// </remarks>
+    /// <param name="tag">Der Kalendertag des Wechsels, Ortszeit.</param>
+    /// <param name="jetztUtc">Der aktuelle Zeitpunkt.</param>
+    public static DateTime WechselZeitpunkt(DateTime tag, DateTime jetztUtc)
+    {
+        var geplant = tag.AddHours(7).ToUniversalTime();
+        return geplant < jetztUtc ? geplant : jetztUtc;
+    }
+
+    private static void WasserwechselAnlegen(AddbackRepository addback, GrowRun grow)
+    {
+        var heute = DateTime.Today;
+
+        // Die letzten vier planmaessigen Wechsel — genug fuer einen Verlauf,
+        // wenig genug, dass die Liste lesbar bleibt.
+        for (var nummer = 1; nummer <= 4; nummer += 1)
+        {
+            var wann = heute.AddDays(-(Demoverlauf.SeitWasserwechsel(heute)
+                + Demoverlauf.WasserwechselAlleTage * (nummer - 1)));
+            if (wann < grow.StartDate) break;
+
+            // Der juengste ist ein Komplettwechsel, die aelteren Teilwechsel —
+            // so hat die Anzeige beide Arten zu unterscheiden.
+            var komplett = nummer == 1;
+
+            addback.CreateChangeout(new ChangeoutEntry
+            {
+                GrowId = grow.Id,
+                HydroSetupId = grow.SystemId,
+                Kind = komplett ? ChangeoutKind.Full : ChangeoutKind.Partial,
+                // 07:00 Ortszeit — dieselbe Stunde, in der der Bestand die
+                // Messung mit dem Haekchen setzt.
+                PerformedAtUtc = WechselZeitpunkt(wann, DateTime.UtcNow),
+                PercentChanged = komplett ? 100 : 50,
+                VolumeChangedLiters = komplett ? 100 : 50,
+                /* Am Tag des Wechsels selbst ist der Verlauf schon wieder auf
+                   Anfang — Demoverlauf.Ec rechnet ueber SeitWasserwechsel, und
+                   das ist an diesem Tag 0. Gemessen wird deshalb am ABEND
+                   davor, wenn der EC am hoechsten steht. Sonst stuende hier
+                   "1,02 → 1,02": ein Wechsel, der nichts bewirkt hat. */
+                EcBefore = Math.Round(Demoverlauf.Ec(wann.AddDays(-1).AddHours(20)), 2),
+                EcAfter = 1.02,
+                PhBefore = 6.2,
+                PhAfter = 5.8,
+                WaterUsed = grow.WaterSource,
+                Notes = komplett
+                    ? "Testdaten: kompletter Reset, Becken geschrubbt."
+                    : "Testdaten: planmaessiger Teilwechsel.",
+            });
+        }
     }
 
     /// <summary>Die vier Pflanzen des laufenden Grows — je Topf eine, gemischt.</summary>
@@ -232,7 +373,7 @@ public static class Demobestand
         }
     }
 
-    private static GrowRun LaufenderGrowAnlegen(GrowRepository grows, int zeltId, int aufbauId)
+    private static GrowRun LaufenderGrowAnlegen(GrowRepository grows, int zeltId, int aufbauId, int sorteId)
     {
         // Der Flip liegt 35 Tage zurueck. Das ist Absicht und liegt zwischen
         // zwei Grenzen des GrowStageResolver: unter 10 Tagen kaeme
@@ -244,6 +385,15 @@ public static class Demobestand
             SystemId = aufbauId,
             Name = "White Widow (Testdaten)",
             Strain = "White Widow",
+            /* Die VERKNUEPFUNG in die Bibliothek, nicht nur der Text.
+               Bis zum 31.08.2026 fehlte sie: der laufende Grow hiess "White
+               Widow", die Bibliothek fuehrte "White Widow (Testdaten)", und
+               weil die Statistik ueber StrainId zaehlt, hatte KEINE Sorte im
+               Testbestand einen Lauf oder einen Ø-Ertrag. Das MCP-Werkzeug
+               "sorte" antwortete "hat dafuer aber keinen Eintrag in der
+               Sortenliste". Ein Fehler IM Bestand verdeckt Fehler IN der App —
+               siehe CLAUDE.md, "Der Testbestand ist Produktionscode". */
+            StrainId = sorteId,
             Breeder = "Royal Queen Seeds",
             Status = GrowStatus.Running,
             MediumType = MediumType.Hydro,
@@ -944,7 +1094,8 @@ public static class Demobestand
     private static void AbgeschlossenenGrowAnlegen(
         GrowRepository grows, HarvestRepository ernten, int zeltId, int aufbauId,
         string name, string sorte, string zuechter,
-        int vorTagen, int dauerTage, double nass, double trocken)
+        int vorTagen, int dauerTage, double nass, double trocken,
+        int? sorteId = null)
     {
         // Das Verhaeltnis nass zu trocken liegt bei rund 23 % — der uebliche
         // Bereich fuer ordentlich getrocknetes Material. Bewusst keine
@@ -959,6 +1110,10 @@ public static class Demobestand
             SystemId = aufbauId,
             Name = name,
             Strain = sorte,
+            /* Ohne Verknuepfung zaehlt die Sortenstatistik diesen Lauf nicht —
+               genau deshalb stand im Testbestand bei JEDER Sorte "0 Laeufe,
+               kein Ø-Ertrag". */
+            StrainId = sorteId,
             Breeder = zuechter,
             // Nur Completed und Aborted landen im Archiv. Vergessen heisst:
             // der Lauf steht im Dashboard statt im Archiv.

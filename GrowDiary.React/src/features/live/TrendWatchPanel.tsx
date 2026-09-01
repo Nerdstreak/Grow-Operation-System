@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiFetch } from '../../api'
+import { wegZurRoutine } from '../changeouts/routine-weg'
 
 type TrendFinding = {
   code: string
@@ -49,12 +51,20 @@ export function TrendWatchPanel({ growId }: { growId: number | null }) {
         <div className="ls-panel-body"><p>Nichts Auffälliges — keine Drift, kein Verbrauchssprung.</p></div>
       ) : (
         <ul className="ls-trends">
-          {findings.slice(0, 5).map((finding) => (
-            <li key={finding.code} className={finding.severity === 'Info' ? '' : 'is-warn'}>
-              <strong>{finding.headline}</strong>
-              <span>{finding.detail}</span>
-            </li>
-          ))}
+          {findings.slice(0, 5).map((finding) => {
+            // Trägt die Beobachtung einen Ablauf, der eine eigene Seite hat,
+            // führt ein Weg dorthin. „Wasserwechsel seit 9 Tagen offen" ohne
+            // Weg zum Eintragen ist eine Sackgasse — genau das war die
+            // Beschwerde vom 31.08.2026.
+            const weg = finding.guidanceId ? wegZurRoutine(finding.guidanceId) : null
+            return (
+              <li key={finding.code} className={finding.severity === 'Info' ? '' : 'is-warn'}>
+                <strong>{finding.headline}</strong>
+                <span>{finding.detail}</span>
+                {weg && <Link className="ls-btn is-small ls-trend-weg" to={weg.to}>{weg.aktion}</Link>}
+              </li>
+            )
+          })}
         </ul>
       )}
     </article>

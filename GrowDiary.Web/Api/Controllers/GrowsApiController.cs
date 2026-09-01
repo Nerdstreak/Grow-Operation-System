@@ -155,7 +155,8 @@ public sealed class GrowsApiController : ApiControllerBase
            Ein Grow mit `plantCount: 4` legte null Pflanzen an; wer vier Toepfe
            fuhr, klickte danach viermal „Pflanze hinzufuegen" und waehlte jedes
            Mal dieselbe Sorte. Siehe `GrowPflanzen`. */
-        var angelegtePflanzen = GrowPflanzen.NachAnlage(_repository, _setups, _hydro, growId);
+        var angelegtePflanzen = GrowPflanzen.NachAnlage(
+            _repository, _setups, _hydro, growId, Belegung(request));
 
         _auditRepository.Add(new AuditEntry
         {
@@ -258,6 +259,14 @@ public sealed class GrowsApiController : ApiControllerBase
             grow.FlipDate = existing.FlipDate;
         }
 
+        /* Die Sorten je Topf — VOR dem Zaehlen, weil ein neu belegter Topf
+           die Pflanzenzahl veraendert. Stuende es danach, meldete das Formular
+           beim Speichern eine Zahl und beim naechsten Laden eine andere. */
+        if (Belegung(request) is { Count: > 0 } belegung)
+        {
+            GrowPflanzen.SortenSetzen(_repository, _setups, _hydro, id, belegung);
+        }
+
         // Sind Pflanzen EINZELN erfasst, sind sie die Wahrheit ueber die Zahl.
         // Sonst zeigt die Detailseite die erfassten Pflanzen, waehrend
         // Grow-Liste, Live-Kachel, Flaeche je Pflanze, Archiv und g/Pflanze
@@ -286,6 +295,33 @@ public sealed class GrowsApiController : ApiControllerBase
         });
 
         return Ok(_repository.GetGrow(id)!.ToDetailDto());
+    }
+
+    /// <summary>
+    /// Die Topf-Belegung aus dem Formular — ohne Sorten, die es nicht gibt.
+    /// </summary>
+    /// <remarks>
+    /// <para>Eine erfundene <c>strainId</c> wird auf „ohne Sorte" gesetzt statt
+    /// den ganzen Aufruf abzulehnen: der Topf ist trotzdem belegt, und ein
+    /// Formular, das wegen einer inzwischen geloeschten Sorte gar nicht mehr
+    /// speichert, ist schlimmer als eines, das die Luecke sichtbar laesst.</para>
+    ///
+    /// <para><c>null</c> bleibt <c>null</c> — „Feld nicht mitgeschickt" ist
+    /// etwas anderes als „leere Liste".</para>
+    /// </remarks>
+    private List<TopfBelegung>? Belegung(GrowUpsertRequest request)
+    {
+        if (request.Toepfe is null)
+        {
+            return null;
+        }
+
+        return request.Toepfe
+            .Where(eintrag => eintrag.Topf >= 1)
+            .Select(eintrag => new TopfBelegung(
+                eintrag.Topf,
+                eintrag.StrainId is { } id && _repository.GetStrain(id) is not null ? id : null))
+            .ToList();
     }
 
     [HttpDelete("{id:int}")]

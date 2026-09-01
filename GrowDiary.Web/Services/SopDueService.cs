@@ -69,6 +69,7 @@ public sealed class SopDueService
         if (grow is null || grow.EndDate is not null) return [];
 
         var messungen = _grows.GetMeasurementsForGrow(growId);
+        var wechsel = _grows.GetChangeoutsForGrow(growId);
         var abgeschlossen = _instanzen.GetSopInstancesByGrow(growId)
             .Where(i => i.Status == SopInstanceStatus.Completed && i.CompletedAtUtc is not null)
             .GroupBy(i => i.SopId, StringComparer.OrdinalIgnoreCase)
@@ -83,7 +84,7 @@ public sealed class SopDueService
                 string.Equals(t.Type, "Schedule", StringComparison.OrdinalIgnoreCase) && t.IntervalDays is > 0);
             if (zeitplan?.IntervalDays is not { } intervall) continue;
 
-            var zuletzt = ZuletztGemacht(sop.Id, grow, messungen, abgeschlossen);
+            var zuletzt = ZuletztGemacht(sop.Id, grow, messungen, abgeschlossen, wechsel);
             var tage = (DateTime.Today - zuletzt.Date).Days;
 
             var warnungAb = zeitplan.WarningAfterDays ?? intervall + 1;
@@ -111,13 +112,16 @@ public sealed class SopDueService
     /// <remarks>Öffentlich, weil an dieser Datumswahl das ganze Erinnern hängt.</remarks>
     public static DateTime ZuletztGemacht(
         string sopId, GrowRun grow, IReadOnlyList<Measurement> messungen,
-        IReadOnlyDictionary<string, DateTime> abgeschlossen)
+        IReadOnlyDictionary<string, DateTime> abgeschlossen,
+        IReadOnlyList<ChangeoutEntry>? wechsel = null)
     {
         DateTime? fachlich = sopId switch
         {
             // Der letzte Schritt des Wasserwechsels markiert die Messung als
-            // Lösungswechsel — auch wer die SOP nie startet, misst danach.
-            "weekly-water-change" => messungen.Where(m => m.SolutionChange).Max(m => (DateTime?)m.TakenAt),
+            // Lösungswechsel — auch wer die SOP nie startet, misst danach. Und
+            // wer den Wechsel im Formular nachträgt, ist damit ebenso belegt:
+            // seit dem 31.08.2026 zählen beide Wege (siehe Wasserwechsel).
+            "weekly-water-change" => Wasserwechsel.ZuletztOrtszeit(messungen, wechsel),
             "daily-measurement-routine" => messungen.Max(m => (DateTime?)m.TakenAt),
             _ => null,
         };

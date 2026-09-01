@@ -1,4 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+/* `istGemischt` dazu: bei zwei Sorten von zwei Zuechtern stand hier die
+   richtige Sorte neben dem Zuechter der ANDEREN — „Gorilla Glue · Royal Queen
+   Seeds". Ein Zuechter je Lauf ist eine Angabe, die es bei einer Mischung
+   nicht gibt. Gefunden vom Pruefer. */
+import { sortenText, zuechterPasst } from '../features/grows/sorten-text'
 import { Link, useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import { aufstellungName, phaseName, statusName, zeltZweckName } from '../deutsche-woerter'
@@ -170,7 +175,7 @@ function TentDetailPage() {
       </V1Section>
 
       <V1Section title="Aktive Grows" action={<V1LinkButton to="/grows/new">Grow starten</V1LinkButton>}>
-        {grows.length === 0 ? <V1Empty title="Kein Grow in diesem Zelt" /> : <div className="v1-list">{grows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>{grow.strain ?? 'Sorte offen'}{grow.breeder ? ` · ${grow.breeder}` : ''}</span><em>{grow.latestStage ? phaseName(grow.latestStage) : statusName(grow.status)}</em></Link>)}</div>}
+        {grows.length === 0 ? <V1Empty title="Kein Grow in diesem Zelt" /> : <div className="v1-list">{grows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>{sortenText(grow) ?? 'Sorte offen'}{zuechterPasst(grow) && grow.breeder ? ` · ${grow.breeder}` : ''}</span><em>{grow.latestStage ? phaseName(grow.latestStage) : statusName(grow.status)}</em></Link>)}</div>}
       </V1Section>
 
       <V1Section title="Setups & Pflanzen">

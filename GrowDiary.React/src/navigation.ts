@@ -40,8 +40,13 @@ export const navGroups: NavGroup[] = [
     items: [
       { to: '/', label: 'Live', end: true, keywords: 'dashboard übersicht start sensoren cockpit' },
       { to: '/messung', label: 'Messen', end: true, keywords: 'werte eintragen ph ec do orp foto snapshot' },
-      { to: '/addback', label: 'Addback', end: true, badge: 'warn', keywords: 'nachfüllen dünger dosieren reservoir' },
-      { to: '/aufgaben', label: 'Aufgaben', end: true, badge: 'count', keywords: 'todo risiken checkliste wasserwechsel wartung' },
+      { to: '/addback', label: 'Addback', end: true, badge: 'warn', keywords: 'nachfüllen dünger dosieren reservoir aufdüngen' },
+      // Stand 31.08.2026 hierher geholt. Das Formular lag im dritten Abschnitt
+      // von /addback, und „Wasserwechsel" stand im ganzen Menü nur EINMAL — als
+      // Schlagwort bei den Aufgaben. Wer das Wort tippte, landete also auf der
+      // Aufgabenseite statt beim Eintrag. Genau das hat der Nutzer gemeldet.
+      { to: '/wasserwechsel', label: 'Wasserwechsel', end: true, keywords: 'wechsel reservoir tank frisch austauschen leeren neu ansetzen rdwc nachtragen' },
+      { to: '/aufgaben', label: 'Aufgaben', end: true, badge: 'count', keywords: 'todo risiken checkliste wartung routinen fällig' },
     ],
   },
   {

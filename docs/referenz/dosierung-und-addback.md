@@ -11,7 +11,8 @@
 | Pumpe anlegen bzw. einstellen | `/dosierung/neu`, `/dosierung/:pumpId` |
 | Addback-Übersicht: Grow wählen, letzter Stand, Verlauf | Jetzt → Addback, `/addback` |
 | Addback-Assistent für einen Grow (messen → Ziel → dosieren → Kontrolle) | `/grows/:growId/addback` |
-| Wasserwechsel erfassen (`ChangeoutsPanel`) | Abschnitt „Wasserwechsel" auf `/addback` |
+| Wasserwechsel: Stand, eintragen, nachtragen, Verlauf | Jetzt → **Wasserwechsel**, `/wasserwechsel` |
+| Stand des Wasserwechsels (ohne Formular, mit Weg dorthin) | Abschnitt „Wasserwechsel" auf `/addback` |
 | Befunde des Pumpen-Wächters | Jetzt → Aufgaben, `/aufgaben` — ganz oben, vor allem anderen |
 | Schonfrist des Pumpen-Wächters | `/settings` |
 | Düngerkosten aus dem Dosier-Protokoll | Ernte & Archiv, `/archiv` |
@@ -122,11 +123,26 @@ Watt schaut.
 | Endpunkte: Pumpen, Kalibrierung, Dosis, Stopp, Vorschlag, Protokoll | `GrowDiary.Web/Api/Controllers/DosingApiController.cs` |
 | Addback: Rechnung, Endpunkte, Einträge | `GrowDiary.Web/Services/AddbackCalculator.cs`, `Api/Controllers/GrowWorkflowApiController.cs`, `Models/AddbackLogEntry.cs`, `Models/ChangeoutEntry.cs`, `Infrastructure/AddbackRepository.cs` |
 | Pumpen-Wächter: Urteil / Meldung | `GrowDiary.Web/Services/PumpWatchService.cs`, `PumpWatchNotifier.cs` |
-| Oberfläche | `GrowDiary.React/src/pages/DosingPage.tsx`, `DosingPumpSetupPage.tsx`, `AddbackHubPage.tsx`, `AddbackPage.tsx`, `src/features/changeouts/ChangeoutsPanel.tsx`, `src/features/dosing/calibration.ts` |
+| Wann zuletzt gewechselt wurde — **die einzige Antwort** | `GrowDiary.Web/Services/Wasserwechsel.cs` |
+| Stand (Tage seit, fällig/überfällig, Plan) | `GrowDiary.Web/Services/WasserwechselStandService.cs`, Endpunkt `GET /api/grows/{id}/changeouts/stand` |
+| Oberfläche | `GrowDiary.React/src/pages/DosingPage.tsx`, `DosingPumpSetupPage.tsx`, `AddbackHubPage.tsx`, `AddbackPage.tsx`, `WasserwechselPage.tsx`, `src/features/changeouts/` (`ChangeoutsPanel.tsx`, `WasserwechselStand.tsx`, `routine-weg.ts`), `src/features/dosing/calibration.ts` |
 | Fachwissen mit Quellen | `GrowDiary.Web/wwwroot/knowledge-defaults/sops/nutrient-addback.json`, `guidance/addback-mixing-procedure.json`, `guidance/addback-part-limit.json` |
 
 ## Fallen
 
+- **Ein eingetragener Wasserwechsel zählte nicht.** Bis zum 31.08.2026 gab es
+  zwei Wahrheiten darüber, wann zuletzt gewechselt wurde: das Häkchen
+  `SolutionChange` an einer Messung und die Tabelle `Changeouts` (das Formular).
+  Drei der vier Rechnungen lasen nur die Messung — wer den Wechsel im Formular
+  eintrug, räumte damit **keine einzige** Mahnung weg; „Wöchentlicher
+  Wasserwechsel: zuletzt vor 20 Tagen" blieb stehen. Jetzt liest jeder über
+  `Wasserwechsel.ZuletztOrtszeit(…)`, und `WasserwechselEineWahrheitTests`
+  zählt über alle `.cs`-Dateien, dass niemand wieder selbst rechnet.
+- **Das Formular war nicht zu finden.** Es lag als dritter Abschnitt auf
+  `/addback`; „Wasserwechsel" stand im ganzen Menü nur als *Schlagwort bei den
+  Aufgaben* — wer das Wort tippte, landete auf der falschen Seite. Vier Stellen
+  mahnten ihn an, keine führte zum Eintragen. Seit beta.60 hat er eine eigene
+  Seite, und die Mahnungen verlinken sie (`routine-weg.ts`).
 - **Keine Pumpe hatte je etwas gelernt.** `ValueAfter` blieb immer null, weil den
   Wert nach der Dosis niemand nachtrug — und die Lernrechnung überspringt genau
   solche Zeilen. Behoben mit `DosingFollowUp` + `RecordEffects` (beta.13).

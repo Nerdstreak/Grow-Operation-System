@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { darfUeberspringen } from './pflicht'
+import { nimmSchloss, gibSchloss } from './schloss'
 
 /**
  * Ein Wasserwechsel lässt sich nachtragen — mit dem Tag, an dem er war.
@@ -18,13 +19,41 @@ import { darfUeberspringen } from './pflicht'
  * <c>PerformedAtUtc</c>. Es fragte nur niemand danach.
  */
 
+/* <b>Das Schloss.</b> Dieser Fall schreibt an Grow 1 — und Playwright faehrt
+   `fullyParallel: true`. Gefunden von `e2e-schloss-vollstaendig.node.test.ts`,
+   der ueber ALLE Spec-Dateien zaehlt: der Kommentar in `schloss.ts` sagte
+   „vier Dateien", und diese fuenfte war nicht darunter. Eine Zahl im
+   Fliesstext altert; eine Zaehlung ueber die Grundmenge nicht. */
+test.beforeEach(async () => { await nimmSchloss() })
+test.afterEach(() => { gibSchloss() })
+
+test('der Wasserwechsel steht im Hauptmenue', async ({ page, request }) => {
+  darfUeberspringen(!(await request.get('/api/grows')).ok(), 'Kein Backend.')
+
+  /* Ein direkter Aufruf von /wasserwechsel belegt NICHT, dass man dorthin
+     findet — genau das war die Beschwerde: die Seite gab es (als Abschnitt),
+     aber keinen Weg. Deshalb wird hier geklickt, nicht navigiert. */
+  await page.goto('/', { waitUntil: 'networkidle' })
+  const eintrag = page.getByRole('link', { name: 'Wasserwechsel', exact: true })
+  await expect(eintrag, 'Im Hauptmenue steht kein Eintrag „Wasserwechsel". Wer den '
+    + 'Wechsel eintragen will, muesste ihn wieder in einem anderen Abschnitt suchen.')
+    .toBeVisible()
+
+  await eintrag.click()
+  await expect(page.locator('[data-audit="wasserwechsel-stand"]'),
+    'Der Menuepunkt fuehrt nicht auf die Wasserwechsel-Seite.').toBeVisible()
+})
+
 test('ein Wasserwechsel laesst sich auf einen vergangenen Tag buchen', async ({ page, request }) => {
   darfUeberspringen(!(await request.get('/api/grows')).ok(), 'Kein Backend.')
 
   const vorher = await (await request.get('/api/grows/1/changeouts')).json() as
     Array<{ id: number; performedAtUtc: string }>
 
-  await page.goto('/addback', { waitUntil: 'networkidle' })
+  /* Seit dem 31.08.2026 hat der Wasserwechsel eine eigene Seite. Vorher lag
+     das Formular als dritter Abschnitt auf /addback und war nicht zu finden —
+     „der User findet den Wasserwechsel nicht wirklich". */
+  await page.goto('/wasserwechsel', { waitUntil: 'networkidle' })
   const bereich = page.locator('.changeouts-section')
   await bereich.scrollIntoViewIfNeeded()
   await bereich.getByRole('button', { name: /Wechsel erfassen/ }).click()
@@ -68,6 +97,18 @@ test('ein Wasserwechsel laesst sich auf einen vergangenen Tag buchen', async ({ 
       + 'Nachtrag, der auf „jetzt" landet, verfälscht jede Rechnung „letzter Wechsel '
       + 'vor N Tagen".').toBeGreaterThan(2)
   } finally {
-    if (angelegt != null) await request.delete(`/api/changeouts/${angelegt}`)
+    /* Aufraeumen — und den Erfolg BELEGEN.
+       Bis zum 31.08.2026 stand hier `DELETE /api/changeouts/{id}`: eine Route,
+       die es nicht gab. Der Aufruf lief in ein 404, meldete nichts, und der
+       Testbestand wuchs mit jedem Lauf um einen erfundenen Wasserwechsel. Eine
+       Aufraeumzeile, von der niemand nachgeprueft hat, dass sie raeumt, ist
+       keine. */
+    if (angelegt != null) {
+      const weg = await request.delete(`/api/grows/1/changeouts/${angelegt}`)
+      expect(weg.ok(),
+        `Der Testeintrag ${angelegt} liess sich nicht entfernen (HTTP ${weg.status()}). `
+        + 'Der Demobestand behaelt ihn — und der naechste Lauf misst gegen einen '
+        + 'Bestand, den dieser hier verschmutzt hat.').toBe(true)
+    }
   }
 })

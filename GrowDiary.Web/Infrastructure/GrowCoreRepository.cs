@@ -62,7 +62,30 @@ public sealed class GrowCoreRepository : RepositoryBase
         command.CommandText = """
             SELECT g.*, t.Name AS TentName, hs.Name AS HydroSetupName,
                    (SELECT COUNT(*) FROM Measurements m WHERE m.GrowId = g.Id) AS MeasurementCount,
-                   (SELECT RelativePath FROM Photos p WHERE p.GrowId = g.Id ORDER BY p.TakenAtUtc DESC LIMIT 1) AS LatestPhotoPath
+                   (SELECT RelativePath FROM Photos p WHERE p.GrowId = g.Id ORDER BY p.TakenAtUtc DESC LIMIT 1) AS LatestPhotoPath,
+                   -- Die Sorten, die WIRKLICH in diesem Grow stehen: aus den
+                   -- Pflanzen, nicht aus dem einen Feld Grows.Strain. Getrennt
+                   -- mit char(31), weil ein Sortenname ein Komma enthalten darf
+                   -- ("Gorilla Glue #4, Cut B").
+                   (SELECT group_concat(x.Name, char(31)) FROM (
+                        SELECT DISTINCT s.Name AS Name
+                        FROM PlantInstances pi
+                        JOIN Strains s ON s.Id = pi.StrainId
+                        WHERE pi.GrowId = g.Id
+                        ORDER BY s.Name
+                    ) x) AS PflanzenSorten,
+                   -- Tragen ALLE erfassten Pflanzen die Hauptsorte des Laufs?
+                   --
+                   -- Nur dann gehoert der Zuechter des Laufs zu dem, was
+                   -- angezeigt wird. Die Oberflaeche hat das zuerst ueber den
+                   -- NAMEN geraten (Teilzeichenkette) -- und lag bei
+                   -- "Northern Lights" gegen "Northern Lights Auto" prompt
+                   -- falsch: richtige Sorte, Zuechter der anderen. Hier steht
+                   -- die Id gegen die Id, und die luegt nicht.
+                   (SELECT CASE WHEN COUNT(*) = 0 THEN 0 ELSE
+                        MIN(CASE WHEN pi2.StrainId IS NOT NULL AND pi2.StrainId = g.StrainId THEN 1 ELSE 0 END)
+                    END
+                    FROM PlantInstances pi2 WHERE pi2.GrowId = g.Id) AS NurHauptsorte
             FROM Grows g
             LEFT JOIN Tents t ON t.Id = g.TentId
             LEFT JOIN GrowSystems hs ON hs.Id = g.SystemId
@@ -244,6 +267,30 @@ public sealed class GrowCoreRepository : RepositoryBase
         risks.Parameters.AddWithValue("$id", id);
         risks.ExecuteNonQuery();
 
+        /* Die Pflanzen gehen mit — aber nur die, die es ohne den Lauf nicht gaebe.
+         *
+         * Genau dieselbe Luecke wie bei den Warnungen darueber, nur eine Tabelle
+         * weiter: `DELETE FROM Grows` liess die Pflanzen stehen, und ihr GrowId
+         * zeigte danach auf einen Lauf, den es nicht mehr gibt. Gefunden am
+         * 01.09.2026 im Testbestand — 92 solche Leichen, und jeder volle
+         * E2E-Lauf legte zwei weitere dazu.
+         *
+         * Unterschieden wird nach Rolle: eine Produktionspflanze existiert fuer
+         * diesen Durchgang und endet mit ihm. Eine Mutter, ein Steckling oder
+         * eine Pflanze in Quarantaene gehoert dem AUFBAU und ueberlebt den Lauf
+         * — sie verliert nur ihren Bezug darauf. Wer alles loeschte, naehme dem
+         * Nutzer seine Mutterpflanze mit dem Grow. */
+        using var produktion = connection.CreateCommand();
+        produktion.CommandText =
+            "DELETE FROM PlantInstances WHERE GrowId = $id AND PlantRole = 'Production';";
+        produktion.Parameters.AddWithValue("$id", id);
+        produktion.ExecuteNonQuery();
+
+        using var uebrige = connection.CreateCommand();
+        uebrige.CommandText = "UPDATE PlantInstances SET GrowId = NULL WHERE GrowId = $id;";
+        uebrige.Parameters.AddWithValue("$id", id);
+        uebrige.ExecuteNonQuery();
+
         using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM Grows WHERE Id = $id;";
         command.Parameters.AddWithValue("$id", id);
@@ -265,7 +312,30 @@ public sealed class GrowCoreRepository : RepositoryBase
         command.CommandText = $"""
             SELECT g.*, t.Name AS TentName, hs.Name AS HydroSetupName,
                    (SELECT COUNT(*) FROM Measurements m WHERE m.GrowId = g.Id) AS MeasurementCount,
-                   (SELECT RelativePath FROM Photos p WHERE p.GrowId = g.Id ORDER BY p.TakenAtUtc DESC LIMIT 1) AS LatestPhotoPath
+                   (SELECT RelativePath FROM Photos p WHERE p.GrowId = g.Id ORDER BY p.TakenAtUtc DESC LIMIT 1) AS LatestPhotoPath,
+                   -- Die Sorten, die WIRKLICH in diesem Grow stehen: aus den
+                   -- Pflanzen, nicht aus dem einen Feld Grows.Strain. Getrennt
+                   -- mit char(31), weil ein Sortenname ein Komma enthalten darf
+                   -- ("Gorilla Glue #4, Cut B").
+                   (SELECT group_concat(x.Name, char(31)) FROM (
+                        SELECT DISTINCT s.Name AS Name
+                        FROM PlantInstances pi
+                        JOIN Strains s ON s.Id = pi.StrainId
+                        WHERE pi.GrowId = g.Id
+                        ORDER BY s.Name
+                    ) x) AS PflanzenSorten,
+                   -- Tragen ALLE erfassten Pflanzen die Hauptsorte des Laufs?
+                   --
+                   -- Nur dann gehoert der Zuechter des Laufs zu dem, was
+                   -- angezeigt wird. Die Oberflaeche hat das zuerst ueber den
+                   -- NAMEN geraten (Teilzeichenkette) -- und lag bei
+                   -- "Northern Lights" gegen "Northern Lights Auto" prompt
+                   -- falsch: richtige Sorte, Zuechter der anderen. Hier steht
+                   -- die Id gegen die Id, und die luegt nicht.
+                   (SELECT CASE WHEN COUNT(*) = 0 THEN 0 ELSE
+                        MIN(CASE WHEN pi2.StrainId IS NOT NULL AND pi2.StrainId = g.StrainId THEN 1 ELSE 0 END)
+                    END
+                    FROM PlantInstances pi2 WHERE pi2.GrowId = g.Id) AS NurHauptsorte
             FROM Grows g
             LEFT JOIN Tents t ON t.Id = g.TentId
             LEFT JOIN GrowSystems hs ON hs.Id = g.SystemId
@@ -394,7 +464,13 @@ public sealed class GrowCoreRepository : RepositoryBase
         {
             return string.Empty;
         }
-        return " AND (g.Name LIKE $search OR g.Strain LIKE $search OR g.Breeder LIKE $search OR g.Nutrients LIKE $search OR t.Name LIKE $search)";
+        // Auch die Sorten der PFLANZEN — ein Grow kann N Sorten fuehren, und
+        // eine, die nur an einer Pflanze haengt, war ueber die Suche bisher
+        // nicht zu finden.
+        return " AND (g.Name LIKE $search OR g.Strain LIKE $search OR g.Breeder LIKE $search"
+            + " OR g.Nutrients LIKE $search OR t.Name LIKE $search"
+            + " OR EXISTS (SELECT 1 FROM PlantInstances pi JOIN Strains s ON s.Id = pi.StrainId"
+            + "            WHERE pi.GrowId = g.Id AND s.Name LIKE $search))";
     }
 
     private void CaptureGrowSnapshots(GrowRun grow)
@@ -558,6 +634,12 @@ public sealed class GrowCoreRepository : RepositoryBase
             SystemId = reader["SystemId"] is DBNull or null ? null : Convert.ToInt32((long)reader["SystemId"]),
             SetupId = reader["SetupId"] is DBNull or null ? null : Convert.ToInt32((long)reader["SetupId"]),
             TentName = NullString(reader["TentName"]),
+            PflanzenSorten = HasColumn(reader, "PflanzenSorten") && NullString(reader["PflanzenSorten"]) is { } roh
+                ? roh.Split('', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                : [],
+            NurHauptsorte = HasColumn(reader, "NurHauptsorte")
+                && reader["NurHauptsorte"] is not DBNull
+                && Convert.ToInt32(reader["NurHauptsorte"], CultureInfo.InvariantCulture) == 1,
             HydroSetupName = HasColumn(reader, "HydroSetupName") ? NullString(reader["HydroSetupName"]) : null,
             Name = reader["Name"]?.ToString() ?? string.Empty,
             Strain = NullString(reader["Strain"]),

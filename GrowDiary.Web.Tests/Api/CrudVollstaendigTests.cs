@@ -38,12 +38,6 @@ public sealed class CrudVollstaendigTests
     /// </remarks>
     private static readonly Dictionary<string, string> Ausnahmen = new(StringComparer.Ordinal)
     {
-        ["GrowWorkflowApiController"] =
-            "Legt keine eigene Sache an, sondern haengt Vorgaenge an einen Grow "
-            + "(Addback-Protokoll, Wasserwechsel). Der Weg zurueck ist das Loeschen "
-            + "des Grows in GrowsApiController; ein einzelner Addback-Eintrag ist ein "
-            + "Protokoll und wird bewusst nicht nachtraeglich entfernt.",
-
         ["RiskEventsApiController"] =
             "Ein Risiko hat einen Lebenslauf statt eines Loeschwegs: offen -> "
             + "bestaetigt (acknowledge) -> erledigt (resolve). Beide Wege gibt es, "

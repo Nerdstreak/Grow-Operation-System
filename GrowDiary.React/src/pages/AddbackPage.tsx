@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { sortenText } from '../features/grows/sorten-text'
 import { useParams } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { WaterSource } from '../types/shared'
@@ -472,7 +473,7 @@ function AddbackPage() {
               {(
                 <V1Section title="Grow & Reservoir">
                   <div className="addback-summary-grid">
-                    <V1Stat label="Grow" value={grow?.name ?? defaults?.growName ?? '–'} hint={grow?.strain ?? 'Sorte offen'} />
+                    <V1Stat label="Grow" value={grow?.name ?? defaults?.growName ?? '–'} hint={(grow ? sortenText(grow) : null) ?? 'Sorte offen'} />
                     <V1Stat label="Zelt" value={grow?.tentName ?? '–'} hint={grow?.hydroStyle ?? null} />
                     <V1Stat label="Volumen" value={formatNumber(parseNullableNumber(form.reservoirLiters) ?? defaults?.suggestedReservoirLiters, 1)} unit="L" hint="aus Hydro-Setup oder manuell" />
                     <V1Stat label="EC aktuell" value={formatNumber(parseNullableNumber(form.ecIst), 2)} unit="mS/cm" hint="letzte Messung / manuell" />

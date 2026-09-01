@@ -350,3 +350,64 @@
 }
 .gp-weg:hover { color: var(--danger-text); border-color: var(--danger); }
 .gp-weg:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* --- Töpfe & Sorten im Grow-Formular ---------------------------------------
+   Der Tester hat definiert, was ein Grow ist: ein Durchgang mit N Pflanzen und
+   N Sorten. Die Belegung des Systems steht deshalb im Formular — und zwar als
+   Liste der Töpfe, nicht als Satz darüber. */
+@layer features {
+  .gw-toepfe { display: grid; gap: 12px; }
+
+  .gw-toepfe-kopf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .gw-toepfe-zahl { color: var(--v1-muted); font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+
+  .gw-toepfe-alle { display: flex; align-items: center; gap: 8px; }
+  .gw-toepfe-alle > span { color: var(--v1-muted); font-size: 0.85rem; }
+  .gw-toepfe-alle select { min-width: 0; }
+
+  /* Ein Topf je Zeile, ab genug Breite zwei- und dreispaltig. `minmax(0, …)`
+     statt `auto`: die Grid-Falle aus dem Handy-Audit vom 17.08.2026 — ohne die
+     0 wächst eine Spalte über ihren Container hinaus. */
+  .gw-toepfe-liste {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .gw-topf {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--v1-line);
+    border-radius: var(--v1-radius-sm);
+    background: var(--v1-surface-2);
+  }
+  /* KEINE Deckkraft auf der Gruppe.
+     `opacity: 0.72` vererbt sich auf die Beschriftung, deren Farbe schon Alpha
+     0,76 traegt — im hellen Thema kam „Topf N" damit auf 3,97:1 und riss AA.
+     Die Kontrast-Pruefung sah es nicht: sie liest nur die EIGENE Deckkraft
+     eines Elements, nie die geerbte. Fuenfter blinder Fleck. Der leere Topf
+     unterscheidet sich jetzt ueber den Rahmen, nicht ueber Durchsichtigkeit. */
+  .gw-topf.is-leer { border-style: dashed; background: transparent; }
+  .gw-topf-nr { color: var(--v1-muted); font-size: 0.85rem; white-space: nowrap; }
+  .gw-topf select { inline-size: 100%; min-width: 0; }
+
+  .gw-toepfe-hinweis { margin: 0; color: var(--v1-muted); font-size: 0.9rem; }
+}
+
+@layer features {
+  /* Der Widerspruch nach einem Systemwechsel — sichtbar, nicht heimlich
+     aufgeraeumt. Textton, nicht Flaechenton. */
+  .gw-toepfe-hinweis.is-warn { color: var(--warn-text, var(--warn)); }
+}

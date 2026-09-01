@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { sortenAufzaehlung, sortenText, zuechterPasst } from '../features/grows/sorten-text'
 import '../features/grow-detail/growdetail-instrument.css'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { formatNumber } from '../utils'
@@ -215,12 +216,18 @@ function GrowDetailPage() {
               Die Pflanzen-Karte meldet ihre Sorten herauf; ab zwei steht hier
               „gemischt" mit der Liste — die Hauptsorte bleibt fuer Listen und
               Zeitstrahl, behauptet aber nicht mehr, allein im Zelt zu sein. */}
+          {/* Die Regel steht in sortenText(), nicht hier.
+              Diese Stelle hatte sie nachgebaut — und dabei einen Fall anders
+              entschieden: bei GENAU EINER Pflanzensorte fiel sie auf
+              `grow.strain` zurueck. Setzt man alle vier Toepfe auf Gorilla
+              Glue, sagte die Kachel oben „White Widow", waehrend dieselbe Seite
+              weiter unten „4x Gorilla Glue" schrieb. Gefunden vom Pruefer. */}
           <V1Stat
             label="Sorte"
-            value={pflanzenSorten.length > 1 ? `gemischt (${pflanzenSorten.length})` : grow.strain ?? '—'}
-            hint={pflanzenSorten.length > 1
-              ? pflanzenSorten.join(' · ')
-              : [grow.breeder, samenName(grow.seedType)].filter(Boolean).join(' · ') || undefined} />
+            value={sortenText({ strain: grow.strain, pflanzenSorten }) ?? '—'}
+            hint={sortenAufzaehlung({ pflanzenSorten })
+              ?? ([zuechterPasst({ strain: grow.strain, pflanzenSorten, nurHauptsorte: grow.nurHauptsorte }) ? grow.breeder : null,
+                   samenName(grow.seedType)].filter(Boolean).join(' · ') || undefined)} />
           <V1Stat
             label="Pflanzen"
             value={pflanzenAnzahl && pflanzenAnzahl > 0 ? pflanzenAnzahl : grow.plantCount ?? '—'}

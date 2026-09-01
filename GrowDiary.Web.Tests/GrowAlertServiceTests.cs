@@ -188,6 +188,139 @@ public sealed class GrowAlertServiceTests : IDisposable
         Assert.Contains(alerts, alert => alert.Title.Contains("wechsel", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Ein eingetragener Wasserwechsel raeumt die Mahnung weg.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (31.08.2026).</b> Gemeldet: „der User findet den
+    /// Wasserwechsel nicht wirklich, das ist sehr umstaendlich von uns
+    /// geloest, weil er hat jetzt einen gemacht und will den eintragen".
+    /// Beim Nachsehen kam heraus, dass der Eintrag ueberhaupt nichts bewirkt:
+    /// die Mahnung liest <c>Measurement.SolutionChange</c>, das Formular auf
+    /// /addback schreibt in die Tabelle <c>Changeouts</c>. Zwei Wahrheiten
+    /// ueber dieselbe Zahl — der Nutzer traegt ein, und die App mahnt weiter.</para>
+    ///
+    /// <para><b>Warum diese Schicht.</b> Der Fehler entsteht in der Rechnung,
+    /// nicht in der Oberflaeche: <c>GrowAlertService</c> baut sein
+    /// <c>lastSolutionChangeAt</c> selbst und sieht die Wechsel-Tabelle nicht.
+    /// Eine Oberflaechenpruefung wuerde denselben Fehler finden, aber erst
+    /// nach drei Klicks und ohne zu sagen, wo er sitzt.</para>
+    /// </remarks>
+    [Fact]
+    public void BuildAlertsForGrow_EingetragenerWasserwechselRaeumtDieMahnungWeg()
+    {
+        var grow = CreateHydroGrow();
+        // Der letzte belegte Wechsel liegt elf Tage zurueck — ohne den Eintrag
+        // unten mahnt die App, und genau das prueft der Test darueber.
+        AddMeasurement(grow.Id, DateTime.UtcNow.AddDays(-11), measurement =>
+        {
+            measurement.SolutionChange = true;
+            measurement.ReservoirPh = 6.0;
+            measurement.ReservoirEc = 0.7;
+            measurement.ReservoirWaterTempC = 20;
+            measurement.DissolvedOxygenMgL = 8;
+        });
+        AddMeasurement(grow.Id, DateTime.UtcNow, measurement =>
+        {
+            measurement.ReservoirPh = 6.0;
+            measurement.ReservoirEc = 0.7;
+            measurement.ReservoirWaterTempC = 20;
+            measurement.DissolvedOxygenMgL = 8;
+        });
+
+        // Der Nutzer traegt den Wechsel von gestern nach — genau der Weg, den
+        // das Formular auf /addback nimmt.
+        _repository.CreateChangeout(new ChangeoutEntry
+        {
+            GrowId = grow.Id,
+            Kind = ChangeoutKind.Full,
+            PerformedAtUtc = DateTime.UtcNow.AddDays(-1),
+            PercentChanged = 100,
+        });
+
+        var alerts = _service.BuildAlertsForGrow(grow);
+
+        Assert.DoesNotContain(alerts, alert => alert.Title.Contains("wechsel", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Ein zurückgenommener Wasserwechsel bringt die Mahnung zurück.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Beim Umbau fiel auf, dass es
+    /// <c>DELETE</c> für einen Wasserwechsel gar nicht gab — aufgefallen an
+    /// einer <b>Aufräumzeile in einem E2E-Fall</b>, die eine Route rief, die
+    /// nicht existiert: sie lief in ein 404, meldete nichts, und der
+    /// Demobestand wuchs mit jedem Lauf.</para>
+    ///
+    /// <para><b>Warum das jetzt zählt.</b> Solange die Mahnung diese Tabelle
+    /// nicht las, war ein Fehleintrag folgenlos. Seit sie es tut, legt er sie
+    /// für eine Woche still. Ein Weg zurück ist damit keine Bequemlichkeit
+    /// mehr, sondern die Bedingung dafür, dass man dem Formular trauen kann.</para>
+    /// </remarks>
+    [Fact]
+    public void BuildAlertsForGrow_ZurueckgenommenerWechselBringtDieMahnungZurueck()
+    {
+        var grow = CreateHydroGrow();
+        AddMeasurement(grow.Id, DateTime.UtcNow.AddDays(-11), measurement =>
+        {
+            measurement.SolutionChange = true;
+            measurement.ReservoirPh = 6.0;
+            measurement.ReservoirEc = 0.7;
+            measurement.ReservoirWaterTempC = 20;
+            measurement.DissolvedOxygenMgL = 8;
+        });
+        AddMeasurement(grow.Id, DateTime.UtcNow, measurement =>
+        {
+            measurement.ReservoirPh = 6.0;
+            measurement.ReservoirEc = 0.7;
+            measurement.ReservoirWaterTempC = 20;
+            measurement.DissolvedOxygenMgL = 8;
+        });
+
+        var eintrag = _repository.CreateChangeout(new ChangeoutEntry
+        {
+            GrowId = grow.Id,
+            Kind = ChangeoutKind.Full,
+            PerformedAtUtc = DateTime.UtcNow.AddDays(-1),
+            PercentChanged = 100,
+        });
+
+        Assert.DoesNotContain(_service.BuildAlertsForGrow(grow),
+            alert => alert.Title.Contains("wechsel", StringComparison.OrdinalIgnoreCase));
+
+        var geloescht = _repository.DeleteChangeout(grow.Id, eintrag.Id);
+
+        Assert.True(geloescht, "Der Wasserwechsel liess sich nicht entfernen.");
+        Assert.Contains(_service.BuildAlertsForGrow(grow),
+            alert => alert.Title.Contains("wechsel", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Ein fremder Grow kann den Eintrag nicht loeschen.</summary>
+    /// <remarks>
+    /// Die Id allein wuerde reichen, um die Zeile zu treffen — deshalb steht
+    /// der Grow mit in der Bedingung. Ohne ihn koennte ein Aufruf mit geratener
+    /// Id den Wechsel eines anderen Laufs entfernen.
+    /// </remarks>
+    [Fact]
+    public void DeleteChangeout_TrifftNurDenEigenenGrow()
+    {
+        var grow = CreateHydroGrow();
+        var eintrag = _repository.CreateChangeout(new ChangeoutEntry
+        {
+            GrowId = grow.Id,
+            Kind = ChangeoutKind.Full,
+            PerformedAtUtc = DateTime.UtcNow,
+            PercentChanged = 100,
+        });
+
+        Assert.False(_repository.DeleteChangeout(grow.Id + 999, eintrag.Id));
+        Assert.Single(_repository.GetChangeoutsForGrow(grow.Id));
+
+        Assert.True(_repository.DeleteChangeout(grow.Id, eintrag.Id));
+        Assert.Empty(_repository.GetChangeoutsForGrow(grow.Id));
+    }
+
     [Theory]
     [InlineData("critical", "kritisch")]
     [InlineData("attention", "beobachten")]

@@ -170,6 +170,23 @@ export interface ChangeoutDto {
   createdAtUtc: string
 }
 
+/**
+ * Wie es um den Wasserwechsel steht — gerechnet im Backend, nicht hier.
+ *
+ * Die Zahl ,vor N Tagen' steht auf der Seite, in der Aufgabe, in der
+ * Risiko-Karte und im Trend. Sie kommt aus EINER Quelle
+ * (`WasserwechselStandService`), sonst laufen die vier auseinander.
+ */
+export interface WasserwechselStandDto {
+  zuletztUtc: string | null
+  tageSeit: number | null
+  intervallTage: number
+  warnungAbTagen: number
+  kritischAbTagen: number
+  /** unbekannt · frisch · faellig · ueberfaellig */
+  zustand: string
+}
+
 export interface CreateChangeoutRequest {
   kind: ChangeoutKind
   performedAtUtc?: string | null

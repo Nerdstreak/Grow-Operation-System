@@ -409,6 +409,9 @@ public sealed class GrowRepository
     public ChangeoutEntry CreateChangeout(ChangeoutEntry entry)
         => _addbackRepository.CreateChangeout(entry);
 
+    public bool DeleteChangeout(int growId, int id)
+        => _addbackRepository.DeleteChangeout(growId, id);
+
     public List<ChangeoutEntry> GetChangeoutsForGrow(int growId)
         => _addbackRepository.GetChangeoutsForGrow(growId);
 

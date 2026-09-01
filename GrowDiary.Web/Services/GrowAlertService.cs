@@ -27,11 +27,11 @@ public sealed class GrowAlertService
         var latest = _repository.GetLatestMeasurement(grow.Id);
         var previous = latest is null ? null : _repository.GetPreviousMeasurement(grow.Id, latest.TakenAt, latest.Id);
         var measurements = _repository.GetMeasurementsForGrow(grow.Id);
-        var lastSolutionChangeAt = measurements
-            .Where(x => x.SolutionChange)
-            .OrderByDescending(x => x.TakenAt)
-            .Select(x => (DateTime?)x.TakenAt)
-            .FirstOrDefault();
+        // Beide Belege zaehlen: das Haekchen an einer Messung UND der Eintrag
+        // aus dem Formular „Wasserwechsel". Bis zum 31.08.2026 stand hier nur
+        // der erste — wer den Wechsel eintrug, raeumte damit keine Mahnung weg.
+        var lastSolutionChangeAt = Wasserwechsel.ZuletztOrtszeit(
+            measurements, _repository.GetChangeoutsForGrow(grow.Id));
         var legacyAlerts = _recommendationEngine.Evaluate(grow, latest, previous, lastSolutionChangeAt);
 
         if (latest is not null && grow.IrrigationType == IrrigationType.ActiveHydro && grow.Profile.IsHydro)

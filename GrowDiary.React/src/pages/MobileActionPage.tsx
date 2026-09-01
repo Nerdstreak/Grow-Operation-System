@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
+import { wegZurRoutine } from '../features/changeouts/routine-weg'
 import type { CuringJar } from '../features/curing/curing-typen'
 import { faelligText } from '../features/curing/curing-typen'
 import type { CalibrationEventDto, GrowSummary, GrowTaskDto, HardwareItemDto, MaintenanceEventDto, RiskEventDto, SopInstanceDto } from '../types'
@@ -181,12 +182,19 @@ function MobileActionPage() {
                 {state.dueByGrow.map(({ grow, items }) => (
                   <div key={grow.id} className="af-due-grow">
                     <div className="co-row-title">{grow.name}</div>
-                    {items.map((item) => (
-                      <div key={item.sopId} className="co-row">
-                        <span className={item.severity === 'critical' ? 'co-row-text is-due' : 'co-row-text'}>{item.meldung}</span>
-                        <div className="co-row-end"><Link className="ls-btn is-small" to={`/grows/${grow.id}`}>Öffnen</Link></div>
-                      </div>
-                    ))}
+                    {items.map((item) => {
+                      // Der Knopf fuehrt dorthin, wo die Routine erledigt wird —
+                      // nicht zur Grow-Seite, auf der sie nur noch einmal steht.
+                      const weg = wegZurRoutine(item.sopId)
+                      return (
+                        <div key={item.sopId} className="co-row">
+                          <span className={item.severity === 'critical' ? 'co-row-text is-due' : 'co-row-text'}>{item.meldung}</span>
+                          <div className="co-row-end">
+                            <Link className="ls-btn is-small" to={weg?.to ?? `/grows/${grow.id}`}>{weg?.aktion ?? 'Öffnen'}</Link>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 ))}
               </div>

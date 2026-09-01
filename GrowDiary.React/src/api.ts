@@ -6,10 +6,38 @@ export class ApiRequestError extends Error {
   payload: ApiError | null
 
   constructor(status: number, payload: ApiError | null, fallbackMessage: string) {
-    super(payload?.message ?? fallbackMessage)
+    super(lesbareMeldung(payload) ?? fallbackMessage)
     this.status = status
     this.payload = payload
   }
+}
+
+/**
+ * Die Meldung, die dem Nutzer wirklich weiterhilft.
+ *
+ * <b>Der Anlass (31.08.2026).</b> Beim Absenden eines Teilwechsels ohne Menge
+ * stand auf dem Schirm „Eingaben konnten nicht validiert werden." — der
+ * Grund lag daneben, ungelesen: das Backend schickt ihn in
+ * <code>fieldErrors</code>, gelesen wurde nur <code>message</code>. Dieselbe
+ * Stelle hat schon einmal eine englische Meldung durchgereicht.
+ *
+ * <b>Die Regel.</b> Ist <code>message</code> die allgemeine Sammelmeldung und
+ * steht darunter genau eine Feldmeldung, gewinnt die Feldmeldung — sie sagt,
+ * was zu tun ist. Bei mehreren werden sie aneinandergehängt, damit keine
+ * verschwindet.
+ */
+function lesbareMeldung(payload: ApiError | null): string | undefined {
+  if (payload == null) return undefined
+
+  const felder = Object.values(payload.fieldErrors ?? {}).flat().filter((text) => text.trim().length > 0)
+  if (felder.length === 0) return payload.message
+
+  // Nur die Sammelmeldung wird ersetzt. Eine eigene Meldung des Endpunkts ist
+  // bewusst gewählt und darf nicht von einer Feldmeldung verdrängt werden.
+  const istSammelmeldung = payload.code === 'validation_failed'
+  if (!istSammelmeldung) return payload.message
+
+  return felder.join(' ')
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {

@@ -40,9 +40,21 @@ public sealed class SearchApiController : ApiControllerBase
 
         var hits = new List<SearchHitDto>();
 
-        foreach (var grow in _repository.GetAllGrows().Where(grow => Matches(term, grow.Name, grow.Strain, grow.Breeder)).Take(PerKind))
+        /* Auch die Sorten der PFLANZEN. Ein Grow fuehrt N Sorten; eine, die
+           nur an einer Pflanze haengt, war ueber die Suche bisher nicht zu
+           finden — dabei ist "wo steht meine Gorilla Glue" genau die Frage,
+           die jemand in ein Suchfeld tippt. */
+        foreach (var grow in _repository.GetAllGrows()
+                     .Where(grow => Matches(term, grow.Name, grow.Strain, grow.Breeder)
+                                 || grow.PflanzenSorten.Any(sorte => Matches(term, sorte)))
+                     .Take(PerKind))
         {
-            hits.Add(new SearchHitDto("Grow", grow.Name, Join(grow.Strain, grow.TentName), $"/grows/{grow.Id}"));
+            // Im Untertitel steht, was wirklich drin steht — bei zwei Sorten
+            // beide, nicht nur die Hauptsorte.
+            var sorten = grow.PflanzenSorten.Count > 0
+                ? string.Join(" · ", grow.PflanzenSorten)
+                : grow.Strain;
+            hits.Add(new SearchHitDto("Grow", grow.Name, Join(sorten, grow.TentName), $"/grows/{grow.Id}"));
         }
 
         foreach (var tent in _repository.GetTents().Where(tent => Matches(term, tent.Name)).Take(PerKind))

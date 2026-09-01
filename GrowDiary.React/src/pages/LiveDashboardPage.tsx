@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiFetch, formatApiError } from '../api'
+import { wegZurRoutine } from '../features/changeouts/routine-weg'
 import type { GrowSummary, RiskEventDto, TentDto, TentLivePayload } from '../types'
 import { LiveScreen, type DashboardPanel, type LiveTask } from '../features/live/LiveScreen'
 import { useTentDashboard } from '../features/live/useTentDashboard'
@@ -218,12 +219,16 @@ function LiveDashboardPage() {
   // Ueberfaellige Routinen des angezeigten Grows. Sie standen bisher nur auf
   // /aufgaben — hier fehlten sie, obwohl derselbe Block „Heute faellig" heisst.
   for (const routine of (primaryGrow ? state.faelligeRoutinen[primaryGrow.id] ?? [] : []).slice(0, 3 - tasks.length)) {
+    // Hat die Routine eine eigene Seite, fuehrt der Knopf dorthin und heisst
+    // nach der Handlung. „Oeffnen → /aufgaben" war eine Sackgasse: dort steht
+    // die Mahnung noch einmal, aber nicht das Formular.
+    const weg = wegZurRoutine(routine.sopId)
     tasks.push({
       id: `routine-${routine.sopId}`,
       when: routine.severity === 'critical' ? 'überfällig' : 'fällig',
       title: routine.name,
-      action: 'Öffnen',
-      to: '/aufgaben',
+      action: weg?.aktion ?? 'Öffnen',
+      to: weg?.to ?? '/aufgaben',
       due: true,
     })
   }

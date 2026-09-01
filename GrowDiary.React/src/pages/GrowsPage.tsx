@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { sortenText, zuechterPasst } from '../features/grows/sorten-text'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch, ApiRequestError } from '../api'
 import type { GrowSummary } from '../types'
@@ -114,7 +115,16 @@ function GrowCard({ grow }: { grow: GrowSummary }) {
 /** „Fast Buds · 6 Pflanzen · RDWC Test Setup · AC Infinity" — nur, was belegt ist. */
 function factsLine(grow: GrowSummary): string {
   return [
-    grow.breeder ?? grow.strain,
+    /* Bei EINER Sorte steht hier der Zuechter — er sagt mehr als der Name,
+       der schon in der Ueberschrift steht. Bei MEHREREN ist er eine
+       Falschaussage: „Royal Queen Seeds" fuer ein Becken, in dem auch eine
+       Gorilla Glue von GG Strains steht. Dann gewinnt die Mischung.
+
+       Gefunden am laufenden Stand: die erste Fassung schrieb
+       "grow.breeder ?? sortenText(grow)" — der Zuechter gewann IMMER, und die
+       Sorte kam nie zum Zug. Die Aenderung zu pruefen haette das nicht
+       gezeigt; die Karte anzusehen schon. */
+    zuechterPasst(grow) ? grow.breeder ?? sortenText(grow) : sortenText(grow),
     grow.plantCount != null ? `${grow.plantCount} Pflanzen` : null,
     grow.hydroSetupName,
     grow.tentName,

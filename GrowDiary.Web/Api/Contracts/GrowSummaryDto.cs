@@ -50,5 +50,22 @@ public sealed record GrowSummaryDto(
     GrowStage? LatestStage,
     double? LatestReservoirPh,
     double? LatestReservoirEc,
-    DateTime? LatestMeasurementAt
+    DateTime? LatestMeasurementAt,
+
+    /// <summary>
+    /// Die Sorten, die wirklich in diesem Grow stehen — aus seinen Pflanzen.
+    /// </summary>
+    /// <remarks>
+    /// Leer heisst „keine Pflanze einzeln erfasst"; dann gilt weiter
+    /// <c>Strain</c>. Mehr als eine heisst „gemischt" — ein Grow ist ein
+    /// Durchgang mit N Pflanzen und N Sorten, so hat es der Tester am
+    /// 31.08.2026 definiert.
+    /// </remarks>
+    IReadOnlyList<string> PflanzenSorten,
+
+    /// <summary>
+    /// Tragen alle erfassten Pflanzen die Hauptsorte des Laufs? Nur dann
+    /// gehört <c>Breeder</c> zu dem, was angezeigt wird.
+    /// </summary>
+    bool NurHauptsorte
 );

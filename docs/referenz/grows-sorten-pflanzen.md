@@ -12,6 +12,7 @@
 | Keimung und Bewurzelung bestätigen | `/messung` (`ManualMeasurementPage`) |
 | Ernte eintragen | `/grows/:growId/harvest` |
 | Sorten & Pheno-Hunt | Menü „Pflanzen → Sorten & Pheno", `/sorten` (alt: `/phenohunt`) |
+| **Sorte je Topf beim Anlegen** — Abschnitt „Töpfe & Sorten" | `/grows/new`, `/grows/:growId/setup`, unter der System-Auswahl |
 | Pflanzen & Sorten dieses Grows, **je Pflanze Sorte und Topf** | Karte im Grow-Überblick (`GrowPlantsCard`) |
 | Mutter klonen, Quarantäne entscheiden | `/zelte/:tentId`, an der Setup-Karte |
 | Zeitstrahl, dieselbe Rechnung | Live (`/`), Grow-Karten, Grow-Überblick |
@@ -118,6 +119,10 @@ und Ø-Ertrag je Sorte, darunter je aktivem Grow der Kandidatenstreifen mit Bewe
 | Zeitstrahl, Flip-Beschriftung, Phasenkurzform | `GrowDiary.React/src/features/grows/phase-timeline.ts` |
 | Liste, Überblick, Anlege-Assistent | `GrowDiary.React/src/pages/GrowsPage.tsx`, `GrowDetailPage.tsx`, `GrowSetupPage.tsx` |
 | Pflanzen und ihre Sorten am Grow | `GrowDiary.React/src/features/grow-detail/GrowPlantsCard.tsx` |
+| Belegung der Töpfe beim Anlegen und Bearbeiten | `GrowDiary.Web/Services/GrowPflanzen.cs` (`TopfBelegung`, `NachAnlage`, `SortenSetzen`), `Api/Contracts/GrowUpsertRequest.cs` (`Toepfe`) |
+| Wie die Sorte eines Grows GENANNT wird — eine Regel für alle Ansichten | `GrowDiary.React/src/features/grows/sorten-text.ts` (`sortenText`, `istGemischt`) |
+| Welche Sorten wirklich drin stehen | `GrowRun.PflanzenSorten` + `NurHauptsorte`, gelesen aus `PlantInstances` in `GrowCoreRepository` |
+| Was beim Löschen eines Grows mit seinen Pflanzen passiert | `GrowCoreRepository.DeleteGrow` — Produktionspflanzen gehen mit, Mütter und Stecklinge überleben ohne Lauf |
 | Klon, Freigabe, Ablehnung | `GrowDiary.React/src/features/plants/PlantActions.tsx`, `GrowDiary.Web/Api/Controllers/PlantsApiController.cs` |
 | Sortenbibliothek und Pheno Hunt | `GrowDiary.React/src/pages/StrainsPage.tsx`, `GrowDiary.Web/Services/PhenoScoreCalculator.cs` |
 
@@ -136,6 +141,36 @@ und Ø-Ertrag je Sorte, darunter je aktivem Grow der Kandidatenstreifen mit Bewe
 - **„Blüte Woche 0"** bei vorab eingetragenem Flipdatum (`WeekCounterService`).
 - **Das Startdatum schien nach dem Speichern weg** — die API liefert `2026-05-20T00:00:00`,
   `input[type="date"]` zeigt darauf leer (`nur-datum.ts`).
+- **Ein Grow konnte nur EINE Sorte bekommen — im Formular.** Das Datenmodell trug die
+  Sorte je Pflanze seit Monaten (`PlantInstance.StrainId` + `SiteIndex`); das Anlege-Formular
+  bot ein einziges Sortenfeld und schickte den Nutzer per Hinweis auf eine andere Seite
+  („Leg den Grow an und trag danach unter ‚Pflanzen & Sorten' jede Pflanze ein"). Der Tester
+  hat es am 31.08.2026 ausgeschrieben: „ein Grow ist ein Durchgang in einem RDWC/DWC und
+  kann N Pflanzen mit N verschiedenen Sorten/Phenos beinhalten." Seit beta.60 steht die
+  Belegung im Formular.
+- **Fünf Ansichten nannten bei zwei Sorten trotzdem eine.** Grow-Liste, Zelt-Detail,
+  Messformular, Addback-Kopf und Addback-Übersicht gaben `grow.strain` aus. Nur die
+  Grow-Detailseite konnte „gemischt", weil ihre Pflanzen-Karte es ihr meldete — ein
+  Mechanismus, den die anderen fünf nicht hatten. Jetzt gilt `sortenText()` überall.
+- **Und die Grow-Liste zeigte danach immer noch den Züchter.** Die Zeile lautete
+  `grow.breeder ?? sortenText(grow)` — der Züchter gewann *immer*, die Sorte kam nie zum
+  Zug. Bei einem Becken mit White Widow (Royal Queen Seeds) und Gorilla Glue (GG Strains)
+  stand dort „Royal Queen Seeds". Gefunden, indem die Karte angesehen wurde, nicht die
+  Änderung.
+- **Ein gelöschter Grow ließ seine Pflanzen zurück.** `DeleteGrow` löschte nur die Zeile in
+  `Grows`; die Pflanzen blieben mit einem Bezug auf einen Lauf stehen, den es nicht mehr gab.
+  Im Testbestand lagen 92 solche Leichen, und jeder volle E2E-Lauf legte zwei weitere dazu.
+  Dieselbe Lücke war für die Risiko-Ereignisse schon am 18.08.2026 geschlossen worden — eine
+  Tabelle weiter stand sie noch offen.
+- **Der Züchter stand neben der falschen Sorte.** `grow.breeder` gehört zur *Hauptsorte* des
+  Laufs; stehen andere Sorten in den Töpfen, ist er eine Falschaussage. Der erste Fix verglich
+  die NAMEN — und „Northern Lights" gegen „Northern Lights Auto" ging prompt daneben. Eine
+  Heuristik verschiebt die Grenze, sie beseitigt sie nicht; jetzt vergleicht der Server die Ids
+  (`NurHauptsorte`).
+- **Zwei Effekte schrieben dasselbe Formularfeld.** Die Belegung „Töpfe & Sorten" wurde in einem
+  eigenen Effekt geladen und vom Hauptlader wieder gelöscht — auf `/grows/:id/setup` stand
+  „0 von 4 Töpfen belegt", während vier Pflanzen in der Datenbank lagen. Zwei Schreiber auf
+  einem Feld sind ein Wettlauf; die Reihenfolge zu sortieren wäre eine Wette gewesen.
 - **Ein Mischzelt schrieb alle Kandidaten der Hauptsorte gut** (`StrainsPage.tsx`); dort
   sortierte „Blütezeit kürzeste zuerst" auch genau rückwärts.
 - **Im Balken stand „TROCKNE…" statt „Trocknen 10 T"** — die Zahl fiel beim Kürzen weg,

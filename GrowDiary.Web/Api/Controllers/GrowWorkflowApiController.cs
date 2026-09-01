@@ -24,6 +24,7 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         JournalRepository journalRepository,
         AuditRepository auditRepository,
         TargetValueService targetValueService,
+        WasserwechselStandService wasserwechselStand,
         WaterProfileStore? waterProfile = null)
     {
         _repository = repository;
@@ -31,8 +32,11 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         _journalRepository = journalRepository;
         _auditRepository = auditRepository;
         _targetValueService = targetValueService;
+        _wasserwechselStand = wasserwechselStand;
         _waterProfile = waterProfile;
     }
+
+    private readonly WasserwechselStandService _wasserwechselStand;
 
     private readonly WaterProfileStore? _waterProfile;
 
@@ -257,6 +261,24 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         return Ok(_repository.GetChangeoutsForGrow(id).Select(entry => entry.ToDto()).ToList());
     }
 
+    /// <summary>
+    /// Wie es um den Wasserwechsel steht — die Zahl, die auf der Seite gross
+    /// dasteht und in jeder Mahnung wieder vorkommt.
+    /// </summary>
+    /// <remarks>
+    /// Gerechnet wird sie nicht hier, sondern in
+    /// <see cref="WasserwechselStandService"/> — aus derselben Quelle, aus der
+    /// die Mahnung kommt. Sonst stuenden auf der Seite und in der Aufgabe zwei
+    /// verschiedene Zahlen fuer denselben Grow.
+    /// </remarks>
+    [HttpGet("{id:int}/changeouts/stand")]
+    [ProducesResponseType(typeof(WasserwechselStand), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public ActionResult<WasserwechselStand> GetChangeoutStand(int id)
+        => _wasserwechselStand.Fuer(id) is { } stand
+            ? Ok(stand)
+            : NotFoundError("grow_not_found", $"Grow mit Id {id} existiert nicht.");
+
     [HttpPost("{id:int}/changeouts")]
     [ProducesResponseType(typeof(ChangeoutDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
@@ -280,6 +302,35 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         if (request.PercentChanged is < 0 or > 100)
         {
             ModelState.AddModelError(nameof(request.PercentChanged), "Prozentwert muss zwischen 0 und 100 liegen.");
+        }
+
+        // Ein Teilwechsel ohne Menge sagt nichts.
+        //
+        // Bis zum 31.08.2026 liess sich das Formular vollstaendig LEER
+        // abschicken, und das war folgenlos: die Mahnung „Woechentlicher
+        // Wasserwechsel" las diese Tabelle ohnehin nicht. Seit sie es tut,
+        // legt ein leerer Eintrag die Mahnung fuer eine Woche stumm — ein
+        // Fehlgriff waere damit schlimmer als gar kein Eintrag.
+        //
+        // Verlangt wird genau EINE Zahl, und nur beim Teilwechsel: der Anteil
+        // oder die Menge. Der Komplettwechsel traegt seine Auskunft im Namen.
+        /* Ein Wechsel in der Zukunft ist keine Erfassung, sondern ein Plan.
+           Das Formular verbietet es (`max` am Datumsfeld), der Server nahm es
+           an — und der Testbestand hat prompt einen erzeugt. Wer nur ueber die
+           API kommt, umging die Sperre. Eine Stunde Luft fuer Uhren, die
+           auseinanderlaufen. Gefunden vom Pruefer. */
+        if (request.PerformedAtUtc is { } zeitpunkt && zeitpunkt > DateTime.UtcNow.AddHours(1))
+        {
+            ModelState.AddModelError(nameof(request.PerformedAtUtc),
+                "Der Zeitpunkt liegt in der Zukunft. Ein Wasserwechsel wird erfasst, nachdem er war.");
+        }
+
+        if (request.Kind == ChangeoutKind.Partial
+            && request.PercentChanged is null
+            && request.VolumeChangedLiters is null)
+        {
+            ModelState.AddModelError(nameof(request.PercentChanged),
+                "Beim Teilwechsel fehlt die Menge: trag den Anteil in Prozent oder die Liter ein.");
         }
 
         if (!Enum.IsDefined(request.Kind))
@@ -312,6 +363,28 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         });
 
         return CreatedAtAction(nameof(GetChangeouts), new { id }, created.ToDto());
+    }
+
+    /// <summary>Einen falsch eingetragenen Wasserwechsel entfernen.</summary>
+    /// <remarks>
+    /// Es gab keinen Weg zurueck. Solange die Mahnung diese Tabelle nicht las,
+    /// war das folgenlos; seit dem 31.08.2026 legt ein Fehleintrag sie fuer
+    /// eine Woche still — dann muss er sich zuruecknehmen lassen.
+    /// </remarks>
+    [HttpDelete("{id:int}/changeouts/{changeoutId:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public IActionResult DeleteChangeout(int id, int changeoutId)
+    {
+        if (_repository.GetGrow(id) is null)
+        {
+            return NotFoundError("grow_not_found", $"Grow mit Id {id} existiert nicht.");
+        }
+
+        return _repository.DeleteChangeout(id, changeoutId)
+            ? NoContent()
+            : NotFoundError("changeout_not_found",
+                $"Zu diesem Grow gibt es keinen Wasserwechsel mit Id {changeoutId}.");
     }
 
     [HttpGet("{id:int}/harvest")]
