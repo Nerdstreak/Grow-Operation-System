@@ -151,14 +151,55 @@ public static class LightCycleLearner
     /// verschiebt.
     /// </remarks>
     private static TimeOnly MedianTime(List<DateTime> zeitpunkte, TimeSpan offset)
+        => MedianZeit(zeitpunkte, offset);
+
+    /// <summary>
+    /// Der Median über Uhrzeiten — auch wenn die Flanken um Mitternacht liegen.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Die Rechnung sortierte Minuten seit
+    /// Mitternacht und nahm die Mitte. Liegen die Flanken um 00:00, mischt das
+    /// Werte nahe 0 mit Werten nahe 1440: aus 23:58, 23:59, 00:01, 00:02 wurde
+    /// der Median 12:00 statt 00:00 — der gelernte Zyklus war um zwölf Stunden
+    /// verschoben.</para>
+    ///
+    /// <para>Ein Blüte-Zelt mit 12/12 und Licht aus um Mitternacht ist der
+    /// Normalfall, und die Flanken streuen um ein, zwei Minuten, weil sie aus
+    /// dem Poll-Takt des Snapshot-Workers kommen.</para>
+    ///
+    /// <para><b>Die Lösung:</b> Uhrzeiten sind ein Kreis, keine Gerade. Liegen
+    /// die Werte weiter als einen halben Tag auseinander, werden die kleinen um
+    /// 24 Stunden aufgerollt, der Median gebildet und am Ende zurückgefaltet.
+    /// Bei Flanken, die dicht beieinanderliegen — und das tun sie, sonst wäre
+    /// es kein Zyklus — ist das eindeutig.</para>
+    ///
+    /// <para>Öffentlich, damit die Entscheidung eine eigene Prüfung bekommt:
+    /// über <c>Lernen</c> wäre sie nur mit einem ganzen Flankenverlauf zu
+    /// erreichen, und der Grenzfall ginge in der Kulisse unter.</para>
+    /// </remarks>
+    public static TimeOnly MedianZeit(List<DateTime> zeitpunkte, TimeSpan offset)
     {
         var minuten = zeitpunkte
             .Select(zeit => (zeit + offset).TimeOfDay.TotalMinutes)
             .OrderBy(wert => wert)
             .ToList();
 
+        const double Tag = 24 * 60;
+
+        // Spannen die Werte mehr als einen halben Tag, liegt der Bruch bei
+        // Mitternacht: die kleinen gehoeren ans obere Ende.
+        if (minuten.Count > 1 && minuten[^1] - minuten[0] > Tag / 2)
+        {
+            minuten = minuten
+                .Select(wert => wert < Tag / 2 ? wert + Tag : wert)
+                .OrderBy(wert => wert)
+                .ToList();
+        }
+
         var mitte = minuten.Count / 2;
         var median = minuten.Count % 2 == 1 ? minuten[mitte] : (minuten[mitte - 1] + minuten[mitte]) / 2;
-        return TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(median));
+
+        // Zurueckfalten — der Median kann jenseits von 24 h gelandet sein.
+        return TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(median % Tag));
     }
 }

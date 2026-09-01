@@ -6,6 +6,7 @@ import type { GrowDetail, HarvestDto } from '../types'
 import { V1Alert, V1Badge, V1Button, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import { summariseYield } from '../features/harvest/harvest-yield'
 import { parsePlantWeights, progressLabel, serialisePlantWeights, totals, type PlantWeight } from '../features/harvest/plant-weights-model'
+import { zahlOderNull, feldText } from '../zahlenfeld'
 import '../features/harvest/harvest.css'
 
 interface HarvestFormState {
@@ -31,7 +32,13 @@ function HarvestPage() {
   // Einzelgewichte je Pflanze. Am Trockenregal wiegt man Pflanze fuer Pflanze;
   // die Summe wandert in die Grow-Felder, damit Auswertungen unveraendert
   // weiterrechnen.
-  const [plants, setPlants] = useState<PlantWeight[]>([])
+  /* Die Zeilen halten den GETIPPTEN Text neben der Zahl.
+     Vorher hing das Feld direkt an `wetG`, einer Zahl — und wandelte bei jedem
+     Tastendruck um. Die Zwischenform „21," wurde zu 21, das Komma verschwand
+     aus dem Feld, die naechste Ziffer haengte sich an: aus „21,5" wurden 215.
+     Nachkommastellen waren in dieser Tabelle ueberhaupt nicht eingebbar, und
+     die Summe uebernahm den Fehler ins Grow-Feld. */
+  const [plants, setPlants] = useState<ZeileMitText[]>([])
 
   useEffect(() => {
     if (!growId) return
@@ -58,7 +65,7 @@ function HarvestPage() {
           effectNotes: nextHarvest.effectNotes ?? '',
           nugStructure: nextHarvest.nugStructure ?? '',
         })
-        setPlants(parsePlantWeights(nextHarvest.plantWeightsJson, grow?.plantCount ?? 1))
+        setPlants(parsePlantWeights(nextHarvest.plantWeightsJson, grow?.plantCount ?? 1).map(mitText))
         setError(null)
       } catch (caught) {
         if (controller.signal.aborted) return
@@ -85,12 +92,12 @@ function HarvestPage() {
           // Sind Einzelgewichte da, gewinnen ihre Summen — sonst bliebe das
           // Grow-Feld auf einem alten Wert stehen, waehrend die Tabelle daneben
           // etwas anderes zeigt.
-          wetWeightG: sums.wetG ?? parseNullableNumber(form.wetWeightG),
-          dryWeightG: sums.dryG ?? parseNullableNumber(form.dryWeightG),
-          plantWeightsJson: serialisePlantWeights(plants),
+          wetWeightG: sums.wetG ?? zahlOderNull(form.wetWeightG),
+          dryWeightG: sums.dryG ?? zahlOderNull(form.dryWeightG),
+          plantWeightsJson: serialisePlantWeights(plants.map(ohneText)),
           dryDays: parseNullableInteger(form.dryDays),
           yieldNotes: trimToNull(form.yieldNotes),
-          rating: parseNullableNumber(form.rating),
+          rating: zahlOderNull(form.rating),
           flavorNotes: trimToNull(form.flavorNotes),
           effectNotes: trimToNull(form.effectNotes),
           nugStructure: trimToNull(form.nugStructure),
@@ -116,11 +123,11 @@ function HarvestPage() {
     void save(false)
   }
 
-  function patchPlant(index: number, patch: Partial<PlantWeight>) {
+  function patchPlant(index: number, patch: Partial<ZeileMitText>) {
     setPlants((current) => current.map((plant, position) => (position === index ? { ...plant, ...patch } : plant)))
   }
 
-  const sums = totals(plants)
+  const sums = totals(plants.map(ohneText))
   const backTo = growId ? `/grows/${growId}` : '/'
   const yieldSummary = form ? summariseYield(form.wetWeightG, form.dryWeightG) : null
 
@@ -186,17 +193,23 @@ function HarvestPage() {
                       <td>
                         <input
                           inputMode="decimal"
-                          value={plant.wetG ?? ''}
+                          value={plant.wetText}
                           aria-label={`Nassgewicht ${plant.label}`}
-                          onChange={(event) => patchPlant(index, { wetG: toGrams(event.target.value) })}
+                          onChange={(event) => patchPlant(index, {
+                            wetText: event.target.value,
+                            wetG: zahlOderNull(event.target.value),
+                          })}
                         />
                       </td>
                       <td>
                         <input
                           inputMode="decimal"
-                          value={plant.dryG ?? ''}
+                          value={plant.dryText}
                           aria-label={`Trockengewicht ${plant.label}`}
-                          onChange={(event) => patchPlant(index, { dryG: toGrams(event.target.value) })}
+                          onChange={(event) => patchPlant(index, {
+                            dryText: event.target.value,
+                            dryG: zahlOderNull(event.target.value),
+                          })}
                         />
                       </td>
                     </tr>
@@ -206,15 +219,15 @@ function HarvestPage() {
             </div>
 
             <div className="hv-sums">
-              <div><span>Nass gesamt</span><strong>{sums.wetG ?? '—'}<em>g</em></strong></div>
+              <div><span>Nass gesamt</span><strong>{gramm(sums.wetG)}<em>g</em></strong></div>
               <div>
                 <span>{sums.dryG != null ? 'Trocken gesamt' : 'Erwartet trocken'}</span>
-                <strong>{sums.dryG ?? (sums.expectedDryG != null ? `~${sums.expectedDryG}` : '—')}<em>g</em></strong>
+                <strong>{sums.dryG != null ? gramm(sums.dryG) : (sums.expectedDryG != null ? `~${gramm(sums.expectedDryG)}` : '—')}<em>g</em></strong>
               </div>
             </div>
 
             <div className="v1-action-row">
-              <V1Button type="button" onClick={() => setPlants((current) => [...current, { label: `PL-${String(current.length + 1).padStart(2, '0')}`, wetG: null, dryG: null }])}>
+              <V1Button type="button" onClick={() => setPlants((current) => [...current, { label: `PL-${String(current.length + 1).padStart(2, '0')}`, wetG: null, dryG: null, wetText: '', dryText: '' }])}>
                 Pflanze ergänzen
               </V1Button>
             </div>
@@ -252,16 +265,22 @@ function HarvestPage() {
 }
 
 
+/**
+ * Eine Zahl fuer ein Eingabefeld — mit Komma.
+ *
+ * <b>Der Anlass (01.09.2026).</b> Hier stand <code>String(value)</code>: ein
+ * gespeichertes Nassgewicht von 21,5 g kam als „21.5" ins Feld zurueck,
+ * direkt neben der Spalte, die „21,5" schreibt. Wer nichts aenderte und
+ * speicherte, schickte den Punkt wieder los.
+ */
 function formatDraftNumber(value: number | null | undefined) {
-  if (value == null || Number.isNaN(value)) return ''
-  return String(value)
+  return feldText(value)
 }
 
-function parseNullableNumber(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  const parsed = Number(trimmed.replace(',', '.'))
-  return Number.isNaN(parsed) ? null : parsed
+/** Ein Gewicht, wie es in Deutschland geschrieben wird. */
+function gramm(value: number | null | undefined) {
+  if (value == null || Number.isNaN(value)) return '—'
+  return value.toLocaleString('de-DE', { maximumFractionDigits: 1 })
 }
 
 function parseNullableInteger(value: string) {
@@ -279,9 +298,25 @@ function trimToNull(value: string) {
 export default HarvestPage
 
 /** Leeres Feld heisst „noch nicht gewogen", nicht „null Gramm". */
-function toGrams(value: string): number | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  const parsed = Number(trimmed.replace(',', '.'))
-  return Number.isFinite(parsed) ? parsed : null
+/**
+ * Eine Erntezeile, wie die Seite sie haelt: die Zahlen des Modells plus den
+ * Text, den der Nutzer gerade tippt.
+ *
+ * Ohne den Text kann man kein Komma eingeben — das Feld haengt sonst an einer
+ * Zahl und wirft die Zwischenform bei jedem Tastendruck weg.
+ */
+type ZeileMitText = PlantWeight & { wetText: string; dryText: string }
+
+/** Aus einer Modellzeile eine Zeile mit Text machen. */
+function mitText(zeile: PlantWeight): ZeileMitText {
+  return { ...zeile, wetText: alsText(zeile.wetG), dryText: alsText(zeile.dryG) }
+}
+
+/** Und zurueck — fuer alles, was das Modell erwartet. */
+function ohneText(zeile: ZeileMitText): PlantWeight {
+  return { label: zeile.label, wetG: zeile.wetG, dryG: zeile.dryG }
+}
+
+function alsText(wert: number | null): string {
+  return wert == null ? '' : String(wert).replace('.', ',')
 }

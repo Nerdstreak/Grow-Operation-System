@@ -102,4 +102,70 @@ public abstract class RepositoryBase
 
     protected static void AddNullable(SqliteCommand command, string name, double? value)
         => command.Parameters.AddWithValue(name, value.HasValue ? value.Value : DBNull.Value);
+
+    /// <summary>
+    /// Der Ort einer hochgeladenen Datei — oder <c>false</c>, wenn der
+    /// gespeicherte Pfad nirgends hinzeigt.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Diese Auflösung stand zweimal
+    /// nebeneinander (<c>GrowCoreRepository</c>, <c>MeasurementRepository</c>),
+    /// und <b>beide</b> rechneten gegen
+    /// <c>&lt;contentRoot&gt;/wwwroot/uploads</c>. Gespeichert wird aber unter
+    /// <see cref="AppPaths.UploadRootPath"/> — dem Datenpfad des Add-ons.
+    /// <c>File.Exists</c> war dort immer false, und kein Foto wurde je
+    /// gelöscht: die Datenbankzeile verschwand, die JPEG blieb für immer auf
+    /// der Platte des Home-Assistant-Hosts liegen.</para>
+    ///
+    /// <para>Einmal hier, weil zwei Kopien derselben Wegrechnung genau so
+    /// auseinanderlaufen — und weil <see cref="Paths"/> ohnehin allen
+    /// Ablagen gehört.</para>
+    ///
+    /// <para><b>Der Ausbruchsschutz bleibt:</b> ein Pfad, der aus dem
+    /// Upload-Verzeichnis herausführt, wird abgelehnt. Sonst könnte ein
+    /// manipulierter Datenbankeintrag beliebige Dateien löschen.</para>
+    ///
+    /// <para><b>Verglichen wird bis zur Ordnergrenze</b> (01.09.2026, vom
+    /// Prüfer gefunden). Ein blosses <c>StartsWith(uploadsRoot)</c> lässt
+    /// jeden Geschwisterordner durch, dessen Name mit denselben Buchstaben
+    /// anfängt: <c>uploads-alt</c>, <c>uploads.bak</c>, <c>uploads2</c>.
+    /// Nachgestellt hat <c>/uploads/../uploads-alt/geheim.txt</c> beim Löschen
+    /// eines Grows die fremde Datei mitgenommen — der schlichte Fall mit
+    /// <c>..</c> allein fällt dagegen auf und war abgedeckt.</para>
+    /// </remarks>
+    protected bool TryResolveUploadPath(string relativePath, out string physicalPath)
+    {
+        physicalPath = string.Empty;
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return false;
+        }
+
+        var normalized = relativePath.Replace('\\', '/').Trim();
+        if (!normalized.StartsWith("/", StringComparison.Ordinal))
+        {
+            normalized = "/" + normalized;
+        }
+        if (!normalized.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var uploadsRoot = Path.GetFullPath(Paths.UploadRootPath);
+        var relativ = normalized["/uploads/".Length..].Replace('/', Path.DirectorySeparatorChar);
+        var candidatePath = Path.GetFullPath(Path.Combine(uploadsRoot, relativ));
+
+        // Mit Trennzeichen: sonst gilt jeder Nachbarordner mit gleichem
+        // Namensanfang als "innerhalb".
+        var grenze = uploadsRoot.EndsWith(Path.DirectorySeparatorChar)
+            ? uploadsRoot
+            : uploadsRoot + Path.DirectorySeparatorChar;
+        if (!candidatePath.StartsWith(grenze, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        physicalPath = candidatePath;
+        return true;
+    }
 }

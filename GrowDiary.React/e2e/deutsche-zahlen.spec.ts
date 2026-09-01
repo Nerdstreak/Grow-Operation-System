@@ -81,6 +81,32 @@ async function punktzahlen(page: Page): Promise<Fund[]> {
       })
     }
 
+    /* Und die WERTE der Eingabefelder.
+       Der Baumlauf oben sieht nur Textknoten — was in einem <input> steht, ist
+       keiner. Genau dort sass der Fehler: auf der Ernteseite kam ein
+       gespeichertes Nassgewicht von 21,5 g als „21.5" ins Feld zurueck, direkt
+       neben der Spalte, die „21,5" schreibt. Fuenf Seiten hatten dieselben
+       drei Zeilen abgetippt.
+
+       Nur Zahlenfelder: in ein Textfeld gehoert eine Adresse oder eine
+       Kennung, und die traegt zu Recht Punkte. */
+    for (const feld of Array.from(document.querySelectorAll('input'))) {
+      const art = (feld.getAttribute('inputmode') || feld.getAttribute('type') || '').toLowerCase()
+      if (art !== 'decimal' && art !== 'number') continue
+
+      const wert = feld.value.trim()
+      if (!wert || !muster.test(wert)) continue
+
+      const stil = getComputedStyle(feld)
+      if (stil.display === 'none' || stil.visibility === 'hidden') continue
+
+      raus.push({
+        text: wert.slice(0, 80),
+        klasse: (feld.getAttribute('aria-label') || feld.getAttribute('name') || '').slice(0, 50),
+        tag: 'input',
+      })
+    }
+
     return raus
   })
 }

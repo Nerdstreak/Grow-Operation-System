@@ -54,6 +54,9 @@ public sealed class PumpWatchNotifier
     public IReadOnlyList<PumpBefund> Pruefen(IReadOnlyDictionary<string, HomeAssistantState> zustaende, DateTime nowUtc)
         => PumpWatchService.Beurteilen(zustaende, nowUtc, SchonfristMinuten);
 
+    /// <summary>Die Merkstelle des Pumpen-Zweigs — je Zelt eine.</summary>
+    private const string BereichPumpe = "pumpe";
+
     public async Task<IReadOnlyList<PumpBefund>> PruefenUndMeldenAsync(
         Tent tent,
         IReadOnlyDictionary<string, HomeAssistantState> zustaende,
@@ -69,7 +72,16 @@ public sealed class PumpWatchNotifier
             ? null
             : string.Join("|", schlimm.Select(b => $"{b.Schluessel}:{b.Stufe}").OrderBy(x => x));
 
-        var zuletzt = _heartbeat.PumpMeldung(tent.Id);
+        /* Kuehler und USV ZUERST — sie haengen nicht an der Pumpenlage.
+           Bis zum 01.09.2026 stand dieser Aufruf am Ende der Methode, hinter
+           dem Ruecksprung darunter. Der greift, wenn sich die Pumpenlage nicht
+           geaendert hat, und im Normalbetrieb aendert sie sich nie: beide
+           Pumpen melden seit Stunden „an". Der Kuehler konnte also ausfallen,
+           ohne dass irgendetwas passierte — im RDWC die Kette, die eine Ernte
+           kostet. */
+        await AnlageMeldenAsync(tent, zustaende, nowUtc, cancellationToken);
+
+        var zuletzt = _heartbeat.Meldung(tent.Id, BereichPumpe);
         if (lage == zuletzt) return befunde;
 
         if (lage is not null)
@@ -84,7 +96,7 @@ public sealed class PumpWatchNotifier
 
             if (gesendet)
             {
-                _heartbeat.SetPumpMeldung(tent.Id, lage);
+                _heartbeat.SetMeldung(tent.Id, BereichPumpe, lage);
                 _logger.LogWarning("Pumpen-Wächter, Zelt {TentId}: {Text}", tent.Id, text);
             }
 
@@ -109,15 +121,10 @@ public sealed class PumpWatchNotifier
                 $"🌱 Grow OS · Entwarnung ({tent.Name})",
                 "Die Pumpen laufen wieder.",
                 cancellationToken);
-            _heartbeat.SetPumpMeldung(tent.Id, null);
+            _heartbeat.SetMeldung(tent.Id, BereichPumpe, null);
             _risiken.Entwarnen(RiskEventType.PumpOffline, tent.Id);
             _logger.LogInformation("Pumpen-Wächter, Zelt {TentId}: wieder normal.", tent.Id);
         }
-
-        // Kuehler und USV im selben Takt. Sie haengen an derselben Ursache wie
-        // die Pumpen — faellt der Strom, faellt alles — und es waere ein zweiter
-        // Waechter mit demselben Zeitplan und derselben Quelle.
-        await AnlageMeldenAsync(tent, zustaende, nowUtc, cancellationToken);
 
         return befunde;
     }
@@ -169,6 +176,9 @@ public sealed class PumpWatchNotifier
             if (befund.Stufe == "ok")
             {
                 _risiken.Entwarnen(typ, tent.Id);
+                // Ohne das bliebe die alte Lage stehen, und ein spaeterer
+                // Ausfall DERSELBEN Stufe kaeme nie wieder aufs Telefon.
+                _heartbeat.SetMeldung(tent.Id, befund.Schluessel, null);
                 continue;
             }
 
@@ -180,15 +190,30 @@ public sealed class PumpWatchNotifier
                 $"{befund.Meldung} {befund.Herkunft}",
                 befund.Schluessel + ":" + befund.Stufe);
 
-            var gemeldet = _heartbeat.PumpMeldung(tent.Id);
-            var lage = $"anlage:{befund.Schluessel}:{befund.Stufe}";
-            if (gemeldet == lage) continue;
+            /* Entprellung je Bereich — und sie SCHREIBT auch.
+               Bis zum 01.09.2026 las diese Stelle die Merkstelle des
+               Pumpen-Zweigs und schrieb nie zurueck: die Bedingung konnte nie
+               zutreffen. Solange der ganze Zweig hinter dem fruehen Ruecksprung
+               lag, war das folgenlos — sonst waere hier eine Push-Nachricht pro
+               Minute herausgegangen. */
+            var lage = $"{befund.Schluessel}:{befund.Stufe}";
+            if (_heartbeat.Meldung(tent.Id, befund.Schluessel) == lage) continue;
 
-            await _notifications.SendAsync(
+            /* Gemerkt wird erst, wenn es RAUS ist — wie im Pumpen-Zweig oben.
+               Andersherum verschluckte ein Home Assistant, der gerade neu
+               startet (HTTP 503), die Meldung endgueltig: die Entprellung haelt
+               die Lage fuer gemeldet, und solange sich nichts aendert, kommt nie
+               wieder etwas. Der Kuehler steht, aufs Telefon kommt nichts. */
+            var gesendet = await _notifications.SendAsync(
                 NotificationCategory.System,
                 $"🌱 Grow OS · {befund.Name} ({tent.Name})",
                 befund.Meldung,
                 cancellationToken);
+
+            if (gesendet)
+            {
+                _heartbeat.SetMeldung(tent.Id, befund.Schluessel, lage);
+            }
         }
     }
 }

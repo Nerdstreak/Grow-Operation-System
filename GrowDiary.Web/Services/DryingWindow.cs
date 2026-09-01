@@ -37,7 +37,32 @@ public static class DryingWindow
         var ernte = harvests.GetForGrow(geerntet.Id);
         if (ernte is null || ernte.DryWeightG is not null) return null;
 
-        return (int)(today.Date - geerntet.EndDate!.Value.Date).TotalDays + 1;
+        return TrocknungsTag(today, geerntet.EndDate!.Value);
+    }
+
+    /// <summary>
+    /// Der Trocknungstag zu einem Erntedatum — oder <c>null</c>, wenn es keinen gibt.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Hier stand nur die Subtraktion.
+    /// Bei einem Erntedatum in der <b>Zukunft</b> kamen 0 oder negative
+    /// Trocknungstage heraus, und das Fenster galt trotzdem als offen.</para>
+    ///
+    /// <para><b>Was das kostet.</b> Im Trocknungsfenster schaltet
+    /// <c>GrowDashboardComposer</c> auf Trocknungsziele um — die
+    /// Reservoir-Alarme des noch laufenden Grows sind damit stillgelegt. Ein
+    /// Vertipper um ein Jahr beim Erntedatum genügt, und auf den Kacheln steht
+    /// „Trocknung – Tag 0".</para>
+    ///
+    /// <para>Eigene Methode, damit die Schranke eine eigene Prüfung bekommt:
+    /// über <c>DayFor</c> bräuchte sie zwei Ablagen und einen ganzen Grow.</para>
+    /// </remarks>
+    public static int? TrocknungsTag(DateTime heute, DateTime geerntetAm)
+    {
+        var tage = (heute.Date - geerntetAm.Date).Days;
+        if (tage < 0) return null;
+        if (tage > MoldGuard.DryingWindowDays) return null;
+        return tage + 1;
     }
 
     /// <summary>

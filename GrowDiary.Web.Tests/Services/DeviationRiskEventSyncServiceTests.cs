@@ -62,8 +62,15 @@ public sealed class DeviationRiskEventSyncServiceTests : IDisposable
         AddMeasurement(growId, Utc(2026, 5, 20), ec: 3.2, orp: 700, waterTemp: 25);
         _service.SyncActiveGrowDeviations();
 
-        AddMeasurement(growId, Utc(2026, 5, 21), ec: 0.7, orp: 410, waterTemp: 20);
-        AddMeasurement(growId, Utc(2026, 5, 22), ec: 0.7, orp: 410, waterTemp: 20);
+        /* 350 mV, nicht 410.
+           Bis zum 01.09.2026 urteilte die Diagnose ueber ORP gegen fest
+           verdrahtete 300-500 statt gegen das Profil. Der Grow hier steht in
+           Veg, und rdwc-default nennt dort 300-400 — 410 war „erholt" nur
+           gegenueber dem alten, eigenen Band. Seit die Diagnose dasselbe Band
+           benutzt wie Kachel und Messprotokoll, ist 410 zu Recht weiter ein
+           Befund. */
+        AddMeasurement(growId, Utc(2026, 5, 21), ec: 0.7, orp: 350, waterTemp: 20);
+        AddMeasurement(growId, Utc(2026, 5, 22), ec: 0.7, orp: 350, waterTemp: 20);
         _service.SyncActiveGrowDeviations();
 
         var risks = _repository.GetRiskEventsByGrow(growId)

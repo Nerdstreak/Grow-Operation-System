@@ -46,12 +46,15 @@ public sealed class TentsController : Controller
         }
 
         var settings = _repository.GetEffectiveHomeAssistantSettings();
-        // Tent.ActiveGrows wurde bis hierher von niemandem gefuellt — die Liste war
-        // immer leer. Daran hingen still zwei Dinge: die Alarmzeile des Zelts blieb
-        // stumm, und die Messwert-Kacheln bekamen keinen Zielbereich, weil der aus
-        // Hydro-Stil und Phase des laufenden Grows kommt.
-        tent.ActiveGrows = _repository.GetActiveGrowsForTent(id);
+        /* Tent.ActiveGrows wurde bis zum 01.09.2026 von NIEMANDEM ausser dieser
+           Zeile und der in HomeController gefuellt. Daran hingen still zwei
+           Dinge hier — die Alarmzeile des Zelts und die Zielbereiche der
+           Kacheln — und sieben weitere in den Diensten, die kein Controller
+           bedient: der Volumenfaktor der Dosierung blieb immer 1, und der
+           Lichteinbruch-Waechter kehrte sofort zurueck.
 
+           Jetzt fuellt GrowRepository.GetTent die Liste. Diese Zeile ist damit
+           die zweite Wahrheit und faellt weg. */
         var measurements = _repository.GetMeasurementsForTent(id);
         var states = await _homeAssistantService.GetStatesAsync(settings, tent, cancellationToken);
         var metrics = _composer.BuildTentMetrics(tent, states, measurements);

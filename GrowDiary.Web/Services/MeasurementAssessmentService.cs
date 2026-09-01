@@ -1,5 +1,6 @@
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services.Knowledge;
 
 namespace GrowDiary.Web.Services;
 
@@ -126,10 +127,16 @@ public sealed class MeasurementAssessmentService
     private readonly TargetValueService _targetValues;
     private readonly AlertRuleRepository? _alertRules;
 
-    public MeasurementAssessmentService(TargetValueService targetValues, AlertRuleRepository? alertRules = null)
+    private readonly KnowledgeBaseLoader? _wissen;
+
+    public MeasurementAssessmentService(
+        TargetValueService targetValues,
+        AlertRuleRepository? alertRules = null,
+        KnowledgeBaseLoader? wissen = null)
     {
         _targetValues = targetValues;
         _alertRules = alertRules;
+        _wissen = wissen;
     }
 
     /// <param name="systemProfileId">
@@ -146,7 +153,14 @@ public sealed class MeasurementAssessmentService
     {
         var profil = SetpointProfileResolver.Resolve(grow.SetpointProfileId, systemProfileId, grow.HydroStyle);
         var regeln = grow.TentId is { } tentId ? _alertRules?.GetForTent(tentId) : null;
-        var phVomNutzer = UserTargets.IsUserSet("reservoir-ph", regeln);
+        var phVomNutzer = UserTargets.For("reservoir-ph", regeln);
+
+        // Die Wassertemperatur bekommt ihre eigene Grenze GETRENNT, nicht als
+        // Teil des Zielbands: sonst steht die Untergrenze aus der Alarmregel in
+        // WaterTempNightC und sieht dort aus wie eine Nachtabsenkung — das
+        // Messprotokoll schrieb dann „nachts fährt deine Absenkung auf 15 °C"
+        // über eine Regelung, die es nicht gibt.
+        var eigeneTemp = UserTargets.For("reservoir-temp", regeln);
 
         // Der Wert, auf den die Absenkrampe faehrt. Er zieht die Untergrenze
         // des Arbeitsbereichs mit nach unten — sonst meldet die App ihre
@@ -185,14 +199,18 @@ public sealed class MeasurementAssessmentService
                 continue;
             }
 
-            var ziele = _targetValues.GetTargets(profil.ProfileId, messung.Stage);
-            var mitNutzer = ziele is null ? null : UserTargets.Overlay(ziele, regeln);
+            // Dieselbe Kette wie Kachel und Diagnose — inklusive Feedchart.
+            // Zweimal: einmal ohne die eigenen Grenzen, weil die
+            // Wassertemperatur sie getrennt braucht (siehe oben).
+            var ohneNutzer = Zielband.FuerGrow(
+                _targetValues, _wissen, grow, messung.Stage, systemProfileId, null);
+            var mitNutzer = ohneNutzer is null ? null : UserTargets.Overlay(ohneNutzer, regeln);
 
             var werte = new List<MetricAssessment>();
             PruefePh(messung, mitNutzer, phVomNutzer, werte);
             PruefeEc(messung, mitNutzer, werte);
             PruefeOrp(messung, mitNutzer, werte);
-            PruefeWasserTemp(messung, ziele, rampenBoden, werte);
+            PruefeWasserTemp(messung, ohneNutzer, rampenBoden, eigeneTemp, werte);
             PruefeVpd(messung, mitNutzer, leafTempOffsetC, werte);
             PruefeSauerstoff(messung, werte);
             PruefeOhneZielband(messung, werte);
@@ -231,21 +249,27 @@ public sealed class MeasurementAssessmentService
     /// Hat der Nutzer die Grenze aber selbst eingetragen, ist sie eine Ansage
     /// und gilt allein. Wer bewusst enger fährt, bekam sonst nichts zu sehen.
     /// </remarks>
-    private static void PruefePh(Measurement m, HydroTargetValues? ziele, bool vomNutzer, List<MetricAssessment> raus)
+    /// <remarks>
+    /// Die Formel steht in <see cref="DeviationAnalyzerService.PhHandlungsbereich"/>
+    /// und nur dort. Sie stand am 01.09.2026 <b>dreimal</b> — hier, in der
+    /// Diagnose und auf der Live-Kachel — und war hier abgetippt.
+    /// </remarks>
+    private static void PruefePh(
+        Measurement m, HydroTargetValues? ziele, (double? Min, double? Max)? vomNutzer,
+        List<MetricAssessment> raus)
     {
         if (m.ReservoirPh is not { } wert) return;
 
-        var min = vomNutzer && ziele is not null
-            ? ziele.PhMin
-            : Math.Min(ziele?.PhMin ?? DeviationAnalyzerService.PhComfortMin, DeviationAnalyzerService.PhComfortMin);
-        var max = vomNutzer && ziele is not null
-            ? ziele.PhMax
-            : Math.Max(ziele?.PhMax ?? DeviationAnalyzerService.PhComfortMax, DeviationAnalyzerService.PhComfortMax);
+        var (min, max) = DeviationAnalyzerService.PhHandlungsbereich(ziele, vomNutzer);
 
-        var anmischen = ziele is not null && !vomNutzer
+        // Das Anmischziel dazu, solange es nicht ohnehin die genannte Grenze ist.
+        var anmischen = ziele is not null
+                        && (Math.Abs(ziele.PhMin - min) > 0.001 || Math.Abs(ziele.PhMax - max) > 0.001)
             ? $" Anmischziel {ziele.PhMin:0.0}–{ziele.PhMax:0.0}."
             : string.Empty;
-        var woher = vomNutzer ? "dein Grenzwert" : "Komfortzone";
+        var woher = vomNutzer is { } e && (e.Min is not null || e.Max is not null)
+            ? "dein Grenzwert"
+            : "Komfortzone";
 
         raus.Add(Urteil("ph", "pH", wert, string.Empty, min, max,
             $"{woher} {min:0.0}–{max:0.0}.{anmischen}"));
@@ -289,12 +313,14 @@ public sealed class MeasurementAssessmentService
     /// Abweichung.
     /// </remarks>
     private static void PruefeWasserTemp(
-        Measurement m, HydroTargetValues? ziele, double? rampenBoden, List<MetricAssessment> raus)
+        Measurement m, HydroTargetValues? ziele, double? rampenBoden,
+        (double? Min, double? Max)? eigene, List<MetricAssessment> raus)
     {
         if (m.ReservoirWaterTempC is not { } wert) return;
+        var (unten, oben) = Wasserband.Grenzen(ziele, rampenBoden, eigene);
         raus.Add(Urteil("water-temp", "Wassertemperatur", wert, "°C",
-            Wasserband.UntergrenzeC(ziele, rampenBoden), Wasserband.ArbeitsbereichMaxC,
-            Wasserband.Begruendung(ziele, rampenBoden)));
+            unten, oben,
+            Wasserband.Begruendung(ziele, rampenBoden, eigene)));
     }
 
     /// <summary>

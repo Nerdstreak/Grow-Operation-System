@@ -16,6 +16,7 @@ import type {
 import { V1Alert, V1Button, V1Card, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton, V1Stat } from '../components/v1'
 import { classNames, formatNumber } from '../utils'
 import { AddbackFlow, type FlowStep } from '../features/addback/AddbackFlow'
+import { feldText } from '../zahlenfeld'
 
 
 /** Nur die zwei Zahlen, die der Wasser-Hinweis braucht. */
@@ -80,7 +81,8 @@ function AddbackPage() {
     ecStock: '3',
     waterUsed: '',
     phBefore: '',
-    phTarget: '5.8',
+    // Der Vorgabewert steht in einem EINGABEFELD — also mit Komma.
+    phTarget: '5,8',
     ecAfter: '',
     phAfter: '',
     notes: '',
@@ -150,7 +152,7 @@ function AddbackPage() {
           ecStock: draftNumber(nextDefaults.ecStock),
           waterUsed: '',
           phBefore: draftNumber(nextGrow.latestMeasurement?.reservoirPh),
-          phTarget: derivePhTarget(matchedProgram) ?? '5.8',
+          phTarget: derivePhTarget(matchedProgram) ?? '5,8',
           ecAfter: '',
           phAfter: '',
           notes: '',
@@ -684,7 +686,8 @@ function derivePhTarget(program: NutrientProgramDto | null): string | null {
   const relevant = matches.filter((value) => value >= 4 && value <= 8)
   if (relevant.length === 0) return null
   const average = relevant.reduce((sum, value) => sum + value, 0) / relevant.length
-  return average.toFixed(1)
+  // Mit Komma: der Wert geht in ein Eingabefeld, nicht in eine Rechnung.
+  return average.toFixed(1).replace('.', ',')
 }
 
 function validateActuals(form: AddbackFormState): string | null {
@@ -740,8 +743,15 @@ function formatShortDateTime(value: string | null | undefined) {
   }).format(date)
 }
 
+/**
+ * Eine Zahl für ein Eingabefeld.
+ *
+ * Die Umwandlung steht in <code>zahlenfeld.ts</code> und nur dort — sie stand
+ * am 01.09.2026 fünfmal in der Oberfläche, jedes Mal mit
+ * <code>String(value)</code> und damit mit englischem Punkt.
+ */
 function draftNumber(value: number | null | undefined): string {
-  return value == null || Number.isNaN(value) ? '' : String(value)
+  return feldText(value)
 }
 
 function parseNullableNumber(value: string): number | null {

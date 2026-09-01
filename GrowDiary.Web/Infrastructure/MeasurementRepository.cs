@@ -275,32 +275,4 @@ public sealed class MeasurementRepository : RepositoryBase
         command.Parameters.AddWithValue("$updatedAtUtc", ToStorageUtc(measurement.UpdatedAtUtc));
     }
 
-    private bool TryResolveUploadPath(string relativePath, out string physicalPath)
-    {
-        physicalPath = string.Empty;
-        if (string.IsNullOrWhiteSpace(relativePath))
-        {
-            return false;
-        }
-
-        var normalized = relativePath.Replace('\\', '/').Trim();
-        if (!normalized.StartsWith("/", StringComparison.Ordinal))
-        {
-            normalized = "/" + normalized;
-        }
-        if (!normalized.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        var uploadsRoot = Path.GetFullPath(Path.Combine(Paths.ContentRootPath, "wwwroot", "uploads"));
-        var candidatePath = Path.GetFullPath(Path.Combine(Paths.ContentRootPath, "wwwroot", normalized.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
-        if (!candidatePath.StartsWith(uploadsRoot, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        physicalPath = candidatePath;
-        return true;
-    }
 }

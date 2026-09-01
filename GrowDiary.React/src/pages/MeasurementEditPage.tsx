@@ -7,7 +7,7 @@ import { formatDateTime, toLocalInputValue } from '../utils'
 import { V1Alert, V1Badge, V1Button, V1Empty, V1Field, V1LinkButton, V1Page, V1Section, V1Skeleton } from '../components/v1'
 import '../features/measurement/measurement-edit.css'
 import { FOTO_TAGS, PHASEN, fotoTagName, herkunftName, phaseName } from '../deutsche-woerter'
-import { unlesbarMeldung, unlesbareFelder, zahlOderNull } from '../zahlenfeld'
+import { unlesbarMeldung, unlesbareFelder, zahlOderNull, feldText } from '../zahlenfeld'
 
 interface MeasurementEditState {
   takenAtLocal: string
@@ -409,9 +409,15 @@ function toPayload(draft: MeasurementEditState): MeasurementUpsertPayload {
   }
 }
 
+/**
+ * Eine Zahl für ein Eingabefeld.
+ *
+ * Die Umwandlung steht in <code>zahlenfeld.ts</code> und nur dort — sie stand
+ * am 01.09.2026 fünfmal in der Oberfläche, jedes Mal mit
+ * <code>String(value)</code> und damit mit englischem Punkt.
+ */
 function formatDraftNumber(value: number | null | undefined) {
-  if (value == null || Number.isNaN(value)) return ''
-  return String(value)
+  return feldText(value)
 }
 
 // Diese Fassung prüfte mit `Number.isNaN` statt `Number.isFinite` — damit galt

@@ -59,6 +59,19 @@ const DETAILSEITEN = [
   '/einstellungen',
   '/start',
   '/release',
+
+  /* Die Formulare und die zweite Ebene. Sie fehlten bis zum 01.09.2026 alle
+     sieben — auf /grows/1/harvest standen die Summen deshalb monatelang
+     englisch („21.5 g" unter einem Feld, in dem „21,5" stand). Gehalten wird
+     die Liste jetzt von src/seitenliste-vollstaendig.node.test.ts: sie zählt
+     die Routen aus App.tsx ab. */
+  '/messungen/new',
+  '/grows/1/harvest',
+  '/grows/1/addback',
+  '/zelte/new',
+  '/hydro/new',
+  '/dosierung/neu',
+  '/dosierung/1',
 ]
 
 /** Jede Seite genau einmal. */

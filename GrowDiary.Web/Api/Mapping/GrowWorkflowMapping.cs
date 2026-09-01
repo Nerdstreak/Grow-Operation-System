@@ -55,6 +55,17 @@ public static class GrowWorkflowMapping
             Rating = request.Rating,
             FlavorNotes = string.IsNullOrWhiteSpace(request.FlavorNotes) ? null : request.FlavorNotes.Trim(),
             EffectNotes = string.IsNullOrWhiteSpace(request.EffectNotes) ? null : request.EffectNotes.Trim(),
-            NugStructure = string.IsNullOrWhiteSpace(request.NugStructure) ? null : request.NugStructure.Trim()
+            NugStructure = string.IsNullOrWhiteSpace(request.NugStructure) ? null : request.NugStructure.Trim(),
+
+            /* Die Einzelgewichte je Pflanze.
+               Sie fehlten hier — der Vertrag traegt sie, das Antwort-DTO gibt
+               sie zurueck, und der Weg dazwischen warf sie weg. Wer auf der
+               Ernteseite je Pflanze wog, bekam HTTP 200 und in derselben
+               Antwort `plantWeightsJson: null`. Bei einem Mehrsorten-Grow ist
+               das die einzige Angabe, aus der sich der Ertrag je Sorte je
+               ableiten liesse. */
+            PlantWeightsJson = string.IsNullOrWhiteSpace(request.PlantWeightsJson)
+                ? null
+                : request.PlantWeightsJson.Trim()
         };
 }

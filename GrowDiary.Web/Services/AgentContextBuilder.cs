@@ -122,19 +122,17 @@ public sealed class AgentContextBuilder
         if (grow is null) return null;
 
         var stage = GrowStageResolver.Resolve(grow, DateTime.Today);
+        var systemProfil = grow.SystemId is { } systemId
+            ? _hydroSetups.GetSystem(systemId)?.SetpointProfileId
+            : null;
         var resolved = SetpointProfileResolver.Resolve(
-            grow.SetpointProfileId,
-            grow.SystemId is { } systemId ? _hydroSetups.GetSystem(systemId)?.SetpointProfileId : null,
-            grow.HydroStyle);
-        var targets = _targetValues.GetTargets(resolved.ProfileId, stage);
+            grow.SetpointProfileId, systemProfil, grow.HydroStyle);
 
         // Dasselbe Ziel wie auf dem Bildschirm — ein Berater, der ein anderes
-        // EC-Ziel liest als der Betreiber sieht, raet konsequent daneben.
-        if (targets is not null
-            && MischplanService.ZielSpalteFuerGrow(grow, _knowledge.NutrientPrograms) is { } chartZiel)
-        {
-            targets = MischplanService.MitFeedchart(targets, chartZiel.Spalte);
-        }
+        // EC-Ziel liest als der Betreiber sieht, raet konsequent daneben. Die
+        // Kette steht in Zielband und nur dort.
+        var targets = Zielband.FuerGrow(
+            _targetValues, _knowledge, grow, stage, systemProfil, null);
         var rules = grow.TentId is { } tentId ? _alertRules.GetForTent(tentId) : null;
 
         return new AgentContext(

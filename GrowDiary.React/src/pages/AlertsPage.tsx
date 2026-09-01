@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { aktiveRegeln, speicherbareRegeln, vertauschteGrenzen } from '../features/alerts/grenzwerte-modell'
 import { useSearchParams } from 'react-router-dom'
 import { apiFetch } from '../api'
 import type { GrowSummary, MetricPayload, TentDto, TentLivePayload } from '../types'
@@ -7,6 +8,7 @@ import type { AlertRuleDto, TentAlertRulesDto } from '../types/alert'
 import type { NotificationSettingsDto } from '../types/notification'
 import { V1Alert, V1Empty, V1Skeleton, V1Tabs } from '../components/v1'
 import { decimalsForMetric } from '../features/live/metric-tile-model'
+import { feldText } from '../zahlenfeld'
 
 type MetricDef = { key: string; label: string; unit: string; min: string; max: string }
 
@@ -31,15 +33,15 @@ function emptyRows(): Rows {
   return Object.fromEntries(ALERT_METRICS.map((metric) => [metric.key, { min: '', max: '', cooldown: '30', enabled: false }]))
 }
 
-function parseNumber(value: string): number | null {
-  const normalized = value.trim().replace(',', '.')
-  if (normalized === '') return null
-  const parsed = Number(normalized)
-  return Number.isFinite(parsed) ? parsed : null
-}
-
+/**
+ * Eine Zahl für ein Eingabefeld.
+ *
+ * Die Umwandlung steht in <code>zahlenfeld.ts</code> und nur dort — sie stand
+ * am 01.09.2026 fünfmal in der Oberfläche, jedes Mal mit
+ * <code>String(value)</code> und damit mit englischem Punkt.
+ */
 function numberToInput(value: number | null): string {
-  return value == null ? '' : String(value)
+  return feldText(value)
 }
 
 function errorMessage(caught: unknown, fallback: string): string {
@@ -167,32 +169,41 @@ function AlertsPage() {
     setRows((current) => ({ ...current, [key]: { ...current[key], ...patch } }))
   }
 
-  const activeRules = ALERT_METRICS.filter((metric) => {
-    const row = rows[metric.key]
-    return row.enabled && (parseNumber(row.min) != null || parseNumber(row.max) != null)
-  })
+  /* Was gespeichert wird — und was davon wirklich wacht.
+     Vorher gingen NUR die angehakten Zeilen raus, und der Server ersetzt den
+     ganzen Satz: den Haken herauszunehmen loeschte die Grenzen. */
+  const speicherbar = speicherbareRegeln(ALERT_METRICS.map((m) => m.key), rows)
+  const wachend = aktiveRegeln(speicherbar)
 
   async function save() {
     if (selectedTentId == null) return
     setSaving(true)
     setError(null)
     setMessage(null)
-    const payload: { rules: AlertRuleDto[] } = {
-      rules: activeRules.map((metric) => ({
-        metricKey: metric.key,
-        minValue: parseNumber(rows[metric.key].min),
-        maxValue: parseNumber(rows[metric.key].max),
-        notifyService: '',
-        enabled: true,
-        cooldownMinutes: Math.max(1, parseNumber(rows[metric.key].cooldown) ?? 30),
-      })),
+    // Vertauschte Grenzen vor dem Absenden — der Server lehnt sie ab, aber
+    // der Nutzer soll wissen WARUM, statt eine Fehlermeldung zu lesen.
+    const vertauscht = vertauschteGrenzen(speicherbar)
+    if (vertauscht.length > 0) {
+      const namen = vertauscht
+        .map((k) => ALERT_METRICS.find((m) => m.key === k)?.label ?? k)
+        .join(', ')
+      setError(`Bei ${namen} liegt die Untergrenze über der Obergrenze. `
+        + 'So gemeldet würde die Regel dauerhaft warnen — bitte tauschen.')
+      setSaving(false)
+      return
     }
+
+    const payload: { rules: AlertRuleDto[] } = { rules: speicherbar }
     try {
       await apiFetch<TentAlertRulesDto>(`/api/alerts/tents/${selectedTentId}`, {
         method: 'PUT',
         body: JSON.stringify(payload),
       })
-      setMessage(activeRules.length === 0 ? 'Alle Grenzwerte für dieses Zelt entfernt.' : `${activeRules.length} Grenzwert(e) gespeichert.`)
+      setMessage(speicherbar.length === 0
+        ? 'Alle Grenzwerte für dieses Zelt entfernt.'
+        : wachend === speicherbar.length
+          ? `${speicherbar.length} Grenzwert(e) gespeichert.`
+          : `${speicherbar.length} Grenzwert(e) gespeichert, davon ${wachend} aktiv.`)
     } catch (caught) {
       setError(errorMessage(caught, 'Speichern fehlgeschlagen.'))
     } finally {

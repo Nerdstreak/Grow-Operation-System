@@ -94,3 +94,6 @@ GrowDiary.React/zz-*
 GrowDiary.React/*.png
 GrowDiary.React/*.jpg
 GrowDiary.React/zzq*
+
+# Abdeckungsberichte des Backends — Messmaterial, kein Quelltext.
+**/TestResults/

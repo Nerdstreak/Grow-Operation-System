@@ -70,3 +70,24 @@ export function unlesbarMeldung(beschriftungen: string[]): string | null {
   return `Diese Felder enthalten keine Zahl: ${beschriftungen.join(', ')}. `
     + 'Bitte korrigieren oder leeren — sonst gehen die Werte verloren, ohne dass es jemand merkt.'
 }
+
+/**
+ * Eine gespeicherte Zahl zurück in ein Eingabefeld — mit Komma.
+ *
+ * Das Gegenstück zu {@link zahlOderNull}: die eine Richtung liest, was der
+ * Nutzer tippt, die andere schreibt zurück, was gespeichert war.
+ *
+ * **Der Anlass (01.09.2026).** Diese drei Zeilen standen **fünfmal** in der
+ * Oberfläche — als `draftNumber`, `numberToInput` und zweimal als
+ * `formatDraftNumber` — und alle fünf schrieben `String(value)`. Ein
+ * gespeichertes Nassgewicht von 21,5 g kam damit als „21.5" ins Feld zurück,
+ * direkt neben einer Spalte, die „21,5" schreibt. Wer nichts änderte und
+ * speicherte, schickte den Punkt wieder los.
+ *
+ * Gehalten wird das von `e2e/deutsche-zahlen.spec.ts`, das die Werte der
+ * Eingabefelder mitliest — nicht nur den Text daneben.
+ */
+export function feldText(wert: number | null | undefined): string {
+  if (wert == null || Number.isNaN(wert)) return ''
+  return String(wert).replace('.', ',')
+}

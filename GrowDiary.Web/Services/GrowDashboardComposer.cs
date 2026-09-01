@@ -51,20 +51,38 @@ public sealed class GrowDashboardComposer
     /// Nicht jeder Wert hat einen: Licht und Fuellstand haben keinen Sollbereich,
     /// die bekommen null und zeichnen keine Skala.
     /// </summary>
-    private static (double? Min, double? Max) TargetFor(string key, HydroTargetValues? t)
+    /// <param name="rampenBodenC">
+    /// Der Wert, auf den die Nachtabsenkung fährt — er zieht die Untergrenze
+    /// der Wassertemperatur mit nach unten. Ohne ihn meldete die Kachel die
+    /// eigene Regelung der App als Abweichung.
+    /// </param>
+    private static (double? Min, double? Max) TargetFor(
+        string key, HydroTargetValues? t, double? rampenBodenC = null)
     {
         if (t is null) return (null, null);
         return key switch
         {
-            "reservoir-ph" => (t.PhMin, t.PhMax),
+            /* Der HANDLUNGSBEREICH, nicht das Anmischziel.
+               Hier stand (t.PhMin, t.PhMax) — das ist der Wert, auf den man
+               anmischt, kein Band, an dem man misst. Bei pH 5,85 und Profil
+               5,90-6,00 schrieb die Kachel „daneben" und zog zehn Punkte vom
+               Score ab, waehrend das Messprotokoll derselben Messung „im Ziel"
+               sagte. Die Formel steht in DeviationAnalyzerService; eigene
+               Grenzen des Nutzers legt ApplyUserTargets danach darueber. */
+            "reservoir-ph" => DeviationAnalyzerService.PhHandlungsbereich(t, eigene: null),
             "reservoir-ec" => (t.EcMin, t.EcMax),
             "orp" => (t.OrpMin, t.OrpMax),
             "vpd" => (t.VpdMin, t.VpdMax),
             "ppfd" => (t.PpfdMin, t.PpfdMax),
             "co2" => (t.Co2Min, t.Co2Max),
-            // Wassertemperatur ist im Wissen als Tag/Nacht-Paar hinterlegt; als
-            // Band gilt die Spanne dazwischen.
-            "reservoir-temp" => (Math.Min(t.WaterTempNightC, t.WaterTempDayC), Math.Max(t.WaterTempNightC, t.WaterTempDayC)),
+            /* Der ARBEITSBEREICH, nicht das Tag/Nacht-Paar. Hier stand die
+               Spanne zwischen Tag- und Nachtwert des Profils — in der Veg-Phase
+               sind beide 20 °C, das Band war also null breit, und 19,7 wie 20,3
+               standen rot auf der Kachel. Messprotokoll und Diagnose urteilen
+               beide gegen den Arbeitsbereich aus SOP-RDWC-CAN-N1; die Kachel war
+               der dritte Wert fuer dieselbe Zahl. Eigene Grenzen legt
+               ApplyUserTargets danach darueber. */
+            "reservoir-temp" => Wasserband.Grenzen(t, rampenBodenC, null),
             _ => (null, null),
         };
     }
@@ -186,18 +204,23 @@ public sealed class GrowDashboardComposer
                 SystemProfileFor(activeGrow),
                 activeGrow.HydroStyle);
 
-        var targets = activeGrow is null || stage is null || resolved is null
+        // Die ganze Kette an EINER Stelle — Profil, Phase, Feedchart. Die
+        // eigenen Grenzen kommen hier NICHT mit: ApplyUserTargets legt sie
+        // weiter unten je Kachel darueber, damit auch Kacheln ohne Profil eine
+        // eingetragene Grenze bekommen.
+        var targets = activeGrow is null || stage is null
             ? null
-            : _targetValues.GetTargets(resolved.ProfileId, stage.Value);
+            : Zielband.FuerGrow(
+                _targetValues, _knowledge, activeGrow, stage.Value,
+                SystemProfileFor(activeGrow), null);
 
-        // Will der Grow die Wochen-Ziele seines Feedcharts, gelten sie hier —
-        // sonst stuende beim Mischen EC 1,5 und auf dem Bildschirm etwas anderes.
-        if (targets is not null && activeGrow is not null
-            && _knowledge is not null
-            && MischplanService.ZielSpalteFuerGrow(activeGrow, _knowledge.NutrientPrograms) is { } chartZiel)
-        {
-            targets = MischplanService.MitFeedchart(targets, chartZiel.Spalte);
-        }
+        // Wohin die Nachtabsenkung faehrt — sonst meldet die Kachel die eigene
+        // Regelung der App als Abweichung, waehrend Messprotokoll und Diagnose
+        // sie kennen.
+        var rampenBoden = activeGrow is null || resolved is null ? null : Wasserband.RampenBodenC(
+            activeGrow,
+            _targetValues.GetTargets(resolved.ProfileId, GrowStage.Flower),
+            _targetValues.GetTargets(resolved.ProfileId, GrowStage.Finish));
 
         MetricCard Build(string label, string key, Func<Measurement?, double?> fallback, string tone = "default", string? explicitUnit = null)
         {
@@ -215,8 +238,8 @@ public sealed class GrowDashboardComposer
                     Hint = state.FriendlyName,
                     NumericValue = state.NumericValue,
                     ValueSource = "live",
-                    TargetMin = TargetFor(key, targets).Min,
-                    TargetMax = TargetFor(key, targets).Max
+                    TargetMin = TargetFor(key, targets, rampenBoden).Min,
+                    TargetMax = TargetFor(key, targets, rampenBoden).Max
                 };
             }
 
@@ -248,8 +271,8 @@ public sealed class GrowDashboardComposer
                 // geklemmt — eine Zeile mit dem Datum 2099 galt damit als
                 // „gerade eben" und verdraengte die echten Messungen.
                 MeasuredAgeMinutes = AlterInMinuten(gemessenAm),
-                TargetMin = TargetFor(key, targets).Min,
-                TargetMax = TargetFor(key, targets).Max
+                TargetMin = TargetFor(key, targets, rampenBoden).Min,
+                TargetMax = TargetFor(key, targets, rampenBoden).Max
             };
         }
 

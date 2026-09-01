@@ -82,11 +82,44 @@ public sealed class GrowRepository
     public DashboardStats GetDashboardStats()
         => _growCoreRepository.GetDashboardStats();
 
+    /// <summary>
+    /// Die Zelte — jedes mit seinen laufenden Grows.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> <c>Tent.ActiveGrows</c> wurde von
+    /// genau zwei MVC-Controllern von Hand nachgezogen, vom Repository nie. Auf
+    /// jedem anderen Weg war die Liste leer — und sieben Stellen in den
+    /// Diensten lesen sie. Der Volumenfaktor der Dosierung blieb dadurch immer
+    /// 1, und der Lichteinbruch-Waechter kehrte sofort zurueck, ohne je zu
+    /// pruefen.</para>
+    ///
+    /// <para>Das Feld gehoert dem Zelt, also fuellt es die Stelle, die das Zelt
+    /// laedt — genau wie <c>Sensors</c>. Sieben Aufrufer einzeln zu reparieren
+    /// hiesse, den Fehler siebenmal nicht zu machen.</para>
+    /// </remarks>
     public List<Tent> GetTents(bool includeArchived = false)
-        => _tentRepository.GetTents(includeArchived);
+    {
+        var zelte = _tentRepository.GetTents(includeArchived);
+        if (zelte.Count == 0) return zelte;
 
+        var nachZelt = _growCoreRepository.GetActiveGrowsByTent(zelte.Select(z => z.Id).ToList());
+        foreach (var zelt in zelte)
+        {
+            zelt.ActiveGrows = nachZelt.TryGetValue(zelt.Id, out var grows) ? grows : [];
+        }
+
+        return zelte;
+    }
+
+    /// <summary>Ein Zelt — mit seinen laufenden Grows.</summary>
     public Tent? GetTent(int id)
-        => _tentRepository.GetTent(id);
+    {
+        var zelt = _tentRepository.GetTent(id);
+        if (zelt is null) return null;
+
+        zelt.ActiveGrows = _growCoreRepository.GetActiveGrowsForTent(id);
+        return zelt;
+    }
 
     public void UpdateTent(Tent tent)
         => _tentRepository.UpdateTent(tent);

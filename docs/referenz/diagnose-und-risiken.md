@@ -66,8 +66,8 @@ EC, Sauerstoff und ORP „Pflanze frisst" oder „Biofilm".
 | Sauerstoff: Fäule bestätigt | 6,0 mg/L | `DoInfestationThreshold`; SOP-RDWC-CAN-S1 Abschnitt 2.2 |
 | EC kritisch | > 3,0 mS/cm | `CheckEc` |
 | EC-Sprung zwischen zwei Messungen | > 0,2 mS/cm | `GetEcTrendParticipants` |
-| ORP Arbeitsbereich · kritisch | 300–500 mV · < 250 / > 650 | `CheckOrp` |
-| Wassertemperatur Arbeitsbereich | 17–22 °C | `Wasserband.ArbeitsbereichMinC/MaxC`; SOP-RDWC-CAN-N1 |
+| ORP-Zielband · kritisch | aus dem Profil je Phase (rdwc-default Blüte 400–450) · < 250 / > 650 | `CheckOrp` über `Zielband.FuerGrow` |
+| Wassertemperatur Arbeitsbereich | 17–22 °C; ein eigener Grenzwert ersetzt die jeweilige Seite | `Wasserband.Grenzen`; SOP-RDWC-CAN-N1 |
 | Wassertemperatur kritisch | > 24 °C · unten `min(14 °C, Untergrenze − 3)` | `Wasserband.KritischMaxC/KritischMinC`, gerechnet in `CheckWaterTemp` |
 | PPFD-Deckel ohne CO₂ | 900 µmol/m²/s | `PpfdCeilingWithoutCo2`; Anreicherung zählt ab `Co2EnrichmentFrom` = 800 ppm |
 | PPFD kritisch · Warnung | > 1500 · > Ziel × 1,2 | `CheckPpfd` |

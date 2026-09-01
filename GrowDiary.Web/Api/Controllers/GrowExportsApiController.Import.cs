@@ -336,7 +336,10 @@ public sealed partial class GrowExportsApiController
             Rating = dto.Rating,
             FlavorNotes = dto.FlavorNotes,
             EffectNotes = dto.EffectNotes,
-            NugStructure = dto.NugStructure
+            NugStructure = dto.NugStructure,
+            // Der Export schreibt das Feld hinaus, der Import warf es weg —
+            // ein Ausfuhr/Einfuhr-Rundweg verlor die Einzelgewichte still.
+            PlantWeightsJson = dto.PlantWeightsJson
         };
 
 

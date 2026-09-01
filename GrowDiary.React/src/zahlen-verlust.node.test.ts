@@ -38,11 +38,34 @@ const QUELLE = new URL('./', import.meta.url)
  * Stand 2026-08-23: 16. Zwei sind an diesem Tag verschwunden
  * (`MeasurementEditPage`, `DosingPumpSetupPage`) — beide wegen eines echten,
  * lebenden Fehlers.
+ *
+ * **Stand 2026-09-01: 24 — und das ist ein Anstieg auf dem Papier, kein
+ * Rückschritt.** Der Suchausdruck sah nur `Number(…)` und übersah damit zehn
+ * Stellen, darunter `Number.parseFloat(x.replace(…))` in `PhenoSheetEditor`,
+ * `StrainsPage` und `TentsPage` — zwei davon mit genau dem Fehler, gegen den
+ * diese Datei angetreten ist. Eine Ratsche, die einen Teil ihrer Grundmenge
+ * nicht sieht, misst den Fortschritt an der falschen Zahl.
+ *
+ * Am selben Tag sind zwei verschwunden: `HarvestPage` und `AlertsPage`. Dort wurden
+ * aus getippten „21,5" die Zahl 215, weil das Feld an einer Zahl hing und die
+ * Zwischenform bei jedem Tastendruck wegwarf.
  */
-const HOECHSTENS = 16
+const HOECHSTENS = 23
 
-/** Das Kennzeichen: eine Komma-Ersetzung ergibt nur bei getipptem Text Sinn. */
-const EIGENE_FASSUNG = /Number\([^)]*\.replace\(\s*','/
+/**
+ * Das Kennzeichen: eine Komma-Ersetzung ergibt nur bei getipptem Text Sinn.
+ *
+ * <b>Die erste Fassung sah nur `Number(…)`.</b> Sie hing an `Number\(` und an
+ * `[^)]*` — damit fielen `Number.parseFloat(x.replace(',', '.'))` und jede
+ * Fassung mit einer inneren Klammer heraus. Zehn Stellen blieben unsichtbar,
+ * zwei davon mit genau dem Fehler, gegen den diese Datei angetreten ist:
+ * `num()` in `PhenoSheetEditor` und `StrainsPage` liefert für „6,2x" die 6,2
+ * und meldet nichts.
+ *
+ * Gesucht wird jetzt die Komma-Ersetzung selbst — die ist das Kennzeichen, und
+ * sie steht in jeder Fassung.
+ */
+const EIGENE_FASSUNG = /\.replace\(\s*['"],['"]\s*,\s*['"]\.['"]\s*\)/
 
 function alleQuellen(ordner = QUELLE, pfad = ''): string[] {
   const raus: string[] = []
@@ -52,6 +75,8 @@ function alleQuellen(ordner = QUELLE, pfad = ''): string[] {
       raus.push(...alleQuellen(new URL(eintrag.name + '/', ordner), pfad + eintrag.name + '/'))
     } else if (eintrag.name.endsWith('.tsx') || eintrag.name.endsWith('.ts')) {
       if (eintrag.name.includes('.test.')) continue
+      // zahlenfeld.ts IST die Antwort — dort MUSS die Umwandlung stehen.
+      if (eintrag.name === 'zahlenfeld.ts') continue
       raus.push(pfad + eintrag.name)
     }
   }

@@ -49,6 +49,7 @@ const ERLAUBT: Record<string, string> = {
   Sativa: 'dasselbe',
   Hybrid: 'dasselbe — ein deutsches Fremdwort, keine Uebersetzungsluecke',
   Normal: 'die Aufgaben-Stufe heisst auf Deutsch genauso (JournalStreamSection)',
+  High: 'die Wirkung heisst auf Deutsch so — Feldbeschriftung „Effekt / High\" auf der Ernteseite',
 }
 
 

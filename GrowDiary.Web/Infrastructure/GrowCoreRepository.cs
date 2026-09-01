@@ -49,6 +49,34 @@ public sealed class GrowCoreRepository : RepositoryBase
     public List<GrowRun> GetActiveGrowsForTent(int tentId)
         => GetGrows("WHERE g.TentId = $tentId AND g.Status IN ('Planning','Running')", null, tentId);
 
+    /// <summary>
+    /// Die laufenden Grows MEHRERER Zelte in einem Zug — nach Zelt sortiert.
+    /// </summary>
+    /// <remarks>
+    /// Damit <c>GetTents()</c> die Listen fuellen kann, ohne je Zelt eine
+    /// eigene Abfrage zu fahren. Die Zeltuebersicht ist eine der haeufigsten
+    /// Seiten; N+1 waere dort teuer bezahlt.
+    /// </remarks>
+    public Dictionary<int, List<GrowRun>> GetActiveGrowsByTent(IReadOnlyCollection<int> tentIds)
+    {
+        var nach = new Dictionary<int, List<GrowRun>>();
+        if (tentIds.Count == 0) return nach;
+
+        // Die Ids kommen aus der Datenbank, nicht vom Nutzer — eine
+        // Zahlenliste laesst sich hier gefahrlos einsetzen. Parameter waeren
+        // sauberer, aber SQLite kennt kein Array-Binden.
+        var liste = string.Join(",", tentIds.Select(id => id.ToString(CultureInfo.InvariantCulture)));
+        foreach (var grow in GetGrows(
+            $"WHERE g.TentId IN ({liste}) AND g.Status IN ('Planning','Running')", null))
+        {
+            if (grow.TentId is not { } zeltId) continue;
+            if (!nach.TryGetValue(zeltId, out var fuerZelt)) nach[zeltId] = fuerZelt = [];
+            fuerZelt.Add(grow);
+        }
+
+        return nach;
+    }
+
     public List<GrowRun> GetArchivedGrowsForTent(int tentId)
         => GetGrows("WHERE g.TentId = $tentId AND g.Status IN ('Completed','Aborted')", null, tentId);
 
@@ -839,32 +867,4 @@ public sealed class GrowCoreRepository : RepositoryBase
         command.Parameters.AddWithValue("$snapshotsCapturedAtUtc", grow.SnapshotsCapturedAtUtc.HasValue ? ToStorageUtc(grow.SnapshotsCapturedAtUtc.Value) : DBNull.Value);
     }
 
-    private bool TryResolveUploadPath(string relativePath, out string physicalPath)
-    {
-        physicalPath = string.Empty;
-        if (string.IsNullOrWhiteSpace(relativePath))
-        {
-            return false;
-        }
-
-        var normalized = relativePath.Replace('\\', '/').Trim();
-        if (!normalized.StartsWith("/", StringComparison.Ordinal))
-        {
-            normalized = "/" + normalized;
-        }
-        if (!normalized.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        var uploadsRoot = Path.GetFullPath(Path.Combine(Paths.ContentRootPath, "wwwroot", "uploads"));
-        var candidatePath = Path.GetFullPath(Path.Combine(Paths.ContentRootPath, "wwwroot", normalized.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
-        if (!candidatePath.StartsWith(uploadsRoot, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        physicalPath = candidatePath;
-        return true;
-    }
 }

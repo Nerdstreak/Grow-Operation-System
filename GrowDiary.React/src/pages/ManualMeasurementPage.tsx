@@ -117,10 +117,20 @@ const LIVE_TO_DRAFT: Partial<Record<string, NumericKey>> = {
   'ppfd': 'ppfdMol',
 }
 
+/**
+ * Ein Live-Wert, wie er in ein Eingabefeld gehoert.
+ *
+ * <b>Der Anlass (01.09.2026).</b> Hier wurde das Komma zum Punkt gemacht und
+ * der Punkt ins Feld geschrieben. Unter der Zeile „Aus Home Assistant
+ * vorbefuellt" standen dann „5.82" und „19.2" — direkt neben Feldern, in die
+ * der Nutzer „5,82" tippt. Gerechnet wird beim Absenden ohnehin mit
+ * <code>parseNullableNumber</code>, das beides liest; der Punkt war nur auf
+ * dem Schirm.
+ */
 function normalizeLiveValue(value: string): string | null {
   const cleaned = value.trim().replace(',', '.')
   if (cleaned === '' || cleaned === '–' || cleaned === '-') return null
-  return Number.isFinite(Number(cleaned)) ? cleaned : null
+  return Number.isFinite(Number(cleaned)) ? cleaned.replace('.', ',') : null
 }
 
 function ManualMeasurementPage() {

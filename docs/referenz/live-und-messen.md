@@ -38,7 +38,7 @@ Fehlt ein Sensor, fällt die Kachel auf die letzte Messung zurück, **je Kennzah
 | Score-Abzug je fehlendem Wert unter sechs | 8 | ebenda |
 | Score-Schwellen | < 55 kritisch, < 82 beobachten | ebenda |
 | pH-Komfortzone im Protokoll | 5,8–6,2 | `DeviationAnalyzerService.PhComfortMin/Max` |
-| Wassertemperatur Arbeitsbereich | 17–22 °C, kritisch < 14 / > 24 | `Wasserband.cs`, SOP-RDWC-CAN-N1 (`wwwroot/knowledge-defaults/guidance/water-temperature-band.json`) |
+| Wassertemperatur Arbeitsbereich | 17–22 °C, kritisch < 14 / > 24; die Kachel zeigt seit beta.61 denselben Bereich wie Protokoll und Diagnose, nicht mehr das Tag/Nacht-Paar des Profils | `Wasserband.Grenzen`, SOP-RDWC-CAN-N1 (`wwwroot/knowledge-defaults/guidance/water-temperature-band.json`) |
 | Gelöster Sauerstoff | 6,5 mg/l | `DeviationAnalyzerService.DoActionThreshold`, SOP-RDWC-CAN-N1 §2.2 |
 | Trocknung: Temperatur / Feuchte | 18–20 °C / 55–60 % | `MoldGuard.cs` |
 | CO₂ ohne Anreicherung | Hinweis „~400–500 ppm normal", Umgebungsluft ~420 ppm | `GrowDashboardComposer.cs`, `MeasurementAssessmentService.cs` |

@@ -202,4 +202,60 @@ public sealed class GrowWorkflowApiControllerTests : IDisposable
             File.Copy(file, target);
         }
     }
+
+    /// <summary>
+    /// Die Einzelgewichte je Pflanze kommen zurück, wie sie hineingingen.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> <c>HarvestUpsertRequest</c> trägt
+    /// <c>PlantWeightsJson</c>, das Antwort-DTO gibt es zurück — und
+    /// <c>GrowWorkflowMapping.ToEntry</c> kopierte es nicht. Wer auf der
+    /// Ernteseite je Pflanze wog, bekam HTTP 200 und in derselben Antwort
+    /// <c>plantWeightsJson: null</c>. Kein Fehler, keine Meldung, die Zahlen
+    /// einfach weg.</para>
+    ///
+    /// <para>Bei einem Grow mit mehreren Sorten ist das die einzige Angabe, aus
+    /// der sich der Ertrag je Sorte je ableiten liesse.</para>
+    /// </remarks>
+    [Fact]
+    public void SaveHarvest_BehaeltDieEinzelgewichteJePflanze()
+    {
+        var grow = AngelegterGrow();
+        const string gewichte = """[{"label":"PL-01","wetG":486,"dryG":108}]""";
+
+        var gespeichert = _controller.SaveHarvest(grow, new HarvestUpsertRequest
+        {
+            HarvestedAtLocal = DateTime.Today.ToString("yyyy-MM-dd"),
+            WetWeightG = 998,
+            DryWeightG = 221,
+            PlantWeightsJson = gewichte,
+        });
+
+        var dto = Assert.IsType<HarvestDto>(
+            (gespeichert.Result as ObjectResult)?.Value ?? gespeichert.Value);
+
+        Assert.True(dto.PlantWeightsJson == gewichte,
+            $"Die Antwort traegt plantWeightsJson = {dto.PlantWeightsJson ?? "null"} statt der "
+            + "geschickten Einzelgewichte. Wer je Pflanze wiegt, verliert die Zahlen stillschweigend.");
+
+        // Und nach dem NEULADEN auch — sonst stuende der Wert nur im Speicher.
+        var geholt = _controller.Harvest(grow);
+        var wieder = Assert.IsType<HarvestDto>(
+            (geholt.Result as ObjectResult)?.Value ?? geholt.Value);
+        Assert.Equal(gewichte, wieder.PlantWeightsJson);
+    }
+
+    /// <summary>Ein Grow, an den sich eine Ernte haengen laesst.</summary>
+    private int AngelegterGrow()
+    {
+        var zelt = _repository.CreateTent(new Tent { Name = "Zelt", TentType = TentType.Production });
+        return _repository.CreateGrow(new GrowRun
+        {
+            Name = "Lauf",
+            TentId = zelt.Id,
+            HydroStyle = HydroStyle.RDWC,
+            Status = GrowStatus.Running,
+            StartDate = DateTime.Today.AddDays(-60),
+        });
+    }
 }

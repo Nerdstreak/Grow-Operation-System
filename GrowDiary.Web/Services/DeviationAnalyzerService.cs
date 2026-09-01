@@ -1,5 +1,6 @@
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services.Knowledge;
 
 namespace GrowDiary.Web.Services;
 
@@ -11,6 +12,47 @@ public sealed class DeviationAnalyzerService
     // copy is how the "chase the pH" mistake would quietly come back in another file.
     public const double PhComfortMin = 5.8;
     public const double PhComfortMax = 6.2;
+
+    /// <summary>
+    /// Der pH-Bereich, ab dem gehandelt wird — nicht das Anmischziel.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Fachlich:</b> der Stufenwert ist das, worauf man ANMISCHT, kein
+    /// Schwellenwert zum Hinterherregeln. Der RDWC-Growplan sagt ausdrücklich,
+    /// dass der pH innerhalb der Komfortzone von allein wandern darf (ab
+    /// Blütewoche 4 sogar soll); eingegriffen wird erst, wenn er sie verlässt.
+    /// Wer bei jeder kleinen Drift warnt, rät das Gegenteil des Plans.</para>
+    ///
+    /// <para><b>Der Anlass (01.09.2026).</b> Diese Formel stand nur in der
+    /// Diagnose. Die Live-Kachel maß am Anmischziel — bei pH 5,85 (Profil
+    /// 5,90–6,00) schrieb sie „daneben" und zog zehn Punkte vom Score ab,
+    /// während das Messprotokoll derselben Messung „im Ziel, Komfortzone
+    /// 5,8–6,2" sagte. Zwei Urteile über einen Wert, nebeneinander auf dem
+    /// Schirm.</para>
+    ///
+    /// <para><b>Eigene Grenzen gewinnen.</b> Wer sie einträgt, meint keine
+    /// Empfehlung mehr, sondern eine Ansage — dann gilt seine Zahl, auch wenn
+    /// sie enger ist als die Komfortzone.</para>
+    /// </remarks>
+    public static (double Min, double Max) PhHandlungsbereich(
+        HydroTargetValues? targets, (double? Min, double? Max)? eigene)
+    {
+        var unten = Math.Min(targets?.PhMin ?? PhComfortMin, PhComfortMin);
+        var oben = Math.Max(targets?.PhMax ?? PhComfortMax, PhComfortMax);
+
+        // Je Grenze, nicht auf einen Schlag: <c>UserTargets.IsUserSet</c> ist
+        // schon true, wenn EINE der beiden eingetragen ist. Wer nur eine
+        // Obergrenze setzte, verlor damit die ganze Komfortzone — die Diagnose
+        // rechnete ab der Profil-Untergrenze 5,9 und meldete „zu niedrig",
+        // waehrend die Kachel daneben bei 5,8 blieb und „im Ziel" schrieb.
+        if (eigene is { } e)
+        {
+            if (e.Min is { } min) unten = min;
+            if (e.Max is { } max) oben = max;
+        }
+
+        return (unten, oben);
+    }
     public const double PhCriticalMin = 5.5;
     public const double PhCriticalMax = 6.5;
 
@@ -50,10 +92,16 @@ public sealed class DeviationAnalyzerService
 
     private readonly AlertRuleRepository? _alertRules;
 
-    public DeviationAnalyzerService(TargetValueService targetValues, AlertRuleRepository? alertRules = null)
+    private readonly KnowledgeBaseLoader? _wissen;
+
+    public DeviationAnalyzerService(
+        TargetValueService targetValues,
+        AlertRuleRepository? alertRules = null,
+        KnowledgeBaseLoader? wissen = null)
     {
         _targetValues = targetValues;
         _alertRules = alertRules;
+        _wissen = wissen;
     }
 
     /// <param name="leafTempOffsetC">
@@ -108,23 +156,37 @@ public sealed class DeviationAnalyzerService
         // wer eigene Sollwerte eingetragen hatte, bekam sie auf der Kachel zu
         // sehen und in der Diagnose nicht. Gemessen stand fuer denselben Grow
         // EC 0,6-0,8 gegen 0,9-1,1.
-        var profil = SetpointProfileResolver.Resolve(
-            grow.SetpointProfileId,
-            systemProfileId,
-            grow.HydroStyle);
-        var wissen = _targetValues.GetTargets(profil.ProfileId, latest.Stage);
+        /* Die ganze Kette an EINER Stelle: Profil, Phase, Feedchart-Ziele,
+           eigene Grenzen. Hier fehlte Schritt drei — der Schalter „Wochen-Ziele
+           auch auf dem Bildschirm" wirkte nur auf der Live-Kachel, und bei
+           Athena Blended sagte die Kachel „im Ziel", waehrend das Messprotokoll
+           derselben Messung „weit ueber dem Ziel" schrieb. */
         var regeln = grow.TentId is { } tentId ? _alertRules?.GetForTent(tentId) : null;
-        var targets = wissen is null ? null : UserTargets.Overlay(wissen, regeln);
+        var targets = Zielband.FuerGrow(
+            _targetValues, _wissen, grow, latest.Stage, systemProfileId, regeln);
+
+        // Fuer die Wassertemperatur getrennt: dort ist das Zielband die Quelle
+        // fuer den Arbeitsbereich, und eine eingelegte Alarmregel saehe darin
+        // aus wie eine Nachtabsenkung. Sie kommt deshalb als eigene Angabe.
+        var ohneNutzer = Zielband.FuerGrow(
+            _targetValues, _wissen, grow, latest.Stage, systemProfileId, null);
+
+        // Fuer die Phasen-Vergleiche weiter unten: das Profil selbst, ohne
+        // Feedchart und ohne eigene Grenzen — dort geht es um „was gilt in
+        // Bluete gegen Finish", nicht um das Band dieser einen Messung.
+        var profil = SetpointProfileResolver.Resolve(
+            grow.SetpointProfileId, systemProfileId, grow.HydroStyle);
         var deviations = new List<GrowDeviation>();
 
-        CheckPh(grow, sorted, targets, UserTargets.IsUserSet("reservoir-ph", regeln), deviations);
+        CheckPh(grow, sorted, targets, UserTargets.For("reservoir-ph", regeln), deviations);
         CheckEc(grow, sorted, targets, deviations);
         CheckPhDriftRate(grow, sorted, deviations);
-        CheckOrp(grow, sorted, deviations);
-        CheckWaterTemp(grow, sorted, targets, Wasserband.RampenBodenC(
+        CheckOrp(grow, sorted, targets, deviations);
+        CheckWaterTemp(grow, sorted, ohneNutzer, Wasserband.RampenBodenC(
             grow,
             _targetValues.GetTargets(profil.ProfileId, GrowStage.Flower),
-            _targetValues.GetTargets(profil.ProfileId, GrowStage.Finish)), deviations);
+            _targetValues.GetTargets(profil.ProfileId, GrowStage.Finish)),
+            UserTargets.For("reservoir-temp", regeln), deviations);
         CheckDissolvedOxygen(grow, sorted, deviations);
         CheckVpd(grow, sorted, targets, leafTempOffsetC, deviations);
         CheckPpfd(grow, sorted, targets, deviations);
@@ -133,11 +195,13 @@ public sealed class DeviationAnalyzerService
         return deviations;
     }
 
-    /// <param name="phIsUserSet">
-    /// Ob die Grenzen von Hand eingetragen wurden. Das ändert ihre Bedeutung: der
-    /// mitgelieferte Wert ist ein Anmischziel, der eingetragene eine Grenze.
+    /// <param name="eigenePh">
+    /// Die von Hand eingetragenen Grenzen, je Grenze. Das ändert ihre
+    /// Bedeutung: der mitgelieferte Wert ist ein Anmischziel, der eingetragene
+    /// eine Grenze. <b>Je Grenze</b>, weil man auch nur eine der beiden
+    /// eintragen kann.
     /// </param>
-    private static void CheckPh(GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, bool phIsUserSet, List<GrowDeviation> result)
+    private static void CheckPh(GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, (double? Min, double? Max)? eigenePh, List<GrowDeviation> result)
     {
         sorted = sorted.Where(measurement => measurement.ReservoirPh.HasValue).ToList();
         if (sorted.Count == 0 || sorted[0].ReservoirPh is not { } actual)
@@ -154,12 +218,7 @@ public sealed class DeviationAnalyzerService
         // keine Empfehlung mehr, sondern eine Ansage: „darunter/darüber will ich
         // es wissen". Wer bewusst enger fährt als die Komfortzone, bekam vorher
         // nichts zu sehen — die Zone hat seine Grenzen einfach aufgesogen.
-        var actionMin = phIsUserSet && targets is not null
-            ? targets.PhMin
-            : Math.Min(targets?.PhMin ?? PhComfortMin, PhComfortMin);
-        var actionMax = phIsUserSet && targets is not null
-            ? targets.PhMax
-            : Math.Max(targets?.PhMax ?? PhComfortMax, PhComfortMax);
+        var (actionMin, actionMax) = PhHandlungsbereich(targets, eigenePh);
         var critical = actual < PhCriticalMin || actual > PhCriticalMax;
         var actionable = actual < actionMin || actual > actionMax;
         if (!actionable && !critical)
@@ -250,7 +309,7 @@ public sealed class DeviationAnalyzerService
     /// </remarks>
     private static void CheckWaterTemp(
         GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, double? rampenBoden,
-        List<GrowDeviation> result)
+        (double? Min, double? Max)? eigeneTemp, List<GrowDeviation> result)
     {
         sorted = sorted.Where(measurement => measurement.ReservoirWaterTempC.HasValue).ToList();
         if (sorted.Count == 0 || sorted[0].ReservoirWaterTempC is not { } actual)
@@ -259,30 +318,31 @@ public sealed class DeviationAnalyzerService
         }
 
         // Die Untergrenze zieht der Nachtwert des Profils mit nach unten: die
-        // Absenkung faehrt dort absichtlich hin.
-        var unten = Wasserband.UntergrenzeC(targets, rampenBoden);
+        // Absenkung faehrt dort absichtlich hin. Eigene Grenzen gewinnen — auch
+        // die OBERE, die hier frueher fest bei ArbeitsbereichMaxC stand.
+        var (unten, oben) = Wasserband.Grenzen(targets, rampenBoden, eigeneTemp);
         var kritischUnten = Math.Min(Wasserband.KritischMinC, unten - 3);
         var critical = actual > Wasserband.KritischMaxC || actual < kritischUnten;
-        var warning = actual > Wasserband.ArbeitsbereichMaxC || actual < unten;
+        var warning = actual > oben || actual < unten;
         if (!critical && !warning)
         {
             return;
         }
 
         var participants = Consecutive(sorted, measurement => measurement.ReservoirWaterTempC,
-            value => value > Wasserband.ArbeitsbereichMaxC || value < unten);
+            value => value > oben || value < unten);
         result.Add(CreateDeviation(
             grow,
             "hydro.water-temp",
             DeviationMetric.WaterTemp,
             actual,
             unten,
-            Wasserband.ArbeitsbereichMaxC,
+            oben,
             "C",
             critical ? DeviationSeverity.Critical : DeviationSeverity.Warning,
             $"Reservoir-Wassertemperatur {actual:0.0} C liegt ausserhalb des Arbeitsbereichs.",
             "Wassertemperatur und Kuehlung pruefen.",
-            actual > Wasserband.ArbeitsbereichMaxC ? "water-temp-rising-rapid" : null,
+            actual > oben ? "water-temp-rising-rapid" : null,
             participants));
     }
 
@@ -438,7 +498,23 @@ public sealed class DeviationAnalyzerService
             participants));
     }
 
-    private static void CheckOrp(GrowRun grow, List<Measurement> sorted, List<GrowDeviation> result)
+    /// <summary>
+    /// ORP gegen das Zielband des Grows — nicht gegen eine eigene Tabelle.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Für ORP gab es <b>vier</b> Bänder
+    /// nebeneinander: das Profil je Phase (Live-Kachel und Messprotokoll),
+    /// fest verdrahtete 300/500 hier, 250/650 als kritische Grenzen und die
+    /// Werte aus dem Wissen. Bei ORP 470 mV in der Blüte sagte die Kachel
+    /// „daneben, Ziel 400–450" und zog zehn Punkte vom Score ab — die Diagnose
+    /// fand nichts, weil 470 zwischen 300 und 500 liegt.</para>
+    ///
+    /// <para>Jetzt gilt dasselbe Band wie überall, genau wie bei
+    /// <c>CheckEc</c>. Die harten 250/650 bleiben als <b>kritische</b>
+    /// Grenzen: dort ist nicht mehr die Phase die Frage, sondern ob im Becken
+    /// noch Sauerstoff ist.</para>
+    /// </remarks>
+    private static void CheckOrp(GrowRun grow, List<Measurement> sorted, HydroTargetValues? targets, List<GrowDeviation> result)
     {
         sorted = sorted.Where(measurement => measurement.OrpMv.HasValue).ToList();
         if (sorted.Count == 0 || sorted[0].OrpMv is not { } actual)
@@ -446,26 +522,30 @@ public sealed class DeviationAnalyzerService
             return;
         }
 
+        // Ohne Profil bleiben die alten Werte — besser als gar kein Urteil.
+        var min = targets?.OrpMin ?? 300;
+        var max = targets?.OrpMax ?? 500;
+
         var critical = actual < 250 || actual > 650;
-        var warning = actual < 300 || actual > 500;
+        var warning = actual < min || actual > max;
         if (!critical && !warning)
         {
             return;
         }
 
-        var participants = Consecutive(sorted, measurement => measurement.OrpMv, value => value < 300 || value > 500);
+        var participants = Consecutive(sorted, measurement => measurement.OrpMv, value => value < min || value > max);
         result.Add(CreateDeviation(
             grow,
             "hydro.orp",
             DeviationMetric.Orp,
             actual,
-            300,
-            500,
+            min,
+            max,
             "mV",
             critical ? DeviationSeverity.Critical : DeviationSeverity.Warning,
-            $"ORP {actual:0} mV liegt ausserhalb des Arbeitsbereichs.",
+            $"ORP {actual:0} mV liegt ausserhalb des Arbeitsbereichs ({min:0}–{max:0} mV).",
             "Wasserhygiene und Sensor plausibilisieren.",
-            actual < 300 ? "orp-low-mild" : null,
+            actual < min ? "orp-low-mild" : null,
             participants));
     }
 

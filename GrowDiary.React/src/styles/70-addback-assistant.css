@@ -101,7 +101,12 @@
 
 .addback-rail-step.done span {
   border-color: rgba(69, 211, 85, 0.6);
-  color: var(--green);
+  /* --accent-text und nicht --green: das ist die FLAECHEN-Farbe (#0e9b55 im
+     hellen Thema), und als Schrift ergab sie Kontrast 3,60 — unter den 4,5
+     fuer normalen Text. --accent-text ist genau dafuer da und im hellen Thema
+     dunkler. Gefunden am 01.09.2026, als /grows/1/addback zum ersten Mal in
+     der Kontrast-Pruefung stand. */
+  color: var(--accent-text);
 }
 
 .addback-step-panel {

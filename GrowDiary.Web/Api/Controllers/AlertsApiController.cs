@@ -9,7 +9,7 @@ namespace GrowDiary.Web.Api.Controllers;
 [ApiController]
 [Route("api/alerts")]
 [Produces("application/json")]
-public sealed class AlertsApiController : ControllerBase
+public sealed class AlertsApiController : ApiControllerBase
 {
     private readonly GrowRepository _repository;
     private readonly AlertRuleRepository _alertRules;
@@ -71,6 +71,34 @@ public sealed class AlertsApiController : ControllerBase
                 CooldownMinutes = dto.CooldownMinutes <= 0 ? 30 : dto.CooldownMinutes,
             })
             .ToList();
+
+        /* Ein vertauschtes Paar wird abgelehnt.
+         *
+         * `AlertEvaluationService.Decide` rechnet `wert < min ? unten : wert >
+         * max ? oben : im Rahmen`. Bei min 22 / max 18 greift bei 20 °C die
+         * erste Bedingung — die Regel meldet dauerhaft „zu kalt", obwohl 20
+         * zwischen den beiden Zahlen liegt. Wer sich beim Eintippen vertut,
+         * bekommt eine Warnung, die nie mehr aufhoert, und stellt am Ende die
+         * Benachrichtigungen ab.
+         *
+         * Gefunden bei der Gesamtdurchsicht am 01.09.2026: der Endpunkt nahm
+         * das Paar an und antwortete HTTP 200. */
+        foreach (var regel in rules.Where(r => r.MinValue is { } min && r.MaxValue is { } max && min > max))
+        {
+            ModelState.AddModelError(nameof(AlertRuleDto.MinValue),
+                $"Bei der Messgroesse {regel.MetricKey} liegt die Untergrenze "
+                + $"({regel.MinValue}) ueber der Obergrenze ({regel.MaxValue}). "
+                + "So gemeldet wuerde die Regel dauerhaft warnen.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            // ValidationError() und nicht ValidationProblem(): letzteres liefert
+            // das ASP.NET-Standardformat ohne code/message/fieldErrors, und die
+            // Oberflaeche liest nur payload.message — sie zeigte dafuer
+            // "API request failed with status 400".
+            return ValidationError("Die Grenzwerte lassen sich so nicht speichern.");
+        }
 
         _alertRules.ReplaceForTent(tentId, rules);
 

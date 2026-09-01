@@ -226,8 +226,18 @@ public sealed class TrendWatchService
     /// </summary>
     private static void AddConsumption(List<TrendFinding> findings, List<Measurement> window)
     {
+        /* Auch die Nulltage.
+           Hier stand `is > 0` — ein Tag mit dokumentierten 0 L fiel damit aus
+           der Reihe, statt als 0 einzugehen. Der VOLLSTAENDIGE Einbruch war so
+           unsichtbar, waehrend ein blosser Rueckgang auf die Haelfte gemeldet
+           wurde: aus 4, 4, 4, 4, 0, 0, 0 blieb [4,4,4,4], Verhaeltnis 1, keine
+           Meldung. Dabei ist der stille Fall der schlimmere — eine Pflanze, die
+           drei Tage gar nichts mehr trinkt, hat ein Wurzelproblem.
+
+           `is not null` statt `is > 0`: ein Tag ohne Eintrag bleibt draussen
+           (da wurde nicht gemessen), ein Tag mit eingetragener 0 zaehlt. */
         var daily = window
-            .Where(measurement => measurement.TopOffLiters is > 0)
+            .Where(measurement => measurement.TopOffLiters is not null)
             .GroupBy(measurement => measurement.TakenAt.Date)
             .OrderBy(group => group.Key)
             .Select(group => group.Sum(measurement => measurement.TopOffLiters!.Value))

@@ -89,6 +89,72 @@ public static class Wasserband
         return plan.Wochen.Count > 0 ? plan.Wochen.Min(woche => woche.NachtC) : null;
     }
 
+    /// <summary>
+    /// Die Grenzen, gegen die eine Wassertemperatur beurteilt wird.
+    /// </summary>
+    /// <param name="ziele">
+    /// Das Zielband der Phase — <b>ohne</b> die eigenen Grenzen des Nutzers.
+    /// Die kommen getrennt, sonst rutscht eine Alarmregel in
+    /// <see cref="HydroTargetValues.WaterTempNightC"/> und sieht dort aus wie
+    /// eine Nachtabsenkung.
+    /// </param>
+    /// <param name="rampenBodenC">Der Wert, auf den die Absenkrampe fährt.</param>
+    /// <param name="eigene">
+    /// Die Alarmregel des Nutzers für <c>reservoir-temp</c>, je Grenze.
+    /// </param>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Die Untergrenze kam aus dem
+    /// Zielband, die Obergrenze aus <see cref="ArbeitsbereichMaxC"/> — eine
+    /// eingetragene Obergrenze wirkte also nirgends. Bei der Regel 15–20 °C
+    /// schrieb die Kachel „Ziel 15 – 20", das Messprotokoll „Ziel 15 – 22"
+    /// und nannte 21 °C „im Ziel". Dazu konnte eine <i>strengere</i>
+    /// Untergrenze gar nicht wirken: <see cref="UntergrenzeC"/> nimmt das
+    /// Minimum, eine 19 verschwand darin.</para>
+    ///
+    /// <para><b>Eigene Grenzen gewinnen — je Grenze.</b> Dieselbe Regel wie
+    /// beim pH: wer eine Zahl einträgt, meint eine Ansage. Wer nur eine der
+    /// beiden einträgt, meint auch nur die eine; die andere Seite bleibt beim
+    /// Arbeitsbereich.</para>
+    /// </remarks>
+    public static (double MinC, double MaxC) Grenzen(
+        HydroTargetValues? ziele, double? rampenBodenC, (double? Min, double? Max)? eigene)
+    {
+        var unten = UntergrenzeC(ziele, rampenBodenC);
+        var oben = ArbeitsbereichMaxC;
+
+        if (eigene is { } e)
+        {
+            if (e.Min is { } min) unten = min;
+            if (e.Max is { } max) oben = max;
+        }
+
+        return (unten, oben);
+    }
+
+    /// <inheritdoc cref="Begruendung(HydroTargetValues?, double?)"/>
+    public static string Begruendung(
+        HydroTargetValues? ziele, double? rampenBodenC, (double? Min, double? Max)? eigene)
+    {
+        if (eigene is not { } e || (e.Min is null && e.Max is null))
+        {
+            return Begruendung(ziele, rampenBodenC);
+        }
+
+        // Woher die Zahl kommt, gehört dazu. Ohne diesen Satz stand bei einer
+        // Alarmregel „nachts fährt deine Absenkung auf 15 °C" — eine Regelung,
+        // die es gar nicht gibt.
+        var (unten, oben) = Grenzen(ziele, rampenBodenC, eigene);
+        var wessen = (e.Min, e.Max) switch
+        {
+            (not null, not null) => "beide aus deinen Grenzwerten",
+            (not null, _) => "die Untergrenze aus deinen Grenzwerten",
+            _ => "die Obergrenze aus deinen Grenzwerten",
+        };
+
+        return $"{unten:0.#}–{oben:0.#} °C, {wessen}. Der Arbeitsbereich "
+               + $"{ArbeitsbereichMinC:0}–{ArbeitsbereichMaxC:0} °C (SOP-RDWC-CAN-N1) gilt daneben weiter.";
+    }
+
     /// <summary>Der Satz, der zum Urteil gehört — mit Quelle.</summary>
     public static string Begruendung(HydroTargetValues? ziele, double? rampenBodenC = null)
     {

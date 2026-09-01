@@ -1,3 +1,4 @@
+using System.Globalization;
 namespace GrowDiary.Web.Services;
 
 /// <summary>
@@ -54,7 +55,8 @@ public sealed class SystemHeartbeat
         set { lock (_gate) { _notifiedCode = value; } }
     }
 
-    private readonly Dictionary<int, string> _pumpMeldungen = [];
+    /// <summary>Gemeldete Lagen, je Zelt UND Bereich (Schluessel „7:chiller").</summary>
+    private readonly Dictionary<string, string> _meldungen = [];
 
     /// <summary>
     /// Welche Pumpen-Lage dem Betreiber je Zelt zuletzt gemeldet wurde.
@@ -66,17 +68,40 @@ public sealed class SystemHeartbeat
     /// der alten zu verstecken. Nur im Speicher — nach einem Neustart wird neu
     /// bewertet und im Zweifel einmal zu viel gewarnt.
     /// </remarks>
-    public string? PumpMeldung(int tentId)
+    /// <summary>
+    /// Was dem Betreiber je Zelt und BEREICH zuletzt gemeldet wurde.
+    /// </summary>
+    /// <param name="tentId">Das Zelt.</param>
+    /// <param name="bereich">
+    /// „pumpe", „chiller", „ups-status", „ups-battery" — jeder Bereich hat
+    /// seine eigene Entprellung.
+    /// </param>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Hier stand EINE Merkstelle je
+    /// Zelt, und zwei Zweige teilten sie sich: der Pumpen-Wächter schrieb und
+    /// las sie, der Kühler-/USV-Zweig las sie nur. Dessen Entprellung konnte
+    /// deshalb nie greifen — und hätte er geschrieben, wäre die des
+    /// Pumpen-Wächters weg gewesen.</para>
+    ///
+    /// <para>Zwei Sachen, die nichts miteinander zu tun haben, in einem Fach:
+    /// ein stehender Kühler und eine stehende Pumpe sind zwei Nachrichten und
+    /// verdienen zwei Gedächtnisse.</para>
+    /// </remarks>
+    public string? Meldung(int tentId, string bereich)
     {
-        lock (_gate) { return _pumpMeldungen.TryGetValue(tentId, out var v) ? v : null; }
+        lock (_gate) { return _meldungen.TryGetValue(Fach(tentId, bereich), out var v) ? v : null; }
     }
 
-    public void SetPumpMeldung(int tentId, string? schluessel)
+    public void SetMeldung(int tentId, string bereich, string? schluessel)
     {
         lock (_gate)
         {
-            if (schluessel is null) _pumpMeldungen.Remove(tentId);
-            else _pumpMeldungen[tentId] = schluessel;
+            var fach = Fach(tentId, bereich);
+            if (schluessel is null) _meldungen.Remove(fach);
+            else _meldungen[fach] = schluessel;
         }
     }
+
+    private static string Fach(int tentId, string bereich)
+        => tentId.ToString(CultureInfo.InvariantCulture) + ":" + bereich;
 }

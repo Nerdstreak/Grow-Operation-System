@@ -129,16 +129,41 @@ public sealed class DosingContextBuilder
     }
 
     /// <summary>
-    /// Die jüngste Dosis einer ANDEREN Pumpe dieses Zelts — für die Mischpause,
+    /// Die jüngste Dosis IRGENDEINER Pumpe dieses Zelts — für die Mischpause,
     /// die dem Becken gehört, nicht der Pumpe.
     /// </summary>
     private DateTime? LastTentDose(int tentId, int ownPumpId)
-        => _dosing.GetEvents(tentId: tentId, limit: 10)
-            .Where(dose => dose.PumpId != ownPumpId
-                && dose.Outcome == DoseOutcome.Done
+        => LetzteImBecken(_dosing.GetEvents(tentId: tentId, limit: 10));
+
+    /// <summary>
+    /// Die jüngste brauchbare Dosis aus einer Liste — ohne die eigene Pumpe
+    /// auszunehmen.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Hier stand
+    /// <c>dose.PumpId != ownPumpId</c>. Die eigenen Dosen kamen aus
+    /// <c>DosesToday</c> — und das ist „seit Mitternacht". Um 00:01 war beides
+    /// leer: die Tagesliste, weil der Tag neu ist, und diese hier, weil sie die
+    /// eigene Pumpe ausnimmt.</para>
+    ///
+    /// <para><b>Was das kostet.</b> pH-Pumpe, Mindestabstand 18 Minuten,
+    /// einzige Pumpe im Zelt. Die Automatik dosiert 23:55. Um 00:01 läuft sie
+    /// wieder, findet keinen Riegel und gibt die zweite Säuredosis sechs
+    /// Minuten nach der ersten — gerechnet gegen einen Messwert aus der noch
+    /// nicht durchmischten Lösung.</para>
+    ///
+    /// <para><b>Kalibrierläufe zählen nicht.</b> Beim Kalibrieren geht nichts
+    /// ins Becken; das war schon vorher richtig und bleibt.</para>
+    ///
+    /// <para>Öffentlich, damit die Entscheidung eine eigene Prüfung bekommt —
+    /// über den Bauer bräuchte sie fünf Ablagen und eine Datenbank.</para>
+    /// </remarks>
+    public static DateTime? LetzteImBecken(IEnumerable<DoseEvent> dosen)
+        => dosen
+            .Where(dose => dose.Outcome == DoseOutcome.Done
                 && dose.Trigger != DoseTrigger.Calibration)
             .Select(dose => (DateTime?)dose.OccurredAtUtc)
-            .FirstOrDefault();
+            .Max();
 
     /// <summary>Wartet für irgendeine Pumpe dieses Zelts noch eine zweite Hälfte?</summary>
     private bool TentHasPending(int tentId)
@@ -201,17 +226,13 @@ public sealed class DosingContextBuilder
         if (tent.ActiveGrows.FirstOrDefault() is { } grow)
         {
             var stage = GrowStageResolver.Resolve(grow, DateTime.Today);
-            var resolved = SetpointProfileResolver.Resolve(
-                grow.SetpointProfileId, SystemProfileFor(grow), grow.HydroStyle);
-            if (_targetValues.GetTargets(resolved.ProfileId, stage) is { } targets)
-            {
-                // Gegen dasselbe Ziel dosieren, das der Betreiber sieht.
-                if (_knowledge is not null
-                    && MischplanService.ZielSpalteFuerGrow(grow, _knowledge.NutrientPrograms) is { } chartZiel)
-                {
-                    targets = MischplanService.MitFeedchart(targets, chartZiel.Spalte);
-                }
 
+            // Gegen dasselbe Ziel dosieren, das der Betreiber sieht — dieselbe
+            // Kette, nicht eine zweite Abschrift davon. Ohne die eigenen
+            // Grenzen: ueber die entscheidet PickTarget unten.
+            if (Zielband.FuerGrow(
+                    _targetValues, _knowledge, grow, stage, SystemProfileFor(grow), null) is { } targets)
+            {
                 ausProfil = key switch
                 {
                     "reservoir-ph" => (targets.PhMin, targets.PhMax),

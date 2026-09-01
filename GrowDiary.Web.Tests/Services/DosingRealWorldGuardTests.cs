@@ -122,4 +122,77 @@ public sealed class DosingRealWorldGuardTests
     {
         Assert.False(DosingGuard.EvaluateAutomatic(Pump(), 3, Context(circulation: true, tentPending: true), Jetzt).Allowed);
     }
+
+    // ---------- A2b: die Mischpause ueberlebt die Tagesgrenze ----------
+
+    /// <summary>
+    /// Die eigene Dosis von 23:55 zählt um 00:01 noch.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Der Kontext-Bauer nahm die EIGENE
+    /// Pumpe aus („die jüngste Dosis einer ANDEREN Pumpe"), weil die eigenen
+    /// Dosen aus <c>DosesToday</c> kommen sollten — und das ist „seit
+    /// Mitternacht". Um 00:01 war beides leer.</para>
+    ///
+    /// <para>pH-Pumpe, 18 Minuten Mindestabstand, einzige Pumpe im Zelt:
+    /// Automatik dosiert 23:55, um 00:01 wieder — sechs Minuten später, in eine
+    /// nicht durchmischte Lösung.</para>
+    /// </remarks>
+    [Fact]
+    public void DieEigeneDosisZaehltAuchNachMitternacht()
+    {
+        var kurzVorMitternacht = new DateTime(2026, 5, 20, 23, 55, 0, DateTimeKind.Utc);
+
+        var letzte = DosingContextBuilder.LetzteImBecken([
+            new DoseEvent
+            {
+                PumpId = 1,
+                OccurredAtUtc = kurzVorMitternacht,
+                Outcome = DoseOutcome.Done,
+                Trigger = DoseTrigger.Automatic,
+            },
+        ]);
+
+        Assert.True(letzte == kurzVorMitternacht,
+            "Die eigene Dosis von 23:55 faellt aus der Mischpause — um 00:01 gibt die Pumpe "
+            + "die naechste Dosis sechs Minuten spaeter in eine nicht durchmischte Loesung.");
+    }
+
+    /// <summary>Und Kalibrierlaeufe zaehlen weiterhin nicht.</summary>
+    /// <remarks>
+    /// Beim Kalibrieren geht nichts ins Becken. Diese Zusicherung stand vorher
+    /// im Filter mit drin; sie darf durch die Reparatur nicht wegfallen.
+    /// </remarks>
+    [Fact]
+    public void EinKalibrierlaufOeffnetKeineMischpause()
+    {
+        var letzte = DosingContextBuilder.LetzteImBecken([
+            new DoseEvent
+            {
+                PumpId = 1,
+                OccurredAtUtc = Jetzt.AddMinutes(-1),
+                Outcome = DoseOutcome.Done,
+                Trigger = DoseTrigger.Calibration,
+            },
+        ]);
+
+        Assert.Null(letzte);
+    }
+
+    /// <summary>Eine abgebrochene Dosis auch nicht.</summary>
+    [Fact]
+    public void EineNichtGelaufeneDosisOeffnetKeineMischpause()
+    {
+        var letzte = DosingContextBuilder.LetzteImBecken([
+            new DoseEvent
+            {
+                PumpId = 1,
+                OccurredAtUtc = Jetzt.AddMinutes(-1),
+                Outcome = DoseOutcome.Rejected,
+                Trigger = DoseTrigger.Automatic,
+            },
+        ]);
+
+        Assert.Null(letzte);
+    }
 }
