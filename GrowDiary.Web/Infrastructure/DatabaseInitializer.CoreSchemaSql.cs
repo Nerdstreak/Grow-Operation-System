@@ -554,6 +554,7 @@ public sealed partial class DatabaseInitializer
                 ReferenceValue REAL NULL,
                 BeforeValue REAL NULL,
                 AfterValue REAL NULL,
+                PointsJson TEXT NULL,
                 TemperatureC REAL NULL,
                 DueAtUtc TEXT NULL,
                 PerformedAtUtc TEXT NULL,

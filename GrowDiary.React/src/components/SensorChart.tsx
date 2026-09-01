@@ -1,4 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+
+import { inZeichenflaeche, punktBeiX, zeitpunktText } from '../features/verlauf/diagramm-auswahl'
 
 export type HistoryPoint = { t: string; v: number; min?: number | null; max?: number | null }
 
@@ -77,9 +79,17 @@ function bandPath(points: HistoryPoint[], scale: Scale): string | null {
  * Falle, die im Container schon einmal 80 Saetze mit englischem Dezimalpunkt
  * ausgeliefert hat.
  */
+/**
+ * Ein Messwert, wie er unter dem Diagramm steht.
+ *
+ * <b>Gleich viele Nachkommastellen fuer die ganze Reihe.</b> Vorher entschied
+ * jeder Wert fuer sich: neben „5,90" stand dann „6" statt „6,00", weil 6 zufaellig
+ * eine ganze Zahl ist. Beim Antippen wandern die Werte durch die Reihe, und der
+ * Sprung von zwei Stellen auf keine sieht aus wie ein anderer Messwert.
+ */
 function formatValue(value: number): string {
   const rounded = Math.round(value * 100) / 100
-  const stellen = Number.isInteger(rounded) ? 0 : Math.abs(rounded) < 10 ? 2 : 1
+  const stellen = Math.abs(rounded) < 10 ? 2 : 1
 
   return new Intl.NumberFormat('de-DE', {
     minimumFractionDigits: stellen,
@@ -99,13 +109,22 @@ export function SensorChart({
   series,
   target,
   height = 170,
+  resolution = 'raw',
 }: {
   series: HistorySeries
   target?: { min?: number | null; max?: number | null }
   height?: number
+  /** Für den Zeitpunkt unter dem Diagramm — Tageswerte brauchen keine Uhrzeit. */
+  resolution?: 'daily' | 'raw'
 }) {
   const { points, label, unit } = series
   const scale = useMemo(() => buildScale(points, target), [points, target])
+
+  /* Der angetippte Punkt.
+     Am Handy gibt es kein Hover: ohne diese Auswahl ist das Diagramm dort
+     stumm — man sieht eine Kurve und erfährt keine Zahl. Der Wert bleibt
+     stehen, bis woanders hingetippt wird. */
+  const [gewaehlt, setGewaehlt] = useState<number | null>(null)
 
   if (!scale || points.length === 0) {
     return (
@@ -117,6 +136,13 @@ export function SensorChart({
 
   const band = bandPath(points, scale)
   const last = points[points.length - 1]
+
+  function waehleBei(klientX: number, kasten: DOMRect) {
+    const treffer = punktBeiX(points, inZeichenflaeche(klientX, kasten.left, kasten.width, W), scale!.x)
+    setGewaehlt(treffer ? treffer.index : null)
+  }
+
+  const zeiger = gewaehlt != null && gewaehlt < points.length ? points[gewaehlt] : null
   const values = points.map((point) => point.v)
   const lowest = Math.min(...values)
   const highest = Math.max(...values)
@@ -125,8 +151,24 @@ export function SensorChart({
 
   return (
     <figure style={{ margin: 0 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', maxHeight: height, display: 'block' }} role="img"
-        aria-label={`Verlauf ${label}: zuletzt ${formatValue(last.v)}${unit ? ` ${unit}` : ''}`}>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        style={{ width: '100%', height: 'auto', maxHeight: height, display: 'block', cursor: 'pointer', touchAction: 'manipulation' }}
+        role="img"
+        tabIndex={0}
+        aria-label={`Verlauf ${label}: zuletzt ${formatValue(last.v)}${unit ? ` ${unit}` : ''}. Antippen zeigt den Wert an dieser Stelle.`}
+        onPointerDown={(event) => waehleBei(event.clientX, event.currentTarget.getBoundingClientRect())}
+        onKeyDown={(event) => {
+          /* Mit der Tastatur durch die Reihe: ein Diagramm, das nur auf
+             Tippen hört, ist mit der Tastatur unbedienbar. */
+          if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+            event.preventDefault()
+            const schritt = event.key === 'ArrowRight' ? 1 : -1
+            const jetzt = gewaehlt ?? points.length - 1
+            setGewaehlt(Math.min(points.length - 1, Math.max(0, jetzt + schritt)))
+          }
+          if (event.key === 'Escape') setGewaehlt(null)
+        }}>
         {/* target range */}
         {targetTop != null && targetBottom != null && (
           <rect x={PAD.left} y={Math.min(targetTop, targetBottom)} width={W - PAD.left - PAD.right}
@@ -141,6 +183,19 @@ export function SensorChart({
           strokeLinejoin="round" strokeLinecap="round" />
         {/* latest reading */}
         <circle cx={scale.x(new Date(last.t).getTime())} cy={scale.y(last.v)} r="3.5" fill="var(--v1-green)" />
+        {/* der angetippte Punkt — Linie und Ring, damit er nicht nur an der
+            Farbe zu erkennen ist */}
+        {zeiger && (
+          <>
+            <line
+              x1={scale.x(new Date(zeiger.t).getTime())} y1={PAD.top}
+              x2={scale.x(new Date(zeiger.t).getTime())} y2={H - PAD.bottom}
+              stroke="var(--v1-muted)" strokeWidth="1" strokeDasharray="3 3" />
+            <circle
+              cx={scale.x(new Date(zeiger.t).getTime())} cy={scale.y(zeiger.v)}
+              r="5" fill="none" stroke="var(--v1-text)" strokeWidth="2" />
+          </>
+        )}
         {/* scale labels */}
         <text x={PAD.left - 6} y={scale.y(highest) + 4} textAnchor="end" fontSize="11" fill="var(--v1-muted)">{formatValue(highest)}</text>
         <text x={PAD.left - 6} y={scale.y(lowest) + 4} textAnchor="end" fontSize="11" fill="var(--v1-muted)">{formatValue(lowest)}</text>
@@ -149,7 +204,14 @@ export function SensorChart({
       </svg>
       <figcaption style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 4 }}>
         <span className="rc2-measurement-note">{label}{unit ? ` (${unit})` : ''}</span>
-        <span className="rc2-measurement-note">zuletzt <strong style={{ color: 'var(--v1-text)' }}>{formatValue(last.v)}</strong>{unit ? ` ${unit}` : ''}</span>
+        {zeiger ? (
+          <span className="rc2-measurement-note">
+            {zeitpunktText(zeiger.t, resolution)}{' '}
+            <strong style={{ color: 'var(--v1-text)' }}>{formatValue(zeiger.v)}</strong>{unit ? ` ${unit}` : ''}
+          </span>
+        ) : (
+          <span className="rc2-measurement-note">zuletzt <strong style={{ color: 'var(--v1-text)' }}>{formatValue(last.v)}</strong>{unit ? ` ${unit}` : ''}</span>
+        )}
       </figcaption>
     </figure>
   )

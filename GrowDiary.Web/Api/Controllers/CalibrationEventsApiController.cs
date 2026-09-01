@@ -2,6 +2,7 @@ using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Api.Mapping;
 using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GrowDiary.Web.Api.Controllers;
@@ -127,6 +128,26 @@ public sealed class CalibrationEventsApiController : ApiControllerBase
         if (request.BeforeValue.HasValue) item.BeforeValue = request.BeforeValue;
         if (request.AfterValue.HasValue) item.AfterValue = request.AfterValue;
         if (request.TemperatureC.HasValue) item.TemperatureC = request.TemperatureC;
+
+        /* Die einzelnen Messpunkte — und daraus die Zusammenfassung.
+           Eine pH-Sonde wird gegen 4 UND 7 abgeglichen, oft auch 10. Die
+           Einzelfelder darueber bleiben gefuellt, damit aeltere Auswertungen
+           weiterrechnen: dasselbe Muster wie die Erntegewichte je Pflanze. */
+        if (!string.IsNullOrWhiteSpace(request.PointsJson))
+        {
+            var punkte = Kalibrierpunkte.Lesen(request.PointsJson);
+            item.PointsJson = Kalibrierpunkte.Schreiben(punkte);
+
+            // Der letzte Punkt fuehrt die Zusammenfassung — bei pH 4/7 also 7,00.
+            if (punkte.Count > 0)
+            {
+                var letzter = punkte[^1];
+                if (!string.IsNullOrWhiteSpace(letzter.Loesung)) item.ReferenceSolution = letzter.Loesung.Trim();
+                if (letzter.Sollwert is { } soll) item.ReferenceValue = (decimal)soll;
+                if (letzter.Vorher is { } vor) item.BeforeValue = (decimal)vor;
+                if (letzter.Nachher is { } nach) item.AfterValue = (decimal)nach;
+            }
+        }
         if (!string.IsNullOrWhiteSpace(request.Notes)) item.Notes = request.Notes.Trim();
 
         return Ok(_repository.CompleteCalibrationEvent(item).ToDto());

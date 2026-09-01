@@ -1,5 +1,6 @@
 using GrowDiary.Web.Api.Contracts;
 using GrowDiary.Web.Models;
+using GrowDiary.Web.Services;
 
 namespace GrowDiary.Web.Api.Mapping;
 
@@ -16,6 +17,12 @@ public static class CalibrationEventMapping
         ReferenceValue: item.ReferenceValue,
         BeforeValue: item.BeforeValue,
         AfterValue: item.AfterValue,
+        PointsJson: item.PointsJson,
+        // Gerechnet an EINER Stelle: Kalibrierpunkte. Stuende die Formel auch
+        // in der Oberflaeche, liefen die beiden Zahlen auseinander.
+        SteilheitProzent: Kalibrierpunkte.SteilheitProzent(Kalibrierpunkte.Lesen(item.PointsJson)),
+        SteilheitSatz: Kalibrierpunkte.SteilheitSatz(
+            Kalibrierpunkte.SteilheitProzent(Kalibrierpunkte.Lesen(item.PointsJson))),
         TemperatureC: item.TemperatureC,
         DueAtUtc: item.DueAtUtc,
         PerformedAtUtc: item.PerformedAtUtc,
@@ -37,6 +44,7 @@ public static class CalibrationEventMapping
         ReferenceValue = request.ReferenceValue,
         BeforeValue = request.BeforeValue,
         AfterValue = request.AfterValue,
+        PointsJson = request.PointsJson,
         TemperatureC = request.TemperatureC,
         DueAtUtc = request.DueAtUtc,
         PerformedAtUtc = request.PerformedAtUtc,
@@ -60,6 +68,7 @@ public static class CalibrationEventMapping
         item.ReferenceValue = request.ReferenceValue;
         item.BeforeValue = request.BeforeValue;
         item.AfterValue = request.AfterValue;
+        item.PointsJson = request.PointsJson;
         item.TemperatureC = request.TemperatureC;
         item.DueAtUtc = request.DueAtUtc;
         item.PerformedAtUtc = request.PerformedAtUtc;

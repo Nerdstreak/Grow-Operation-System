@@ -82,7 +82,14 @@ export function TentHistorySection({ tentId }: { tentId: number }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 12 }}>
           {withData.map((series) => (
             <V1Card key={series.metricKey}>
-              <SensorChart series={series} target={targets.get(series.metricKey)} />
+              {/* Die Aufloesung steht im Verlauf selbst: bei Tageswerten braucht der
+                  angetippte Punkt keine Uhrzeit, sonst stuende unter jedem
+                  Punkt „00:00". */}
+              <SensorChart
+                series={series}
+                target={targets.get(series.metricKey)}
+                resolution={history?.resolution}
+              />
             </V1Card>
           ))}
         </div>

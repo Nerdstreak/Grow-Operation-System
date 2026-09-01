@@ -8,6 +8,10 @@ import { classNames, formatSeverityLabel, haWert } from '../utils'
 import { geraeteStatusName } from '../deutsche-woerter'
 import type { HardwareFilter, HardwareRow } from '../features/hardware/hardware-table-model'
 import { buildHardwareRows, countBy, dueLabel, filterHardwareRows, statusLabel, statusTone } from '../features/hardware/hardware-table-model'
+import {
+  speicherbarePunkte, steilheitProzent, steilheitSatz, vorbelegung,
+  type PunktZeile,
+} from '../features/hardware/kalibrierpunkte'
 import '../features/hardware/hardware.css'
 
 const FILTERS: Array<{ value: HardwareFilter; label: string }> = [
@@ -25,19 +29,17 @@ type CareDraft = {
   geraet: string
   titel: string
   datum: string
-  referenz: string
-  vorher: string
-  nachher: string
+  /**
+   * Die einzelnen Abgleiche — pH 4 und pH 7, oft auch 10.
+   *
+   * Vorher stand hier <b>ein</b> Feldpaar. Ein einzelner Abgleich gegen pH 7,00
+   * sagt über die Sonde nichts: eine tote Sonde lässt sich darauf genauso
+   * einstellen wie eine frische. Erst der Abstand zwischen zwei Punkten
+   * verrät, ob sie noch spreizt.
+   */
+  punkte: PunktZeile[]
   notiz: string
   problem: boolean
-}
-
-/** Leeres Feld heisst „nicht gemessen", nicht „null gemessen". */
-function zahlOderNull(wert: string): number | null {
-  const roh = wert.trim().replace(',', '.')
-  if (roh === '') return null
-  const zahl = Number(roh)
-  return Number.isFinite(zahl) ? zahl : null
 }
 
 type HardwareDraft = {
@@ -186,9 +188,7 @@ function HardwarePage() {
       geraet: row.item.name,
       titel: row.nextCare.title,
       datum: new Date().toISOString().slice(0, 10),
-      referenz: '',
-      vorher: '',
-      nachher: '',
+      punkte: vorbelegung(row.nextCare.title + ' ' + row.item.name),
       notiz: '',
       problem: false,
     })
@@ -201,6 +201,20 @@ function HardwarePage() {
    * ist bekannt, welches Intervall am Geraet haengt, und nur dort laesst sich
    * verhindern, dass zwei Erinnerungen fuer denselben Termin entstehen.
    */
+  /* Die Steilheit schon beim Tippen: der Nutzer soll nicht erst nach dem
+     Speichern erfahren, dass seine Sonde faellig ist. Gerechnet wird sie hier
+     UND im Backend; beide Seiten pruefen denselben ausgerechneten Fall
+     (89,3 %), damit sie nicht auseinanderlaufen. */
+  const steilheit = careDraft ? steilheitProzent(speicherbarePunkte(careDraft.punkte)) : null
+
+  /** Eine Zeile der Punkte-Tabelle ändern. */
+  function patchPunkt(index: number, teil: Partial<PunktZeile>) {
+    setCareDraft((current) => current && ({
+      ...current,
+      punkte: current.punkte.map((p, i) => (i === index ? { ...p, ...teil } : p)),
+    }))
+  }
+
   async function saveCare() {
     if (!careDraft) return
     setSaving('care')
@@ -210,9 +224,10 @@ function HardwarePage() {
       const koerper = careDraft.kind === 'Kalibrierung'
         ? {
             performedAtUtc: new Date(careDraft.datum).toISOString(),
-            referenceSolution: careDraft.referenz.trim() || null,
-            beforeValue: zahlOderNull(careDraft.vorher),
-            afterValue: zahlOderNull(careDraft.nachher),
+            /* Die Punkte gehen als JSON mit; der Server zieht daraus die
+               Zusammenfassung (Referenz, vorher, nachher) und rechnet die
+               Steilheit. Zwei Wege zu derselben Zahl waeren zwei Wahrheiten. */
+            pointsJson: JSON.stringify(speicherbarePunkte(careDraft.punkte)),
             notes: careDraft.notiz.trim() || null,
             failed: careDraft.problem,
           }
@@ -475,17 +490,81 @@ function HardwarePage() {
                   <input type="date" value={careDraft.datum} onChange={(event) => setCareDraft((current) => current && ({ ...current, datum: event.target.value }))} />
                 </V1Field>
                 {careDraft.kind === 'Kalibrierung' && (
-                  <>
-                    <V1Field label="Referenzlösung" hint="z. B. pH 7,0 oder 1413 µS/cm">
-                      <input value={careDraft.referenz} onChange={(event) => setCareDraft((current) => current && ({ ...current, referenz: event.target.value }))} placeholder="pH 7,0" />
-                    </V1Field>
-                    <V1Field label="Vorher gemessen" hint="Was die Sonde ANZEIGTE, bevor du kalibriert hast">
-                      <input inputMode="decimal" value={careDraft.vorher} onChange={(event) => setCareDraft((current) => current && ({ ...current, vorher: event.target.value }))} placeholder="6,8" />
-                    </V1Field>
-                    <V1Field label="Nachher">
-                      <input inputMode="decimal" value={careDraft.nachher} onChange={(event) => setCareDraft((current) => current && ({ ...current, nachher: event.target.value }))} placeholder="7,0" />
-                    </V1Field>
-                  </>
+                  <div className="hw-punkte">
+                    <p className="hw-punkte-hinweis">
+                      Eine Sonde wird gegen mehrere Lösungen abgeglichen — üblich sind
+                      pH&nbsp;4,01 und 7,00, manche nehmen zusätzlich 10,01. Trag ein, was
+                      die Sonde <b>vorher</b> anzeigte: daraus ergibt sich, ob sie noch
+                      spreizt.
+                    </p>
+                    <table className="hw-punkte-tabelle">
+                      <thead>
+                        <tr>
+                          <th>Lösung</th>
+                          <th>Sollwert</th>
+                          <th>Vorher</th>
+                          <th>Nachher</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {careDraft.punkte.map((punkt, index) => (
+                          <tr key={index}>
+                            <td>
+                              <input
+                                value={punkt.loesung}
+                                aria-label={`Lösung ${index + 1}`}
+                                placeholder="pH 7,00"
+                                onChange={(event) => patchPunkt(index, { loesung: event.target.value })}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                inputMode="decimal"
+                                value={punkt.sollText}
+                                aria-label={`Sollwert ${index + 1}`}
+                                placeholder="7,00"
+                                onChange={(event) => patchPunkt(index, { sollText: event.target.value })}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                inputMode="decimal"
+                                value={punkt.vorherText}
+                                aria-label={`Vorher ${index + 1}`}
+                                placeholder="6,82"
+                                onChange={(event) => patchPunkt(index, { vorherText: event.target.value })}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                inputMode="decimal"
+                                value={punkt.nachherText}
+                                aria-label={`Nachher ${index + 1}`}
+                                placeholder="7,00"
+                                onChange={(event) => patchPunkt(index, { nachherText: event.target.value })}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    <div className="v1-action-row">
+                      <V1Button
+                        type="button"
+                        onClick={() => setCareDraft((current) => current && ({
+                          ...current,
+                          punkte: [...current.punkte, { loesung: '', sollText: '', vorherText: '', nachherText: '' }],
+                        }))}
+                      >Punkt ergänzen</V1Button>
+                    </div>
+
+                    {steilheit != null && (
+                      <p className={steilheit < 85 ? 'hw-steilheit is-warn' : 'hw-steilheit'}>
+                        {steilheitSatz(steilheit)}
+                      </p>
+                    )}
+                  </div>
                 )}
                 <V1Field label="Notiz">
                   <input value={careDraft.notiz} onChange={(event) => setCareDraft((current) => current && ({ ...current, notiz: event.target.value }))} placeholder="optional" />

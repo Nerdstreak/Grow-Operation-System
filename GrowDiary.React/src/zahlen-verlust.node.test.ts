@@ -49,8 +49,12 @@ const QUELLE = new URL('./', import.meta.url)
  * Am selben Tag sind zwei verschwunden: `HarvestPage` und `AlertsPage`. Dort wurden
  * aus getippten „21,5" die Zahl 215, weil das Feld an einer Zahl hing und die
  * Zwischenform bei jedem Tastendruck wegwarf.
+ *
+ * 01.09.2026, später: 23 → 22. `HardwarePage` trug eine EIGENE Fassung von
+ * `zahlOderNull` — die vierte Abschrift derselben fünf Zeilen. Sie wurde
+ * unbenutzt, als die Kalibrierpunkte auf `zahlenfeld.ts` umgestellt wurden.
  */
-const HOECHSTENS = 23
+const HOECHSTENS = 22
 
 /**
  * Das Kennzeichen: eine Komma-Ersetzung ergibt nur bei getipptem Text Sinn.

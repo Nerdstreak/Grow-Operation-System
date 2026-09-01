@@ -14,6 +14,20 @@ public sealed record CalibrationEventDto(
     decimal? ReferenceValue,
     decimal? BeforeValue,
     decimal? AfterValue,
+    /// <summary>Die einzelnen Abgleiche — pH 4 und pH 7, oft auch 10.</summary>
+    string? PointsJson,
+    /// <summary>
+    /// Die Steilheit in Prozent, gerechnet aus den Punkten — <c>null</c>,
+    /// solange zwei taugliche fehlen.
+    /// </summary>
+    /// <remarks>
+    /// Steht im Vertrag und nicht nur in der Oberfläche, damit die Zahl
+    /// überall dieselbe ist: gerechnet wird sie in
+    /// <c>Kalibrierpunkte.SteilheitProzent</c> und nur dort.
+    /// </remarks>
+    double? SteilheitProzent,
+    /// <summary>Der Satz dazu, mit Faustregel und ihrer Herkunft.</summary>
+    string? SteilheitSatz,
     decimal? TemperatureC,
     DateTime? DueAtUtc,
     DateTime? PerformedAtUtc,
@@ -38,6 +52,10 @@ public sealed class CreateCalibrationEventRequest
     public decimal? ReferenceValue { get; set; }
     public decimal? BeforeValue { get; set; }
     public decimal? AfterValue { get; set; }
+
+    /// <summary>Die einzelnen Abgleiche als JSON — siehe Kalibrierpunkte.</summary>
+    public string? PointsJson { get; set; }
+
     public decimal? TemperatureC { get; set; }
     public DateTime? DueAtUtc { get; set; }
     public DateTime? PerformedAtUtc { get; set; }
@@ -60,6 +78,10 @@ public sealed class UpdateCalibrationEventRequest
     public decimal? ReferenceValue { get; set; }
     public decimal? BeforeValue { get; set; }
     public decimal? AfterValue { get; set; }
+
+    /// <summary>Die einzelnen Abgleiche als JSON — siehe Kalibrierpunkte.</summary>
+    public string? PointsJson { get; set; }
+
     public decimal? TemperatureC { get; set; }
     public DateTime? DueAtUtc { get; set; }
     public DateTime? PerformedAtUtc { get; set; }
@@ -82,6 +104,10 @@ public sealed class CompleteCalibrationEventRequest
     public decimal? ReferenceValue { get; set; }
     public decimal? BeforeValue { get; set; }
     public decimal? AfterValue { get; set; }
+
+    /// <summary>Die einzelnen Abgleiche als JSON — siehe Kalibrierpunkte.</summary>
+    public string? PointsJson { get; set; }
+
     public decimal? TemperatureC { get; set; }
     public string? Notes { get; set; }
 

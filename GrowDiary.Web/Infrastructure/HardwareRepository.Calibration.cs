@@ -23,14 +23,14 @@ public sealed partial class HardwareRepository
         command.CommandText = """
             INSERT INTO CalibrationEvents (
                 HardwareItemId, CalibrationType, Status, Result, Title,
-                ReferenceSolution, ReferenceValue, BeforeValue, AfterValue, TemperatureC,
+                ReferenceSolution, ReferenceValue, BeforeValue, AfterValue, PointsJson, TemperatureC,
                 DueAtUtc, PerformedAtUtc, NextDueAtUtc,
                 GrowTaskId, Notes,
                 CreatedAtUtc, UpdatedAtUtc
             )
             VALUES (
                 $hardwareItemId, $calibrationType, $status, $result, $title,
-                $referenceSolution, $referenceValue, $beforeValue, $afterValue, $temperatureC,
+                $referenceSolution, $referenceValue, $beforeValue, $afterValue, $pointsJson, $temperatureC,
                 $dueAtUtc, $performedAtUtc, $nextDueAtUtc,
                 $growTaskId, $notes,
                 $createdAtUtc, $updatedAtUtc
@@ -63,6 +63,7 @@ public sealed partial class HardwareRepository
                 ReferenceValue = $referenceValue,
                 BeforeValue = $beforeValue,
                 AfterValue = $afterValue,
+                PointsJson = $pointsJson,
                 TemperatureC = $temperatureC,
                 DueAtUtc = $dueAtUtc,
                 PerformedAtUtc = $performedAtUtc,
@@ -330,6 +331,7 @@ public sealed partial class HardwareRepository
             ReferenceValue = reader["ReferenceValue"] is DBNull or null ? null : Convert.ToDecimal(reader["ReferenceValue"], CultureInfo.InvariantCulture),
             BeforeValue = reader["BeforeValue"] is DBNull or null ? null : Convert.ToDecimal(reader["BeforeValue"], CultureInfo.InvariantCulture),
             AfterValue = reader["AfterValue"] is DBNull or null ? null : Convert.ToDecimal(reader["AfterValue"], CultureInfo.InvariantCulture),
+            PointsJson = HasColumn(reader, "PointsJson") ? NullString(reader["PointsJson"]) : null,
             TemperatureC = reader["TemperatureC"] is DBNull or null ? null : Convert.ToDecimal(reader["TemperatureC"], CultureInfo.InvariantCulture),
             DueAtUtc = ParseStoredUtcDateTime(reader["DueAtUtc"]?.ToString()),
             PerformedAtUtc = ParseStoredUtcDateTime(reader["PerformedAtUtc"]?.ToString()),
@@ -353,6 +355,7 @@ public sealed partial class HardwareRepository
         command.Parameters.AddWithValue("$referenceValue", (object?)item.ReferenceValue ?? DBNull.Value);
         command.Parameters.AddWithValue("$beforeValue", (object?)item.BeforeValue ?? DBNull.Value);
         command.Parameters.AddWithValue("$afterValue", (object?)item.AfterValue ?? DBNull.Value);
+        command.Parameters.AddWithValue("$pointsJson", (object?)item.PointsJson ?? DBNull.Value);
         command.Parameters.AddWithValue("$temperatureC", (object?)item.TemperatureC ?? DBNull.Value);
         command.Parameters.AddWithValue("$dueAtUtc", item.DueAtUtc.HasValue ? ToStorageUtc(item.DueAtUtc.Value) : DBNull.Value);
         command.Parameters.AddWithValue("$performedAtUtc", item.PerformedAtUtc.HasValue ? ToStorageUtc(item.PerformedAtUtc.Value) : DBNull.Value);

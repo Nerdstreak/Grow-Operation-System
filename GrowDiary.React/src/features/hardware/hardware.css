@@ -119,4 +119,25 @@
   .hw-care-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: var(--s-3); }
   .hw-care-check { display: flex; align-items: center; gap: 10px; min-height: 44px; color: var(--muted); font-size: var(--fs-text); }
   .hw-care-check input { width: 18px; height: 18px; }
+
+  /* ---------- Kalibrierpunkte (pH 4 und 7, oft auch 10) ---------- */
+  .hw-punkte { display: grid; gap: var(--s-2); }
+  .hw-punkte-hinweis { margin: 0; color: var(--muted); font-size: var(--fs-klein); line-height: 1.5; }
+
+  /* Eigener Rollbereich: vier Spalten passen auf 320 px nicht nebeneinander,
+     und der Seitenrand darf nie mitwandern. */
+  .hw-punkte-tabelle { width: 100%; border-collapse: collapse; font-size: var(--fs-text); display: block; overflow-x: auto; }
+  .hw-punkte-tabelle thead, .hw-punkte-tabelle tbody { display: table; width: 100%; min-width: 380px; }
+  .hw-punkte-tabelle th, .hw-punkte-tabelle td { padding: 6px 8px; border-bottom: 1px solid var(--hair); text-align: left; }
+  .hw-punkte-tabelle thead th {
+    font: 700 var(--fs-etikett)/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase;
+    color: var(--faint); white-space: nowrap;
+  }
+  .hw-punkte-tabelle input { width: 100%; min-height: var(--h-md); }
+  .hw-punkte-tabelle td input { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  .hw-steilheit { margin: 0; color: var(--muted); font-size: var(--fs-klein); line-height: 1.5; }
+  /* Faellig heisst faellig — aber die Farbe traegt die Aussage nicht allein,
+     der Satz nennt die Zahl und die Faustregel. */
+  .hw-steilheit.is-warn { color: var(--warn-text, var(--text)); font-weight: 600; }
 }
