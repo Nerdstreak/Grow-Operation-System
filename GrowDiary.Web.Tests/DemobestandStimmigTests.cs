@@ -396,27 +396,43 @@ public sealed class DemobestandStimmigTests : IDisposable
     /// Bissnachweis gilt, aber die Prüfung fängt den Fehler nur in einem
     /// Zeitfenster."</para>
     ///
-    /// <para>Hier steht die Entscheidung ohne Uhr — zu jeder Tageszeit gleich.</para>
+    /// <para><b>Und die erste Fassung dieser Prüfung war im Tor rot.</b> Sie
+    /// schrieb die erwarteten Zeitpunkte in UTC aus — gerechnet mit „Ortszeit
+    /// ist UTC+2", weil mein Rechner in MESZ steht. Der Runner läuft in UTC,
+    /// dort kam 07:00 statt 05:00 heraus. Dieselbe Klasse wie „mein Rechner ist
+    /// nicht die Anlage" in CLAUDE.md, nur für die Uhr statt für die Schrift.
+    /// Geprüft werden deshalb die <b>Eigenschaften</b> der Regel, nicht
+    /// ausgerechnete Zeitpunkte — die gelten in jeder Zeitzone.</para>
     /// </remarks>
     [Theory]
-    // Tag lange vorbei: 07:00 dieses Tages, unveraendert.
-    [InlineData("2026-08-25T00:00:00", "2026-09-01T02:18:00", "2026-08-25T05:00:00")]
-    // Heute, aber es ist erst 02:18: 07:00 laege in der Zukunft, also jetzt.
-    [InlineData("2026-09-01T00:00:00", "2026-09-01T02:18:00", "2026-09-01T02:18:00")]
-    // Heute, und es ist schon 09:00: 07:00 ist vorbei und gilt.
-    [InlineData("2026-09-01T00:00:00", "2026-09-01T09:00:00", "2026-09-01T05:00:00")]
-    public void WechselZeitpunkt_LiegtNieInDerZukunft(string tag, string jetzt, string erwartet)
+    // Der Wechseltag liegt lange zurueck: der geplante Zeitpunkt ist laengst
+    // vorbei und gilt unveraendert.
+    [InlineData(-7, 0)]
+    // Heute, und 07:00 Ortszeit ist schon vorbei: gilt ebenfalls.
+    [InlineData(0, 12)]
+    // Heute, aber es ist erst kurz nach Mitternacht: 07:00 laege in der
+    // Zukunft, also gilt jetzt.
+    [InlineData(0, -6)]
+    public void WechselZeitpunkt_LiegtNieInDerZukunft(int tageZurueck, int stundenVersatz)
     {
-        // Ortszeit hier ist MESZ (UTC+2) — dieselbe Umrechnung, die der Bestand
-        // macht. Das Ergebnis steht in UTC.
-        var ergebnis = Demobestand.WechselZeitpunkt(
-            DateTime.Parse(tag, CultureInfo.InvariantCulture),
-            DateTime.Parse(jetzt, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal));
+        var tag = DateTime.Today.AddDays(tageZurueck);
+        // „Jetzt" wird relativ zum geplanten Zeitpunkt gesetzt, nicht als feste
+        // Uhrzeit — sonst haengt der Fall an der Zeitzone des Rechners.
+        var geplant = tag.AddHours(7).ToUniversalTime();
+        var jetzt = geplant.AddHours(stundenVersatz);
 
-        Assert.True(ergebnis <= DateTime.Parse(jetzt, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal),
-            $"Der Zeitpunkt {ergebnis:O} liegt nach {jetzt} — also in der Zukunft.");
-        Assert.Equal(
-            DateTime.Parse(erwartet, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal),
-            ergebnis);
+        var ergebnis = Demobestand.WechselZeitpunkt(tag, jetzt);
+
+        Assert.True(ergebnis <= jetzt,
+            $"Der Zeitpunkt {ergebnis:O} liegt nach {jetzt:O} — also in der Zukunft.");
+
+        if (geplant < jetzt)
+        {
+            Assert.Equal(geplant, ergebnis);
+        }
+        else
+        {
+            Assert.Equal(jetzt, ergebnis);
+        }
     }
 }
