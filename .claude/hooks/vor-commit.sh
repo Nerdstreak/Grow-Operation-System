@@ -19,7 +19,23 @@ except Exception: print('')" 2>/dev/null)"
 # Nur beim echten Commit, nicht bei `git log --grep commit` o.ae.
 printf '%s' "$befehl" | grep -qE '(^|[;&|]|\s)git\s+(-[^ ]+\s+)*commit(\s|$)' || exit 0
 
+# WELCHE DATEIEN. Der Index allein reicht NICHT: dieser Hook laeuft, BEVOR der
+# Befehl ausgefuehrt wird. Bei `git add -A && git commit` in EINEM Aufruf ist zu
+# diesem Zeitpunkt noch nichts vorgemerkt — der Hook sah eine leere Liste und
+# liess den Commit ungeprueft durch. Am 01.09.2026 sind so drei Commits bei
+# rotem CI gelandet; genau das, was dieser Hook verhindern soll.
+#
+# Merkt der Befehl selbst etwas vor (git add, commit -a, commit <pfade>), zaehlt
+# deshalb der ganze Arbeitsbaum.
 vorgemerkt="$(cd "$WURZEL" && git diff --cached --name-only)"
+
+if printf '%s' "$befehl" | grep -qE '(^|[;&|]|\s)git\s+add(\s|$)|commit\s+(-[a-zA-Z]*a|--all)'; then
+  vorgemerkt="$vorgemerkt
+$(cd "$WURZEL" && git status --porcelain | sed 's/^...//' | sed 's/.* -> //')"
+fi
+
+vorgemerkt="$(printf '%s
+' "$vorgemerkt" | grep -v '^$' | sort -u)"
 [ -z "$vorgemerkt" ] && exit 0
 
 # Nur Text? Dann gibt es nichts zu uebersetzen.
