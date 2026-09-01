@@ -5,6 +5,129 @@
 > was sich ändert. Die älteren Einträge darunter sind noch englisch; sie sind
 > Geschichte und werden nicht nachübersetzt.
 
+## 2.0.0-beta.61
+
+**Beta.** Eine Gesamtdurchsicht des Codes — kein neues Feature, sondern
+dreiundzwanzig Fehler, die schon da waren. Die schwersten drei liefen still:
+eine Liste, die immer leer war und an der sieben Stellen hängen; ein Wächter,
+der nur bei einem Pumpenwechsel überhaupt lief; und Fotos, die beim Löschen
+eines Grows nie von der Platte verschwanden.
+
+### Drei Sachen, die nie funktioniert haben
+
+- Behoben — **die Liste der laufenden Grows eines Zelts war immer leer.**
+  Gefüllt wurde sie von genau zwei Bildschirmen von Hand, von der Datenablage
+  nie — und **sieben** Stellen lasen sie. Im Add-on-Betrieb hieß das: die
+  Dosierung rechnete mit dem vollen Beckenvolumen statt mit dem halben und fuhr
+  damit die doppelte Dosis; der Wächter für Lichteinbruch kehrte sofort um,
+  ohne je zu prüfen; die Startseite bekam keinen Grow zugeordnet. Repariert an
+  der Wurzel, nicht an sieben Stellen.
+
+- Behoben — **der Kühler-Wächter lief nur, wenn eine Pumpe an- oder ausging.**
+  Im Normalbetrieb tut sie das nie: beide Pumpen melden seit Stunden „an“. Der
+  Kühler konnte also ausfallen, ohne dass irgendetwas passierte — und im RDWC
+  ist das die Kette, die eine Ernte kostet: Kühler aus, Wassertemperatur
+  steigt, Sauerstoff fällt, Wurzelfäule. Beim Reparieren kam ein zweiter
+  Fehler zum Vorschein, den der erste versteckt hatte: die Entprällung schrieb
+  nie zurück, es hätte eine Push-Nachricht pro Minute gegeben. Und der
+  Merkposten wurde gesetzt, **bevor** gesendet wurde — ein Home Assistant im
+  Neustart verschluckte die Warnung damit endgültig.
+
+- Behoben — **Fotos wurden nie gelöscht.** Der Löschpfad rechnete gegen
+  <code>wwwroot/uploads</code>, gespeichert wird unter dem Datenpfad des
+  Add-ons. Die Datenbankzeile verschwand, die JPEG blieb für immer auf der
+  Platte liegen. Dieselbe Wegrechnung stand zweimal im Code, beide Male falsch;
+  jetzt steht sie einmal da — und der Schutz gegen Pfade, die aus dem
+  Upload-Ordner herausführen, vergleicht bis zur Ordnergrenze statt nur den
+  Namensanfang.
+
+### Zahlen, die verloren gingen
+
+- Behoben — **„21,5“ wurde auf der Ernteseite zu 215.** Die Gewichtsfelder
+  hingen direkt an einer Zahl; das Komma fiel beim Tippen weg. Wer das
+  Nassgewicht einer Pflanze eintrug, bekam den zehnfachen Ertrag in die
+  Bilanz.
+
+- Behoben — **die Summen darunter standen englisch.** „21.5 g“ direkt unter
+  einem Feld, in dem „21,5“ steht. Dasselbe in drei Formularen, die Werte aus
+  Home Assistant vorbefüllten: „5.82“ und „19.2“ unter der Zeile „Aus Home
+  Assistant vorbefüllt“.
+
+- Behoben — **den Haken „Aktiv“ bei einem Grenzwert abzuwählen löschte ihn.**
+  Die Seite schickte nur die angehakten Zeilen, der Server ersetzt beim
+  Speichern den ganzen Satz. Es kam „gespeichert“, die Zahlen standen weiter
+  im Formular — und waren beim nächsten Aufruf weg. „Aktiv“ heißt jetzt
+  **pausiert**.
+
+- Behoben — **Erntegewichte je Pflanze gingen still verloren**, wenn die Ernte
+  über den Abschluss-Weg gespeichert wurde. Die Summe stand da, die Zeilen je
+  Pflanze waren leer.
+
+### Ein Zielband je Messgröße
+
+Vier Auskunftsstellen über denselben Messwert nebeneinander auf dem Schirm —
+das ist in diesem Projekt schon dreimal passiert und jetzt an der Wurzel
+behoben: Profil, Phase, Feedchart, eigene Grenzen stehen als **eine** Kette da,
+und alle fragen sie.
+
+- Behoben — **die Wochen-Ziele des Feedcharts galten nur auf der Live-Kachel.**
+  Bei Athena Blended in Blütewoche 4 nennt das Chart EC 2,6, das Profil 1,0–1,2.
+  Bei gemessenem EC 2,60 sagte die Kachel „im Ziel“ und das Messprotokoll
+  derselben Messung „weit über dem Ziel“.
+
+- Behoben — **ORP hatte vier Zielbänder.** Bei 470 mV in der Blüte schrieb die
+  Kachel „daneben, Ziel 400–450“ und zog zehn Punkte vom Score ab; die Diagnose
+  fand nichts.
+
+- Behoben — **pH maß auf der Kachel am Anmischziel, in der Diagnose an der
+  Komfortzone.** Bei pH 5,85 und Profil 5,90–6,00 hieß es links „daneben“ und
+  rechts „im Ziel“. Wer nur **eine** der beiden Grenzen eintrug, verlor
+  außerdem die ganze Komfortzone — die Diagnose meldete dann „zu niedrig“ für
+  Werte, die die Kachel „im Ziel“ nannte. Eigene Grenzen gelten jetzt je
+  Grenze.
+
+- Behoben — **eine eigene Wassertemperatur-Grenze wirkte nur nach unten.** Bei
+  einer Regel 15–20 °C beurteilte das Messprotokoll 21 °C als „im Ziel“ und
+  nannte 15–22, während die Kachel daneben 15–20 zeigte. Die Kachel zeigt jetzt
+  denselben Arbeitsbereich wie Protokoll und Diagnose statt des Tag/Nacht-Paars
+  aus dem Profil — das ist in der Wachstumsphase null breit, 19,7 und 20,3
+  standen beide rot.
+
+### Stille Fehler an den Rändern
+
+- Behoben — **ein Erntedatum in der Zukunft legte die Reservoir-Alarme still.**
+  Ein Vertipper um ein Jahr genügte: die App schaltete auf Trocknungsziele um,
+  während der Grow noch lief.
+
+- Behoben — **der gelernte Lichtzyklus kippte um zwölf Stunden**, wenn das
+  Licht um Mitternacht ausgeht — bei 12/12 der Normalfall.
+
+- Behoben — **„Verbrauch eingebrochen“ sah den Einbruch auf 0 L nicht.** Ein
+  Rückgang auf die Hälfte wurde gemeldet, drei Tage ohne jeden Verbrauch nicht
+  — dabei ist das der Fall, der ein Wurzelproblem anzeigt.
+
+- Behoben — **die Mischpause fiel an der Tagesgrenze aus.** Die Automatik
+  dosierte um 23:55 und um 00:01 erneut.
+
+- Behoben — **vertauschte Grenzwerte** (Untergrenze über Obergrenze) nahm der
+  Server an und antwortete mit „OK“; die Regel hätte danach dauerhaft gewarnt.
+  Die Ablehnung trägt jetzt dieselbe Form wie jede andere Fehlermeldung der App
+  — vorher bekam der Nutzer nur den englischen Rückfalltext mit der nackten Statusnummer 400.
+
+### Und warum das so lange niemand gesehen hat
+
+Die Seitenliste, gegen die alle Oberflächen-Prüfungen laufen, war
+handgeschrieben. **Sieben Seiten hat nie eine Prüfung geöffnet**, darunter vier
+Formulare — deshalb standen die englischen Zahlen auf der Ernteseite
+monatelang da. Die Liste zählt jetzt die Seiten der App ab; die sieben
+aufgenommenen brachten sofort zwei weitere Fehler mit (unlesbare Schrittzahlen
+im hellen Thema, die vorbefüllten Punktzahlen). Und die Zahlen-Prüfung liest
+jetzt auch, was **in** den Eingabefeldern steht — dort saß der Fehler.
+
+Die Testabdeckung ist zum ersten Mal ehrlich gemessen: Backend 71,8 % der
+Zeilen, Oberfläche 47,4 %. Das ist ein Anfang und keine Lösung — 69 Klassen
+laufen weiterhin in keinem Test.
+
 ## 2.0.0-beta.60
 
 **Beta.** Zwei Meldungen des Testers, und beide gingen tiefer als sie klangen:
