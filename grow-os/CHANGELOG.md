@@ -5,6 +5,82 @@
 > was sich ändert. Die älteren Einträge darunter sind noch englisch; sie sind
 > Geschichte und werden nicht nachübersetzt.
 
+## 2.0.0-beta.62
+
+**Beta.** Vier Fehler, die es <b>nur im Add-on</b> gibt — auf einem
+Entwicklungsrechner können sie gar nicht auftreten. Der schwerste: <b>jede
+Sicherung war beim nächsten Update weg</b>.
+
+### /app ist nicht /data
+
+Das Add-on läuft als Container: das Programm liegt unter <code>/app</code>, die
+Daten unter <code>/data</code>. Nur <code>/data</code> überlebt ein Update und
+liegt in den Sicherungen von Home Assistant. Zehn Stellen im Code rechneten den
+Datenpfad aber aus dem <i>Programm</i>pfad aus — auf einem gewöhnlichen Rechner
+ist das derselbe Ordner, hier nicht.
+
+- Behoben — **die Sicherungen landeten im Container statt auf dem Datenträger.**
+  Jede Sicherung lag in der Schreibschicht des Containers und war beim nächsten
+  Add-on-Update gelöscht, ohne eine Meldung. Das galt auch für die
+  Sicherheitskopie, die vor jedem Import angelegt wird — also für genau den
+  Rückweg, den man braucht, wenn ein Import schiefgeht.
+
+  <b>Bestehende Sicherungen sind davon nicht betroffen</b>, solange das Add-on
+  seither nicht aktualisiert wurde; neue liegen ab jetzt richtig. Wer sichergehen
+  will, lädt seine wichtigen Sicherungen einmal herunter und legt danach eine
+  neue an.
+
+- Behoben — **das Kamerabild im Zelt-Bildschirm gab immer 404.** Geschrieben
+  wurde es nach <code>/data/snapshots</code>, gelesen aus
+  <code>/app/App_Data/snapshots</code>. Der Rückfall auf das zuletzt
+  gespeicherte Bild stand deshalb dauerhaft leer.
+
+- Behoben — **die hinterlegte Home-Assistant-Konfiguration** wurde an einer
+  Stelle gesucht, an der sie nicht liegt.
+
+Dieselbe Klasse wie die Fotos, die bis beta.61 nie von der Platte verschwanden.
+Die Wege stehen jetzt an <b>einer</b> Stelle, und eine Zählung hält das.
+
+### Die Suche zeigte auf jedem Gerät andere Treffer
+
+- Behoben — **das Wissen kam in der Reihenfolge des Dateisystems.** Die Suche
+  zeigt höchstens fünf Treffer je Art. Welche fünf, entschied damit der
+  Dateizugriff der jeweiligen Maschine: bei 13 Regeln, die „wasser“ enthalten,
+  sah man fünf davon — und ein vorhandener Eintrag war schlicht nicht
+  auffindbar, ohne dass man hätte sagen können warum. Geladen wird jetzt nach
+  Kennung sortiert; die Wissensseite listet dadurch ebenfalls in fester
+  Reihenfolge.
+
+### Doppelte Aufgaben bei Kalibrierung und Wartung
+
+- Behoben — **beim Anlegen einer Kalibrierung oder Wartung ging die
+  Verknüpfung zur Aufgabe verloren.** Die App legt in dem Fall selbst eine
+  Erinnerung an — neben der, die schon mitgegeben war. Es entstanden also
+  jedes Mal zwei. Beim <i>Bearbeiten</i> wurde die Verknüpfung korrekt
+  übernommen, nur beim Anlegen nicht.
+
+- Behoben — **der Kalibrier-Assistent riet mitten im Lauf „bitte neu
+  starten“.** Wer zu früh auf „voll“ drückte, bekam dieselbe Meldung wie
+  jemand ohne offenen Lauf. Der schlechteste aller Ratschläge: sein Lauf war in
+  Ordnung, er musste nur warten. Jetzt steht dort, worauf gewartet wird.
+
+### Was diese Fehler gefunden hat
+
+Zwei neue Zählungen, beide über eine <b>Grundmenge</b> statt über eine
+handgeschriebene Liste:
+
+- <b>Kein Mapping lässt ein Feld fallen.</b> Ein vergessenes Feld ist eine
+  Zeile, die es <i>nicht gibt</i> — Testabdeckung kann diese Klasse Fehler
+  grundsätzlich nicht sehen. Die Zählung füllt jede Quelle mit
+  unterscheidbaren Werten und vergleicht 879 Feldpaare. Sie hat die doppelten
+  Aufgaben oben gefunden.
+- <b>Niemand rechnet sich den Datenpfad selbst aus.</b> Ein Fehler, den kein
+  gewöhnlicher Test fangen kann, weil dort beide Wege zusammenfallen.
+
+Dazu neun Fälle für den Kalibrier-Assistenten, der die Gerade schreibt, aus der
+jeder spätere Füllstand und damit die Dosiermenge folgt — er stand bei null
+geprüften Zeilen. Und zwei Prüfungen, die von der Uhrzeit des Laufs abhingen.
+
 ## 2.0.0-beta.61
 
 **Beta.** Eine Gesamtdurchsicht des Codes — kein neues Feature, sondern
