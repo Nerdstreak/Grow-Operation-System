@@ -543,7 +543,7 @@ public sealed class TentRepository : RepositoryBase
             MetricKey = reader["MetricKey"]?.ToString() ?? string.Empty,
             Value = Convert.ToDouble(reader["Value"], CultureInfo.InvariantCulture),
             Unit = NullString(reader["Unit"]),
-            CapturedAtUtc = ParseStoredUtcDateTime(reader["CapturedAtUtc"]?.ToString()) ?? DateTime.UtcNow
+            CapturedAtUtc = ParseStoredDateTime(reader["CapturedAtUtc"]?.ToString()) ?? DateTime.UtcNow
         };
     }
 

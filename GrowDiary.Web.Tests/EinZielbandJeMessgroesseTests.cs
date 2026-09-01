@@ -2,6 +2,7 @@ using GrowDiary.Web.Infrastructure;
 using GrowDiary.Web.Models;
 using GrowDiary.Web.Services;
 using GrowDiary.Web.Services.Knowledge;
+using GrowDiary.Web.Services.Knowledge.Schema;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GrowDiary.Web.Tests;
@@ -154,10 +155,7 @@ public sealed class EinZielbandJeMessgroesseTests : IDisposable
         var wissen = new KnowledgeBaseLoader(new AppPaths(_wurzel), NullLogger<KnowledgeBaseLoader>.Instance);
         wissen.Initialize();
 
-        var programm = wissen.NutrientPrograms.FirstOrDefault();
-        Assert.True(programm is not null, "Kein Duengerprogramm im Wissen — der Fall prueft nichts.");
-
-        grow.FeedProgramId = programm!.Id;
+        grow.FeedProgramId = ProgrammMitBlueteChart(wissen);
         grow.UseFeedChartTargets = false;
         var ohne = GrowDiary.Web.Services.Zielband.FuerGrow(_ziele, wissen, grow, GrowStage.Flower, null, null);
 
@@ -273,9 +271,7 @@ public sealed class EinZielbandJeMessgroesseTests : IDisposable
         var wissen = new KnowledgeBaseLoader(new AppPaths(_wurzel), NullLogger<KnowledgeBaseLoader>.Instance);
         wissen.Initialize();
 
-        var programm = wissen.NutrientPrograms.FirstOrDefault();
-        Assert.True(programm is not null, "Kein Duengerprogramm im Wissen — der Fall prueft nichts.");
-        grow.FeedProgramId = programm!.Id;
+        grow.FeedProgramId = ProgrammMitBlueteChart(wissen);
 
         grow.UseFeedChartTargets = false;
         var ohne = Zielband.FuerGrow(_ziele, wissen, grow, GrowStage.Flower, null, null);
@@ -358,6 +354,106 @@ public sealed class EinZielbandJeMessgroesseTests : IDisposable
             },
         ]);
         return regeln;
+    }
+
+    /// <summary>
+    /// Ein Düngerprogramm, dessen Feedchart die Blüte überhaupt kennt.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Hier stand
+    /// <c>NutrientPrograms.FirstOrDefault()</c>. Es gibt <b>drei</b>
+    /// Programme — <c>athena-blended</c>, <c>canna-aqua</c>,
+    /// <c>hydro-research-vbx</c> — und nur athena hat Blüte-Spalten im
+    /// Chart. Welches zuerst kommt, entscheidet
+    /// <c>Directory.EnumerateFiles</c>, und das ist keine Zusage:
+    /// unter Windows praktisch alphabetisch, unter Linux nicht.</para>
+    ///
+    /// <para>Der Test war deshalb hier grün und im Tor <b>rot</b> — dort kam
+    /// ein Programm ohne Blüte-Spalten zuerst, <c>SpalteFuer</c> gab
+    /// <c>null</c> zurück, und mit wie ohne Schalter kam dasselbe Band heraus.
+    /// Dieselbe Klasse wie „mein Rechner ist nicht die Anlage": das Add-on
+    /// läuft im Linux-Container.</para>
+    ///
+    /// <para>Gewählt wird jetzt nach dem, worauf es ankommt — ein Chart mit
+    /// Blüte-Spalten — und nicht nach der Stelle in einer Aufzählung. Gibt es
+    /// keins, sagt der Wächter das, statt still grün zu sein.</para>
+    /// </remarks>
+    private static string ProgrammMitBlueteChart(KnowledgeBaseLoader wissen)
+    {
+        var programme = wissen.NutrientPrograms;
+
+        // Mengenwaechter: ohne Programme prueft der Fall nichts.
+        Assert.True(programme.Count > 0, "Kein Duengerprogramm im Wissen — der Fall prueft nichts.");
+
+        var passend = MitBlueteChart(programme);
+
+        Assert.True(passend is not null,
+            $"Keines der {programme.Count} Duengerprogramme hat Wochen-Spalten fuer die Bluete "
+            + $"({string.Join(", ", programme.Select(p => p.Id))}). Dann kann der Schalter fuer die "
+            + "Wochen-Ziele gar nichts bewirken, und dieser Fall prueft nichts.");
+
+        return passend!.Id;
+    }
+
+    /// <summary>Die Wahl selbst — als reine Funktion, damit sie prüfbar ist.</summary>
+    internal static NutrientProgramDefinition? MitBlueteChart(
+        IEnumerable<NutrientProgramDefinition> programme)
+        => programme.FirstOrDefault(p =>
+            p.FeedChart is { } chart
+            && chart.Columns.Any(c =>
+                string.Equals(c.Stage, "Flower", StringComparison.OrdinalIgnoreCase) && c.Week is not null));
+
+    /// <summary>
+    /// Die Wahl überlebt eine andere Dateireihenfolge — und die alte nicht.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Bissnachweis zum CI-Ausfall vom 01.09.2026.</b> Zwei Fälle
+    /// dieser Datei waren hier grün und auf dem Linux-Runner rot. Die Ursache
+    /// war <c>NutrientPrograms.FirstOrDefault()</c>: von den drei Programmen
+    /// hat nur <c>athena</c> Blüte-Spalten, und welches zuerst kommt,
+    /// entscheidet <c>Directory.EnumerateFiles</c> — unter Windows praktisch
+    /// alphabetisch, unter Linux nicht.</para>
+    ///
+    /// <para>Dieser Fall dreht die Reihenfolge <b>um</b> und zeigt beides: die
+    /// neue Wahl liefert weiter ein taugliches Programm, die alte läge daneben.
+    /// Ohne den zweiten Teil wäre nicht belegt, dass die Umkehrung den Fehler
+    /// überhaupt auslöst — dann prüfte dieser Fall nichts.</para>
+    /// </remarks>
+    [Fact]
+    public void DieProgrammwahl_HaengtNichtAnDerDateireihenfolge()
+    {
+        var wissen = new KnowledgeBaseLoader(new AppPaths(_wurzel), NullLogger<KnowledgeBaseLoader>.Instance);
+        wissen.Initialize();
+        var programme = wissen.NutrientPrograms;
+
+        Assert.True(programme.Count >= 2,
+            $"Nur {programme.Count} Duengerprogramm(e) — mit einem einzigen kann eine "
+            + "Reihenfolge nichts kaputt machen, und dieser Fall prueft nichts.");
+
+        var vorwaerts = MitBlueteChart(programme);
+        var rueckwaerts = MitBlueteChart(programme.Reverse());
+
+        Assert.True(vorwaerts is not null && rueckwaerts is not null,
+            "In einer der beiden Richtungen wurde gar kein Programm gefunden.");
+        Assert.True(vorwaerts!.Id == rueckwaerts!.Id,
+            $"Vorwaerts kommt {vorwaerts.Id} heraus, rueckwaerts {rueckwaerts.Id} — die Wahl "
+            + "haengt weiter an der Reihenfolge, in der die Dateien gelesen wurden.");
+
+        // Und der Nachweis, dass die Umkehrung den alten Fehler wirklich
+        // ausloest: die ALTE Wahl (schlicht der erste Eintrag) liefert
+        // rueckwaerts ein anderes Programm. Ohne diesen Teil waere oben nicht
+        // belegt, dass ueberhaupt etwas auf dem Spiel steht.
+        var alteWahlVorwaerts = programme[0];
+        var alteWahlRueckwaerts = programme.Reverse().First();
+        Assert.True(alteWahlVorwaerts.Id != alteWahlRueckwaerts.Id,
+            "Vorwaerts und rueckwaerts steht dasselbe Programm vorn — dann zeigt die "
+            + "Umkehrung den Fehler gar nicht, den dieser Fall belegen soll.");
+        Assert.True(
+            MitBlueteChart(new[] { alteWahlRueckwaerts })?.Id != alteWahlRueckwaerts.Id
+            || MitBlueteChart(new[] { alteWahlVorwaerts })?.Id != alteWahlVorwaerts.Id,
+            $"Sowohl {alteWahlVorwaerts.Id} als auch {alteWahlRueckwaerts.Id} haben "
+            + "Bluete-Spalten — dann waere die alte Wahl in beiden Richtungen tauglich "
+            + "gewesen, und der CI-Ausfall haette eine andere Ursache gehabt.");
     }
 
     private GrowRun BlueteGrow()
