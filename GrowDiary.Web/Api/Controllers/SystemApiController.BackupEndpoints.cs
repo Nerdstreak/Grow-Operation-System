@@ -214,7 +214,7 @@ public sealed partial class SystemApiController
     [ProducesResponseType(typeof(BackupManifestDto), StatusCodes.Status201Created)]
     public ActionResult<BackupManifestDto> CreateBackup()
     {
-        var backupRoot = Path.Combine(_paths.ContentRootPath, "App_Data", "backups");
+        var backupRoot = _paths.BackupsPath;
         Directory.CreateDirectory(backupRoot);
 
         var fileName = CreateUniqueBackupFileName(backupRoot);
@@ -230,7 +230,7 @@ public sealed partial class SystemApiController
             AddIfExists(archive, _paths.DatabasePath + "-wal", "App_Data/grow-diary.db-wal");
             AddIfExists(archive, _paths.DatabasePath + "-shm", "App_Data/grow-diary.db-shm");
 
-            var knowledgeRoot = Path.Combine(_paths.ContentRootPath, "App_Data", "knowledge");
+            var knowledgeRoot = _paths.KnowledgeDataPath;
             if (Directory.Exists(knowledgeRoot))
             {
                 foreach (var file in Directory.EnumerateFiles(knowledgeRoot, "*", SearchOption.AllDirectories))
@@ -250,7 +250,7 @@ public sealed partial class SystemApiController
             SizeBytes: info.Length,
             IncludesDatabase: System.IO.File.Exists(_paths.DatabasePath),
             IncludesWal: System.IO.File.Exists(_paths.DatabasePath + "-wal"),
-            IncludesKnowledgeRuntimeCopy: Directory.Exists(Path.Combine(_paths.ContentRootPath, "App_Data", "knowledge")),
+            IncludesKnowledgeRuntimeCopy: Directory.Exists(_paths.KnowledgeDataPath),
             ExcludesSecrets: true,
             ExcludesHomeAssistantConfig: true,
             ExcludesDataProtectionKeys: true,
@@ -317,7 +317,7 @@ public sealed partial class SystemApiController
 
         var restoreId = Guid.NewGuid().ToString("N");
         var tempRoot = Path.Combine(Path.GetTempPath(), "GrowOSRestore_" + restoreId);
-        var rollbackRoot = Path.Combine(_paths.ContentRootPath, "App_Data", "restore-rollback-" + restoreId);
+        var rollbackRoot = Path.Combine(_paths.DataRootPath, "restore-rollback-" + restoreId);
         var restoredKnowledgeFiles = new List<string>();
         var warnings = new List<string>(plan.Warnings);
 
@@ -352,7 +352,7 @@ public sealed partial class SystemApiController
             var extractedKnowledgeRoot = Path.Combine(tempRoot, "App_Data", "knowledge");
             if (Directory.Exists(extractedKnowledgeRoot))
             {
-                var targetKnowledgeRoot = Path.Combine(_paths.ContentRootPath, "App_Data", "knowledge");
+                var targetKnowledgeRoot = _paths.KnowledgeDataPath;
                 RestoreDirectoryWithRollback(extractedKnowledgeRoot, targetKnowledgeRoot, rollbackRoot, "knowledge");
                 restoredKnowledgeFiles.AddRange(
                     Directory.EnumerateFiles(extractedKnowledgeRoot, "*", SearchOption.AllDirectories)

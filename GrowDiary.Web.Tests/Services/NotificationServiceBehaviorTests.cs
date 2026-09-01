@@ -125,12 +125,18 @@ public sealed class NotificationServiceBehaviorTests : IDisposable
     [Fact]
     public async Task Send_DuringQuietHours_DoesNotCallHa()
     {
-        // Quiet window that always covers "now".
+        /* Ein ZWEI Stunden breites Fenster ab der aktuellen Stunde.
+           Vorher war es eine Stunde breit — und der Dienst liest die Uhr ein
+           zweites Mal (NotificationService.SendAsync ruft
+           settings.IsQuietHour(DateTime.Now.Hour)). Springt die Stunde zwischen
+           den beiden Ablesungen um, deckt das Fenster "jetzt" nicht mehr, und
+           der Fall faellt durch — einmal pro Stunde, ohne dass sich am Code
+           etwas geaendert haette. Mit zwei Stunden ueberlebt er den Sprung. */
         var nowHour = DateTime.Now.Hour;
         SaveSettings(s =>
         {
             s.QuietHoursStartHour = nowHour;
-            s.QuietHoursEndHour = (nowHour + 1) % 24;
+            s.QuietHoursEndHour = (nowHour + 2) % 24;
         });
         var handler = OkHandler();
 

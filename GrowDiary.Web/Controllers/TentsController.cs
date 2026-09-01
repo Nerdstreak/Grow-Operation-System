@@ -179,7 +179,7 @@ public sealed class TentsController : Controller
     [HttpGet("{id:int}/latest-snapshot")]
     public IActionResult LatestSnapshot(int id)
     {
-        var snapshotDir = Path.Combine(_paths.ContentRootPath, "App_Data", "snapshots", id.ToString());
+        var snapshotDir = Path.Combine(_paths.SnapshotsPath, id.ToString());
         if (!Directory.Exists(snapshotDir))
         {
             return NotFound();

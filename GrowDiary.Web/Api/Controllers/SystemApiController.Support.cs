@@ -35,7 +35,7 @@ public sealed partial class SystemApiController
 
     private string? ResolveBackupPath(string fileName)
     {
-        var backupRoot = Path.Combine(_paths.ContentRootPath, "App_Data", "backups");
+        var backupRoot = _paths.BackupsPath;
         var backupPath = Path.Combine(backupRoot, fileName);
         var fullRoot = Path.GetFullPath(backupRoot);
         var fullPath = Path.GetFullPath(backupPath);

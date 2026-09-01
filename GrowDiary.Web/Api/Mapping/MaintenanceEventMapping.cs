@@ -35,6 +35,10 @@ public static class MaintenanceEventMapping
         PerformedAtUtc = request.PerformedAtUtc,
         NextDueAtUtc = request.NextDueAtUtc,
         SopInstanceId = request.SopInstanceId,
+        // Wie bei der Kalibrierung: stand im Vertrag, wurde beim ANLEGEN nicht
+        // uebernommen — und die Ablage legte deshalb neben der mitgegebenen
+        // Aufgabe jedes Mal eine zweite an.
+        GrowTaskId = request.GrowTaskId,
         Notes = NormalizeOptional(request.Notes)
     };
 

@@ -347,7 +347,7 @@ public sealed partial class GrowExportsApiController
     {
         try
         {
-            var backupRoot = Path.Combine(_paths.ContentRootPath, "App_Data", "backups");
+            var backupRoot = _paths.BackupsPath;
             Directory.CreateDirectory(backupRoot);
             var fileName = CreateUniqueImportSafetyBackupFileName(backupRoot);
             var backupPath = Path.Combine(backupRoot, fileName);

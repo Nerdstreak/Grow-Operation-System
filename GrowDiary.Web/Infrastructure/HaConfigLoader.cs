@@ -14,7 +14,7 @@ public static class HaConfigLoader
             return;
         }
 
-        var configPath = Path.Combine(paths.ContentRootPath, "App_Data", "ha-config.json");
+        var configPath = paths.HaConfigPath;
         if (!File.Exists(configPath)) return;
 
         using var stream = File.OpenRead(configPath);

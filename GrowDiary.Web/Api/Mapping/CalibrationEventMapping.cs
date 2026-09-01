@@ -41,6 +41,11 @@ public static class CalibrationEventMapping
         DueAtUtc = request.DueAtUtc,
         PerformedAtUtc = request.PerformedAtUtc,
         NextDueAtUtc = request.NextDueAtUtc,
+        // Die Verknuepfung zur Aufgabe: sie stand im Vertrag, wurde beim
+        // ANLEGEN aber nicht uebernommen (beim Bearbeiten schon). Die Ablage
+        // rechnet mit `GrowTaskId ??= NeueErinnerung()` — ohne diese Zeile
+        // entstand jedes Mal eine ZWEITE Aufgabe neben der mitgegebenen.
+        GrowTaskId = request.GrowTaskId,
         Notes = NormalizeOptional(request.Notes)
     };
 

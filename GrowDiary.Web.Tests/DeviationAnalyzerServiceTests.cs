@@ -349,7 +349,11 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
         latest.Id = 10;
         latest.Source = ValueOrigin.HomeAssistant;
         latest.ReservoirPh = 6.4;
-        latest.TakenAt = DateTime.UtcNow;
+        // ORTSZEIT: TakenAt meint die Uhr des Nutzers. Mit DateTime.UtcNow laege
+        // die Messung in einer Zeitzone westlich von Greenwich in der ZUKUNFT,
+        // und die Analyse schliesst solche Zeilen aus — hier (UTC+2) und im Tor
+        // (UTC) faellt das nicht auf.
+        latest.TakenAt = DateTime.Now;
         var previous = CreateMeasurement(GrowStage.Veg);
         previous.Id = 9;
         previous.Source = ValueOrigin.Manual;

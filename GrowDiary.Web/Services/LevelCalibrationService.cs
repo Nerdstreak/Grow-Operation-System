@@ -202,9 +202,21 @@ public sealed class LevelCalibrationService
 
         lock (_lock)
         {
-            if (!_sessions.TryGetValue(systemId, out var session) || session.EmptyRaw is not { } leer)
+            if (!_sessions.TryGetValue(systemId, out var session))
             {
                 return "Kein Kalibrierlauf offen — bitte neu starten.";
+            }
+
+            /* Zwei verschiedene Lagen, zwei verschiedene Saetze.
+               Bis zum 01.09.2026 stand hier eine Bedingung fuer beides, und wer
+               mitten im Lauf zu frueh auf "voll" drueckte, las "bitte neu
+               starten" — der schlechteste aller Rate: sein Lauf ist in Ordnung,
+               er muss nur warten, bis der Nullpunkt steht. Wer wirklich neu
+               startet, faengt das Fuellen von vorn an. */
+            if (session.EmptyRaw is not { } leer)
+            {
+                return "Der Nullpunkt steht noch nicht — das leere System muss erst "
+                       + "15 Sekunden ruhig sein. Umwaelzpumpe an lassen und kurz warten.";
             }
 
             var voll = LevelStability.StableValue(session.Samples, DateTime.UtcNow, LevelStability.FullSeconds);

@@ -25,7 +25,32 @@ public sealed class AppPaths
         KnowledgeDataPath = Path.Combine(DataRootPath, "knowledge");
 
         KnowledgeDefaultsPath = Path.Combine(contentRootPath, "wwwroot", "knowledge-defaults");
+
+        BackupsPath = Path.Combine(DataRootPath, "backups");
+        HaConfigPath = Path.Combine(DataRootPath, "ha-config.json");
     }
+
+    /// <summary>Der Ordner, in dem die Sicherungen liegen.</summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Sechs Stellen rechneten
+    /// <c>ContentRootPath/App_Data/backups</c> von Hand aus — auf diesem
+    /// Rechner derselbe Ordner wie <see cref="DataRootPath"/>, im Add-on
+    /// <b>nicht</b>: dort ist ContentRoot <c>/app</c> und DataRoot
+    /// <c>/data</c>. Nur <c>/data</c> ist als Volume deklariert und in den
+    /// Sicherungen von Home Assistant enthalten.</para>
+    ///
+    /// <para><b>Was das kostete.</b> Jede Sicherung landete in der
+    /// Schreibschicht des Containers und war beim nächsten Add-on-Update weg
+    /// — ohne eine Meldung. Auch die Sicherheitskopie, die vor einem Import
+    /// angelegt wird: der Rückweg, wenn der Import schiefgeht.</para>
+    ///
+    /// <para>Dieselbe Klasse wie bei den Fotos, die deshalb nie gelöscht
+    /// wurden. Gehalten von <c>KeinPfadWirdVonHandGebautTests</c>.</para>
+    /// </remarks>
+    public string BackupsPath { get; }
+
+    /// <summary>Die hinterlegte Home-Assistant-Konfiguration.</summary>
+    public string HaConfigPath { get; }
 
     public string ContentRootPath { get; }
 

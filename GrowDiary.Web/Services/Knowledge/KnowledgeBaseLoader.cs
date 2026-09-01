@@ -216,7 +216,21 @@ public sealed class KnowledgeBaseLoader
         var results = new List<T>();
         var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var file in Directory.EnumerateFiles(categoryPath, "*.json", SearchOption.TopDirectoryOnly))
+        /* SORTIERT einlesen.
+           `Directory.EnumerateFiles` sagt ueber die Reihenfolge nichts zu:
+           unter Windows/NTFS ist sie praktisch alphabetisch, unter Linux/ext4
+           eine Hash-Reihenfolge — und das Add-on laeuft im Linux-Container.
+           Die Liste hier erbt jeder Verbraucher: die Wissensseite zeigt sie so
+           an, und die Suche schneidet mit `.Take(5)` ab. Bei 13 Regeln, die
+           "wasser" enthalten, entscheidet die Dateireihenfolge also, WELCHE
+           fuenf der Nutzer sieht — und damit, ob er einen Eintrag ueberhaupt
+           findet. Auf meinem Rechner andere als auf seinem.
+           Am 01.09.2026 hat dieselbe Ursache zwei Tests im Tor rot gemacht:
+           dort kam ein Duengerprogramm ohne Bluete-Chart zuerst. */
+        var dateien = Directory.EnumerateFiles(categoryPath, "*.json", SearchOption.TopDirectoryOnly)
+            .OrderBy(Path.GetFileName, StringComparer.Ordinal);
+
+        foreach (var file in dateien)
         {
             try
             {
@@ -262,6 +276,8 @@ public sealed class KnowledgeBaseLoader
             }
         }
 
-        return results.AsReadOnly();
+        // Nach der Kennung, nicht nach dem Dateinamen: die Kennung steht IM
+        // Inhalt und ist das, was Oberflaeche und Suche zeigen.
+        return results.OrderBy(item => item.Id, StringComparer.Ordinal).ToList().AsReadOnly();
     }
 }

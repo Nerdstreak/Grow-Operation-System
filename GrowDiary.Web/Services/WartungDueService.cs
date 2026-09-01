@@ -81,7 +81,7 @@ public sealed class WartungDueService
     /// </remarks>
     public DateTime? LetzteSicherung()
     {
-        var ordner = Path.Combine(_paths.ContentRootPath, "App_Data", "backups");
+        var ordner = _paths.BackupsPath;
         if (!Directory.Exists(ordner)) return null;
 
         DateTime? neueste = null;
