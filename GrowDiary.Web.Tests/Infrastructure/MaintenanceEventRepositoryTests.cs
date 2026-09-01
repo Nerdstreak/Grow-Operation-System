@@ -136,7 +136,8 @@ public sealed class MaintenanceEventRepositoryTests : IDisposable
         Assert.NotNull(created.GrowTaskId);
         var task = taskRepo.Get(created.GrowTaskId!.Value)!;
         Assert.Equal(growId, task.GrowId);
-        Assert.Equal("Wartung: USV Akku - USV-Test", task.Title);
+        // Gedankenstrich, kein Bindestrich — siehe CalibrationEventRepositoryTests.
+        Assert.Equal("Wartung: USV Akku — USV-Test", task.Title);
         Assert.Equal(TaskPriority.High, task.Priority);
         Assert.Equal(GrowTaskStatus.Open, task.Status);
         Assert.Equal(dueAt, task.DueAtUtc);

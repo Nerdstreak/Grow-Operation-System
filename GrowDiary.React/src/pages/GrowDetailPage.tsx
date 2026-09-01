@@ -224,6 +224,7 @@ function GrowDetailPage() {
               weiter unten „4x Gorilla Glue" schrieb. Gefunden vom Pruefer. */}
           <V1Stat
             label="Sorte"
+            wortwert
             value={sortenText({ strain: grow.strain, pflanzenSorten }) ?? '—'}
             hint={sortenAufzaehlung({ pflanzenSorten })
               ?? ([zuechterPasst({ strain: grow.strain, pflanzenSorten, nurHauptsorte: grow.nurHauptsorte }) ? grow.breeder : null,

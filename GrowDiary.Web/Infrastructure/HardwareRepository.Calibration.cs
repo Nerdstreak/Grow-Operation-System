@@ -308,7 +308,7 @@ public sealed partial class HardwareRepository
             SELECT last_insert_rowid();
         """;
         command.Parameters.AddWithValue("$growId", hardware.GrowId.Value);
-        command.Parameters.AddWithValue("$title", $"Kalibrierung: {hardware.Name} - {item.Title}");
+        command.Parameters.AddWithValue("$title", $"Kalibrierung: {hardware.Name} — {item.Title}");
         command.Parameters.AddWithValue("$notes", (object?)item.Notes ?? DBNull.Value);
         command.Parameters.AddWithValue("$dueAtUtc", ToStorageUtc(item.DueAtUtc.Value));
         command.Parameters.AddWithValue("$priority", ToMaintenanceTaskPriority(hardware.Criticality).ToString());

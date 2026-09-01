@@ -89,6 +89,15 @@
     letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
     /* Eine Ueberschrift schrumpft nicht unter ihren eigenen Text. */
     flex: 0 0 auto;
+    /* Aber auch nicht ueber die Zeile hinaus.
+       Ohne diese Zeile blieb ein Flex-Kind bei `min-width: auto` auf seiner
+       Inhaltsbreite stehen: auf /handy war „Warum nicht einfach die Adresse
+       aus der Adresszeile" bei 360 px 426 px breit und lief 95 px ueber den
+       Kasten. Die SEITE rollte dabei nicht — `.v1-section { overflow: hidden }`
+       hat den Text einfach abgeschnitten, weshalb handy-zuschnitt.spec.ts
+       gruen blieb. Mit max-width geht die Ueberschrift dank flex-wrap auf eine
+       eigene Zeile und bricht dort um; gequetscht wird sie trotzdem nicht. */
+    max-width: 100%;
   }
   .v1-section-body { padding: var(--s-4); }
   .v1-card { padding: var(--s-4); }

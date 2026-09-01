@@ -158,7 +158,10 @@ public sealed class CalibrationEventRepositoryTests : IDisposable
         Assert.NotNull(created.GrowTaskId);
         var task = taskRepo.Get(created.GrowTaskId!.Value)!;
         Assert.Equal(growId, task.GrowId);
-        Assert.Equal("Kalibrierung: pH Sonde - pH 7.00 pruefen", task.Title);
+        // Gedankenstrich, kein Bindestrich: der Formaudit vom 02.09.2026 fand
+        // "Kalibrierung: Bluelab pH-Sonde (Testdaten) - 2-Punkt-Kalibrierung pH"
+        // auf /aufgaben.
+        Assert.Equal("Kalibrierung: pH Sonde — pH 7.00 pruefen", task.Title);
         Assert.Equal(TaskPriority.High, task.Priority);
         Assert.Equal(GrowTaskStatus.Open, task.Status);
         Assert.Equal(dueAt, task.DueAtUtc);

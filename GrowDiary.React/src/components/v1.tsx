@@ -48,9 +48,19 @@ export function V1Badge({ children, tone = 'neutral' }: { children: ReactNode; t
   return <span className={classNames('v1-badge', `tone-${tone}`)}>{children}</span>
 }
 
-export function V1Stat({ label, value, unit, hint, tone = 'neutral' }: { label: string; value: ReactNode; unit?: string | null; hint?: string | null; tone?: Tone }) {
+/**
+ * Eine Kennzahl-Kachel.
+ *
+ * @param wortwert Für Werte, die ein <b>Wort</b> sind und kein Messwert.
+ *
+ * Kennzahlen stehen normalerweise auf einer Zeile — „5,79 · 1,02" darf nicht
+ * umbrechen. Ein Wort schon: auf /grows/1 stand in der Sorten-Kachel
+ * „gemischt (…)", weil `white-space: nowrap` den Text bei 4 px Überlauf
+ * abschnitt und die ANZAHL wegfiel — also genau die Auskunft.
+ */
+export function V1Stat({ label, value, unit, hint, tone = 'neutral', wortwert = false }: { label: string; value: ReactNode; unit?: string | null; hint?: string | null; tone?: Tone; wortwert?: boolean }) {
   return (
-    <div className={classNames('v1-stat', `tone-${tone}`)}>
+    <div className={classNames('v1-stat', `tone-${tone}`, wortwert && 'is-wortwert')}>
       <span>{label}</span>
       <strong>{value}{unit && value !== '–' && <em>{unit}</em>}</strong>
       {hint && <small>{hint}</small>}

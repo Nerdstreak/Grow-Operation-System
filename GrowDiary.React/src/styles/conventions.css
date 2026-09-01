@@ -410,6 +410,19 @@ html,
   font-feature-settings: "tnum";
 }
 
+/* Ein Wort ist kein Messwert.
+   Die Regel darueber haelt Kennzahlen auf einer Zeile — richtig fuer
+   „5,79 · 1,02". Steht dort aber ein Wort, schneidet sie es ab: auf
+   /grows/1 wurde aus „gemischt (2)" ein „gemischt (…)", und die Anzahl war
+   weg. Zwei Klassen im Selektor gewinnen gegen die eine oben, auch ohne
+   !important — aber die Regel darueber traegt eins, also hier auch. */
+.v1-stat.is-wortwert strong {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere !important;
+}
+
 .tent-metric-row dd,
 .grow-overview-card__metrics dd {
   letter-spacing: normal !important;
