@@ -107,6 +107,29 @@ async function punktzahlen(page: Page): Promise<Fund[]> {
       })
     }
 
+    /* Und die PLATZHALTER.
+       Ein Platzhalter "z. B. 5.8" bringt dem Nutzer die falsche Schreibweise
+       bei — an genau der Stelle, an der er gleich tippt. Die Zahlen-Pruefung
+       las bis zum 01.09.2026 weder Feldwerte noch Platzhalter; im
+       Wasserwechsel-Formular stand deshalb "z. B. 5.8" neben lauter Feldern,
+       die Komma erwarten. */
+    for (const feld of Array.from(document.querySelectorAll('input, textarea'))) {
+      const platz = (feld.getAttribute('placeholder') || '').trim()
+      if (!platz || !muster.test(platz)) continue
+
+      // Adressen und Kennungen tragen zu Recht Punkte.
+      if (/^(https?:|[0-9]{1,3}(\.[0-9]{1,3}){3})/.test(platz)) continue
+
+      const stil = getComputedStyle(feld)
+      if (stil.display === 'none' || stil.visibility === 'hidden') continue
+
+      raus.push({
+        text: platz.slice(0, 80),
+        klasse: 'placeholder',
+        tag: feld.tagName.toLowerCase(),
+      })
+    }
+
     return raus
   })
 }

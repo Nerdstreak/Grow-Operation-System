@@ -20,7 +20,7 @@ public static class HydroSetupMapping
         LevelSensorFullRaw: system.LevelSensorFullRaw,
         LevelSensorFullLiters: system.LevelSensorFullLiters,
         LevelCalibratedAtUtc: system.LevelCalibratedAtUtc,
-        TotalVolumeLiters: CalculateTotalVolumeLiters(system.PotCount, system.PotSizeLiters, system.ReservoirLiters),
+        TotalVolumeLiters: BetriebsvolumenLiter(system),
         LayoutType: system.LayoutType,
         ReservoirPosition: system.ReservoirPosition,
         Status: system.Status,
@@ -31,7 +31,7 @@ public static class HydroSetupMapping
         AirPumpLitersPerHour: system.AirPumpLitersPerHour,
         Aeration: AerationCheck.Beurteilen(
             system.AirPumpLitersPerHour,
-            CalculateTotalVolumeLiters(system.PotCount, system.PotSizeLiters, system.ReservoirLiters)),
+            BetriebsvolumenLiter(system)),
         AirStoneCount: system.AirStoneCount,
         HasChiller: system.HasChiller,
         HasUvSterilizer: system.HasUvSterilizer,
@@ -97,6 +97,26 @@ public static class HydroSetupMapping
         var total = (potCount ?? 0) * (potSizeLiters ?? 0) + (reservoirLiters ?? 0);
         return total > 0 ? Math.Round(total, 2) : null;
     }
+
+    /// <summary>
+    /// Das Betriebsvolumen eines Systems — gemessen schlägt geschätzt.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Der Kalibrier-Assistent misst, was
+    /// beim Füllen des <b>ganzen</b> Systems durch die Wasseruhr gelaufen ist
+    /// — Töpfe, Rohre und Reservoir zusammen — und schreibt die Zahl nach
+    /// <see cref="GrowSystem.ReservoirLiters"/>. Die Schätzung darüber rechnete
+    /// das Topfvolumen dann <b>noch einmal</b> obendrauf: bei vier Töpfen à
+    /// 20 L und gemessenen 160 L standen danach 240 L da — 50 % zu viel,
+    /// obwohl der Nutzer gerade nachgemessen hatte.</para>
+    ///
+    /// <para>Wo gemessen wurde, gilt die Messung. Die Schätzung ist genau so
+    /// lange richtig, wie niemand nachgesehen hat.</para>
+    /// </remarks>
+    public static double? BetriebsvolumenLiter(GrowSystem system)
+        => system.LevelCalibratedAtUtc is not null && system.LevelSensorFullLiters is { } gemessen && gemessen > 0
+            ? Math.Round(gemessen, 2)
+            : CalculateTotalVolumeLiters(system.PotCount, system.PotSizeLiters, system.ReservoirLiters);
 
     private static HydroStyle ParseHydroStyle(string value)
         => Enum.TryParse<HydroStyle>(value, out var parsed) ? parsed : HydroStyle.None;

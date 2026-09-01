@@ -96,19 +96,39 @@ public sealed class TrendWatchRunner
         // interrupting someone's holiday for.
         var pushWorthy = findings.Where(finding => finding.Severity >= TrendSeverity.Warning).ToList();
 
-        foreach (var finding in pushWorthy.Where(finding => !previous.Contains(finding.Code)))
+        /* Gemerkt wird erst, wenn es RAUS ist.
+           Bis zum 01.09.2026 wanderte jeder Befund in die Merkstelle, ohne dass
+           jemand das Ergebnis von SendAsync angesehen hat. Der Dienst gibt aber
+           false zurueck, wenn Ruhezeit ist, die Kategorie aus steht oder Home
+           Assistant den Aufruf nicht annimmt. Kippt der EC um 23:10 ueber das
+           Band und steht die Ruhezeit auf 22-07, galt der Befund danach als
+           gemeldet — und weil er sich nicht mehr aendert, kam der Push NIE.
+           Der Waechter, den es fuer die Abwesenheit gibt, schwieg dauerhaft.
+
+           Dieselbe Reparatur wie im PumpWatchNotifier und im WatchdogService. */
+        var gemeldet = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var finding in pushWorthy)
         {
-            await _notifications.SendAsync(
+            // Was schon in der Merkstelle steht, bleibt darin: es wurde bereits
+            // zugestellt, und ein zweiter Push waere Laerm.
+            if (previous.Contains(finding.Code))
+            {
+                gemeldet.Add(finding.Code);
+                continue;
+            }
+
+            var raus = await _notifications.SendAsync(
                 NotificationCategory.Risk,
                 $"{grow.Name}: {finding.Headline}",
                 finding.Detail,
                 cancellationToken);
+
+            if (raus) gemeldet.Add(finding.Code);
         }
 
-        var current = pushWorthy.Select(finding => finding.Code).ToHashSet(StringComparer.Ordinal);
-        if (!current.SetEquals(previous))
+        if (!gemeldet.SetEquals(previous))
         {
-            _settings.SetValue(key, string.Join(',', current));
+            _settings.SetValue(key, string.Join(',', gemeldet));
         }
     }
 }

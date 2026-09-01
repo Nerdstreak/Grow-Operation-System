@@ -207,8 +207,8 @@ export function ChangeoutsPanel({ growId, growName, offenBeiStart = false, onGes
             <V1Field label="Menge (L)"><input inputMode="decimal" value={form.volumeChangedLiters} onChange={(event) => patch({ volumeChangedLiters: event.target.value })} placeholder="z. B. 40" /></V1Field>
             <V1Field label="EC vorher"><input inputMode="decimal" value={form.ecBefore} onChange={(event) => patch({ ecBefore: event.target.value })} placeholder="mS/cm" /></V1Field>
             <V1Field label="EC nachher"><input inputMode="decimal" value={form.ecAfter} onChange={(event) => patch({ ecAfter: event.target.value })} placeholder="mS/cm" /></V1Field>
-            <V1Field label="pH vorher"><input inputMode="decimal" value={form.phBefore} onChange={(event) => patch({ phBefore: event.target.value })} placeholder="z. B. 5.8" /></V1Field>
-            <V1Field label="pH nachher"><input inputMode="decimal" value={form.phAfter} onChange={(event) => patch({ phAfter: event.target.value })} placeholder="z. B. 5.9" /></V1Field>
+            <V1Field label="pH vorher"><input inputMode="decimal" value={form.phBefore} onChange={(event) => patch({ phBefore: event.target.value })} placeholder="z. B. 5,8" /></V1Field>
+            <V1Field label="pH nachher"><input inputMode="decimal" value={form.phAfter} onChange={(event) => patch({ phAfter: event.target.value })} placeholder="z. B. 5,9" /></V1Field>
             <V1Field label="Notiz" wide><input value={form.notes} onChange={(event) => patch({ notes: event.target.value })} placeholder="Beobachtung, Grund …" /></V1Field>
             <div className="changeouts-form-actions">
               <V1Button type="submit" variant="primary" disabled={saving}>{saving ? 'Speichert…' : 'Wasserwechsel speichern'}</V1Button>

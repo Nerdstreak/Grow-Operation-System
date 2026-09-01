@@ -127,6 +127,25 @@ public sealed class SetpointProfilesApiController : ApiControllerBase
             return BadRequestError("name_required", "Das Profil braucht einen Namen.");
         if (!_targets.ProfileIds.Contains(request.BaseProfileId))
             return BadRequestError("base_not_found", $"Es gibt kein mitgeliefertes Profil \"{request.BaseProfileId}\".");
+
+        /* Und die WERTE. Bis zum 01.09.2026 wurde hier nur der Name geprueft:
+           phMin 6,5 mit phMax 5,5 ging durch, und danach war JEDE pH-Messung
+           „daneben" (wert < min ? Below : wert > max ? Above : InTarget). Noch
+           schwerer wiegt waterTempNightC — der Wert geht ueber die
+           Nachtabsenkung an das Zielgeraet in Home Assistant, also an den
+           Kuehler im Zelt. Die Grenzen stehen in
+           MeasurementSanityService.PhysikalischeGrenzen und nur dort. */
+        var maengel = SetpointProfilGrenzen.Pruefe(request.Overrides);
+        if (maengel.Count > 0)
+        {
+            foreach (var mangel in maengel)
+            {
+                ModelState.AddModelError(mangel.Feld, mangel.Meldung);
+            }
+
+            return ValidationError("Das Profil laesst sich so nicht speichern.");
+        }
+
         return null;
     }
 

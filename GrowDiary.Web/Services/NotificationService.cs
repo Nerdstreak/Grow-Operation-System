@@ -66,10 +66,31 @@ public sealed class NotificationService
     /// Sends a push if the category is enabled and it is not quiet hours. Returns false
     /// (silently) when notifications are unconfigured, the category is off, or it is quiet.
     /// </summary>
-    public async Task<bool> SendAsync(NotificationCategory category, string title, string message, CancellationToken cancellationToken = default)
+    /// <param name="trotzRuhezeit">
+    /// Für Meldungen, die <b>nachts passieren</b> und morgens wertlos sind.
+    /// </param>
+    /// <remarks>
+    /// <para><b>Der Anlass (01.09.2026).</b> Der Lichteinbruch-Wächter lief
+    /// durch den Ruhezeit-Filter. Ein Blütezelt fährt 12/12 mit Licht aus um
+    /// 20:00; die übliche Ruhezeit 22–07 überdeckt <b>neun der zwölf</b>
+    /// Dunkelstunden. Der Alarm war also genau dann stumm, wofür es ihn
+    /// gibt.</para>
+    ///
+    /// <para><b>Sparsam benutzen.</b> Die Ruhezeit ist dazu da, dass niemand um
+    /// drei Uhr wegen eines EC-Trends geweckt wird. Sie zu übergehen ist nur
+    /// richtig, wenn die Meldung <i>in</i> der Ruhezeit entsteht und bis zum
+    /// Morgen wertlos wäre. Die Kategorie muss weiter eingeschaltet sein: wer
+    /// eine Art Meldung ganz abstellt, meint das auch.</para>
+    /// </remarks>
+    public async Task<bool> SendAsync(NotificationCategory category, string title, string message, CancellationToken cancellationToken = default, bool trotzRuhezeit = false)
     {
         var settings = _settingsRepo.GetNotificationSettings();
-        if (!settings.IsConfigured || !settings.IsCategoryEnabled(category) || settings.IsQuietHour(DateTime.Now.Hour))
+        if (!settings.IsConfigured || !settings.IsCategoryEnabled(category))
+        {
+            return false;
+        }
+
+        if (!trotzRuhezeit && settings.IsQuietHour(DateTime.Now.Hour))
         {
             return false;
         }

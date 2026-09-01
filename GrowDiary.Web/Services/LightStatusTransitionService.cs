@@ -25,10 +25,11 @@ public sealed class LightStatusTransitionService
         lock (_gate)
         {
             var previous = GetPreviousState(tentId);
-            _lastKnownStateByTent[tentId] = current;
 
             if (previous == current || previous == LightState.Unknown)
             {
+                // Kein Uebergang, aber der Zustand ist jetzt bekannt.
+                _lastKnownStateByTent[tentId] = current;
                 return null;
             }
 
@@ -36,7 +37,17 @@ public sealed class LightStatusTransitionService
                 ? LightTransitionKind.LightOn
                 : LightTransitionKind.LightOff;
 
-            return _repository.CreateLightTransitionIfNotDuplicate(new LightTransitionEvent
+            /* Erst SCHREIBEN, dann merken.
+               Bis zum 01.09.2026 stand `_lastKnownStateByTent[tentId] = current`
+               VOR dem Schreiben. Wirft die Ablage — ein Datenbank-Konflikt
+               genuegt —, haelt die Entprellung den neuen Zustand trotzdem fuer
+               bekannt, und die Flanke ist fuer immer weg: kein Eintrag in der
+               Historie, kein Lichteinbruch-Alarm, und ein verzerrter gelernter
+               Zyklus. Ausgerechnet in dem Poll, in dem in der Dunkelphase das
+               Licht angeht.
+
+               Dieselbe Form wie im PumpWatchNotifier und im TrendWatchRunner. */
+            var flanke = _repository.CreateLightTransitionIfNotDuplicate(new LightTransitionEvent
             {
                 TentId = tentId,
                 Kind = kind,
@@ -44,6 +55,9 @@ public sealed class LightStatusTransitionService
                 Source = LightSource.HomeAssistant,
                 RawState = state.State
             });
+
+            _lastKnownStateByTent[tentId] = current;
+            return flanke;
         }
     }
 

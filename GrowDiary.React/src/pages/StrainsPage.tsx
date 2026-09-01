@@ -497,10 +497,10 @@ function StrainsPage() {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))', gap: 12 }}>
             <V1Field label="Nährstoffbedarf" hint="1,0 = normal. 1,2 = frisst 20 % mehr, 0,8 = empfindlich.">
-              <input inputMode="decimal" value={draft.nutrientDemandFactor} onChange={(event) => setDraft((d) => ({ ...d, nutrientDemandFactor: event.target.value }))} placeholder="1.0" />
+              <input inputMode="decimal" value={draft.nutrientDemandFactor} onChange={(event) => setDraft((d) => ({ ...d, nutrientDemandFactor: event.target.value }))} placeholder="1,0" />
             </V1Field>
             <V1Field label="Streckung" hint="1,0 = normal. Über 1 streckt sie in der Blüte stärker.">
-              <input inputMode="decimal" value={draft.stretchFactor} onChange={(event) => setDraft((d) => ({ ...d, stretchFactor: event.target.value }))} placeholder="1.0" />
+              <input inputMode="decimal" value={draft.stretchFactor} onChange={(event) => setDraft((d) => ({ ...d, stretchFactor: event.target.value }))} placeholder="1,0" />
             </V1Field>
             <V1Field label="VPD-Vorliebe (kPa)" hint="Verschiebung zum Standard. +0,1 = mag es etwas trockener.">
               <input inputMode="decimal" value={draft.vpdPreferenceShift} onChange={(event) => setDraft((d) => ({ ...d, vpdPreferenceShift: event.target.value }))} placeholder="0" />

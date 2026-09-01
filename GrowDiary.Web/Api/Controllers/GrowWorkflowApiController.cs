@@ -705,11 +705,10 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
             return null;
         }
 
-        var siteVolume = (hydroSetup.PotCount ?? 0) * (hydroSetup.PotSizeLiters ?? 0);
-        var reservoirVolume = hydroSetup.ReservoirLiters ?? 0;
-        var total = siteVolume + reservoirVolume;
-
-        return total > 0 ? Math.Round(total, 1) : null;
+        // Gemessen schlaegt geschaetzt — dieselbe Regel wie in
+        // HydroSetupMapping.BetriebsvolumenLiter, und dort steht der Anlass.
+        var volumen = HydroSetupMapping.BetriebsvolumenLiter(hydroSetup);
+        return volumen is { } wert && wert > 0 ? Math.Round(wert, 1) : null;
     }
 
     private static double? TryParseReservoirSize(string? reservoirSize)

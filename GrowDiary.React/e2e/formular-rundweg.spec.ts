@@ -95,8 +95,6 @@ const OHNE_RUNDWEG: Record<string, string> = {
     'Kein <form>, der Knopf bleibt grau, solange die Live-Prüfung Befunde hat. Gehört zum selben Stück wie der Grow-Assistent.',
   'pages/HomeAssistantPage.tsx':
     'Schreibt die Verbindung zu Home Assistant. Ein Rundweg würde die Zuordnung der laufenden App verstellen und damit jede andere Prüfung, die Live-Werte erwartet. Braucht eine eigene Instanz.',
-  'features/changeouts/ChangeoutsPanel.tsx':
-    'Legt Wasserwechsel an und verschiebt damit die Fälligkeiten, gegen die der Wächter im selben Bestand prüft. Nächstes Stück, zusammen mit einem eigenen Grow für schreibende Prüfungen.',
   'features/plants/PlantActions.tsx':
     'Ändert Pflanzen eines Grows (Ausfall, Klon, Umtopfen); dieselbe Abhängigkeit wie oben — der Bestand ist geteilt.',
   'pages/HardwarePage.tsx':

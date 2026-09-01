@@ -1,5 +1,6 @@
-import { test, expect, type APIRequestContext } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import { darfUeberspringen } from './pflicht'
+import { abraeumen, eigenenGrowAnlegen, type EigenerGrow } from './eigener-grow'
 
 /**
  * Die Ernteseite: ausfüllen, absenden, nachlesen — mit einem eigenen Grow.
@@ -23,51 +24,7 @@ import { darfUeberspringen } from './pflicht'
  */
 
 /** Was dieser Lauf angelegt hat — wird am Ende wieder abgeräumt. */
-let growId: number | null = null
-let systemId: number | null = null
-
-async function anlegen(api: APIRequestContext): Promise<boolean> {
-  // Die Zeltliste haengt an den Einstellungen — GET /api/tents gibt es nicht
-  // (es ist die Route des Live-Bildschirms).
-  const zelte = await api.get('/api/settings/tents')
-  if (!zelte.ok()) return false
-  const zeltListe = await zelte.json()
-  const erstes = Array.isArray(zeltListe) ? zeltListe[0] : zeltListe?.tents?.[0]
-  if (erstes?.id == null) return false
-  const tentId = erstes.id
-
-  // Ein EIGENES Hydro-System: der Loeschschutz haengt an den laufenden Grows
-  // eines Systems, und das des Demobestands soll unberuehrt bleiben.
-  const system = await api.post('/api/hydro-setups', {
-    data: {
-      name: `Rundweg-RDWC ${Date.now()}`,
-      tentId,
-      hydroStyle: 'RDWC',
-      potCount: 2,
-      potSizeLiters: 20,
-      reservoirLiters: 60,
-      layoutType: 'Row',
-      reservoirPosition: 'Left',
-    },
-  })
-  if (!system.ok()) return false
-  systemId = (await system.json()).id
-
-  const grow = await api.post('/api/grows', {
-    data: {
-      name: `Rundweg-Ernte ${Date.now()}`,
-      hydroStyle: 'RDWC',
-      status: 'Running',
-      startDate: '2026-06-01',
-      plantCount: 2,
-      tentId,
-      systemId,
-    },
-  })
-  if (!grow.ok()) return false
-  growId = (await grow.json()).id
-  return true
-}
+let eigener: EigenerGrow | null = null
 
 test.describe.configure({ mode: 'serial' })
 
@@ -75,9 +32,7 @@ test.describe('Ernte-Rundweg', () => {
   test.beforeAll(async ({ playwright, baseURL }) => {
     const api = await playwright.request.newContext({ baseURL })
     try {
-      if (!(await anlegen(api))) {
-        growId = null
-      }
+      eigener = await eigenenGrowAnlegen(api, 'Rundweg-Ernte')
     } finally {
       await api.dispose()
     }
@@ -86,22 +41,16 @@ test.describe('Ernte-Rundweg', () => {
   test.afterAll(async ({ playwright, baseURL }) => {
     const api = await playwright.request.newContext({ baseURL })
     try {
-      // Immer abraeumen — auch wenn der Fall oben durchgefallen ist. Ein
-      // liegengebliebener Grow verschiebt jede spaetere Pruefung.
-      if (growId != null) await api.delete(`/api/grows/${growId}`)
-      if (systemId != null) await api.delete(`/api/hydro-setups/${systemId}`)
-    } catch {
-      // Beim Abraeumen darf nichts den Lauf rot machen; was bleibt, faellt
-      // beim naechsten frischen Bestand ohnehin weg.
+      await abraeumen(api, eigener)
     } finally {
       await api.dispose()
     }
   })
 
   test('Rundweg: HarvestPage — ein Gewicht mit Komma kommt als Komma zurück, nicht mal zehn', async ({ page }) => {
-    darfUeberspringen(growId == null, 'Kein eigener Grow anlegbar — laeuft die App unter GROW_OS_URL?')
+    darfUeberspringen(eigener == null, 'Kein eigener Grow anlegbar — laeuft die App unter GROW_OS_URL?')
 
-    await page.goto(`/grows/${growId}/harvest`, { waitUntil: 'networkidle' })
+    await page.goto(`/grows/${eigener!.growId}/harvest`, { waitUntil: 'networkidle' })
 
     const nass = page.getByLabel('Nassgewicht PL-01')
     await expect(nass).toBeVisible()
@@ -112,7 +61,7 @@ test.describe('Ernte-Rundweg', () => {
     // Auf die ANTWORT warten, nicht auf die Anfrage: sonst liest das Neuladen
     // unten einen Stand, in dem der Wert noch gar nicht stehen kann.
     const antwort = page.waitForResponse(
-      (r) => r.url().includes(`/api/grows/${growId}/harvest`) && r.request().method() !== 'GET')
+      (r) => r.url().includes(`/api/grows/${eigener!.growId}/harvest`) && r.request().method() !== 'GET')
     await page.getByRole('button', { name: 'Ernte speichern' }).click()
     const gespeichert = await antwort
 
@@ -134,7 +83,7 @@ test.describe('Ernte-Rundweg', () => {
        auf den Grow weiter (`/grows/{id}`). Ein reload() haette also die
        Grow-Seite geladen und nichts ueber die Ernte ausgesagt — der Fall waere
        rot geworden, ohne dass an der Ernte etwas falsch ist. */
-    await page.goto(`/grows/${growId}/harvest`, { waitUntil: 'networkidle' })
+    await page.goto(`/grows/${eigener!.growId}/harvest`, { waitUntil: 'networkidle' })
     await expect(page.getByLabel('Nassgewicht PL-01')).toHaveValue('21,5')
 
     /* Und das GROW-Feld darueber — es wird von einem ANDEREN Formatierer

@@ -12,9 +12,12 @@ import { feldText } from '../zahlenfeld'
 
 type MetricDef = { key: string; label: string; unit: string; min: string; max: string }
 
+/* Die Vorgabewerte stehen als PLATZHALTER in den Feldern — also mit Komma.
+   Bis zum 01.09.2026 stand dort "5.5"/"6.5"/"1.2", und der Platzhalter bringt
+   dem Nutzer die Schreibweise bei, die er gleich tippen soll. */
 const ALERT_METRICS: MetricDef[] = [
-  { key: 'reservoir-ph', label: 'pH', unit: '', min: '5.5', max: '6.5' },
-  { key: 'reservoir-ec', label: 'EC', unit: 'mS/cm', min: '1.2', max: '2.4' },
+  { key: 'reservoir-ph', label: 'pH', unit: '', min: '5,5', max: '6,5' },
+  { key: 'reservoir-ec', label: 'EC', unit: 'mS/cm', min: '1,2', max: '2,4' },
   { key: 'reservoir-temp', label: 'Wassertemp', unit: '°C', min: '18', max: '22' },
   { key: 'orp', label: 'ORP', unit: 'mV', min: '200', max: '400' },
   { key: 'dissolved-oxygen', label: 'Sauerstoff (DO)', unit: 'mg/L', min: '6', max: '' },
@@ -22,7 +25,7 @@ const ALERT_METRICS: MetricDef[] = [
   { key: 'reservoir-level-cm', label: 'Wasserstand', unit: 'cm', min: '', max: '' },
   { key: 'temperature', label: 'Lufttemp', unit: '°C', min: '20', max: '28' },
   { key: 'humidity', label: 'Luftfeuchte', unit: '%', min: '40', max: '65' },
-  { key: 'vpd', label: 'VPD', unit: 'kPa', min: '0.8', max: '1.5' },
+  { key: 'vpd', label: 'VPD', unit: 'kPa', min: '0,8', max: '1,5' },
   { key: 'co2', label: 'CO₂', unit: 'ppm', min: '', max: '1500' },
 ]
 

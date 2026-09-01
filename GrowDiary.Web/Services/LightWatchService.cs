@@ -37,22 +37,36 @@ public sealed class LightWatchService
     public async Task CheckIntrusionAsync(Tent tent, LightTransitionEvent transition, CancellationToken cancellationToken)
     {
         if (transition.Kind != LightTransitionKind.LightOn) return;
-        if (tent.ActiveGrows.FirstOrDefault() is not { } grow) return;
+        if (tent.ActiveGrows.Count == 0) return;
 
         var cycle = _cycles.CycleFor(tent.Id, transition.OccurredAtUtc);
-        var stage = GrowStageResolver.Resolve(grow, DateTime.Today);
         var lokal = TimeOnly.FromDateTime(transition.OccurredAtUtc + _cycles.LocalOffset(tent.Id));
 
-        if (!LightIntrusionGuard.IsIntrusion(cycle, lokal, stage, grow.SeedType)) return;
+        /* JEDER Grow im Zelt, nicht der erste.
+           Hier stand `ActiveGrows.FirstOrDefault()`. Steht neben dem
+           Photoperioden-Grow in Bluetewoche 6 eine spaeter gesteckte
+           Autoflower, lieferte die Liste womoeglich die Autoflower — und fuer
+           die ist Licht in der Nacht kein Einbruch. Der Alarm fiel damit fuer
+           das GANZE Zelt aus. Die Lampe leuchtet aber auf beide. */
+        var betroffen = tent.ActiveGrows.Any(grow => LightIntrusionGuard.IsIntrusion(
+            cycle, lokal, GrowStageResolver.Resolve(grow, DateTime.Today), grow.SeedType));
+        if (!betroffen) return;
 
         _logger.LogWarning(
             "Lichteinbruch in der Dunkelphase: Zelt {TentId} um {Zeit}.", tent.Id, lokal);
 
+        /* TROTZ Ruhezeit.
+           Diese Meldung entsteht per Definition in der Dunkelphase, und die
+           uebliche Ruhezeit 22-07 ueberdeckt neun der zwoelf Dunkelstunden
+           eines 12/12-Zelts. Der Kommentar oben sagt es selbst: ein Push jetzt
+           kann die Nacht noch retten, ein Blick ins Protokoll uebermorgen
+           nicht. */
         await _notifications.SendAsync(
             NotificationCategory.Risk,
             "Licht in der Dunkelphase",
             LightIntrusionGuard.Message(tent.Name, cycle!, lokal),
-            cancellationToken);
+            cancellationToken,
+            trotzRuhezeit: true);
     }
 
 }

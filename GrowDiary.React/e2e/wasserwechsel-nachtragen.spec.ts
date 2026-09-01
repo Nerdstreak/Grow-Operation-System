@@ -53,7 +53,14 @@ test('ein Wasserwechsel laesst sich auf einen vergangenen Tag buchen', async ({ 
   /* Seit dem 31.08.2026 hat der Wasserwechsel eine eigene Seite. Vorher lag
      das Formular als dritter Abschnitt auf /addback und war nicht zu finden —
      „der User findet den Wasserwechsel nicht wirklich". */
-  await page.goto('/wasserwechsel', { waitUntil: 'networkidle' })
+  /* Grow 1 AUSDRUECKLICH waehlen.
+     Vorher stand hier `/wasserwechsel` ohne Angabe, und die Seite nahm den
+     ersten Grow der Liste. Sortiert wird nach StartDate DESC — sobald eine
+     andere Pruefung sich einen eigenen Grow anlegt (ernte-rundweg,
+     wasserwechsel-rundweg), kann der vorne stehen. Dieser Fall schrieb dann in
+     den fremden Grow und zaehlte an /api/grows/1/changeouts nach: einmal in
+     neun Laeufen rot, ohne dass sich am Code etwas geaendert haette. */
+  await page.goto('/wasserwechsel?growId=1', { waitUntil: 'networkidle' })
   const bereich = page.locator('.changeouts-section')
   await bereich.scrollIntoViewIfNeeded()
   await bereich.getByRole('button', { name: /Wechsel erfassen/ }).click()
