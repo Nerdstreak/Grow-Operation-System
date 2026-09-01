@@ -93,8 +93,6 @@ const OHNE_RUNDWEG: Record<string, string> = {
     'Ein Assistent über mehrere Schritte mit Karten-Knöpfen statt Auswahlfeldern; ein Rundweg dafür braucht erst ein Zelt UND einen Hydro-Aufbau, die er selbst anlegen müsste. Eigenes Stück, noch nicht gebaut.',
   'features/hydro/HydroEditorPage.tsx':
     'Kein <form>, der Knopf bleibt grau, solange die Live-Prüfung Befunde hat. Gehört zum selben Stück wie der Grow-Assistent.',
-  'pages/HarvestPage.tsx':
-    'Braucht einen Grow, der geerntet werden darf — der Rundweg würde den Demobestand verändern, gegen den alle anderen Prüfungen laufen. Eigener Datensatz nötig.',
   'pages/HomeAssistantPage.tsx':
     'Schreibt die Verbindung zu Home Assistant. Ein Rundweg würde die Zuordnung der laufenden App verstellen und damit jede andere Prüfung, die Live-Werte erwartet. Braucht eine eigene Instanz.',
   'features/changeouts/ChangeoutsPanel.tsx':
@@ -178,7 +176,15 @@ test.describe('Formular-Rundweg', () => {
     // wenn er auch existiert. Die Datei liest sich dabei selbst — das ist hier
     // richtig, weil sie nach ihren EIGENEN Tests sucht und nicht nach dem
     // Gegenstand der Prüfung.
-    const eigene = readFileSync(new URL('formular-rundweg.spec.ts', ORDNER), 'utf8')
+    /* Über ALLE spec-Dateien und nicht nur diese: ein Rundweg, der sich seinen
+       eigenen Datensatz anlegt, gehört nicht in dieselbe Datei wie die, die
+       gegen den geteilten Demobestand fahren. `ernte-rundweg.spec.ts` ist der
+       erste davon — vorher wäre er hier nicht mitgezählt worden, und
+       HarvestPage hätte weiter als "ohne Rundweg" gegolten. */
+    const eigene = readdirSync(new URL('.', ORDNER))
+      .filter((name) => name.endsWith('.spec.ts'))
+      .map((name) => readFileSync(new URL(name, ORDNER), 'utf8'))
+      .join(String.fromCharCode(10))
     const ohne: string[] = []
 
     for (const datei of formularDateien()) {
