@@ -5,6 +5,84 @@
 > was sich ändert. Die älteren Einträge darunter sind noch englisch; sie sind
 > Geschichte und werden nicht nachübersetzt.
 
+## 2.0.0-beta.63
+
+**Beta.** Zwei Wünsche aus dem Betrieb — mehrere Messpunkte je Kalibrierung
+und Werte im Diagramm zum Antippen — dazu fünf Alarme, die den Nutzer nicht
+erreichten, und ein Durchgang durch die ganze Oberfläche.
+
+### Die pH-Sonde hat mehr als einen Messpunkt
+
+- Neu — **eine Kalibrierung trägt jetzt mehrere Punkte.** Eine pH-Sonde wird
+  gegen pH 4,01 <i>und</i> 7,00 abgeglichen, manche nehmen zusätzlich 10,01.
+  Bisher passte <b>ein</b> Punkt hinein; wer beide festhalten wollte, musste
+  zwei Einträge anlegen, die nichts voneinander wissen.
+
+- Neu — **die Steilheit steht jetzt da.** Sie ist die eigentliche Auskunft:
+  ein einzelner Abgleich gegen pH 7,00 verrät über die Sonde nichts, denn
+  eine tote Sonde lässt sich darauf genauso einstellen wie eine frische. Erst
+  der Abstand zwischen zwei Punkten zeigt, ob sie noch spreizt. Gerechnet wird
+  aus den Werten <b>vor</b> dem Abgleich — danach steht die Sonde per
+  Definition richtig.
+
+  Die Zahl erscheint schon beim Tippen, gestaffelt und mit Quelle:
+  95–105 % gilt als gut, unter 85 % ist die Sonde fällig — eine Faustregel
+  aus den Handbüchern gängiger Sonden, nicht aus dieser App.
+
+### Werte im Diagramm ablesen
+
+- Neu — **auf eine Stelle im Verlauf tippen zeigt den Wert dort.** Der nächste
+  Tipp setzt ihn neu, ein Fadenkreuz zeigt, welche Stelle gemeint ist. Mit den
+  Pfeiltasten lässt sich durch die Reihe gehen.
+
+  <b>Am Telefon war das Diagramm bisher stumm</b> — dort gibt es kein
+  Überfahren mit der Maus, also sah man eine Kurve und erfuhr keine Zahl.
+
+### Fünf Alarme, die nicht ankamen
+
+- Behoben — **der Lichteinbruch-Alarm war nachts stumm.** Er lief durch den
+  Ruhezeit-Filter: ein Blütezelt fährt 12/12 mit Licht aus um 20:00, und die
+  übliche Ruhezeit 22–07 überdeckt <b>neun der zwölf</b> Dunkelstunden. Der
+  Alarm schwieg also genau dann, wofür es ihn gibt. Licht in der Dunkelphase
+  ist in der Blüte kein Ärgernis, sondern der Weg zu Zwittern.
+
+- Behoben — **ein zweiter Grow im Zelt schaltete denselben Alarm ganz ab.**
+  Gefragt wurde nur der erste Grow; stand daneben eine später gesteckte
+  Autoflower, galt Licht in der Nacht als normal — für das <i>ganze</i> Zelt.
+
+- Behoben — **die Schonfrist der Umwälzpumpe blendete den Luftpumpen-Alarm
+  mit.** Unter jeder Umwälz-Warnung riet die App selbst: „Wenn das Absicht ist
+  (Intervall-Betrieb), stell die Schonfrist höher." Wer dem folgte und
+  240 Minuten eintrug, verzögerte damit auch den Alarm für die
+  <b>Luftpumpe</b> um vier Stunden — den Alarm, ohne den das Reservoir binnen
+  Stunden sauerstoffarm wird. Eine eigene Schonfrist stellt den
+  lebenswichtigen Alarm jetzt nur noch <i>schärfer</i>, nie stumpfer.
+
+- Behoben — **der Urlaubswächter schwieg dauerhaft, wenn ein Push scheiterte.**
+  Kippte der EC um 23:10 über das Band und stand die Ruhezeit auf 22–07, galt
+  der Befund danach als gemeldet — und weil er sich nicht mehr änderte, kam
+  die Nachricht <b>nie</b>.
+
+- Behoben — **eine Lichtflanke ging bei einem Schreibfehler für immer
+  verloren**, samt Historie, gelerntem Zyklus und Alarm.
+
+### Und was sonst nicht stimmte
+
+- Behoben — **das kalibrierte Volumen wurde doppelt gezählt.** Der Assistent
+  misst das <i>ganze</i> System; die Anzeige rechnete das geschätzte
+  Topfvolumen noch einmal drauf. Bei vier Töpfen à 20 L und gemessenen 160 L
+  standen 240 L da — direkt nachdem der Nutzer nachgemessen hatte.
+
+- Behoben — **Sollwert-Profile nahmen jede Zahl an.** pH-Min 6,5 mit pH-Max
+  5,5 ging durch; danach ist <i>jede</i> pH-Messung „daneben", egal welcher
+  Wert. Und die Wassertemperatur geht von dort an den echten Kühler im Zelt.
+
+- Behoben — **drei Formfehler auf dem Schirm**, gefunden bei einem Durchgang
+  über alle Seiten in beiden Themen: eine überschrift, die am Telefon
+  abgeschnitten wurde, ohne dass die Seite rollte; „gemischt (…)" statt
+  „gemischt (2)" in der Sorten-Kachel — weg war die Anzahl, also die Auskunft;
+  und ein gerader Bindestrich im Aufgabentitel.
+
 ## 2.0.0-beta.62
 
 **Beta.** Vier Fehler, die es <b>nur im Add-on</b> gibt — auf einem
