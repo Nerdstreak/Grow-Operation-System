@@ -129,7 +129,11 @@ public sealed class AutoMeasurementExecutionService
                 // den Zeitzonen-Versatz rueckdatiert — Tageszaehler und
                 // SOP-Faelligkeit haetten sie dem falschen Tag zugerechnet.
                 TakenAt = scheduledForUtc.ToLocalTime(),
-                Stage = _repository.GetLatestMeasurement(config.GrowId)?.Stage ?? GrowStage.Veg,
+                // Die Phase von heute. Vorher wurde die der LETZTEN Messung
+                // abgeschrieben: einmal falsch gestempelt — oder schlicht nach
+                // einem Flip ohne Handmessung —, und ab da trug jede weitere
+                // automatische Zeile denselben veralteten Wert weiter.
+                Stage = grow is null ? GrowStage.Veg : GrowStageResolver.Resolve(grow, DateTime.Today),
                 Source = ValueOrigin.HomeAssistant,
                 Notes = $"AutoMeasurement {config.TriggerKind}"
             };

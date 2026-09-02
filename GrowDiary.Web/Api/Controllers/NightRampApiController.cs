@@ -61,6 +61,39 @@ public sealed class NightRampApiController : ApiControllerBase
                     + "darunter schadet die Kühlung mehr, als der Stress bringt.");
         }
 
+        /* SAGEN, was nicht gespeichert werden kann — statt es wegzuwerfen.
+           Zielgeraet und Kuehler haengen am ZELT. Hat der Grow keines (nach
+           einem Import ein ganz normaler Zustand), fiel bis zum 02.09.2026 der
+           ganze Block still aus und die Antwort war trotzdem 200. Die
+           Oberflaeche schreibt die Antwort ins Formular zurueck: das Feld lief
+           leer, daneben stand "Gespeichert.", und die Voraussetzungskette
+           forderte genau das wieder an, was der Nutzer eben eingetragen hatte.
+           Eine geschlossene Schleife. */
+        var willZelteinstellung = !string.IsNullOrWhiteSpace(request.TargetEntityId)
+                                  || (request.Chiller is { } c && (c.Enabled || !string.IsNullOrWhiteSpace(c.SwitchEntityId)));
+        if (willZelteinstellung && grow.TentId is null)
+        {
+            return BadRequestError(
+                "grow_without_tent",
+                "Zielgeraet und Kuehler haengen am Zelt, und dieser Grow ist keinem zugeordnet. "
+                + "Ordne ihn unter „Grow bearbeiten\" einem Zelt zu — danach lassen sich beide "
+                + "einstellen.");
+        }
+
+        /* Und die DOMAENE der Kennung.
+           Der Kuehler-Worker schaltet ueber switch.turn_on. Wer
+           light.zelt_kuehler oder input_boolean.kuehler eintraegt — beides
+           Kennungen, die es in einer Home-Assistant-Installation gibt —, bekam
+           "Gespeichert" und eine Steuerung, die nie schaltet. */
+        if (request.Chiller?.SwitchEntityId is { } schalter && !string.IsNullOrWhiteSpace(schalter)
+            && !schalter.Trim().StartsWith("switch.", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequestError(
+                "chiller_not_a_switch",
+                $"„{schalter.Trim()}\" ist keine Steckdose. Der Kuehler wird ueber switch.turn_on "
+                + "geschaltet; die Kennung muss deshalb mit „switch.\" beginnen.");
+        }
+
         // Das Zielgeraet haengt am Zelt, wird aber hier gepflegt: der Nutzer
         // trifft beide Entscheidungen an derselben Stelle, statt sie sich aus
         // zwei Formularen zusammenzusuchen.
@@ -186,8 +219,11 @@ public sealed class NightRampApiController : ApiControllerBase
         // Regler gerade tut, steht auf der Live-Seite — dort mit der echten
         // Lage aus Messwert und Steckdose.
 
-        var letzterSollwert = _protokoll.GetRecent(1, "night-ramp")
-            .FirstOrDefault(e => e.Success)?.CreatedAtUtc;
+        /* Der letzte ERFOLGREICHE Eintrag, nicht der letzte ueberhaupt: bis zum
+           02.09.2026 wurde EIN Eintrag geholt und danach auf Erfolg gefiltert.
+           Ein einziger Fehlversuch — Home Assistant kurz weg — loeschte damit
+           die Angabe, obwohl die Rampe seit Wochen zweimal taeglich schreibt. */
+        var letzterSollwert = NightRampAuskunft.LetzterErfolgUtc(_protokoll, "night-ramp");
         var letzteSchaltung = zelt is null
             ? null
             : KuehlerWorker.LetzteSchaltung(_einstellungen, zelt.Id);

@@ -100,18 +100,44 @@ public sealed class GrowDashboardComposerTargetTests
         Assert.NotNull(ph.TargetMax);
     }
 
+    /// <summary>
+    /// Die Aufschrift einer Messung verschiebt die Zielbänder der Kacheln nicht.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Dieser Test stand hier umgekehrt</b> — als
+    /// <c>ARecordedMeasurement_StillOverridesTheCalculatedPhase</c>, mit dem
+    /// Grund „wer die Phase eingetragen hat, weiss es besser als jede
+    /// Rechnung". Am 02.09.2026 umgedreht, weil der Satz nur für eine
+    /// <i>frische</i> Messung gilt.</para>
+    ///
+    /// <para>Die Aufschrift beschreibt <b>diese Messung</b>. Wer im Juli von Hand
+    /// gemessen, im August geflippt und danach die Sensoren machen lassen hat,
+    /// sah oben in der Kopfzeile „Blüte · Tag 20" (die fragt seit jeher
+    /// <c>GrowStageResolver</c>) und direkt daneben Veg-Bänder. Genau diese
+    /// Sorte Widerspruch — EC 0,6–0,8 gegen 0,9–1,1 für denselben Grow —
+    /// steht in <c>CLAUDE.md</c> unter „EINE WAHRHEIT JE ZAHL".</para>
+    ///
+    /// <para>Was der Nutzer besser weiss, steht ohnehin im Grow: Flip-Datum,
+    /// Samentyp, geplante Veg-Dauer. Daraus rechnet der Ermittler. Und die
+    /// aufgeschriebene Phase geht nicht verloren —
+    /// <c>MeasurementAssessmentService</c> führt sie neben der gerechneten und
+    /// meldet den Unterschied.</para>
+    /// </remarks>
     [Fact]
-    public void ARecordedMeasurement_StillOverridesTheCalculatedPhase()
+    public void DieAufschriftEinerMessung_VerschiebtDieZielbaenderNicht()
     {
-        // Wer die Phase eingetragen hat, weiss es besser als jede Rechnung: der
-        // Grow unten ist ohne Flip, die Messung sagt Bluete — und die gewinnt.
         var composer = CreateComposer();
         var tent = TentWithGrow(new GrowStyleFixture(HydroStyle.RDWC));
 
         var ausGrow = composer.BuildTentMetrics(tent, [], []).Single(card => card.Key == "reservoir-ec");
-        var ausMessung = composer.BuildTentMetrics(tent, [], [MeasurementAt(GrowStage.Flower)]).Single(card => card.Key == "reservoir-ec");
+        var mitAufschrift = composer.BuildTentMetrics(tent, [], [MeasurementAt(GrowStage.Flower)])
+            .Single(card => card.Key == "reservoir-ec");
 
-        Assert.NotEqual(ausGrow.TargetMax, ausMessung.TargetMax);
+        // Mengenwaechter: ohne Band verglichen zwei Nullen gleich und der Test
+        // waere auch dann gruen, wenn die Kachel gar kein Ziel mehr zeigt.
+        Assert.NotNull(ausGrow.TargetMax);
+
+        Assert.Equal(ausGrow.TargetMax, mitAufschrift.TargetMax);
     }
 
     [Fact]

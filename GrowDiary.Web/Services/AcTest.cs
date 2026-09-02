@@ -233,6 +233,25 @@ public static class AcTest
         return true;
     }
 
+    /// <summary>Ist das ein Zeitplan, den ein Gerät fahren kann?</summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (02.09.2026).</b> Bis hierher wurde jede Zeit
+    /// einzeln geprüft — nicht aber, ob sie zusammen einen Plan ergeben. Ein
+    /// Zeitplan von 20:00 bis 20:00 ging durch, und derselbe Aufruf zwang den
+    /// Modus danach auf „Schedule". Was das Gerät dann tut, hängt am
+    /// Controller: eine Abluft oder ein LED-Treiber fährt ab da einen Plan
+    /// ohne Dauer.</para>
+    ///
+    /// <para><b>Über Mitternacht ist erlaubt</b> — 12/12 in der Blüte heißt oft
+    /// 20:00 bis 08:00, und das ist der Normalfall, kein Fehler.</para>
+    ///
+    /// <para>Wer wirklich durchgehend an will, stellt den Modus auf Dauerlauf
+    /// statt einen Plan ohne Dauer einzutragen.</para>
+    /// </remarks>
+    public static bool ZeitplanErlaubt(string? ein, string? aus)
+        => ZeitErlaubt(ein) && ZeitErlaubt(aus)
+           && !string.Equals(ein!.Trim(), aus!.Trim(), StringComparison.Ordinal);
+
     /// <summary>Liegt die Stufe im erlaubten Bereich?</summary>
     /// <remarks>
     /// Rein, damit es prüfbar ist — und ausdrücklich <b>keine</b> Deckelung:

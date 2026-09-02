@@ -225,3 +225,29 @@ public static class SteuerungsstandBauer
     private static string Zahl(double? wert)
         => wert is { } v ? v.ToString("0.#", AppCulture.German) : "–";
 }
+
+/// <summary>
+/// Woher „zuletzt geschrieben" kommt.
+/// </summary>
+/// <remarks>
+/// <para>Bis zum 02.09.2026 stand im Endpunkt <c>GetRecent(1, "night-ramp")
+/// .FirstOrDefault(e =&gt; e.Success)</c> — also: hole <b>einen</b> Eintrag und
+/// schau danach, ob er geklappt hat. War der letzte Versuch fehlgeschlagen, kam
+/// nichts zurück, und die Seite verschwieg, dass die Rampe seit Wochen
+/// zuverlässig schreibt.</para>
+///
+/// <para>Weil derselbe Griff an zwei Stellen gebraucht wird — Endpunkt und
+/// Prüfung —, steht er hier einmal.</para>
+/// </remarks>
+public static class NightRampAuskunft
+{
+    /// <summary>
+    /// So weit wird zurückgesehen. Zwei Tage Ausfall im Zehn-Minuten-Takt sind
+    /// rund 290 Einträge; 500 ist die Obergrenze, die die Ablage zulässt.
+    /// </summary>
+    public const int Tiefe = 500;
+
+    /// <summary>Der Zeitpunkt des letzten <b>erfolgreichen</b> Eintrags.</summary>
+    public static DateTime? LetzterErfolgUtc(SystemAuditRepository protokoll, string art)
+        => protokoll.GetRecent(Tiefe, art).FirstOrDefault(e => e.Success)?.CreatedAtUtc;
+}

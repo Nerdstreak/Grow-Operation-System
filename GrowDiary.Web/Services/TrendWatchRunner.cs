@@ -44,7 +44,12 @@ public sealed class TrendWatchRunner
         }
 
         var measurements = _repository.GetMeasurementsForGrow(growId);
-        var stage = measurements.OrderByDescending(measurement => measurement.TakenAt).FirstOrDefault()?.Stage ?? GrowStage.Veg;
+        /* Die Phase von HEUTE, nicht die Aufschrift der letzten Messung.
+           Bis zum 02.09.2026 stand hier `...FirstOrDefault()?.Stage`. Was auf
+           einer Messzeile steht, beschreibt DIESE Messung; nach einem Flip, an
+           dem niemand von Hand gemessen hat, urteilte der Waechter wochenlang
+           gegen die Veg-Baender — und schickt dabei Nachrichten aufs Telefon. */
+        var stage = GrowStageResolver.Resolve(grow, now.Date);
         // Die Profil-Kette Grow -> System -> Anbaustil, nicht die Abkuerzung.
         //
         // `GetTargets(HydroStyle, stage)` landet immer beim Standardprofil und

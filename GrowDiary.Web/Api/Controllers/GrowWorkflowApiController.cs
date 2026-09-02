@@ -96,7 +96,10 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
             .Where(measurement => measurement.ReservoirEc.HasValue)
             .Select(measurement => measurement.ReservoirEc)
             .FirstOrDefault();
-        var stage = latestByTime?.Stage ?? GrowStage.Veg;
+        // Die Phase kommt aus dem Grow, nicht aus der letzten Messung — sonst
+        // widersprechen die Zielbaender hier der Kopfzeile daneben, die schon
+        // immer GrowStageResolver fragt (GrowMapping.CurrentStage).
+        var stage = GrowStageResolver.Resolve(grow, DateTime.Today);
         // Die Profil-Kette Grow -> System -> Anbaustil, nicht die Abkuerzung.
         //
         // `GetTargets(HydroStyle, stage)` landet immer beim Standardprofil und

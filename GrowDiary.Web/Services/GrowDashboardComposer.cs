@@ -189,10 +189,16 @@ public sealed class GrowDashboardComposer
         // hing hier alles an `latest`: wer noch nie von Hand gemessen hatte, sah
         // den ganzen Bildschirm ohne einen einzigen Zielbereich — grau, ohne
         // „im Ziel" — obwohl die Sensoren lieferten und oben „Veg · Tag 7" stand.
-        // Eine erfasste Messung darf die Phase weiterhin überstimmen: wer sie
-        // eingetragen hat, weiss es besser als jede Rechnung.
+        //
+        // Bis zum 02.09.2026 durfte eine erfasste Messung die Phase überstimmen
+        // („wer sie eingetragen hat, weiss es besser"). Das stimmt nur, solange
+        // sie frisch ist: die Aufschrift beschreibt DIESE Messung. Wer im Juli
+        // gemessen, im August geflippt und danach die Sensoren machen lassen
+        // hat, sah oben „Blüte · Tag 20" und daneben Veg-Bänder. Was der Nutzer
+        // besser weiss, steht ohnehin im Grow — Flip-Datum, Samentyp, geplante
+        // Veg-Dauer —, und genau daraus rechnet der Ermittler.
         var activeGrow = tent.ActiveGrows.FirstOrDefault();
-        var stage = latest?.Stage ?? (activeGrow is null ? (GrowStage?)null : GrowStageResolver.Resolve(activeGrow, DateTime.Today));
+        var stage = activeGrow is null ? (GrowStage?)null : GrowStageResolver.Resolve(activeGrow, DateTime.Today);
 
         // Welches Profil gilt: der Grow, sonst sein Hydro-System, sonst der
         // Anbaustil. Ohne diese Kette griffe immer nur der Anbaustil, und ein

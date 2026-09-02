@@ -56,33 +56,58 @@ public sealed class AcTestApiController : ControllerBase
 
         foreach (var geraet in geraete)
         {
-            // Jede Entität EINZELN holen: das Wörterbuch aus GetStatesAsync
-            // kennt nur Metrik-Kennungen, nie Entitäts-Kennungen. Genau daran
-            // ist der Kühler-Regler schon einmal gescheitert.
-            var leistung = await _homeAssistant.GetEntityStateAsync(einstellungen, geraet.LeistungEntityId, ct);
-            var modus = string.IsNullOrWhiteSpace(geraet.ModusEntityId)
-                ? null
-                : await _homeAssistant.GetEntityStateAsync(einstellungen, geraet.ModusEntityId, ct);
+            /* EIN Geraet, das nicht antwortet, nimmt nicht die ganze Seite mit.
+               Bis zum 02.09.2026 lief jeder Aufruf ungeschuetzt: eine
+               Basisadresse ohne Schema (der Nutzer traegt "192.168.1.50:8123"
+               statt "http://192.168.1.50:8123" ein) laesst GetEntityStateAsync
+               werfen, und GET /api/ac-test/{id} brach mit 500 ab — obwohl
+               direkt darunter der Satz bereitsteht, der genau das erklaeren
+               soll. */
+            AcGeraetStand zeile;
+            try
+            {
+                // Jede Entität EINZELN holen: das Wörterbuch aus GetStatesAsync
+                // kennt nur Metrik-Kennungen, nie Entitäts-Kennungen. Genau daran
+                // ist der Kühler-Regler schon einmal gescheitert.
+                var leistung = await _homeAssistant.GetEntityStateAsync(einstellungen, geraet.LeistungEntityId, ct);
+                var modus = string.IsNullOrWhiteSpace(geraet.ModusEntityId)
+                    ? null
+                    : await _homeAssistant.GetEntityStateAsync(einstellungen, geraet.ModusEntityId, ct);
 
-            // Die Zeiten werden GELESEN, nicht angenommen. Was die Seite anzeigt,
-            // muss der Controller melden — sonst steht dort der Wunsch und nicht
-            // die Wirklichkeit, und genau das war der teure Fehler beim Kuehler.
-            var einZeit = string.IsNullOrWhiteSpace(geraet.EinZeitEntityId)
-                ? null
-                : await _homeAssistant.GetEntityStateAsync(einstellungen, geraet.EinZeitEntityId, ct);
-            var ausZeit = string.IsNullOrWhiteSpace(geraet.AusZeitEntityId)
-                ? null
-                : await _homeAssistant.GetEntityStateAsync(einstellungen, geraet.AusZeitEntityId, ct);
+                // Die Zeiten werden GELESEN, nicht angenommen. Was die Seite anzeigt,
+                // muss der Controller melden — sonst steht dort der Wunsch und nicht
+                // die Wirklichkeit, und genau das war der teure Fehler beim Kuehler.
+                var einZeit = string.IsNullOrWhiteSpace(geraet.EinZeitEntityId)
+                    ? null
+                    : await _homeAssistant.GetEntityStateAsync(einstellungen, geraet.EinZeitEntityId, ct);
+                var ausZeit = string.IsNullOrWhiteSpace(geraet.AusZeitEntityId)
+                    ? null
+                    : await _homeAssistant.GetEntityStateAsync(einstellungen, geraet.AusZeitEntityId, ct);
 
-            stand.Add(new AcGeraetStand(
-                geraet,
-                leistung?.NumericValue,
-                modus?.State,
-                AcTest.AlsHhMm(einZeit?.State),
-                AcTest.AlsHhMm(ausZeit?.State),
-                leistung is null
-                    ? $"{geraet.LeistungEntityId} antwortet nicht — gibt es die Entität?"
-                    : null));
+                zeile = new AcGeraetStand(
+                    geraet,
+                    leistung?.NumericValue,
+                    modus?.State,
+                    AcTest.AlsHhMm(einZeit?.State),
+                    AcTest.AlsHhMm(ausZeit?.State),
+                    leistung is null
+                        ? $"{geraet.LeistungEntityId} antwortet nicht — gibt es die Entität?"
+                        : null);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception fehler)
+            {
+                _logger.LogWarning(fehler, "AC-Test: {Entitaet} nicht lesbar.", geraet.LeistungEntityId);
+                zeile = new AcGeraetStand(
+                    geraet, null, null, null, null,
+                    $"{geraet.LeistungEntityId} liess sich nicht lesen: {fehler.Message} "
+                    + "— steht in den Einstellungen eine vollstaendige Adresse mit http:// ?");
+            }
+
+            stand.Add(zeile);
         }
 
         // Der Vorschlag fuer den Zeitplan kommt aus dem Lichtplan des Zelts —
@@ -212,6 +237,18 @@ public sealed class AcTestApiController : ControllerBase
         var maengel = new List<string>();
         if (!AcTest.ZeitErlaubt(request.Ein)) maengel.Add($"Ein-Zeit: {request.Ein} ist keine Uhrzeit im Format HH:MM.");
         if (!AcTest.ZeitErlaubt(request.Aus)) maengel.Add($"Aus-Zeit: {request.Aus} ist keine Uhrzeit im Format HH:MM.");
+
+        /* Und ob die beiden ZUSAMMEN einen Plan ergeben.
+           20:00 bis 20:00 ging bis zum 02.09.2026 durch, und derselbe Aufruf
+           zwang den Modus danach auf "Schedule" — das Geraet faehrt ab da einen
+           Plan ohne Dauer. Ueber Mitternacht bleibt erlaubt: 12/12 in der
+           Bluete heisst oft 20:00 bis 08:00. */
+        if (maengel.Count == 0 && !AcTest.ZeitplanErlaubt(request.Ein, request.Aus))
+        {
+            maengel.Add($"Ein- und Aus-Zeit sind beide {request.Ein} — das ergibt keinen Plan. "
+                        + "Wer durchgehend laufen lassen will, stellt den Modus auf Dauerlauf.");
+        }
+
         if (maengel.Count > 0)
         {
             return BadRequest(ApiErrorFactory.Validation(string.Join(" ", maengel)));
