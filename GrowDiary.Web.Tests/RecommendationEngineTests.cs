@@ -233,7 +233,7 @@ public sealed class RecommendationEngineTests : IDisposable
         var grow = CreateHydroGrow();
         var deviation = CreateDeviation(DeviationSeverity.Critical);
 
-        var result = _engine.BuildCardsFromDiagnostics(grow, new[] { deviation }, Array.Empty<TreatmentRecommendationDto>());
+        var result = _engine.BuildCardsFromDiagnostics(new[] { deviation }, Array.Empty<TreatmentRecommendationDto>());
 
         var card = Assert.Single(result);
         Assert.Equal("danger", card.Severity);
@@ -247,7 +247,7 @@ public sealed class RecommendationEngineTests : IDisposable
         var deviation = CreateDeviation(DeviationSeverity.Warning);
         var recommendation = CreateTreatmentRecommendation(deviation, "pH Korrektur nach unten");
 
-        var result = _engine.BuildCardsFromDiagnostics(grow, new[] { deviation }, new[] { recommendation });
+        var result = _engine.BuildCardsFromDiagnostics(new[] { deviation }, new[] { recommendation });
 
         var card = Assert.Single(result);
         Assert.Equal("warning", card.Severity);
@@ -261,7 +261,7 @@ public sealed class RecommendationEngineTests : IDisposable
         var deviation = CreateDeviation(DeviationSeverity.Warning);
         var recommendation = CreateTreatmentRecommendation(deviation, "pH Korrektur nach unten");
 
-        var result = _engine.BuildCardsFromDiagnostics(grow, new[] { deviation }, new[] { recommendation });
+        var result = _engine.BuildCardsFromDiagnostics(new[] { deviation }, new[] { recommendation });
 
         Assert.Single(result, card => card.Title.Contains("Ph", StringComparison.OrdinalIgnoreCase));
     }

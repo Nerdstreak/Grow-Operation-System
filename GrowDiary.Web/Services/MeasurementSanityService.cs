@@ -16,14 +16,16 @@ public sealed class MeasurementSanityService
         CheckHeight(cards, measurement.HeightCm);
         CheckWaterAndRunoff(cards, measurement.WaterAmountMl, measurement.RunoffAmountMl);
 
-        if (profile.IsHydro)
-        {
-            CheckHydro(cards, measurement);
-        }
-        else
-        {
-            CheckSubstrate(cards, grow, measurement);
-        }
+        /* Kein if auf profile.IsHydro mehr: GrowthProfile.IsHydro ist =&gt; true,
+           also eine Konstante, und IrrigationType hat genau einen Wert. Die
+           Verzweigung las sich wie eine Wahl und war keine — der else-Zweig
+           (CheckSubstrate, rund 140 Zeilen) war unerreichbar.
+
+           Darin standen acht pH- und EC-Zahlen fuer Erde. Die sehen aus wie
+           fachliche Wahrheiten; die App sagt zu Erde aber nichts. Gehalten
+           wird das jetzt von KeinZweigFuerEineAnbauartDieEsNichtGibtTests:
+           kommt Erde zurueck, wird dort zuerst etwas rot. */
+        CheckHydro(cards, measurement);
 
         return cards;
     }
@@ -143,115 +145,6 @@ public sealed class MeasurementSanityService
         }
     }
 
-    private static void CheckSubstrate(List<RecommendationCard> cards, GrowRun grow, Measurement measurement)
-    {
-        var profile = grow.Profile;
-
-        if (profile.IsSoilOrganic)
-        {
-            CheckPhBand(
-                cards,
-                measurement.IrrigationPh,
-                criticalLow: 4.8,
-                warnLow: 5.6,
-                targetLow: 6.0,
-                targetHigh: 6.8,
-                warnHigh: 7.2,
-                criticalHigh: 8.0,
-                titlePrefix: "Gießwasser-pH",
-                criticalMessage: "Ein so extremer pH passt kaum zu einem organischen Soil-Run und kann das Bodenleben sowie die Verfügbarkeit stark stören.",
-                warningMessage: "Für organischen Soil liegt ein grob plausibler Bereich eher um 6,0–6,8. Deutliche Abweichungen nur bewusst und nachvollziehbar fahren.");
-
-            CheckPhBand(
-                cards,
-                measurement.DrainPh,
-                criticalLow: 4.5,
-                warnLow: 5.0,
-                targetLow: 5.4,
-                targetHigh: 6.8,
-                warnHigh: 7.3,
-                criticalHigh: 8.0,
-                titlePrefix: "Drain-pH",
-                criticalMessage: "Ein Drain-pH in diesem Bereich ist biologisch sehr auffällig. pH 3 wäre praktisch ein Alarmwert oder ein klarer Messfehler.",
-                warningMessage: "Der Drain-pH liegt klar außerhalb dessen, was für ein organisches Substrat noch ruhig wirkt. Substrat, Wasser und Messgerät prüfen.");
-
-            if (measurement.IrrigationEc is { } orgEc)
-            {
-                cards.Add(Info("Input-EC im organischen Soil nur Nebenwert", $"Du hast {orgEc:0.00} als Gießwasser-EC eingetragen. In organischem Soil ist das eher ein Zusatzindikator als ein Führungswert."));
-            }
-        }
-        else
-        {
-            CheckPhBand(
-                cards,
-                measurement.IrrigationPh,
-                criticalLow: 4.8,
-                warnLow: 5.3,
-                targetLow: 5.6,
-                targetHigh: 6.3,
-                warnHigh: 6.6,
-                criticalHigh: 7.3,
-                titlePrefix: "Input-pH",
-                criticalMessage: "Ein so extremer Input-pH ist für Coco/mineralische Medien hochriskant oder ein Messfehler.",
-                warningMessage: "Für Coco und mineralische Medien liegt ein plausibler Bereich meist deutlich enger als in Erde.");
-
-            CheckPhBand(
-                cards,
-                measurement.DrainPh,
-                criticalLow: 4.5,
-                warnLow: 5.0,
-                targetLow: 5.4,
-                targetHigh: 6.5,
-                warnHigh: 6.9,
-                criticalHigh: 7.5,
-                titlePrefix: "Drain-pH",
-                criticalMessage: "Ein Drain-pH in diesem Bereich ist in Coco/mineralischen Medien sehr auffällig und kann auf heftigen Lockout oder Messfehler hindeuten.",
-                warningMessage: "Der Drain-pH liegt klar außerhalb eines ruhigen Fensters. Verlauf und Salzaufbau prüfen.");
-
-            if (measurement.IrrigationEc is { } inputEc)
-            {
-                if (inputEc >= 4.0)
-                {
-                    cards.Add(Critical("Input-EC extrem hoch", $"Mit {inputEc:0.00} EC ist die Nährlösung für Coco/mineralische Medien sehr aggressiv. Das wäre nur in Ausnahmefällen plausibel."));
-                }
-                else if (inputEc >= 3.0)
-                {
-                    cards.Add(Warning("Input-EC hoch", $"Mit {inputEc:0.00} EC liegst du bereits in einem Bereich, der sehr bewusst gefahren werden sollte."));
-                }
-            }
-
-            if (measurement.DrainEc is { } drainEc)
-            {
-                if (drainEc >= 4.5)
-                {
-                    cards.Add(Critical("Drain-EC extrem hoch", $"Mit {drainEc:0.00} EC im Drain deutet vieles auf massive Anreicherung oder einen Messfehler hin."));
-                }
-                else if (drainEc >= 3.5)
-                {
-                    cards.Add(Warning("Drain-EC sehr hoch", $"Mit {drainEc:0.00} EC im Drain liegt eine starke Anreicherung nahe."));
-                }
-            }
-        }
-
-        if (measurement.DrainPh is { } drainPh && measurement.IrrigationPh is { } inputPh)
-        {
-            var delta = Math.Abs(drainPh - inputPh);
-            if (delta >= 1.5)
-            {
-                cards.Add(Critical("pH-Sprung zwischen Input und Drain sehr groß", $"Zwischen Input ({inputPh:0.00}) und Drain ({drainPh:0.00}) liegen {delta:0.00} pH-Punkte. Das ist biologisch auffällig und oft ein Zeichen für Messfehler, starken Salzstress oder ein aus dem Ruder gelaufenes Medium."));
-            }
-            else if (delta >= 0.8)
-            {
-                cards.Add(Warning("pH-Sprung zwischen Input und Drain deutlich", $"Zwischen Input ({inputPh:0.00}) und Drain ({drainPh:0.00}) liegen {delta:0.00} pH-Punkte. Verlauf und Medium prüfen."));
-            }
-        }
-
-        if ((measurement.DrainEc is not null || measurement.DrainPh is not null) && measurement.RunoffAmountMl is null)
-        {
-            cards.Add(Info("Drain ohne Runoff-Menge", "Drain-Werte sind deutlich aussagekräftiger, wenn du auch die ungefähre Runoff-Menge dokumentierst."));
-        }
-    }
-
     private static void CheckHumidity(List<RecommendationCard> cards, double? humidityPercent)
     {
         if (humidityPercent is not { } rh)
@@ -319,38 +212,6 @@ public sealed class MeasurementSanityService
         }
     }
 
-    private static void CheckPhBand(
-        List<RecommendationCard> cards,
-        double? value,
-        double criticalLow,
-        double warnLow,
-        double targetLow,
-        double targetHigh,
-        double warnHigh,
-        double criticalHigh,
-        string titlePrefix,
-        string criticalMessage,
-        string warningMessage)
-    {
-        if (value is not { } ph)
-        {
-            return;
-        }
-
-        if (ph <= criticalLow || ph >= criticalHigh)
-        {
-            cards.Add(Critical($"{titlePrefix} extrem", $"{titlePrefix} liegt bei {ph:0.00}. {criticalMessage}"));
-        }
-        else if (ph < warnLow || ph > warnHigh)
-        {
-            cards.Add(Warning($"{titlePrefix} klar außerhalb des ruhigen Bereichs", $"{titlePrefix} liegt bei {ph:0.00}. {warningMessage}"));
-        }
-        else if (ph < targetLow || ph > targetHigh)
-        {
-            cards.Add(Info($"{titlePrefix} außerhalb des Sweet Spots", $"{titlePrefix} liegt bei {ph:0.00}. Das ist noch nicht zwingend kritisch, aber nicht mehr im engeren Wohlfühlfenster."));
-        }
-    }
-
     private static void ValidatePh(ModelStateDictionary modelState, string fieldName, double? value, string label)
     {
         if (value is < 0 or > 14)
@@ -381,11 +242,11 @@ public sealed class MeasurementSanityService
     }
 
     private static RecommendationCard Info(string title, string message)
-        => new() { Severity = "info", Title = title, Message = message };
+        => new() { Severity = Kartenschwere.Hinweis, Title = title, Message = message };
 
     private static RecommendationCard Warning(string title, string message)
-        => new() { Severity = "warning", Title = title, Message = message };
+        => new() { Severity = Kartenschwere.Warnung, Title = title, Message = message };
 
     private static RecommendationCard Critical(string title, string message)
-        => new() { Severity = "danger", Title = title, Message = message };
+        => new() { Severity = Kartenschwere.Gefahr, Title = title, Message = message };
 }

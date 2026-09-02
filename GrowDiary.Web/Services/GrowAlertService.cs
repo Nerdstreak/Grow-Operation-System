@@ -38,7 +38,7 @@ public sealed class GrowAlertService
         {
             var deviations = _deviationAnalyzer.Analyze(grow, measurements);
             var treatmentRecommendations = _treatmentRecommender.Recommend(grow, deviations).Recommendations;
-            var diagnosticAlerts = _recommendationEngine.BuildCardsFromDiagnostics(grow, deviations, treatmentRecommendations);
+            var diagnosticAlerts = _recommendationEngine.BuildCardsFromDiagnostics(deviations, treatmentRecommendations);
             var mergedAlerts = MergeDiagnosticAndLegacyAlerts(diagnosticAlerts, legacyAlerts);
             return ApplyMaxCount(mergedAlerts, maxCount);
         }
@@ -61,14 +61,28 @@ public sealed class GrowAlertService
         return homeAssistantConfigured ? "healthy" : "neutral";
     }
 
+    /// <summary>Aus den Karten eines Grows wird die Zustandsampel.</summary>
+    /// <remarks>
+    /// <para>Das ist das <b>Einzige</b>, was von den Empfehlungen beim Nutzer
+    /// ankommt: <c>/api/live/tents/{id}</c> liefert <c>stateTone</c> und
+    /// <c>stateLabel</c>, sonst nichts. Titel und Text der Karten werden
+    /// gerechnet und weggeworfen.</para>
+    ///
+    /// <para>Verglichen wird gegen <see cref="Kartenschwere"/> und nicht gegen
+    /// rohe Zeichenketten. Bis zum 02.09.2026 standen hier <c>"danger"</c> und
+    /// <c>"warning"</c> als Literale — ein Tippfehler oder ein neuer Wert
+    /// hätte aus einem kritischen Befund still ein „stabil" gemacht.</para>
+    /// </remarks>
     public static string ResolveStateTone(IEnumerable<RecommendationCard> alerts, bool homeAssistantConfigured)
     {
-        if (alerts.Any(a => a.Severity == "danger"))
+        var schweren = alerts.Select(a => a.Severity).ToList();
+
+        if (schweren.Contains(Kartenschwere.Gefahr))
         {
             return "critical";
         }
 
-        if (alerts.Any(a => a.Severity == "warning"))
+        if (schweren.Contains(Kartenschwere.Warnung))
         {
             return "attention";
         }

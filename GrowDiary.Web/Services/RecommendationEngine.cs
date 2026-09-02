@@ -22,7 +22,7 @@ public sealed class RecommendationEngine
         {
             cards.Add(new RecommendationCard
             {
-                Severity = "info",
+                Severity = Kartenschwere.Hinweis,
                 Title = "Noch keine Messung vorhanden",
                 Message = "Sobald du eine erste Messung anlegst, erscheinen hier systembezogene Empfehlungen."
             });
@@ -30,7 +30,6 @@ public sealed class RecommendationEngine
             return cards;
         }
 
-        var profile = grow.Profile;
         var program = _knowledgeService.MatchProgram(grow.Nutrients);
 
         cards.AddRange(_measurementSanityService.GetSanityCards(grow, current));
@@ -43,7 +42,7 @@ public sealed class RecommendationEngine
         {
             cards.Add(new RecommendationCard
             {
-                Severity = "success",
+                Severity = Kartenschwere.Gut,
                 Title = "Keine akuten Auffälligkeiten",
                 Message = "Die letzten Werte sehen stabil aus. Weiter beobachten und Trends im Verlauf vergleichen."
             });
@@ -52,8 +51,13 @@ public sealed class RecommendationEngine
         return cards;
     }
 
+    /// <remarks>
+    /// <b>Ohne Grow.</b> Bis zum 02.09.2026 nahm diese Methode einen
+    /// <c>GrowRun</c> entgegen und benutzte ihn in ihrem ganzen Rumpf nicht.
+    /// Drei Aufrufer reichten ihn treu durch — ein Parameter, der nichts tut,
+    /// erweckt den Eindruck, die Antwort haenge vom Grow ab.
+    /// </remarks>
     public IReadOnlyList<RecommendationCard> BuildCardsFromDiagnostics(
-        GrowRun grow,
         IReadOnlyList<GrowDeviation> deviations,
         IReadOnlyList<TreatmentRecommendationDto> treatmentRecommendations)
     {
@@ -722,23 +726,23 @@ public sealed class RecommendationEngine
     }
 
     private static RecommendationCard Info(string title, string message)
-        => new() { Severity = "info", Title = title, Message = message };
+        => new() { Severity = Kartenschwere.Hinweis, Title = title, Message = message };
 
     private static RecommendationCard Warning(string title, string message)
-        => new() { Severity = "warning", Title = title, Message = message };
+        => new() { Severity = Kartenschwere.Warnung, Title = title, Message = message };
 
     private static RecommendationCard Critical(string title, string message)
-        => new() { Severity = "danger", Title = title, Message = message };
+        => new() { Severity = Kartenschwere.Gefahr, Title = title, Message = message };
 
     private static RecommendationCard Success(string title, string message)
-        => new() { Severity = "success", Title = title, Message = message };
+        => new() { Severity = Kartenschwere.Gut, Title = title, Message = message };
 
     private static string ToCardSeverity(DeviationSeverity severity)
         => severity switch
         {
-            DeviationSeverity.Critical => "danger",
-            DeviationSeverity.Warning => "warning",
-            _ => "info"
+            DeviationSeverity.Critical => Kartenschwere.Gefahr,
+            DeviationSeverity.Warning => Kartenschwere.Warnung,
+            _ => Kartenschwere.Hinweis
         };
 
     private static string ToGermanSeverityLabel(DeviationSeverity severity)

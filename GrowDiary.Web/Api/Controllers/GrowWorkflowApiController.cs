@@ -88,9 +88,6 @@ public sealed class GrowWorkflowApiController : ApiControllerBase
         }
 
         var measurements = _repository.GetMeasurementsForGrow(id);
-        var latestByTime = measurements
-            .OrderByDescending(measurement => measurement.TakenAt)
-            .FirstOrDefault();
         var latestEc = measurements
             .OrderByDescending(measurement => measurement.TakenAt)
             .Where(measurement => measurement.ReservoirEc.HasValue)
