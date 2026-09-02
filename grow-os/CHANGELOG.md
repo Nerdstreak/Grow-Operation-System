@@ -5,6 +5,88 @@
 > was sich ändert. Die älteren Einträge darunter sind noch englisch; sie sind
 > Geschichte und werden nicht nachübersetzt.
 
+## 2.0.0-beta.64
+
+**Beta.** Fünf Stellen fragten die falsche Quelle nach der Wachstumsphase —
+darunter der Wächter, der Nachrichten aufs Telefon schickt, und die Diagnose,
+die dadurch der Kachel widersprach. Dazu vier Fehler, die erst auffielen, als
+in den Prüfungen aufgeräumt wurde.
+
+### Die Phase kam von der falschen Stelle
+
+Die App rechnet die Wachstumsphase aus dem Grow: Flip-Datum, Samentyp, geplante
+Veg-Dauer, „Finish beginnt". Genau das steht in der Kopfzeile. Fünf Stellen
+nahmen sie stattdessen von der <b>letzten Messzeile</b> — und was dort steht,
+beschreibt <i>diese</i> Messung, nicht den Grow von heute.
+
+- Behoben — **die Diagnose widersprach der Kachel.** Am selben Grow, in
+  derselben Minute: die Kachel sagte „EC 1,03 im Ziel (1,00–1,20)", die
+  Diagnose darunter „EC 1,03 ausserhalb (0,20–0,40)". Eine einzige Messzeile
+  mit alter Aufschrift reichte.
+
+- Behoben — **der Urlaubswächter urteilte gegen die falschen Bänder.** Wer im
+  Juli von Hand gemessen, im August geflippt und danach die Sensoren machen
+  lassen hat, bekam wochenlang Warnungen gegen Veg-Bänder — mitten in der
+  Blüte. Im belegten Fall wird aus einer EC-Drift dadurch eine <b>Warnung</b>
+  statt einer Randnotiz, und die geht aufs Telefon.
+
+- Behoben — **das Messformular schlug die alte Aufschrift vor**, und die App
+  markierte dieselbe Zeile gleich darauf mit „≠ Blüte" als falsch. Wer den
+  Vorschlag stehen liess, schrieb den Fehler fort.
+
+- Behoben — **die Automessung schrieb die alte Phase weiter.** Jede
+  automatisch erfasste Zeile übernahm die Aufschrift der vorherigen; nach einem
+  Flip ohne Handmessung trug ab da <b>jede</b> denselben veralteten Wert.
+
+- Behoben — **Zelt- und Hydro-Seite zeigten die Phase der letzten Messung**
+  statt der von heute.
+
+### Aufgaben und Erinnerungen
+
+- Behoben — **eine gelöschte Kalibrierung liess ihre Erinnerung stehen.** Eine
+  geplante Kalibrierung oder Wartung legt eine Aufgabe an — das ist gewollt.
+  Wer sich vertippte und den Vorgang löschte, wurde die Aufgabe aber nie wieder
+  los: sie hängte an nichts mehr und war über die Oberfläche nicht erreichbar.
+  Am schwersten wog das beim Löschen eines ganzen <b>Geräts</b>: das nimmt alle
+  seine Vorgänge auf einmal mit — und liess jede einzelne ihrer Erinnerungen
+  zurück. Was bereits <i>abgehakt</i> ist, bleibt stehen: erledigt ist erledigt.
+
+- Behoben — **umgekehrt genauso.** Wer die Erinnerung in der Aufgabenliste
+  löschte, behielt eine Kalibrierung, die auf eine Aufgabe zeigte, die es nicht
+  mehr gab — und weil eine Erinnerung nur beim <i>Anlegen</i> entsteht, bekam
+  dieser Vorgang <b>nie wieder</b> eine. Er stand weiter als geplant da und
+  erinnerte an nichts mehr.
+
+### Und was sonst nicht stimmte
+
+- Behoben — **die Geräte-Testseite brach ganz ab, statt eine Zeile zu melden.**
+  Antwortete eine Entität nicht — dafür reicht eine Adresse ohne
+  „http://" —, gab die Seite einen Serverfehler zurück. Dabei stand der
+  erklärende Satz direkt daneben bereit. Jetzt fällt nur die betroffene Zeile
+  aus, mit der Ursache dahinter.
+
+- Behoben — **ein Zeitplan mit gleicher Ein- und Aus-Zeit ging an die echte
+  Anlage.** 20:00 bis 20:00 wurde angenommen, und derselbe Aufruf zwang den
+  Controller danach auf „Schedule". Was ein LED-Treiber oder eine Abluft daraus
+  macht, entscheidet ab da das Gerät. „Durchgehend an" ist ein normaler Wunsch
+  — nur schreibt man ihn nicht so, und die Seite sagt jetzt, wie stattdessen.
+
+- Behoben — **„zuletzt geschrieben" verschwand nach einem einzigen
+  Fehlversuch.** Die Nachtabsenkung sah genau <b>einen</b> Eintrag an. War Home
+  Assistant beim letzten Mal kurz weg, stand die Angabe leer — obwohl die Rampe
+  seit Wochen zweimal täglich zuverlässig schrieb. Wer prüfen wollte, ob die
+  Steuerung arbeitet, fand die einzige Antwort darauf leer vor.
+
+- Behoben — **die Nachtabsenkung meldete Erfolg für Eingaben, die sie wegwarf.**
+  Zielgerät und Kühler hängen am Zelt; hat der Grow keines, fiel der ganze
+  Block still aus — und die Antwort war trotzdem „Gespeichert.". Und jede
+  Kennung wurde angenommen, obwohl der Kühler nur über eine Steckdose
+  (<code>switch.…</code>) schaltet.
+
+- Behoben — **der Fotospeicher legte an, was ihm gereicht wurde.** Geprüft
+  wurde eine Ebene höher; eine Datei ohne Endung bekam still ein „.jpg"
+  angehängt. Die Sperre liegt jetzt dort, wo geschrieben wird.
+
 ## 2.0.0-beta.63
 
 **Beta.** Zwei Wünsche aus dem Betrieb — mehrere Messpunkte je Kalibrierung
