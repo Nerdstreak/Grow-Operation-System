@@ -12,8 +12,6 @@ import { formatNumber, toLocalInputValue } from '../../utils'
 
 export type GrowDetailSection = 'overview' | 'measurements' | 'diagnosis' | 'sops' | 'journal' | 'automation'
 
-export const photoTags: PhotoTag[] = ['Overview', 'Canopy', 'Leaf', 'Root', 'Training', 'Flower', 'Problem', 'Comparison', 'Other']
-
 export const autoMeasurementFields: AutoMeasurementField[] = [
   'AirTemperatureC',
   'HumidityPercent',
