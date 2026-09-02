@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync, readdirSync } from 'node:fs'
-import { darfUeberspringen } from './pflicht'
+import { backendAntwortet, darfUeberspringen } from './pflicht'
 import { nimmSchloss, gibSchloss } from './schloss'
 
 /* <b>Ein Schloss um Grow 1.</b> Vier E2E-Dateien schreiben an denselben Grow
@@ -97,21 +97,15 @@ const OHNE_RUNDWEG: Record<string, string> = {
     'Schreibt die Verbindung zu Home Assistant. Ein Rundweg würde die Zuordnung der laufenden App verstellen und damit jede andere Prüfung, die Live-Werte erwartet. Braucht eine eigene Instanz.',
   'features/plants/PlantActions.tsx':
     'Ändert Pflanzen eines Grows (Ausfall, Klon, Umtopfen); dieselbe Abhängigkeit wie oben — der Bestand ist geteilt.',
-  'pages/HardwarePage.tsx':
-    'Legt Geräte und Kalibrierungen an. Eine angelegte Kalibrierung erzeugt still eine Aufgabe (CreateCalibrationEvent bei Status Planned) und verändert damit die Aufgabenseite, gegen die andere Prüfungen laufen.',
 }
 
 /* ------------------------------------------------------------------ */
 /* Hilfen                                                              */
 /* ------------------------------------------------------------------ */
 
+/** Die eine Fassung steht in `pflicht.ts` — hier nur der Kurzweg. */
 async function backendDa(seite: Page): Promise<boolean> {
-  try {
-    const antwort = await seite.request.get('/api/grows')
-    return antwort.ok()
-  } catch {
-    return false
-  }
+  return backendAntwortet(seite.request)
 }
 
 /** Ein Wert, der in diesem Lauf einmalig ist — sonst prüft der zweite Lauf den ersten. */

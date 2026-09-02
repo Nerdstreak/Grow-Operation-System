@@ -135,10 +135,20 @@ public sealed partial class HardwareRepository
     public void DeleteCalibrationEvent(int id)
     {
         using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM CalibrationEvents WHERE Id = $id;";
-        command.Parameters.AddWithValue("$id", id);
-        command.ExecuteNonQuery();
+        using var transaction = connection.BeginTransaction();
+
+        // Erst die Erinnerung — danach ist die Zeile weg, aus der sie zu finden waere.
+        LoescheOffeneErinnerungen(connection, transaction, "CalibrationEvents", "Id = $id", id);
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = "DELETE FROM CalibrationEvents WHERE Id = $id;";
+            command.Parameters.AddWithValue("$id", id);
+            command.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
     }
 
     public CalibrationEvent? GetCalibrationEvent(int id)

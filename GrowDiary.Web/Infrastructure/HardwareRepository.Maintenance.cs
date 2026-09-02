@@ -118,10 +118,19 @@ public sealed partial class HardwareRepository
     public void DeleteMaintenanceEvent(int id)
     {
         using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM MaintenanceEvents WHERE Id = $id;";
-        command.Parameters.AddWithValue("$id", id);
-        command.ExecuteNonQuery();
+        using var transaction = connection.BeginTransaction();
+
+        LoescheOffeneErinnerungen(connection, transaction, "MaintenanceEvents", "Id = $id", id);
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = "DELETE FROM MaintenanceEvents WHERE Id = $id;";
+            command.Parameters.AddWithValue("$id", id);
+            command.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
     }
 
     public MaintenanceEvent? GetMaintenanceEvent(int id)

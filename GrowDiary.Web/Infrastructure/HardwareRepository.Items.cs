@@ -86,6 +86,13 @@ public sealed partial class HardwareRepository
         using var connection = OpenConnection();
         using var transaction = connection.BeginTransaction();
 
+        /* Die Erinnerungen ZUERST: gleich sind die Zeilen weg, aus denen sie
+           zu finden waeren. Wer ein Geraet loescht, loescht alle seine
+           Vorgaenge auf einmal — und bis zum 02.09.2026 blieb jede einzelne
+           ihrer Aufgaben in der Liste stehen. */
+        LoescheOffeneErinnerungen(connection, transaction, "MaintenanceEvents", "HardwareItemId = $id", id);
+        LoescheOffeneErinnerungen(connection, transaction, "CalibrationEvents", "HardwareItemId = $id", id);
+
         using (var command = connection.CreateCommand())
         {
             command.Transaction = transaction;

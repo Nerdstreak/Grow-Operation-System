@@ -41,3 +41,25 @@ export function darfUeberspringen(bedingung: boolean, grund: string): void {
 
   test.skip(true, grund)
 }
+
+/**
+ * Antwortet ein Backend?
+ *
+ * **Warum das hier steht.** Ein Rundweg ohne Backend scheitert sonst mit
+ * „Element nicht gefunden" — die Seite selbst liefert ja 200, sie zeigt nur
+ * einen Ladezustand. Diese Diagnose kostet jedesmal zehn Minuten; genau das ist
+ * am 02.09.2026 passiert. Der Satz steht deshalb einmal hier statt in jeder
+ * Datei neu.
+ *
+ * Im strengen Lauf ist ein fehlendes Backend ohnehin ein Fehler — dann sagt die
+ * Meldung wenigstens, welcher.
+ */
+export async function backendAntwortet(anfrage: {
+  get: (url: string) => Promise<{ ok: () => boolean }>
+}): Promise<boolean> {
+  try {
+    return (await anfrage.get('/api/grows')).ok()
+  } catch {
+    return false
+  }
+}
