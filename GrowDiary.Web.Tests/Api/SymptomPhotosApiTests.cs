@@ -140,18 +140,35 @@ public sealed class SymptomPhotosApiTests : IDisposable
             Assert.IsType<OkObjectResult>(_controller.ForSymptom(_symptomId).Result).Value));
     }
 
+    /// <summary>Ein Symptom zeigt genau seine eigenen Bilder.</summary>
+    /// <remarks>
+    /// <para>Diese Zusage stand bis zum 02.09.2026 in
+    /// <c>TheCountsTellWhereThereIsSomethingToShow</c> und prüfte den Endpunkt
+    /// <c>GET /api/knowledge/symptom-photo-counts</c>. Der ist weg: die
+    /// Zählung „jede Route hat einen Aufrufer" fand ihn ohne einen einzigen,
+    /// und sein Zweck — „damit die Wissensseite nicht Bilder anbietet, wo keine
+    /// sind" — ist inzwischen besser gelöst: <c>SymptomPhotos.tsx</c> zeigt
+    /// statt eines leeren Bereichs eine Einladung, das nächste Mal zu
+    /// fotografieren.</para>
+    ///
+    /// <para>Die Zusage selbst bleibt — sie gilt jetzt dem Weg, den die
+    /// Oberfläche wirklich nimmt.</para>
+    /// </remarks>
     [Fact]
-    public void TheCountsTellWhereThereIsSomethingToShow()
+    public void EinSymptomZeigtNurSeineEigenenBilder()
     {
-        // Damit die Wissensseite nicht „Bilder" anbietet, wo keine sind.
         _controller.Assign(Foto(), new SymptomPhotoAssignRequest { SymptomId = _symptomId });
         _controller.Assign(Foto(), new SymptomPhotoAssignRequest { SymptomId = _symptomId });
 
-        var zahlen = Assert.IsAssignableFrom<IReadOnlyDictionary<string, int>>(
-            Assert.IsType<OkObjectResult>(_controller.Counts().Result).Value);
+        var meine = Assert.IsAssignableFrom<IReadOnlyList<SymptomPhotoDto>>(
+            Assert.IsType<OkObjectResult>(_controller.ForSymptom(_symptomId).Result).Value);
+        var fremde = Assert.IsAssignableFrom<IReadOnlyList<SymptomPhotoDto>>(
+            Assert.IsType<OkObjectResult>(_controller.ForSymptom(_anderesSymptom).Result).Value);
 
-        Assert.Equal(2, zahlen[_symptomId]);
-        Assert.False(zahlen.ContainsKey(_anderesSymptom));
+        Assert.True(meine.Count == 2, $"Unter dem eigenen Symptom stehen {meine.Count} Bilder statt 2.");
+        Assert.True(fremde.Count == 0,
+            $"Unter einem FREMDEN Symptom stehen {fremde.Count} Bilder. Wer eine Krankheit "
+            + "nachschlaegt, saehe dann Aufnahmen einer anderen — und zoege den falschen Schluss.");
     }
 
     [Fact]
@@ -160,14 +177,21 @@ public sealed class SymptomPhotosApiTests : IDisposable
         Assert.IsType<NotFoundObjectResult>(_controller.Assign(9999, new SymptomPhotoAssignRequest { SymptomId = _symptomId }));
     }
 
+    /// <summary>Ein Bild ohne Symptom taucht unter keinem Symptom auf.</summary>
+    /// <remarks>
+    /// Sonst stünde ein beliebiges Grow-Foto als Beleg für eine Krankheit da,
+    /// die es nicht zeigt.
+    /// </remarks>
     [Fact]
-    public void PhotosWithoutASymptomStayOutOfEveryList()
+    public void EinBildOhneSymptom_TauchtUnterKeinemAuf()
     {
         Foto("nur ein huebsches Bild");
 
-        var zahlen = Assert.IsAssignableFrom<IReadOnlyDictionary<string, int>>(
-            Assert.IsType<OkObjectResult>(_controller.Counts().Result).Value);
+        var meine = Assert.IsAssignableFrom<IReadOnlyList<SymptomPhotoDto>>(
+            Assert.IsType<OkObjectResult>(_controller.ForSymptom(_symptomId).Result).Value);
 
-        Assert.Empty(zahlen);
+        Assert.True(meine.Count == 0,
+            "Ein Bild ohne zugeordnetes Symptom steht als Beleg fuer eine Krankheit da, "
+            + "die es nicht zeigt.");
     }
 }

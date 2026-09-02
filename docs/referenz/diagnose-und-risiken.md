@@ -11,7 +11,7 @@
 | Dieselbe Ansicht innerhalb eines Grows | `/grows/<id>`, Abschnitt `diagnosis` |
 | Offene Risiken zum Bestätigen/Erledigen | Menü „Jetzt" → „Aufgaben", `/aufgaben` |
 | Karte „Beobachtungen · über Tage" | Live-Seite `/` (`TrendWatchPanel`) |
-| Zustandsampel je Zelt (kritisch/beobachten/stabil) | Live-Seite `/`, aus `/api/live/home` |
+| Zustandsampel je Zelt (kritisch/beobachten/stabil) | Live-Seite `/`, je Zelt aus `/api/live/tents/{id}` |
 | Schnittstellen | `GET /api/grows/{id}/deviations`, `/api/grows/{id}/treatment-recommendations`, `/api/observations`, `/api/trends/{growId}`, `/api/trends/{growId}/stability`, `/api/risk-events` |
 
 ## Was es tut

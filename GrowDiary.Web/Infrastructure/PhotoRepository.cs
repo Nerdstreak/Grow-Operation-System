@@ -120,29 +120,6 @@ public sealed class PhotoRepository : RepositoryBase
         return liste;
     }
 
-    /// <summary>Zu welchen Symptomen es überhaupt eigene Bilder gibt, mit Anzahl.</summary>
-    public IReadOnlyDictionary<string, int> CountBySymptom()
-    {
-        using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT SymptomId, COUNT(*) AS Anzahl FROM Photos
-            WHERE SymptomId IS NOT NULL GROUP BY SymptomId;
-            """;
-        using var reader = command.ExecuteReader();
-        var map = new Dictionary<string, int>(StringComparer.Ordinal);
-        while (reader.Read())
-        {
-            var key = reader["SymptomId"]?.ToString();
-            if (!string.IsNullOrWhiteSpace(key))
-            {
-                map[key] = Convert.ToInt32(reader["Anzahl"], CultureInfo.InvariantCulture);
-            }
-        }
-
-        return map;
-    }
-
     public PhotoAsset? GetById(int id)
     {
         using var connection = OpenConnection();

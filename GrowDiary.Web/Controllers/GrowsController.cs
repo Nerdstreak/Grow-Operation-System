@@ -7,16 +7,6 @@ namespace GrowDiary.Web.Controllers;
 [Route("grows")]
 public sealed class GrowsController : Controller
 {
-    [HttpGet("create")]
-    public IActionResult Create(int? templateId = null) => Redirect("/grows/new");
-
-    [HttpGet("{id:int}/edit")]
-    public IActionResult Edit(int id) => Redirect($"/grows/{id}/setup");
-
-    [HttpGet("compare")]
-    public IActionResult Compare(int? leftGrowId = null, int? rightGrowId = null)
-        => Redirect(BuildCompareUrl(leftGrowId, rightGrowId));
-
     [HttpGet("{id:int}/export")]
     public IActionResult Export(int id) => Redirect($"/api/exports/grows/{id}");
 

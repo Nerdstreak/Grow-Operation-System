@@ -71,18 +71,6 @@ public sealed class SymptomPhotosApiController : ApiControllerBase
             foto.Tag.ToString(),
             foto.TakenAtUtc)).ToList());
 
-    /// <summary>
-    /// Zu welchen Symptomen es eigene Bilder gibt, mit Anzahl.
-    /// </summary>
-    /// <remarks>
-    /// Damit die Wissensseite gar nicht erst „Bilder" anbietet, wo keine sind —
-    /// ein leerer Bereich, den man aufklappen kann, ist schlimmer als keiner.
-    /// </remarks>
-    [HttpGet("knowledge/symptom-photo-counts")]
-    [ProducesResponseType(typeof(IReadOnlyDictionary<string, int>), StatusCodes.Status200OK)]
-    public ActionResult<IReadOnlyDictionary<string, int>> Counts()
-        => Ok(_photos.CountBySymptom());
-
     /// <summary>Ein Bild einem Symptom zuordnen oder die Zuordnung lösen.</summary>
     [HttpPatch("photos/{photoId:int}/symptom")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

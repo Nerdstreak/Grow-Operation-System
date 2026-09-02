@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
-import { istLeer, istUnlesbar, unlesbarMeldung, unlesbareFelder, zahlOderNull } from './zahlenfeld'
+import { feldText, istLeer, istUnlesbar, unlesbarMeldung, unlesbareFelder, zahlOderNull } from './zahlenfeld'
 
 /**
  * Keine Seite baut sich ihre eigene Zahlen-Umwandlung.
@@ -193,5 +193,54 @@ describe('Zahlenfelder', () => {
     // Unschuldige meldet, wird abgeschaltet — dann prüft sie gar nichts mehr.
     expect(EIGENE_FASSUNG.test('if (Number.isNaN(date.getTime())) return null')).toBe(false)
     expect(EIGENE_FASSUNG.test('if (typeof value === "number" && Number.isFinite(value))')).toBe(false)
+  })
+})
+
+describe('Der Weg zurueck ins Feld (feldText)', () => {
+  /*
+   * Die andere Richtung, und der zweite belegte Datenverlust.
+   *
+   * `feldText` stand am 01.09.2026 FUENFMAL in der Oberflaeche — als
+   * `draftNumber`, `numberToInput` und zweimal als `formatDraftNumber` — und
+   * alle fuenf schrieben `String(value)`. Ein gespeichertes Nassgewicht von
+   * 21,5 g kam damit als „21.5" ins Feld zurueck, direkt neben einer Spalte,
+   * die „21,5" schreibt. Wer nichts aenderte und speicherte, schickte den
+   * Punkt wieder los.
+   *
+   * Zusammengefuehrt wurde es damals — gepruef­t nie: die Funktion stand am
+   * 02.09.2026 als einzige dieser Datei bei 0 % Abdeckung.
+   */
+
+  it('schreibt das Komma, nicht den Punkt', () => {
+    expect(feldText(21.5),
+      'Ein gespeichertes Gewicht kommt mit PUNKT ins Feld zurueck, direkt neben einer '
+      + 'Spalte, die Komma schreibt. Wer nichts aendert und speichert, schickt den Punkt '
+      + 'wieder los.').toBe('21,5')
+  })
+
+  it('laesst ganze Zahlen ganz', () => {
+    expect(feldText(21)).toBe('21')
+  })
+
+  it('macht aus fehlend ein leeres Feld, keine Null', () => {
+    // Der teure Unterschied: „0" heisst gemessen und null, leer heisst nicht
+    // gemessen. Stuende hier „0", waere ein nie erfasster Wert ploetzlich eine
+    // Messung — und der Waechter urteilte darueber.
+    expect(feldText(null), 'Aus einem nie erfassten Wert wurde eine Null.').toBe('')
+    expect(feldText(undefined), 'Aus einem fehlenden Wert wurde eine Null.').toBe('')
+  })
+
+  it('macht aus NaN ein leeres Feld', () => {
+    expect(feldText(Number.NaN), '„NaN" stand im Eingabefeld.').toBe('')
+  })
+
+  it('haelt der Rundreise stand', () => {
+    // Was herausgeht, muss wieder hereinkommen — sonst verschiebt sich ein Wert
+    // bei jedem Oeffnen des Formulars ein Stueck.
+    for (const wert of [0, 1, 5.8, 21.5, 0.28, 1234.56, -3.5]) {
+      expect(zahlOderNull(feldText(wert)),
+        `${wert} kam als „${feldText(wert)}" ins Feld und daraus wieder als `
+        + `${zahlOderNull(feldText(wert))} heraus.`).toBe(wert)
+    }
   })
 })

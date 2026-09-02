@@ -256,8 +256,38 @@ export function tankplatzName(wert: string | null | undefined): string {
   return TANKPLATZ_NAMEN[wert as ReservoirPosition] ?? wert
 }
 
+/**
+ * Stufen — Dringlichkeit, Schwere, Kritikalität.
+ *
+ * <b>Der Anlass (02.09.2026).</b> Diese Tabelle stand als <code>severityLabels</code>
+ * in <code>utils.ts</code>: eine <b>zwölfte</b> Übersetzungstabelle ausserhalb
+ * dieser Datei, und damit ausserhalb jeder Zählung. Genau dort ist „Info"
+ * schon einmal roh auf den Schirm gefallen — zwischen lauter deutschen Stufen
+ * stand ein englisches Wort.
+ *
+ * Sie bedient vier Typen auf einmal: <code>DeviationSeverity</code>,
+ * <code>RiskEventSeverity</code>, <code>TaskPriority</code> und
+ * <code>HardwareItemCriticality</code>. Alle vier werden jetzt gezählt.
+ */
+const STUFEN_NAMEN: Record<string, string> = {
+  Critical: 'Kritisch',
+  Warning: 'Warnung',
+  Info: 'Hinweis',
+  High: 'Hoch',
+  Medium: 'Mittel',
+  Low: 'Niedrig',
+  Normal: 'Normal',
+}
+
+/** „Warning" wird „Warnung", „High" wird „Hoch". */
+export function stufenName(wert: string | null | undefined): string {
+  if (!wert) return '–'
+  return STUFEN_NAMEN[wert] ?? wert
+}
+
 /** Nur für die Zählung: was übersetzt ist. */
 export const WOERTERBUECHER = {
+  stufe: STUFEN_NAMEN,
   phase: PHASEN_NAMEN,
   fotoTag: FOTO_NAMEN,
   herkunft: HERKUNFT_NAMEN,

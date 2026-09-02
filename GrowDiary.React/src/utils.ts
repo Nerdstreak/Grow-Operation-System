@@ -1,3 +1,5 @@
+import { stufenName } from './deutsche-woerter'
+
 export function formatDate(value: string | null | undefined, options?: Intl.DateTimeFormatOptions): string {
   if (!value) {
     return '–'
@@ -62,19 +64,15 @@ export function classNames(...values: Array<string | false | null | undefined>):
   return values.filter(Boolean).join(' ')
 }
 
-const severityLabels: Record<string, string> = {
-  Critical: 'Kritisch',
-  Warning: 'Warnung',
-  // „Info" fehlte — und wo ein Wort fehlt, faellt der englische Wert durch:
-  // auf der Diagnose stand deshalb „Info" zwischen lauter deutschen Stufen.
-  Info: 'Hinweis',
-  High: 'Hoch',
-  Medium: 'Mittel',
-  Low: 'Niedrig',
-  Normal: 'Normal',
-}
-
+/**
+ * Eine Stufe auf Deutsch.
+ *
+ * <b>Die Tabelle steht seit dem 02.09.2026 in <code>deutsche-woerter.ts</code></b>
+ * und nicht mehr hier. Als sie hier stand, war sie die einzige
+ * Übersetzungstabelle der App ausserhalb dieser Datei — und damit die einzige,
+ * die keine Zählung erfasste. „Info" ist dort genau deshalb einmal roh auf den
+ * Schirm gefallen.
+ */
 export function formatSeverityLabel(value: string | null | undefined): string {
-  if (!value) return '–'
-  return severityLabels[value] ?? value
+  return stufenName(value)
 }

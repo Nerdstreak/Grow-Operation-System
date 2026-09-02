@@ -20,8 +20,10 @@ public sealed class CameraProxyController : ControllerBase
         _cameraCache = cameraCache;
     }
 
+    // Nur EIN Weg zur Kamera. Der Alias "camera/tents/{tentId}" hatte am
+    // 02.09.2026 keinen einzigen Aufrufer — die Oberflaeche nimmt an allen
+    // vier Stellen "live/tents/{id}/camera".
     [HttpGet("live/tents/{tentId:int}/camera")]
-    [HttpGet("camera/tents/{tentId:int}")]
     public async Task<IActionResult> GetTentCamera(int tentId, [FromQuery] string? entity, CancellationToken cancellationToken)
     {
         var tent = _repository.GetTent(tentId);
@@ -95,7 +97,6 @@ public sealed class CameraProxyController : ControllerBase
         return File(frame.Bytes, frame.ContentType);
     }
 
-    [HttpGet("camera/tents/{tentId:int}/status")]
     public async Task<ActionResult<CameraProxyStatusDto>> GetTentCameraStatus(int tentId, CancellationToken cancellationToken)
     {
         var tent = _repository.GetTent(tentId);

@@ -55,16 +55,34 @@ public sealed class LegacyMvcEndpointContainmentTests : IDisposable
         Assert.Equal("/api/exports/grows/42", redirect.Url);
     }
 
+    /// <summary>
+    /// Die alten MVC-Routen kollidieren nicht mit den API-Routen.
+    /// </summary>
+    /// <remarks>
+    /// <para>Diese Prüfung hielt früher <c>SystemApiController</c> gegen
+    /// <c>SystemController</c>. Den zweiten gibt es seit dem 02.09.2026 nicht
+    /// mehr: seine einzige Aktion <c>GET /api/system/network</c> gab die
+    /// privaten LAN-Adressen der Maschine heraus — nachgeprüft an der
+    /// laufenden App — und hatte keinen einzigen Aufrufer. Sein Nachfolger
+    /// <c>GET /api/system/mobile-access</c> wird von <c>MobilePage.tsx</c>
+    /// benutzt.</para>
+    ///
+    /// <para>Geblieben sind die MVC-Reste, die es noch gibt. Kollisionsfrei
+    /// müssen sie weiterhin sein: zwei gleiche Routen in einer App sind ein
+    /// Startfehler, kein Testfehler — er fällt erst beim Anlauf auf.</para>
+    /// </remarks>
     [Fact]
-    public void SystemApiRoutes_DoNotCollideWithLegacySystemRoutes()
+    public void ApiRoutenKollidierenNichtMitDenMvcResten()
     {
-        var duplicateRoutes = GetControllerRoutes(typeof(SystemApiController), typeof(SystemController))
+        var doppelte = GetControllerRoutes(typeof(SystemApiController), typeof(GrowsController), typeof(SettingsController))
             .GroupBy(route => $"{route.Method} {route.Template}", StringComparer.OrdinalIgnoreCase)
             .Where(group => group.Count() > 1)
             .Select(group => $"{group.Key}: {string.Join(", ", group.Select(route => route.ControllerName))}")
             .ToList();
 
-        Assert.Empty(duplicateRoutes);
+        Assert.True(doppelte.Count == 0,
+            "Diese Routen gibt es zweimal: " + string.Join(" | ", doppelte)
+            + ". Zwei gleiche Routen sind ein Startfehler — er faellt erst beim Anlauf auf.");
     }
 
     private static IEnumerable<(string ControllerName, string Method, string Template)> GetControllerRoutes(params Type[] controllerTypes)

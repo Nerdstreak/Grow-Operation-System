@@ -56,6 +56,13 @@ describe('Deutsche Wörter', () => {
     ['ReservoirPosition', WOERTERBUECHER.tankplatz],
     ['PlantRole', WOERTERBUECHER.pflanzenRolle],
     ['PlantStatus', WOERTERBUECHER.pflanzenStatus],
+    // Die vier Stufen-Typen: bis zum 02.09.2026 lag ihre Tabelle in
+    // utils.ts und wurde von NIEMANDEM gezaehlt. Genau dort ist „Info“
+    // schon einmal roh auf den Schirm gefallen.
+    ['DeviationSeverity', WOERTERBUECHER.stufe],
+    ['RiskEventSeverity', WOERTERBUECHER.stufe],
+    ['TaskPriority', WOERTERBUECHER.stufe],
+    ['HardwareItemCriticality', WOERTERBUECHER.stufe],
   ] as const) {
     it(`jeder Wert von ${typ} hat ein deutsches Wort`, () => {
       const fehlend = werteVon(typ).filter((wert) => !(wert in woerterbuch))

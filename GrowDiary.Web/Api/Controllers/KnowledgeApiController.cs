@@ -48,15 +48,6 @@ public sealed class KnowledgeApiController : ApiControllerBase
     public ActionResult<IReadOnlyList<SopDefinition>> GetSops()
         => Ok(_knowledgeBase.Sops);
 
-    [HttpGet("sops/{id}")]
-    [ProducesResponseType(typeof(SopDefinition), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
-    public ActionResult<SopDefinition> GetSop(string id)
-    {
-        var item = _knowledgeBase.Sops.FirstOrDefault(t => t.Id == id);
-        return item is null ? NotFoundError("sop_not_found", $"SOP mit Id {id} existiert nicht.") : Ok(item);
-    }
-
     [HttpGet("setpoints")]
     [ProducesResponseType(typeof(IReadOnlyList<SetpointDefinition>), StatusCodes.Status200OK)]
     public ActionResult<IReadOnlyList<SetpointDefinition>> GetSetpoints()
