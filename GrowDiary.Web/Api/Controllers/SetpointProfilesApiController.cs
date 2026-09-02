@@ -135,6 +135,36 @@ public sealed class SetpointProfilesApiController : ApiControllerBase
            Nachtabsenkung an das Zielgeraet in Home Assistant, also an den
            Kuehler im Zelt. Die Grenzen stehen in
            MeasurementSanityService.PhysikalischeGrenzen und nur dort. */
+        /* Unbekannte Phasen und Felder werden ABGELEHNT, nicht weggeworfen.
+
+           Bis zum 02.09.2026 raeumte `Clean` sie still weg und der Endpunkt
+           antwortete mit 201. Der Kommentar an `Clean` beklagt genau das
+           („dem Nutzer eine Aenderung zu bestaetigen, die nie wirkt") — und
+           genau das tat der Endpunkt. Wer die Phase deutsch schrieb, bekam
+           „Gespeichert" und ein leeres Profil; beim naechsten Oeffnen waren
+           seine Zahlen weg, ohne ein Wort. */
+        foreach (var (phase, felder) in request.Overrides ?? [])
+        {
+            if (!Stages.Any(s => string.Equals(s.ToString(), phase, StringComparison.OrdinalIgnoreCase)))
+            {
+                ModelState.AddModelError(phase,
+                    $"\"{phase}\" ist keine Phase. Moeglich sind: {string.Join(", ", Stages)}.");
+                continue;
+            }
+
+            foreach (var feld in felder.Keys.Where(k => !SetpointProfile.Fields.Contains(k, StringComparer.Ordinal)))
+            {
+                ModelState.AddModelError($"{phase}.{feld}",
+                    $"\"{feld}\" ist kein Sollwert-Feld. Moeglich sind: "
+                    + string.Join(", ", SetpointProfile.Fields) + ".");
+            }
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationError("Das Profil laesst sich so nicht speichern.");
+        }
+
         var maengel = SetpointProfilGrenzen.Pruefe(request.Overrides);
         if (maengel.Count > 0)
         {
