@@ -46,6 +46,12 @@ public static class AdminAccessPolicy
         "/api/journal",
         "/api/home-assistant",
         "/api/knowledge",
+        // Hier kommen die KAMERABILDER aus dem Zelt heraus
+        // (/api/live/tents/{id}/camera) — das Empfindlichste, was diese App
+        // ausliefert. Bis zum 02.09.2026 stand der Praefix nicht in dieser
+        // Liste: geschuetzt waren nur die drei LEGACY-Kamerawege, und die
+        // Oberflaeche nahm laengst diesen hier.
+        "/api/live",
         "/api/light-schedules",
         "/api/light-transitions",
         "/api/maintenance-events",
@@ -56,13 +62,6 @@ public static class AdminAccessPolicy
         "/api/sop-instances",
         "/api/strains",
         "/api/tasks"
-    };
-
-    private static readonly string[] ProtectedLegacyCameraSuffixes =
-    {
-        "/camera.jpg",
-        "/camera-stream",
-        "/latest-snapshot"
     };
 
     public static IReadOnlyList<string> ProtectedRoutePrefixes => ProtectedPrefixes.Concat(ProtectedProductApiPrefixes).ToArray();
@@ -81,18 +80,16 @@ public static class AdminAccessPolicy
             return true;
         }
 
-        return IsProtectedLegacyTentCameraPath(path);
-    }
+        /* Hier stand ein Waechter fuer drei Legacy-Kamera-Pfade
+           (/tents/{id}/camera.jpg, /camera-stream, /latest-snapshot). Die
+           Routen sind am 02.09.2026 geloescht — die Oberflaeche nimmt an allen
+           Stellen /api/live/tents/{id}/camera. Ein Waechter fuer Pfade, die es
+           nicht gibt, schuetzt nichts und liest sich, als gaebe es sie noch.
 
-    private static bool IsProtectedLegacyTentCameraPath(PathString path)
-    {
-        var value = path.Value;
-        if (string.IsNullOrWhiteSpace(value) || !value.StartsWith("/tents/", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        return ProtectedLegacyCameraSuffixes.Any(suffix => value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
+           Beim Aufraeumen kam heraus, dass "/api/live" GAR NICHT in der Liste
+           oben stand: geschuetzt waren nur die drei alten Wege, waehrend der
+           neue offen lag. Er steht jetzt dort. */
+        return false;
     }
 
     /// <summary>

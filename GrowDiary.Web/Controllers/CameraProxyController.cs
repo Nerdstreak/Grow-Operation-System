@@ -97,45 +97,13 @@ public sealed class CameraProxyController : ControllerBase
         return File(frame.Bytes, frame.ContentType);
     }
 
-    public async Task<ActionResult<CameraProxyStatusDto>> GetTentCameraStatus(int tentId, CancellationToken cancellationToken)
-    {
-        var tent = _repository.GetTent(tentId);
-        if (tent is null)
-        {
-            return NotFound(new CameraProxyStatusDto(false, "tent_not_found", "Zelt wurde nicht gefunden.", null, null));
-        }
-
-        if (string.IsNullOrWhiteSpace(tent.CameraEntityId))
-        {
-            return Ok(new CameraProxyStatusDto(false, "camera_missing", "Für dieses Zelt ist keine Kamera-Entity hinterlegt.", null, null));
-        }
-
-        var settings = _repository.GetEffectiveHomeAssistantSettings();
-        if (!settings.IsConfigured)
-        {
-            return Ok(new CameraProxyStatusDto(false, "ha_not_configured", "Home Assistant ist nicht vollständig konfiguriert.", tent.CameraEntityId, null));
-        }
-
-        var snapshot = await _homeAssistantService.GetCameraSnapshotAsync(settings, tent.CameraEntityId, cancellationToken);
-        var previewUrl = $"/api/live/tents/{tentId}/camera?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
-        if (snapshot is { } value && CameraFrameCache.IsLikelyImage(value.Bytes, value.ContentType))
-        {
-            _cameraCache.Set(tent.CameraEntityId, new CameraFrame(value.Bytes, value.ContentType, DateTimeOffset.UtcNow));
-            return Ok(new CameraProxyStatusDto(true, "ok", "Kamera-Snapshot wurde erfolgreich geladen.", tent.CameraEntityId, previewUrl));
-        }
-
-        if (_cameraCache.Get(tent.CameraEntityId) is not null)
-        {
-            return Ok(new CameraProxyStatusDto(true, "stale", "Aktuell kein frisches Bild — letztes gültiges Bild wird angezeigt.", tent.CameraEntityId, previewUrl));
-        }
-
-        return Ok(new CameraProxyStatusDto(false, "ha_camera_unavailable", "Home Assistant liefert für diese Kamera kein gültiges Bild.", tent.CameraEntityId, null));
-    }
 }
 
+/// <summary>Was der Kamera-Umweg über eine Kamera sagt.</summary>
+/// <param name="Ok">Kam ein Bild?</param>
+/// <param name="Status">Die stabile Kennung des Falls, für die Oberfläche.</param>
+/// <param name="Meldung">Derselbe Fall in einem Satz für den Nutzer.</param>
+/// <param name="EntityId">Um welche Kamera es geht, sofern bekannt.</param>
+/// <param name="VorschauUrl">Wo das Bild liegt, sofern es eines gibt.</param>
 public sealed record CameraProxyStatusDto(
-    bool Ok,
-    string Status,
-    string Message,
-    string? CameraEntityId,
-    string? PreviewUrl);
+    bool Ok, string Status, string Meldung, string? EntityId, string? VorschauUrl);

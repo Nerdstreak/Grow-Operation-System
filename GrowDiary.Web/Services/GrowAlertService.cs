@@ -67,10 +67,15 @@ public sealed class GrowAlertService
 
     /// <summary>Aus den Karten eines Grows wird die Zustandsampel.</summary>
     /// <remarks>
-    /// <para>Das ist das <b>Einzige</b>, was von den Empfehlungen beim Nutzer
-    /// ankommt: <c>/api/live/tents/{id}</c> liefert <c>stateTone</c> und
-    /// <c>stateLabel</c>, sonst nichts. Titel und Text der Karten werden
-    /// gerechnet und weggeworfen.</para>
+    /// <para><b>Wer das liest.</b> <c>/api/live/tents/{id}</c> liefert
+    /// <c>stateTone</c> und <c>stateLabel</c> — und <b>keine Seite der
+    /// Oberfläche liest sie</b> (Stand 02.09.2026). Die Ampel, die der Nutzer
+    /// sieht, rechnet der Browser selbst (<c>live-model.ts</c>). Titel und Text
+    /// der Karten werden ebenfalls gerechnet und weggeworfen.</para>
+    ///
+    /// <para>Das ist keine Kleinigkeit: damit hat <c>RecommendationEngine</c>
+    /// — 852 Zeilen — heute keine sichtbare Wirkung. Festgehalten von
+    /// <c>ZweiAmpelnFuerDasselbeZeltTests</c>.</para>
     ///
     /// <para>Verglichen wird gegen <see cref="Kartenschwere"/> und nicht gegen
     /// rohe Zeichenketten. Bis zum 02.09.2026 standen hier <c>"danger"</c> und

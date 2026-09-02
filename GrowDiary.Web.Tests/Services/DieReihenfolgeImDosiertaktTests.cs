@@ -322,6 +322,42 @@ public sealed class DieReihenfolgeImDosiertaktTests
             + "auseinander.");
     }
 
+    /// <summary>
+    /// Und der Takt <b>benutzt</b> die drei Regeln auch.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Die Lücke, die der Prüfer fand (02.09.2026).</b> Die Zählung
+    /// darunter fängt <i>Abschreiben</i> — jemand schreibt die Regel daneben
+    /// noch einmal hin. Sie fängt aber nicht <i>Weglassen</i>: wer
+    /// <c>Dosierreihenfolge.DarfDosieren(…)</c> im Takt ersatzlos streicht,
+    /// bleibt grün. Und dann dosieren Dünger und Säure im selben Takt, auf
+    /// Messwerte von vor der ersten Dosis.</para>
+    ///
+    /// <para>Die 21 Fälle darüber prüfen die Regeln — keiner fasst
+    /// <c>DosingWorker</c> an. Diese Prüfung schliesst die Lücke: sie verlangt,
+    /// dass der Takt alle drei Griffe wirklich benutzt.</para>
+    /// </remarks>
+    [Theory]
+    [InlineData("Dosierreihenfolge.Reihenfolge(")]
+    [InlineData("Dosierreihenfolge.DarfDosieren(")]
+    [InlineData("Dosierreihenfolge.ZweiteHaelfteJetzt(")]
+    public void DerTaktBenutztDieRegel(string griff)
+    {
+        var quelle = File.ReadAllText(Path.Combine(
+            ProjektWurzel(), "GrowDiary.Web", "Services", "DosingWorker.cs"));
+
+        // Kommentare zaehlen nicht: eine Erwaehnung ist keine Verwendung.
+        var ohneKommentare = Regex.Replace(
+            Regex.Replace(quelle, @"/\*.*?\*/", " ", RegexOptions.Singleline), @"//[^\n]*", string.Empty);
+
+        // Mengenwaechter: wird die Datei ueberhaupt gelesen?
+        Assert.True(ohneKommentare.Length > 3000,
+            $"Nur {ohneKommentare.Length} Zeichen von DosingWorker gelesen — die Pruefung sieht "
+            + "die Datei nicht und waere auch dann gruen, wenn der Griff fehlt.");
+
+        Assert.Contains(griff, ohneKommentare, StringComparison.Ordinal);
+    }
+
     /// <summary>Der Selbsttest: treffen die Muster die abgeschriebene Form?</summary>
     /// <remarks>
     /// Eine Zählung mit kaputtem Muster läuft null Mal durch und ist grün.

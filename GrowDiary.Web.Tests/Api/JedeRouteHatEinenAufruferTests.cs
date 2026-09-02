@@ -320,7 +320,27 @@ public sealed class JedeRouteHatEinenAufruferTests
 
             foreach (var methode in typ.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
             {
-                foreach (var attribut in methode.GetCustomAttributes<HttpMethodAttribute>())
+                if (methode.IsSpecialName) continue;
+
+                var verben = methode.GetCustomAttributes<HttpMethodAttribute>().ToList();
+
+                /* Eine oeffentliche Aktion OHNE Verb-Attribut ist trotzdem eine
+                   Route: sie erbt die Route der Klasse und nimmt JEDES Verb an.
+
+                   Das ist der fuenfte blinde Fleck dieser Zaehlung, und ich habe
+                   ihn selbst gerissen: beim Loeschen des Kamera-Alias am
+                   02.09.2026 blieb `GetTentCameraStatus` ohne Attribut stehen.
+                   Sie hing danach unter `/api`, antwortete auf GET, POST und
+                   DELETE mit 200 und loeste bei eingerichtetem Home Assistant
+                   einen Kamera-Abruf an der ECHTEN Anlage aus. Die Zaehlung war
+                   gruen, weil sie nur Verb-Attribute las. */
+                if (verben.Count == 0)
+                {
+                    yield return ($"(ohne Verb) /{amTyp}", new Regex("(?!)"));
+                    continue;
+                }
+
+                foreach (var attribut in verben)
                 {
                     var eigene = attribut.Template?.Trim('/') ?? string.Empty;
 

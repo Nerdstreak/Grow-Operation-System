@@ -10,12 +10,22 @@ namespace GrowDiary.Web.Models;
 /// <c>"warning"</c> vergleicht — und alles andere als gesund durchgehen
 /// lässt.</para>
 ///
-/// <para><b>Was daran gefährlich ist.</b> Diese Zeichenkette entscheidet die
-/// <b>Zustandsampel</b> auf der Live-Seite; sie ist das Einzige, was von den
-/// Empfehlungen beim Nutzer ankommt. Ein Tippfehler (<c>"Danger"</c>) oder ein
-/// neuer Wert (<c>"urgent"</c>) macht aus einem kritischen Befund still ein
-/// „stabil". Grün, weil niemand hinsieht — der teuerste Fehler, den eine Ampel
-/// machen kann.</para>
+/// <para><b>Was daran gefährlich ist.</b> Diese Zeichenkette entscheidet
+/// <c>GrowAlertService.ResolveStateTone</c>. Ein Tippfehler (<c>"Danger"</c>)
+/// oder ein neuer Wert (<c>"urgent"</c>) fällt dort als „gesund" durch — der
+/// teuerste Fehler, den eine Ampel machen kann.</para>
+///
+/// <para><b>Richtigstellung (02.09.2026, vom Prüfer gefunden).</b> Beim Anlegen
+/// dieser Klasse stand hier, die Ampel sei „das Einzige, was von den
+/// Empfehlungen beim Nutzer ankommt". <b>Das stimmt nicht.</b> Belegt wurde es
+/// damals mit einem Blick ins JSON — Zahlen erheben ist keine Prüfung. Wer die
+/// Seite ansieht, findet: <c>/api/live/tents/1</c> meldet
+/// <c>stateTone: "attention"</c>, und auf <c>/zelte/1</c> steht „Stabil /
+/// 100 %". Die angezeigte Ampel wird im Browser gerechnet
+/// (<c>live-model.ts</c>, eigene Schwellen 55/82). <c>stateTone</c> und
+/// <c>stateLabel</c> kommen in der Oberfläche nur in der Typdeklaration vor —
+/// keine Seite liest sie. Siehe
+/// <c>ZweiAmpelnFuerDasselbeZeltTests</c>.</para>
 ///
 /// <para>Gehalten wird das von
 /// <c>JedeKartenschwereErreichtDieAmpelTests</c>: kein Erzeuger schreibt einen

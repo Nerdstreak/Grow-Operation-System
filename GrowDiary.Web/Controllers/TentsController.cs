@@ -69,8 +69,20 @@ public sealed class TentsController : Controller
             TentId = tent.Id,
             StateTone = tone,
             StateLabel = GrowAlertService.ResolveStateLabel(tone),
+            /* Derselbe Weg, den die Oberflaeche an allen anderen Stellen nimmt.
+
+               Bis zum 02.09.2026 stand hier Url.Action("CameraSnapshot",
+               "Tents", …) — auf eine Aktion, die es seit dem Aufraeumen der
+               Legacy-Kamera-Wege nicht mehr gibt. Url.Action wirft nicht, es
+               gibt null zurueck: cameraUrl war dauerhaft leer, und auf der
+               Zelt-Seite stand fuer immer „Kamera — Nicht eingerichtet", auch
+               wenn die Kamera in Home Assistant sauber eingetragen war.
+
+               Lokal faellt das nicht auf, weil ohne Home Assistant die
+               Bedingung davor kurzschliesst — der Schaden trifft nur die echte
+               Anlage. Gehalten von JedeUrlActionZeigtAufEineEchteAktionTests. */
             CameraUrl = settings.IsConfigured && !string.IsNullOrWhiteSpace(tent.CameraEntityId)
-                ? Url.Action("CameraSnapshot", "Tents", new { id = tent.Id, t = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() })
+                ? $"/api/live/tents/{tent.Id}/camera?t={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}"
                 : null,
             RefreshedAtUtc = DateTime.UtcNow,
             Metrics = metrics.Select(metric => metric.ToPayload()).ToList(),

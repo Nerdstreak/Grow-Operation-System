@@ -44,9 +44,12 @@ public sealed class AdminAccessPolicyTests
     [InlineData("/api/light-schedules")]
     [InlineData("/api/light-transitions")]
     [InlineData("/api/knowledge")]
-    [InlineData("/tents/1/camera.jpg")]
-    [InlineData("/tents/1/camera-stream")]
-    [InlineData("/tents/1/latest-snapshot")]
+    // Die drei Legacy-Kamerawege standen hier bis zum 02.09.2026. Sie sind
+    // geloescht; an ihrer Stelle steht der Weg, den die Oberflaeche wirklich
+    // nimmt — und der lag bis dahin UNGESCHUETZT, weil nur die alten in der
+    // Liste standen.
+    [InlineData("/api/live/tents/1/camera")]
+    [InlineData("/api/live/tents/1")]
     public void IsProtectedPath_ProtectsAdminBackupExportProductApiAndLegacyCameraRoutes(string path)
     {
         Assert.True(AdminAccessPolicy.IsProtectedPath(new PathString(path)));

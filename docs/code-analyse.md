@@ -217,11 +217,12 @@ Backend-Routen ohne Frontend-Aufruf (ohne die legitimen Fälle wie `/api/error`)
 | `POST /api/alerts/test` | Test-Alarm auslösen |
 | `GET /api/auto-measurements/grows/{id}/status` | Status der Auto-Messung je Grow |
 | `GET /api/journal/{entryId}` | Einzelner Journaleintrag |
-| `GET /api/camera/tents/{id}/status` | Kamera-Status |
 | `POST /api/ai/ask` | bewusst offen (kein Chat gebaut) |
 
-`GET /api/camera/tents/{id}` ist **kein** Waise, sondern ein Alias auf dieselbe Aktion wie
-`/api/live/tents/{id}/camera` — Altlast für alte Links, unkritisch.
+`GET /api/camera/tents/{id}` und `/status` waren Aliase auf dieselbe Aktion wie
+`/api/live/tents/{id}/camera`. Beide sind am 02.09.2026 **gelöscht**: die Zählung
+`JedeRouteHatEinenAufruferTests` fand für keinen einen Aufrufer, und drei Wege zu einem
+Bild sind drei Stellen, an denen der Kamera-Zwischenspeicher auseinanderlaufen kann.
 
 Im Frontend: Route `/messungen` (`GrowScopedSectionPage`) existiert, steht aber in keinem
 Menü — Rest des IA-Umbaus, bei dem „Messungen" aus „Verlauf & Daten" entfernt wurde.
