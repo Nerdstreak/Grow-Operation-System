@@ -5,6 +5,71 @@
 > was sich ändert. Die älteren Einträge darunter sind noch englisch; sie sind
 > Geschichte und werden nicht nachübersetzt.
 
+## 2.0.0-beta.65
+
+**Beta.** Ein Aufräum-Release. Die App hatte Endpunkte, die niemand ruft, Code,
+den niemand erreicht, und ein Protokoll, das niemand lesen kann. Nichts davon
+war ein Absturz — und genau deshalb stand es jahrelang da. Was Sie merken:
+weniger Angriffsfläche, eine reparierte Kamera-Anzeige und zwei Formulare, die
+nicht mehr stillschweigend Eingaben wegwerfen.
+
+### Was Sie sehen
+
+- Behoben — **die Kamera auf der Zelt-Seite war tot.** Dort stand dauerhaft
+  „Kamera — Nicht eingerichtet", auch wenn die Kamera in Home Assistant sauber
+  eingetragen war: die Adresse wurde über einen Weg gebaut, den es nicht mehr
+  gab. Auffällig war das nur an einer <i>echten</i> Anlage — ohne Home
+  Assistant greift die Bedingung davor gar nicht.
+
+- Behoben — **Sollwert-Profile warfen Eingaben still weg.** Wer eine Phase
+  deutsch schrieb („Blüte" statt „Flower") oder sich vertippte („ecMinimum"
+  statt „ecMin"), bekam „Gespeichert" und ein leeres Profil. Beim nächsten
+  Öffnen waren die Zahlen weg, ohne ein Wort. Jetzt steht da, was möglich
+  gewesen wäre.
+
+- Behoben — **eine gelöschte Erinnerung nahm die Kalibrierung mit ins Nichts.**
+  Wer die Erinnerung in der Aufgabenliste löschte, behielt einen Kalibrier-
+  Vorgang, der auf nichts mehr zeigte — und weil eine Erinnerung nur beim
+  Anlegen entsteht, bekam er <b>nie wieder</b> eine.
+
+- Neu — **die Chronik eines Grows lässt sich lesen.** Die App sammelt seit
+  Monaten, was wann geändert wurde: Grow angelegt, Messung gespeichert, Flip
+  12/12. Nur kam niemand daran — es gab keinen Leseweg. Jetzt gibt es einen
+  (<code>/api/grows/{id}/chronik</code>). Einen Knopf dafür gibt es bewusst
+  nicht: eine Chronik liest man nicht täglich, sondern wenn etwas passiert ist.
+
+### Weniger Angriffsfläche
+
+- Behoben — **ein Endpunkt gab die LAN-Adressen des Rechners heraus.**
+  <code>/api/system/network</code> antwortete jedem mit den privaten IPv4-
+  Adressen der Maschine — und wurde von nichts benutzt. Sein Nachfolger war
+  längst da.
+
+- Behoben — **der Kamera-Weg lag ungeschützt.** Geschützt waren nur drei alte
+  Kamera-Adressen; der Weg, den die Oberfläche wirklich nimmt — und über den
+  die Bilder aus Ihrem Zelt gehen — stand nicht in der Liste.
+
+- Behoben — **vierzehn Endpunkte, die niemand ruft.** Reste aus dem Umbau von
+  der alten Oberfläche auf die neue. Einer davon rechnete bei jedem Aufruf
+  über alle Zelte und fragte dabei Home Assistant ab.
+
+### Und im Maschinenraum
+
+- Behoben — **139 unerreichbare Zeilen mit acht pH- und EC-Zahlen für Erde.**
+  Die Zahlen sahen aus wie fachliche Wahrheiten; die App sagt zu Erde nichts.
+  Eine Zahl ohne Wirkung ist eine Behauptung ohne Deckung.
+
+- Neu — **der Dosiertakt hält seine drei Regeln jetzt nachweisbar ein**: erst
+  Dünger dann pH (Dünger verschiebt den pH von selbst), eine Dosis je Zelt und
+  Takt, und die zweite Hälfte eines A/B-Düngers geht nicht in stehendes Wasser.
+  Die Regeln standen bisher nur als Kommentar in einer Methode, die man nicht
+  prüfen konnte.
+
+- Neu — **Prüfungen, die von selbst finden, was liegen bleibt**: jeder Endpunkt
+  braucht einen Aufrufer, jeder Verweis muss auf eine Aktion zeigen, die es
+  gibt, und das API-Verzeichnis darf nichts nennen, was gelöscht wurde. Alle
+  drei haben beim Bauen sofort etwas gefunden.
+
 ## 2.0.0-beta.64
 
 **Beta.** Fünf Stellen fragten die falsche Quelle nach der Wachstumsphase —
