@@ -128,73 +128,15 @@ public sealed class TentsController : Controller
         };
     }
 
-    [HttpGet("{id:int}/camera.jpg")]
-    public async Task<IActionResult> CameraSnapshot(int id, CancellationToken cancellationToken)
-    {
-        var tent = _repository.GetTent(id);
-        if (tent is null || string.IsNullOrWhiteSpace(tent.CameraEntityId))
-        {
-            return NotFound();
-        }
+    /* Drei Legacy-Kamera-Aktionen standen hier bis zum 02.09.2026:
+       "{id}/camera.jpg", "{id}/camera-stream" und "{id}/latest-snapshot".
 
-        var settings = _repository.GetEffectiveHomeAssistantSettings();
-        var snapshot = await _homeAssistantService.GetCameraSnapshotAsync(settings, tent.CameraEntityId, cancellationToken);
-        if (snapshot is null)
-        {
-            return NotFound();
-        }
+       Die Zaehlung "jede Route hat einen Aufrufer" fand fuer keine einen — die
+       Oberflaeche nimmt an allen vier Stellen "/api/live/tents/{id}/camera",
+       den Endpunkt gleich hier darueber. "Belegt" waren sie nur durch das
+       API-Verzeichnis, das sie auflistet, und durch AdminAccessPolicy, die sie
+       schuetzt: ein Katalog und ein Waechter, kein Aufrufer.
 
-        Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
-        return File(snapshot.Value.Bytes, snapshot.Value.ContentType);
-    }
-
-    /// <summary>
-    /// Live-Standbild direkt aus HA – wird per JS alle 5 s neu geladen.
-    /// </summary>
-    [HttpGet("{id:int}/camera-stream")]
-    public async Task<IActionResult> CameraStream(int id, CancellationToken cancellationToken)
-    {
-        var tent = _repository.GetTent(id);
-        if (tent is null || string.IsNullOrWhiteSpace(tent.CameraEntityId))
-        {
-            return NotFound();
-        }
-
-        var settings = _repository.GetEffectiveHomeAssistantSettings();
-        var snapshot = await _homeAssistantService.GetCameraSnapshotAsync(settings, tent.CameraEntityId, cancellationToken);
-        if (snapshot is null)
-        {
-            return NotFound();
-        }
-
-        Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
-        Response.Headers["Pragma"] = "no-cache";
-        return File(snapshot.Value.Bytes, snapshot.Value.ContentType);
-    }
-
-    /// <summary>
-    /// Letztes täglich gespeichertes Kamera-Bild aus App_Data/snapshots/{tentId}/.
-    /// Fallback für das Ops-Dashboard.
-    /// </summary>
-    [HttpGet("{id:int}/latest-snapshot")]
-    public IActionResult LatestSnapshot(int id)
-    {
-        var snapshotDir = Path.Combine(_paths.SnapshotsPath, id.ToString());
-        if (!Directory.Exists(snapshotDir))
-        {
-            return NotFound();
-        }
-
-        var latest = Directory.GetFiles(snapshotDir, "*.jpg")
-            .OrderByDescending(f => f)
-            .FirstOrDefault();
-
-        if (latest is null)
-        {
-            return NotFound();
-        }
-
-        Response.Headers["Cache-Control"] = "public, max-age=300";
-        return PhysicalFile(latest, "image/jpeg");
-    }
+       Drei Wege zu einem Bild sind drei Stellen, an denen der Kamera-Zwischen-
+       speicher auseinanderlaufen kann. */
 }

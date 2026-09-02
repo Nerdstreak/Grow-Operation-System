@@ -44,16 +44,58 @@ public sealed class JedeRouteHatEinenAufruferTests
     /// die Meldung unten ausgibt.
     /// </remarks>
     /// <remarks>
-    /// <para>Heute steht hier <b>nichts</b> — und das ist die Aussage. Am
-    /// 02.09.2026 fand diese Zählung elf Endpunkte ohne Aufrufer; alle elf sind
-    /// gelöscht, keiner brauchte eine Ausnahme.</para>
-    ///
-    /// <para>Der Fehlerbehandler <c>/api/error</c> steht nicht hier, weil er
-    /// einen echten Aufrufer hat: <c>app.UseExceptionHandler("/api/error")</c>
-    /// in <c>Program.cs</c>. Genau dafür zählt <c>GrowDiary.Web</c> selbst als
-    /// Aufrufer-Ort.</para>
+    /// <para>Zwei Gruppen, beide gewollt. Der Fehlerbehandler
+    /// <c>/api/error</c> steht <b>nicht</b> hier: er hat einen echten Aufrufer
+    /// (<c>app.UseExceptionHandler("/api/error")</c> in <c>Program.cs</c>) —
+    /// genau dafür zählt <c>GrowDiary.Web</c> selbst als Aufrufer-Ort.</para>
     /// </remarks>
-    private static readonly Dictionary<string, string> OHNE_AUFRUFER = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, string> OHNE_AUFRUFER = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // --- Betriebszugang: fuer den Entwickler, per curl, ohne Knopf -------
+        //
+        // Diese sieben sind kein Versehen, sondern eine eigene Flaeche: sie
+        // stehen ausdruecklich in AdminAccessPolicy.ProtectedPrefixes, sind
+        // also nur ueber Ingress oder Loopback erreichbar, und sie stehen im
+        // API-Verzeichnis, ueber das man sie findet. Ein Knopf dafuer waere
+        // falsch — sie beantworten Fragen, die vor einem Release aufkommen,
+        // nicht beim Anbauen.
+        ["GET /api/system/api-manifest"] =
+            "Das Verzeichnis, ueber das man die uebrigen Betriebs-Endpunkte findet. Wer es "
+            + "aufruft, sucht sie gerade — ein Knopf in der Oberflaeche waere hier sinnlos.",
+        ["GET /api/system/database-status"] =
+            "Zustand der Datenbank vor einem Release: Groesse, Tabellen, offene Wanderungen.",
+        ["GET /api/system/error-contract"] =
+            "Die Fehlerformate, gegen die EinFehlerformatFuerAlleTests zaehlt. Zum Nachsehen, "
+            + "wenn ein Endpunkt anders antwortet als erwartet.",
+        ["GET /api/system/migration-status"] =
+            "Welche Datenbank-Wanderungen gelaufen sind. Die Frage stellt sich nach einem "
+            + "Update, nicht im Betrieb.",
+        ["GET /api/system/release-readiness"] =
+            "Die Vorpruefung vor einem Release. Sie gehoert in die Freigabe, nicht auf eine Seite.",
+        ["GET /api/system/security-status"] =
+            "Welche Schutzmassnahmen greifen. Zum Nachsehen, nicht zum Anzeigen.",
+        ["POST /api/system/backup/{fileName}/restore"] =
+            "Das Gegenstueck zum Sicherungs-Download, den ReleasePage.tsx anbietet. Wer eine "
+            + "Sicherung zurueckspielt, ueberschreibt Daten — dafuer gibt es bewusst KEINEN "
+            + "Knopf, sondern erst den Plan (restore-plan) und dann diesen Aufruf von Hand.",
+
+        // --- Alte Lesezeichen bekommen eine Antwort statt eines 404 ---------
+        //
+        // Vier Stummel aus der Zeit vor der deutschen Oberflaeche. Jeder ist
+        // eine Zeile, jeder hat einen Test, und jeder beantwortet genau eine
+        // Frage: was passiert, wenn jemand die alte Adresse noch gespeichert
+        // hat. Loeschen hiesse, ihm ein 404 zu zeigen, wo eine Weiterleitung
+        // steht.
+        ["GET /tents"] = "Weiterleitung auf /zelte — alte Lesezeichen.",
+        ["GET /tents/{id:int}"] = "Weiterleitung auf /zelte/{id} — alte Lesezeichen.",
+        ["GET /grows/{id:int}/export"] =
+            "Weiterleitung auf /api/exports/grows/{id}. Festgehalten von "
+            + "LegacyMvcEndpointContainmentTests.GrowsLegacyExport_RedirectsToVersionedApiExport.",
+        ["GET /settings/backup"] =
+            "Antwortet mit 410 Gone und der Kennung legacy_backup_disabled, statt eine rohe "
+            + "SQLite-Datei herauszugeben. Festgehalten von "
+            + "LegacyMvcEndpointContainmentTests.SettingsBackupDatabase_DoesNotReturnRawSqliteDatabase.",
+    };
 
     /// <summary>Wo ein Aufruf stehen darf.</summary>
     /// <remarks>
@@ -77,6 +119,26 @@ public sealed class JedeRouteHatEinenAufruferTests
         "GrowOsAccess",
         "GrowMcp",
         "GrowDiary.Web",
+    ];
+
+    /// <summary>
+    /// Dateien, die Routen <b>aufzählen</b> statt sie zu rufen.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (02.09.2026), gefunden in der eigenen Zählung.</b>
+    /// Nach dem ersten Aufräumen war sie grün — und liess trotzdem drei tote
+    /// Routen durch (<c>/tents/{id}/camera.jpg</c>, <c>/camera-stream</c>,
+    /// <c>/latest-snapshot</c>). „Belegt" waren sie durch das API-Verzeichnis,
+    /// das sie auflistet, und durch die Zugriffsregel, die sie schützt.</para>
+    ///
+    /// <para>Ein Katalog ist kein Aufrufer, und ein Wächter erst recht nicht:
+    /// beide beschreiben, was es gibt. Genau dieselbe Falle wie „eine Route
+    /// belegt sich nicht selbst" — nur eine Datei weiter.</para>
+    /// </remarks>
+    private static readonly string[] NUR_VERZEICHNISSE =
+    [
+        "SystemApiController.StatusEndpoints.cs",
+        "AdminAccessPolicy.cs",
     ];
 
     [Fact]
@@ -204,7 +266,18 @@ public sealed class JedeRouteHatEinenAufruferTests
         var pfad = string.Join("/", teile.Select(teil =>
             teil.StartsWith('{') ? platzhalter : Regex.Escape(teil)));
 
-        var muster = "/" + pfad + @"(?![\w-])";
+        /* Vorn POSITIV verankert: vor dem Pfad muss eine Zeichenkette anfangen.
+
+           Erst stand hier gar keine Abgrenzung, dann „kein Wortzeichen davor" —
+           beides liess Zufallstreffer durch. „/tents" steckt in
+           „/api/live/tents/${id}", und in einer E2E-Datei stand es escapt in
+           einem regulaeren Ausdruck (`\/api\/live\/tents\/`), wo vor dem
+           Schraegstrich ein Backslash steht und keine Wortgrenze.
+
+           Ein echter Aufruf faengt mit einem Anfuehrungszeichen an. Eine Route,
+           die nur zusammengesetzt vorkommt, faellt dadurch als verwaist auf —
+           das ist die ungefaehrliche Richtung: ein Mensch sieht hin. */
+        var muster = "(?<=['\"`])/" + pfad + @"(?![\w-])";
 
         var letztesFeste = teile.LastOrDefault(teil => !teil.StartsWith('{'));
         if (letztesFeste is not null
@@ -266,6 +339,8 @@ public sealed class JedeRouteHatEinenAufruferTests
                 if (endung is not (".ts" or ".tsx" or ".cs" or ".json")) continue;
                 if (datei.Contains("node_modules") || datei.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
                     || datei.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")) continue;
+
+                if (NUR_VERZEICHNISSE.Contains(Path.GetFileName(datei), StringComparer.OrdinalIgnoreCase)) continue;
 
                 var inhalt = OhneKommentare(File.ReadAllText(datei));
                 if (endung == ".cs") inhalt = OhneRoutenAttribute(inhalt);
