@@ -78,6 +78,24 @@ public sealed class JedeRouteHatEinenAufruferTests
             "Das Gegenstueck zum Sicherungs-Download, den ReleasePage.tsx anbietet. Wer eine "
             + "Sicherung zurueckspielt, ueberschreibt Daten — dafuer gibt es bewusst KEINEN "
             + "Knopf, sondern erst den Plan (restore-plan) und dann diesen Aufruf von Hand.",
+        ["GET /api/system/backup/{fileName}/validate"] =
+            "Prueft eine Sicherungsdatei, BEVOR jemand sie zurueckspielt. Gehoert zum selben "
+            + "Weg von Hand wie restore-plan und restore.",
+        ["GET /api/system/migration-plan"] =
+            "Was eine Datenbank-Wanderung tun WUERDE. Die Frage stellt sich vor einem Update, "
+            + "nicht im Betrieb.",
+        ["POST /api/exports/grows/validate"] =
+            "Prueft eine Export-Datei, bevor ReleasePage.tsx sie ueber import-plan und import "
+            + "einspielt. Der Weg dorthin geht ueber die beiden, nicht ueber diesen.",
+        ["GET /api/grows/{growId:int}/chronik"] =
+            "Die Chronik eines Grows: was wann geaendert wurde. Bis zum 02.09.2026 sammelte die "
+            + "App diese Zeilen SCHREIB-ONLY — vier Controller schrieben hinein, niemand kam "
+            + "heran. Man liest sie nicht taeglich, sondern wenn etwas passiert ist; ob und wie "
+            + "sie auf einer Seite erscheint, ist eine Gestaltungsfrage.",
+        ["GET /api/system/audit-events"] =
+            "Das Protokoll kritischer Backend-Vorgaenge (SystemAuditEvents): Lichtflanken, "
+            + "Nachtabsenkung, Sicherungen. Zum Nachsehen, wenn etwas passiert ist — dafuer "
+            + "gibt es keinen Knopf, weil man es nicht taeglich liest.",
 
         // --- Alte Lesezeichen bekommen eine Antwort statt eines 404 ---------
         //
@@ -283,7 +301,10 @@ public sealed class JedeRouteHatEinenAufruferTests
         if (letztesFeste is not null
             && (letztesFeste.Contains('-') || letztesFeste.Length > 7))
         {
-            muster += "|" + Regex.Escape(letztesFeste) + @"(?![\w-])";
+            /* Auch vorn abgegrenzt: „audit-events" steckt in
+               „system-audit-events", und der Endpunkt galt dadurch als
+               gerufen — von einer Zeichenkette in seinem eigenen Katalog. */
+            muster += @"|(?<![\w-])" + Regex.Escape(letztesFeste) + @"(?![\w-])";
         }
 
         return new Regex(muster, RegexOptions.Compiled);

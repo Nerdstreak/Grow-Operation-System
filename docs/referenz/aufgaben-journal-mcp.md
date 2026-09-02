@@ -41,6 +41,13 @@ der letzten Messung, sonst aus der letzten abgeschlossenen Instanz. Die
 **Begleitungsstufe** dämpft global: `expert` liefert leer, `important` nur
 Kritisches — auch in `WartungDueService`, nicht beim Pumpen-Wächter.
 
+**Die Chronik eines Grows** (`GET /api/grows/{id}/chronik`) sammelt, was wann
+geändert wurde: Grow angelegt, Messung gespeichert, Journal-Eintrag, Flip. Vier
+Controller schreiben hinein. Bis beta.64 war sie **schreib-only** — die App
+sammelte diese Zeilen seit Monaten, und niemand kam heran. Es gibt bewusst
+keinen Knopf dafür: man liest eine Chronik nicht täglich, sondern wenn etwas
+passiert ist.
+
 **Journal & Fotos** ist ein Zeitstrom aus Einträgen, Messfotos und Ereignissen
 (`buildJournalStream`), mit Filter „Nur Fotos". Fotos hängen an einer Messung;
 ein Eintrag zu derselben Messung zieht sie an sich. Bei
