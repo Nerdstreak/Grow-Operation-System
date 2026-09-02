@@ -80,17 +80,11 @@ public sealed class DosingWorker : BackgroundService
         // fehlt noch. Das hat Vorrang vor allem, was neu dazukaeme.
         await GivePendingAsync(dosing, service, situations, grows, homeAssistant, statesByTent, nowUtc, cancellationToken);
 
-        // Reihenfolge wie am echten Becken: erst Duenger, dann pH. Duenger
-        // verschiebt den pH von selbst — eine pH-Dosis davor korrigiert etwas,
-        // das sich gleich wieder aendert.
-        var pumps = dosing.GetPumps()
-            .OrderBy(pump => pump.Purpose is DosingPurpose.PhDown or DosingPurpose.PhUp ? 1 : 0)
-            .ToList();
-
-        // Nach einer Dosis ist der Kontext der uebrigen Pumpen dieses Zelts
-        // veraltet (Mischpause!). Der Rest des Zelts wartet auf den naechsten
-        // Takt — die Mischpause haette ihn ohnehin abgelehnt, aber mit einem
-        // Kontext von VOR der Dosis wuesste er das nicht.
+        /* Reihenfolge wie am echten Becken und eine Dosis je Zelt — beide Regeln
+           stehen in Dosierreihenfolge, samt Begruendung und neun Pruefungen.
+           Bis zum 02.09.2026 standen sie hier als Kommentar mitten im Takt und
+           waren damit praktisch nicht pruefbar: 4,8 % Zeilen, 0 % Zweige. */
+        var pumps = Dosierreihenfolge.Reihenfolge(dosing.GetPumps());
         var dosedTents = new HashSet<int>();
 
         foreach (var pump in pumps)
@@ -103,7 +97,7 @@ public sealed class DosingWorker : BackgroundService
 
             RecordEffects(dosing, pump, situation, nowUtc);
 
-            if (pump.AutomationEnabled && !dosedTents.Contains(pump.TentId))
+            if (Dosierreihenfolge.DarfDosieren(pump, dosedTents))
             {
                 var dosed = await DoseIfNeededAsync(dosing, service, notifications, pump, situation, nowUtc, cancellationToken);
                 if (dosed) dosedTents.Add(pump.TentId);
@@ -184,10 +178,15 @@ public sealed class DosingWorker : BackgroundService
             // Zelt an. Unbekannt laesst B durch: die meisten Anlagen haben
             // keinen Umwaelz-Sensor, und ein ewig gestrandetes B hiesse A ohne
             // B im Becken.
-            if (!ziel.SimulationMode)
             {
-                var states = await StatesForTentAsync(statesByTent, grows, homeAssistant, ziel.TentId, cancellationToken);
-                if (DosingContextBuilder.CirculationFrom(states) == false)
+                var states = ziel.SimulationMode
+                    ? null
+                    : await StatesForTentAsync(statesByTent, grows, homeAssistant, ziel.TentId, cancellationToken);
+
+                // Die Entscheidung steht in Dosierreihenfolge, samt Begruendung
+                // fuer den Fall „unbekannt" — mit sieben Pruefungen.
+                if (!Dosierreihenfolge.ZweiteHaelfteJetzt(
+                        ziel.SimulationMode, DosingContextBuilder.CirculationFrom(states)))
                 {
                     _logger.LogWarning(
                         "Zweite Hälfte für {Pump} wartet: Umwälzpumpe steht.", ziel.Name);
