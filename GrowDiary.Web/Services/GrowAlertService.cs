@@ -34,7 +34,11 @@ public sealed class GrowAlertService
             measurements, _repository.GetChangeoutsForGrow(grow.Id));
         var legacyAlerts = _recommendationEngine.Evaluate(grow, latest, previous, lastSolutionChangeAt);
 
-        if (latest is not null && grow.IrrigationType == IrrigationType.ActiveHydro && grow.Profile.IsHydro)
+        /* Nur noch "gibt es ueberhaupt eine Messung". Die beiden anderen
+           Glieder (IrrigationType == ActiveHydro, Profile.IsHydro) waren
+           konstant wahr — IrrigationType hat einen Wert, IsHydro ist "=> true".
+           Sie lasen sich wie eine Wahl und waren keine. */
+        if (latest is not null)
         {
             var deviations = _deviationAnalyzer.Analyze(grow, measurements);
             var treatmentRecommendations = _treatmentRecommender.Recommend(grow, deviations).Recommendations;

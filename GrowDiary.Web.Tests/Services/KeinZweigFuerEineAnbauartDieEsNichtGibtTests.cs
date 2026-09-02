@@ -58,31 +58,87 @@ public sealed class KeinZweigFuerEineAnbauartDieEsNichtGibtTests
     }
 
     /// <summary>
-    /// Der Sanity-Dienst verzweigt nicht mehr auf eine Konstante.
+    /// <b>Nirgends</b> hängt eine Entscheidung an der Anbauart.
     /// </summary>
     /// <remarks>
-    /// Eine Verzweigung, deren Bedingung immer gleich ausgeht, liest sich wie
-    /// eine Wahl und ist keine. Sie verdeckt, was wirklich passiert.
+    /// <para>Eine Verzweigung, deren Bedingung immer gleich ausgeht, liest sich
+    /// wie eine Wahl und ist keine. Am 02.09.2026 standen sechs davon im
+    /// Backend: ein früher Ausstieg in der Diagnose, der nie greifen konnte;
+    /// zwei konstante Glieder in der Alarm-Bedingung; und vier im Empfehler,
+    /// darunter ein <c>? :</c>, dessen zweiter Zweig
+    /// (<c>current.IrrigationEc</c>) nie gelesen wurde.</para>
+    ///
+    /// <para>Wer so einen Wächter sieht, hält den Code für
+    /// anbauart-abhängig — und er ist es nicht. Das ist kein Schönheitsfehler:
+    /// es ist eine Zusage, die niemand einlöst.</para>
     /// </remarks>
     [Fact]
-    public void DerSanityDienstVerzweigtNichtAufEineKonstante()
+    public void NirgendsHaengtEineEntscheidungAnDerAnbauart()
     {
-        var quelle = File.ReadAllText(Path.Combine(
-            ProjektWurzel(), "GrowDiary.Web", "Services", "MeasurementSanityService.cs"));
+        var wurzel = Path.Combine(ProjektWurzel(), "GrowDiary.Web");
+        var treffer = new List<string>();
+        var gesehen = 0;
 
-        // Kommentare zaehlen nicht: eine Erwaehnung ist keine Verwendung.
-        var ohneKommentar = Regex.Replace(
-            Regex.Replace(quelle, @"/\*.*?\*/", " ", RegexOptions.Singleline), @"//[^\n]*", string.Empty);
+        foreach (var datei in Directory.EnumerateFiles(wurzel, "*.cs", SearchOption.AllDirectories))
+        {
+            gesehen += 1;
+            var zeilen = File.ReadAllLines(datei);
+            for (var i = 0; i < zeilen.Length; i += 1)
+            {
+                // Kommentare zaehlen nicht: eine Erwaehnung ist keine Verwendung.
+                var ohneKommentar = zeilen[i].Split("//")[0];
+                if (!ENTSCHEIDET_NACH_ANBAUART.IsMatch(ohneKommentar)) continue;
 
-        // Mengenwaechter: wird die Datei ueberhaupt gelesen?
-        Assert.True(ohneKommentar.Length > 3000,
-            $"Nur {ohneKommentar.Length} Zeichen gelesen — die Pruefung sieht die Datei nicht.");
+                treffer.Add($"{Path.GetFileName(datei)}:{i + 1}  {zeilen[i].Trim()}");
+            }
+        }
 
-        Assert.False(Regex.IsMatch(ohneKommentar, @"\bif\s*\(\s*\w*\.?IsHydro\s*\)"),
-            "MeasurementSanityService verzweigt wieder auf IsHydro. Solange GrowthProfile.IsHydro "
-            + "=> true ist, geht diese Verzweigung immer gleich aus: sie liest sich wie eine Wahl "
-            + "und ist keine, und der andere Zweig ist unerreichbar.");
+        // Mengenwaechter: sieht die Zaehlung ihre Grundmenge ueberhaupt?
+        Assert.True(gesehen >= 200,
+            $"Nur {gesehen} Quelldateien gefunden — die Zaehlung sieht ihre Grundmenge nicht.");
+
+        Assert.True(treffer.Count == 0,
+            "Hier haengt eine Entscheidung an der Anbauart:\n  " + string.Join("\n  ", treffer)
+            + "\n\nGrowthProfile.IsHydro ist „=> true\" und IrrigationType hat genau einen Wert. "
+            + "Diese Bedingung geht immer gleich aus: sie liest sich wie eine Wahl und ist keine, "
+            + "und der andere Zweig ist unerreichbar. Kommt eine zweite Anbauart, wird zuerst die "
+            + "Pruefung darueber rot — dann gehoert der Waechter zurueck.");
     }
+
+    /// <summary>Der Selbsttest: trifft das Muster die belegten Formen?</summary>
+    /// <remarks>
+    /// Alle sechs wörtlich aus dem Stand vom 02.09.2026, dazu vier Zeilen, die
+    /// in Ruhe bleiben müssen. Eine Zählung mit kaputtem Muster läuft null Mal
+    /// durch und ist grün.
+    /// </remarks>
+    [Theory]
+    [InlineData("        if (grow.IrrigationType != IrrigationType.ActiveHydro || !grow.Profile.IsHydro)", true)]
+    [InlineData("        if (latest is not null && grow.IrrigationType == IrrigationType.ActiveHydro && grow.Profile.IsHydro)", true)]
+    [InlineData("                var measuredEc = grow.Profile.IsHydro ? current.ReservoirEc : current.IrrigationEc;", true)]
+    [InlineData("                if (grow.Profile.IsHydro && current.OrpMv is { } athenaOrp)", true)]
+    [InlineData("        if (profile.IsHydro)", true)]
+    [InlineData("        else if (!profile.IsSoilOrganic)", true)]
+    // Und was in Ruhe bleibt: schreiben, abbilden, vorbelegen.
+    [InlineData("        grow.IrrigationType = IrrigationType.ActiveHydro;", false)]
+    [InlineData("        IrrigationType: grow.IrrigationType,", false)]
+    [InlineData("    public IrrigationType IrrigationType { get; set; } = IrrigationType.ActiveHydro;", false)]
+    [InlineData("            IrrigationType = source.IrrigationType,", false)]
+    public void DasMusterTrifftDieBelegtenWaechter(string zeile, bool erwartet)
+    {
+        Assert.True(ENTSCHEIDET_NACH_ANBAUART.IsMatch(zeile) == erwartet,
+            $"Das Muster sagt zu <{zeile}> das Gegenteil von dem, was es soll.");
+    }
+
+    /// <summary>Entscheidet diese Zeile nach der Anbauart?</summary>
+    /// <remarks>
+    /// Zwei Formen: eine Bedingung (<c>if</c>, <c>&amp;&amp;</c>, <c>||</c>)
+    /// oder ein <c>? :</c>. Eine Zuweisung oder eine Abbildung ist keine
+    /// Entscheidung und bleibt in Ruhe.
+    /// </remarks>
+    private static readonly Regex ENTSCHEIDET_NACH_ANBAUART = new(
+        @"(if\s*\(|&&|\|\|)[^;]*\b(IsHydro|IsSoilOrganic|IrrigationType\s*[!=]=)"
+        + @"|\b(IsHydro|IsSoilOrganic)\b[^;]*\?",
+        RegexOptions.Compiled);
 
     private static string ProjektWurzel()
     {

@@ -460,7 +460,9 @@ public sealed class RecommendationEngine
         {
             case "hydro-research-vbx":
                 var referenceEc = GetVbxTarget(current.Stage, grow.StartDate, current.TakenAt);
-                var measuredEc = grow.Profile.IsHydro ? current.ReservoirEc : current.IrrigationEc;
+                // Immer das Reservoir: GrowthProfile.IsHydro ist "=> true", der
+                // andere Zweig (current.IrrigationEc) wurde nie gelesen.
+                var measuredEc = current.ReservoirEc;
                 if (measuredEc is { } vbxEc)
                 {
                     if (vbxEc > referenceEc.Max + 0.20)
@@ -479,7 +481,7 @@ public sealed class RecommendationEngine
                 break;
 
             case "athena":
-                if (grow.Profile.IsHydro && current.OrpMv is { } athenaOrp)
+                if (current.OrpMv is { } athenaOrp)
                 {
                     if (athenaOrp < 350)
                     {
@@ -495,7 +497,7 @@ public sealed class RecommendationEngine
                     }
                 }
 
-                if (grow.Profile.IsHydro && current.Stage == GrowStage.Veg && current.ReservoirEc is >= 1.8)
+                if (current.Stage == GrowStage.Veg && current.ReservoirEc is >= 1.8)
                 {
                     cards.Add(Warning(
                         "Athena + RDWC bewusst konservativ fahren",
@@ -504,7 +506,7 @@ public sealed class RecommendationEngine
                 break;
 
             case "canna-aqua":
-                if (grow.Profile.IsHydro && current.ReservoirPh is { } cannaAquaPh)
+                if (current.ReservoirPh is { } cannaAquaPh)
                 {
                     if (cannaAquaPh < 5.2 || cannaAquaPh > 6.2)
                     {
@@ -520,7 +522,7 @@ public sealed class RecommendationEngine
                     }
                 }
 
-                if (grow.Profile.IsHydro && current.ReservoirEc is { } cannaAquaEc)
+                if (current.ReservoirEc is { } cannaAquaEc)
                 {
                     var (cannaMin, cannaMax, cannaLabel) = current.Stage switch
                     {

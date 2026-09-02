@@ -119,10 +119,14 @@ public sealed class DeviationAnalyzerService
         // Hydro-Ablage hat.
         string? systemProfileId = null)
     {
-        if (grow.IrrigationType != IrrigationType.ActiveHydro || !grow.Profile.IsHydro)
-        {
-            return Array.Empty<GrowDeviation>();
-        }
+        /* Hier stand ein frueher Ausstieg auf IrrigationType und
+           Profile.IsHydro. Er konnte nie greifen: IrrigationType hat genau
+           einen Wert, und GrowthProfile.IsHydro ist "=> true". Er las sich wie
+           ein Schutz und war keiner — wer ihn sah, hielt die Diagnose fuer
+           anbauart-abhaengig, und sie ist es nicht.
+
+           Kommt eine zweite Anbauart, wird zuerst
+           KeinZweigFuerEineAnbauartDieEsNichtGibtTests rot. */
 
         // Messungen aus der Zukunft fliegen raus, bevor sortiert wird.
         //
