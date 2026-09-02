@@ -26,33 +26,58 @@ public static class Bauzeit
     /// Acht Hexziffern aus dem PE-Feld <c>TimeDateStamp</c>. Bewusst als Text
     /// und nicht als Datum: bei deterministischem Build steht dort ein Hash.
     /// </remarks>
-    public static readonly string Kennung = Lesen().ToString("x8");
+    public static readonly string Kennung = KennungFuer(EigenerPfad());
 
-    private static uint Lesen()
+    /// <summary>Die Kennung einer bestimmten Programmdatei.</summary>
+    /// <remarks>
+    /// <para>Öffentlich, damit die Prüfung „ist der laufende Stand der gebaute"
+    /// <b>dieselbe</b> Rechnung benutzt wie der Endpunkt. Zwei Fassungen
+    /// desselben Griffs laufen auseinander — das ist keine Frage des Ob,
+    /// sondern des Wann (<c>CLAUDE.md</c>: EINE WAHRHEIT JE ZAHL).</para>
+    ///
+    /// <para><b>Ist die Datei nicht lesbar, kommt kein fester Wert zurück</b>,
+    /// sondern einer, der bei jedem Aufruf anders ist. Bis zum 02.09.2026 stand
+    /// hier <c>0</c> — zwei verschiedene, beide unlesbare Stände verglichen sich
+    /// damit als <i>derselbe</i>, und genau die Prüfung, die einen fremden Stand
+    /// aufdecken soll, meldete Erfolg. Der Kommentar an dieser Stelle versprach
+    /// schon immer das Richtige; der Code tat das Gegenteil.</para>
+    /// </remarks>
+    public static string KennungFuer(string pfad)
+    {
+        if (string.IsNullOrEmpty(pfad) || !File.Exists(pfad)) return Unbekannt();
+
+        try
+        {
+            var stempel = PeZeitstempel(pfad);
+            return stempel is null ? Unbekannt() : stempel.Value.ToString("x8");
+        }
+        catch (IOException)
+        {
+            return Unbekannt();
+        }
+    }
+
+    /// <summary>
+    /// Eine Kennung, die auf nichts passt — auch nicht auf sich selbst.
+    /// </summary>
+    /// <remarks>
+    /// Acht Hexziffern, damit sie sich vergleichen lässt wie jede andere, aber
+    /// bei jedem Aufruf neu. Wer sie sieht, hat nichts gemessen — und merkt es.
+    /// </remarks>
+    private static string Unbekannt() => Guid.NewGuid().ToString("N")[..8];
+
+    private static string EigenerPfad()
     {
         var pfad = Assembly.GetExecutingAssembly().Location;
 
         // Einzeldatei-Veröffentlichung hat keinen Pfad zur Assembly. Dann ist
-        // die Prozess-Datei die nächstbeste Wahrheit — und wenn auch die fehlt,
-        // lieber der Startzeitpunkt als eine Ausnahme im Gesundheits-Endpunkt.
+        // die Prozess-Datei die nächstbeste Wahrheit.
         if (string.IsNullOrEmpty(pfad) || !File.Exists(pfad))
         {
             pfad = Environment.ProcessPath ?? string.Empty;
         }
 
-        // Ohne lesbare Datei gibt es keine ehrliche Kennung. Dann lieber eine,
-        // die bei jedem Start anders ist, als eine erfundene Konstante: so
-        // faellt eine Pruefung auf, statt still durchzugehen.
-        if (string.IsNullOrEmpty(pfad) || !File.Exists(pfad)) return 0;
-
-        try
-        {
-            return PeZeitstempel(pfad) ?? 0;
-        }
-        catch (IOException)
-        {
-            return 0;
-        }
+        return pfad;
     }
 
     /// <summary>Das Feld <c>TimeDateStamp</c> aus dem PE-Kopf holen.</summary>

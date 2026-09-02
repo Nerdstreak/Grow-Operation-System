@@ -175,7 +175,7 @@ function TentDetailPage() {
       </V1Section>
 
       <V1Section title="Aktive Grows" action={<V1LinkButton to="/grows/new">Grow starten</V1LinkButton>}>
-        {grows.length === 0 ? <V1Empty title="Kein Grow in diesem Zelt" /> : <div className="v1-list">{grows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>{sortenText(grow) ?? 'Sorte offen'}{zuechterPasst(grow) && grow.breeder ? ` · ${grow.breeder}` : ''}</span><em>{grow.latestStage ? phaseName(grow.latestStage) : statusName(grow.status)}</em></Link>)}</div>}
+        {grows.length === 0 ? <V1Empty title="Kein Grow in diesem Zelt" /> : <div className="v1-list">{grows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>{sortenText(grow) ?? 'Sorte offen'}{zuechterPasst(grow) && grow.breeder ? ` · ${grow.breeder}` : ''}</span><em>{grow.currentStage ? phaseName(grow.currentStage) : statusName(grow.status)}</em></Link>)}</div>}
       </V1Section>
 
       <V1Section title="Setups & Pflanzen">

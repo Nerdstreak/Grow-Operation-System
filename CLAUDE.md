@@ -94,6 +94,15 @@ hätte ich so einen „Bissnachweis" gemeldet, der nie stattgefunden hat. Nach
 jedem Testlauf gehört der Blick auf `Bestanden!` oder `Fehler!` — nicht auf das
 Ausbleiben einer Meldung.
 
+**Und der Bissnachweis endet nicht beim Zurücksetzen.** Am 02.09.2026 habe ich
+die kaputte Fassung mit `cp` beiseitegelegt und danach mit `mv` zurückgeholt.
+`mv` bringt die alte **Änderungszeit** mit — MSBuild hielt den Bau für aktuell,
+baute nicht neu, und der Test blieb rot. Zehn Minuten Fehlersuche in einer
+Reparatur, die längst stimmte; ohne die Diagnose hätte ich sie „zurückgenommen".
+
+Also: nach jedem Zurücksetzen die Datei **anfassen** (`touch`) oder mit `cp`
+zurückschreiben, und das Grün genauso belegen wie vorher das Rot.
+
 ### Der Testbestand ist Produktionscode
 
 Er ist die Grundlage, gegen die **alles** geprüft wird: jede

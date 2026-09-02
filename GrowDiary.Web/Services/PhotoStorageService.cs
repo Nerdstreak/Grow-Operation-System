@@ -110,8 +110,30 @@ public sealed class PhotoStorageService
                 continue;
             }
 
+            /* Die Sperre steht HIER, nicht nur bei den Aufrufern.
+
+               Bis zum 02.09.2026 nahm das Schreiben jede Endung, wie sie kam,
+               und fiel ohne Endung auf ".jpg" zurueck — eine Umbenennung, die
+               niemand angeordnet hat. Geprueft wurde eine Zeile hoeher, in
+               ValidatePhotos, und nur weil der einzige Aufrufer daran dachte.
+               Wer morgen einen zweiten Weg baut (Journal, Symptom-Fotos,
+               Import), schreibt sonst beliebige Endungen unter /uploads — und
+               dieser Ordner wird statisch ausgeliefert.
+
+               Laut und nicht still: ein uebergangenes Foto waere der
+               schlechtere Fall. Wer hier landet, hat die Pruefung davor
+               vergessen, und das gehoert gemeldet. */
             var extension = Path.GetExtension(photo.FileName);
-            var safeExtension = string.IsNullOrWhiteSpace(extension) ? ".jpg" : extension.ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(extension) || !AllowedPhotoExtensions.Contains(extension))
+            {
+                throw new ArgumentException(
+                    $"„{photo.FileName}\" ist kein Bild ({(string.IsNullOrWhiteSpace(extension) ? "keine Endung" : extension)}). "
+                    + $"Erlaubt sind {string.Join(", ", AllowedPhotoExtensions.Order())}. "
+                    + "Wurde ValidatePhotos vor dem Speichern uebergangen?",
+                    nameof(photos));
+            }
+
+            var safeExtension = extension.ToLowerInvariant();
             var fileName = $"{DateTime.UtcNow:yyyyMMddHHmmssfff}_{Guid.NewGuid():N}{safeExtension}";
             var physicalPath = Path.Combine(directory, fileName);
 

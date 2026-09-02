@@ -110,6 +110,56 @@ public sealed class EinePhaseJeGrowTests : IDisposable
     }
 
     /// <summary>
+    /// Das Muster: hier wird die Aufschrift der <b>letzten</b> Messung zur Phase.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Die Grenze.</b> Die Phase auf einer Messung zu lesen ist
+    /// richtig, solange es um <i>diese</i> Messung geht — sie in die Datenbank
+    /// schreiben, sie in ein DTO abbilden, sie protokollieren. Falsch wird es,
+    /// sobald jemand die Aufschrift der <b>letzten</b> Messung nimmt und daraus
+    /// die Phase von heute macht.</para>
+    ///
+    /// <para>Drei Formen, alle belegt:</para>
+    /// <code>
+    ///   latest?.Stage ?? GrowStage.Veg                 vier Stellen
+    ///   latest?.Stage ?? (grow is null ? …)            Dashboard-Bauer
+    ///   Zielband.FuerGrow(…, latest.Stage, …)          Diagnose
+    /// </code>
+    ///
+    /// <para><b>Warum der Selbsttest sein muss.</b> Beim Weiten des Musters
+    /// wurde eine Wortgrenze zu einem Steuerzeichen — danach konnte es
+    /// überhaupt nicht mehr treffen, und die Zählung war trotzdem <i>grün</i>.
+    /// Eine Zählung, deren Muster niemand gegengeprüft hat, läuft bei einem
+    /// kaputten Muster null Mal durch und meldet Erfolg.</para>
+    /// </remarks>
+    private static readonly Regex BORGT_DIE_PHASE_VON_DER_LETZTEN_MESSUNG = new(
+        @"(latest|GetLatestMeasurement|LatestMeasurement|letzte|neueste)\w*(\([^)]*\))?\??\.Stage",
+        RegexOptions.IgnoreCase);
+
+    /// <summary>Der Selbsttest: trifft das Muster die belegten Formen?</summary>
+    [Theory]
+    [InlineData("var stage = latest?.Stage ?? GrowStage.Veg;", true)]
+    [InlineData("var stage = latestByTime?.Stage ?? GrowStage.Veg;", true)]
+    [InlineData("var s = latest?.Stage ?? (grow is null ? (GrowStage?)null : Hol(g));", true)]
+    [InlineData("_targetValues, _wissen, grow, latest.Stage, systemProfileId, regeln);", true)]
+    [InlineData("Stage = _repository.GetLatestMeasurement(id)?.Stage ?? GrowStage.Veg,", true)]
+    [InlineData("LatestStage: grow.LatestMeasurement?.Stage,", true)]
+    // Und was RICHTIG ist: es geht um DIESE Messung, nicht um die letzte.
+    [InlineData("var stage = GrowStageResolver.Resolve(grow, DateTime.Today);", false)]
+    [InlineData("command.Parameters.AddWithValue(\"$stage\", measurement.Stage.ToString());", false)]
+    [InlineData("Stage = measurement.Stage,", false)]
+    [InlineData("Stage: measurement.Stage,", false)]
+    [InlineData("_audit.LogCreated(growId, measurement.Id, measurement.Stage, m.TakenAt);", false)]
+    [InlineData("public GrowStage Stage { get; set; }", false)]
+    public void DasMusterTrifftDieBelegtenFormen(string zeile, bool erwartet)
+    {
+        Assert.True(BORGT_DIE_PHASE_VON_DER_LETZTEN_MESSUNG.IsMatch(zeile) == erwartet,
+            $"Das Muster sagt zu <{zeile}> das Gegenteil von dem, was es soll. Eine Zaehlung "
+            + "mit kaputtem Muster laeuft null Mal durch und ist gruen — genau so ist der "
+            + "fuenfte Fundort am 02.09.2026 durchgerutscht.");
+    }
+
+    /// <summary>
     /// Die Zählung: <b>niemand</b> leitet die heutige Phase aus einer Messung ab.
     /// </summary>
     /// <remarks>
@@ -143,17 +193,30 @@ public sealed class EinePhaseJeGrowTests : IDisposable
             var name = Path.GetFileName(datei);
             if (ausnahmen.ContainsKey(name)) continue;
 
-            var zeilen = File.ReadAllLines(datei);
+            // Auch Blockkommentare ausblenden. Im ersten Lauf meldete die
+            // Zaehlung die eigene PROSA einer Reparatur als Fund: der Kommentar,
+            // der den alten Ausdruck zitiert, sieht aus wie der alte Ausdruck.
+            var zeilen = OhneBlockKommentare(File.ReadAllLines(datei));
             for (var i = 0; i < zeilen.Length; i += 1)
             {
                 var zeile = zeilen[i];
 
                 // Kommentare zaehlen nicht: eine Erwaehnung ist keine Verwendung.
                 var ohneKommentar = zeile.Split("//")[0];
-                /* Auch die geklammerte Form: `latest?.Stage ?? (grow is null ? null :
-                   Resolve(...))` stand im Dashboard-Bauer und rutschte im ersten
-                   Lauf durch ein zu enges Muster. */
-                if (!Regex.IsMatch(ohneKommentar, @"\?\.Stage\s*\?\?")) continue;
+                /* Drei Formen, alle belegt — und das Muster war zweimal zu eng:
+
+                     latest?.Stage ?? GrowStage.Veg            (vier Stellen)
+                     latest?.Stage ?? (grow is null ? …)       (Dashboard-Bauer)
+                     latest.Stage                              (Diagnose)
+
+                   Die dritte hat der Prüfer gefunden, nachdem die Zählung schon
+                   grün war: kein `?.`, kein `??`, dieselbe Wirkung. Gesucht wird
+                   deshalb jede Stelle, an der eine MESSUNG nach ihrer Phase
+                   gefragt wird — und die Namen der Messvariablen sind in diesem
+                   Projekt einheitlich. */
+                var trifft = BORGT_DIE_PHASE_VON_DER_LETZTEN_MESSUNG.IsMatch(ohneKommentar);
+
+                if (!trifft) continue;
 
                 treffer.Add($"{name}:{i + 1}  {zeile.Trim()}");
             }
@@ -252,6 +315,46 @@ public sealed class EinePhaseJeGrowTests : IDisposable
         var lader = new KnowledgeBaseLoader(_pfade, NullLogger<KnowledgeBaseLoader>.Instance);
         lader.Initialize();
         return lader;
+    }
+
+    /// <summary>Zeilen, in denen /* */-Blöcke durch Leerraum ersetzt sind.</summary>
+    /// <remarks>
+    /// Die Zeilennummern bleiben erhalten — die Meldung soll auf die richtige
+    /// Stelle zeigen, nicht auf eine verschobene.
+    /// </remarks>
+    private static string[] OhneBlockKommentare(string[] zeilen)
+    {
+        var raus = new string[zeilen.Length];
+        var drin = false;
+
+        for (var i = 0; i < zeilen.Length; i += 1)
+        {
+            var zeile = zeilen[i];
+            var gebaut = new System.Text.StringBuilder(zeile.Length);
+
+            for (var j = 0; j < zeile.Length; j += 1)
+            {
+                if (!drin && j + 1 < zeile.Length && zeile[j] == '/' && zeile[j + 1] == '*')
+                {
+                    drin = true;
+                    j += 1;
+                    continue;
+                }
+
+                if (drin && j + 1 < zeile.Length && zeile[j] == '*' && zeile[j + 1] == '/')
+                {
+                    drin = false;
+                    j += 1;
+                    continue;
+                }
+
+                gebaut.Append(drin ? ' ' : zeile[j]);
+            }
+
+            raus[i] = gebaut.ToString();
+        }
+
+        return raus;
     }
 
     private static string Quelltext(params string[] teile)

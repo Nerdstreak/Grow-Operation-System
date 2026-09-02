@@ -189,7 +189,11 @@ function ManualMeasurementPage() {
         const active = data.filter((grow) => grow.status === 'Running' || grow.status === 'Planning')
         setGrows(active)
         setSelectedGrowId((current) => current ?? active[0]?.id ?? null)
-        const stage = active[0]?.latestStage ?? 'Veg'
+        // Die Phase von HEUTE (currentStage), nicht die Aufschrift der letzten
+        // Messung. Vorher schlug das Formular die alte Aufschrift vor, und die
+        // naechste Messung schrieb sie fort — waehrend die App dieselbe Zeile
+        // gleich darauf mit „≠ Bluete" als falsch markierte.
+        const stage = active[0]?.currentStage ?? 'Veg'
         setDraft((current) => ({ ...current, stage }))
       } catch (caught) {
         if (!controller.signal.aborted) setError(formatApiError(caught, 'Grows konnten nicht geladen werden.'))
@@ -323,7 +327,7 @@ function ManualMeasurementPage() {
   function selectGrow(growId: number) {
     const grow = grows.find((item) => item.id === growId)
     setSelectedGrowId(growId)
-    if (grow?.latestStage) patch({ stage: grow.latestStage })
+    if (grow?.currentStage) patch({ stage: grow.currentStage })
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {

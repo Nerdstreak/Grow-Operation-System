@@ -114,7 +114,7 @@ function HydroDetailPage() {
       </V1Section>
 
       <V1Section title="Verknüpfte Grows">
-        {linkedGrows.length === 0 ? <V1Empty title="Keine aktiven Grows verknüpft" /> : <div className="v1-list">{linkedGrows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>{grow.tentName ?? 'ohne Zelt'} · {statusName(grow.status)}</span><V1Badge>{grow.latestStage ? phaseName(grow.latestStage) : statusName(grow.status)}</V1Badge></Link>)}</div>}
+        {linkedGrows.length === 0 ? <V1Empty title="Keine aktiven Grows verknüpft" /> : <div className="v1-list">{linkedGrows.map((grow) => <Link key={grow.id} to={`/grows/${grow.id}`} className="v1-list-row"><strong>{grow.name}</strong><span>{grow.tentName ?? 'ohne Zelt'} · {statusName(grow.status)}</span><V1Badge>{grow.currentStage ? phaseName(grow.currentStage) : statusName(grow.status)}</V1Badge></Link>)}</div>}
       </V1Section>
     </V1Page>
   )

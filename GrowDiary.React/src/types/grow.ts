@@ -66,11 +66,17 @@ export interface GrowSummary {
   rootedAt: string | null
   vegStartedAt: string | null
   finishStartedAt: string | null
-  /** Die Phase von heute, aus dem Resolver — eine Quelle für alle Knöpfe. */
-  currentStage: string
+  /**
+   * Die Phase von heute, aus dem Resolver — eine Quelle für alle Knöpfe.
+   *
+   * Getippt als `GrowStage`, nicht als `string`: das Backend schickt hier
+   * immer den Namen eines Enum-Werts. Solange `string` dastand, war
+   * `currentStage` an jeder Stelle unbequemer als das danebenliegende
+   * `latestStage` — und drei Seiten nahmen deshalb die falsche Quelle.
+   */
+  currentStage: GrowStage
   measurementCount: number
   latestPhotoPath: string | null
-  latestStage: GrowStage | null
   latestReservoirPh: number | null
   latestReservoirEc: number | null
   latestMeasurementAt: string | null
@@ -261,7 +267,7 @@ export interface GrowDetail {
   rootedAt: string | null
   vegStartedAt: string | null
   finishStartedAt: string | null
-  currentStage: string
+  currentStage: GrowStage
   nutrients: string | null
   /* Beide optional: das Backend laesst null-Felder im JSON ganz weg. */
   feedProgramId?: string | null

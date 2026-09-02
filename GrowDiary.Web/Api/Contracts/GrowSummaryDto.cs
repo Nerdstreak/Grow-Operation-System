@@ -47,7 +47,6 @@ public sealed record GrowSummaryDto(
     string CurrentStage,
     int MeasurementCount,
     string? LatestPhotoPath,
-    GrowStage? LatestStage,
     double? LatestReservoirPh,
     double? LatestReservoirEc,
     DateTime? LatestMeasurementAt,

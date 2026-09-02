@@ -38,7 +38,6 @@ public static class GrowMapping
         CurrentStage: Services.GrowStageResolver.Resolve(grow, DateTime.Today).ToString(),
         MeasurementCount: grow.MeasurementCount,
         LatestPhotoPath: grow.LatestPhotoPath,
-        LatestStage: grow.LatestMeasurement?.Stage,
         LatestReservoirPh: grow.LatestReservoirPh ?? grow.LatestMeasurement?.ReservoirPh,
         LatestReservoirEc: grow.LatestReservoirEc ?? grow.LatestMeasurement?.ReservoirEc,
         LatestMeasurementAt: grow.LatestMeasurement?.TakenAt,

@@ -174,7 +174,11 @@ public static class GrowStageResolver
 
         // Das Ende der Blüte kommt aus den Breeder-Wochen. Ohne sie wird nicht
         // geraten — dann bleibt es bei „Flower", und Finish setzt der Nutzer
-        // selbst per Messung.
+        // selbst über „Finish beginnt" — das ist FinishStartedAt, zwanzig Zeilen
+        // weiter oben. Bis zum 02.09.2026 stand hier „per Messung"; das stimmte,
+        // solange die Aufschrift einer Messung die Zielbänder verschob. Seit
+        // die Phase nur noch aus dem Grow kommt, ist der Knopf der einzige Weg
+        // — und der einzige, der auch in der Kopfzeile ankommt.
         var wochen = grow.BreederFlowerWeeksMax ?? grow.BreederFlowerWeeksMin;
         if (wochen is { } w && w > 0)
         {

@@ -58,13 +58,57 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
         }
     }
 
-    private static GrowRun CreateHydroGrow() => new()
+    /// <summary>
+    /// Ein Grow, dessen <b>gerechnete</b> Phase die gewünschte ist.
+    /// </summary>
+    /// <remarks>
+    /// <para>Bis zum 02.09.2026 stand die Phase auf der <i>Messung</i>, und die
+    /// Diagnose las sie von dort. Das lief mit dem Rest der App auseinander:
+    /// die Kopfzeile fragte immer schon <see cref="GrowStageResolver"/>, die
+    /// Kachel auch — die Diagnose nicht. Eine einzige Messzeile mit falscher
+    /// Aufschrift reichte, und dieselbe Zahl war auf der Kachel „im Ziel" und
+    /// in der Diagnose „ausserhalb".</para>
+    ///
+    /// <para>Seitdem kommt die Phase aus dem Grow, und diese Tests schreiben sie
+    /// deshalb dorthin, wo der Nutzer sie auch setzt: Startdatum, Flip,
+    /// „Finish beginnt".</para>
+    /// </remarks>
+    private static GrowRun CreateHydroGrow(GrowStage stage = GrowStage.Veg)
     {
-        Name = "Test",
-        MediumType = MediumType.Hydro,
-        IrrigationType = IrrigationType.ActiveHydro,
-        HydroStyle = HydroStyle.RDWC
-    };
+        var grow = new GrowRun
+        {
+            Name = "Test",
+            MediumType = MediumType.Hydro,
+            IrrigationType = IrrigationType.ActiveHydro,
+            HydroStyle = HydroStyle.RDWC,
+            SeedType = SeedType.Feminized,
+            StartDate = DateTime.Today.AddDays(-60),
+        };
+
+        switch (stage)
+        {
+            case GrowStage.Veg:
+                break;
+            case GrowStage.Flower:
+                grow.FlipDate = DateTime.Today.AddDays(-30);
+                break;
+            case GrowStage.Finish:
+                grow.FlipDate = DateTime.Today.AddDays(-45);
+                grow.FinishStartedAt = DateTime.Today.AddDays(-3);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(stage), stage, "Fuer diese Phase gibt es hier keinen Aufbau.");
+        }
+
+        // Gegenprobe: der Aufbau muss wirklich die gewuenschte Phase ergeben.
+        // Ohne sie prueft der Test darunter eine andere Phase als benannt.
+        var gerechnet = GrowStageResolver.Resolve(grow, DateTime.Today);
+        Assert.True(gerechnet == stage,
+            $"Der Aufbau liefert {gerechnet}, gewollt war {stage}.");
+
+        return grow;
+    }
 
     private static Measurement CreateMeasurement(GrowStage stage) => new()
     {
@@ -197,7 +241,7 @@ public sealed class DeviationAnalyzerServiceTests : IDisposable
     public void Ph_InFinish_TieferAnmischzielBleibtErlaubt()
     {
         // Finish mischt bewusst auf 5.6–5.8 an — das darf keine Abweichung ausloesen.
-        var grow = CreateHydroGrow();
+        var grow = CreateHydroGrow(GrowStage.Finish);
         var m = CreateMeasurement(GrowStage.Finish);
         m.ReservoirPh = 5.65;
         m.ReservoirEc = 1.3;

@@ -26,6 +26,14 @@ Reihenfolge: Pumpen-Befunde (`/api/pump-watch`, ganz oben), überfällige Routin
 einer SOP oder eines Risiko-Ablaufs — je Schritt mit Fälligkeit eine
 (`CreateReminderTasksForSteps`) — oder von Hand im Journal.
 
+Und aus **geplanten Geräte-Vorgängen**: eine Kalibrierung oder Wartung mit
+Status `Planned`, Fälligkeit und einem Gerät am Grow legt eine Erinnerung an
+(`GrowTaskId`). Sie geht wieder mit, sobald der Vorgang gelöscht wird — auch
+beim Löschen des ganzen Geräts, und dann für alle seine Vorgänge auf einmal.
+**Abgehakte** Aufgaben bleiben stehen: was erledigt ist, gehört in die Historie.
+(Bis beta.63 blieb jede dieser Erinnerungen zurück und war über die Oberfläche
+nicht mehr erreichbar.)
+
 **Fällige Routinen** liest `SopDueService` aus den `Schedule`-Triggern der
 Wissens-Abläufe. „Zuletzt gemacht" kommt aus dem, was ohnehin anfällt:
 Wasserwechsel aus der Lösungswechsel-Markierung einer Messung, Tagesroutine aus

@@ -79,13 +79,44 @@ public sealed class TaskRepository
         command.ExecuteNonQuery();
     }
 
+    /// <summary>Eine Aufgabe löschen — samt der Kennungen, die auf sie zeigten.</summary>
+    /// <remarks>
+    /// <para><b>Der Anlass (02.09.2026).</b> Eine geplante Kalibrierung oder
+    /// Wartung legt eine Erinnerung an und merkt sich deren Kennung
+    /// (<c>GrowTaskId</c>). Wer die Erinnerung in der Aufgabenliste löscht
+    /// („Aufgaben" am Telefon), liess bis dahin einen Vorgang zurück, dessen
+    /// Kennung ins Leere zeigte.</para>
+    ///
+    /// <para>Das ist keine Schönheitsfrage: die Erinnerung entsteht nur beim
+    /// <b>Anlegen</b> (<c>GrowTaskId ??= TryCreate…</c>), nicht beim Bearbeiten.
+    /// Der Vorgang bekam also <b>nie wieder</b> eine — die Kalibrierung stand
+    /// weiter als geplant da und erinnerte an nichts mehr.</para>
+    /// </remarks>
     public void Delete(int id)
     {
         using var connection = OpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM GrowTasks WHERE Id = $id;";
-        command.Parameters.AddWithValue("$id", id);
-        command.ExecuteNonQuery();
+        using var transaction = connection.BeginTransaction();
+
+        // Zuerst abhaengen, dann loeschen: danach ist der Vorgang wieder in dem
+        // Zustand, aus dem eine neue Erinnerung entstehen kann.
+        foreach (var tabelle in new[] { "CalibrationEvents", "MaintenanceEvents" })
+        {
+            using var loesen = connection.CreateCommand();
+            loesen.Transaction = transaction;
+            loesen.CommandText = $"UPDATE {tabelle} SET GrowTaskId = NULL WHERE GrowTaskId = $id;";
+            loesen.Parameters.AddWithValue("$id", id);
+            loesen.ExecuteNonQuery();
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = "DELETE FROM GrowTasks WHERE Id = $id;";
+            command.Parameters.AddWithValue("$id", id);
+            command.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
     }
 
     private List<GrowTask> ReadTasks(SqliteCommand command)

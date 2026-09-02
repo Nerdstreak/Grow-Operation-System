@@ -162,14 +162,27 @@ public sealed class DeviationAnalyzerService
            Athena Blended sagte die Kachel „im Ziel", waehrend das Messprotokoll
            derselben Messung „weit ueber dem Ziel" schrieb. */
         var regeln = grow.TentId is { } tentId ? _alertRules?.GetForTent(tentId) : null;
+
+        /* Die Phase von HEUTE, nicht die Aufschrift der letzten Messung. Bis zum
+           02.09.2026 stand hier `latest.Stage` — dieselbe Form wie an vier
+           anderen Stellen, nur ohne `?.` und `??`, weshalb die Zaehlung sie im
+           ersten Anlauf uebersah.
+
+           Nachgestellt an der laufenden App: Grow 1 blueht seit dem 29.07.,
+           eine einzige Messzeile mit Aufschrift „Saemling" reicht — die Kachel
+           sagt „EC 1,03 im Ziel (1,00-1,20)", die Diagnose derselben Minute
+           „EC 1,03 ausserhalb (0,20-0,40)". Genau der Widerspruch, den der
+           Kommentar zwei Zeilen darueber selbst beklagt. */
+        var phase = GrowStageResolver.Resolve(grow, DateTime.Today);
+
         var targets = Zielband.FuerGrow(
-            _targetValues, _wissen, grow, latest.Stage, systemProfileId, regeln);
+            _targetValues, _wissen, grow, phase, systemProfileId, regeln);
 
         // Fuer die Wassertemperatur getrennt: dort ist das Zielband die Quelle
         // fuer den Arbeitsbereich, und eine eingelegte Alarmregel saehe darin
         // aus wie eine Nachtabsenkung. Sie kommt deshalb als eigene Angabe.
         var ohneNutzer = Zielband.FuerGrow(
-            _targetValues, _wissen, grow, latest.Stage, systemProfileId, null);
+            _targetValues, _wissen, grow, phase, systemProfileId, null);
 
         // Fuer die Phasen-Vergleiche weiter unten: das Profil selbst, ohne
         // Feedchart und ohne eigene Grenzen — dort geht es um „was gilt in

@@ -30,14 +30,32 @@ public sealed class DeviationAnalyzerSopRulesTests : IDisposable
         _service = new DeviationAnalyzerService(new TargetValueService(loader));
     }
 
-    private static GrowRun Grow() => new()
+    /// <summary>Ein Grow in der Blüte — die Phase steht am GROW, nicht an der Messung.</summary>
+    /// <remarks>
+    /// Seit dem 02.09.2026 liest die Diagnose die Phase aus
+    /// <see cref="GrowStageResolver"/>. Wer sie hier auf die Messung schriebe,
+    /// prüfte eine andere Phase als er meint.
+    /// </remarks>
+    private static GrowRun Grow(bool imFinish = false)
     {
-        Id = 1,
-        Name = "Testlauf",
-        MediumType = MediumType.Hydro,
-        HydroStyle = HydroStyle.RDWC,
-        StartDate = DateTime.Now.AddDays(-40),
-    };
+        var grow = new GrowRun
+        {
+            Id = 1,
+            Name = "Testlauf",
+            MediumType = MediumType.Hydro,
+            HydroStyle = HydroStyle.RDWC,
+            SeedType = SeedType.Feminized,
+            StartDate = DateTime.Today.AddDays(-70),
+            FlipDate = DateTime.Today.AddDays(-40),
+            FinishStartedAt = imFinish ? DateTime.Today.AddDays(-3) : null,
+        };
+
+        var gerechnet = GrowStageResolver.Resolve(grow, DateTime.Today);
+        var gewollt = imFinish ? GrowStage.Finish : GrowStage.Flower;
+        Assert.True(gerechnet == gewollt, $"Der Aufbau liefert {gerechnet}, gewollt war {gewollt}.");
+
+        return grow;
+    }
 
     private static Measurement At(DateTime takenAt, double? ph = null, double? doMgL = null, double? ec = null) => new()
     {
@@ -218,9 +236,8 @@ public sealed class DeviationAnalyzerSopRulesTests : IDisposable
     {
         // The setpoint used to say 1,1–1,6 for Finish, so a grower following the plan down
         // to 0,4 was told the value was wrong.
-        var grow = Grow();
+        var grow = Grow(imFinish: true);
         var measurement = At(DateTime.Now, ec: 0.4);
-        measurement.Stage = GrowStage.Finish;
 
         var deviations = _service.Analyze(grow, new List<Measurement> { measurement });
 
